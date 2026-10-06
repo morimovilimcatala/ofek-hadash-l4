@@ -135,6 +135,24 @@ def parse(path: Path) -> Source:
             for l in lines[mark:stop])
         segs.append(Segment(keys, start + 1, stop, lines[start:stop],
                             note_only))
+    # A `§` heading ends the rule above it: code under a new heading that
+    # cites no paragraph is that heading's shared vocabulary, not the
+    # previous paragraph's rule.
+    cut: list[Segment] = []
+    for seg in segs:
+        m = _mark_index(seg)
+        k = next((i for i in range(m + 1, len(seg.lines)) if seg.lines[i].lstrip().startswith("§")), None)
+        if k is None:
+            cut.append(seg)
+            continue
+        head = seg.lines[:k]
+        while head and not head[-1].strip():
+            head.pop()
+        cut.append(Segment(seg.keys, seg.start, seg.start + len(head) - 1, head, seg.note_only))
+        rest = seg.lines[k:]
+        if any(l.strip() and not l.lstrip().startswith(("§", "--")) for l in rest):
+            cut.append(Segment([], seg.start + k, seg.end, rest, False))
+    segs = cut
     # A note is its comment lines. Code that follows a note — the section's
     # shared definitions, its worked examples — is not what the note cites,
     # so it becomes a segment of its own with no key: shown apart, counted

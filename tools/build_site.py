@@ -110,8 +110,23 @@ class SectionView:
         return self.doc.removesuffix(".xml")
 
     @property
+    def page(self) -> str:
+        """The document's one page; a section is an anchor on it, named by
+        the same eId the corpus site uses, so links between the two match."""
+        return f"{self.dir}.html"
+
+    @property
     def href(self) -> str:
+        return f"{self.page}#{self.section.eid}"
+
+    @property
+    def old_href(self) -> str:
+        """Where the section had a page of its own; a redirect now."""
         return f"{self.dir}/{self.section.num}.html"
+
+    @property
+    def render_href(self) -> str:
+        return f"{self.dir}/{self.section.num}.render.html"
 
     @property
     def text_rows(self):
@@ -426,47 +441,42 @@ def segment_html(v: SectionView, s: l4src.Segment, rendered: dict[int, str]) -> 
 FINDINGS_BY_KEY: dict[str, list[dict]] = {}
 
 
-def section_page(v: SectionView, prev_next) -> str:
+def section_block(v: SectionView, here: str) -> str:
+    """One section of the document page: its head, its findings, and the
+    text beside the L4, row by row."""
     sec = v.section
-    here = v.href
     corpus = f"{CORPUS_SITE}/{v.dir}.html#{sec.eid}"
     found = []
     for r in sec.rows:
         for f in FINDINGS_BY_KEY.get(r.key, []):
             if f not in found:
                 found.append(f)
-    links = [f'<a href="{corpus}">In the corpus ↗</a>']
+    links = [f'<a href="{corpus}">corpus ↗</a>']
     if v.l4:
-        links += [f'<a href="{REPO}/blob/main/{v.l4.relative_to(ROOT)}">Source ↗</a>',
-                  f'<a href="{esc(sec.num)}.render.html">Whole section as l4 render</a>']
+        links += [f'<a href="{REPO}/blob/main/{v.l4.relative_to(ROOT)}">source ↗</a>',
+                  f'<a href="{rel(v.render_href, here)}">as prose</a>']
     stats = ""
     if v.src is not None:
         t = tally(v)
         checks = sum(len(s.results) for s in v.src.segments)
         stats = (f'<div class="stats">'
                  f'<span class="{"okay" if v.ok else "notok"}">{"✓ checks clean" if v.ok else "✗ l4 reports errors"}</span>'
-                 f'<span><b>{t["rule"]}</b> paragraphs with a rule</span>'
+                 f'<span><b>{t["rule"]}</b> with a rule</span>'
                  f'<span><b>{t["note"]}</b> with none</span>'
                  + (f'<span class="notok"><b>{t["missing"]}</b> not cited</span>' if t["missing"] else "")
-                 + f'<span><b>{checks}</b> checks run</span>'
-                 + (f'<a class="fcount" href="#findings"><b>{len(found)}</b> finding{"s" * (len(found) != 1)}</a>' if found else "")
+                 + f'<span><b>{checks}</b> checks</span>'
+                 + (f'<span class="fcount"><b>{len(found)}</b> finding{"s" * (len(found) != 1)}</span>' if found else "")
                  + '</div>')
-    head = (f'<header class="sec-head">'
-            f'<nav class="crumbs"><a href="{rel("index.html", here)}">Documents</a><span>/</span>'
-            f'<a href="index.html">{he(akn.title(v.doc))}</a><span>/</span>'
-            f'<span>Chapter {esc(sec.chapter_num)} · {he(sec.chapter_heading)}</span></nav>'
-            f'<div class="title-row"><h1 lang="he" dir="rtl"><span class="secnum" dir="ltr">§{esc(sec.num)}</span>'
-            f'{esc(sec.heading)}</h1>{badge(v.status)}</div>'
-            f'<div class="links">{"".join(links)}</div>{stats}</header>')
+    head = (f'<header class="tsec-head">'
+            f'<div class="title-row"><h2 lang="he" dir="rtl"><a class="anchor" href="#{esc(sec.eid)}">'
+            f'<span class="secnum" dir="ltr">§{esc(sec.num)}</span>{esc(sec.heading)}</a></h2>'
+            f'<div class="tsec-meta">{badge(v.status)}<span class="links">{"".join(links)}</span></div></div>'
+            f'{stats}</header>')
     if found:
-        head += ('<section class="sec-findings" id="findings"><h2>Findings in this section</h2><ul>'
+        head += ('<div class="sec-findings"><h3>Findings in this section</h3><ul>'
                  + "".join(f'<li><a href="{rel("findings.html", here)}#{esc(f["id"])}"><span class="kind-tag {f["kind"]}">'
                            f'{esc(KINDS[f["kind"]][0])}</span>{esc(f["title"])}</a></li>' for f in found)
-                 + "</ul></section>")
-    pn = '<nav class="prevnext">' + "".join(
-        f'<a class="{cls}" href="{esc(x.section.num)}.html"><small>{lab}</small>'
-        f'<span>§{esc(x.section.num)} {he(x.section.heading)}</span></a>'
-        for x, cls, lab in prev_next if x) + "</nav>"
+                 + "</ul></div>")
 
     def flags(r):
         fs = FINDINGS_BY_KEY.get(r.key, [])
@@ -478,18 +488,10 @@ def section_page(v: SectionView, prev_next) -> str:
             f'<div class="row {r.kind} d{min(r.depth, 6)}" id="{esc(r.key)}">'
             f'<div class="txt" lang="he" dir="rtl">{text_cell(r)}</div></div>'
             for r in sec.rows)
-        body = (head + '<p class="banner">Not encoded yet — the text below is the corpus\'s.</p>'
-                + f'<div class="grid only-text">{rows}</div>' + pn)
-        return page(here, f"§{sec.num} {sec.heading} — {TITLE}", body, tab="docs")
+        return (f'<section class="tsec todo" id="{esc(sec.eid)}">{head}'
+                f'<div class="grid only-text">{rows}</div></section>')
 
     rendered = rendered_for(v)
-    pre_lines = v.src.lines[v.src.preamble[0] - 1:v.src.preamble[1] - 1]
-    pre_read = [(n, l) for n, l in l4src.for_reading(pre_lines, v.src.preamble[0])
-                if not (l.lstrip().startswith("--") and n <= 3)]
-    preamble = ""
-    if any(l.strip() for _, l in pre_read):
-        preamble = (f'<details class="preamble"><summary>Imports</summary>'
-                    f'{l4src.numbered_html(pre_read)}</details>')
     out = []
     for r in sec.rows:
         segs = v.anchors.get(r.key, [])
@@ -513,27 +515,29 @@ def section_page(v: SectionView, prev_next) -> str:
     if v.unplaced:
         unplaced = ('<div class="banner bad">Code cites keys that are not in this section: ' +
                     ", ".join(esc(" ".join(s.keys)) for s in v.unplaced) + "</div>")
-    switch = ('<div class="switch" role="group" aria-label="How to show the L4">'
-              '<button type="button" data-view="code-view" aria-pressed="true">Code</button>'
-              '<button type="button" data-view="rendered" aria-pressed="false">As prose</button></div>')
     appendix = ""
     if v.appendix:
-        appendix = ('<section class="appendix"><h2>Shared definitions, examples and checks</h2>'
-                    '<p class="meta">Code that serves the rules above without encoding a paragraph of its own.</p>'
-                    + "".join(segment_html(v, s, rendered) for s in v.appendix) + '</section>')
-    body = (head + unplaced +
-            f'<div class="colheads"><div class="ch-l4">L4 {switch}</div><div class="ch-text">Text</div></div>' +
-            preamble + f'<div class="grid">{"".join(out)}</div>' + appendix + pn)
-    return page(here, f"§{sec.num} {sec.heading} — {TITLE}", body, tab="docs", wide=True,
-                desc=f"Section {sec.num} of the teaching staff service regulations, its text beside its L4")
+        appendix = ('<details class="appendix"><summary>Shared definitions, examples and checks '
+                    f'<span class="meta">({len(v.appendix)})</span></summary>'
+                    + "".join(segment_html(v, s, rendered) for s in v.appendix) + '</details>')
+    return (f'<section class="tsec" id="{esc(sec.eid)}">{head}{unplaced}'
+            f'<div class="grid">{"".join(out)}</div>{appendix}</section>')
+
+
+def redirect_page(here: str, target: str, title: str) -> str:
+    """A page that moved: sends the reader (and a search engine) on."""
+    to = rel(target, here)
+    return (f'<!doctype html><html lang="en"><head><meta charset="utf-8"><title>{esc(title)}</title>'
+            f'<meta http-equiv="refresh" content="0; url={esc(to)}"><link rel="canonical" href="{esc(to)}">'
+            f'</head><body><p>Moved to <a href="{esc(to)}">{esc(title)}</a>.</p></body></html>')
 
 
 def render_page(v: SectionView) -> str:
     """L4's own rendering, framed by the site so it is navigable."""
     m = re.search(r"<body[^>]*>(.*)</body>", v.render, re.S)
     inner = m.group(1) if m else v.render
-    here = v.href.replace(".html", ".render.html")
-    body = (f'<header class="sec-head"><nav class="crumbs"><a href="{esc(v.section.num)}.html">← §{esc(v.section.num)} side by side</a></nav>'
+    here = v.render_href
+    body = (f'<header class="sec-head"><nav class="crumbs"><a href="{rel(v.href, here)}">← §{esc(v.section.num)} side by side</a></nav>'
             f'<div class="title-row"><h1 lang="he" dir="rtl"><span class="secnum" dir="ltr">§{esc(v.section.num)}</span>'
             f'{esc(v.section.heading)}</h1></div>'
             f'<p class="lede">The whole section as <code>l4 render</code> writes the rules back out as prose.</p></header>'
@@ -557,32 +561,57 @@ def progress(vs: list[SectionView]) -> str:
 
 
 def document_page(doc: str, views: list[SectionView]) -> str:
-    here = f"{doc.removesuffix('.xml')}/index.html"
+    """The whole document on one page, as the corpus publishes it: a contents
+    rail, then every section with its text beside its L4."""
+    here = f"{doc.removesuffix('.xml')}.html"
     chapters: dict[str, list[SectionView]] = {}
     for v in views:
         chapters.setdefault(v.section.chapter_eid, []).append(v)
     done = sum(v.status == "done" for v in views)
     part = sum(v.status == "partial" for v in views)
-    parts = [f'<header class="sec-head"><nav class="crumbs"><a href="{rel("index.html", here)}">Documents</a></nav>'
-             f'<div class="title-row"><h1 lang="he" dir="rtl">{esc(akn.title(doc))}</h1></div>'
-             f'<p class="lede">The teaching staff service regulations of the Ministry of Education — '
-             f'{len(views)} sections in {len(chapters)} chapters.</p>'
-             f'<div class="stats"><span><b>{done}</b> of {len(views)} sections encoded</span>'
-             + (f'<span><b>{part}</b> partly</span>' if part else "")
-             + f'<a href="{CORPUS_SITE}/{doc.removesuffix(".xml")}.html">In the corpus ↗</a></div>'
-             f'{progress(views)}</header>']
+    nfind = len({f["id"] for v in views for r in v.section.rows for f in FINDINGS_BY_KEY.get(r.key, [])})
+    toc = []
+    for vs in chapters.values():
+        s0 = vs[0].section
+        lis = "".join(
+            f'<li class="{v.status}"><a href="#{esc(v.section.eid)}">{dot(v.status)}'
+            f'<span class="secnum" dir="ltr">{esc(v.section.num)}</span>'
+            f'<span class="sh" lang="he">{esc(v.section.heading)}</span></a></li>' for v in vs)
+        toc.append(f'<li class="toc-ch"><a href="#{esc(s0.chapter_eid)}" class="toc-chead" lang="he">'
+                   f'פרק {esc(s0.chapter_num)} · {esc(s0.chapter_heading)}</a><ul>{lis}</ul></li>')
+    body = []
     for vs in chapters.values():
         s0 = vs[0].section
         n_done = sum(v.status == "done" for v in vs)
-        lis = "".join(
-            f'<li class="{v.status}"><a href="{esc(v.section.num)}.html">{dot(v.status)}'
-            f'<span class="secnum" dir="ltr">{esc(v.section.num)}</span>'
-            f'<span class="sh" lang="he">{esc(v.section.heading)}</span></a></li>' for v in vs)
-        parts.append(f'<section class="chapter" dir="rtl"><div class="chapter-head"><h2>'
-                     f'<span lang="he">פרק {esc(s0.chapter_num)} · {esc(s0.chapter_heading)}</span></h2>'
-                     f'<span class="ccount" dir="ltr">{n_done} of {len(vs)} encoded</span></div>'
-                     f'<ul class="secs">{lis}</ul></section>')
-    return page(here, f"{akn.title(doc)} — {TITLE}", "".join(parts), tab="docs")
+        blocks = "".join(section_block(v, here) for v in vs)
+        # a chapter the corpus holds as one block is its own section; it
+        # takes the chapter's anchor itself
+        chap_id = "" if any(v.section.eid == s0.chapter_eid for v in vs) else f' id="{esc(s0.chapter_eid)}"'
+        body.append(f'<div class="chapter-band"{chap_id}><h2 lang="he" dir="rtl">פרק {esc(s0.chapter_num)} · '
+                    f'{esc(s0.chapter_heading)}</h2><span class="ccount">{n_done} of {len(vs)} encoded</span></div>'
+                    + blocks)
+    switch = ('<div class="switch" role="group" aria-label="How to show the L4">'
+              '<button type="button" data-view="code-view" aria-pressed="true">Code</button>'
+              '<button type="button" data-view="rendered" aria-pressed="false">As prose</button></div>')
+    head = (f'<header class="sec-head doc-head"><nav class="crumbs"><a href="{rel("index.html", here)}">Documents</a></nav>'
+            f'<div class="title-row"><h1 lang="he" dir="rtl">{esc(akn.title(doc))}</h1></div>'
+            f'<p class="lede">The teaching staff service regulations of the Ministry of Education, whole, '
+            f'as the corpus publishes them: {len(views)} sections in {len(chapters)} chapters. Each paragraph '
+            f'of the text (right) sits beside the L4 that encodes it (left).</p>'
+            f'<div class="stats"><span><b>{done}</b> of {len(views)} sections encoded</span>'
+            + (f'<span><b>{part}</b> partly</span>' if part else "")
+            + f'<a class="fcount" href="{rel("findings.html", here)}"><b>{nfind}</b> findings</a>'
+            f'<a href="{CORPUS_SITE}/{doc.removesuffix(".xml")}.html">In the corpus ↗</a></div>'
+            f'{progress(views)}</header>')
+    toolbar = (f'<div class="doc-toolbar"><span class="tb-label">L4 shown as</span>{switch}'
+               f'<span class="tb-where" aria-live="polite"></span>'
+               f'<span class="tb-cols"><span>L4</span><span>Text</span></span></div>')
+    page_body = (head + '<div class="doc-layout">'
+                 f'<aside class="toc" aria-label="Contents"><details open><summary>Contents</summary>'
+                 f'<ul dir="rtl">{"".join(toc)}</ul></details></aside>'
+                 f'<div class="doc-main">{toolbar}{"".join(body)}</div></div>')
+    return page(here, f"{akn.title(doc)} — {TITLE}", page_body, tab="docs", wide=True,
+                desc="The teaching staff service regulations, whole, each paragraph beside its L4 encoding")
 
 
 def index_page(all_views: dict[str, list[SectionView]], findings: list[dict]) -> str:
@@ -599,7 +628,7 @@ def index_page(all_views: dict[str, list[SectionView]], findings: list[dict]) ->
         for d in docs:
             vs = all_views[d]
             n = sum(v.status == "done" for v in vs)
-            cards.append(f'<li class="coll live"><a href="{d.removesuffix(".xml")}/index.html">'
+            cards.append(f'<li class="coll live"><a href="{d.removesuffix(".xml")}.html">'
                          f'<span class="cname">{esc(name)}</span>'
                          f'<span class="ctitle" lang="he" dir="rtl">{esc(akn.title(d))}</span>'
                          f'{progress(vs)}<span class="cstate">{n} of {len(vs)} sections encoded</span></a></li>')
@@ -808,7 +837,7 @@ def coverage_page(all_views: dict[str, list[SectionView]]) -> str:
             f'</div>')
     parts = [head]
     for doc, vs in all_views.items():
-        parts.append(f'<h2><a href="{doc.removesuffix(".xml")}/index.html">{he(akn.title(doc))}</a></h2>'
+        parts.append(f'<h2><a href="{doc.removesuffix(".xml")}.html">{he(akn.title(doc))}</a></h2>'
                      '<p class="meta">One strip per chapter, one cell per section, its width the section\'s '
                      'paragraphs. Hover for the counts; click to open.</p>')
         chapters: dict[str, list[SectionView]] = {}
@@ -848,7 +877,7 @@ def coverage_page(all_views: dict[str, list[SectionView]]) -> str:
                     for d in working) / len(docs)
         lis = "".join(
             f'<li class="{"work" if d["path"] in all_views else ""}">'
-            + (f'<a href="{d["path"].removesuffix(".xml")}/index.html">{he(d["title"])}</a>'
+            + (f'<a href="{d["path"].removesuffix(".xml")}.html">{he(d["title"])}</a>'
                if d["path"] in all_views else
                f'<a href="{CORPUS_SITE}/{esc(d["path"].removesuffix(".xml"))}.html">{he(d["title"])}</a>')
             + f' <span class="date">{esc(d["date"] or "")}</span></li>'
@@ -910,14 +939,15 @@ def build() -> int:
         all_views[doc] = views
         d = OUT / doc.removesuffix(".xml")
         d.mkdir(parents=True, exist_ok=True)
-        (d / "index.html").write_text(document_page(doc, views), encoding="utf-8")
-        for i, v in enumerate(views):
-            pn = [(views[i - 1] if i else None, "prev", "←"),
-                  (views[i + 1] if i + 1 < len(views) else None, "next", "→")]
-            (OUT / v.href).write_text(section_page(v, pn), encoding="utf-8")
+        (OUT / f"{doc.removesuffix('.xml')}.html").write_text(document_page(doc, views), encoding="utf-8")
+        # the per-section pages and the chapter list this site had first
+        # now send the reader to the anchor on the one page
+        (d / "index.html").write_text(redirect_page(f"{doc.removesuffix('.xml')}/index.html",
+                                                    f"{doc.removesuffix('.xml')}.html", akn.title(doc)), encoding="utf-8")
+        for v in views:
+            (OUT / v.old_href).write_text(redirect_page(v.old_href, v.href, f"§{v.section.num}"), encoding="utf-8")
             if v.src is not None:
-                (OUT / v.href.replace(".html", ".render.html")).write_text(
-                    render_page(v), encoding="utf-8")
+                (OUT / v.render_href).write_text(render_page(v), encoding="utf-8")
     flat = [v for vs in all_views.values() for v in vs]
     by_file = {str(v.l4.relative_to(ROOT)): v for v in flat if v.l4}
     key_to_view = {}

@@ -77,6 +77,17 @@ class Alignment(unittest.TestCase):
                 self.assertEqual(missing, [], f"§{v.section.num}: paragraphs no segment cites")
 
 
+class Layout(unittest.TestCase):
+    def test_no_continuation_line_regroups_arithmetic(self):
+        # a line that begins with an operator takes the rest of the line as
+        # its right operand (tools/layout_lint.py); one operand per line
+        import layout_lint
+        found = [f"{f.relative_to(ROOT)}:{n} {kind}: {t}"
+                 for f in sorted((ROOT / "l4").rglob("*.l4"))
+                 for n, kind, t in layout_lint.scan(f)]
+        self.assertEqual(found, [])
+
+
 class Findings(unittest.TestCase):
     def setUp(self):
         self.findings = site_mod.load_findings()
@@ -155,6 +166,12 @@ class Segmenter(unittest.TestCase):
         note, rest = src.segments
         self.assertEqual((note.keys, note.note_only, note.end), (["A"], True, 1))
         self.assertEqual((rest.keys, rest.start), ([], 3))
+
+    def test_a_heading_ends_the_rule_above_it(self):
+        src = self.parse("@ref akn:A\nx MEANS 1\n\n§§ `next`\n\nhelper MEANS 2\n")
+        rule, shared = src.segments
+        self.assertEqual((rule.keys, rule.end), (["A"], 2))
+        self.assertEqual((shared.keys, shared.start), ([], 4))
 
     def test_one_marker_may_cite_several_keys(self):
         src = self.parse("@ref akn:A akn:B__x\ny MEANS 2\n")

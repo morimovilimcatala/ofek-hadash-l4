@@ -87,6 +87,12 @@ reader can see past, a dated amount.
 - A mixfix call (``d `is on or after` e``) binds looser than `OR`.
 - No record update (`x WITH f IS v`); a multi-line `WITH` inside `#ASSERT`
   does not parse — name the record first.
+- **A line that begins with an operator takes the rest of THAT LINE as its
+  right operand.** `10 MINUS 3 MINUS 2` ⏎ `MINUS 1 MINUS 1` is 5, not 3. Put
+  one operand on each continuation line (`a` ⏎ `PLUS b` ⏎ `PLUS c`), or
+  bracket. `tools/layout_lint.py` (and the suite) refuses the regrouping
+  kinds; a PLUS/TIMES chain is flagged too, because `l4 render` shows the
+  regrouped rest as one item.
 - `IMPORT prelude` explicitly — `map`, `filter`, `sum`, `min`, `all`,
   `count` come from it.
 - Record field names are global within a file and across `IMPORT`: two
