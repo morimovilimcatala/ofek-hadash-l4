@@ -333,6 +333,9 @@ def page(here: str, title: str, body: str, *, tab: str = "", desc: str = "",
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<link rel="icon" href="{rel('assets/favicon.svg', here)}" type="image/svg+xml">
+<meta name="theme-color" content="#f6f4ef" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#14130f" media="(prefers-color-scheme: dark)">
 <link rel="stylesheet" href="{rel('assets/site.css', here)}">
 <link rel="stylesheet" href="{rel('assets/l4-render.css', here)}">
 <script defer src="{rel('assets/site.js', here)}"></script>

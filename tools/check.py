@@ -2,7 +2,8 @@
 
     python3 tools/check.py l4/takanon/takanon-sherut-ovdei-horaa/1.7.l4
 
-Prints `ok: True|False`, every error and warning (deduplicated), and every
+Prints `ok: True|False` — true only when l4 checks the file AND every
+#ASSERT holds (l4's own `ok` ignores assertions) — every error and warning (deduplicated), and every
 #EVAL / #ASSERT / #TRACE result. The gate is `ok`: `l4 check` exits 0 even
 when the file has errors.
 """
@@ -26,7 +27,8 @@ def main(path: str) -> int:
     except json.JSONDecodeError:
         print(r.stdout, r.stderr)
         return 1
-    print("ok:", d["ok"])
+    ok = bool(d["ok"]) and l4run.all_asserts_hold(d)
+    print("ok:", ok, "" if ok == bool(d["ok"]) else "(l4 says ok, but an #ASSERT is FALSE)")
     seen = set()
     for x in l4run.diagnostics(d.get("diagnostics")):
         if x.get("severity") not in ("error", "warning"):
@@ -39,7 +41,7 @@ def main(path: str) -> int:
     for res in d.get("results", []):
         val = str(res.get("value"))
         print(f"{res.get('kind')} {res.get('range')}: {val if len(val) < 300 else val[:300] + ' …'}")
-    return 0 if d["ok"] else 1
+    return 0 if ok else 1
 
 
 if __name__ == "__main__":

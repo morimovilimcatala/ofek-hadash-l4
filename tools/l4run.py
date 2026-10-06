@@ -95,6 +95,11 @@ def diagnostics(raw) -> list[dict]:
     return out
 
 
+def all_asserts_hold(data: dict) -> bool:
+    return all(str(r.get("value")).strip().lower() == "true"
+               for r in data.get("results", []) if r.get("kind") == "assertion")
+
+
 def run_one(path: Path, exe: str, cid: str) -> tuple[Path, bool, bool]:
     out = outputs(path)
     k = key(path, cid)
@@ -112,6 +117,10 @@ def run_one(path: Path, exe: str, cid: str) -> tuple[Path, bool, bool]:
                 "diagnostics": [{"severity": "error",
                                  "message": (r.stdout + r.stderr).strip()}]}
     data["diagnostics"] = diagnostics(data.get("diagnostics"))
+    # l4's own `ok` stays true when an #ASSERT comes back FALSE; the gate here
+    # is both: the file checks AND every assertion holds
+    data["l4_ok"] = bool(data.get("ok"))
+    data["ok"] = data["l4_ok"] and all_asserts_hold(data)
     out["run"].write_text(json.dumps(data, ensure_ascii=False, indent=1),
                           encoding="utf-8")
     rr = subprocess.run([exe, "render", "--format", "html",

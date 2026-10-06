@@ -80,6 +80,13 @@ reader can see past, a dated amount.
 
 ## L4 traps already hit here
 
+- `ok` from `l4 run` ignores a FALSE `#ASSERT`; `tools/check.py` and
+  `tools/l4run.py` gate on both.
+- `NOT` binds loosest: `NOT a AND b` is `NOT (a AND b)`. Write `(NOT a)`.
+- `a DIVIDED BY b TIMES c` is `a / (b × c)`. Parenthesise.
+- A mixfix call (``d `is on or after` e``) binds looser than `OR`.
+- No record update (`x WITH f IS v`); a multi-line `WITH` inside `#ASSERT`
+  does not parse — name the record first.
 - `IMPORT prelude` explicitly — `map`, `filter`, `sum`, `min`, `all`,
   `count` come from it.
 - Record field names are global within a file and across `IMPORT`: two
