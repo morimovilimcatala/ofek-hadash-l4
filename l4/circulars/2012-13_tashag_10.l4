@@ -1,0 +1,227 @@
+-- חוזר לבעלויות תשע"ג/10 — עדכון הפעימה האחרונה של תוספת 2011 בחטיבה
+-- העליונה; החוק להשתתפותם של העובדים … בצעדים לייצוב המצב הפיסקלי (19.8.2013)
+-- In the upper division: the 2011 supplement rises to 7.25% from 1.7.2013
+-- with the '87 and '94 supplements; and, under section 4 of the 2013
+-- participation law, salaries are reduced by 0.9324% of the determining
+-- base from 1.7.2013 to 31.12.2014 — what the base is, what the reduction
+-- may not touch, and which payments are computed as if it were not made.
+
+IMPORT prelude
+IMPORT common
+
+-- Dates are numbers YYYYMMDD.
+`1 July 2013`      MEANS 20130701
+`31 December 2014` MEANS 20141231
+
+§ `חוזר תשע"ג/10 פעימה אחרונה תוספת 2011 בחט"ע; הפחתת שכר`
+
+-- akn:preamble The letterhead, date, reference, addressee, greeting and the two subject lines; no rule.
+-- akn:preamble/p16 The heading "תחולה"; no rule.
+
+DECLARE `stage of education` IS ONE OF
+    `upper division`
+    `grades 13-14`
+    `another stage`
+
+@desc A teaching employee as this circular asks about them.
+DECLARE `upper-division employee` HAS
+    `graded as a teaching employee`  IS A BOOLEAN @desc graded in the teaching-employees grading
+    `employed by a supervised owner` IS A BOOLEAN @desc employed by an owner of an institution supervised by the Ministry of Education
+    `stage`                          IS A `stage of education`
+    `terms`                          IS A `employment terms for the shekel supplements`
+    `pay components`                 IS A LIST OF `pay component`
+    `minimum wage`                   IS A NUMBER @desc the minimum wage under the Minimum Wage Law 1987 for the employee's position; an input
+
+@ref akn:preamble/p17
+GIVEN e IS AN `upper-division employee`
+GIVETH A BOOLEAN
+DECIDE `the circular applies to` e IF
+        e's `graded as a teaching employee`
+    AND e's `employed by a supervised owner`
+    AND (e's `stage` EQUALS `upper division` OR e's `stage` EQUALS `grades 13-14`)
+
+§§ `א. עדכון הפעימה האחרונה של תוספת 2011`
+
+-- akn:art_a/p1 Names the source: section 38 of the Oz LeTmura agreement of 14.8.2011; the rules are א.1 and א.2.
+
+-- א.1: from 1.7.2013 the 2011 supplement rises to a uniform 7.25% (from
+-- 6.25%) of its salary base.
+@ref akn:art_a__para_1
+GIVEN `date` IS A NUMBER @desc YYYYMMDD
+GIVETH A NUMBER
+DECIDE `the 2011 supplement rate` `date` IS
+    IF `date` AT LEAST `1 July 2013` THEN 7.25% ELSE 6.25%
+
+DECLARE `employment terms for the shekel supplements` IS ONE OF
+    `not employed under a reform, or a principal under Oz LeTmura`
+    `a non-principal in partial implementation of Oz LeTmura`
+    `a non-principal in full implementation of Oz LeTmura`
+
+DECLARE `shekel supplement` IS ONE OF
+    `the '94 teaching-reinforcement supplement`
+    `the '87 agreement supplement`
+
+-- א.2: the '87 and '94 supplements are updated with it; ¶2-¶5 print the
+-- updated amounts by terms of employment.
+@ref akn:art_a__para_2 akn:art_a__para_2/p2 akn:art_a__para_2/p3 akn:art_a__para_2/p4 akn:art_a__para_2/p5
+GIVEN t IS AN `employment terms for the shekel supplements`, s IS A `shekel supplement`
+GIVETH A NUMBER
+DECIDE `the shekel amount from 1.7.2013` t s IS
+    CONSIDER t
+    WHEN `not employed under a reform, or a principal under Oz LeTmura` THEN
+        CONSIDER s
+        WHEN `the '94 teaching-reinforcement supplement` THEN 158.23
+        WHEN `the '87 agreement supplement`              THEN 175.95
+    WHEN `a non-principal in partial implementation of Oz LeTmura` THEN
+        CONSIDER s
+        WHEN `the '94 teaching-reinforcement supplement` THEN 189.21
+        WHEN `the '87 agreement supplement`              THEN 210.41
+    WHEN `a non-principal in full implementation of Oz LeTmura` THEN
+        CONSIDER s
+        WHEN `the '94 teaching-reinforcement supplement` THEN 220.19
+        WHEN `the '87 agreement supplement`              THEN 244.86
+
+§§ `ב-ג. הפחתת השכר לפי החוק`
+
+-- akn:art_b/p1 Background: the participation law came into force on 1.7.2013 and its section 4 reduces the salary of an employee to whom no approved collective agreement on the matter applies; the reduction is carried out by ג.
+-- akn:art_c__para_1 Heading of ג.1 ("הפחתת שכר"); the rules are ג.1.א-ג.1.ב.
+
+-- ג.1.ב: what kind of payment a pay component is, for the determining base.
+DECLARE `kind of pay component` IS ONE OF
+    `paid monthly, weekly or daily, or computed on other components`
+    `derived from the hour value, such as overtime`
+    `paid otherwise and not computed on other components`
+    `recuperation, clothing or the like`
+    `reimbursement of expenses`
+    `tax gross-up paid by the employer`
+    `completion up to the minimum wage`
+    `not income from work paid in money`
+
+DECLARE `pay component` HAS
+    `component kind`   IS A `kind of pay component`
+    `component amount` IS A NUMBER
+
+-- "משכורת" is income from work under section 2(2) of the Income Tax
+-- Ordinance, paid in money; the base is that salary less the exclusions.
+@ref akn:art_c__para_1__subpara_b akn:art_c__para_1__subpara_b/p2 akn:art_c__para_1__subpara_b/p3 akn:art_c__para_1__subpara_b/p4 akn:art_c__para_1__subpara_b/p5 akn:art_c__para_1__subpara_b/p6 akn:art_c__para_1__subpara_b/p7 akn:art_c__para_1__subpara_b/p8
+GIVEN k IS A `kind of pay component`
+GIVETH A BOOLEAN
+DECIDE `in the determining base` k IF
+    CONSIDER k
+    WHEN `paid monthly, weekly or daily, or computed on other components` THEN TRUE
+    WHEN `derived from the hour value, such as overtime`                  THEN TRUE
+    OTHERWISE FALSE
+
+GIVEN e IS AN `upper-division employee`
+GIVETH A NUMBER
+DECIDE `the determining base` e IS
+    sum (map (GIVEN c YIELD IF `in the determining base` (c's `component kind`) THEN c's `component amount` ELSE 0)
+             (e's `pay components`))
+
+-- ג.1.א: from 1.7.2013 to 31.12.2014 (or for that period), the salary is
+-- reduced by 0.9324% of the determining base; so is the base for the
+-- training-fund contributions of an employee entitled to them.
+@ref akn:art_c__para_1__subpara_a
+`the reduction rate` MEANS 0.9324%
+
+GIVEN `date` IS A NUMBER @desc YYYYMMDD
+GIVETH A BOOLEAN
+DECIDE `in the reduction period` `date` IF
+    `date` AT LEAST `1 July 2013` AND `date` AT MOST `31 December 2014`
+
+GIVEN e IS AN `upper-division employee`, `date` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the reduction` e `date` IS
+    IF `the circular applies to` e AND `in the reduction period` `date`
+    THEN `the reduction rate` TIMES `the determining base` e
+    ELSE 0
+
+GIVEN `training-fund base` IS A NUMBER, `date` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the training-fund base after the reduction` `training-fund base` `date` IS
+    IF `in the reduction period` `date`
+    THEN `training-fund base` TIMES (1 MINUS `the reduction rate`)
+    ELSE `training-fund base`
+
+-- ג.2: the reduction takes nothing from the right to the minimum wage.
+@ref akn:art_c__para_2
+GIVEN e IS AN `upper-division employee`, `date` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the salary after the reduction` e `date` IS
+    max (sum (map (GIVEN c YIELD c's `component amount`) (e's `pay components`)) MINUS `the reduction` e `date`)
+        (e's `minimum wage`)
+
+-- The instruction to the owners: in the period no month's salary is paid
+-- above the reduced salary (and, by ג.2, never below the minimum wage).
+DECLARE `reduction action` IS ONE OF
+    `pay the month's salary` HAS `salary paid` IS A NUMBER
+
+@ref akn:art_c__para_1__subpara_a
+GIVEN e IS AN `upper-division employee`, `date` IS A NUMBER
+GIVETH A DEONTIC Party `reduction action`
+DECIDE `no month in the period is paid unreduced` e `date` IS
+    PARTY `the employer`
+    SHANT `pay the month's salary` paid
+          PROVIDED paid GREATER THAN `the salary after the reduction` e `date`
+    WITHIN 1
+    LEST  BREACH BY `the employer` BECAUSE "circular תשע\"ג/10, ג.1.א: from 1.7.2013 to 31.12.2014 the salary is reduced by 0.9324% of the determining base"
+
+-- ג.3: the reduction is not taken into account for these payments.
+DECLARE `payment computed without the reduction` IS ONE OF
+    @ref akn:art_c__para_3__subpara_a
+    `the amount paid to a pension provident fund`
+    @ref akn:art_c__para_3__subpara_b
+    `the determining salary for budgetary-pension payments`
+    @ref akn:art_c__para_3__subpara_c
+    `budgetary pension of those retiring 1.7.2013-31.12.2014`
+    @ref akn:art_c__para_3__subpara_d
+    `a one-time payment on termination`
+    @ref akn:art_c__para_3__subpara_e
+    `disability-insurance premiums`
+    @ref akn:art_c__para_3__subpara_f
+    `bridging pension or a purchased pension supplement`
+
+@ref akn:art_c__para_3
+GIVEN e IS AN `upper-division employee`, p IS A `payment computed without the reduction`
+GIVETH A NUMBER
+DECIDE `the salary the payment is computed on` e p IS
+    sum (map (GIVEN c YIELD c's `component amount`) (e's `pay components`))
+
+-- F-2012-13_tashag_10-a: ג.3.ב carries, in place of its reference, a
+-- drafting note to a colleague — "רחל, אנא הפני לחוזר הרלוונטי שלכם או
+-- שלנו" — so the circular that defines the "(2%)" determining salary is
+-- left for someone to choose. What the clause points to, as printed:
+DECLARE `reference target` IS ONE OF
+    `a named instrument`
+    `an instruction to choose one`
+
+`what ג.3.ב refers the reader to` MEANS `an instruction to choose one`
+
+`ג.3.ב names no instrument` MEANS
+    NOT `what ג.3.ב refers the reader to` EQUALS `a named instrument`
+#ASSERT `ג.3.ב names no instrument`
+
+-- akn:conclusions The signature and the list of copies; no rule.
+
+-- Examples; figures are placeholders, not from a payslip.
+`a full-time upper-division teacher` MEANS
+    `upper-division employee` WITH
+        `graded as a teaching employee`  IS TRUE
+        `employed by a supervised owner` IS TRUE
+        `stage`                          IS `upper division`
+        `terms`                          IS `a non-principal in full implementation of Oz LeTmura`
+        `pay components`                 IS LIST `pay component` `paid monthly, weekly or daily, or computed on other components` 10000,
+                                                 `pay component` `derived from the hour value, such as overtime` 500,
+                                                 `pay component` `recuperation, clothing or the like` 2000,
+                                                 `pay component` `reimbursement of expenses` 300
+        `minimum wage`                   IS 4300
+
+#ASSERT `the determining base` `a full-time upper-division teacher` EQUALS 10500
+#ASSERT `the reduction` `a full-time upper-division teacher` 20140101 EQUALS 97.902
+#ASSERT `the reduction` `a full-time upper-division teacher` 20150101 EQUALS 0
+#ASSERT `the 2011 supplement rate` 20130701 EQUALS 7.25%
+#ASSERT `the shekel amount from 1.7.2013` `not employed under a reform, or a principal under Oz LeTmura` `the '87 agreement supplement` EQUALS 175.95
+#EVAL   `the salary after the reduction` `a full-time upper-division teacher` 20140101
+
+#TRACE `no month in the period is paid unreduced` `a full-time upper-division teacher` 20140101 AT 0 WITH
+    PARTY `the employer` DOES `pay the month's salary` 12702.098 AT 0

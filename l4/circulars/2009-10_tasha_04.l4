@@ -1,0 +1,141 @@
+-- חוזר לבעלויות תש"ע/4: ניכוי שכר מעובדי הוראה בשל שביתות/עיצומים במערכת
+-- החינוך בשנת הלימודים התש"ע
+-- Deducting the salary of teaching staff who took part in the strikes and
+-- sanctions of June 2010: the owners' duty to deduct, the two scales of
+-- deduction under the takanon's rule on unjustified absence (section 1.25.14),
+-- and the Ministry's deduction from its payments to the owners.
+
+IMPORT prelude
+IMPORT common
+
+§ `תש"ע/4 ניכוי שכר מעובדי הוראה בשל שביתות/עיצומים`
+
+-- akn:preamble The letterhead, date (5.7.2010), addressee, greeting and subject line; the operative paragraphs that follow them are encoded below.
+
+-- akn:preamble/p12 The facts: from June 2010 the secondary teachers' organisation took strike action and sanctions in the secondary schools and seminaries; no rule of its own.
+
+@desc A striking teacher's month, as far as this circular asks about it.
+DECLARE `strike month` HAS
+    `took part in the strike or sanctions` IS A BOOLEAN
+    `absence share`                        IS A NUMBER @desc the month's unjustified absence as a share of the teacher's fixed work quota (0.1 = 10%)
+    `pay for actual working hours`         IS A NUMBER @desc the month's pay for the hours the fixed timetable sets, shekels
+    `pay for education and matriculation-preparation hours` IS A NUMBER @desc shekels a month
+    `percentage additions for roles`       IS A NUMBER @desc shekels a month
+
+DECLARE `strike action` IS ONE OF
+    `deduct from the salary` HAS `amount deducted` IS A NUMBER
+    `deduct from the owner's payments` HAS `amount withheld` IS A NUMBER
+
+-- "יש לנכות משכרם של כל המורים שנטלו חלק … בהתאם לימים ולשעות": the
+-- deduction follows the days and hours of each teacher's part, by the
+-- takanon's rule on unjustified absence (section 1.25.14), restated in
+-- sections 1 and 2. Time in months from the strike month.
+@ref akn:preamble/p13 akn:preamble/p14
+GIVEN s IS A `strike month`
+GIVETH A DEONTIC Party `strike action`
+DECIDE `deducting for the strike` s IS
+    PARTY `the local authority or owning body`
+    MUST  `deduct from the salary` `amount`
+          PROVIDED `amount` EQUALS `the strike deduction` s
+    WITHIN 1
+    LEST BREACH BY `the local authority or owning body` BECAUSE "the salary of every teacher who took part is deducted for the days and hours of the strike"
+
+§§ `1`
+
+@ref akn:art_1
+GIVEN s IS A `strike month`
+GIVETH A BOOLEAN
+DECIDE `section 1 governs` s IF
+    s's `absence share` LESS THAN 0.1
+
+GIVEN s IS A `strike month`
+GIVETH A NUMBER
+DECIDE `the deduction under section 1` s IS
+    s's `absence share` TIMES s's `pay for actual working hours`
+
+§§ `2`
+
+@ref akn:art_2
+GIVEN s IS A `strike month`
+GIVETH A BOOLEAN
+DECIDE `section 2 governs` s IF
+    s's `absence share` GREATER THAN 0.1
+
+-- "על הבעלות לנכות שכר מהעובד לפי מערכת השעות הקבועה": the share is taken
+-- of the teacher's fixed timetable, which is what the inputs measure.
+@ref akn:art_2/p2
+GIVEN s IS A `strike month`
+GIVETH A NUMBER
+DECIDE `the deduction under section 2` s IS
+    s's `absence share`
+    TIMES (    s's `pay for actual working hours`
+          PLUS s's `pay for education and matriculation-preparation hours`
+          PLUS s's `percentage additions for roles`)
+
+-- F-2009-10_tasha_04-a: absence of exactly 10% is neither "less than 10%"
+-- (section 1) nor "more than 10%" (section 2).
+`a month with exactly 10% absence` MEANS
+    `strike month` WITH
+        `took part in the strike or sanctions` IS TRUE
+        `absence share`                        IS 0.1
+        `pay for actual working hours`         IS 8000
+        `pay for education and matriculation-preparation hours` IS 1000
+        `percentage additions for roles`       IS 1000
+
+`neither section governs exactly 10%` MEANS
+        (NOT `section 1 governs` `a month with exactly 10% absence`)
+    AND (NOT `section 2 governs` `a month with exactly 10% absence`)
+#ASSERT `neither section governs exactly 10%`
+
+-- The reading adopted (F-2009-10_tasha_04-a): the wider deduction needs
+-- absence that EXCEEDS 10%, so 10% exactly is deducted under section 1.
+@export default The salary deducted from a teaching employee for a month of the 2010 strike or sanctions under circular תש"ע/4
+GIVEN s IS A `strike month` @desc the teacher's month
+GIVETH A NUMBER
+DECIDE `the strike deduction` s IS
+    IF s's `took part in the strike or sanctions`
+    THEN IF `section 2 governs` s
+         THEN `the deduction under section 2` s
+         ELSE `the deduction under section 1` s
+    ELSE 0
+
+-- "משרד החינוך ינכה מתשלומי המת"מ השוטפים לבעלויות": by the hours budgeted
+-- in the striking institutions and the dates of the strike.
+@ref akn:art_2/p3
+GIVEN `budgeted hours in the striking institutions` IS A NUMBER
+      `budgeted value of an hour on the strike dates` IS A NUMBER @desc shekels; set by the Ministry's budgeting
+GIVETH A DEONTIC Party `strike action`
+DECIDE `the Ministry's deduction from the owner` `budgeted hours in the striking institutions` `budgeted value of an hour on the strike dates` IS
+    PARTY `the Ministry of Education`
+    MUST  `deduct from the owner's payments` `amount`
+          PROVIDED `amount` EQUALS `budgeted hours in the striking institutions` TIMES `budgeted value of an hour on the strike dates`
+    WITHIN 1
+    LEST BREACH BY `the Ministry of Education` BECAUSE "section 2: the Ministry deducts from its current payments to the owners for the budgeted hours on the strike dates"
+
+-- akn:conclusions The sign-off and signature; no rule.
+
+-- Worked examples; the pay figures are round placeholders.
+`a month with 5% absence` MEANS
+    `strike month` WITH
+        `took part in the strike or sanctions` IS TRUE
+        `absence share`                        IS 0.05
+        `pay for actual working hours`         IS 8000
+        `pay for education and matriculation-preparation hours` IS 1000
+        `percentage additions for roles`       IS 1000
+
+`a month with 20% absence` MEANS
+    `strike month` WITH
+        `took part in the strike or sanctions` IS TRUE
+        `absence share`                        IS 0.2
+        `pay for actual working hours`         IS 8000
+        `pay for education and matriculation-preparation hours` IS 1000
+        `percentage additions for roles`       IS 1000
+
+#ASSERT `the strike deduction` `a month with 5% absence` EQUALS 400
+#ASSERT `the strike deduction` `a month with 20% absence` EQUALS 2000
+#ASSERT `the strike deduction` `a month with exactly 10% absence` EQUALS 800
+
+#TRACE `deducting for the strike` `a month with 20% absence` AT 0 WITH
+    PARTY `the local authority or owning body` DOES `deduct from the salary` 2000 AT 1
+#TRACE `deducting for the strike` `a month with 20% absence` AT 0 WITH
+    PARTY `the local authority or owning body` DOES `deduct from the salary` 1600 AT 1

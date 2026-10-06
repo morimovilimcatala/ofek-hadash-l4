@@ -1,0 +1,386 @@
+-- חוזר לבעלויות תש"פ/8 (23.4.2020): נוהל שיפויים לבעלויות על המכללות
+-- האקדמיות להכשרת עובדי הוראה בגין מענק יישום רפורמה במכללות.
+-- The "special grant" for teacher-college teaching staff whose employment
+-- ended through the colleges' reorganisation (wage agreement of 21.1.2019):
+-- who is entitled, how much by age, and how the owning body is reimbursed.
+
+IMPORT prelude
+IMPORT common
+IMPORT daydate
+
+§ `תש"פ/8 נוהל שיפויים בגין מענק יישום רפורמה במכללות`
+
+-- akn:preamble The letterhead, date, reference number, addressee, greeting and subject line; no rule.
+
+-- The corpus nests this circular's clauses one level off the page: the
+-- printed §ג's sub-clauses ד–ז are published as top-level clauses (art_d to
+-- art_g), and the printed top-level §§ד–ו as sub-clauses of art_g. The keys
+-- below are the corpus's; the comments name the clauses as printed.
+
+DECLARE `grant party` IS ONE OF
+    `the owning body`
+    `the Ministry`
+    `the college teacher`
+
+@desc A teaching employee of a college, as far as the special grant and its reimbursement ask.
+DECLARE `college leaver` HAS
+    `actually teaching at the college`                  IS A BOOLEAN @desc in actual teaching (teacher, principal or deputy), not an administrative post
+    `state employee only`                               IS A BOOLEAN @desc employed by the State and not by the owning body
+    `employment ended through the reorganisation`       IS A BOOLEAN @desc employment at the college ended as a result of the organisational changes the colleges required
+    `employment ended on`                               IS A DATE
+    `continuous years teaching at the college`          IS A NUMBER
+    `entitled to Civil Service retirement-plan terms`   IS A BOOLEAN @desc entitled now or before (by an earlier retirement from the state service) to retirement terms under a Civil Service Commission plan, or received them
+    `age in months at the end of employment`            IS A NUMBER
+    `weighted position fraction`                        IS A NUMBER  @desc the weighted share of a full position at the end of employment
+    `entitled to the section 22 retirement grant`       IS A BOOLEAN @desc entitled to the retirement grant of section 22 of the State Service (Pensions) Law
+    `section 22 grant paid`                             IS A NUMBER
+    `retired on pension`                                IS A BOOLEAN
+    `receives a pension`                                IS A BOOLEAN
+    `early retirement approved by the Ministry's letter` IS A BOOLEAN @desc early retirement approved in an official letter of the deputy director-general heading the teaching personnel division
+    `works at the college as a pensioner of the same employer` IS A BOOLEAN
+    `reported in the staff report for all its employment` IS A BOOLEAN @desc reported in the owning body's teaching-staff report to the Ministry for every period and at the scope actually worked
+
+§§ `א. General`
+
+-- §א.1: the reimbursement is for the special grant under the wage agreement
+-- of 21.1.2019, and goes to the owners of the academic colleges for teacher
+-- training budgeted by the Ministry's teacher-training division.
+@ref akn:art_a__para_1/p1
+GIVEN `budgeted by the teacher-training division` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `an owner the procedure reimburses` `budgeted by the teacher-training division` IF
+    `budgeted by the teacher-training division`
+
+-- §א.2 and §ב.1: only for teaching employees in actual teaching at the
+-- college who retired from the owning body while so employed — not for staff
+-- on the teaching scale who do not teach, nor for administrative posts.
+@ref akn:art_a__para_2/p1 akn:art_b__para_1/p1
+GIVEN e IS A `college leaver`
+GIVETH A BOOLEAN
+DECIDE `a teacher the reimbursement can be for` e IF
+    e's `actually teaching at the college`
+
+-- §א.3: the last owning body the teacher retired from bears the payment.
+-- (Its words are "חובת תשלום השיפוי" — the duty to pay the reimbursed
+-- amount, i.e. the grant — read as the grant the owning body pays and is
+-- reimbursed for.)
+@ref akn:art_a__para_3/p1
+GIVEN `owners the teacher worked for, last last` IS A LIST OF STRING
+GIVETH A MAYBE STRING
+DECIDE `the owning body that pays` `owners the teacher worked for, last last` IS
+    CONSIDER reverse `owners the teacher worked for, last last`
+    WHEN o FOLLOWED BY rest THEN JUST o
+    WHEN EMPTY THEN NOTHING
+
+§§ `ב. Conditions for the reimbursement`
+
+DECLARE `grant action` IS ONE OF
+    `report every teacher employed only by the owning body in the staff report`
+    `include a state employee in the request`
+    `collect the request's details from the teacher`
+    `file the reimbursement request` HAS `with all documents` IS A BOOLEAN
+    `declare the reimbursement passed to the teacher` HAS `days after retirement it was passed` IS A NUMBER
+    `pay the special grant` HAS `amount paid` IS A NUMBER
+    `offset the reimbursement from the budgets`
+
+-- §ב.2: for a teacher who retired on pension, subject to the eligibility
+-- conditions (§ג).
+@ref akn:art_b__para_2/p1
+GIVEN e IS A `college leaver`
+GIVETH A BOOLEAN
+DECIDE `retired for the reimbursement` e IF e's `retired on pension`
+
+-- §ב.3: the owner reports in the yearly staff report every teacher at the
+-- institution who is its employee only, by the yearly instructions (for
+-- תש"ף, the document linked in ¶2).
+@ref akn:art_b__para_3/p1 akn:art_b__para_3/p2
+GIVETH A DEONTIC `grant party` `grant action`
+DECIDE `reporting the teaching staff` IS
+    PARTY `the owning body`
+    MUST  `report every teacher employed only by the owning body in the staff report`
+    LEST BREACH BY `the owning body` BECAUSE "תש\"פ/8 §ב.3: every teacher who is the owner's employee is reported in the staff report"
+
+-- §ב.4: a state employee is not included in the request.
+@ref akn:art_b__para_4/p1
+GIVETH A DEONTIC `grant party` `grant action`
+DECIDE `no state employees in the request` IS
+    PARTY `the owning body`
+    SHANT `include a state employee in the request`
+    LEST BREACH BY `the owning body` BECAUSE "תש\"פ/8 §ב.4: teaching employees who are state employees only are not included"
+
+-- §ב.5: a period not reported (or reported at another scope) is the owner's
+-- cost; a teacher not reported at all is not reimbursed and no request for
+-- him or her is discussed.
+@ref akn:art_b__para_5/p1
+GIVEN e IS A `college leaver`
+GIVETH A BOOLEAN
+DECIDE `the owner bears the cost of unreported employment` e IF
+    NOT e's `reported in the staff report for all its employment`
+
+-- §ב.6: the owner deals with the teacher directly for the request's details.
+@ref akn:art_b__para_6/p1
+GIVETH A DEONTIC `grant party` `grant action`
+DECIDE `collecting the details` IS
+    PARTY `the owning body`
+    MUST  `collect the request's details from the teacher`
+    LEST BREACH BY `the owning body` BECAUSE "תש\"פ/8 §ב.6: the owner collects the details from the teacher"
+
+§§ `ג. Entitlement to the special grant`
+
+-- §ג(א)(1)–(3), all together; with §ג(ה), (ו) and (ז) (corpus art_e, art_f,
+-- art_g), which restate (1) and (3) as exclusions.
+@ref akn:art_c__para_a/p1 akn:art_c__para_a__subpara_1/p1 akn:art_c__para_a__subpara_2/p1 akn:art_c__para_a__subpara_3/p1 akn:art_e/p1 akn:art_f/p1 akn:art_g/p1
+GIVEN e IS A `college leaver`
+GIVETH A BOOLEAN
+DECIDE `entitled to the special grant` e IF
+        e's `employment ended through the reorganisation`
+    AND e's `employment ended on` AT LEAST Date 31 8 2015
+    AND e's `continuous years teaching at the college` AT LEAST 10
+    AND NOT e's `entitled to Civil Service retirement-plan terms`
+
+-- §ג(א)'s table AS PRINTED: age at the end of employment, from (column א)
+-- to (column א), in months; the grant (column ב). The last row is printed
+-- "64 – 65" where the others end at "N ו-11 חודשים".
+@ref akn:art_c__para_a__subpara_3/p2 akn:art_c__para_a__subpara_3/p3 akn:art_c__para_a__subpara_3/p4 akn:art_c__para_a__subpara_3/p5 akn:art_c__para_a__subpara_3/p6 akn:art_c__para_a__subpara_3/p7 akn:art_c__para_a__subpara_3/p8 akn:art_c__para_a__subpara_3/p9
+DECLARE `age band` HAS
+    `from age in months` IS A NUMBER
+    `to age in months`   IS A NUMBER
+    `band grant`         IS A NUMBER
+
+-- The last row's "to 65" is read here as reaching 65 (F-2019-20_tashaf_08-a).
+`the grant table` MEANS
+    LIST `age band` (50 TIMES 12) (54 TIMES 12 PLUS 11) 200000,
+         `age band` (55 TIMES 12) (59 TIMES 12 PLUS 11) 120000,
+         `age band` (60 TIMES 12) (63 TIMES 12 PLUS 11) 80000,
+         `age band` (64 TIMES 12) (65 TIMES 12)         35000
+
+GIVEN months IS A NUMBER, table IS A LIST OF `age band`
+GIVETH A LIST OF NUMBER
+DECIDE `the grants the table gives at age` months table IS
+    map (GIVEN b YIELD b's `band grant`)
+        (filter (GIVEN b YIELD months AT LEAST b's `from age in months` AND months AT MOST b's `to age in months`) table)
+
+GIVEN e IS A `college leaver`
+GIVETH A NUMBER
+DECIDE `the full grant for the age` e IS
+    sum (`the grants the table gives at age` (e's `age in months at the end of employment`) `the grant table`)
+
+-- F-2019-20_tashaf_08-a: the other reading of "64 – 65", the pattern of the
+-- rows above it: through the last month of age 65.
+`the grant table with the last row read through age 65` MEANS
+    LIST `age band` (50 TIMES 12) (54 TIMES 12 PLUS 11) 200000,
+         `age band` (55 TIMES 12) (59 TIMES 12 PLUS 11) 120000,
+         `age band` (60 TIMES 12) (63 TIMES 12 PLUS 11) 80000,
+         `age band` (64 TIMES 12) (65 TIMES 12 PLUS 11) 35000
+
+`an employee leaving at 65 and 6 months has a grant under one reading of the last row only` MEANS
+        `the grants the table gives at age` (65 TIMES 12 PLUS 6) `the grant table` EQUALS EMPTY
+    AND `the grants the table gives at age` (65 TIMES 12 PLUS 6) `the grant table with the last row read through age 65` EQUALS LIST 35000
+#ASSERT `an employee leaving at 65 and 6 months has a grant under one reading of the last row only`
+
+-- §ג(ב): in proportion to the weighted position, at most a full position.
+-- §ג(ג): one entitled to the section 22 retirement grant gets only the
+-- positive difference between the special grant and what section 22 paid.
+@ref akn:art_c__para_b/p1 akn:art_c__para_c/p1
+GIVEN e IS A `college leaver`
+GIVETH A NUMBER
+DECIDE `the special grant` e IS
+    IF `entitled to the special grant` e
+    THEN IF e's `entitled to the section 22 retirement grant`
+         THEN max 0 (`the grant before section 22` e MINUS e's `section 22 grant paid`)
+         ELSE `the grant before section 22` e
+    ELSE 0
+    WHERE
+        `the grant before section 22` x MEANS
+            `the full grant for the age` x TIMES min (x's `weighted position fraction`) 1
+
+-- §ג(ד) (corpus art_d): paid when the employment relation ends. Time in days
+-- from the end of employment; the clause names no further day.
+@ref akn:art_d/p1
+GIVEN e IS A `college leaver`
+GIVETH A DEONTIC `grant party` `grant action`
+DECIDE `paying the special grant` e IS
+    IF `entitled to the special grant` e
+    THEN PARTY `the owning body`
+         MUST  `pay the special grant` `amount paid`
+               PROVIDED `amount paid` AT LEAST `the special grant` e
+         WITHIN 0
+         LEST BREACH BY `the owning body` BECAUSE "תש\"פ/8 §ג(ד): the special grant is paid on the end of the employment relation"
+    ELSE FULFILLED
+
+§§ `ד.–ו. The reimbursement`
+
+-- §ד (corpus art_g__para_d): the reimbursement is given "in the following
+-- cases" — 1. early retirement approved by the Ministry's letter; 2. a
+-- retired teacher who receives a pension, the owner showing the pension
+-- fund's confirmation, and never before the retirement date; 3. at most a full
+-- position across all owners; 4. by the staff report.
+-- F-2019-20_tashaf_08-c: whether 1 and 2 are alternative cases or joint
+-- conditions. Reading adopted: joint conditions, as items 3 and 4 plainly are.
+@ref akn:art_g__para_d/p1 akn:art_g__para_d/p2 akn:art_g__para_d/p3 akn:art_g__para_d/p4 akn:art_g__para_d/p5 akn:art_g__para_d/p6 akn:art_g__para_d/p9 akn:art_g__para_d/p10
+GIVEN e IS A `college leaver`, `the request is handled on or after the retirement date` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `the reimbursement is given for` e `the request is handled on or after the retirement date` IF
+        `a teacher the reimbursement can be for` e
+    AND NOT e's `state employee only`
+    AND `retired for the reimbursement` e
+    AND e's `early retirement approved by the Ministry's letter`
+    AND e's `receives a pension`
+    AND `the request is handled on or after the retirement date`
+    AND e's `reported in the staff report for all its employment`
+    AND NOT `excluded from the reimbursement` e
+    AND `entitled to the special grant` e
+
+-- The other reading of §ד: items 1 and 2 as alternatives.
+GIVEN e IS A `college leaver`
+GIVETH A BOOLEAN
+DECIDE `§ד's first two items read as alternatives` e IF
+    e's `early retirement approved by the Ministry's letter` OR e's `receives a pension`
+
+`an approved early retiree not yet drawing a pension is reimbursed under one reading of §ד only` MEANS
+        `§ד's first two items read as alternatives` `an approved early retiree not yet on pension`
+    AND NOT `the reimbursement is given for` `an approved early retiree not yet on pension` TRUE
+#ASSERT `an approved early retiree not yet drawing a pension is reimbursed under one reading of §ד only`
+
+-- §ד.3: the reimbursement is at most a full position across all owners.
+@ref akn:art_g__para_d/p7 akn:art_g__para_d/p8
+GIVEN `position fractions at each owner` IS A LIST OF NUMBER
+GIVETH A NUMBER
+DECIDE `the position the reimbursement covers` `position fractions at each owner` IS
+    min (sum `position fractions at each owner`) 1
+
+-- §ה (corpus art_g__para_e): no reimbursement for work as a pensioner of the
+-- same employer, nor for less than 10 continuous years.
+@ref akn:art_g__para_e/p1 akn:art_g__para_e/p2 akn:art_g__para_e/p3
+GIVEN e IS A `college leaver`
+GIVETH A BOOLEAN
+DECIDE `excluded from the reimbursement` e IF
+       e's `works at the college as a pensioner of the same employer`
+    OR e's `continuous years teaching at the college` LESS THAN 10
+
+-- §ו.1 (corpus art_g__para_f): the form and every document, as soon as the
+-- teacher retires and no later than 2 months after. Time in days from the
+-- retirement; two months are read as 60 days.
+@ref akn:art_g__para_f/p1 akn:art_g__para_f/p2 akn:art_g__para_f/p3
+GIVETH A DEONTIC `grant party` `grant action`
+DECIDE `filing the request` IS
+    PARTY `the owning body`
+    MUST  `file the reimbursement request` `with all documents`
+          PROVIDED `with all documents`
+    WITHIN 60
+    LEST BREACH BY `the owning body` BECAUSE "תש\"פ/8 §ו.1: the request is filed within 2 months of the retirement"
+
+-- §ו.2: a request without the documents is returned.
+@ref akn:art_g__para_f/p4
+GIVEN `with all documents` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `the request is returned` `with all documents` IF NOT `with all documents`
+
+-- §ו.3: with an exact, final account signed by the treasurer or the head of
+-- human resources.
+@ref akn:art_g__para_f/p5 akn:art_g__para_f/p6
+GIVEN `final account signed by the treasurer or HR head` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `the request is in the required form` `final account signed by the treasurer or HR head` IF
+    `final account signed by the treasurer or HR head`
+
+-- §ו.4–5: the owner declares on a form that the reimbursement received was
+-- passed to the teacher within 45 days of the retirement; an institution that
+-- does not report has the reimbursement offset from its budgets.
+-- F-2019-20_tashaf_08-b: the request may be filed up to 60 days after the
+-- retirement, yet what it brings in must have reached the teacher by day 45.
+@ref akn:art_g__para_f/p7 akn:art_g__para_f/p8 akn:art_g__para_f/p9
+GIVETH A DEONTIC `grant party` `grant action`
+DECIDE `declaring the transfer to the teacher` IS
+    PARTY `the owning body`
+    MUST  `declare the reimbursement passed to the teacher` `days after retirement it was passed`
+          PROVIDED `days after retirement it was passed` AT MOST 45
+    LEST (PARTY `the Ministry`
+          MAY   `offset the reimbursement from the budgets`)
+
+`the last day to file the request` MEANS 60
+`the last day the reimbursement may reach the teacher` MEANS 45
+
+`a request filed on time can bring the reimbursement after it was due to the teacher` MEANS
+    `the last day to file the request` GREATER THAN `the last day the reimbursement may reach the teacher`
+#ASSERT `a request filed on time can bring the reimbursement after it was due to the teacher`
+
+-- akn:art_g__para_f/p10 akn:art_g__para_f/p11 The e-mail address requests are sent to; an address, no rule.
+
+-- akn:conclusions The sign-off, signatures and copies list; no rule.
+
+-- Examples.
+`a lecturer leaving at 57` MEANS
+    `college leaver` WITH
+        `actually teaching at the college`                  IS TRUE
+        `state employee only`                               IS FALSE
+        `employment ended through the reorganisation`       IS TRUE
+        `employment ended on`                               IS Date 31 8 2019
+        `continuous years teaching at the college`          IS 15
+        `entitled to Civil Service retirement-plan terms`   IS FALSE
+        `age in months at the end of employment`            IS 57 TIMES 12
+        `weighted position fraction`                        IS 0.75
+        `entitled to the section 22 retirement grant`       IS FALSE
+        `section 22 grant paid`                             IS 0
+        `retired on pension`                                IS TRUE
+        `receives a pension`                                IS TRUE
+        `early retirement approved by the Ministry's letter` IS TRUE
+        `works at the college as a pensioner of the same employer` IS FALSE
+        `reported in the staff report for all its employment` IS TRUE
+
+`an approved early retiree not yet on pension` MEANS
+    `college leaver` WITH
+        `actually teaching at the college`                  IS TRUE
+        `state employee only`                               IS FALSE
+        `employment ended through the reorganisation`       IS TRUE
+        `employment ended on`                               IS Date 31 8 2019
+        `continuous years teaching at the college`          IS 15
+        `entitled to Civil Service retirement-plan terms`   IS FALSE
+        `age in months at the end of employment`            IS 57 TIMES 12
+        `weighted position fraction`                        IS 1
+        `entitled to the section 22 retirement grant`       IS FALSE
+        `section 22 grant paid`                             IS 0
+        `retired on pension`                                IS TRUE
+        `receives a pension`                                IS FALSE
+        `early retirement approved by the Ministry's letter` IS TRUE
+        `works at the college as a pensioner of the same employer` IS FALSE
+        `reported in the staff report for all its employment` IS TRUE
+
+`a lecturer with a section 22 grant` MEANS
+    `college leaver` WITH
+        `actually teaching at the college`                  IS TRUE
+        `state employee only`                               IS FALSE
+        `employment ended through the reorganisation`       IS TRUE
+        `employment ended on`                               IS Date 31 8 2019
+        `continuous years teaching at the college`          IS 15
+        `entitled to Civil Service retirement-plan terms`   IS FALSE
+        `age in months at the end of employment`            IS 61 TIMES 12
+        `weighted position fraction`                        IS 1
+        `entitled to the section 22 retirement grant`       IS TRUE
+        `section 22 grant paid`                             IS 50000
+        `retired on pension`                                IS TRUE
+        `receives a pension`                                IS TRUE
+        `early retirement approved by the Ministry's letter` IS TRUE
+        `works at the college as a pensioner of the same employer` IS FALSE
+        `reported in the staff report for all its employment` IS TRUE
+
+#ASSERT `the special grant` `a lecturer leaving at 57` EQUALS 90000
+#ASSERT `the special grant` `a lecturer with a section 22 grant` EQUALS 30000
+#ASSERT `the reimbursement is given for` `a lecturer leaving at 57` TRUE
+#ASSERT `the position the reimbursement covers` (LIST 0.7, 0.6) EQUALS 1
+#ASSERT `the owning body that pays` (LIST "college A", "college B") EQUALS JUST "college B"
+
+-- Every age from 50 to 65 years gets exactly one row; the bands do not overlap.
+#ASSERT all (GIVEN y YIELD count (`the grants the table gives at age` (y TIMES 12) `the grant table`) EQUALS 1)
+            (LIST 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65)
+#ASSERT all (GIVEN m YIELD count (`the grants the table gives at age` m `the grant table`) EQUALS 1)
+            (LIST 659, 660, 719, 720, 767, 768)
+
+#TRACE `filing the request` AT 0 WITH
+    PARTY `the owning body` DOES `file the reimbursement request` TRUE AT 30
+#TRACE `filing the request` AT 0 WITH
+    PARTY `the owning body` DOES `file the reimbursement request` TRUE AT 75
+#TRACE `paying the special grant` `a lecturer leaving at 57` AT 0 WITH
+    PARTY `the owning body` DOES `pay the special grant` 90000 AT 0
+#TRACE `declaring the transfer to the teacher` AT 0 WITH
+    PARTY `the owning body` DOES `declare the reimbursement passed to the teacher` 40 AT 50

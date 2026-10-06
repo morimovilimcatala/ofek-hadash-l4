@@ -1,0 +1,291 @@
+-- חוזר לבעלויות תשפ"ו/8 (16.7.2026): קצובת ביגוד
+-- The clothing allowance for school year תשפ"ו, the additional allowances
+-- for physical-education teachers, for technological education and for
+-- physiotherapists in Ofek Hadash or Oz LaTmura.
+
+IMPORT prelude
+IMPORT common
+
+-- Time in the regulative rules is counted in school months of תשפ"ו
+-- (common.l4: September 2025 = 1, July 2026 = 11, August 2026 = 12).
+
+§ `תשפ"ו/8 קצובת ביגוד`
+
+-- akn:preamble The letterhead, date (16.7.2026), reference number, addressee and the subject line with its four topics; no rule.
+
+DECLARE `clothing action` IS ONE OF
+    `pay the clothing allowance` HAS `clothing amount paid` IS A NUMBER
+    `pay the physical-education allowance` HAS `physical-education amount paid` IS A NUMBER
+    `pay the technological-education allowance` HAS `technological amount paid` IS A NUMBER
+    `pay the physiotherapists' allowance` HAS `physiotherapy amount paid` IS A NUMBER
+    `employ beyond the limits` HAS `position employed` IS A NUMBER
+
+§§ `1 קצובת ביגוד לשנת הלימודים תשפ"ו`
+
+-- akn:art_1/p1 The heading "תחולה"; no rule.
+-- akn:art_1/p4 The heading "כללי"; no rule.
+
+-- Section 1 applies to every employee graded on the teaching-staff scale
+-- employed by an owning body the Ministry supervises; the Treasury's
+-- instructions on the clothing allowance are followed as below.
+@ref akn:art_1/p2 akn:art_1/p3
+GIVEN `graded as teaching staff` IS A BOOLEAN, `employed by a supervised owning body` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `section 1 applies to` `graded as teaching staff` `employed by a supervised owning body` IF
+    `graded as teaching staff` AND `employed by a supervised owning body`
+
+-- 1.ב–1.ג: entitled as public-facing civil servants are, for school year
+-- תשפ"ו (09/25–08/26), at level 4: 2,527.
+@ref akn:art_1__para_b akn:art_1__para_c
+`the clothing allowance at level 4` MEANS 2527
+
+-- 1.ד: in proportion to the position, one full position at most; 1.ה: with
+-- more than one employer, each pays on the position held with it, even
+-- where the total passes 100%.
+@ref akn:art_1__para_d akn:art_1__para_e
+GIVEN `position fraction with this employer` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `clothing allowance` `position fraction with this employer` IS
+    `the clothing allowance at level 4` TIMES min `position fraction with this employer` 1
+
+@ref akn:art_1__para_a
+GIVEN `position fraction with this employer` IS A NUMBER
+GIVETH A DEONTIC Party `clothing action`
+DECIDE `clothing allowance paid in full with July's salary` `position fraction with this employer` IS
+    PARTY `the employer`
+    MUST  `pay the clothing allowance` a
+          PROVIDED a AT LEAST `clothing allowance` `position fraction with this employer`
+    WITHIN `month number` July
+    LEST BREACH BY `the employer` BECAUSE "תשפ\"ו/8 §1.א: the clothing allowance is paid in full with July 2026's salary"
+
+DECLARE `employment terms` IS ONE OF
+    `teaching employee outside the reform`
+    `principal outside the reform`
+    `teacher in full implementation of Oz LaTmura`
+    `teacher in Ofek Hadash`
+
+-- 1.ו: 140% across all employers for a teaching employee, 150% for a
+-- principal outside the reform; 131.5% in full Oz LaTmura and 117% in Ofek
+-- Hadash, subject to the exceptional-employment procedure for תשפ"ו. A
+-- reform teacher is also a teaching employee, so the stricter limit binds.
+@ref akn:art_1__para_f akn:art_1__para_f/p2
+GIVEN t IS AN `employment terms`
+GIVETH A NUMBER
+DECIDE `the position limit across all employers` t IS
+    CONSIDER t
+    WHEN `teaching employee outside the reform` THEN 1.4
+    WHEN `principal outside the reform` THEN 1.5
+    WHEN `teacher in full implementation of Oz LaTmura` THEN 1.315
+    WHEN `teacher in Ofek Hadash` THEN 1.17
+
+-- akn:art_1__para_f/p4 The address of the exceptional-employment procedure; the procedure itself is not in the corpus.
+
+-- The closing paragraph of 1: nothing above changes the conditions for
+-- approval of these positions or permits employment beyond them.
+@ref akn:art_1/p5 akn:art_1__para_f/p3
+GIVEN t IS AN `employment terms`, `approved under the exceptional-employment procedure` IS A BOOLEAN
+GIVETH A DEONTIC Party `clothing action`
+DECIDE `no employment beyond the limits` t `approved under the exceptional-employment procedure` IS
+    IF `approved under the exceptional-employment procedure`
+    THEN FULFILLED
+    ELSE PARTY `the employer`
+         SHANT `employ beyond the limits` p
+               PROVIDED p GREATER THAN `the position limit across all employers` t
+         WITHIN 12
+         LEST BREACH BY `the employer` BECAUSE "תשפ\"ו/8 §1: no permit to employ beyond the position limits"
+
+§§ `2 קצובת ביגוד נוספת למורה לחינוך גופני`
+
+@desc A row of a part-time table: an employment rate and the amount it pays as at the date the table prints.
+DECLARE `rate band` HAS
+    `band above`           IS A NUMBER   @desc the band starts above this rate (or at it, where `band from inclusive`)
+    `band from inclusive`  IS A BOOLEAN
+    `band up to`           IS A NUMBER   @desc the band ends at this rate (or below it, where not `band to inclusive`); 999 stands for no upper bound
+    `band to inclusive`    IS A BOOLEAN
+    `band amount`          IS A NUMBER
+
+GIVEN r IS A NUMBER, b IS A `rate band`
+GIVETH A BOOLEAN
+DECIDE `the rate falls in` r b IF
+        (    (b's `band from inclusive` AND r AT LEAST b's `band above`)
+          OR ((NOT b's `band from inclusive`) AND r GREATER THAN b's `band above`))
+    AND (    (b's `band to inclusive` AND r AT MOST b's `band up to`)
+          OR ((NOT b's `band to inclusive`) AND r LESS THAN b's `band up to`))
+
+GIVEN r IS A NUMBER, table IS A LIST OF `rate band`
+GIVETH A LIST OF NUMBER
+DECIDE `the amounts the table gives for` r table IS
+    map (GIVEN b YIELD b's `band amount`) (filter (GIVEN b YIELD `the rate falls in` r b) table)
+
+GIVEN table IS A LIST OF `rate band`
+GIVETH A BOOLEAN
+DECIDE `every rate has exactly one row in` table IF
+    all (GIVEN r YIELD count (`the amounts the table gives for` r table) EQUALS 1)
+        (LIST 0, 0.1, 0.29, 0.2999, 0.3, 0.31, 0.45, 0.5, 0.5001, 0.51, 0.75, 1)
+
+-- "עד 30% לא כולל" · "מ-30% ועד 50% כולל" · "מעל 50%", as at 1.9.2026
+-- (F-2025-26_tashpo_08-b: a date after the school year the allowance is for),
+-- updating the amounts of circular תשע"ב/8 (not restated here).
+@ref akn:art_2/p2 akn:art_2/t1
+`the physical-education table` MEANS
+    LIST `rate band` 0   TRUE  0.3 FALSE 0,
+         `rate band` 0.3 TRUE  0.5 TRUE  806.07,
+         `rate band` 0.5 FALSE 999 TRUE  1607.93
+
+#ASSERT `every rate has exactly one row in` `the physical-education table`
+
+-- F-2025-26_tashpo_08-b: both part-time tables print their amounts as
+-- correct for 1/9/2026, the first day of the school year AFTER the one the
+-- allowances are for (09/25–08/26), and after July 2026, when §1 and §4 are
+-- paid. Months counted as year × 12 + month. The reading adopted: the
+-- printed amounts are paid for תשפ"ו as they stand.
+`the tables' date` MEANS 2026 TIMES 12 PLUS 9
+`the last month of school year תשפ"ו` MEANS 2026 TIMES 12 PLUS 8
+`the tables' amounts are dated after the school year they are paid for` MEANS
+    `the tables' date` GREATER THAN `the last month of school year תשפ"ו`
+#ASSERT `the tables' amounts are dated after the school year they are paid for`
+
+GIVEN `employment rate` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `physical-education allowance` `employment rate` IS
+    sum (`the amounts the table gives for` `employment rate` `the physical-education table`)
+
+-- 2, first paragraph: in addition to the general clothing allowance, and
+-- it covers sun-protection products. The circular sets no month for it,
+-- so the duty carries no deadline.
+@ref akn:art_2/p1
+GIVEN `employment rate` IS A NUMBER
+GIVETH A DEONTIC Party `clothing action`
+DECIDE `physical-education allowance paid` `employment rate` IS
+    PARTY `the employer`
+    MUST  `pay the physical-education allowance` a
+          PROVIDED a AT LEAST `physical-education allowance` `employment rate`
+    LEST BREACH BY `the employer` BECAUSE "תשפ\"ו/8 §2: the physical-education teacher's additional clothing allowance for תשפ\"ו"
+
+§§ `3 קצובת ביגוד בחינוך הטכנולוגי`
+
+-- 3.1א's table: a pair of shoes and two robes a year.
+@ref akn:art_3__para_3-1__subpara_a akn:art_3__para_3-1__subpara_a/t1
+`the professions with shoes and two robes` MEANS
+    LIST "מערכות תעופה", "מכטרוניקה", "טרמודינמיקה טכנית ימית", "מערכות סיב\"מ ותיב\"מ",
+         "תחזוקת מערכות מכניות", "מערכות מכונאות רכב", "מערכות ממוחשבות ברכב",
+         "מערכות הספק, פיקוד ובקרה", "מערכות בקרת אקלים", "אומנות הבישול והאפיה המלונאית",
+         "ימאות – ספינות", "מערכות טלוויזיה וקולנוע", "מערכות צילום"
+
+@ref akn:art_3__para_3-1__subpara_a/p2
+`the value of a pair of shoes and two robes` MEANS 663.14
+
+-- 3.1ב's table: two robes a year.
+@ref akn:art_3__para_3-1__subpara_b akn:art_3__para_3-1__subpara_b/t1
+`the professions with two robes` MEANS
+    LIST "מערכות אלקטרוניות", "מערכות מחשוב ובקרה", "מערכות מחשבים", "תכנון ותכנות מערכות",
+         "מערכות ביוטכנולוגיה", "ניהול תיירותי", "ניהול מלונאי",
+         "חינוך לגיל הרך", "עיצוב", "אופנה ותלבושות", "עיצוב שיער, וטיפוח החן", "סיעוד", "אומנות שימושית"
+
+@ref akn:art_3__para_3-1__subpara_b/p2
+`the value of two robes` MEANS 411.97
+
+-- The two lists are disjoint, thirteen professions each, so no profession
+-- is given two allowances.
+#ASSERT all (GIVEN p YIELD NOT elem p `the professions with two robes`) `the professions with shoes and two robes`
+#ASSERT count `the professions with shoes and two robes` EQUALS 13 AND count `the professions with two robes` EQUALS 13
+
+-- 3.3: in proportion to the position in technological education, one
+-- full position at most. 3.2: in addition to the general allowance.
+@ref akn:art_3/p1 akn:art_3__para_3-2 akn:art_3__para_3-3
+GIVEN `profession` IS A STRING, `position fraction in technological education` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `technological-education allowance` `profession` `position fraction in technological education` IS
+    (IF elem `profession` `the professions with shoes and two robes`
+     THEN `the value of a pair of shoes and two robes`
+     ELSE IF elem `profession` `the professions with two robes`
+          THEN `the value of two robes`
+          ELSE 0)
+    TIMES min `position fraction in technological education` 1
+
+-- As for §2, the circular sets no month for it.
+GIVEN `profession` IS A STRING, `position fraction in technological education` IS A NUMBER
+GIVETH A DEONTIC Party `clothing action`
+DECIDE `technological-education allowance paid` `profession` `position fraction in technological education` IS
+    PARTY `the employer`
+    MUST  `pay the technological-education allowance` a
+          PROVIDED a AT LEAST `technological-education allowance` `profession` `position fraction in technological education`
+    LEST BREACH BY `the employer` BECAUSE "תשפ\"ו/8 §3: the technological-education clothing allowance for תשפ\"ו"
+
+§§ `4 קצובת ביגוד לפיזיותרפיסטים`
+
+@ref akn:art_4/p1
+GIVEN `teaching employee in the health professions` IS A BOOLEAN
+      `holds a physiotherapy certificate` IS A BOOLEAN
+      `treats by physiotherapy in the teaching role` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `is a physiotherapist` `teaching employee in the health professions` `holds a physiotherapy certificate` `treats by physiotherapy in the teaching role` IF
+        `teaching employee in the health professions`
+    AND `holds a physiotherapy certificate`
+    AND `treats by physiotherapy in the teaching role`
+
+-- 4, second paragraph: a full-time physiotherapist in Ofek Hadash or Oz
+-- LaTmura: 800 "only", once a year with July's salary, in addition to the
+-- clothing allowance (citing תשפ"ג/4 §14 and תשפ"ה/5 §15, not restated here).
+@ref akn:art_4/p2
+`the full-time physiotherapists' allowance` MEANS 800
+
+-- 4, third paragraph and its table: part-time, by the rules of the
+-- physical-education allowance, as at 1.9.2026 (F-2025-26_tashpo_08-b).
+@ref akn:art_4/p3 akn:art_4/t1
+`the physiotherapists' part-time table` MEANS
+    LIST `rate band` 0   TRUE  0.3 FALSE 0,
+         `rate band` 0.3 TRUE  0.5 TRUE  432.06,
+         `rate band` 0.5 FALSE 999 TRUE  864.12
+
+#ASSERT `every rate has exactly one row in` `the physiotherapists' part-time table`
+
+-- F-2025-26_tashpo_08-a: the table's top row ("מעל 50%") pays 864.12,
+-- more than the full-time 800, and a full position is itself "above 50%".
+`the part-time table pays more than the full-time allowance above 50%` MEANS
+    `the amounts the table gives for` 0.6 `the physiotherapists' part-time table`
+        EQUALS LIST 864.12
+    AND 864.12 GREATER THAN `the full-time physiotherapists' allowance`
+    AND `the amounts the table gives for` 1 `the physiotherapists' part-time table`
+        EQUALS LIST 864.12
+#ASSERT `the part-time table pays more than the full-time allowance above 50%`
+
+-- The reading adopted (F-2025-26_tashpo_08-a): a full position is paid by
+-- the second paragraph (800), and the table governs part-time positions.
+@export The additional clothing allowance for a physiotherapist in Ofek Hadash or Oz LaTmura for school year תשפ"ו under circular תשפ"ו/8
+GIVEN `position fraction` IS A NUMBER @desc the physiotherapist's position (1 = a full position)
+GIVETH A NUMBER
+DECIDE `physiotherapists' allowance` `position fraction` IS
+    IF `position fraction` AT LEAST 1
+    THEN `the full-time physiotherapists' allowance`
+    ELSE sum (`the amounts the table gives for` `position fraction` `the physiotherapists' part-time table`)
+
+GIVEN `position fraction` IS A NUMBER
+GIVETH A DEONTIC Party `clothing action`
+DECIDE `physiotherapists' allowance paid with July's salary` `position fraction` IS
+    PARTY `the employer`
+    MUST  `pay the physiotherapists' allowance` a
+          PROVIDED a AT LEAST `physiotherapists' allowance` `position fraction`
+    WITHIN `month number` July
+    LEST BREACH BY `the employer` BECAUSE "תשפ\"ו/8 §4: the physiotherapists' clothing allowance is paid with July's salary"
+
+-- akn:conclusions The contact line, signatures and copies; no rule.
+
+-- Examples (positions and professions are placeholders; amounts are the circular's).
+#ASSERT `clothing allowance` 0.5 EQUALS 1263.5
+#ASSERT `clothing allowance` 1.3 EQUALS 2527
+#ASSERT `physical-education allowance` 0.29 EQUALS 0
+#ASSERT `physical-education allowance` 0.3 EQUALS 806.07
+#ASSERT `physical-education allowance` 0.5 EQUALS 806.07
+#ASSERT `physical-education allowance` 0.51 EQUALS 1607.93
+#ASSERT `technological-education allowance` "מכטרוניקה" 1 EQUALS 663.14
+#ASSERT `technological-education allowance` "סיעוד" 0.5 EQUALS 205.985
+#ASSERT `physiotherapists' allowance` 1 EQUALS 800
+#ASSERT `physiotherapists' allowance` 0.4 EQUALS 432.06
+
+#TRACE `clothing allowance paid in full with July's salary` 1 AT 0 WITH
+    PARTY `the employer` DOES `pay the clothing allowance` 2527 AT 11
+#TRACE `physiotherapists' allowance paid with July's salary` 1 AT 0 WITH
+    PARTY `the employer` DOES `pay the physiotherapists' allowance` 800 AT 11
+#TRACE `no employment beyond the limits` `teacher in Ofek Hadash` FALSE AT 0 WITH
+    PARTY `the employer` DOES `employ beyond the limits` 1.2 AT 2

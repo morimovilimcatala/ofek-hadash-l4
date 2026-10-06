@@ -1,0 +1,267 @@
+-- חוזר לבעלויות תשפ"א/8, 5 July 2021: קצובת ביגוד לשנת הלימודים תשפ"א;
+-- קצובת ביגוד לעובדי הוראה בחינוך הגופני ובחינוך הטכנולוגי
+-- The clothing allowance for school year תשפ"א: who is entitled, the
+-- amount (level 4), pro-rating for the position and for several
+-- employers, the employment ceilings; the extra allowance for physical-
+-- education teachers by position; and the shoes and robes of teachers in
+-- technological education by profession.
+
+IMPORT prelude
+IMPORT common
+
+-- Time in the regulative rules is counted in school months of תשפ"א
+-- (common.l4: September 2020 = 1, so the July 2021 salary is month 11).
+
+§ `חוזר תשפ"א/8 קצובת ביגוד`
+
+-- akn:preamble The letterhead and page footer, date (5.7.2021), reference number, addressee (the owners of educational institutions), greeting, subject line and the list of the three subjects; no rule.
+
+§§ `1 קצובת ביגוד לשנת הלימודים תשפ"א`
+
+@desc A teaching employee's school year תשפ"א at one employer, as far as the circular asks about it.
+DECLARE `clothing year` HAS
+    `graded in the teaching-employees grading`  IS A BOOLEAN
+    `employed by an owner the Ministry supervises` IS A BOOLEAN
+    `position fraction at this employer`        IS A NUMBER  @desc the share of a full position held at this employer (1 = 100%)
+    `a physical-education teacher`              IS A BOOLEAN
+    `technological profession`                  IS A STRING  @desc the profession taught in technological education, as the lists print it; "" for none
+
+-- ¶1-¶2: whom it applies to; ¶3: as the Treasury's instructions direct.
+@ref akn:art_1/p1 akn:art_1/p2 akn:art_1/p3 akn:art_1/p4
+GIVEN y IS A `clothing year`
+GIVETH A BOOLEAN
+DECIDE `the clothing rules apply to` y IF
+        y's `graded in the teaching-employees grading`
+    AND y's `employed by an owner the Ministry supervises`
+
+-- 1ב-1ג: entitled as public-facing staff in the civil service are, for
+-- school year תשפ"א (09/20-08/21), at level 4: 2,148 shekels.
+@ref akn:art_1__para_b akn:art_1__para_c
+`the level-4 clothing allowance` MEANS 2148
+
+-- F-2020-21_tashpa_08-a: 1ד pays by the position fraction "and not more
+-- than one full position"; 1ה pays an employee of several employers, whose
+-- total is above 100%, each employer's own share. For 80% and 60%:
+`the employer shares 1ה gives for 80% and 60%` MEANS
+    LIST 0.8, 0.6
+
+`1ד's cap and 1ה disagree for two employers` MEANS
+    sum `the employer shares 1ה gives for 80% and 60%` GREATER THAN 1
+#ASSERT `1ד's cap and 1ה disagree for two employers`
+
+-- The reading adopted (F-2020-21_tashpa_08-a): 1ה, the rule for several
+-- employers, governs them; 1ד's cap is at each employer.
+@ref akn:art_1__para_d akn:art_1__para_e
+GIVEN y IS A `clothing year`
+GIVETH A NUMBER
+DECIDE `position share` y IS
+    min (y's `position fraction at this employer`) 1
+
+@export default The clothing allowance in shekels one employer pays a teaching employee for school year 2020-21 under circular תשפ"א/8, before the physical-education and technological-education extras
+GIVEN y IS A `clothing year` @desc the employee's year at this employer
+GIVETH A NUMBER
+DECIDE `clothing allowance` y IS
+    IF `the clothing rules apply to` y
+    THEN `the level-4 clothing allowance` TIMES `position share` y
+    ELSE 0
+
+DECLARE `clothing action` IS ONE OF
+    `pay the clothing allowance` HAS `clothing paid` IS A NUMBER
+    `pay the physical-education allowance` HAS `physical-education paid` IS A NUMBER
+    `pay the technological-education allowance` HAS `technological paid` IS A NUMBER
+    `employ beyond the ceiling` HAS `scope employed` IS A NUMBER
+
+-- 1א: paid in full with the July 2021 salary.
+@ref akn:art_1__para_a
+GIVEN y IS A `clothing year`
+GIVETH A DEONTIC Party `clothing action`
+DECIDE `paying the clothing allowance with July's salary` y IS
+    PARTY `the employer`
+    MUST  `pay the clothing allowance` `amount`
+          PROVIDED `amount` AT LEAST `clothing allowance` y
+    WITHIN `month number` July
+    LEST  BREACH BY `the employer` BECAUSE "circular 2020-21/8 1a: the clothing allowance is paid in full with the July 2021 salary"
+
+-- 1ו: ceilings on the total scope at all employers, subject to the
+-- exceptional-employment procedure for תשפ"א (an input). ¶5: nothing here
+-- changes the conditions for approval or permits employment beyond them.
+DECLARE `employment terms` IS ONE OF
+    `a teaching employee not under a reform`
+    `a principal not under a reform`
+    `a teacher under עוז לתמורה in full implementation`
+    `a teacher under אופק חדש`
+
+-- F-2020-21_tashpa_08-b: the 140% ceiling is laid on "a teaching
+-- employee", which a principal is, and a principal not under the reform
+-- has a ceiling of 150% too.
+GIVEN t IS AN `employment terms`
+GIVETH A LIST OF NUMBER
+DECIDE `the ceilings 1ו lays on` t IS
+    CONSIDER t
+    WHEN `a teaching employee not under a reform` THEN LIST 1.40
+    WHEN `a principal not under a reform` THEN LIST 1.40, 1.50
+    WHEN `a teacher under עוז לתמורה in full implementation` THEN LIST 1.40, 1.25
+    WHEN `a teacher under אופק חדש` THEN LIST 1.40, 1.17
+
+`a principal not under the reform has two ceilings` MEANS
+    `the ceilings 1ו lays on` `a principal not under a reform` EQUALS LIST 1.40, 1.50
+#ASSERT `a principal not under the reform has two ceilings`
+
+-- The reading adopted (F-2020-21_tashpa_08-b): each group's own ceiling
+-- governs it — 150% for a principal not under a reform, and the reform
+-- ceilings for teachers under a reform; 140% is the ceiling of a teaching
+-- employee not under a reform, as ¶5 puts it ("140% משרה - ללא רפורמה").
+@ref akn:art_1__para_f akn:art_1__para_f/p2 akn:art_1__para_f/p3 akn:art_1__para_f/p4 akn:art_1/p5
+GIVEN t IS AN `employment terms`
+GIVETH A NUMBER
+DECIDE `employment ceiling` t IS
+    CONSIDER t
+    WHEN `a teaching employee not under a reform` THEN 1.40
+    WHEN `a principal not under a reform` THEN 1.50
+    WHEN `a teacher under עוז לתמורה in full implementation` THEN 1.25
+    WHEN `a teacher under אופק חדש` THEN 1.17
+
+GIVEN t IS AN `employment terms`
+      `the exceptional-employment procedure permits it` IS A BOOLEAN @desc whether the exceptional-employment procedure for 2020-21 allows the excess; an input
+GIVETH A DEONTIC Party `clothing action`
+DECIDE `no employment beyond the ceiling` t `the exceptional-employment procedure permits it` IS
+    PARTY `the employer`
+    SHANT `employ beyond the ceiling` `scope`
+          PROVIDED `scope` GREATER THAN `employment ceiling` t
+                   AND NOT `the exceptional-employment procedure permits it`
+    WITHIN 12
+    LEST  BREACH BY `the employer` BECAUSE "circular 2020-21/8 1f: no employment above the ceiling at all employers, save under the exceptional-employment procedure"
+
+§§ `2 קצובת ביגוד נוספת למורה לחינוך גופני`
+
+-- ¶1: on top of the general allowance (sun protection included). ¶2: the
+-- amounts of circular תשע"ב/8 are updated to the table, correct to 1.9.20.
+@ref akn:art_2/p1 akn:art_2/p2 akn:art_2/t1
+DECLARE `physical-education band` HAS
+    `from fraction`       IS A NUMBER
+    `from included`       IS A BOOLEAN
+    `to fraction`         IS A NUMBER
+    `to included`         IS A BOOLEAN
+    `band shekels`        IS A NUMBER
+
+-- One row per printed line: "less than a third" (33.333%), "from a third
+-- to half inclusive" (50%), "above half". 9 stands for no upper bound.
+`the physical-education table` MEANS
+    LIST `physical-education band` 0       TRUE  (1 DIVIDED BY 3) FALSE 0,
+         `physical-education band` (1 DIVIDED BY 3) TRUE  0.5 TRUE  685,
+         `physical-education band` 0.5     FALSE 9   TRUE  1368
+
+GIVEN f IS A NUMBER, b IS A `physical-education band`
+GIVETH A BOOLEAN
+DECIDE `in band` f b IF
+        (f GREATER THAN b's `from fraction` OR (b's `from included` AND f EQUALS b's `from fraction`))
+    AND (f LESS THAN b's `to fraction` OR (b's `to included` AND f EQUALS b's `to fraction`))
+
+GIVEN f IS A NUMBER
+GIVETH A LIST OF NUMBER
+DECIDE `the physical-education amounts at` f IS
+    map (GIVEN b YIELD b's `band shekels`) (filter (GIVEN b YIELD `in band` f b) `the physical-education table`)
+
+-- The bands meet with no gap and no overlap.
+#ASSERT all (GIVEN f YIELD count (`the physical-education amounts at` f) EQUALS 1)
+            (LIST 0.1, 0.33, 1 DIVIDED BY 3, 0.4, 0.5, 0.51, 1, 1.2)
+
+GIVEN y IS A `clothing year`
+GIVETH A NUMBER
+DECIDE `physical-education allowance` y IS
+    IF `the clothing rules apply to` y AND y's `a physical-education teacher`
+    THEN sum (`the physical-education amounts at` (y's `position fraction at this employer`))
+    ELSE 0
+
+-- No month is printed for this payment; the allowance is for school year
+-- תשפ"א, so the year bounds it.
+GIVEN y IS A `clothing year`
+GIVETH A DEONTIC Party `clothing action`
+DECIDE `paying the physical-education allowance` y IS
+    PARTY `the employer`
+    MUST  `pay the physical-education allowance` `amount`
+          PROVIDED `amount` AT LEAST `physical-education allowance` y
+    WITHIN 12
+    LEST  BREACH BY `the employer` BECAUSE "circular 2020-21/8 2: the physical-education teacher's extra clothing allowance is paid for 2020-21"
+
+§§ `3 קצובת ביגוד בחינוך הטכנולוגי`
+
+-- 3.1א: a pair of shoes and two robes a year (566 shekels) for these
+-- professions; 3.1ב: two robes a year (352 shekels) for these.
+@ref akn:art_3__para_1__subpara_a akn:art_3__para_1__subpara_a/t1 akn:art_3__para_1__subpara_a/p2
+`the shoes-and-robes professions` MEANS
+    LIST "מערכות תעופה", "מכטרוניקה", "טרמודינמיקה טכנית ימית", "מערכות סיב\"מ ותיב\"מ",
+         "תחזוקת מערכות מכניות", "מערכות מכונאות רכב", "מערכות ממוחשבות ברכב",
+         "מערכות הספק, פיקוד ובקרה", "מערכות בקרת אקלים", "אומנות הבישול והאפיה המלונאית",
+         "ימאות – ספינות", "מערכות טלוויזיה וקולנוע", "מערכות צילום"
+
+`a pair of shoes and two robes` MEANS 566
+
+@ref akn:art_3__para_1__subpara_b akn:art_3__para_1__subpara_b/t1 akn:art_3__para_1__subpara_b/p2
+`the two-robes professions` MEANS
+    LIST "מערכות אלקטרוניות", "מערכות מחשוב ובקרה", "מערכות מחשבים", "תכנון ותכנות מערכות",
+         "מערכות ביוטכנולוגיה", "ניהול תיירותי", "ניהול מלונאי",
+         "חינוך לגיל הרך", "עיצוב", "אופנה ותלבושות", "עיצוב שיער, וטיפוח החן",
+         "סיעוד", "אומנות שימושית"
+
+`two robes` MEANS 352
+
+-- Each list prints 13 professions and no profession is in both.
+#ASSERT count `the shoes-and-robes professions` EQUALS 13 AND count `the two-robes professions` EQUALS 13
+#ASSERT all (GIVEN p YIELD NOT elem p `the two-robes professions`) `the shoes-and-robes professions`
+
+-- ¶1 and 3.2-3.3: for a teacher or vocational instructor in technological
+-- education, on top of the general allowance, pro-rated to the position and
+-- for no more than one full position.
+@ref akn:art_3/p1 akn:art_3__para_2 akn:art_3__para_3
+GIVEN y IS A `clothing year`
+GIVETH A NUMBER
+DECIDE `technological-education allowance` y IS
+    IF NOT `the clothing rules apply to` y
+    THEN 0
+    ELSE IF elem (y's `technological profession`) `the shoes-and-robes professions`
+         THEN `a pair of shoes and two robes` TIMES `position share` y
+         ELSE IF elem (y's `technological profession`) `the two-robes professions`
+              THEN `two robes` TIMES `position share` y
+              ELSE 0
+
+GIVEN y IS A `clothing year`
+GIVETH A DEONTIC Party `clothing action`
+DECIDE `paying the technological-education allowance` y IS
+    PARTY `the employer`
+    MUST  `pay the technological-education allowance` `amount`
+          PROVIDED `amount` AT LEAST `technological-education allowance` y
+    WITHIN 12
+    LEST  BREACH BY `the employer` BECAUSE "circular 2020-21/8 3: the technological-education clothing allowance is paid for 2020-21"
+
+-- akn:conclusions The contact line, signatures and copies list; no rule.
+
+-- Worked examples: the shekel figures are the circular's own.
+`a full-time physical-education teacher` MEANS
+    `clothing year` WITH
+        `graded in the teaching-employees grading`  IS TRUE
+        `employed by an owner the Ministry supervises` IS TRUE
+        `position fraction at this employer`        IS 1
+        `a physical-education teacher`              IS TRUE
+        `technological profession`                  IS ""
+
+`a 40% mechatronics instructor` MEANS
+    `clothing year` WITH
+        `graded in the teaching-employees grading`  IS TRUE
+        `employed by an owner the Ministry supervises` IS TRUE
+        `position fraction at this employer`        IS 0.4
+        `a physical-education teacher`              IS FALSE
+        `technological profession`                  IS "מכטרוניקה"
+
+#ASSERT `clothing allowance` `a full-time physical-education teacher` EQUALS 2148
+#ASSERT `physical-education allowance` `a full-time physical-education teacher` EQUALS 1368
+#ASSERT `clothing allowance` `a 40% mechatronics instructor` EQUALS 859.2
+#ASSERT `technological-education allowance` `a 40% mechatronics instructor` EQUALS 226.4
+#ASSERT `employment ceiling` `a principal not under a reform` EQUALS 1.50
+
+#TRACE `paying the clothing allowance with July's salary` `a full-time physical-education teacher` AT 0 WITH
+    PARTY `the employer` DOES `pay the clothing allowance` 2148 AT 11
+#TRACE `paying the clothing allowance with July's salary` `a full-time physical-education teacher` AT 0 WITH
+    PARTY `the employer` DOES `pay the clothing allowance` 2148 AT 12
+#TRACE `no employment beyond the ceiling` `a teacher under אופק חדש` FALSE AT 0 WITH
+    PARTY `the employer` DOES `employ beyond the ceiling` 1.2 AT 2

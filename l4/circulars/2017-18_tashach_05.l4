@@ -1,0 +1,126 @@
+-- חוזר לבעלויות תשע"ח/5: עדכון הצמדה למדד של תוספת שקלית 2016
+-- The 2016 shekel supplement's linkage to the consumer price index: the
+-- linked monthly amounts from 1.1.2018 and from 1.6.2018, for teachers in
+-- the Oz LeTmura reform and for those outside it and principals.
+
+IMPORT prelude
+IMPORT daydate
+IMPORT common
+
+§ `חוזר תשע"ח/5 הצמדת תוספת שקלית 2016`
+
+-- akn:hc_1/p1 akn:hc_1/p2 akn:hc_1/p3 akn:hc_1/p4 akn:hc_1/p5 akn:hc_1/p6 akn:hc_1/p7 akn:hc_1/p8 akn:hc_1/p9 akn:hc_1/p10 akn:hc_1/p11 akn:hc_1/p12 The letterhead, date, reference, addressee, greeting and subject line; no rule.
+
+-- akn:hc_1/p13 akn:hc_1/p14 akn:hc_1/p15 The sources of the linkage (the agreements of 14.3.2018 and 23.3.2017, circular 5777/4) and the circular's purpose; the linked amounts are encoded below.
+
+-- ¶16: the linkage is December 2017's index against December 2015's.
+@ref akn:hc_1/p16
+GIVEN `index of December 2017` IS A NUMBER, `index of December 2015` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the linkage factor` `index of December 2017` `index of December 2015` IS
+    `index of December 2017` DIVIDED BY `index of December 2015`
+
+DECLARE `group` IS ONE OF
+    `teachers in the Oz LeTmura reform`
+    `teachers outside the reform and principals`
+
+@desc A teaching employee, as far as this circular asks.
+DECLARE `teaching employee` HAS
+    `rated in the teaching employees' grading` IS A BOOLEAN
+    `employed by an owner of a ministry-supervised institution` IS A BOOLEAN
+    `employed in an upper division or grades 13-14` IS A BOOLEAN
+    `employee group` IS A `group`
+
+-- akn:hc_1/p17 The heading "תחולה"; no rule.
+
+-- ¶18-¶19: upper divisions and grades 13-14, in the reform or outside it.
+@ref akn:hc_1/p18 akn:hc_1/p19
+GIVEN e IS A `teaching employee`
+GIVETH A BOOLEAN
+DECIDE `the circular applies to` e IF
+        e's `rated in the teaching employees' grading`
+    AND e's `employed by an owner of a ministry-supervised institution`
+    AND e's `employed in an upper division or grades 13-14`
+
+@desc A linked amount of the 2016 shekel supplement for a full position, per month, and the amount paid before it.
+DECLARE `linked amount` HAS
+    `linked from`      IS A DATE
+    `linked to`        IS A DATE @desc 31.12.9999 where the circular gives no end
+    `for group`        IS A `group`
+    `amount linked`    IS A NUMBER
+    `amount replaced`  IS A NUMBER @desc the amount paid for the period before this circular; 0 where none is named
+
+-- ¶20-¶25. The circular gives the 1.6.2018 amounts no end date
+-- (F-2017-18_tashach_05-a).
+@ref akn:hc_1/p20 akn:hc_1/p21 akn:hc_1/p22 akn:hc_1/p23 akn:hc_1/p24 akn:hc_1/p25
+`the linked amounts` MEANS
+    LIST `linked amount` (Date 1 1 2018) (Date 31 5 2018)   `teachers in the Oz LeTmura reform`           834.29 832.62,
+         `linked amount` (Date 1 1 2018) (Date 31 5 2018)   `teachers outside the reform and principals` 620.43 619.19,
+         `linked amount` (Date 1 6 2018) (Date 31 12 9999) `teachers in the Oz LeTmura reform`           965.04 0,
+         `linked amount` (Date 1 6 2018) (Date 31 12 9999) `teachers outside the reform and principals` 751.18 0
+
+@ref akn:hc_1/p20 akn:hc_1/p23
+GIVEN g IS A `group`, `the day` IS A DATE
+GIVETH A NUMBER
+DECIDE `the linked shekel supplement for a full position` g `the day` IS
+    sum (map (GIVEN a YIELD a's `amount linked`)
+             (filter (GIVEN a YIELD a's `for group` EQUALS g AND `the day` AT LEAST a's `linked from` AND `the day` AT MOST a's `linked to`)
+                     `the linked amounts`))
+
+-- ¶21-¶22: the difference owed for each month of 1.1.2018-31.5.2018 already paid.
+@ref akn:hc_1/p21 akn:hc_1/p22
+GIVEN g IS A `group`
+GIVETH A NUMBER
+DECIDE `monthly difference owed for January-May 2018` g IS
+    sum (map (GIVEN a YIELD a's `amount linked` MINUS a's `amount replaced`)
+             (filter (GIVEN a YIELD a's `for group` EQUALS g AND a's `amount replaced` GREATER THAN 0) `the linked amounts`))
+
+-- akn:hc_1/p26 akn:hc_1/p27 A pointer to circular תשע"ז/4 for the supplement's other rules; no rule of its own.
+
+DECLARE `linkage action` IS ONE OF
+    `indemnify the owner at the hour costs` HAS `indemnity` IS A NUMBER
+
+-- ¶28: the owners are indemnified at the relevant hour costs in the
+-- payments system; no date is named.
+@ref akn:hc_1/p28
+GIVEN `indemnity due` IS A NUMBER
+GIVETH A DEONTIC Party `linkage action`
+DECIDE `indemnifying the owners` `indemnity due` IS
+    PARTY `the Ministry of Education`
+    MUST  `indemnify the owner at the hour costs` `amount`
+          PROVIDED `amount` AT LEAST `indemnity due`
+
+-- akn:conclusions The sign-off and the copies list; no rule.
+
+-- Findings.
+
+-- F-2017-18_tashach_05-a: the 1.6.2018 amounts have no end, though the
+-- agreement of 14.3.2018 (circular תשע"ח/3, not imported) steps the
+-- supplement again on 1.12.2018; as encoded, the linked amount on
+-- 1.1.2019 is still the 1.6.2018 figure.
+`the linked amount the circular gives on 1.1.2019` MEANS
+    `the linked shekel supplement for a full position` `teachers in the Oz LeTmura reform` (Date 1 1 2019)
+`the 1.6.2018 amount runs on without an end` MEANS
+    `the linked amount the circular gives on 1.1.2019` EQUALS 965.04
+#ASSERT `the 1.6.2018 amount runs on without an end`
+
+-- Examples. One linkage factor, 1.002 (the index ratio itself is not
+-- printed), rounded to the agora, gives all four linked amounts from the
+-- amounts of the agreement of 14.3.2018 for the same periods.
+GIVEN x IS A NUMBER
+GIVETH A NUMBER
+DECIDE `to the agora` x IS TRUNC (x PLUS 0.005) 2
+
+`one factor reproduces every linked amount` MEANS
+        `to the agora` (832.62 TIMES 1.002) EQUALS 834.29
+    AND `to the agora` (619.19 TIMES 1.002) EQUALS 620.43
+    AND `to the agora` (963.11 TIMES 1.002) EQUALS 965.04
+    AND `to the agora` (749.68 TIMES 1.002) EQUALS 751.18
+#ASSERT `one factor reproduces every linked amount`
+
+#ASSERT `the linked shekel supplement for a full position` `teachers outside the reform and principals` (Date 15 3 2018) EQUALS 620.43
+#ASSERT `monthly difference owed for January-May 2018` `teachers in the Oz LeTmura reform` EQUALS 1.67
+#ASSERT `the linkage factor` 102 100 EQUALS 1.02
+
+#TRACE `indemnifying the owners` 1000 AT 0 WITH
+    PARTY `the Ministry of Education` DOES `indemnify the owner at the hour costs` 1000 AT 1

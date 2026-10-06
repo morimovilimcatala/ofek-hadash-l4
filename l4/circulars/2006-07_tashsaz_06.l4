@@ -1,0 +1,256 @@
+-- חוזר לבעלויות תשס"ז/6 — תשלום דמי הבראה ומענק יובל לשנת הלימודים תשס"ז (10.6.2007)
+-- The recuperation allowance for school year 2006-07 (paid in full with
+-- June 2007's salary, at 355 shekels a day, by a days-by-seniority table,
+-- pro-rated for part-time work), and the jubilee grant paid the same month.
+
+IMPORT prelude
+IMPORT common
+
+§ `תשלום דמי הבראה ומענק יובל תשס"ז`
+
+-- akn:preamble The letterhead, title, date, addressee, greeting and subject line; no rule.
+
+-- Time in this file is counted in school months of 2006-07 (common.l4:
+-- September 2006 = 1, so June 2007's salary is month 10).
+
+§§ `1 קצובת דמי הבראה`
+
+@desc A teaching employee's school year 2006-07, as far as this circular asks about it.
+DECLARE `employee year` HAS
+    `year of teaching seniority`          IS A NUMBER  @desc which year of teaching seniority this is (the first year is 1)
+    `position fraction`                   IS A NUMBER  @desc the share of a full position held that year (1 = one full position)
+    `months of work`                      IS A NUMBER  @desc months of work in the school year
+    `salary determining for pension`      IS A NUMBER  @desc the monthly salary determining pension and severance pay, without once-a-year payments such as clothing and recuperation; an input
+    `seniority set last September`        IS A NUMBER  @desc the teaching seniority, in years, set for the employee in September 2006 (¶4)
+    `teaching years on 1 June`            IS A NUMBER  @desc cumulative years of teaching seniority completed on 1 June 2007, including military service and §2א's leave years (¶2)
+    `teaching years on 1 June a year earlier` IS A NUMBER @desc the same count on 1 June 2006
+    `years of work in Israel on 1 June`   IS A NUMBER  @desc years of work in Israel completed on 1 June 2007, including compulsory army service (§2ב)
+    `share of the year employed`          IS A NUMBER  @desc the part of the school year in which the employee was employed (1 = all of it), for §2ג
+
+@ref akn:art_1__para_b
+`the price of a recuperation day` MEANS 355
+
+DECLARE `days band` HAS
+    `from year` IS A NUMBER
+    `to year`   IS A NUMBER  @desc 999 stands for "ומעלה", with no upper bound
+    `band days` IS A NUMBER
+
+-- §1ג's table as printed: "3 שנים ראשונות" is years 1–3.
+@ref akn:art_1__para_c akn:art_1__para_c/p2 akn:art_1__para_c/p3 akn:art_1__para_c/p4 akn:art_1__para_c/p5 akn:art_1__para_c/p6 akn:art_1__para_c/p7 akn:art_1__para_c/p8
+`the table of recuperation days` MEANS
+    LIST `days band` 1  3   7,
+         `days band` 4  10  9,
+         `days band` 11 15  10,
+         `days band` 16 19  11,
+         `days band` 20 24  12,
+         `days band` 25 999 13
+
+GIVEN n IS A NUMBER
+GIVETH A NUMBER
+DECIDE `recuperation days` n IS
+    sum (map (GIVEN b YIELD b's `band days`)
+             (filter (GIVEN b YIELD n AT LEAST b's `from year` AND n AT MOST b's `to year`)
+                     `the table of recuperation days`))
+
+-- The table is a function: every year from 1 to 40 falls in exactly one band.
+#ASSERT all (GIVEN n YIELD count (filter (GIVEN b YIELD n AT LEAST b's `from year` AND n AT MOST b's `to year`)
+                                         `the table of recuperation days`) EQUALS 1)
+            (LIST 1, 2, 3, 4, 5, 10, 11, 15, 16, 19, 20, 24, 25, 30, 40)
+
+-- §1ד read two ways (F-2006-07_tashsaz_06-a): pro-rated by the position
+-- fraction, or at 1/10 for each month of work. The reading adopted applies
+-- both — the position share and the months share — counting at most ten
+-- months, so a full year at a full position is the full allowance.
+@ref akn:art_1__para_d
+GIVEN y IS AN `employee year`
+GIVETH A NUMBER
+DECIDE `share by the position` y IS
+    min (y's `position fraction`) 1
+
+GIVEN y IS AN `employee year`
+GIVETH A NUMBER
+DECIDE `share by the months` y IS
+    min (y's `months of work`) 10 DIVIDED BY 10
+
+-- §1ה: above one full position, the allowance of one full position only —
+-- the cap in `share by the position`.
+@ref akn:art_1__para_e
+GIVEN y IS AN `employee year`
+GIVETH A BOOLEAN
+DECIDE `capped at one full position` y IF
+    y's `position fraction` GREATER THAN 1
+
+@export The recuperation allowance for school year 2006-07 owed to a teaching employee of an owning body
+GIVEN y IS AN `employee year` @desc the employee's school year 2006-07
+GIVETH A NUMBER
+DECIDE `recuperation allowance` y IS
+    `the price of a recuperation day`
+    TIMES `recuperation days` (y's `year of teaching seniority`)
+    TIMES `share by the position` y
+    TIMES `share by the months` y
+
+DECLARE `payment action` IS ONE OF
+    `pay the recuperation allowance` HAS `allowance paid` IS A NUMBER
+    `pay the jubilee grant`          HAS `grant paid`     IS A NUMBER
+
+@ref akn:art_1__para_a
+GIVEN y IS AN `employee year`
+GIVETH A DEONTIC Party `payment action`
+DECIDE `the allowance is paid in full with June's salary` y IS
+    PARTY `the employer`
+    MUST  `pay the recuperation allowance` amount
+          PROVIDED amount AT LEAST `recuperation allowance` y
+    WITHIN `month number` June
+    LEST  BREACH BY `the employer` BECAUSE "§1א: the recuperation allowance is paid in full with June 2007's salary"
+
+§§ `2 תשלום מענק יובל`
+
+-- ¶2 and ¶4: the grant goes to an employee with 30 or more years of
+-- cumulative teaching seniority, by the seniority set the September before.
+@ref akn:art_2/p2 akn:art_2/p4
+GIVEN y IS AN `employee year`
+GIVETH A BOOLEAN
+DECIDE `entitled by the seniority set last September` y IF
+    y's `seniority set last September` AT LEAST 30
+
+-- §2ב: an employee who completed 30 years of work in Israel by 1 June of the
+-- year earns the grant in that year.
+@ref akn:art_2__para_b
+GIVEN y IS AN `employee year`
+GIVETH A BOOLEAN
+DECIDE `entitled by work in Israel on 1 June` y IF
+    y's `years of work in Israel on 1 June` AT LEAST 30
+
+-- §2א: a year of unpaid leave for which pension rights were bought counts
+-- toward the 30 years; it is inside `teaching years on 1 June`.
+@ref akn:art_2__para_a akn:art_2__para_a/p2
+GIVEN `teaching years otherwise` IS A NUMBER, `leave years with pension rights bought` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `years counted for the jubilee` `teaching years otherwise` `leave years with pension rights bought` IS
+    `teaching years otherwise` PLUS `leave years with pension rights bought`
+
+-- The reading adopted (F-…-b, -c, -d): the measure is ¶2's teaching
+-- seniority; the date is §2ב's 1 June; and the grant is paid once, in the
+-- year the 30 years are completed.
+GIVEN y IS AN `employee year`
+GIVETH A BOOLEAN
+DECIDE `entitled to the jubilee grant` y IF
+        y's `teaching years on 1 June` AT LEAST 30
+    AND y's `teaching years on 1 June a year earlier` LESS THAN 30
+
+-- ¶3 and §2ג: 60% of the salary determining pension and severance, by the
+-- position fraction (up to one position) and the share of the year employed.
+@ref akn:art_2/p3 akn:art_2__para_c
+@export The jubilee grant for school year 2006-07 owed to a teaching employee of an owning body
+GIVEN y IS AN `employee year` @desc the employee's school year 2006-07
+GIVETH A NUMBER
+DECIDE `jubilee grant` y IS
+    IF `entitled to the jubilee grant` y
+    THEN 60% TIMES y's `salary determining for pension`
+         TIMES `share by the position` y
+         TIMES y's `share of the year employed`
+    ELSE 0
+
+@ref akn:art_2/p1
+GIVEN y IS AN `employee year`
+GIVETH A DEONTIC Party `payment action`
+DECIDE `the jubilee grant is paid with June's salary` y IS
+    PARTY `the employer`
+    MUST  `pay the jubilee grant` amount
+          PROVIDED amount AT LEAST `jubilee grant` y
+    WITHIN `month number` June
+    LEST  BREACH BY `the employer` BECAUSE "§2: the jubilee grant is paid with June 2007's salary"
+
+-- akn:art_2/p5 The heading "הבהרות" (clarifications); no rule.
+
+-- akn:conclusions The sign-off and signature; no rule.
+
+§§ `Findings`
+
+-- F-2006-07_tashsaz_06-a: a half-position teacher who worked all ten months
+-- gets half by the position and the whole by the months.
+`a half-position teacher, ten months` MEANS
+    `employee year` WITH
+        `year of teaching seniority`              IS 12
+        `position fraction`                       IS 0.5
+        `months of work`                          IS 10
+        `salary determining for pension`          IS 10000
+        `seniority set last September`            IS 11
+        `teaching years on 1 June`                IS 12
+        `teaching years on 1 June a year earlier` IS 11
+        `years of work in Israel on 1 June`       IS 12
+        `share of the year employed`              IS 1
+
+`§1ד's two measures differ` MEANS
+    NOT (`share by the position` `a half-position teacher, ten months`
+         EQUALS `a half-position teacher, ten months`'s `months of work` DIVIDED BY 10)
+#ASSERT `§1ד's two measures differ`
+
+-- F-2006-07_tashsaz_06-b: seniority 29 when set in September 2006, 30 years
+-- completed on 1 March 2007.
+`thirty years in March` MEANS
+    `employee year` WITH
+        `year of teaching seniority`              IS 30
+        `position fraction`                       IS 1
+        `months of work`                          IS 10
+        `salary determining for pension`          IS 10000
+        `seniority set last September`            IS 29
+        `teaching years on 1 June`                IS 30
+        `teaching years on 1 June a year earlier` IS 29
+        `years of work in Israel on 1 June`       IS 30
+        `share of the year employed`              IS 1
+
+`September's seniority and 1 June disagree` MEANS
+        `entitled by work in Israel on 1 June` `thirty years in March`
+    AND NOT `entitled by the seniority set last September` `thirty years in March`
+#ASSERT `September's seniority and 1 June disagree`
+
+-- F-2006-07_tashsaz_06-c: 27 years of teaching and 3 years of other work in
+-- Israel.
+`twenty-seven years of teaching` MEANS
+    `employee year` WITH
+        `year of teaching seniority`              IS 27
+        `position fraction`                       IS 1
+        `months of work`                          IS 10
+        `salary determining for pension`          IS 10000
+        `seniority set last September`            IS 27
+        `teaching years on 1 June`                IS 27
+        `teaching years on 1 June a year earlier` IS 26
+        `years of work in Israel on 1 June`       IS 30
+        `share of the year employed`              IS 1
+
+`teaching seniority and work in Israel disagree` MEANS
+        `entitled by work in Israel on 1 June` `twenty-seven years of teaching`
+    AND NOT (`twenty-seven years of teaching`'s `teaching years on 1 June` AT LEAST 30)
+#ASSERT `teaching seniority and work in Israel disagree`
+
+-- F-2006-07_tashsaz_06-d: with 35 years, ¶2 ("30 years and more") pays the
+-- grant again; §2ב ("in that year") paid it in the year of the 30th.
+`thirty-five years` MEANS
+    `employee year` WITH
+        `year of teaching seniority`              IS 35
+        `position fraction`                       IS 1
+        `months of work`                          IS 10
+        `salary determining for pension`          IS 10000
+        `seniority set last September`            IS 35
+        `teaching years on 1 June`                IS 35
+        `teaching years on 1 June a year earlier` IS 34
+        `years of work in Israel on 1 June`       IS 35
+        `share of the year employed`              IS 1
+
+`"30 years and more" pays again a grant §2ב paid once` MEANS
+        `entitled by the seniority set last September` `thirty-five years`
+    AND NOT `entitled to the jubilee grant` `thirty-five years`
+#ASSERT `"30 years and more" pays again a grant §2ב paid once`
+
+-- Worked examples. The salary of 10,000 is a placeholder.
+#ASSERT `recuperation allowance` `a half-position teacher, ten months` EQUALS 1775
+#ASSERT `recuperation allowance` `thirty years in March` EQUALS 4615
+#ASSERT `jubilee grant` `thirty years in March` EQUALS 6000
+#ASSERT `jubilee grant` `thirty-five years` EQUALS 0
+#ASSERT `recuperation days` 3 EQUALS 7 AND `recuperation days` 4 EQUALS 9 AND `recuperation days` 24 EQUALS 12
+
+#TRACE `the allowance is paid in full with June's salary` `thirty years in March` AT 0 WITH
+    PARTY `the employer` DOES `pay the recuperation allowance` 4615 AT 10
+#TRACE `the jubilee grant is paid with June's salary` `thirty years in March` AT 0 WITH
+    PARTY `the employer` DOES `pay the jubilee grant` 6000 AT 10

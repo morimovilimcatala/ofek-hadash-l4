@@ -1,0 +1,229 @@
+-- חוזר לבעלויות תשפ"ב/8 (28.8.2022), תגמול עובדי הוראה בגין הישגי בית הספר
+-- לשנת הלימודים תשפ"ב.
+-- The one-off grant to upper-division teaching employees of the schools the
+-- Ministry ranked highest for achievements in תשפ"ב: who, how much by the
+-- school's rank, pro-rating, when it is paid, and how it is treated for
+-- other pay and for pension.
+
+IMPORT prelude
+IMPORT common
+
+§ `תשפ"ב/8 תגמול עובדי הוראה בגין הישגי בית הספר לשנת הלימודים תשפ"ב`
+
+-- akn:preamble/p1 akn:preamble/p2 akn:preamble/p3 akn:preamble/p4 akn:preamble/p5 akn:preamble/p6 akn:preamble/p7 The letterhead, the date and the reference number; no rule.
+-- akn:preamble/p8 akn:preamble/p9 akn:preamble/p10 akn:preamble/p11 akn:preamble/p12 The circular's number, the addressees, the greeting and the subject line; no rule.
+-- akn:preamble/p13 akn:preamble/p14 The background: the general collective agreement of 14.8.2011 with the Secondary School Teachers' Association, approved by the Treasury's wage supervisor, and what it covers; no rule of its own.
+
+-- Time in the regulative rules is counted in school months of תשפ"ב
+-- (common.l4: September 2021 is 1, August 2022 is 12, so September 2022 is 13).
+
+§§ `1 תחולה`
+
+@desc A teaching employee as far as this circular asks about it.
+DECLARE `achievement grant employee` HAS
+    `rated on the teaching-employee scale`                   IS A BOOLEAN
+    `employed by an owner of supervised secondary education` IS A BOOLEAN @desc employed by an owner of secondary education the Ministry of Education supervises
+    `employed in the upper division in תשפ"ב`                IS A BOOLEAN
+    `position fraction in the upper division`                IS A NUMBER  @desc the share of a full position held in the upper division in תשפ"ב (1 = one full position)
+    `share of the school year employed at the school`        IS A NUMBER  @desc the share of the school year תשפ"ב employed at the outstanding school, maternity leave counted as employment (section 2ג)
+    `on sabbatical or unpaid leave all year`                 IS A BOOLEAN
+    `rank of the school`                                     IS A NUMBER  @desc the school's achievement rank 1 to 4 on the Ministry's list of winning schools, 0 if it is not on it
+
+-- Preamble ¶15 and §1: the circular applies to teaching-scale employees of
+-- the upper division employed by owners of supervised secondary education,
+-- in proportion to their employment there, in or out of Oz LaTmura (§36 of
+-- the agreement).
+@ref akn:preamble/p15 akn:art_1/p1 akn:art_1/p2
+GIVEN e IS AN `achievement grant employee`
+GIVETH A BOOLEAN
+DECIDE `the circular applies to` e IF
+        e's `rated on the teaching-employee scale`
+    AND e's `employed by an owner of supervised secondary education`
+    AND e's `employed in the upper division in תשפ"ב`
+
+§§ `2 תגמול עובדי הוראה בגין הישגי בית הספר`
+
+-- §2א: the programme runs since תשע"ג by the format of the pedagogical
+-- administration's letter of 21.10.2012; the upper division is grades
+-- ט'-י"ב/י"ד in a four-year school and י'-י"ב/י"ד in a three-year or
+-- six-year school.
+@desc The kinds of school §2א names.
+DECLARE `school kind` IS ONE OF
+    `a four-year school`
+    `a three-year school`
+    `a six-year school`
+
+@ref akn:art_2__para_a
+GIVEN k IS A `school kind`
+GIVETH A NUMBER
+DECIDE `the lowest grade of the upper division` k IS
+    CONSIDER k
+    WHEN `a four-year school` THEN 9
+    OTHERWISE 10
+
+-- Grade numbers: ט' is 9 ... י"ד is 14.
+@ref akn:art_2__para_a
+GIVEN k IS A `school kind`, `grade` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `the grade is in the upper division` k `grade` IF
+        `grade` AT LEAST `the lowest grade of the upper division` k
+    AND `grade` AT MOST 14
+
+@desc One printed row of section 2ב: the school's rank and the grant for a full position, as updated to May 2022.
+DECLARE `rank row` HAS
+    `rank`                      IS A NUMBER
+    `share of schools`          IS A STRING
+    `grant for a full position` IS A NUMBER
+
+-- §2ב: the teachers of the schools the Ministry found highest are entitled
+-- to a one-off grant by the school's rank. ¶12: the amounts are updated by
+-- the CPI of May 2022 against May 2021.
+@ref akn:art_2__para_b/p1 akn:art_2__para_b/p2 akn:art_2__para_b/p3 akn:art_2__para_b/p4 akn:art_2__para_b/p5 akn:art_2__para_b/p6 akn:art_2__para_b/p7 akn:art_2__para_b/p8 akn:art_2__para_b/p9 akn:art_2__para_b/p10 akn:art_2__para_b/p11 akn:art_2__para_b/p12
+`the grants by the school's rank` MEANS
+    LIST `rank row` 1 "the top 10%"            8793.25,
+         `rank row` 2 "the next 10%"           6594.94,
+         `rank row` 3 "the next 10%"           4396.63,
+         `rank row` 4 "the next 10%"           3297.46
+
+GIVEN r IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the full-position grant for rank` r IS
+    sum (map (GIVEN x YIELD x's `grant for a full position`)
+             (filter (GIVEN x YIELD x's `rank` EQUALS r) `the grants by the school's rank`))
+
+-- §2ג: part-time or part-year: the proportional part, by the position in
+-- the upper division and by the share of the year employed at the school
+-- ("ו/או": both apply where both are partial). Maternity leave under the
+-- Women's Employment Law counts as employment; unpaid leave after it does
+-- not (both are in the input's share of the year). ¶2: a whole year on
+-- sabbatical or unpaid leave earns nothing. §2ד: no position above 100%.
+@ref akn:art_2__para_c akn:art_2__para_c/p2 akn:art_2__para_d
+GIVEN e IS AN `achievement grant employee`
+GIVETH A NUMBER
+DECIDE `the proportional share` e IS
+    IF e's `on sabbatical or unpaid leave all year`
+    THEN 0
+    ELSE min (e's `position fraction in the upper division`) 1
+             TIMES e's `share of the school year employed at the school`
+
+GIVEN x IS A NUMBER
+GIVETH A NUMBER
+DECIDE `to the agora` x IS
+    ROUND (x TIMES 100) DIVIDED BY 100
+
+@export The one-off grant for school achievements in the school year תשפ"ב owed to an upper-division teaching employee under circular תשפ"ב/8
+GIVEN e IS AN `achievement grant employee` @desc the employee
+GIVETH A NUMBER
+DECIDE `the achievement grant` e IS
+    IF `the circular applies to` e
+    THEN `to the agora` (`the full-position grant for rank` (e's `rank of the school`) TIMES `the proportional share` e)
+    ELSE 0
+
+-- §2ו: the grants are not part of the base for the hourly value, severance
+-- pay or percentage supplements, and no study-fund contributions are made.
+@desc The bases §2ו names.
+DECLARE `pay base` IS ONE OF
+    `the base of the hourly value`
+    `the base of severance pay`
+    `the base of percentage supplements`
+    `the base of study-fund contributions`
+    `the base of pension-fund contributions`
+
+@ref akn:art_2__para_f akn:art_2__para_g
+GIVEN b IS A `pay base`
+GIVETH A BOOLEAN
+DECIDE `the grant enters` b IF
+    CONSIDER b
+    WHEN `the base of pension-fund contributions` THEN TRUE
+    OTHERWISE FALSE
+
+-- §2ז: contributions to a pension provident fund: 5% from the employer and
+-- 5% deducted from the teacher's pay.
+@ref akn:art_2__para_g
+`the employer's pension contribution rate` MEANS 0.05
+`the employee's pension deduction rate`    MEANS 0.05
+
+GIVEN g IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the employer's pension contribution on the grant` g IS
+    `to the agora` (g TIMES `the employer's pension contribution rate`)
+
+GIVEN g IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the pension deduction from the grant` g IS
+    `to the agora` (g TIMES `the employee's pension deduction rate`)
+
+DECLARE `grant action` IS ONE OF
+    `pay the achievement grant` HAS `grant paid` IS A NUMBER, `employer contribution paid` IS A NUMBER
+    `reimburse the owner in payment-system topic 583`
+
+-- §2ה: paid with August 2022's salary and no later than September 2022's.
+@ref akn:art_2__para_e akn:art_2__para_g
+GIVEN e IS AN `achievement grant employee`
+GIVETH A DEONTIC Party `grant action`
+DECIDE `paying the achievement grant` e IS
+    PARTY `the employer`
+    MUST  `pay the achievement grant` paid contribution
+          PROVIDED paid AT LEAST `the achievement grant` e
+               AND contribution AT LEAST `the employer's pension contribution on the grant` (`the achievement grant` e)
+    WITHIN `month number` August PLUS 1
+    LEST BREACH BY `the employer` BECAUSE "תשפ\"ב/8 §2ה: the grants are paid with August 2022's salary and no later than September 2022's"
+
+§§ `3-4 The list of schools and the reimbursement`
+
+-- §3: the programme and the list of winning schools are on the Ministry's
+-- site; the school's rank is an input of this file (`rank of the school`).
+@ref akn:art_3 akn:art_3/p2
+GIVEN e IS AN `achievement grant employee`
+GIVETH A BOOLEAN
+DECIDE `the school is on the list of winners` e IF
+    e's `rank of the school` AT LEAST 1 AND e's `rank of the school` AT MOST 4
+
+-- §4: reimbursement through payment-system topic 583, in August 2022's
+-- payments transferred to the owners at the start of September 2022.
+@ref akn:art_4
+GIVETH A DEONTIC Party `grant action`
+DECIDE `reimbursing the owners` IS
+    PARTY `the Ministry of Education`
+    MUST  `reimburse the owner in payment-system topic 583`
+    WITHIN `month number` August PLUS 1
+    LEST BREACH BY `the Ministry of Education` BECAUSE "תשפ\"ב/8 §4: the reimbursement is in August 2022's payments, transferred at the start of September 2022"
+
+-- akn:conclusions The sign-off: the telephone numbers for questions, the signatures; no rule.
+
+-- Examples.
+`a full-time teacher at a rank-1 school` MEANS
+    `achievement grant employee` WITH
+        `rated on the teaching-employee scale`                   IS TRUE
+        `employed by an owner of supervised secondary education` IS TRUE
+        `employed in the upper division in תשפ"ב`                IS TRUE
+        `position fraction in the upper division`                IS 1
+        `share of the school year employed at the school`        IS 1
+        `on sabbatical or unpaid leave all year`                 IS FALSE
+        `rank of the school`                                     IS 1
+
+`a half-time teacher for half the year at a rank-3 school` MEANS
+    `achievement grant employee` TRUE TRUE TRUE 0.5 0.5 FALSE 3
+
+`a teacher at 120% at a rank-2 school` MEANS
+    `achievement grant employee` TRUE TRUE TRUE 1.2 1 FALSE 2
+
+`a teacher on sabbatical all year` MEANS
+    `achievement grant employee` TRUE TRUE TRUE 1 1 TRUE 1
+
+`a teacher at a school not on the list` MEANS
+    `achievement grant employee` TRUE TRUE TRUE 1 1 FALSE 0
+
+#ASSERT `the achievement grant` `a full-time teacher at a rank-1 school` EQUALS 8793.25
+#ASSERT `the achievement grant` `a half-time teacher for half the year at a rank-3 school` EQUALS 1099.16
+#ASSERT `the achievement grant` `a teacher at 120% at a rank-2 school` EQUALS 6594.94
+#ASSERT `the achievement grant` `a teacher on sabbatical all year` EQUALS 0
+#ASSERT `the achievement grant` `a teacher at a school not on the list` EQUALS 0
+#ASSERT `the employer's pension contribution on the grant` 8793.25 EQUALS 439.66
+#ASSERT `the grant enters` `the base of pension-fund contributions`
+#ASSERT NOT `the grant enters` `the base of severance pay`
+#ASSERT `the grade is in the upper division` `a four-year school` 9
+#ASSERT NOT `the grade is in the upper division` `a six-year school` 9
+
+#TRACE `paying the achievement grant` `a full-time teacher at a rank-1 school` AT 0 WITH
+    PARTY `the employer` DOES `pay the achievement grant` 8793.25 439.66 AT 12

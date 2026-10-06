@@ -1,0 +1,252 @@
+-- חוזר לבעלויות תשפ"א/5, 31 January 2021: עדכון תוספת שקלית 2016 לעובדי
+-- הוראה בחטיבה העליונה ובכיתות יג'-יד'; עדכון גמול ייעוץ החל מ-1.1.2021
+-- The 2016 shekel supplement for teaching employees in upper secondary
+-- schools and grades 13-14 from 1.1.2021 and from 1.9.2021, the principals'
+-- 1987 reform-transition supplement, and the upper-secondary counselling
+-- allowance from 1.1.2021.
+
+IMPORT prelude
+IMPORT common
+
+-- Months are numbered year × 12 + month (January 2021 = 2021 × 12 + 1), so
+-- "from 1.1.2021 to 31.8.2021" is a range of month numbers.
+GIVEN `year` IS A NUMBER, `month` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `month of` `year` `month` IS
+    `year` TIMES 12 PLUS `month`
+
+§ `חוזר תשפ"א/5 תוספת שקלית 2016 וגמול ייעוץ`
+
+-- akn:preamble The letterhead, date (31.1.2021), reference number, addressee (the owners of educational institutions), greeting and subject line; the rows below that say something are cited on their own.
+
+§§ `מבוא ותחולה`
+
+-- ¶13-¶15: the sources. Under the wage agreements of 14.3.2018 and
+-- 23.3.2017 the 2016 shekel supplement is linked to the consumer price
+-- index and paid in instalments; section 13 of the 2018 agreement raises
+-- the educational-counsellor allowance in instalments.
+@ref akn:preamble/p13
+`the 2016 shekel supplement is linked to the consumer price index` MEANS TRUE
+
+-- akn:preamble/p14 The source of the supplement's instalments: section 4 of the agreement of 23.3.2017 as amended by section 5 of that of 14.3.2018; it states the source of the amounts below and sets no rule of its own.
+-- akn:preamble/p15 The source of the counselling-allowance increase: section 13 of the agreement of 14.3.2018; the rates are in the table below.
+-- akn:preamble/p16 The circular's purpose: the indexation of the supplement from 1.1.2021; no rule beyond the amounts below.
+
+-- ¶17: indexed to the December 2019 index (published January 2020); NOT
+-- updated to the index published January 2021, the change being negative.
+DECLARE `price index` IS ONE OF
+    `the December 2018 index`
+    `the December 2019 index`
+    `the December 2020 index`
+
+@ref akn:preamble/p17
+GIVEN `change from the previous index` IS A NUMBER @desc the change in the consumer price index over the year, as a fraction
+GIVETH A BOOLEAN
+DECIDE `the instalments are updated to the new index` `change from the previous index` IF
+    `change from the previous index` GREATER THAN 0
+
+`the index the supplement is linked to under this circular` MEANS `the December 2019 index`
+
+@desc A teaching employee, as far as this circular asks about him.
+DECLARE `upper-secondary employee` HAS
+    `graded in the teaching-employees grading`       IS A BOOLEAN
+    `employed by an owner the Ministry supervises`  IS A BOOLEAN
+    `employed in upper secondary or grades 13-14`   IS A BOOLEAN
+    `a principal`                                   IS A BOOLEAN
+    `employed under עוז לתמורה`                      IS A BOOLEAN
+    `years of seniority in counselling`             IS A NUMBER  @desc years of seniority as a counsellor, the year being served counted (the first year is 1)
+
+-- ¶18-¶20: whom it applies to, under עוז לתמורה or not.
+@ref akn:preamble/p18 akn:preamble/p19 akn:preamble/p20
+GIVEN e IS AN `upper-secondary employee`
+GIVETH A BOOLEAN
+DECIDE `the circular applies to` e IF
+        e's `graded in the teaching-employees grading`
+    AND e's `employed by an owner the Ministry supervises`
+    AND e's `employed in upper secondary or grades 13-14`
+
+§§ `א עדכון תוספת שקלית 2016`
+
+-- The two printed groups. "מורים שאינם ברפורמת עוז לתמורה ומנהלים" parses
+-- two ways (F-2020-21_tashpa_05-a).
+DECLARE `supplement group` IS ONE OF
+    `teachers under עוז לתמורה`
+    `teachers not under עוז לתמורה, and principals`
+
+@desc One printed amount of the 2016 shekel supplement, with the months it runs.
+DECLARE `supplement amount` HAS
+    `amount group`      IS A `supplement group`
+    `from month`        IS A NUMBER
+    `to month`          IS A NUMBER  @desc 999999 stands for no end date
+    `monthly shekels`   IS A NUMBER
+    `amount replaced`   IS A NUMBER  @desc the amount the circular says it replaces, the eve of the date (0 where none is printed)
+
+@ref akn:art_a/p1 akn:art_a/p2 akn:art_a/p3 akn:art_a/p4 akn:art_a/p5 akn:art_a/p6
+`the 2016 supplement amounts` MEANS
+    LIST `supplement amount` `teachers under עוז לתמורה` (`month of` 2021 1) (`month of` 2021 8) 1363.98 1282.69,
+         `supplement amount` `teachers not under עוז לתמורה, and principals` (`month of` 2021 1) (`month of` 2021 8) 1147.12 1065.83,
+         `supplement amount` `teachers under עוז לתמורה` (`month of` 2021 9) 999999 1404.62 0,
+         `supplement amount` `teachers not under עוז לתמורה, and principals` (`month of` 2021 9) 999999 1187.76 0
+
+GIVEN g IS A `supplement group`, m IS A NUMBER
+GIVETH A LIST OF NUMBER
+DECIDE `the amounts printed for` g `in month` m IS
+    map (GIVEN a YIELD a's `monthly shekels`)
+        (filter (GIVEN a YIELD a's `amount group` EQUALS g AND m AT LEAST a's `from month` AND m AT MOST a's `to month`)
+                `the 2016 supplement amounts`)
+
+-- F-2020-21_tashpa_05-a. Parse 1: "(teachers not under עוז לתמורה) and
+-- (principals)" — every principal is in the second group. Parse 2:
+-- "teachers and principals not under עוז לתמורה" — a principal under עוז
+-- לתמורה is in neither group, or in the first if "teachers" covers him.
+GIVEN e IS AN `upper-secondary employee`
+GIVETH A LIST OF `supplement group`
+DECIDE `groups under parse 1` e IS
+    IF e's `a principal`
+    THEN LIST `teachers not under עוז לתמורה, and principals`
+    ELSE IF e's `employed under עוז לתמורה`
+         THEN LIST `teachers under עוז לתמורה`
+         ELSE LIST `teachers not under עוז לתמורה, and principals`
+
+GIVEN e IS AN `upper-secondary employee`
+GIVETH A LIST OF `supplement group`
+DECIDE `groups under parse 2` e IS
+    IF e's `employed under עוז לתמורה`
+    THEN IF e's `a principal` THEN EMPTY ELSE LIST `teachers under עוז לתמורה`
+    ELSE LIST `teachers not under עוז לתמורה, and principals`
+
+`a principal under עוז לתמורה` MEANS
+    `upper-secondary employee` WITH
+        `graded in the teaching-employees grading`      IS TRUE
+        `employed by an owner the Ministry supervises` IS TRUE
+        `employed in upper secondary or grades 13-14`  IS TRUE
+        `a principal`                                  IS TRUE
+        `employed under עוז לתמורה`                     IS TRUE
+        `years of seniority in counselling`            IS 0
+
+`the two parses place a principal under עוז לתמורה differently` MEANS
+    NOT (`groups under parse 1` `a principal under עוז לתמורה` EQUALS `groups under parse 2` `a principal under עוז לתמורה`)
+#ASSERT `the two parses place a principal under עוז לתמורה differently`
+
+-- The reading adopted (F-2020-21_tashpa_05-a): parse 1 — every principal,
+-- under the reform or not, takes the second group's amount; a principal
+-- is not a "teacher" of the first group.
+GIVEN e IS AN `upper-secondary employee`
+GIVETH A `supplement group`
+DECIDE `supplement group of` e IS
+    IF e's `a principal`
+    THEN `teachers not under עוז לתמורה, and principals`
+    ELSE IF e's `employed under עוז לתמורה`
+         THEN `teachers under עוז לתמורה`
+         ELSE `teachers not under עוז לתמורה, and principals`
+
+@export default The monthly 2016 shekel supplement in shekels for a teaching employee in upper secondary or grades 13-14 in a month from January 2021, under circular תשפ"א/5
+GIVEN e IS AN `upper-secondary employee` @desc the employee
+      m IS A NUMBER @desc the month, numbered year × 12 + month (January 2021 = 24253)
+GIVETH A NUMBER
+DECIDE `2016 shekel supplement` e m IS
+    IF `the circular applies to` e
+    THEN sum (`the amounts printed for` (`supplement group of` e) `in month` m)
+    ELSE 0
+
+-- Each printed amount has exactly one row in each month from January 2021.
+#ASSERT all (GIVEN m YIELD count (`the amounts printed for` `teachers under עוז לתמורה` `in month` m) EQUALS 1
+                       AND count (`the amounts printed for` `teachers not under עוז לתמורה, and principals` `in month` m) EQUALS 1)
+            (LIST `month of` 2021 1, `month of` 2021 8, `month of` 2021 9, `month of` 2022 6)
+
+-- ¶7 (and again at the end of section ב): the owners are indemnified at
+-- the hourly costs in the payment system.
+DECLARE `indemnity route` IS ONE OF
+    `at the relevant hourly costs in the payment system`
+
+@ref akn:art_a/p7 akn:art_b/p7
+`how the owners are indemnified` MEANS
+    `at the relevant hourly costs in the payment system`
+
+DECLARE `owners' payment` IS ONE OF
+    `pay the 2016 shekel supplement` HAS `supplement paid` IS A NUMBER
+    `pay the counselling allowance` HAS `counselling rate paid` IS A NUMBER
+
+-- The owners pay the updated amount with each month's salary (time in
+-- months from the start of the month in question).
+@ref akn:art_a
+GIVEN e IS AN `upper-secondary employee`, m IS A NUMBER
+GIVETH A DEONTIC Party `owners' payment`
+DECIDE `paying the updated supplement` e m IS
+    PARTY `the employer`
+    MUST  `pay the 2016 shekel supplement` `amount`
+          PROVIDED `amount` AT LEAST `2016 shekel supplement` e m
+    WITHIN 1
+    LEST  BREACH BY `the employer` BECAUSE "circular 2020-21/5 a: the 2016 shekel supplement is paid at the updated amount"
+
+§§ `ב תוספת 87' מעבר רפורמה למנהלים; גמול ייעוץ`
+
+-- ב ¶1: under the 2018 agreement, the index change being negative, the
+-- principals' 1987 reform-transition supplement stays at 1,024.73 a month.
+@ref akn:art_b akn:art_b/p1
+`the principals' 1987 reform-transition supplement` MEANS 1024.73
+
+-- The counselling-allowance table (ב ¶2-¶6 and the table): the rate by
+-- years of seniority in counselling, from 1.1.2020 and from 1.1.2021, one
+-- row per printed line. "5 ומעלה" has no upper bound (99).
+@ref akn:art_b/p2 akn:art_b/p3 akn:art_b/p4 akn:art_b/p5 akn:art_b/p6 akn:art_b/t1
+DECLARE `counselling row` HAS
+    `from counselling year` IS A NUMBER
+    `to counselling year`   IS A NUMBER
+    `rate from 1.1.2020`    IS A NUMBER
+    `rate from 1.1.2021`    IS A NUMBER
+
+`the counselling allowance table` MEANS
+    LIST `counselling row` 1 1  0.06  0.065,
+         `counselling row` 2 2  0.07  0.08,
+         `counselling row` 3 3  0.085 0.095,
+         `counselling row` 4 4  0.10  0.105,
+         `counselling row` 5 99 0.11  0.12
+
+-- The table counts the year being served (the first year is 1), the reading
+-- under which a counsellor in the first year has a row.
+GIVEN n IS A NUMBER, m IS A NUMBER
+GIVETH A NUMBER
+DECIDE `counselling allowance rate` n m IS
+    sum (map (GIVEN r YIELD IF m AT LEAST `month of` 2021 1 THEN r's `rate from 1.1.2021` ELSE r's `rate from 1.1.2020`)
+             (filter (GIVEN r YIELD n AT LEAST r's `from counselling year` AND n AT MOST r's `to counselling year`)
+                     `the counselling allowance table`))
+
+-- The rate rises for every row ("יגדל").
+#ASSERT all (GIVEN r YIELD r's `rate from 1.1.2021` GREATER THAN r's `rate from 1.1.2020`) `the counselling allowance table`
+
+-- akn:conclusions The signatures and copies list; no rule.
+
+-- Worked examples: the amounts and rates are the circular's own.
+`an upper-secondary teacher under עוז לתמורה` MEANS
+    `upper-secondary employee` WITH
+        `graded in the teaching-employees grading`      IS TRUE
+        `employed by an owner the Ministry supervises` IS TRUE
+        `employed in upper secondary or grades 13-14`  IS TRUE
+        `a principal`                                  IS FALSE
+        `employed under עוז לתמורה`                     IS TRUE
+        `years of seniority in counselling`            IS 3
+
+`a junior-high teacher` MEANS
+    `upper-secondary employee` WITH
+        `graded in the teaching-employees grading`      IS TRUE
+        `employed by an owner the Ministry supervises` IS TRUE
+        `employed in upper secondary or grades 13-14`  IS FALSE
+        `a principal`                                  IS FALSE
+        `employed under עוז לתמורה`                     IS FALSE
+        `years of seniority in counselling`            IS 0
+
+#ASSERT `2016 shekel supplement` `an upper-secondary teacher under עוז לתמורה` (`month of` 2021 3) EQUALS 1363.98
+#ASSERT `2016 shekel supplement` `an upper-secondary teacher under עוז לתמורה` (`month of` 2021 10) EQUALS 1404.62
+#ASSERT `2016 shekel supplement` `a principal under עוז לתמורה` (`month of` 2021 3) EQUALS 1147.12
+#ASSERT `2016 shekel supplement` `a junior-high teacher` (`month of` 2021 3) EQUALS 0
+#ASSERT `counselling allowance rate` 3 (`month of` 2021 2) EQUALS 0.095
+#ASSERT `counselling allowance rate` 7 (`month of` 2020 5) EQUALS 0.11
+#ASSERT NOT `the instalments are updated to the new index` (-0.007)
+-- The rise on 1.1.2021 is the same 81.29 shekels in both groups.
+#ASSERT 1363.98 MINUS 1282.69 EQUALS 1147.12 MINUS 1065.83
+
+#TRACE `paying the updated supplement` `an upper-secondary teacher under עוז לתמורה` (`month of` 2021 3) AT 0 WITH
+    PARTY `the employer` DOES `pay the 2016 shekel supplement` 1363.98 AT 1
+#TRACE `paying the updated supplement` `an upper-secondary teacher under עוז לתמורה` (`month of` 2021 3) AT 0 WITH
+    PARTY `the employer` DOES `pay the 2016 shekel supplement` 1282.69 AT 1

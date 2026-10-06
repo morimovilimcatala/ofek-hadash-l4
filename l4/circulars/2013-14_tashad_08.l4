@@ -1,0 +1,414 @@
+-- חוזר לבעלויות תשע"ד/8 — קצובת ביגוד לשנת הלימודים תשע"ד
+-- The clothing allowance for school year תשע"ד: in the upper division at
+-- level 4 (2116); outside it reduced to 84% of level 3 or level 4 by
+-- seniority, with pension-related payments computed on the full level 4;
+-- the additional physical-education allowance by position size; and the
+-- shoes-and-coats allowance in technological education.
+
+IMPORT prelude
+IMPORT common
+
+§ `חוזר תשע"ד/8 קצובת ביגוד תשע"ד`
+
+-- akn:preamble The letterhead and the circular's title; no rule.
+-- akn:preamble/p6 akn:preamble/p7 akn:preamble/p8 akn:preamble/p9 The table of contents: the titles of sections 1 to 4.
+
+DECLARE `stage of education` IS ONE OF
+    `upper division`
+    `grades 13-14`
+    `kindergarten`
+    `primary`
+    `junior high`
+    `seminary or teacher-training college`
+
+@desc A teaching employee's school year תשע"ד as the clothing allowance asks about it.
+DECLARE `clothing year` HAS
+    `graded as a teaching employee`  IS A BOOLEAN @desc graded in the teaching-employees grading
+    `employed by a supervised owner` IS A BOOLEAN @desc employed by an owner of education supervised by the Ministry of Education
+    `stage`                          IS A `stage of education`
+    `positions`                      IS A LIST OF NUMBER @desc the position held with each employer (1 = a full position)
+    `seniority years`                IS A NUMBER  @desc teaching seniority in years
+    `teaches physical education`     IS A BOOLEAN
+    `physical-education position`    IS A NUMBER
+    `technological subject`          IS A STRING @desc the subject taught in technological education, as the lists print it; "" for none
+    `level-3 allowance`              IS A NUMBER @desc the level-3 amount under the Accountant General's instructions; not printed in this circular, so an input
+
+DECLARE `clothing action` IS ONE OF
+    `pay the clothing allowance` HAS `clothing paid` IS A NUMBER
+    `employ above the cap` HAS `position employed` IS A NUMBER
+
+GIVEN y IS A `clothing year`
+GIVETH A BOOLEAN
+DECIDE `in the upper division` y IF
+    y's `stage` EQUALS `upper division` OR y's `stage` EQUALS `grades 13-14`
+
+GIVEN y IS A `clothing year`
+GIVETH A NUMBER
+DECIDE `the position share capped at one` y IS
+    min (sum (y's `positions`)) 1
+
+GIVEN y IS A `clothing year`, `the allowance` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `what all employers pay, each its own share` y `the allowance` IS
+    sum (map (GIVEN p YIELD `the allowance` TIMES p) (y's `positions`))
+
+§§ `1. בחטיבה העליונה`
+
+-- akn:art_1/p1 The heading "תחולה"; no rule.
+-- akn:art_1/p3 Says the rules below follow the Treasury's instructions; they are the clauses that follow.
+-- akn:art_1__para_a Heading 1.א ("כללי"); no rule of its own.
+
+@ref akn:art_1/p2
+GIVEN y IS A `clothing year`
+GIVETH A BOOLEAN
+DECIDE `section 1 applies to` y IF
+        y's `graded as a teaching employee`
+    AND y's `employed by a supervised owner`
+    AND `in the upper division` y
+
+-- 1.א.2: entitled as public-facing civil-service workers are, for school
+-- year תשע"ד (09/13-08/14). 1.א.3: level 4, that is 2116.
+@ref akn:art_1__para_a__subpara_2 akn:art_1__para_a__subpara_3
+`the level-4 allowance` MEANS 2116
+
+-- 1.א.4: pro-rated, no more than one position. 1.א.5: with more than one
+-- employer and above 100%, each employer pays its own share.
+@ref akn:art_1__para_a__subpara_4 akn:art_1__para_a__subpara_5
+GIVEN y IS A `clothing year`
+GIVETH A NUMBER
+DECIDE `the upper-division allowance` y IS
+    IF count (y's `positions`) GREATER THAN 1
+    THEN `what all employers pay, each its own share` y `the level-4 allowance`
+    ELSE `the level-4 allowance` TIMES `the position share capped at one` y
+
+-- 1.א.6: the caps with all employers: 140%; Oz LeTmura 128% in partial,
+-- 125% in full implementation; ¶2: no change to the approval conditions and
+-- no permit to exceed them.
+@ref akn:art_1__para_a__subpara_6 akn:art_1__para_a__subpara_6/p2
+DECLARE `terms of employment` IS ONE OF
+    `not under a reform`
+    `Oz LeTmura, partial implementation`
+    `Oz LeTmura, full implementation`
+    `Ofek Hadash`
+
+GIVEN t IS A `terms of employment`
+GIVETH A NUMBER
+DECIDE `the cap with all employers` t IS
+    CONSIDER t
+    WHEN `Oz LeTmura, partial implementation` THEN 128%
+    WHEN `Oz LeTmura, full implementation`    THEN 125%
+    -- 2.א.6 names the Ofek Hadash cap outside the upper division.
+    WHEN `Ofek Hadash`                        THEN 116.67%
+    OTHERWISE 140%
+
+GIVEN t IS A `terms of employment`
+GIVETH A DEONTIC Party `clothing action`
+DECIDE `no employment above the cap` t IS
+    PARTY `the employer`
+    SHANT `employ above the cap` p PROVIDED p GREATER THAN `the cap with all employers` t
+    WITHIN 12
+    LEST  BREACH BY `the employer` BECAUSE "circular תשע\"ד/8, 1.א.6 and 2.א.6: no employment above the cap with all employers"
+
+§§ `2. שלא בחטיבה העליונה`
+
+-- akn:art_2/p1 Background: the participation law of 1.7.2013 and the agreement of 22.7.2013; the rules it brings are 2.א.
+-- akn:art_2/p2 The heading "תחולה"; no rule.
+-- akn:art_2__para_a Heading 2.א ("כללי"); no rule of its own.
+
+@ref akn:art_2/p3
+GIVEN y IS A `clothing year`
+GIVETH A BOOLEAN
+DECIDE `section 2 applies to` y IF
+        y's `graded as a teaching employee`
+    AND y's `employed by a supervised owner`
+    AND NOT `in the upper division` y
+
+-- 2.א.3, as worded: up to 25 years inclusive, 84% of level 3; above 25,
+-- 84% of level 4.
+@ref akn:art_2__para_a__subpara_3 akn:art_2__para_a__subpara_3/p2 akn:art_2__para_a__subpara_3/p3
+`the reduction rate` MEANS 84%
+
+GIVEN y IS A `clothing year`
+GIVETH A NUMBER
+DECIDE `the reduced allowance as worded` y IS
+    IF y's `seniority years` AT MOST 25
+    THEN `the reduction rate` TIMES y's `level-3 allowance`
+    ELSE `the reduction rate` TIMES `the level-4 allowance`
+
+-- ¶4 and the table "for convenience", as printed: "1-25 שנים" 1,273 and
+-- "26 שנים ומעלה" 1,777 (999 stands for "ומעלה").
+@ref akn:art_2__para_a__subpara_3/p4 akn:art_2__para_a__subpara_3/t1
+DECLARE `seniority band` HAS
+    `band from years` IS A NUMBER
+    `band to years`   IS A NUMBER
+    `band allowance`  IS A NUMBER
+
+`the summary table` MEANS
+    LIST `seniority band` 1  25  1273,
+         `seniority band` 26 999 1777
+
+GIVEN n IS A NUMBER
+GIVETH A LIST OF NUMBER
+DECIDE `the amounts the summary table gives for` n IS
+    map (GIVEN b YIELD b's `band allowance`)
+        (filter (GIVEN b YIELD n AT LEAST b's `band from years` AND n AT MOST b's `band to years`)
+                `the summary table`)
+
+-- The table's level-4 row is 84% of 2116 to the shekel.
+#ASSERT TRUNC (`the reduction rate` TIMES `the level-4 allowance`) 0 EQUALS 1777
+
+-- F-2013-14_tashad_08-c: the clause draws the line at "above 25" and puts
+-- every seniority up to 25 at level 3; the table starts at 1 and jumps from
+-- 25 to 26. A seniority of 25.5 years, and one under a year, has an amount
+-- under the clause and no row in the table.
+`the table has no row where the clause has an amount` MEANS
+        `the amounts the summary table gives for` 25.5 EQUALS EMPTY
+    AND `the amounts the summary table gives for` 0.5 EQUALS EMPTY
+#ASSERT `the table has no row where the clause has an amount`
+
+-- The reading adopted: the clause governs; the table is "לצורך הנוחות" and
+-- its whole-year rows agree with the clause wherever they apply.
+GIVEN y IS A `clothing year`
+GIVETH A NUMBER
+DECIDE `the reduced allowance` y IS
+    IF y's `seniority years` AT MOST 25 THEN 1273 ELSE 1777
+
+-- ¶5 and 2.א.3.1-2.א.3.4: the pension-related payments are computed as if
+-- the full level-4 allowance, 2116, had been paid.
+DECLARE `kind of payment` IS ONE OF
+    @ref akn:art_2__para_a__subpara_3__cls_1
+    `contribution to a pension provident fund`
+    @ref akn:art_2__para_a__subpara_3__cls_2
+    `budgetary pension`
+    @ref akn:art_2__para_a__subpara_3__cls_3
+    `one-time payment on termination`
+    @ref akn:art_2__para_a__subpara_3__cls_4
+    `bridging pension`
+    `the allowance itself`
+
+@ref akn:art_2__para_a__subpara_3/p5
+GIVEN y IS A `clothing year`, k IS A `kind of payment`
+GIVETH A NUMBER
+DECIDE `the clothing amount the payment is computed on` y k IS
+    IF k EQUALS `the allowance itself` THEN `the reduced allowance` y ELSE `the level-4 allowance`
+
+-- 2.א.4: pro-rated, no more than one position; 2.א.5: more than one
+-- employer above 100%, each pays its own share.
+@ref akn:art_2__para_a__subpara_4 akn:art_2__para_a__subpara_5
+GIVEN y IS A `clothing year`
+GIVETH A NUMBER
+DECIDE `the allowance outside the upper division` y IS
+    IF count (y's `positions`) GREATER THAN 1
+    THEN `what all employers pay, each its own share` y (`the reduced allowance` y)
+    ELSE `the reduced allowance` y TIMES `the position share capped at one` y
+
+-- F-2013-14_tashad_08-a: in both sections the "no more than one position"
+-- clause and the "each employer its own share" clause give different
+-- totals for two employers above a full position.
+`seventy and sixty percent with two employers` MEANS
+    `clothing year` WITH
+        `graded as a teaching employee`  IS TRUE
+        `employed by a supervised owner` IS TRUE
+        `stage`                          IS `upper division`
+        `positions`                      IS LIST 0.7, 0.6
+        `seniority years`                IS 10
+        `teaches physical education`     IS FALSE
+        `physical-education position`    IS 0
+        `technological subject`          IS ""
+        `level-3 allowance`              IS 1500
+
+`one position and each its own share give different allowances for two employers above a full position` MEANS
+    NOT (`what all employers pay, each its own share` `seventy and sixty percent with two employers` `the level-4 allowance`
+         EQUALS `the level-4 allowance` TIMES `the position share capped at one` `seventy and sixty percent with two employers`)
+#ASSERT `one position and each its own share give different allowances for two employers above a full position`
+
+-- 2.א.6: 140% with all employers, Ofek Hadash 116.67% (the rule
+-- `no employment above the cap` above); no change to the approval
+-- conditions, no permit to exceed.
+-- akn:art_2__para_a__subpara_6 The caps outside the upper division (140%, Ofek Hadash 116.67%), encoded in `the cap with all employers` and `no employment above the cap` in section 1.
+
+-- ¶6: the reduction applies only to the general allowance, not to the
+-- physical-education or technological allowances.
+@ref akn:art_2__para_a__subpara_3/p6
+GIVEN y IS A `clothing year`
+GIVETH A NUMBER
+DECIDE `general clothing allowance` y IS
+    BRANCH IF `section 1 applies to` y THEN `the upper-division allowance` y
+           IF `section 2 applies to` y THEN `the allowance outside the upper division` y
+           OTHERWISE 0
+
+-- 1.א.1 and 2.א.1: paid with the salary of July 2014 (school month 11).
+@ref akn:art_1__para_a__subpara_1 akn:art_2__para_a__subpara_1 akn:art_2__para_a__subpara_2
+GIVEN y IS A `clothing year`
+GIVETH A DEONTIC Party `clothing action`
+DECIDE `the clothing allowance paid with July's salary` y IS
+    PARTY `the employer`
+    MUST  `pay the clothing allowance` amount
+          PROVIDED amount AT LEAST `general clothing allowance` y PLUS `physical-education allowance` y PLUS `technological clothing allowance` y
+    WITHIN `month number` July
+    LEST  BREACH BY `the employer` BECAUSE "circular תשע\"ד/8, 1.א.1 and 2.א.1: the clothing allowance is paid with the salary of July 2014"
+
+§§ `3. חינוך גופני`
+
+-- In addition to the general allowance, sun protection included; the
+-- table as printed (999 = "ומעלה").
+@ref akn:art_3/p1 akn:art_3/t1
+DECLARE `physical-education band` HAS
+    `band from position` IS A NUMBER
+    `band to position`   IS A NUMBER
+    `band amount`        IS A NUMBER
+
+`the physical-education table` MEANS
+    LIST `physical-education band` 0   0.3 0,
+         `physical-education band` 0.3 0.5 676,
+         `physical-education band` 0.5 999 1347
+
+GIVEN p IS A NUMBER
+GIVETH A LIST OF NUMBER
+DECIDE `the amounts the table gives for position` p IS
+    map (GIVEN b YIELD b's `band amount`)
+        (filter (GIVEN b YIELD p AT LEAST b's `band from position` AND p AT MOST b's `band to position`)
+                `the physical-education table`)
+
+-- F-2013-14_tashad_08-b: 0.3 and 0.5 fall in two rows each.
+`the table gives 0.3 and 0.5 two amounts each` MEANS
+        `the amounts the table gives for position` 0.3 EQUALS LIST 0, 676
+    AND `the amounts the table gives for position` 0.5 EQUALS LIST 676, 1347
+#ASSERT `the table gives 0.3 and 0.5 two amounts each`
+
+-- The reading adopted: a row governs from the position it opens at.
+GIVEN p IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the physical-education amount` p IS
+    BRANCH IF p AT LEAST 0.5 THEN 1347
+           IF p AT LEAST 0.3 THEN 676
+           OTHERWISE 0
+
+#ASSERT all (GIVEN p YIELD `the amounts the table gives for position` p EQUALS LIST (`the physical-education amount` p))
+            (LIST 0, 0.1, 0.29, 0.31, 0.4, 0.49, 0.51, 0.8, 1)
+
+GIVEN y IS A `clothing year`
+GIVETH A NUMBER
+DECIDE `physical-education allowance` y IS
+    IF (`section 1 applies to` y OR `section 2 applies to` y) AND y's `teaches physical education`
+    THEN `the physical-education amount` (y's `physical-education position`)
+    ELSE 0
+
+§§ `4. חינוך טכנולוגי`
+
+-- 4.א: a pair of shoes and two coats a year, worth 557, in these subjects.
+DECLARE `shoes-and-coats subject` IS ONE OF
+    @ref akn:art_4__para_a__subpara_1
+    `מערכות תעופה`
+    @ref akn:art_4__para_a__subpara_2
+    `מכטרוניקה`
+    @ref akn:art_4__para_a__subpara_3
+    `טרמודינמיקה טכנית ימית`
+    @ref akn:art_4__para_a__subpara_4
+    `מערכות סיב"מ ותיב"מ`
+    @ref akn:art_4__para_a__subpara_5
+    `תחזוקת מערכות מכניות`
+    @ref akn:art_4__para_a__subpara_6
+    `מערכות מכונאות רכב`
+    @ref akn:art_4__para_a__subpara_7
+    `מערכות ממוחשבות ברכב`
+    @ref akn:art_4__para_a__subpara_8
+    `מערכות הספק, פיקוד ובקרה`
+    @ref akn:art_4__para_a__subpara_9
+    `מערכות בקרת אקלים`
+    @ref akn:art_4__para_a__subpara_10
+    `אמנות הבישול והאפיה המלונאית`
+    @ref akn:art_4__para_a__subpara_11
+    `ימאות – ספינות`
+    @ref akn:art_4__para_a__subpara_12
+    `מערכות טלוויזיה וקולנוע`
+    @ref akn:art_4__para_a__subpara_13
+    `מערכות צילום`
+
+@ref akn:art_4__para_a akn:art_4__para_a/p2
+`the shoes-and-coats subjects` MEANS
+    LIST "מערכות תעופה", "מכטרוניקה", "טרמודינמיקה טכנית ימית", "מערכות סיב\"מ ותיב\"מ",
+         "תחזוקת מערכות מכניות", "מערכות מכונאות רכב", "מערכות ממוחשבות ברכב",
+         "מערכות הספק, פיקוד ובקרה", "מערכות בקרת אקלים", "אמנות הבישול והאפיה המלונאית",
+         "ימאות – ספינות", "מערכות טלוויזיה וקולנוע", "מערכות צילום"
+
+@ref akn:art_4__para_a/p3
+`the value of a pair of shoes and two coats` MEANS 557
+
+-- 4.ב: two coats a year, worth 346, in these subjects.
+DECLARE `two-coats subject` IS ONE OF
+    @ref akn:art_4__para_b__subpara_1
+    `מערכות אלקטרוניות`
+    @ref akn:art_4__para_b__subpara_2
+    `מערכות מחשוב ובקרה`
+    @ref akn:art_4__para_b__subpara_3
+    `מערכות מחשבים`
+    @ref akn:art_4__para_b__subpara_4
+    `תכנון ותכנות מערכות`
+    @ref akn:art_4__para_b__subpara_5
+    `מערכות ביוטכנולוגיה`
+    @ref akn:art_4__para_b__subpara_6
+    `ניהול תיירותי`
+    @ref akn:art_4__para_b__subpara_7
+    `ניהול מלונאי`
+    @ref akn:art_4__para_b__subpara_8
+    `חינוך לגיל הרך`
+    @ref akn:art_4__para_b__subpara_9
+    `עיצוב`
+    @ref akn:art_4__para_b__subpara_10
+    `אופנה ותלבושות`
+    @ref akn:art_4__para_b__subpara_11
+    `עיצוב שיער וטיפוח החן`
+    @ref akn:art_4__para_b__subpara_12
+    `סיעוד`
+    @ref akn:art_4__para_b__subpara_13
+    `אמנות שימושית`
+
+@ref akn:art_4__para_b
+`the two-coats subjects` MEANS
+    LIST "מערכות אלקטרוניות", "מערכות מחשוב ובקרה", "מערכות מחשבים", "תכנון ותכנות מערכות",
+         "מערכות ביוטכנולוגיה", "ניהול תיירותי", "ניהול מלונאי", "חינוך לגיל הרך", "עיצוב",
+         "אופנה ותלבושות", "עיצוב שיער וטיפוח החן", "סיעוד", "אמנות שימושית"
+
+@ref akn:art_4__para_b/p2
+`the value of two coats` MEANS 346
+
+-- 4.2: in addition to the general allowance; 4.3: pro-rated, no more than
+-- one position.
+@ref akn:art_4__para_4-2 akn:art_4__para_4-3
+GIVEN y IS A `clothing year`
+GIVETH A NUMBER
+DECIDE `technological clothing allowance` y IS
+    IF NOT (`section 1 applies to` y OR `section 2 applies to` y)
+    THEN 0
+    ELSE BRANCH IF elem (y's `technological subject`) `the shoes-and-coats subjects`
+                THEN `the value of a pair of shoes and two coats` TIMES `the position share capped at one` y
+                IF elem (y's `technological subject`) `the two-coats subjects`
+                THEN `the value of two coats` TIMES `the position share capped at one` y
+                OTHERWISE 0
+
+-- akn:conclusions The contact line and the signature; no rule.
+
+-- Examples; the employees are illustrations, the level-3 amount a placeholder.
+`a full-time primary teacher with 30 years` MEANS
+    `clothing year` WITH
+        `graded as a teaching employee`  IS TRUE
+        `employed by a supervised owner` IS TRUE
+        `stage`                          IS `primary`
+        `positions`                      IS LIST 1
+        `seniority years`                IS 30
+        `teaches physical education`     IS TRUE
+        `physical-education position`    IS 0.5
+        `technological subject`          IS ""
+        `level-3 allowance`              IS 1500
+
+#ASSERT `general clothing allowance` `a full-time primary teacher with 30 years` EQUALS 1777
+#ASSERT `physical-education allowance` `a full-time primary teacher with 30 years` EQUALS 1347
+#ASSERT `the clothing amount the payment is computed on` `a full-time primary teacher with 30 years` `budgetary pension` EQUALS 2116
+#ASSERT `general clothing allowance` `seventy and sixty percent with two employers` EQUALS 2750.8
+#EVAL   `the reduced allowance as worded` `a full-time primary teacher with 30 years`
+
+#TRACE `the clothing allowance paid with July's salary` `a full-time primary teacher with 30 years` AT 0 WITH
+    PARTY `the employer` DOES `pay the clothing allowance` 3124 AT 11
+#TRACE `no employment above the cap` `Ofek Hadash` AT 0 WITH
+    PARTY `the employer` DOES `employ above the cap` 1.2 AT 2

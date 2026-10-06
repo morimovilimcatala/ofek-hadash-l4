@@ -1,0 +1,324 @@
+-- חוזר לבעלויות תשפ"א/6, 14 February 2021: פרישה מוקדמת מעבודת ההוראה
+-- בתום שנה"ל תשפ"א
+-- Early retirement at the end of school year תשפ"א (31.8.2021) for teaching
+-- employees of the owners of post-primary institutions: the two tracks and
+-- their ages, veteran and new pension funds, the request and its deadline,
+-- the limit on work after retirement, and the documents to attach.
+
+IMPORT prelude
+IMPORT common
+
+-- Time in the regulative rules is counted in DAYS from the circular's
+-- date, 14 February 2021 (day 0), except where a rule says otherwise.
+`31 May 2021`      MEANS 106
+`31 August 2021`   MEANS 198
+`30 November 2021` MEANS 289
+
+§ `חוזר תשפ"א/6 פרישה מוקדמת בתום שנה"ל תשפ"א`
+
+-- akn:hc_1/p1 Letterhead; no rule.
+-- akn:hc_1/p2 Letterhead; no rule.
+-- akn:hc_1/p3 Letterhead; no rule.
+-- akn:hc_1/p4 Letterhead; no rule.
+-- akn:hc_1/p5 Letterhead; no rule.
+-- akn:hc_1/p6 The Hebrew date; no rule.
+-- akn:hc_1/p7 The Gregorian date, 14.2.2021; no rule.
+-- akn:hc_1/p8 The reference number; no rule.
+-- akn:hc_1/p9 The circular's number; no rule.
+-- akn:hc_1/p10 Addressee; no rule.
+-- akn:hc_1/p11 Addressee: the teaching employees and the owners of post-primary institutions; no rule.
+-- akn:hc_1/p12 Greeting; no rule.
+-- akn:hc_1/p13 Subject line; no rule.
+
+DECLARE `sex` IS ONE OF `woman`, `man`
+
+DECLARE `pension fund kind` IS ONE OF
+    `a veteran fund (מבטחים, ק.ג.מ, גלעד, מקפת)`
+    `a new pension fund`
+
+@desc A teaching employee asking to retire early at the end of תשפ"א, as far as the circular asks about it.
+DECLARE `early-retirement candidate` HAS
+    `employee sex`                              IS A `sex`
+    `age at retirement`                         IS A NUMBER  @desc age in whole years on 31.8.2021
+    `employed by an owner of a post-primary institution` IS A BOOLEAN
+    `in official education`                     IS A BOOLEAN @desc employed in the official (רשמי) education system, for which the tracks are not meant
+    `insured in a funded pension fund`          IS A BOOLEAN
+    `fund`                                      IS A `pension fund kind`
+    `receives an early pension from any source` IS A BOOLEAN
+
+§§ `המסלולים`
+
+-- ¶14: under the agreements of 11.5.93, 19.9.94 and 12.9.95, two tracks
+-- for employees of the owners of post-primary institutions insured in
+-- funded pension funds; not for employees in official education.
+@ref akn:hc_1/p14
+GIVEN c IS AN `early-retirement candidate`
+GIVETH A BOOLEAN
+DECIDE `within the arrangement` c IF
+        c's `employed by an owner of a post-primary institution`
+    AND c's `insured in a funded pension fund`
+    AND NOT c's `in official education`
+
+DECLARE `track` IS ONE OF
+    `track A, the additional track`
+    `track B, קפ"מ the early pension fund`
+
+-- ¶15-¶20: the ages of each track, one row per printed line, as printed.
+@ref akn:hc_1/p15 akn:hc_1/p16 akn:hc_1/p17 akn:hc_1/p18 akn:hc_1/p19 akn:hc_1/p20
+DECLARE `track ages` HAS
+    `track of the row` IS A `track`
+    `sex of the row`   IS A `sex`
+    `from age`         IS A NUMBER
+    `to age`           IS A NUMBER
+
+`the tracks' ages` MEANS
+    LIST `track ages` `track A, the additional track`        `woman` 50 55,
+         `track ages` `track A, the additional track`        `man`   50 58,
+         `track ages` `track B, קפ"מ the early pension fund` `woman` 55 62,
+         `track ages` `track B, קפ"מ the early pension fund` `man`   58 67
+
+GIVEN s IS A `sex`, a IS A NUMBER
+GIVETH A LIST OF `track`
+DECIDE `the tracks printed for` s `at age` a IS
+    map (GIVEN r YIELD r's `track of the row`)
+        (filter (GIVEN r YIELD r's `sex of the row` EQUALS s AND a AT LEAST r's `from age` AND a AT MOST r's `to age`)
+                `the tracks' ages`)
+
+-- F-2020-21_tashpa_06-a: track A runs "to 55" (women) and "to 58" (men);
+-- track B runs "from 55" and "from 58". Read with "עד" inclusive, the age
+-- that ends one track opens the other:
+`the boundary ages are in both tracks` MEANS
+        `the tracks printed for` `woman` `at age` 55 EQUALS LIST `track A, the additional track`, `track B, קפ"מ the early pension fund`
+    AND `the tracks printed for` `man` `at age` 58 EQUALS LIST `track A, the additional track`, `track B, קפ"מ the early pension fund`
+#ASSERT `the boundary ages are in both tracks`
+
+-- Every other age from 50 to the track's end has one track.
+#ASSERT all (GIVEN a YIELD count (`the tracks printed for` `woman` `at age` a) EQUALS 1)
+            (LIST 50, 51, 52, 53, 54, 56, 57, 58, 59, 60, 61, 62)
+#ASSERT all (GIVEN a YIELD count (`the tracks printed for` `man` `at age` a) EQUALS 1)
+            (LIST 50, 51, 52, 53, 54, 55, 56, 57, 59, 60, 65, 66, 67)
+
+-- The reading adopted (F-2020-21_tashpa_06-a): the boundary age belongs to
+-- the track that opens at it, track A's "עד" read as excluding it.
+GIVEN c IS AN `early-retirement candidate`
+GIVETH A LIST OF `track`
+DECIDE `the track for` c IS
+    filter (GIVEN t YIELD NOT (t EQUALS `track A, the additional track`
+                               AND elem `track B, קפ"מ the early pension fund` (`the tracks printed for` (c's `employee sex`) `at age` (c's `age at retirement`))))
+           (`the tracks printed for` (c's `employee sex`) `at age` (c's `age at retirement`))
+
+@export default Whether a teaching employee of a post-primary owner may retire early at the end of 2020-21 under circular תשפ"א/6, and on which track
+GIVEN c IS AN `early-retirement candidate` @desc the candidate
+GIVETH A BOOLEAN
+DECIDE `may retire early` c IF
+        `within the arrangement` c
+    AND NOT null (`the track for` c)
+    AND NOT c's `receives an early pension from any source`
+
+§§ `קרנות ותיקות וחדשות`
+
+DECLARE `who pays the pension` IS ONE OF
+    `the veteran fund itself`
+    `the last employer, from the Treasury's pensions administration`
+
+-- ¶21: veteran funds — by the tracks and the funds' bylaws; the funds pay.
+-- ¶23-¶24: new funds — the salary commissioner's arrangement of 4.11.08,
+-- on the same terms as tracks A and B; the pensions administration at the
+-- Accountant General computes the pension from the accumulated balance by
+-- an agreed formula (an input), and periods in veteran funds or budgetary
+-- pension count too. ¶26: the administration transfers it to the last
+-- employer, who passes it to the employee.
+@ref akn:hc_1/p21 akn:hc_1/p23 akn:hc_1/p24 akn:hc_1/p26
+GIVEN c IS AN `early-retirement candidate`
+GIVETH A `who pays the pension`
+DECIDE `the pension is paid by` c IS
+    CONSIDER c's `fund`
+    WHEN `a veteran fund (מבטחים, ק.ג.מ, גלעד, מקפת)` THEN `the veteran fund itself`
+    WHEN `a new pension fund` THEN `the last employer, from the Treasury's pensions administration`
+
+DECLARE `retirement action` IS ONE OF
+    `return the forms and deal with the fund`
+    `arrange the budgetary-pension rights with the district`
+    `pass the pension on to the employee`
+    `submit the request on the teachers' portal` HAS `with complete data and documents` IS A BOOLEAN
+    `employ the retiree` HAS `position fraction employed` IS A NUMBER
+                             `at the Ministry of Education` IS A BOOLEAN
+    `sign a declaration of no other early pension`
+    `place another teacher in the post`
+    `stop the state-funded pension`
+
+-- ¶22: for veteran funds, returning the forms and dealing with the fund
+-- until 30.11.21 only.
+@ref akn:hc_1/p22
+GIVETH A DEONTIC Party `retirement action`
+DECIDE `returning the veteran-fund forms` IS
+    PARTY `the teaching employee`
+    MUST  `return the forms and deal with the fund`
+    WITHIN `30 November 2021`
+    LEST  BREACH BY `the teaching employee` BECAUSE "circular 2020-21/6: the forms are returned and the fund dealt with by 30.11.21 only"
+
+-- ¶25: the employee arranges the budgetary-pension rights with the
+-- district before the retirement date.
+@ref akn:hc_1/p25
+GIVETH A DEONTIC Party `retirement action`
+DECIDE `arranging the budgetary-pension rights` IS
+    PARTY `the teaching employee`
+    MUST  `arrange the budgetary-pension rights with the district`
+    WITHIN `31 August 2021`
+    LEST  BREACH BY `the teaching employee` BECAUSE "circular 2020-21/6: the employee arranges the budgetary-pension rights before the retirement date"
+
+-- ¶26: the last employer passes the pension on. The text sets no time:
+-- each month's pension is passed on within that month (time in months).
+GIVETH A DEONTIC Party `retirement action`
+DECIDE `passing the pension on` IS
+    PARTY `the employer`
+    MUST  `pass the pension on to the employee`
+    WITHIN 1
+    LEST  BREACH BY `the employer` BECAUSE "circular 2020-21/6: the last employer is responsible for passing the new-fund pension on to the employee"
+
+§§ `הגשת הבקשות`
+
+-- ¶27-¶30: the request is filed on the teachers' portal ("retirement
+-- from a post-primary owner") until 31.05.2021, when the system closes;
+-- the requests go to the early-retirement committee through the union.
+-- The appendix: data or documents incomplete, the request is returned.
+@ref akn:hc_1/p27 akn:hc_1/p28 akn:hc_1/p29 akn:hc_1/p30 akn:att_1__hc_1/p1
+GIVETH A DEONTIC Party `retirement action`
+DECIDE `submitting the request` IS
+    PARTY `the teaching employee`
+    MUST  `submit the request on the teachers' portal` `complete`
+          PROVIDED `complete`
+    WITHIN `31 May 2021`
+    LEST  BREACH BY `the teaching employee` BECAUSE "circular 2020-21/6: a complete request is filed on the portal by 31.05.2021, when the system closes"
+
+DECLARE `request route` IS ONE OF
+    `to the early-retirement committee through the representing union`
+
+@ref akn:hc_1/p29
+`where the requests go` MEANS
+    `to the early-retirement committee through the representing union`
+
+-- ¶31: in the first two years after retirement, no employment in official
+-- or recognised unofficial institutions above a third of a position; work
+-- at the Ministry of Education alongside the owner may go on. Time here in
+-- months from the retirement.
+@ref akn:hc_1/p31
+GIVETH A DEONTIC Party `retirement action`
+DECIDE `no more than a third of a position for two years` IS
+    PARTY `the employer`
+    SHANT `employ the retiree` `fraction` `at the Ministry`
+          PROVIDED `fraction` GREATER THAN 1 DIVIDED BY 3 AND NOT `at the Ministry`
+    WITHIN 24
+    LEST  BREACH BY `the employer` BECAUSE "circular 2020-21/6: a retiree is not employed above a third of a position in the first two years"
+
+-- ¶32: the applicant signs a declaration that he receives no early pension
+-- from any source; if he does, the state-funded pension stops at once.
+@ref akn:hc_1/p32
+GIVETH A DEONTIC Party `retirement action`
+DECIDE `declaring no other early pension` IS
+    PARTY `the teaching employee`
+    MUST  `sign a declaration of no other early pension`
+    WITHIN `31 May 2021`
+    LEST  BREACH BY `the teaching employee` BECAUSE "circular 2020-21/6: the applicant declares he receives no early pension from any source"
+
+GIVEN c IS AN `early-retirement candidate`
+GIVETH A BOOLEAN
+DECIDE `the state-funded pension stops at once` c IF
+    c's `receives an early pension from any source`
+
+-- akn:hc_1/p33 The committee's coordinators for questions; no rule.
+-- akn:hc_1/p34 A coordinator's phone and e-mail; no rule.
+-- akn:hc_1/p35 A coordinator's phone and e-mail; no rule.
+-- akn:hc_1/p36 The telephone hours; no rule.
+
+-- ¶37: until the employee has the Ministry's official letter approving the
+-- retirement, no other teacher is placed in his post.
+@ref akn:hc_1/p37
+GIVEN `the approval letter has been received` IS A BOOLEAN
+GIVETH A DEONTIC Party `retirement action`
+DECIDE `no replacement before the approval letter` `the approval letter has been received` IS
+    IF `the approval letter has been received`
+    THEN FULFILLED
+    ELSE PARTY `the employer`
+         SHANT `place another teacher in the post`
+         WITHIN `31 August 2021`
+         LEST  BREACH BY `the employer` BECAUSE "circular 2020-21/6: no teacher is placed in the post before the approval letter"
+
+-- akn:conclusions The signature and copies list; no rule.
+
+§§ `נספח — המסמכים לצירוף`
+
+DECLARE `document to attach` IS ONE OF
+    `personal data and the last payslip`
+    `each pension fund's latest report for תשפ"א`
+    `budgetary-pension periods, freezing letter or continuity agreement and service record`
+    `a signed power of attorney for each new fund`
+    `the last employing owner's details`
+    `a full declaration of any other early pension, with its payslip`
+
+-- א: personal data, the last payslip, every pension fund with its latest
+-- report (pension funds only, not provident or study funds). ב: periods in
+-- the civil service under budgetary pension, and the freezing letter or
+-- continuity agreement and service record. ג: a power of attorney for the
+-- pensions administration for each new fund. ד: the last employing owner's
+-- details in it. ה: any other early pension, declared in full, with a slip.
+@ref akn:att_1__hc_1__para_a akn:att_1__hc_1__para_b akn:att_1__hc_1__para_c/p1 akn:att_1__hc_1__para_c/p8 akn:att_1__hc_1__para_d akn:att_1__hc_1__para_e/p1
+GIVEN `in the civil service under budgetary pension` IS A BOOLEAN
+      `insured in a new fund` IS A BOOLEAN
+      `receives another early pension` IS A BOOLEAN
+GIVETH A LIST OF `document to attach`
+DECIDE `the documents to attach` `in the civil service under budgetary pension` `insured in a new fund` `receives another early pension` IS
+    concat (LIST (LIST `personal data and the last payslip`, `each pension fund's latest report for תשפ"א`),
+                 (IF `in the civil service under budgetary pension` THEN LIST `budgetary-pension periods, freezing letter or continuity agreement and service record` ELSE EMPTY),
+                 (IF `insured in a new fund` THEN LIST `a signed power of attorney for each new fund`, `the last employing owner's details` ELSE EMPTY),
+                 (IF `receives another early pension` THEN LIST `a full declaration of any other early pension, with its payslip` ELSE EMPTY))
+
+-- Corpus defect (reported, not a finding): the corpus keeps the page
+-- footer and letterhead inside the appendix's paragraphs ג and ה.
+-- akn:att_1__hc_1__para_c/p2 A page footer (address and telephone) the corpus keeps inside the paragraph; no rule.
+-- akn:att_1__hc_1__para_c/p3 The page footer in Arabic; no rule.
+-- akn:att_1__hc_1__para_c/p4 The page footer's privacy notice; no rule.
+-- akn:att_1__hc_1__para_c/p5 The next page's letterhead; no rule.
+-- akn:att_1__hc_1__para_c/p6 The next page's letterhead; no rule.
+-- akn:att_1__hc_1__para_c/p7 The next page's letterhead; no rule.
+-- akn:att_1__hc_1__para_e/p2 A page footer the corpus keeps inside the paragraph; no rule.
+-- akn:att_1__hc_1__para_e/p3 The page footer in Arabic; no rule.
+-- akn:att_1__hc_1__para_e/p4 The page footer's privacy notice; no rule.
+
+-- Worked examples.
+`a woman of 55 in a new fund` MEANS
+    `early-retirement candidate` WITH
+        `employee sex`                              IS `woman`
+        `age at retirement`                         IS 55
+        `employed by an owner of a post-primary institution` IS TRUE
+        `in official education`                     IS FALSE
+        `insured in a funded pension fund`          IS TRUE
+        `fund`                                      IS `a new pension fund`
+        `receives an early pension from any source` IS FALSE
+
+`a man of 60 in official education` MEANS
+    `early-retirement candidate` WITH
+        `employee sex`                              IS `man`
+        `age at retirement`                         IS 60
+        `employed by an owner of a post-primary institution` IS TRUE
+        `in official education`                     IS TRUE
+        `insured in a funded pension fund`          IS TRUE
+        `fund`                                      IS `a veteran fund (מבטחים, ק.ג.מ, גלעד, מקפת)`
+        `receives an early pension from any source` IS FALSE
+
+#ASSERT `the track for` `a woman of 55 in a new fund` EQUALS LIST `track B, קפ"מ the early pension fund`
+#ASSERT `may retire early` `a woman of 55 in a new fund`
+#ASSERT NOT `may retire early` `a man of 60 in official education`
+#ASSERT `the pension is paid by` `a woman of 55 in a new fund` EQUALS `the last employer, from the Treasury's pensions administration`
+#ASSERT count (`the documents to attach` FALSE TRUE FALSE) EQUALS 4
+
+#TRACE `submitting the request` AT 0 WITH
+    PARTY `the teaching employee` DOES `submit the request on the teachers' portal` TRUE AT 90
+#TRACE `submitting the request` AT 0 WITH
+    PARTY `the teaching employee` DOES `submit the request on the teachers' portal` TRUE AT 120
+#TRACE `no more than a third of a position for two years` AT 0 WITH
+    PARTY `the employer` DOES `employ the retiree` 0.5 FALSE AT 6
+#TRACE `no more than a third of a position for two years` AT 0 WITH
+    PARTY `the employer` DOES `employ the retiree` 0.5 TRUE AT 6
+#TRACE `no replacement before the approval letter` FALSE AT 0 WITH
+    PARTY `the employer` DOES `place another teacher in the post` AT 150

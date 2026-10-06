@@ -1,0 +1,138 @@
+-- חוזר לבעלויות תשס"ח/1 — ניכוי שכר מעובדי הוראה בשל שביתות מלאות בשנת הלימודים תשס"ח (23.10.2007)
+-- Salary is deducted for the days and hours of the secondary teachers'
+-- strike, under the takanon's rule on unjustified absence (section 1.25.14):
+-- below 10% of the monthly quota only from the hours actually taught, above
+-- it also from the education and matriculation hours and the role supplements.
+
+IMPORT prelude
+IMPORT common
+
+§ `ניכוי שכר בשל שביתות מלאות תשס"ח`
+
+-- akn:hc_1/p1 akn:hc_1/p2 akn:hc_1/p3 akn:hc_1/p4 akn:hc_1/p5 akn:hc_1/p6 akn:hc_1/p7 akn:hc_1/p8 akn:hc_1/p9 akn:hc_1/p10 The letterhead, title, date, addressee, greeting and subject line; no rule.
+
+-- akn:hc_1/p11 The background: from September 2007 the secondary teachers' organisation held full strikes in secondary schools and seminaries.
+
+@desc One teaching employee's month of the strike, as far as this circular asks about it.
+DECLARE `strike month` HAS
+    `fixed monthly quota in hours`              IS A NUMBER  @desc the employee's fixed monthly quota of work (מכסת עבודתו הקבועה)
+    `hours absent on strike`                    IS A NUMBER  @desc hours of the fixed timetable missed by taking part in the strike
+    `value of one teaching hour`                IS A NUMBER  @desc an input, not set by this circular
+    `education and matriculation-preparation pay` IS A NUMBER @desc the month's pay for education hours and matriculation-preparation hours
+    `role percentage supplements`               IS A NUMBER  @desc the month's percentage supplements paid for roles
+
+-- ¶12: salary is deducted from every teacher who took part, by the days and
+-- hours of their part; ¶17: by the teacher's fixed timetable at the school
+-- — the hours missed are counted on it.
+@ref akn:hc_1/p12 akn:hc_1/p17
+GIVEN m IS A `strike month`
+GIVETH A NUMBER
+DECIDE `deduction for the hours taught` m IS
+    m's `hours absent on strike` TIMES m's `value of one teaching hour`
+
+GIVEN m IS A `strike month`
+GIVETH A NUMBER
+DECIDE `share of the quota absent` m IS
+    m's `hours absent on strike` DIVIDED BY m's `fixed monthly quota in hours`
+
+-- ¶13: the rule is the takanon's on unjustified absence (section 1.25.14),
+-- restated here in ¶14–16 (א) and ב.
+
+-- ¶14–16 (א): below 10% of the quota, only the hours actually taught; not
+-- the education or matriculation hours, nor the role percentage supplements.
+@ref akn:hc_1/p13 akn:hc_1/p14 akn:hc_1/p15 akn:hc_1/p16
+GIVEN m IS A `strike month`
+GIVETH A BOOLEAN
+DECIDE `absence below 10%` m IF
+    `share of the quota absent` m LESS THAN 10%
+
+-- ב: above 10%, also the proportional part of the education and
+-- matriculation hours and the role supplements.
+@ref akn:hc_1__para_b akn:hc_1__para_b/p2
+GIVEN m IS A `strike month`
+GIVETH A BOOLEAN
+DECIDE `absence above 10%` m IF
+    `share of the quota absent` m GREATER THAN 10%
+
+GIVEN m IS A `strike month`
+GIVETH A NUMBER
+DECIDE `deduction from the supplements` m IS
+    `share of the quota absent` m
+    TIMES (m's `education and matriculation-preparation pay` PLUS m's `role percentage supplements`)
+
+-- F-2007-08_tashsach_01-a: exactly 10% is neither "less than" nor "more
+-- than". The reading adopted: the wider deduction needs the absence to
+-- EXCEED 10%, so at exactly 10% only the hours taught are deducted.
+@export The salary an owning body deducts from a teaching employee for one month of the 2007-08 strike
+GIVEN m IS A `strike month` @desc the employee's month
+GIVETH A NUMBER
+DECIDE `salary to deduct` m IS
+    IF `absence above 10%` m
+    THEN `deduction for the hours taught` m PLUS `deduction from the supplements` m
+    ELSE `deduction for the hours taught` m
+
+DECLARE `strike action` IS ONE OF
+    `deduct the salary` HAS `amount deducted` IS A NUMBER
+    `deduct from the standing payments` HAS `hours deducted` IS A NUMBER
+
+GIVEN m IS A `strike month`
+GIVETH A DEONTIC Party `strike action`
+DECIDE `the owning body deducts the strike salary` m IS
+    PARTY `the local authority or owning body`
+    MUST  `deduct the salary` amount
+          PROVIDED amount AT LEAST `salary to deduct` m
+
+-- ¶18: the Ministry deducts from its current standing payments (מת"מ) to
+-- the owning bodies, by the budgeted hours of the striking institutions and
+-- the strike dates. The hours are the Ministry's figure: an input.
+@ref akn:hc_1/p18
+GIVEN `budgeted hours of the striking institutions` IS A NUMBER
+GIVETH A DEONTIC Party `strike action`
+DECIDE `the Ministry deducts from its payments` `budgeted hours of the striking institutions` IS
+    PARTY `the Ministry of Education`
+    MUST  `deduct from the standing payments` h
+          PROVIDED h EQUALS `budgeted hours of the striking institutions`
+
+-- akn:conclusions The sign-off and signature; no rule.
+
+§§ `Findings and examples`
+
+-- Examples: a quota of 100 hours, hour value 100, supplements 2,000 —
+-- placeholders.
+`ten hours of a hundred` MEANS
+    `strike month` WITH
+        `fixed monthly quota in hours`                IS 100
+        `hours absent on strike`                      IS 10
+        `value of one teaching hour`                  IS 100
+        `education and matriculation-preparation pay` IS 1500
+        `role percentage supplements`                 IS 500
+
+`twenty hours of a hundred` MEANS
+    `strike month` WITH
+        `fixed monthly quota in hours`                IS 100
+        `hours absent on strike`                      IS 20
+        `value of one teaching hour`                  IS 100
+        `education and matriculation-preparation pay` IS 1500
+        `role percentage supplements`                 IS 500
+
+`five hours of a hundred` MEANS
+    `strike month` WITH
+        `fixed monthly quota in hours`                IS 100
+        `hours absent on strike`                      IS 5
+        `value of one teaching hour`                  IS 100
+        `education and matriculation-preparation pay` IS 1500
+        `role percentage supplements`                 IS 500
+
+#ASSERT `salary to deduct` `five hours of a hundred` EQUALS 500
+#ASSERT `salary to deduct` `twenty hours of a hundred` EQUALS 2400
+#ASSERT `salary to deduct` `ten hours of a hundred` EQUALS 1000
+
+-- F-2007-08_tashsach_01-a: an absence of exactly 10% is decided by neither
+-- (א) nor ב.
+`an absence of exactly 10% falls in neither rule` MEANS
+        NOT `absence below 10%` `ten hours of a hundred`
+    AND NOT `absence above 10%` `ten hours of a hundred`
+#ASSERT `an absence of exactly 10% falls in neither rule`
+
+#TRACE `the owning body deducts the strike salary` `twenty hours of a hundred` AT 0 WITH
+    PARTY `the local authority or owning body` DOES `deduct the salary` 2400 AT 1

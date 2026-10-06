@@ -1,0 +1,219 @@
+-- חוזר לבעלויות תשע"א/1: ביצוע פסק דין של בית הדין הארצי לעבודה בעניין
+-- עובדי הוראה המבוטחים בקרנות פנסיה ותיקות
+-- Carrying out the National Labour Court's ruling of 23.8.2010 for teaching
+-- staff of the owners of secondary schools insured in veteran pension funds:
+-- the one-off compensation for over-deduction (current and former
+-- employees), its interest, linkage and deadlines, and the contribution rates
+-- with the employer's 15% split between severance and benefits.
+
+IMPORT prelude
+IMPORT common
+
+§ `תשע"א/1 ביצוע פסק דין בעניין עובדי הוראה המבוטחים בקרנות פנסיה ותיקות`
+
+-- akn:preamble The letterhead, date (31.10.2010), addressee, greeting and subject line, and the lead-in naming the Treasury letter of 13/10/10, the ruling of 23/08/10 (סק"כ 5821-05-10) and the like compensation for new funds in circular תש"ע/1; no rule.
+
+-- Time in this file is counted in DAYS from 31 October 2010, the date the
+-- circular is signed (day 0).
+`1 January 2004`     MEANS -2495
+`30 September 2009`  MEANS -396
+`30 November 2009`   MEANS -335
+`23 November 2010`   MEANS 23
+`23 December 2010`   MEANS 53
+
+@desc A teaching employee insured in a veteran pension fund, as far as this circular asks about it.
+DECLARE `veteran-fund employee` HAS
+    `employed by the owner of a secondary school now` IS A BOOLEAN @desc employed now by an owning body (בעלות) of a secondary school
+    `employed by such an owner in the past`       IS A BOOLEAN @desc employed by one in the past and no longer
+    `insured in a veteran pension fund`           IS A BOOLEAN
+    `excess deductions`                           IS A LIST OF `excess deduction`
+
+@desc One deduction for the pension fund beyond 4% plus the rates of section 78יא of the Insurance Supervision Law.
+DECLARE `excess deduction` HAS
+    `day of the deduction`                IS A NUMBER @desc days from 31 October 2010 (negative before it)
+    `amount deducted beyond the rates`    IS A NUMBER @desc shekels deducted beyond 4% plus the section 78יא rates
+    `months from deduction to payment`    IS A NUMBER @desc whole months from the deduction to the day the compensation is paid
+    `index at the deduction`              IS A NUMBER @desc the consumer price index for the deduction (section 3(א)(3))
+    `index at the payment`                IS A NUMBER @desc the consumer price index for the day of payment
+
+@desc Contribution rates as fractions of the salary they are taken on.
+DECLARE `veteran contribution rates` HAS
+    `veteran employer rate`               IS A NUMBER
+    `veteran severance part`              IS A NUMBER
+    `veteran benefits part`               IS A NUMBER
+    `veteran employee rate`               IS A NUMBER
+
+DECLARE `veteran pension action` IS ONE OF
+    `pay the compensation` HAS `compensation paid` IS A NUMBER
+    `transfer additional budget for the contributions`
+
+§§ `1 הרקע לפסק הדין`
+
+-- akn:art_1 The background: the ruling of 30.9.09 (סק"כ 1002/04) on new funds, its 1.5% compensation and the veteran-fund employer rate of 15%; the union's further request to extend the compensation to veteran funds; and Mivtachim's request to decide the internal split. Narrative, no rule of this circular.
+
+§§ `2 פסק הדין של בית הדין הארצי לעבודה`
+
+-- Section 2 reports the ruling; section 3 instructs. The ruling's period is
+-- encoded as data so that section 3 can be checked against it.
+@ref akn:art_2__para_a
+`the last day of the ruling's period` MEANS `30 September 2009`
+
+@ref akn:art_2__para_b
+`the split the ruling sets` MEANS `veteran contribution rates` 0.15 0.075 0.075 0.055
+
+§§ `3 הנחיות לביצוע פסק הדין`
+
+-- akn:art_3/p1 The lead-in: the owners of the secondary schools are to act as follows; the duties are the paragraphs below.
+
+-- Sections 3(א)(1) and 3(ב)(1): a deduction beyond the rates in 01/01/04 –
+-- 30/11/09, or part of that period. Section 2(א) reports the ruling's period
+-- as ending on 30/09/09 (F-2010-11_tashaa_01-a); the instruction is encoded
+-- as written.
+@ref akn:art_3__para_a__subpara_1 akn:art_3__para_b__subpara_1
+`the last day of the instruction's period` MEANS `30 November 2009`
+
+GIVEN d IS AN `excess deduction`
+GIVETH A BOOLEAN
+DECIDE `a deduction that earns compensation` d IF
+        d's `day of the deduction` AT LEAST `1 January 2004`
+    AND d's `day of the deduction` AT MOST `the last day of the instruction's period`
+
+GIVEN d IS AN `excess deduction`
+GIVETH A BOOLEAN
+DECIDE `a deduction in the ruling's period` d IF
+        d's `day of the deduction` AT LEAST `1 January 2004`
+    AND d's `day of the deduction` AT MOST `the last day of the ruling's period`
+
+`the instruction's period runs two months past the ruling's` MEANS
+    `the last day of the instruction's period` GREATER THAN `the last day of the ruling's period`
+#ASSERT `the instruction's period runs two months past the ruling's`
+
+-- Sections 3(א)(2) and 3(ב)(2): 3.5% for twelve months, or 0.287% a month;
+-- the monthly figure is the yearly rate's equivalent rounded to three digits.
+@ref akn:art_3__para_a__subpara_2 akn:art_3__para_b__subpara_2
+`the monthly interest rate` MEANS 0.00287
+`the yearly interest rate` MEANS 0.035
+
+GIVEN n IS A NUMBER
+GIVETH A NUMBER
+DECIDE `interest factor for` n IS
+    IF n AT MOST 0
+    THEN 1
+    ELSE (1 PLUS `the monthly interest rate`) TIMES `interest factor for` (n MINUS 1)
+
+#ASSERT `the yearly interest rate` MINUS (`interest factor for` 12 MINUS 1) AT MOST 0.00002
+#ASSERT `the yearly interest rate` MINUS (`interest factor for` 12 MINUS 1) AT LEAST 0
+
+@ref akn:art_3__para_a__subpara_3 akn:art_3__para_b__subpara_3
+GIVEN d IS AN `excess deduction`
+GIVETH A NUMBER
+DECIDE `linkage factor` d IS
+    d's `index at the payment` DIVIDED BY d's `index at the deduction`
+
+GIVEN d IS AN `excess deduction`
+GIVETH A NUMBER
+DECIDE `compensation for the deduction` d IS
+    IF `a deduction that earns compensation` d
+    THEN d's `amount deducted beyond the rates`
+         TIMES `linkage factor` d
+         TIMES `interest factor for` (d's `months from deduction to payment`)
+    ELSE 0
+
+GIVEN e IS A `veteran-fund employee`
+GIVETH A BOOLEAN
+DECIDE `entitled to the one-off compensation` e IF
+        e's `insured in a veteran pension fund`
+    AND (e's `employed by the owner of a secondary school now` OR e's `employed by such an owner in the past`)
+
+@export default The one-off compensation a teaching employee insured in a veteran pension fund is owed for over-deduction under circular תשע"א/1, section 3
+GIVEN e IS A `veteran-fund employee` @desc the employee and the deductions made beyond the rates
+GIVETH A NUMBER
+DECIDE `the compensation` e IS
+    IF `entitled to the one-off compensation` e
+    THEN sum (map `compensation for the deduction` (e's `excess deductions`))
+    ELSE 0
+
+-- Sections 3(א)(4) and 3(ב)(4): a current employee is paid by 23/11/10, a
+-- former employee by 23/12/10.
+@ref akn:art_3__para_a__subpara_4 akn:art_3__para_b__subpara_4
+GIVEN e IS A `veteran-fund employee`
+GIVETH A NUMBER
+DECIDE `the payment deadline for` e IS
+    IF e's `employed by the owner of a secondary school now`
+    THEN `23 November 2010`
+    ELSE `23 December 2010`
+
+GIVEN e IS A `veteran-fund employee`
+GIVETH A DEONTIC Party `veteran pension action`
+DECIDE `paying the compensation` e IS
+    PARTY `the local authority or owning body`
+    MUST  `pay the compensation` `amount`
+          PROVIDED `amount` AT LEAST `the compensation` e
+    WITHIN `the payment deadline for` e
+    LEST BREACH BY `the local authority or owning body` BECAUSE "sections 3(א)(4), 3(ב)(4): the compensation is paid by 23/11/10, or 23/12/10 to a former employee"
+
+@desc What a payment may be counted toward, as sections 3(א)(5) and 3(ב)(5) ask.
+DECLARE `compensation use` IS ONE OF
+    `the hourly value`
+    `pension and other contributions`
+    `any other use`
+
+@ref akn:art_3__para_a__subpara_5 akn:art_3__para_b__subpara_5
+GIVEN u IS A `compensation use`
+GIVETH A BOOLEAN
+DECIDE `the compensation is excluded from` u IF
+    CONSIDER u
+    WHEN `the hourly value` THEN TRUE
+    WHEN `pension and other contributions` THEN TRUE
+    OTHERWISE FALSE
+
+-- Section 3(ג): 15% (13.5% + 1.5%) of which 7.5% severance and 7.5%
+-- benefits; 5.5% (4% + 1.5%) from the employee; no change in the salary
+-- components contributed on.
+@ref akn:art_3__para_c
+`the veteran-fund rates` MEANS `veteran contribution rates` 0.15 0.075 0.075 0.055
+
+#ASSERT `the veteran-fund rates` EQUALS `the split the ruling sets`
+#ASSERT `the veteran-fund rates`'s `veteran severance part` PLUS `the veteran-fund rates`'s `veteran benefits part` EQUALS `the veteran-fund rates`'s `veteran employer rate`
+#ASSERT `the veteran-fund rates`'s `veteran employer rate` EQUALS 0.135 PLUS 0.015
+#ASSERT `the veteran-fund rates`'s `veteran employee rate` EQUALS 0.04 PLUS 0.015
+
+§§ `4 הבהרה`
+
+@ref akn:art_4
+GIVETH A DEONTIC Party `veteran pension action`
+DECIDE `no additional budget for the contributions` IS
+    PARTY `the Ministry of Education`
+    SHANT `transfer additional budget for the contributions`
+    WITHIN 365
+    LEST BREACH BY `the Ministry of Education` BECAUSE "section 4: no additional budget is transferred, the Ministry's budgeting having included employer contributions of 15%"
+
+-- akn:art_5 The contact line for questions and the title of the attached table of coefficients ("חוזר תשע"א/1 – טבלת מקדמים"), whose rows the document does not carry; no rule.
+
+-- akn:conclusions The sign-off and signature; no rule.
+
+-- Worked examples; amounts and index values are round placeholders.
+`a current employee with two excess deductions` MEANS
+    `veteran-fund employee` WITH
+        `employed by the owner of a secondary school now` IS TRUE
+        `employed by such an owner in the past`       IS FALSE
+        `insured in a veteran pension fund`           IS TRUE
+        `excess deductions` IS LIST `excess deduction` (0 MINUS 380) 100 12 100 110,
+                                    `excess deduction` (0 MINUS 300) 100 0 100 100
+
+`a deduction in October 2009` MEANS `excess deduction` (0 MINUS 380) 100 12 100 110
+
+-- F-2010-11_tashaa_01-a: a deduction of October 2009 is compensated under
+-- section 3 and falls outside the period section 2 reports.
+`October 2009 is compensated by the instruction and not by the ruling` MEANS
+        `a deduction that earns compensation` `a deduction in October 2009`
+    AND (NOT `a deduction in the ruling's period` `a deduction in October 2009`)
+#ASSERT `October 2009 is compensated by the instruction and not by the ruling`
+
+#EVAL `the compensation` `a current employee with two excess deductions`
+#ASSERT `the compensation` `a current employee with two excess deductions` EQUALS 110 TIMES `interest factor for` 12
+
+#TRACE `paying the compensation` `a current employee with two excess deductions` AT 0 WITH
+    PARTY `the local authority or owning body` DOES `pay the compensation` 113.85 AT 20
+#TRACE `paying the compensation` `a current employee with two excess deductions` AT 0 WITH
+    PARTY `the local authority or owning body` DOES `pay the compensation` 113.85 AT 40

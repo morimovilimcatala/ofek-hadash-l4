@@ -1,0 +1,329 @@
+-- חוזר לבעלויות תשע"ג/9 — הסכם קיבוצי מיום 22.7.2013 בנושא השתתפות העובדים
+-- במגזר הציבורי לשנים 2013-2014 (20.8.2013)
+-- Outside the upper division: the last instalment of the 2011 framework
+-- raise is postponed from 1.7.2013 to 1.1.2015, while pension-related
+-- payments are computed as if it had been paid on time; and the clothing
+-- allowance for school year תשע"ג is reduced from 2095 to 1877, again with
+-- pension-related payments computed on the unreduced amount.
+
+IMPORT prelude
+IMPORT common
+
+-- Dates are numbers YYYYMMDD.
+`1 July 2013`      MEANS 20130701
+`31 December 2014` MEANS 20141231
+`1 January 2015`   MEANS 20150101
+
+§ `חוזר תשע"ג/9 השתתפות העובדים במגזר הציבורי 2013-2014`
+
+-- akn:preamble The letterhead, date, reference, addressee, greeting and subject line; no rule.
+-- akn:preamble/p14 The subject's first heading (the postponed instalment); the rules are section א.
+-- akn:preamble/p15 The subject's second heading (the reduced clothing allowance); the rules are section ב.
+-- akn:preamble/p16 Background: the participation law of 1.7.2013 (section 3, postponing raises per the applicable agreement) and the agreement of 22.7.2013 with the teachers' union; the rules it brings are sections א and ב.
+-- akn:preamble/p17 States the circular's purpose; no rule.
+-- akn:preamble/p18 The heading "תחולה"; no rule.
+
+DECLARE `stage of education` IS ONE OF
+    `kindergarten`
+    `primary`
+    `junior high`
+    `teacher-training college`
+    `upper division`
+
+@desc A teaching employee as this circular asks about them.
+DECLARE `teacher outside the upper division` HAS
+    `graded as a teaching employee`  IS A BOOLEAN @desc graded in the teaching-employees grading
+    `employed by a supervised owner` IS A BOOLEAN @desc employed by an owner of an institution supervised by the Ministry of Education
+    `stage`                          IS A `stage of education`
+    `in a salary union`              IS A BOOLEAN @desc employed within an "איחוד משכורות" (salary union)
+    `owner junior-high share`        IS A NUMBER  @desc for a salary union: the share of the whole position held with the owner in the junior high
+    `positions`                      IS A LIST OF NUMBER @desc the position held with each employer (1 = a full position)
+    `seniority years`                IS A NUMBER
+    `teaches physical education`     IS A BOOLEAN
+    `physical-education position`    IS A NUMBER
+    `technological subject`          IS A STRING @desc the subject taught in technological education, as the lists print it; "" for none
+
+@ref akn:preamble/p19
+GIVEN t IS A `teacher outside the upper division`
+GIVETH A BOOLEAN
+DECIDE `the circular applies to` t IF
+        t's `graded as a teaching employee`
+    AND t's `employed by a supervised owner`
+    AND NOT t's `stage` EQUALS `upper division`
+
+-- A salary union is covered only for the share paid for the owner's junior-
+-- high employment (א ¶10, ב.1(ו)); otherwise for the whole salary.
+@ref akn:art_a/p10 akn:art_b__para_1__subpara_f
+GIVEN t IS A `teacher outside the upper division`
+GIVETH A NUMBER
+DECIDE `the share of the salary the circular covers` t IS
+    IF NOT `the circular applies to` t
+    THEN 0
+    ELSE IF t's `in a salary union` THEN t's `owner junior-high share` ELSE 1
+
+§§ `א. דחיית הפעימה האחרונה של תוספת 2011`
+
+-- א ¶1: the raise of the 2011 supplement from 5.75% to 6.35%, the update
+-- of the shekel supplements and the 0.567% update of the Ofek Hadash
+-- tables, due on 1.7.2013 (section 155 of the Ofek Hadash agreement,
+-- section 92(ג) of the agreement of 29.2.2012), are postponed to 1.1.2015.
+@ref akn:art_a/p1
+GIVEN `date` IS A NUMBER @desc YYYYMMDD
+GIVETH A NUMBER
+DECIDE `the 2011 supplement rate paid in salary` `date` IS
+    IF `date` AT LEAST `1 January 2015` THEN 6.35% ELSE 5.75%
+
+@ref akn:art_a/p1
+`the Ofek Hadash table update postponed` MEANS 0.567%
+
+GIVEN `date` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the Ofek Hadash table factor paid in salary` `date` IS
+    IF `date` AT LEAST `1 January 2015` THEN 1 PLUS `the Ofek Hadash table update postponed` ELSE 1
+
+-- א ¶2-¶6: for 1.7.2013 to 31.12.2014 the four kinds of payment below are
+-- computed as if the raise had been made on time.
+DECLARE `kind of payment` IS ONE OF
+    @ref akn:art_a/p3
+    `contribution to a pension provident fund`
+    @ref akn:art_a/p4
+    `budgetary pension`
+    @ref akn:art_a/p5
+    `one-time payment by the State on termination`
+    @ref akn:art_a/p6
+    `bridging pension`
+    `salary or any other payment`
+
+GIVEN k IS A `kind of payment`
+GIVETH A BOOLEAN
+DECIDE `computed as if the raise were on time` k IF
+    NOT k EQUALS `salary or any other payment`
+
+@ref akn:art_a/p2
+GIVEN k IS A `kind of payment`, `date` IS A NUMBER @desc YYYYMMDD
+GIVETH A NUMBER
+DECIDE `the 2011 supplement rate for the payment` k `date` IS
+    IF     `computed as if the raise were on time` k
+       AND `date` AT LEAST `1 July 2013`
+       AND `date` AT MOST `31 December 2014`
+    THEN 6.35%
+    ELSE `the 2011 supplement rate paid in salary` `date`
+
+-- א ¶7-¶9: the shekel supplements used for those computations.
+DECLARE `shekel supplement` IS ONE OF
+    `the '87 agreement supplement`
+    `the '94 agreement supplement (teaching reinforcement)`
+
+@ref akn:art_a/p7 akn:art_a/p8 akn:art_a/p9
+GIVEN s IS A `shekel supplement`
+GIVETH A NUMBER
+DECIDE `the shekel supplement for pension computations` s IS
+    CONSIDER s
+    WHEN `the '87 agreement supplement`                          THEN 174.47
+    WHEN `the '94 agreement supplement (teaching reinforcement)` THEN 156.88
+
+§§ `ב. קצובת ביגוד תשע"ג שלא בחטיבה העליונה`
+
+-- akn:art_b__para_1 Heading of ב.1 ("כללי"); no rule of its own.
+
+DECLARE `clothing action` IS ONE OF
+    `pay the clothing allowance` HAS `clothing paid` IS A NUMBER
+    `employ above the cap` HAS `position employed` IS A NUMBER
+
+-- ב.1(ב): entitled as public-facing civil-service workers are, for school
+-- year תשע"ג (09/12-08/13).
+@ref akn:art_b__para_1__subpara_b
+GIVEN t IS A `teacher outside the upper division`
+GIVETH A BOOLEAN
+DECIDE `entitled to the clothing allowance` t IF
+    `the circular applies to` t
+
+-- ב.1(ג): reduced from the 2095 of the Wage Commissioner's circular to 1,877.
+@ref akn:art_b__para_1__subpara_c
+`the published allowance` MEANS 2095
+`the reduced allowance`   MEANS 1877
+
+-- ב.1(ד): the pension-related payments (the same four kinds as section א)
+-- are computed as if the allowance had been paid under the agreements in
+-- force before 22.7.2013, that is at the published amount.
+@ref akn:art_b__para_1__subpara_d akn:art_b__para_1__subpara_d/p2 akn:art_b__para_1__subpara_d/p3 akn:art_b__para_1__subpara_d/p4 akn:art_b__para_1__subpara_d/p5
+GIVEN k IS A `kind of payment`
+GIVETH A NUMBER
+DECIDE `the clothing amount the payment is computed on` k IS
+    IF `computed as if the raise were on time` k THEN `the published allowance` ELSE `the reduced allowance`
+
+-- ב.1(ה): pro-rated to the position, no more than one full position.
+@ref akn:art_b__para_1__subpara_e
+GIVEN t IS A `teacher outside the upper division`
+GIVETH A NUMBER
+DECIDE `the position share under ה` t IS
+    min (sum (t's `positions`)) 1
+
+-- ב.1(ז): with more than one employer and above 100% in total, each
+-- employer pays the allowance proportional to its own position.
+@ref akn:art_b__para_1__subpara_g
+GIVEN t IS A `teacher outside the upper division`
+GIVETH A NUMBER
+DECIDE `the total all employers pay under ז` t IS
+    sum (map (GIVEN p YIELD `the reduced allowance` TIMES p) (t's `positions`))
+
+`seventy and sixty percent with two employers` MEANS
+    `teacher outside the upper division` WITH
+        `graded as a teaching employee`  IS TRUE
+        `employed by a supervised owner` IS TRUE
+        `stage`                          IS `primary`
+        `in a salary union`              IS FALSE
+        `owner junior-high share`        IS 0
+        `positions`                      IS LIST 0.7, 0.6
+        `seniority years`                IS 10
+        `teaches physical education`     IS FALSE
+        `physical-education position`    IS 0
+        `technological subject`          IS ""
+
+-- F-2012-13_tashag_09-a: ה caps at one position, ז pays each employer's
+-- share uncapped.
+`ה and ז give different allowances for two employers above a full position` MEANS
+    NOT (`the total all employers pay under ז` `seventy and sixty percent with two employers`
+         EQUALS `the reduced allowance` TIMES `the position share under ה` `seventy and sixty percent with two employers`)
+#ASSERT `ה and ז give different allowances for two employers above a full position`
+
+-- The reading adopted: ז for more than one employer, ה for one.
+@export default The general clothing allowance for school year תשע"ג outside the upper division under circular תשע"ג/9
+GIVEN t IS A `teacher outside the upper division` @desc the employee
+GIVETH A NUMBER
+DECIDE `general clothing allowance` t IS
+    IF NOT `entitled to the clothing allowance` t
+    THEN 0
+    ELSE `the share of the salary the circular covers` t
+         TIMES (IF count (t's `positions`) GREATER THAN 1
+                THEN `the total all employers pay under ז` t
+                ELSE `the reduced allowance` TIMES `the position share under ה` t)
+
+-- ב.1(א): paid with the salary of July 2013. School months (July = 11).
+@ref akn:art_b__para_1__subpara_a
+GIVEN t IS A `teacher outside the upper division`
+GIVETH A DEONTIC Party `clothing action`
+DECIDE `the clothing allowance paid with July's salary` t IS
+    PARTY `the employer`
+    MUST  `pay the clothing allowance` amount
+          PROVIDED amount AT LEAST `general clothing allowance` t PLUS `physical-education allowance` t PLUS `technological clothing allowance` t
+    WITHIN `month number` July
+    LEST  BREACH BY `the employer` BECAUSE "circular תשע\"ג/9, ב.1(א): the clothing allowance is paid with the salary of July 2013"
+
+-- ב.1(ח): no teaching employee works above 140% with all employers, and
+-- nothing above permits it.
+@ref akn:art_b__para_1__subpara_h
+GIVEN t IS A `teacher outside the upper division`
+GIVETH A DEONTIC Party `clothing action`
+DECIDE `no employment above 140%` t IS
+    PARTY `the employer`
+    SHANT `employ above the cap` p PROVIDED p GREATER THAN 140%
+    WITHIN 12
+    LEST  BREACH BY `the employer` BECAUSE "circular תשע\"ג/9, ב.1(ח): no teaching employee works above 140% with all employers"
+
+-- akn:art_b__para_2 Heading of ב.2; the rule is the table below.
+
+-- ב.2: the physical-education amounts of circular תשע"ב/8 updated, as
+-- printed ("עד 0.3", "מ-0.3 עד 0.5", "מ-0.5 ומעלה"; 999 = "ומעלה").
+@ref akn:art_b__para_2/p2 akn:art_b__para_2/t1
+DECLARE `physical-education band` HAS
+    `band from position` IS A NUMBER
+    `band to position`   IS A NUMBER
+    `band amount`        IS A NUMBER
+
+`the physical-education table` MEANS
+    LIST `physical-education band` 0   0.3 0,
+         `physical-education band` 0.3 0.5 669,
+         `physical-education band` 0.5 999 1334
+
+GIVEN p IS A NUMBER
+GIVETH A LIST OF NUMBER
+DECIDE `the amounts the table gives for position` p IS
+    map (GIVEN b YIELD b's `band amount`)
+        (filter (GIVEN b YIELD p AT LEAST b's `band from position` AND p AT MOST b's `band to position`)
+                `the physical-education table`)
+
+-- F-2012-13_tashag_09-b: 0.3 and 0.5 fall in two rows each.
+`the table gives 0.3 and 0.5 two amounts each` MEANS
+        `the amounts the table gives for position` 0.3 EQUALS LIST 0, 669
+    AND `the amounts the table gives for position` 0.5 EQUALS LIST 669, 1334
+#ASSERT `the table gives 0.3 and 0.5 two amounts each`
+
+-- The reading adopted: a row governs from the position it opens at.
+GIVEN p IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the physical-education amount` p IS
+    BRANCH IF p AT LEAST 0.5 THEN 1334
+           IF p AT LEAST 0.3 THEN 669
+           OTHERWISE 0
+
+#ASSERT all (GIVEN p YIELD `the amounts the table gives for position` p EQUALS LIST (`the physical-education amount` p))
+            (LIST 0, 0.1, 0.29, 0.31, 0.4, 0.49, 0.51, 0.8, 1)
+
+GIVEN t IS A `teacher outside the upper division`
+GIVETH A NUMBER
+DECIDE `physical-education allowance` t IS
+    IF `entitled to the clothing allowance` t AND t's `teaches physical education`
+    THEN `the physical-education amount` (t's `physical-education position`)
+    ELSE 0
+
+-- akn:art_b__para_3 Heading of ב.3; the rules follow.
+
+-- ב.3: technological education, as printed in its two lists.
+@ref akn:art_b__para_3/p2 akn:art_b__para_3__subpara_3-1__cls_a akn:art_b__para_3__subpara_3-1__cls_a/t1
+`the shoes-and-coats subjects` MEANS
+    LIST "מערכות תעופה", "מכטרוניקה", "טרמודינמיקה טכנית ימית", "מערכות סיב\"מ ותיב\"מ",
+         "תחזוקת מערכות מכניות", "מערכות מכונאות רכב", "מערכות ממוחשבות ברכב",
+         "מערכות הספק, פיקוד ובקרה", "מערכות בקרת אקלים", "אומנות הבישול והאפיה המלונאית",
+         "ימאות – ספינות", "מערכות טלוויזיה וקולנוע", "מערכות צילום"
+
+@ref akn:art_b__para_3__subpara_3-1__cls_a/p2
+`the value of a pair of shoes and two coats` MEANS 550
+
+@ref akn:art_b__para_3__subpara_3-1__cls_b akn:art_b__para_3__subpara_3-1__cls_b/t1
+`the two-coats subjects` MEANS
+    LIST "מערכות אלקטרוניות", "מערכות מחשוב ובקרה", "מערכות מחשבים", "תכנון ותכנות מערכות",
+         "מערכות ביוטכנולוגיה", "ניהול תיירותי", "ניהול מלונאי", "חינוך לגיל הרך", "עיצוב",
+         "אופנה ותלבושות", "עיצוב שיער, וטיפוח החן", "סיעוד", "אומנות שימושית"
+
+@ref akn:art_b__para_3__subpara_3-1__cls_b/p2
+`the value of two coats` MEANS 341
+
+-- ב.3.2: in addition to the general allowance; ב.3.3: pro-rated to the
+-- position, no more than one position.
+@ref akn:art_b__para_3__subpara_3-2 akn:art_b__para_3__subpara_3-3
+GIVEN t IS A `teacher outside the upper division`
+GIVETH A NUMBER
+DECIDE `technological clothing allowance` t IS
+    IF NOT `entitled to the clothing allowance` t
+    THEN 0
+    ELSE BRANCH IF elem (t's `technological subject`) `the shoes-and-coats subjects`
+                THEN `the value of a pair of shoes and two coats` TIMES `the position share under ה` t
+                IF elem (t's `technological subject`) `the two-coats subjects`
+                THEN `the value of two coats` TIMES `the position share under ה` t
+                OTHERWISE 0
+
+-- akn:conclusions The contact line, the signature and the list of copies; no rule.
+
+-- Examples; the employee is an illustration.
+`a full-time primary teacher` MEANS
+    `teacher outside the upper division` WITH
+        `graded as a teaching employee`  IS TRUE
+        `employed by a supervised owner` IS TRUE
+        `stage`                          IS `primary`
+        `in a salary union`              IS FALSE
+        `owner junior-high share`        IS 0
+        `positions`                      IS LIST 1
+        `seniority years`                IS 10
+        `teaches physical education`     IS FALSE
+        `physical-education position`    IS 0
+        `technological subject`          IS ""
+
+#ASSERT `general clothing allowance` `a full-time primary teacher` EQUALS 1877
+#ASSERT `the clothing amount the payment is computed on` `budgetary pension` EQUALS 2095
+#ASSERT `the 2011 supplement rate for the payment` `bridging pension` 20140101 EQUALS 6.35%
+#ASSERT `the 2011 supplement rate for the payment` `salary or any other payment` 20140101 EQUALS 5.75%
+#ASSERT `the 2011 supplement rate paid in salary` 20150101 EQUALS 6.35%
+
+#TRACE `the clothing allowance paid with July's salary` `a full-time primary teacher` AT 0 WITH
+    PARTY `the employer` DOES `pay the clothing allowance` 1877 AT 11

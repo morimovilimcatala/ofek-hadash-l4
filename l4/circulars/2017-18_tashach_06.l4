@@ -1,0 +1,121 @@
+-- חוזר לבעלויות תשע"ח/6: עדכון תוספת שקלית 2016 לעובדי הוראה
+-- The 2016 shekel supplement of the kindergartens, primary and middle
+-- divisions and teachers' colleges, linked to the consumer price index:
+-- the monthly amounts from 1.1.2018 by the Ofek Hadash grade.
+
+IMPORT prelude
+IMPORT daydate
+IMPORT common
+
+§ `חוזר תשע"ח/6 עדכון תוספת שקלית 2016`
+
+-- akn:hc_1/p1 akn:hc_1/p2 akn:hc_1/p3 akn:hc_1/p4 akn:hc_1/p5 akn:hc_1/p6 akn:hc_1/p7 akn:hc_1/p8 akn:hc_1/p9 akn:hc_1/p10 akn:hc_1/p11 akn:hc_1/p12 The letterhead, date, reference, addressee, greeting and subject line; no rule.
+
+-- akn:hc_1/p13 akn:hc_1/p14 akn:hc_1/p15 The sources of the linkage (the agreements of 30.9.2016 and 19.3.2017, circular 5777/3), the supplement's payment in steps, and the circular's purpose; the linked amounts are encoded below.
+
+-- ¶16: December 2017's index against December 2015's.
+@ref akn:hc_1/p16
+GIVEN `index of December 2017` IS A NUMBER, `index of December 2015` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the linkage factor` `index of December 2017` `index of December 2015` IS
+    `index of December 2017` DIVIDED BY `index of December 2015`
+
+DECLARE `stage of education` IS ONE OF
+    `kindergarten`
+    `primary school`
+    `middle division`
+    `teachers' college`
+    `upper division`
+
+DECLARE `Ofek Hadash placement` IS ONE OF
+    `academic grade 1`
+    `academic grade 1.5`
+    `academic grade 2`
+    `academic grade 2.5`
+    `any other placement, in Ofek Hadash or outside it`
+
+@desc A teaching employee, as far as this circular asks.
+DECLARE `teaching employee` HAS
+    `rated in the teaching employees' grading` IS A BOOLEAN
+    `employed by an owner of a ministry-supervised institution` IS A BOOLEAN
+    `stage` IS A `stage of education`
+    `placement` IS AN `Ofek Hadash placement` @desc the grade in the Ofek Hadash salary tables for academic teachers, if any
+
+-- akn:hc_1/p17 The heading "תחולה"; no rule.
+
+-- ¶18-¶19: kindergartens, primary schools, middle divisions and teachers'
+-- colleges, in Ofek Hadash or outside it.
+@ref akn:hc_1/p18 akn:hc_1/p19
+GIVEN e IS A `teaching employee`
+GIVETH A BOOLEAN
+DECIDE `the circular applies to` e IF
+        e's `rated in the teaching employees' grading`
+    AND e's `employed by an owner of a ministry-supervised institution`
+    AND NOT e's `stage` EQUALS `upper division`
+
+-- ¶20-¶26: the amount for a full position from 1.1.2018 on.
+@ref akn:hc_1/p20 akn:hc_1/p21 akn:hc_1/p22 akn:hc_1/p23 akn:hc_1/p24 akn:hc_1/p25 akn:hc_1/p26
+GIVEN p IS AN `Ofek Hadash placement`
+GIVETH A NUMBER
+DECIDE `the linked amount for` p IS
+    CONSIDER p
+    WHEN `academic grade 1`   THEN 340.85
+    WHEN `academic grade 1.5` THEN 320.42
+    WHEN `academic grade 2`   THEN 299.99
+    WHEN `academic grade 2.5` THEN 247.01
+    WHEN `any other placement, in Ofek Hadash or outside it` THEN 194.03
+
+@export default The 2016 shekel supplement (CPI-linked) for a full position from 1 January 2018, for a teaching employee in kindergarten, primary, middle division or a teachers' college, under the owners' circular 5778/6
+@ref akn:hc_1/p20 akn:hc_1/p21
+GIVEN e IS A `teaching employee` @desc the employee
+      `the day` IS A DATE @desc the day the supplement is paid for
+GIVETH A NUMBER
+DECIDE `the linked shekel supplement for a full position` e `the day` IS
+    IF `the circular applies to` e AND `the day` AT LEAST Date 1 1 2018
+    THEN `the linked amount for` (e's `placement`)
+    ELSE 0
+
+-- akn:hc_1/p27 akn:hc_1/p28 A pointer to circular 5777/3 for the supplement's other rules; no rule of its own.
+
+DECLARE `linkage action` IS ONE OF
+    `indemnify the owner at the hour costs` HAS `indemnity` IS A NUMBER
+
+-- ¶29: the owners are indemnified at the relevant hour costs in the
+-- payments system; no date is named.
+@ref akn:hc_1/p29
+GIVEN `indemnity due` IS A NUMBER
+GIVETH A DEONTIC Party `linkage action`
+DECIDE `indemnifying the owners` `indemnity due` IS
+    PARTY `the Ministry of Education`
+    MUST  `indemnify the owner at the hour costs` `amount`
+          PROVIDED `amount` AT LEAST `indemnity due`
+
+-- akn:conclusions The sign-off and the copies list; no rule.
+
+-- Examples.
+`a grade-2 primary teacher` MEANS `teaching employee` WITH
+    `rated in the teaching employees' grading` IS TRUE
+    `employed by an owner of a ministry-supervised institution` IS TRUE
+    `stage` IS `primary school`
+    `placement` IS `academic grade 2`
+
+`an upper-division teacher` MEANS `teaching employee` WITH
+    `rated in the teaching employees' grading` IS TRUE
+    `employed by an owner of a ministry-supervised institution` IS TRUE
+    `stage` IS `upper division`
+    `placement` IS `any other placement, in Ofek Hadash or outside it`
+
+#ASSERT `the linked shekel supplement for a full position` `a grade-2 primary teacher` (Date 1 2 2018) EQUALS 299.99
+#ASSERT `the linked shekel supplement for a full position` `a grade-2 primary teacher` (Date 1 12 2017) EQUALS 0
+#ASSERT `the linked shekel supplement for a full position` `an upper-division teacher` (Date 1 2 2018) EQUALS 0
+
+-- The lower the grade number, the larger the supplement.
+`the amounts fall as the grade number rises` MEANS
+        `the linked amount for` `academic grade 1` GREATER THAN `the linked amount for` `academic grade 1.5`
+    AND `the linked amount for` `academic grade 1.5` GREATER THAN `the linked amount for` `academic grade 2`
+    AND `the linked amount for` `academic grade 2` GREATER THAN `the linked amount for` `academic grade 2.5`
+    AND `the linked amount for` `academic grade 2.5` GREATER THAN `the linked amount for` `any other placement, in Ofek Hadash or outside it`
+#ASSERT `the amounts fall as the grade number rises`
+
+#TRACE `indemnifying the owners` 500 AT 0 WITH
+    PARTY `the Ministry of Education` DOES `indemnify the owner at the hour costs` 500 AT 1

@@ -1,0 +1,213 @@
+-- חוזר לבעלויות תשס"ז/7 — קצובת ביגוד לשנת הלימודים תשס"ז (26.6.2007)
+-- The clothing allowance for school year 2006-07 (09/06–08/07): the general
+-- allowance by seniority, the additional allowance for physical-education
+-- teachers by position, and the technological-education allowance by
+-- profession; paid in full with July 2007's salary.
+
+IMPORT prelude
+IMPORT common
+
+§ `קצובת ביגוד תשס"ז`
+
+-- akn:hc_1/p1 akn:hc_1/p2 akn:hc_1/p3 akn:hc_1/p4 akn:hc_1/p5 akn:hc_1/p6 akn:hc_1/p7 akn:hc_1/p8 akn:hc_1/p9 The letterhead, date, addressee, greeting and subject line; no rule.
+
+-- akn:hc_1/p10 The circular acts on the Treasury's instructions on the clothing allowance; the instructions follow.
+
+-- Time in this file is counted in school months of 2006-07 (common.l4:
+-- September 2006 = 1, so July 2007's salary is month 11).
+
+@desc A teaching employee's school year 2006-07, as far as this circular asks about it.
+DECLARE `employee year` HAS
+    `completed years of teaching seniority` IS A NUMBER  @desc teaching seniority in whole years (0 in the first year)
+    `position fraction`                     IS A NUMBER  @desc the share of a full position (1 = 100%)
+    `physical-education position`           IS A NUMBER  @desc the position fraction in physical education; 0 for an employee who does not teach it
+    `technological profession`              IS A STRING  @desc the technological-education profession taught or instructed, as named in the lists below; "" for none
+
+§§ `קצובת ביגוד – כללי`
+
+-- akn:hc_1/p11 The heading "the clothing allowance – general"; no rule.
+
+@ref akn:hc_1/p13 akn:hc_1/p14
+GIVEN y IS AN `employee year`
+GIVETH A BOOLEAN
+DECIDE `entitled to the general clothing allowance` y IF
+    y's `position fraction` GREATER THAN 0
+
+DECLARE `seniority band` HAS
+    `from seniority` IS A NUMBER
+    `to seniority`   IS A NUMBER  @desc 999 stands for "ומעלה", with no upper bound
+    `band amount`    IS A NUMBER
+
+-- ¶15–19: by seniority; the summary table as printed.
+@ref akn:hc_1/p15 akn:hc_1/p16 akn:hc_1/p17 akn:hc_1/p18 akn:hc_1/p19
+`the general allowance table` MEANS
+    LIST `seniority band` 1  25  1259,
+         `seniority band` 26 999 1754
+
+GIVEN n IS A NUMBER
+GIVETH A LIST OF NUMBER
+DECIDE `the amounts the table gives for seniority` n IS
+    map (GIVEN b YIELD b's `band amount`)
+        (filter (GIVEN b YIELD n AT LEAST b's `from seniority` AND n AT MOST b's `to seniority`)
+                `the general allowance table`)
+
+-- F-2006-07_tashsaz_07-a: the table opens at year 1. The reading adopted:
+-- an employee in the first year (0 completed years) takes the first row.
+GIVEN n IS A NUMBER
+GIVETH A NUMBER
+DECIDE `full-position general allowance` n IS
+    IF n AT LEAST 26 THEN 1754 ELSE 1259
+
+-- ¶20: in proportion to the position, and for no more than one full position.
+@ref akn:hc_1/p20
+GIVEN y IS AN `employee year`
+GIVETH A NUMBER
+DECIDE `general clothing allowance` y IS
+    IF `entitled to the general clothing allowance` y
+    THEN `full-position general allowance` (y's `completed years of teaching seniority`)
+         TIMES min (y's `position fraction`) 1
+    ELSE 0
+
+`a first-year employee has no row` MEANS
+    `the amounts the table gives for seniority` 0 EQUALS EMPTY
+#ASSERT `a first-year employee has no row`
+
+§§ `קצובת ביגוד נוספת למורה לחינוך גופני`
+
+DECLARE `position band` HAS
+    `from position` IS A NUMBER
+    `to position`   IS A NUMBER  @desc 999 stands for "ומעלה"
+    `PE amount`     IS A NUMBER
+
+-- ¶21–26 as printed: "0 עד 0.3", "מ-0.3 עד 0.5", "מ-0.5 ומעלה".
+@ref akn:hc_1/p21 akn:hc_1/p22 akn:hc_1/p23 akn:hc_1/p24 akn:hc_1/p25 akn:hc_1/p26
+`the physical-education table` MEANS
+    LIST `position band` 0   0.3 0,
+         `position band` 0.3 0.5 217,
+         `position band` 0.5 999 430
+
+GIVEN p IS A NUMBER
+GIVETH A LIST OF NUMBER
+DECIDE `the amounts the PE table gives for position` p IS
+    map (GIVEN b YIELD b's `PE amount`)
+        (filter (GIVEN b YIELD p AT LEAST b's `from position` AND p AT MOST b's `to position`)
+                `the physical-education table`)
+
+-- F-2006-07_tashsaz_07-b: 0.3 and 0.5 each fall in two rows. The reading
+-- adopted: the row that OPENS at a boundary ("מ-") governs it.
+GIVEN y IS AN `employee year`
+GIVETH A NUMBER
+DECIDE `additional physical-education allowance` y IS
+    BRANCH IF y's `physical-education position` AT LEAST 0.5 THEN 430
+           IF y's `physical-education position` AT LEAST 0.3 THEN 217
+           OTHERWISE 0
+
+`the PE table gives 0.3 and 0.5 two amounts each` MEANS
+        `the amounts the PE table gives for position` 0.3 EQUALS LIST 0, 217
+    AND `the amounts the PE table gives for position` 0.5 EQUALS LIST 217, 430
+#ASSERT `the PE table gives 0.3 and 0.5 two amounts each`
+
+§§ `קצובת ביגוד בחינוך הטכנולוגי`
+
+-- akn:hc_1/p27 The heading "clothing allowance in technological education"; no rule.
+
+-- ¶30–39: the professions whose teachers and instructors receive a pair of
+-- shoes and two robes a year. The list is printed in two columns and the
+-- corpus interleaves them (and splits item 10 and item 3 across ¶34–35);
+-- here it is in its own numbering.
+@ref akn:hc_1/p30 akn:hc_1/p31 akn:hc_1/p32 akn:hc_1/p33 akn:hc_1/p34 akn:hc_1/p35 akn:hc_1/p36 akn:hc_1/p37 akn:hc_1/p38 akn:hc_1/p39
+`the shoes-and-robes professions` MEANS
+    LIST "aviation systems", "mechatronics", "marine technical thermodynamics",
+         "SIBAM and TIBAM systems", "maintenance of mechanical systems",
+         "motor-vehicle mechanics systems", "computerised vehicle systems",
+         "power, command and control systems", "climate-control systems",
+         "hotel culinary and baking arts", "seamanship – ships",
+         "television and cinema systems", "photography systems"
+
+@ref akn:hc_1/p40
+`the value of a pair of shoes and two robes` MEANS 459
+
+-- ¶41–48: the professions whose teachers receive two robes a year.
+@ref akn:hc_1/p41 akn:hc_1/p42 akn:hc_1/p43 akn:hc_1/p44 akn:hc_1/p45 akn:hc_1/p46 akn:hc_1/p47 akn:hc_1/p48
+`the two-robes professions` MEANS
+    LIST "electronic systems", "computing and control systems", "computer systems",
+         "systems design and programming", "biotechnology systems", "tourism management",
+         "hotel management", "early-childhood education", "design",
+         "fashion and costume", "hair design, cosmetics and make-up", "nursing"
+
+@ref akn:hc_1/p49
+`the value of two robes` MEANS 284
+
+-- ¶28–29: the allowance is paid by the list of professions.
+@ref akn:hc_1/p28 akn:hc_1/p29
+GIVEN y IS AN `employee year`
+GIVETH A NUMBER
+DECIDE `full-position technological allowance` y IS
+    IF elem (y's `technological profession`) `the shoes-and-robes professions`
+    THEN `the value of a pair of shoes and two robes`
+    ELSE IF elem (y's `technological profession`) `the two-robes professions`
+         THEN `the value of two robes`
+         ELSE 0
+
+-- ¶51 under the technological allowance (F-2006-07_tashsaz_07-c): read as
+-- pro-rating THIS allowance too, by the position up to one full position.
+@ref akn:hc_1/p51
+GIVEN y IS AN `employee year`
+GIVETH A NUMBER
+DECIDE `technological clothing allowance` y IS
+    `full-position technological allowance` y TIMES min (y's `position fraction`) 1
+
+-- F-2006-07_tashsaz_07-c: the other reading — ¶51 restating ¶20 for the
+-- general allowance only — pays a half-position technology teacher the full value.
+`a half-position aviation teacher` MEANS
+    `employee year` WITH
+        `completed years of teaching seniority` IS 10
+        `position fraction`                     IS 0.5
+        `physical-education position`           IS 0
+        `technological profession`              IS "aviation systems"
+
+`¶51 read for the technological allowance or not gives two amounts` MEANS
+    NOT (`technological clothing allowance` `a half-position aviation teacher`
+         EQUALS `full-position technological allowance` `a half-position aviation teacher`)
+#ASSERT `¶51 read for the technological allowance or not gives two amounts`
+
+-- ¶50: in addition to the general allowance.
+@ref akn:hc_1/p50
+@export The clothing allowance for school year 2006-07 owed to a teaching employee of an owning body: general, physical-education and technological parts together
+GIVEN y IS AN `employee year` @desc the employee's school year 2006-07
+GIVETH A NUMBER
+DECIDE `clothing allowance` y IS
+    `general clothing allowance` y
+    PLUS `additional physical-education allowance` y
+    PLUS `technological clothing allowance` y
+
+DECLARE `clothing action` IS ONE OF
+    `pay the clothing allowance` HAS `amount paid` IS A NUMBER
+
+@ref akn:hc_1/p12
+GIVEN y IS AN `employee year`
+GIVETH A DEONTIC Party `clothing action`
+DECIDE `paid in full with July's salary` y IS
+    PARTY `the employer`
+    MUST  `pay the clothing allowance` amount
+          PROVIDED amount AT LEAST `clothing allowance` y
+    WITHIN `month number` July
+    LEST  BREACH BY `the employer` BECAUSE "the clothing allowance is paid in full with July 2007's salary"
+
+-- akn:conclusions The sign-off and signature; no rule.
+
+-- Examples.
+`a full-time PE teacher, 30 years` MEANS
+    `employee year` WITH
+        `completed years of teaching seniority` IS 30
+        `position fraction`                     IS 1
+        `physical-education position`           IS 0.6
+        `technological profession`              IS ""
+
+#ASSERT `clothing allowance` `a full-time PE teacher, 30 years` EQUALS 2184
+#ASSERT `clothing allowance` `a half-position aviation teacher` EQUALS 859
+#ASSERT `full-position technological allowance` `a half-position aviation teacher` EQUALS 459
+#ASSERT count `the shoes-and-robes professions` EQUALS 13 AND count `the two-robes professions` EQUALS 12
+
+#TRACE `paid in full with July's salary` `a full-time PE teacher, 30 years` AT 0 WITH
+    PARTY `the employer` DOES `pay the clothing allowance` 2184 AT 11

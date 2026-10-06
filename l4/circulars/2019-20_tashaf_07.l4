@@ -1,0 +1,276 @@
+-- חוזר לבעלויות תש"פ/7 (2.4.2020): הסכם קיבוצי מיוחד מיום 1.4.2020 – עובדי
+-- הוראה בתקופת חירום (נגיף הקורונה).
+-- Teaching during the coronavirus emergency (15.3.2020–18.4.2020): studies
+-- go on through the spring holidays, salary is unchanged, and teachers on
+-- unpaid leave or substitutes work the extended school year in proportion.
+
+IMPORT prelude
+IMPORT common
+IMPORT daydate
+
+§ `תש"פ/7 הסכם קיבוצי מיוחד 1.4.2020 – עובדי הוראה בתקופת חירום`
+
+-- akn:preamble The letterhead, circular number, address, date, reference number, addressees, greeting and subject line; no rule.
+
+§§ `Background and the application period`
+
+-- ¶19: the Public Health Order bars any activity gathering teachers or
+-- pupils until 18.4.2020.
+@ref akn:preamble/p19
+`the last day the Public Health Order bars gatherings` MEANS Date 18 4 2020
+
+-- ¶20: under the emergency regulations extending the leave agreement to the
+-- wider public sector, the "leave agreement" does not apply to an employee
+-- and public employer bound by another collective agreement, signed before
+-- or while the regulations are in force and approved by the wages
+-- commissioner, provided it takes from the employee no statutory right
+-- beyond what the leave agreement would.
+@desc An employee and employer as far as the leave regulations ask.
+DECLARE `employment under the leave regulations` HAS
+    `bound by another collective agreement`                 IS A BOOLEAN
+    `that agreement signed before or during the regulations` IS A BOOLEAN
+    `that agreement approved by the wages commissioner`     IS A BOOLEAN
+    `that agreement takes no statutory right beyond the leave agreement` IS A BOOLEAN
+
+@ref akn:preamble/p20
+GIVEN x IS AN `employment under the leave regulations`
+GIVETH A BOOLEAN
+DECIDE `the leave agreement applies` x IF
+    NOT (    x's `bound by another collective agreement`
+         AND x's `that agreement signed before or during the regulations`
+         AND x's `that agreement approved by the wages commissioner`
+         AND x's `that agreement takes no statutory right beyond the leave agreement`)
+
+-- ¶21–22: the agreement of 1.4.2020 covers teaching employees graded on the
+-- teaching scale, employed IN THE STATE SERVICE, whose study and holiday
+-- days are set by the Director-General's circulars of 2.4.2019 (notices 143,
+-- 144, 145), and it is an "other agreement" under the regulations for them.
+@desc A teaching employee as far as this circular asks.
+DECLARE `emergency employee` HAS
+    `graded on the teaching-employee scale`        IS A BOOLEAN
+    `employed in the state service`                IS A BOOLEAN
+    `employed by an owning body`                   IS A BOOLEAN
+    `stage`                                        IS AN `emergency stage`
+    `days set by the Director-General's circular`  IS A BOOLEAN @desc study and holiday days set by the Director-General's circulars of 2.4.2019
+
+DECLARE `emergency stage` IS ONE OF
+    `kindergarten`
+    `primary`
+    `junior high`
+    `special education`
+    `upper secondary`
+
+@ref akn:preamble/p21
+GIVEN e IS AN `emergency employee`
+GIVETH A BOOLEAN
+DECIDE `the agreement of 1.4.2020 covers` e IF
+        e's `graded on the teaching-employee scale`
+    AND e's `employed in the state service`
+    AND e's `days set by the Director-General's circular`
+
+@ref akn:preamble/p22
+GIVEN e IS AN `emergency employee`
+GIVETH A BOOLEAN
+DECIDE `the agreement is an other agreement for` e IF
+    `the agreement of 1.4.2020 covers` e
+
+-- ¶23: the circular governs studies and employment during the emergency,
+-- and the leave regulations, from 15.3.2020 to 18.4.2020 inclusive
+-- ("תקופת התחולה").
+@ref akn:preamble/p23
+`the application period begins` MEANS Date 15 3 2020
+@ref akn:preamble/p23
+`the application period ends` MEANS Date 18 4 2020
+
+GIVETH A NUMBER
+DECIDE `days in the application period` IS
+    Day `the application period ends` MINUS Day `the application period begins` PLUS 1
+
+§§ `א. Who the circular covers`
+
+-- F-2019-20_tashaf_07-b: §א reaches every teaching employee "בבעלויות" in
+-- the stages it lists, while the agreement it implements (¶21) covers only
+-- teachers in the state service.
+@ref akn:art_a/p1
+GIVEN e IS AN `emergency employee`
+GIVETH A BOOLEAN
+DECIDE `the circular covers` e IF
+        e's `graded on the teaching-employee scale`
+    AND e's `employed by an owning body`
+    AND (   e's `stage` EQUALS `kindergarten`
+         OR e's `stage` EQUALS `primary`
+         OR e's `stage` EQUALS `junior high`
+         OR (e's `stage` EQUALS `special education` AND e's `days set by the Director-General's circular`))
+
+§§ `ב. Studies through the holidays`
+
+DECLARE `sector` IS ONE OF
+    `Jewish sector`
+    `Arab sector`
+    `mixed institution`
+    `Druze institution teaching on Saturday`
+    `Druze institution not teaching on Saturday`
+
+-- §ב's list of holiday days on which studies are held all the same.
+@ref akn:art_b/p1 akn:art_b__para_a/p1 akn:art_b__para_b/p1 akn:art_b__para_c/p1 akn:art_b__para_d/p1
+GIVEN s IS A `sector`, d IS A DATE
+GIVETH A BOOLEAN
+DECIDE `a holiday day on which studies are held` s d IF
+    CONSIDER s
+    WHEN `Jewish sector` THEN d AT LEAST Date 31 3 2020 AND d AT MOST Date 3 4 2020
+    WHEN `Arab sector`   THEN d AT LEAST Date 6 4 2020  AND d AT MOST Date 9 4 2020
+    WHEN `mixed institution` THEN
+           d EQUALS Date 6 4 2020
+        OR d EQUALS Date 8 4 2020
+        OR d EQUALS Date 15 4 2020
+    WHEN `Druze institution teaching on Saturday`     THEN d AT LEAST Date 28 3 2020 AND d AT MOST Date 31 3 2020
+    WHEN `Druze institution not teaching on Saturday` THEN d AT LEAST Date 29 3 2020 AND d AT MOST Date 1 4 2020
+
+-- §ב(ג): a mixed institution's fourth day is set by the institution with the
+-- general supervision and the district, no later than 16.4.2020.
+@ref akn:art_b__para_c/p1
+GIVEN d IS A DATE
+GIVETH A BOOLEAN
+DECIDE `a valid fourth day for a mixed institution` d IF
+    d AT MOST Date 16 4 2020
+
+-- §ב ¶2: and on the ordinary study days of the application period.
+@ref akn:art_b/p2
+GIVEN s IS A `sector`, d IS A DATE, `an ordinary study day` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `studies are held on` s d `an ordinary study day` IF
+        d AT LEAST `the application period begins`
+    AND d AT MOST `the application period ends`
+    AND (`an ordinary study day` OR `a holiday day on which studies are held` s d)
+
+DECLARE `emergency action` IS ONE OF
+    `hold studies on the day`
+    `work the extended days` HAS `days worked` IS A NUMBER
+    `pay the salary` HAS `amount paid` IS A NUMBER
+
+-- One study day, as a duty: days from the day's start.
+@ref akn:art_b/p1
+GIVEN s IS A `sector`, d IS A DATE, `an ordinary study day` IS A BOOLEAN
+GIVETH A DEONTIC Party `emergency action`
+DECIDE `holding studies` s d `an ordinary study day` IS
+    IF `studies are held on` s d `an ordinary study day`
+    THEN PARTY `the teaching employee`
+         MUST  `hold studies on the day`
+         WITHIN 1
+         LEST BREACH BY `the teaching employee` BECAUSE "תש\"פ/7 §ב: studies are held by the curriculum, holidays of §ב included"
+    ELSE FULFILLED
+
+§§ `ג.–ד. The school year and salary`
+
+-- akn:art_c/p1 An announcement that the new end of the school year will be notified later; it sets no date and binds no one yet.
+
+-- §ד: "subject to chapters ב and ג", salary is unchanged until the end of the
+-- application period; report-dependent components keep their own rules.
+-- F-2019-20_tashaf_07-a: chapter ג imposes nothing on a teacher — it only
+-- announces a later notice — so the condition it adds cannot be tested.
+-- Reading adopted: the condition is chapter ב alone (with ג read as the
+-- teacher's duty to work the extended year once it is announced, which §ה
+-- spells out).
+@ref akn:art_d/p1
+GIVEN `held studies as chapter ב requires` IS A BOOLEAN
+      `the regular salary`                 IS A NUMBER
+GIVETH A MAYBE NUMBER
+DECIDE `the salary through the application period` `held studies as chapter ב requires` `the regular salary` IS
+    IF `held studies as chapter ב requires`
+    THEN JUST `the regular salary`
+    ELSE NOTHING
+
+-- What chapter ג requires of a teaching employee, as printed: nothing.
+GIVETH A LIST OF `emergency action`
+DECIDE `what chapter ג requires of a teacher` IS EMPTY
+
+`§ד conditions salary on a chapter that requires nothing of the teacher` MEANS
+    `what chapter ג requires of a teacher` EQUALS EMPTY
+#ASSERT `§ד conditions salary on a chapter that requires nothing of the teacher`
+
+`a teacher of an owning body outside the state service is covered by the circular and not by the agreement it implements` MEANS
+        `the circular covers` `an owners' kindergarten teacher`
+    AND NOT `the agreement of 1.4.2020 covers` `an owners' kindergarten teacher`
+#ASSERT `a teacher of an owning body outside the state service is covered by the circular and not by the agreement it implements`
+
+§§ `ה. Unpaid leave and substitutes`
+
+-- §ה ¶1–2: a teacher on unpaid leave (maternity leave included) for the whole
+-- application period does not work the extension; one on leave for part of
+-- it works the extension in proportion to the part not on leave.
+@ref akn:art_e/p1 akn:art_e/p2
+GIVEN `days of unpaid leave in the application period` IS A NUMBER
+      `days the school year is extended`               IS A NUMBER
+GIVETH A NUMBER
+DECIDE `extension days a teacher works` `days of unpaid leave in the application period` `days the school year is extended` IS
+    `days the school year is extended`
+    TIMES (`days in the application period` MINUS `days of unpaid leave in the application period`)
+    DIVIDED BY `days in the application period`
+
+-- §ה ¶3 and (א): a substitute for a fixed period inside the application
+-- period makes up days: the extension days, in proportion to the
+-- substitution period out of the application period.
+@ref akn:art_e/p3 akn:art_e__para_a/p1
+GIVEN `days of substitution in the application period` IS A NUMBER
+      `days the school year is extended`               IS A NUMBER
+GIVETH A NUMBER
+DECIDE `days a substitute makes up` `days of substitution in the application period` `days the school year is extended` IS
+    `days the school year is extended`
+    TIMES `days of substitution in the application period`
+    DIVIDED BY `days in the application period`
+
+-- §ה(ב)–(ג): only once studies resume as they were before the Order, and from
+-- the end of the substitute's assigned period to the end of the school year.
+@ref akn:art_e__para_b/p1 akn:art_e__para_c/p1
+GIVEN d IS A DATE
+      `studies resumed on`          IS A DATE
+      `the assigned period ends on` IS A DATE
+      `the school year ends on`     IS A DATE
+GIVETH A BOOLEAN
+DECIDE `a substitute may make up a day on` d `studies resumed on` `the assigned period ends on` `the school year ends on` IF
+        d AT LEAST `studies resumed on`
+    AND d GREATER THAN `the assigned period ends on`
+    AND d AT MOST `the school year ends on`
+
+-- Time in days from the start of the make-up window.
+GIVEN `days owed` IS A NUMBER, `days in the window` IS A NUMBER
+GIVETH A DEONTIC Party `emergency action`
+DECIDE `making up the days` `days owed` `days in the window` IS
+    PARTY `the teaching employee`
+    MUST  `work the extended days` `days worked`
+          PROVIDED `days worked` AT LEAST `days owed`
+    WITHIN `days in the window`
+    LEST BREACH BY `the teaching employee` BECAUSE "תש\"פ/7 §ה: the days are made up by the end of the school year"
+
+-- akn:art_e/p4 Wishes for health; no rule.
+
+-- akn:conclusions The sign-off, signatures and copies list; no rule.
+
+-- Examples.
+`an owners' kindergarten teacher` MEANS
+    `emergency employee` WITH
+        `graded on the teaching-employee scale`       IS TRUE
+        `employed in the state service`               IS FALSE
+        `employed by an owning body`                  IS TRUE
+        `stage`                                       IS `kindergarten`
+        `days set by the Director-General's circular` IS TRUE
+
+#ASSERT `days in the application period` EQUALS 35
+#ASSERT `a holiday day on which studies are held` `Jewish sector` (Date 2 4 2020)
+#ASSERT NOT `a holiday day on which studies are held` `Jewish sector` (Date 6 4 2020)
+#ASSERT `a holiday day on which studies are held` `Druze institution teaching on Saturday` (Date 28 3 2020)
+#ASSERT NOT `a holiday day on which studies are held` `Druze institution not teaching on Saturday` (Date 28 3 2020)
+#ASSERT NOT `studies are held on` `Arab sector` (Date 20 4 2020) TRUE
+#ASSERT `extension days a teacher works` 35 10 EQUALS 0
+#ASSERT `extension days a teacher works` 0 10 EQUALS 10
+#ASSERT `days a substitute makes up` 14 10 EQUALS 4
+#ASSERT `the salary through the application period` TRUE 9000 EQUALS JUST 9000
+
+-- A teacher on leave for 21 of the 35 days, with a 10-day extension, owes 4
+-- days; working 4 within the window meets the duty, working 2 leaves it owed.
+#TRACE `making up the days` (`extension days a teacher works` 21 10) 20 AT 0 WITH
+    PARTY `the teaching employee` DOES `work the extended days` 4 AT 15
+#TRACE `making up the days` (`extension days a teacher works` 21 10) 20 AT 0 WITH
+    PARTY `the teaching employee` DOES `work the extended days` 2 AT 15
+#TRACE `holding studies` `Jewish sector` (Date 1 4 2020) FALSE AT 0 WITH
+    PARTY `the teaching employee` DOES `hold studies on the day` AT 0

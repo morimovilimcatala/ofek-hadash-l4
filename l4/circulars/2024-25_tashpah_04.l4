@@ -1,0 +1,409 @@
+-- חוזר לבעלויות תשפ"ה/4 (16.9.2024): הסכם בענין הרפורמות במכללות להכשרת עובדי הוראה
+-- The main points of the collective agreement of 19.8.2024 for teaching
+-- employees in the teacher-training colleges: a 2024 shekel supplement of
+-- 569.89 from 1.7.2024, a 2024 percentage supplement of 2% from 1.9.2024
+-- rising to 4% and 6%, and a one-time grant of 6,000 for 2023-24.
+
+IMPORT prelude
+IMPORT common
+
+-- Time in the regulative rules is counted in salary months: for the 2024
+-- payments, school months of תשפ"ה (September 2024 = 1, November 2024 = 3,
+-- December 2024 = 4); for the steps of 2025 and 2026, months from the
+-- step's own September (September = 1, October = 2).
+
+§ `תשפ"ה/4 הסכם הרפורמות במכללות`
+
+-- akn:preamble/p1 akn:preamble/p2 akn:preamble/p3 akn:preamble/p4 akn:preamble/p5 akn:preamble/p6 akn:preamble/p7 akn:preamble/p8 akn:preamble/p9 akn:preamble/p10 akn:preamble/p11 akn:preamble/p12 The letterhead, date (16.9.2024), reference number, circular number, addressee (the academic colleges of education), greeting and subject line; no rule.
+
+-- akn:preamble/p13 Background: the agreement was signed on 19.8.2024 between the State (the Treasury's wages commissioner and the Ministry's director-general) and the teachers' union.
+
+-- akn:preamble/p15 The circular's purpose, to set out the agreement's main points; no rule.
+
+@desc How a pay component counts for the purposes the agreement names (true = it counts).
+DECLARE `component treatment` HAS
+    `is salary for every purpose`              IS A BOOLEAN
+    `counts for the hourly value`              IS A BOOLEAN
+    `counts for severance pay`                 IS A BOOLEAN
+    `counts for pension contributions`         IS A BOOLEAN
+    `counts for study-fund contributions`      IS A BOOLEAN
+    `counts for the minimum-wage top-up`       IS A BOOLEAN
+    `is in the base of existing supplements`   IS A BOOLEAN
+    `changes the combined-salary base`         IS A BOOLEAN
+
+DECLARE `college action` IS ONE OF
+    `pay the 2024 shekel supplement with arrears from 1.7.2024` HAS `shekel amount paid` IS A NUMBER
+    `pay the 2024 percentage supplement with arrears` HAS `percentage amount paid` IS A NUMBER
+    `pay the one-time grant` HAS `grant paid` IS A NUMBER
+
+§§ `1 הוראות כלליות`
+
+-- akn:art_1__para_a The preamble and annexes are part of the agreement; an interpretive clause with no case of its own to decide.
+-- akn:art_1__para_b Words in one gender include the other; an interpretive clause, so the encoding carries no sex at all.
+-- akn:art_1__para_c The singular includes the plural and the reverse; an interpretive clause.
+-- akn:art_1__para_d Headings are for convenience and are not used to interpret the agreement; an interpretive clause.
+-- akn:art_1__para_e Mentioning letters, director-general circulars or procedures does not change their normative standing; an interpretive clause.
+
+§§ `2 תחולה ו-3 תקופת ההסכם`
+
+-- p14 names the agreement on the reform in the colleges ("הסכם הרפורמה
+-- במכללות": the agreements of 7.5.2015 and 21.1.2019), and §2 applies the
+-- new agreement to the teaching employees that one covers.
+@ref akn:preamble/p14 akn:art_2/p1
+GIVEN `covered by the colleges reform agreement` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `is a college teaching employee` `covered by the colleges reform agreement` IF
+    `covered by the colleges reform agreement`
+
+@ref akn:art_3/p1
+`the agreement ends on` MEANS DATE_FROM_DMY 31 12 2027
+
+GIVEN d IS A DATE, e IS A DATE
+GIVETH A BOOLEAN
+DECIDE d `is on or after` e IF
+    DATE_SERIAL d AT LEAST DATE_SERIAL e
+
+§§ `4 תוספת שכר שקלית 2024`
+
+@ref akn:art_4/p1
+`the 2024 shekel supplement for a full position` MEANS 569.89
+
+-- 4(א): in proportion to the position against a full one. The clause sets
+-- no ceiling for a position above 100% (F-2024-25_tashpah_04-b); the ratio
+-- is applied as it stands.
+@ref akn:art_4__para_a
+GIVEN `position fraction` IS A NUMBER, d IS A DATE
+GIVETH A NUMBER
+DECIDE `the 2024 shekel supplement` `position fraction` d IS
+    IF d `is on or after` (DATE_FROM_DMY 1 7 2024)
+    THEN `the 2024 shekel supplement for a full position` TIMES `position fraction`
+    ELSE 0
+
+-- 4(ב)-(ד): not counted for the minimum-wage top-up; salary for every
+-- purpose, counted for the hourly value, severance, pension (accruing
+-- pension) and the study fund; not in the base of any supplement existing
+-- at signature. Rules for future supplements are left to them.
+@ref akn:art_4__para_b akn:art_4__para_c akn:art_4__para_d
+`how the 2024 shekel supplement counts` MEANS
+    `component treatment` WITH
+        `is salary for every purpose`            IS TRUE
+        `counts for the hourly value`            IS TRUE
+        `counts for severance pay`               IS TRUE
+        `counts for pension contributions`       IS TRUE
+        `counts for study-fund contributions`    IS TRUE
+        `counts for the minimum-wage top-up`     IS FALSE
+        `is in the base of existing supplements` IS FALSE
+        `changes the combined-salary base`       IS FALSE
+
+-- 4(ה): after the agreement's period ends the supplement is updated by the
+-- cost-of-living rates, on their payment dates. The rates are inputs.
+@ref akn:art_4__para_e
+GIVEN `amount before` IS A NUMBER, `cost-of-living rate paid` IS A NUMBER, d IS A DATE
+GIVETH A NUMBER
+DECIDE `the 2024 shekel supplement after a cost-of-living payment` `amount before` `cost-of-living rate paid` d IS
+    IF DATE_SERIAL d GREATER THAN DATE_SERIAL `the agreement ends on`
+    THEN `amount before` TIMES (1 PLUS `cost-of-living rate paid`)
+    ELSE `amount before`
+
+-- 4(ו): paid from November 2024's salary and no later than December 2024's
+-- (school months 3-4), with the arrears from 1.7.2024.
+@ref akn:art_4__para_f
+GIVEN `position fraction` IS A NUMBER, `months of arrears` IS A NUMBER
+GIVETH A DEONTIC Party `college action`
+DECIDE `the 2024 shekel supplement is paid` `position fraction` `months of arrears` IS
+    PARTY `the employer`
+    MUST  `pay the 2024 shekel supplement with arrears from 1.7.2024` a
+          PROVIDED a AT LEAST `the 2024 shekel supplement` `position fraction` (DATE_FROM_DMY 1 7 2024) TIMES (1 PLUS `months of arrears`)
+    WITHIN `month number` December
+    LEST  BREACH BY `the employer` BECAUSE "תשפ\"ה/4 §4(ו): the 2024 shekel supplement is paid no later than December 2024's salary, with arrears from 1.7.2024"
+
+§§ `5א תוספת אחוזית 2024 החל מיום 01.09.2024`
+
+-- akn:art_5 The heading of section 5 "תוספת שכר אחוזית 2024"; its rules are 5א and 5ב.
+
+-- 5ב(א),(ג): the rate by date — 2% from 1.9.2024, 4% from 1.9.2025, 6%
+-- from 1.9.2026 (each a rise of two points "בפעולת חיבור").
+@ref akn:art_5a__para_a akn:art_5b__para_a akn:art_5b__para_c
+GIVEN d IS A DATE
+GIVETH A NUMBER
+DECIDE `the 2024 percentage supplement rate on` d IS
+    BRANCH IF d `is on or after` (DATE_FROM_DMY 1 9 2026) THEN 6%
+           IF d `is on or after` (DATE_FROM_DMY 1 9 2025) THEN 4%
+           IF d `is on or after` (DATE_FROM_DMY 1 9 2024) THEN 2%
+           OTHERWISE 0
+
+@desc A pay component an employee received, described as far as 5א(ב) asks.
+DECLARE `existing component` HAS
+    `component amount`                              IS A NUMBER
+    `is the combined salary`                        IS A BOOLEAN
+    `existed on 31.12.2023`                         IS A BOOLEAN
+    `counts for the hourly value of the component`  IS A BOOLEAN
+    `paid monthly, weekly or daily`                 IS A BOOLEAN
+    `updated by cost-of-living agreements`          IS A BOOLEAN
+    `is the minimum-wage top-up`                    IS A BOOLEAN
+    `is the 2024 shekel supplement`                 IS A BOOLEAN
+
+-- 5א(ב): the combined salary and every supplement (percentage or shekel,
+-- cost-of-living included) that existed on 31.12.2023 and counts for the
+-- hourly value, except the four kinds listed.
+@ref akn:art_5a__para_b akn:art_5a__para_b__subpara_1 akn:art_5a__para_b__subpara_2 akn:art_5a__para_b__subpara_3 akn:art_5a__para_b__subpara_4
+GIVEN c IS AN `existing component`
+GIVETH A BOOLEAN
+DECIDE `is in the base of the 2024 percentage supplement` c IF
+        (    c's `is the combined salary`
+         OR (c's `existed on 31.12.2023` AND c's `counts for the hourly value of the component`))
+    AND c's `paid monthly, weekly or daily`
+    AND c's `updated by cost-of-living agreements`
+    AND NOT c's `is the minimum-wage top-up`
+    AND NOT c's `is the 2024 shekel supplement`
+
+-- 5א(ה): in proportion to the position (read as for 4(א)).
+@ref akn:art_5a__para_e
+GIVEN `position fraction` IS A NUMBER, d IS A DATE, components IS A LIST OF `existing component`
+GIVETH A NUMBER
+DECIDE `the 2024 percentage supplement` `position fraction` d components IS
+    `the 2024 percentage supplement rate on` d
+    TIMES sum (map (GIVEN c YIELD c's `component amount`) (filter `is in the base of the 2024 percentage supplement` components))
+    TIMES `position fraction`
+
+-- 5א(ג),(ד),(ו),(ז): not a base for the supplements that existed on
+-- 31.12.2023 nor for components existing at signature; not for the
+-- minimum-wage top-up; salary for every purpose — the combined salary, the
+-- hourly value, severance, pension (accruing pension) and the study fund.
+-- (ז)'s second paragraph: naming a component grants no entitlement to it.
+@ref akn:art_5a__para_c akn:art_5a__para_d akn:art_5a__para_f akn:art_5a__para_g akn:art_5a__para_g/p2
+`how the 2024 percentage supplement counts` MEANS
+    `component treatment` WITH
+        `is salary for every purpose`            IS TRUE
+        `counts for the hourly value`            IS TRUE
+        `counts for severance pay`               IS TRUE
+        `counts for pension contributions`       IS TRUE
+        `counts for study-fund contributions`    IS TRUE
+        `counts for the minimum-wage top-up`     IS FALSE
+        `is in the base of existing supplements` IS FALSE
+        `changes the combined-salary base`       IS FALSE
+
+-- 5א(ח): from November 2024's salary, no later than December 2024's, with
+-- the arrears from 1.9.2024.
+@ref akn:art_5a__para_h
+GIVEN `monthly amount due` IS A NUMBER, `months of arrears` IS A NUMBER
+GIVETH A DEONTIC Party `college action`
+DECIDE `the 2024 percentage supplement is paid` `monthly amount due` `months of arrears` IS
+    PARTY `the employer`
+    MUST  `pay the 2024 percentage supplement with arrears` a
+          PROVIDED a AT LEAST `monthly amount due` TIMES (1 PLUS `months of arrears`)
+    WITHIN `month number` December
+    LEST  BREACH BY `the employer` BECAUSE "תשפ\"ה/4 §5א(ח): the 2024 percentage supplement is paid no later than December 2024's salary, with arrears from 1.9.2024"
+
+§§ `5ב הגדלת שיעור תוספת אחוזית 2024`
+
+-- 5ב(ב),(ד): each step is paid from September's salary (paid in October)
+-- and no later than October's, which then carries September's arrears.
+-- Months from the step's September: September = 1, October = 2.
+@ref akn:art_5b__para_b akn:art_5b__para_d
+GIVEN `monthly increase due` IS A NUMBER
+GIVETH A DEONTIC Party `college action`
+DECIDE `a step of the percentage supplement is paid` `monthly increase due` IS
+    PARTY `the employer`
+    MUST  `pay the 2024 percentage supplement with arrears` a
+          PROVIDED a AT LEAST `monthly increase due` TIMES 2
+    WITHIN 2
+    LEST  BREACH BY `the employer` BECAUSE "תשפ\"ה/4 §5ב: each step is paid no later than October's salary, with September's arrears"
+
+§§ `6 מענק חד פעמי`
+
+DECLARE `month status` IS ONE OF
+    `worked`
+    `unpaid leave`
+    `reserve duty`
+    `birth and parenting period`
+    `sick leave without pay, with an application and evidence`
+    `sick leave without pay, with no application`
+    `unpaid absence after the birth and parenting period`
+    `not employed at the college`
+
+@desc One month of the grant period (1.9.2023-31.5.2024) as section 6 asks about it.
+DECLARE `grant month` HAS
+    `status in the month`    IS A `month status`
+    `position in the month`  IS A NUMBER  @desc the position held that month, or, for a month of reserve duty or birth and parenting, the position held on the eve of leaving (6(ו))
+
+-- 6(ד)-(ו): which months count — not unpaid leave or leave treated as
+-- such, nor an unpaid absence after the birth-and-parenting period; reserve
+-- duty and the birth-and-parenting period do count, at the position held
+-- on the eve of leaving; sick leave without pay counts once the employee
+-- has applied with evidence. A position above 100% counts as 100% (6(ב),
+-- (ג), (ו)).
+@ref akn:art_6__para_d akn:art_6__para_e akn:art_6__para_f
+GIVEN m IS A `grant month`
+GIVETH A NUMBER
+DECIDE `the month's share of a full grant month` m IS
+    CONSIDER m's `status in the month`
+    WHEN `worked` THEN min (m's `position in the month`) 1
+    WHEN `reserve duty` THEN min (m's `position in the month`) 1
+    WHEN `birth and parenting period` THEN min (m's `position in the month`) 1
+    WHEN `sick leave without pay, with an application and evidence` THEN min (m's `position in the month`) 1
+    OTHERWISE 0
+
+-- akn:art_6__para_g (ד)-(ו) apply to both sexes alike; the encoding carries no sex, so it has nothing to add.
+
+@ref akn:art_6/p1 akn:art_6/p2
+`the full one-time grant` MEANS 6000
+
+`the months of the grant period` MEANS 9
+
+-- 6, opening and (א)-(ג): employed at the college on the day of signature
+-- (19.8.2024); the full grant for a full position through the period, and
+-- otherwise the share the months and the position give, against an
+-- employee on a full position through all nine months.
+@ref akn:art_6__para_a akn:art_6__para_b akn:art_6__para_c
+GIVEN `employed at the college on 19.8.2024` IS A BOOLEAN, months IS A LIST OF `grant month`
+GIVETH A NUMBER
+DECIDE `the one-time grant` `employed at the college on 19.8.2024` months IS
+    IF `employed at the college on 19.8.2024`
+    THEN `the full one-time grant`
+         TIMES sum (map `the month's share of a full grant month` months)
+         DIVIDED BY `the months of the grant period`
+    ELSE 0
+
+-- 6(ח)-(י): the grant is not salary — not for the hourly value (nor for an
+-- hour's absence), severance or any fund contribution; not for the
+-- minimum-wage top-up; it does not change the combined-salary base.
+@ref akn:art_6__para_h akn:art_6__para_i akn:art_6__para_j
+`how the one-time grant counts` MEANS
+    `component treatment` WITH
+        `is salary for every purpose`            IS FALSE
+        `counts for the hourly value`            IS FALSE
+        `counts for severance pay`               IS FALSE
+        `counts for pension contributions`       IS FALSE
+        `counts for study-fund contributions`    IS FALSE
+        `counts for the minimum-wage top-up`     IS FALSE
+        `is in the base of existing supplements` IS FALSE
+        `changes the combined-salary base`       IS FALSE
+
+DECLARE `status at payment` IS ONE OF
+    `at work`
+    `on unpaid leave`
+    `on sick leave without pay`
+    `in the birth and parenting period`
+    `absent through a work injury not charged to sick leave`
+
+-- 6(יב): an employee who at the payment date is in one of the listed
+-- situations is paid with the first salary on return, at the latest the
+-- month after. The lead-in names "(1) to (3)" and the list prints a fourth,
+-- the work-injury absence (F-2024-25_tashpah_04-a); the four are read as
+-- listed.
+@ref akn:art_6__para_jb akn:art_6__para_jb/p2 akn:art_6__para_jb/p4 akn:art_6__para_jb/p6 akn:art_6__para_jb/p7 akn:art_6__para_jb/p8
+GIVEN s IS A `status at payment`
+GIVETH A BOOLEAN
+DECIDE `the payment waits for the return to work` s IF
+    NOT s EQUALS `at work`
+
+-- The lead-in read literally: only (1)-(3) defer the payment.
+GIVEN s IS A `status at payment`
+GIVETH A BOOLEAN
+DECIDE `the payment waits on the lead-in's (1) to (3) alone` s IF
+        s EQUALS `on unpaid leave`
+    OR  s EQUALS `on sick leave without pay`
+    OR  s EQUALS `in the birth and parenting period`
+
+-- 6(יב)(1), second sentence: in a partial sabbatical the grant is paid for
+-- the share of the position in the sabbatical only, and the rest of the
+-- grant is completed on the return. Read as the clause prints it.
+@ref akn:art_6__para_jb/p3
+GIVEN grant IS A NUMBER, `share of the position in sabbatical` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `paid at the payment date during a partial sabbatical` grant `share of the position in sabbatical` IS
+    grant TIMES `share of the position in sabbatical`
+
+GIVEN grant IS A NUMBER, `share of the position in sabbatical` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `completed on the return from the sabbatical` grant `share of the position in sabbatical` IS
+    grant MINUS `paid at the payment date during a partial sabbatical` grant `share of the position in sabbatical`
+
+-- 6(יב)(2), second sentence: an employee who was on sick leave without pay
+-- applies to the employer with evidence; the employer counts the period,
+-- and if with it the qualifying period is complete, the grant is paid.
+-- This is the condition `sick leave without pay, with an application and
+-- evidence` above.
+@ref akn:art_6__para_jb/p5
+GIVEN `applied with evidence` IS A BOOLEAN
+GIVETH A `month status`
+DECIDE `a month of sick leave without pay counts as` `applied with evidence` IS
+    IF `applied with evidence`
+    THEN `sick leave without pay, with an application and evidence`
+    ELSE `sick leave without pay, with no application`
+
+-- 6(יא) and (יב): paid with November 2024's salary and no later than
+-- December 2024's (school months 3-4); where the payment waits for the
+-- return, with the first salary on return and at the latest the next
+-- month's (`month of return` in school months).
+@ref akn:art_6__para_ja
+GIVEN grant IS A NUMBER, s IS A `status at payment`, `month of return` IS A NUMBER
+GIVETH A DEONTIC Party `college action`
+DECIDE `the one-time grant is paid` grant s `month of return` IS
+    PARTY `the employer`
+    MUST  `pay the one-time grant` g
+          PROVIDED g AT LEAST grant
+    WITHIN (IF `the payment waits for the return to work` s
+            THEN max (`month of return` PLUS 1) (`month number` December)
+            ELSE `month number` December)
+    LEST  BREACH BY `the employer` BECAUSE "תשפ\"ה/4 §6(יא)-(יב): the grant is paid no later than December 2024's salary, or the salary after the return to work"
+
+-- akn:conclusions The sign-off, signatures and the list of copies; no rule.
+
+-- Worked examples the circular itself gives.
+
+GIVEN n IS A NUMBER, s IS A `month status`, p IS A NUMBER
+GIVETH A LIST OF `grant month`
+DECIDE `months of` n s p IS
+    IF n AT MOST 0
+    THEN EMPTY
+    ELSE `grant month` s p FOLLOWED BY `months of` (n MINUS 1) s p
+
+-- 6(א)'s example: full-time from 1.9.2023 to 29.2.2024, six months
+-- (four in 2023, two in 2024): 6/9 × 6,000 = 4,000.
+`the example of 6(א)` MEANS
+    (append (`months of` 6 `worked` 1) (`months of` 3 `not employed at the college` 0))
+
+#ASSERT `the one-time grant` TRUE `the example of 6(א)` EQUALS 4000
+
+-- 6(ג)'s example: 70% for three months, then 110% for six (counted as
+-- 100%): (3 × 0.7 + 6 × 1) / 9 × 6,000 = 5,400.
+`the example of 6(ג)` MEANS
+    (append (`months of` 3 `worked` 0.7) (`months of` 6 `worked` 1.1))
+
+#ASSERT `the one-time grant` TRUE `the example of 6(ג)` EQUALS 5400
+
+-- Full time throughout: the full grant; a reserve-duty month counts at the
+-- position before it; an unpaid-leave month does not.
+#ASSERT `the one-time grant` TRUE (`months of` 9 `worked` 1) EQUALS 6000
+#ASSERT `the one-time grant` TRUE (append (`months of` 8 `worked` 1) (`months of` 1 `reserve duty` 1)) EQUALS 6000
+#ASSERT `the one-time grant` TRUE (append (`months of` 8 `worked` 1) (`months of` 1 `unpaid leave` 1)) EQUALS 6000 TIMES 8 DIVIDED BY 9
+#ASSERT `the one-time grant` FALSE (`months of` 9 `worked` 1) EQUALS 0
+
+#ASSERT `the 2024 shekel supplement` 0.5 (DATE_FROM_DMY 1 8 2024) EQUALS 284.945
+#ASSERT `the 2024 percentage supplement rate on` (DATE_FROM_DMY 1 10 2025) EQUALS 4%
+#ASSERT `paid at the payment date during a partial sabbatical` 6000 0.5 PLUS `completed on the return from the sabbatical` 6000 0.5 EQUALS 6000
+
+-- F-2024-25_tashpah_04-a: the lead-in of 6(יב) defers the payment for the
+-- situations "(1) to (3)", and the list prints four; a work-injury absence
+-- is deferred by the list and not by the lead-in.
+`6(יב)'s lead-in and its list disagree on a work-injury absence` MEANS
+        `the payment waits for the return to work` `absent through a work injury not charged to sick leave`
+    AND NOT `the payment waits on the lead-in's (1) to (3) alone` `absent through a work injury not charged to sick leave`
+#ASSERT `6(יב)'s lead-in and its list disagree on a work-injury absence`
+
+-- F-2024-25_tashpah_04-b: 4(א) and 5א(ה) pro-rate to the position against
+-- a full one and say nothing of a position above 100%; read with and
+-- without a ceiling they pay a 110% position differently.
+`a position above 100% is paid differently with and without a ceiling` MEANS
+    NOT (`the 2024 shekel supplement` 1.1 (DATE_FROM_DMY 1 9 2024)
+         EQUALS `the 2024 shekel supplement` (min 1.1 1) (DATE_FROM_DMY 1 9 2024))
+#ASSERT `a position above 100% is paid differently with and without a ceiling`
+
+#TRACE `the 2024 shekel supplement is paid` 1 4 AT 0 WITH
+    PARTY `the employer` DOES `pay the 2024 shekel supplement with arrears from 1.7.2024` 2849.45 AT 3
+#TRACE `the one-time grant is paid` 6000 `at work` 0 AT 0 WITH
+    PARTY `the employer` DOES `pay the one-time grant` 6000 AT 3
+#TRACE `the one-time grant is paid` 6000 `on unpaid leave` 7 AT 0 WITH
+    PARTY `the employer` DOES `pay the one-time grant` 6000 AT 8

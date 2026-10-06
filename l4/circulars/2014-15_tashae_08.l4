@@ -1,0 +1,195 @@
+-- חוזר לבעלויות תשע"ה/8 (23.7.2015): תגמול עובדי הוראה בגין הישגי בית הספר לשנת הלימודים תשע"ה – תיקון
+-- The one-time reward to high-school teaching staff for their school's
+-- achievements in school year 2014-15 (section 36 of the agreement of
+-- 14.8.2011): who is covered, the amount by the school's rank, pro-rating,
+-- the August 2015 payment, its treatment for pay purposes, and the owners'
+-- indemnification.
+
+IMPORT prelude
+IMPORT common
+
+§ `חוזר לבעלויות תשע"ה/8 — תגמול בגין הישגי בית הספר תשע"ה`
+
+-- akn:preamble The letterhead, the date (23.7.2015), the reference number, the addressee, the subject, and the recitals: the general collective agreement of 14.8.2011 (approved by the Treasury's wage director), its Oz LaTmura provisions, and this circular's purpose; the rule they introduce is encoded under section 1.
+
+DECLARE `reward action` IS ONE OF
+    `pay the achievement reward` HAS `reward amount paid` IS A NUMBER
+    `indemnify the owner` HAS `indemnity paid` IS A NUMBER
+
+§§ `1 תחולה`
+
+@desc A high-school teaching employee's school year 2014-15, as far as the reward asks about it.
+DECLARE `reward case` HAS
+    `graded as a teaching employee in the high school` IS A BOOLEAN @desc graded on the teaching employees' scale and working in the upper division (grades 9 or 10 to 12/14)
+    `employed by a supervised post-primary owner`      IS A BOOLEAN @desc employed by an owner of post-primary education supervised by the Ministry of Education
+    `school rank`                                      IS A NUMBER  @desc the school's rank as the ministry found it (1 to 4); 0 for a school not ranked
+    `high-school position fraction`                    IS A NUMBER  @desc the share of a full position in the upper division (1 = 100%)
+    `months employed in the year`                      IS A NUMBER  @desc months of the school year employed at the excelling institution, counting maternity leave under the Women's Employment Law
+    `on full sabbatical or full unpaid leave`          IS A BOOLEAN @desc on sabbatical or unpaid leave for the whole school year
+
+-- §1 and the recitals: every teaching employee in the upper division at a
+-- supervised post-primary owner, per the share of the employment there,
+-- whether under Oz LaTmura or not yet joined to it.
+@ref akn:art_1 akn:preamble/p16
+GIVEN c IS A `reward case`
+GIVETH A BOOLEAN
+DECIDE `covered by the circular` c IF
+    c's `graded as a teaching employee in the high school` AND c's `employed by a supervised post-primary owner`
+
+§§ `2 תגמול עובדי הוראה בגין הישגי בית הספר`
+
+-- §2א: the program runs from 2012-13 by the rules of the pedagogical
+-- administration's letter of 21.10.2012; which schools rank is decided under
+-- it (an input: the case's school rank).
+@ref akn:art_2__para_a
+GIVEN c IS A `reward case`
+GIVETH A BOOLEAN
+DECIDE `the school is ranked` c IF
+    c's `school rank` AT LEAST 1 AND c's `school rank` AT MOST 4
+
+-- §2ב's table as printed: the reward for a full position, by the school's
+-- rank (each rank a further 10% of the schools), updated to May 2015 by
+-- the consumer price index against May 2014.
+@ref akn:art_2__para_b
+DECLARE `reward row` HAS
+    `reward rank`   IS A NUMBER
+    `reward amount` IS A NUMBER
+
+`the reward table` MEANS
+    LIST `reward row` 1 8252.72,
+         `reward row` 2 6189.54,
+         `reward row` 3 4126.36,
+         `reward row` 4 3094.77
+
+GIVEN n IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the full-position reward for rank` n IS
+    sum (map (GIVEN r YIELD r's `reward amount`)
+             (filter (GIVEN r YIELD r's `reward rank` EQUALS n) `the reward table`))
+
+-- §2ג: pro rata to the high-school position and to the share of the year
+-- employed (maternity leave counts as employment; unpaid leave after it
+-- does not); ¶2: none on a full sabbatical or full unpaid leave. §2ד: no
+-- more than 100% is counted.
+@ref akn:art_2__para_c
+GIVEN c IS A `reward case`
+GIVETH A NUMBER
+DECIDE `the reward share` c IS
+    min (c's `high-school position fraction`) 1
+    TIMES min (c's `months employed in the year` DIVIDED BY 12) 1
+
+@ref akn:art_2__para_c/p2
+GIVEN c IS A `reward case`
+GIVETH A BOOLEAN
+DECIDE `entitled to the reward` c IF
+        `covered by the circular` c
+    AND `the school is ranked` c
+    AND NOT c's `on full sabbatical or full unpaid leave`
+
+@ref akn:art_2__para_d
+`the most position counted` MEANS 1
+
+@export default The one-time achievement reward a high-school teaching employee is owed for school year 2014-15 under owners' circular 2014-15/8
+GIVEN c IS A `reward case` @desc the teacher's year
+GIVETH A NUMBER
+DECIDE `achievement reward` c IS
+    IF `entitled to the reward` c
+    THEN `the full-position reward for rank` (c's `school rank`) TIMES `the reward share` c
+    ELSE 0
+
+-- §2ו: not in the base for the hourly value, severance or percentage
+-- supplements, and no training-fund contribution.
+@ref akn:art_2__para_f
+DECLARE `pay purpose` IS ONE OF
+    `the hourly value`
+    `severance pay`
+    `percentage supplements`
+    `training-fund contributions`
+    `pension-fund contributions`
+
+GIVEN p IS A `pay purpose`
+GIVETH A BOOLEAN
+DECIDE `the reward counts for` p IF
+    CONSIDER p
+    WHEN `pension-fund contributions` THEN TRUE
+    OTHERWISE FALSE
+
+-- §2ז: pension-fund contributions of 5% by the employer and 5% deducted from
+-- the teacher's salary.
+@ref akn:art_2__para_g
+`the employer's pension contribution rate` MEANS 0.05
+`the teacher's pension deduction rate` MEANS 0.05
+
+GIVEN c IS A `reward case`
+GIVETH A NUMBER
+DECIDE `the employer's pension contribution on the reward` c IS
+    `achievement reward` c TIMES `the employer's pension contribution rate`
+
+-- §2ה: paid with August 2015's salary (school month 12).
+@ref akn:art_2__para_e
+GIVEN c IS A `reward case`
+GIVETH A DEONTIC Party `reward action`
+DECIDE `paying the reward with August 2015's salary` c IS
+    PARTY `the employer`
+    MUST  `pay the achievement reward` `amount`
+          PROVIDED `amount` AT LEAST `achievement reward` c
+    WITHIN 12
+    LEST BREACH BY `the employer` BECAUSE "circular 2014-15/8 section 2e: the rewards are paid with August 2015's salary"
+
+-- akn:art_3 akn:art_3/p2 akn:art_3/p3 A link to the post-primary division's page detailing the program and listing the winning schools; the rank is an input of each case.
+
+-- §3 ¶4–¶5: the owners are indemnified in the payment system (topic 583) in
+-- August 2015's payments, transferred at the start of 9/2015 (school month
+-- 13 counted from September 2014). The row as the corpus has it runs the
+-- section's number into its text (see the hand-off).
+@ref akn:art_3/p4 akn:art_3/p5
+GIVEN `rewards paid by the owner` IS A NUMBER
+GIVETH A DEONTIC Party `reward action`
+DECIDE `indemnifying the owner` `rewards paid by the owner` IS
+    PARTY `the Ministry of Education`
+    MUST  `indemnify the owner` `amount`
+          PROVIDED `amount` AT LEAST `rewards paid by the owner`
+    WITHIN 13
+    LEST BREACH BY `the Ministry of Education` BECAUSE "circular 2014-15/8: the owners are indemnified in August 2015's payments, transferred at the start of 9/2015"
+
+-- akn:conclusions The contact line, the signature (Sonia Peretz) and the list of copies; no rule.
+
+-- Worked examples.
+`a full-position teacher at a rank-2 school` MEANS
+    `reward case` WITH
+        `graded as a teaching employee in the high school` IS TRUE
+        `employed by a supervised post-primary owner`      IS TRUE
+        `school rank`                                      IS 2
+        `high-school position fraction`                    IS 1.2
+        `months employed in the year`                      IS 12
+        `on full sabbatical or full unpaid leave`          IS FALSE
+
+`a half-position teacher for half the year at a rank-1 school` MEANS
+    `reward case` WITH
+        `graded as a teaching employee in the high school` IS TRUE
+        `employed by a supervised post-primary owner`      IS TRUE
+        `school rank`                                      IS 1
+        `high-school position fraction`                    IS 0.5
+        `months employed in the year`                      IS 6
+        `on full sabbatical or full unpaid leave`          IS FALSE
+
+`a teacher on a full sabbatical` MEANS
+    `reward case` WITH
+        `graded as a teaching employee in the high school` IS TRUE
+        `employed by a supervised post-primary owner`      IS TRUE
+        `school rank`                                      IS 1
+        `high-school position fraction`                    IS 1
+        `months employed in the year`                      IS 0
+        `on full sabbatical or full unpaid leave`          IS TRUE
+
+#ASSERT `achievement reward` `a full-position teacher at a rank-2 school` EQUALS 6189.54
+#ASSERT `achievement reward` `a half-position teacher for half the year at a rank-1 school` EQUALS 2063.18
+#ASSERT `achievement reward` `a teacher on a full sabbatical` EQUALS 0
+#ASSERT `the full-position reward for rank` 5 EQUALS 0
+#ASSERT NOT `the reward counts for` `severance pay`
+#EVAL   `the employer's pension contribution on the reward` `a full-position teacher at a rank-2 school`
+
+#TRACE `paying the reward with August 2015's salary` `a full-position teacher at a rank-2 school` AT 0 WITH
+    PARTY `the employer` DOES `pay the achievement reward` 6189.54 AT 12
+#TRACE `indemnifying the owner` 6189.54 AT 0 WITH
+    PARTY `the Ministry of Education` DOES `indemnify the owner` 6189.54 AT 13

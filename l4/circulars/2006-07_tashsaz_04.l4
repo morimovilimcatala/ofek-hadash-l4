@@ -1,0 +1,160 @@
+-- חוזר לבעלויות תשס"ז/4 — תשלום בגין שחיקה לעובדי הוראה לשנים 1999–2001 (27.5.2007)
+-- Carrying out the arbitration award of 22.5.2007 on the erosion of
+-- teachers' pay: a 4.75% rise in the salary table and in the shekel
+-- supplements from 1.1.2007, a one-time grant for 1.1.1999–31.12.2001, the
+-- budget-pension retirees, and the payment dates.
+
+IMPORT prelude
+IMPORT daydate
+IMPORT common
+
+§ `תשלום בגין שחיקה לעובדי הוראה לשנים 1999–2001`
+
+-- akn:preamble The letterhead, title, date, addressee, subject line, and the recital of the 1.2.2007 agreement that sent the dispute to arbitration and of the award of 22.5.2007; no rule.
+
+-- Time in this file is counted in salary months from May 2007 (0), the
+-- circular's own month.
+`May 2007 salary`     MEANS 0
+`June 2007 salary`    MEANS 1
+`July 2007 salary`    MEANS 2
+`January 2008 salary` MEANS 8
+
+`the rise`              MEANS 4.75%
+`the rise takes effect` MEANS Date 1 1 2007
+
+§§ `1 עדכון טבלת השכר`
+
+-- ¶2: the updated table is "attached as an annex"; the corpus carries no
+-- annex (nor does the source PDF), so the table itself is not data here.
+@ref akn:art_1/p1 akn:art_1/p2
+GIVEN `cell before the update` IS A NUMBER @desc a cell of the salary table as it stood before 1.1.2007
+GIVETH A NUMBER
+DECIDE `updated salary table cell` `cell before the update` IS
+    `cell before the update` TIMES (1 PLUS `the rise`)
+
+§§ `2 עדכון תוספות שכר שקליות`
+
+DECLARE `shekel supplement` HAS
+    `supplement name`          IS A STRING
+    `amount from 1.1.2007`     IS A NUMBER
+
+@ref akn:art_2/p1
+GIVEN `amount before the update` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `updated shekel supplement` `amount before the update` IS
+    `amount before the update` TIMES (1 PLUS `the rise`)
+
+@ref akn:art_2__para_a akn:art_2__para_a/p2 akn:art_2__para_b akn:art_2__para_b/p2
+`the updated shekel supplements` MEANS
+    LIST `shekel supplement` "framework agreement supplement '87" 150.52,
+         `shekel supplement` "1994 agreement supplement, reinforced teaching" 135.35
+
+§§ `3 תשלום מענק חד פעמי`
+
+`grant period start` MEANS Date 1 1 1999
+`grant period end`   MEANS Date 31 12 2001
+`grant rate`         MEANS 3.5%
+`advance rate`       MEANS 0.5%
+
+@desc One month in which the teacher was actually employed.
+DECLARE `employed month` HAS
+    `first day of the month`              IS A DATE
+    `salary determining for pension`      IS A NUMBER  @desc the month's salary determining the pension
+    `advance paid for the month`          IS A NUMBER  @desc the 0.5% advance already paid for this month (circular תשס"ו/7, which this circular cites); an input
+
+GIVEN m IS AN `employed month`
+GIVETH A BOOLEAN
+DECIDE `falls in the grant period` m IF
+        m's `first day of the month` AT LEAST `grant period start`
+    AND m's `first day of the month` AT MOST `grant period end`
+
+-- §3א: 3.5% of the pension-determining salary for each month employed in
+-- the period, less the 0.5% advance paid for those months.
+@ref akn:art_3__para_a
+GIVEN months IS A LIST OF `employed month`
+GIVETH A NUMBER
+DECIDE `the one-time grant` months IS
+    sum (map (GIVEN m YIELD `grant rate` TIMES m's `salary determining for pension`
+                            MINUS m's `advance paid for the month`)
+             (filter `falls in the grant period` months))
+
+DECLARE `erosion action` IS ONE OF
+    `pay the grant` HAS `grant paid` IS A NUMBER
+    `start the current payments`
+    `pay the differences`
+
+@ref akn:art_3__para_b
+GIVEN months IS A LIST OF `employed month`
+GIVETH A DEONTIC Party `erosion action`
+DECIDE `the grant is paid by January 2008` months IS
+    PARTY `the employer`
+    MUST  `pay the grant` amount
+          PROVIDED amount AT LEAST `the one-time grant` months
+    WITHIN `January 2008 salary`
+    LEST  BREACH BY `the employer` BECAUSE "§3ב: the grant is paid no later than January 2008's salary"
+
+-- akn:art_3__para_c Detailed instructions for the grant are to be published near its payment date; no rule here.
+
+§§ `4 גמלאים`
+
+-- §4א: §§1–3 apply to budget-pension retirees in proportion to their
+-- pension rate.
+@ref akn:art_4__para_a
+GIVEN `amount for an active teacher` IS A NUMBER
+      `pension rate`                 IS A NUMBER @desc the retiree's pension as a share of the salary (e.g. 0.7)
+GIVETH A NUMBER
+DECIDE `a budget-pension retiree's amount` `amount for an active teacher` `pension rate` IS
+    `amount for an active teacher` TIMES `pension rate`
+
+-- §4ב: old-fund retirees who were active in 1999–2001 and retired in
+-- 2000–2002 are compensated by the Ministry directly with the funds, not by
+-- the owning body.
+@ref akn:art_4__para_b
+GIVEN `insured in an old pension fund` IS A BOOLEAN
+      `active in 1999–2001`            IS A BOOLEAN
+      `year of retirement`             IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `compensated by the Ministry through the old funds` `insured in an old pension fund` `active in 1999–2001` `year of retirement` IF
+        `insured in an old pension fund`
+    AND `active in 1999–2001`
+    AND `year of retirement` AT LEAST 2000
+    AND `year of retirement` AT MOST 2002
+
+§§ `5 מועדי התשלום`
+
+@ref akn:art_5__para_a
+GIVETH A DEONTIC Party `erosion action`
+DECIDE `the current payments start by July 2007` IS
+    PARTY `the employer`
+    MUST  `start the current payments`
+    WITHIN `July 2007 salary`
+    LEST  BREACH BY `the employer` BECAUSE "§5א: the current payments start from May 2007's salary and no later than July 2007's"
+
+@ref akn:art_5__para_b
+GIVETH A DEONTIC Party `erosion action`
+DECIDE `the differences are paid by July 2007` IS
+    PARTY `the employer`
+    MUST  `pay the differences`
+    WITHIN `July 2007 salary`
+    LEST  BREACH BY `the employer` BECAUSE "§5ב: the differences are paid in June 2007's salary and at the latest July 2007's"
+
+-- akn:conclusions The sign-off and signature; no rule.
+
+-- Examples. Salaries of 10,000 and the advances are placeholders.
+`three months of 2001 and one of 2002` MEANS
+    LIST `employed month` (Date 1 10 2001) 10000 50,
+         `employed month` (Date 1 11 2001) 10000 50,
+         `employed month` (Date 1 12 2001) 10000 50,
+         `employed month` (Date 1 1 2002) 10000 50
+
+#ASSERT `the one-time grant` `three months of 2001 and one of 2002` EQUALS 900
+#ASSERT `updated salary table cell` 1000 EQUALS 1047.5
+#ASSERT `a budget-pension retiree's amount` 900 0.7 EQUALS 630
+#ASSERT `compensated by the Ministry through the old funds` TRUE TRUE 2001
+
+#TRACE `the grant is paid by January 2008` `three months of 2001 and one of 2002` AT 0 WITH
+    PARTY `the employer` DOES `pay the grant` 900 AT 8
+#TRACE `the current payments start by July 2007` AT 0 WITH
+    PARTY `the employer` DOES `start the current payments` AT 0
+#TRACE `the differences are paid by July 2007` AT 0 WITH
+    PARTY `the employer` DOES `pay the differences` AT 1

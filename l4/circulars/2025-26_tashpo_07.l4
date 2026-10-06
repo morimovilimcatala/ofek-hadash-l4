@@ -1,0 +1,314 @@
+-- חוזר לבעלויות תשפ"ו/7 (22.6.2026): תשלום דמי הבראה ומענק יובל לשנת הלימודים תשפ"ו
+-- The recuperation allowance for school year תשפ"ו, the limits on position
+-- size, and the jubilee grant of June 2026.
+
+IMPORT prelude
+IMPORT common
+
+-- Time in the regulative rules is counted in school months of תשפ"ו
+-- (common.l4: September 2025 = 1, June 2026 = 10).
+
+§ `תשפ"ו/7 תשלום דמי הבראה ומענק יובל`
+
+-- akn:preamble The letterhead, date (22.6.2026), addressee and subject line; no rule.
+
+DECLARE `circular action` IS ONE OF
+    `employ beyond the limits` HAS `position employed` IS A NUMBER
+                                   `weekly hours employed` IS A NUMBER
+    `pay the recuperation allowance` HAS `recuperation amount paid` IS A NUMBER
+    `pay the jubilee grant` HAS `jubilee amount paid` IS A NUMBER
+
+§§ `1 קצובת דמי הבראה`
+
+@desc A teaching employee's school year תשפ"ו at one employer, as far as the recuperation rules ask about it.
+DECLARE `employee year` HAS
+    `seniority in teaching`                    IS A NUMBER  @desc years of seniority in teaching, the year being served counted (first year = 1), for the recuperation days table
+    `position fraction at this employer`       IS A NUMBER  @desc the share of a full position held at this employer this school year (1 = one full position)
+    `months of work`                           IS A NUMBER  @desc months of work this school year (1.ד: 1/10 for each month of work)
+
+@ref akn:art_1__para_b
+`the value of a recuperation day` MEANS 511.6
+
+@ref akn:art_1__para_c/t1
+DECLARE `recuperation band` HAS
+    `band from year`        IS A NUMBER
+    `band to year`          IS A NUMBER  @desc 999 stands for "ומעלה", with no upper bound
+    `days in the band`      IS A NUMBER
+
+@ref akn:art_1__para_c akn:art_1__para_c/t1
+`the recuperation days table` MEANS
+    LIST `recuperation band` 1  3   7,
+         `recuperation band` 4  10  9,
+         `recuperation band` 11 15  10,
+         `recuperation band` 16 19  11,
+         `recuperation band` 20 24  12,
+         `recuperation band` 25 999 13
+
+GIVEN n IS A NUMBER
+GIVETH A LIST OF `recuperation band`
+DECIDE `the bands for seniority` n IS
+    filter (GIVEN b YIELD n AT LEAST b's `band from year` AND n AT MOST b's `band to year`)
+           `the recuperation days table`
+
+-- The table is a function: every year from 1 to 40 has exactly one row.
+#ASSERT all (GIVEN n YIELD count (`the bands for seniority` n) EQUALS 1) (range 1 40)
+
+GIVEN n IS A NUMBER
+GIVETH A NUMBER
+DECIDE `recuperation days` n IS
+    sum (map (GIVEN b YIELD b's `days in the band`) (`the bands for seniority` n))
+
+-- F-2025-26_tashpo_07-a: the parenthesis counts 1/10 for each month of
+-- work, so a year of more than ten months of work would pass the whole
+-- allowance. The reading adopted: the share is capped at the whole.
+@ref akn:art_1__para_d
+GIVEN y IS AN `employee year`
+GIVETH A NUMBER
+DECIDE `months share` y IS
+    min (y's `months of work` DIVIDED BY 10) 1
+
+`1/10 for each month uncapped passes the whole allowance in a twelve-month year` MEANS
+    12 DIVIDED BY 10 GREATER THAN 1
+#ASSERT `1/10 for each month uncapped passes the whole allowance in a twelve-month year`
+
+-- 1.ה: at one employer, no more than one full position counts. 1.ו: with
+-- more than one employer, each pays on the position held with it, even
+-- where the total passes 100%; so the cap is per employer.
+@ref akn:art_1__para_e akn:art_1__para_f
+GIVEN y IS AN `employee year`
+GIVETH A NUMBER
+DECIDE `position share at this employer` y IS
+    min (y's `position fraction at this employer`) 1
+
+@export The recuperation allowance a teaching employee is paid by one employer for school year תשפ"ו under circular תשפ"ו/7
+GIVEN y IS AN `employee year` @desc the employee's school year at this employer
+GIVETH A NUMBER
+DECIDE `recuperation allowance for תשפ"ו` y IS
+    `recuperation days` (y's `seniority in teaching`)
+        TIMES `months share` y
+        TIMES `position share at this employer` y
+        TIMES `the value of a recuperation day`
+
+-- 1.א: paid in full with June 2026's salary.
+@ref akn:art_1__para_a
+GIVEN y IS AN `employee year`
+GIVETH A DEONTIC Party `circular action`
+DECIDE `recuperation paid with June's salary` y IS
+    PARTY `the employer`
+    MUST  `pay the recuperation allowance` a
+          PROVIDED a AT LEAST `recuperation allowance for תשפ"ו` y
+    WITHIN `month number` June
+    LEST BREACH BY `the employer` BECAUSE "תשפ\"ו/7 §1.א: the recuperation allowance is paid in full with June 2026's salary"
+
+DECLARE `employment terms` IS ONE OF
+    `teacher outside the reform`
+    `principal outside the reform`
+    `teacher in full implementation of Oz LaTmura`
+    `teacher in Ofek Hadash`
+
+-- 1.ז–1.ח: the total position, across all employers, beyond which
+-- employment is restricted; subject to the exceptional-employment
+-- procedure for תשפ"ו.
+@ref akn:art_1__para_g akn:art_1__para_h
+GIVEN t IS AN `employment terms`
+GIVETH A NUMBER
+DECIDE `the position limit across all employers` t IS
+    CONSIDER t
+    WHEN `teacher outside the reform` THEN 1.4
+    WHEN `principal outside the reform` THEN 1.5
+    WHEN `teacher in full implementation of Oz LaTmura` THEN 1.315
+    WHEN `teacher in Ofek Hadash` THEN 1.17
+
+-- akn:art_1__para_h/p3 The address of the exceptional-employment procedure; the procedure itself is not in the corpus.
+
+-- The closing paragraph of 1: no permit to employ beyond these positions,
+-- nor beyond 42 hours, unless the exceptional-employment procedure allows it.
+@ref akn:art_1/p1 akn:art_1__para_h/p2
+GIVEN t IS AN `employment terms`, `allowed by the exceptional-employment procedure` IS A BOOLEAN
+GIVETH A DEONTIC Party `circular action`
+DECIDE `no employment beyond the limits` t `allowed by the exceptional-employment procedure` IS
+    IF `allowed by the exceptional-employment procedure`
+    THEN FULFILLED
+    ELSE PARTY `the employer`
+         SHANT `employ beyond the limits` p h
+               PROVIDED p GREATER THAN `the position limit across all employers` t
+                        OR h GREATER THAN 42
+         WITHIN 12
+         LEST BREACH BY `the employer` BECAUSE "תשפ\"ו/7 §1: the circular is no permit to employ beyond the position limits or 42 hours"
+
+§§ `2 תשלום מענק יובל`
+
+DECLARE `stage of education` IS ONE OF
+    `junior high`
+    `upper division`
+    `recognised unofficial special education in Ofek Hadash`
+    `academic college for training teaching staff`
+    `kindergarten`
+    `primary`
+    `college for training teaching staff`
+
+@desc One part of the teacher's employment, by the stage of education it is in (2.ה.3).
+DECLARE `employment part` HAS
+    `part stage`     IS A `stage of education`
+    `part fraction`  IS A NUMBER  @desc the share of a full position this part is
+
+@desc The teacher's case for the jubilee grant of June 2026.
+DECLARE `jubilee case` HAS
+    `seniority fixed in September 2025`         IS A NUMBER  @desc the accumulated seniority fixed for the teacher in September of the year before the payment (2.ד), including military service and purchased unpaid-leave years
+    `seniority completed by 1 June 2026`        IS A NUMBER  @desc whole years of work completed by 1 June 2026, including compulsory military service (2.ה.2)
+    `parts of the employment`                   IS A LIST OF `employment part`
+    `share of the year employed`                IS A NUMBER  @desc the part of the year the teacher was employed (1 = the whole year)
+    `determining salary for pension and severance` IS A NUMBER @desc the salary determining pension and severance pay, without once-a-year payments (2.ג)
+
+-- akn:art_2__para_e The heading "הבהרות"; its items are encoded below.
+
+-- 2.ב sends the 25/30 distinction to 2.ה.3: by the stage the part of the
+-- employment is in.
+@ref akn:art_2__para_e__subpara_3
+GIVEN s IS A `stage of education`
+GIVETH A NUMBER
+DECIDE `the entitling seniority` s IS
+    CONSIDER s
+    WHEN `junior high` THEN 25
+    WHEN `upper division` THEN 25
+    WHEN `recognised unofficial special education in Ofek Hadash` THEN 25
+    WHEN `academic college for training teaching staff` THEN 25
+    OTHERWISE 30
+
+-- F-2025-26_tashpo_07-c: an academic college for training teaching staff
+-- is, in words, also a college for training them, and the 30-year list
+-- names the colleges unqualified. The reading adopted: the 30-year list's
+-- colleges are the colleges that are not academic.
+GIVEN s IS A `stage of education`
+GIVETH A BOOLEAN
+DECIDE `named by the 25-year list` s IF
+    `the entitling seniority` s EQUALS 25
+
+GIVEN s IS A `stage of education`
+GIVETH A BOOLEAN
+DECIDE `named by the 30-year list read as a genus` s IF
+    CONSIDER s
+    WHEN `kindergarten` THEN TRUE
+    WHEN `primary` THEN TRUE
+    WHEN `college for training teaching staff` THEN TRUE
+    WHEN `academic college for training teaching staff` THEN TRUE
+    OTHERWISE FALSE
+
+`an academic teacher-training college is named by both lists` MEANS
+        `named by the 25-year list` `academic college for training teaching staff`
+    AND `named by the 30-year list read as a genus` `academic college for training teaching staff`
+#ASSERT `an academic teacher-training college is named by both lists`
+
+-- 2.ה.1: a year of unpaid leave for which pension rights were purchased
+-- counts towards the seniority; it is part of the seniority inputs.
+@ref akn:art_2__para_e__subpara_1
+GIVEN `unpaid-leave year purchased for pension` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `the unpaid-leave year counts towards the jubilee seniority` `unpaid-leave year purchased for pension` IF
+    `unpaid-leave year purchased for pension`
+
+-- F-2025-26_tashpo_07-b: 2.ד measures the seniority as fixed in September
+-- of the year before the payment, 2.ה.2 as completed by 1 June of the
+-- year of payment. The reading adopted: 2.ה.2, the clarification that
+-- names the day, decides.
+@ref akn:art_2__para_b akn:art_2__para_d akn:art_2__para_e__subpara_2
+GIVEN c IS A `jubilee case`, p IS AN `employment part`
+GIVETH A BOOLEAN
+DECIDE `the part entitles under 2.ה.2` c p IF
+    c's `seniority completed by 1 June 2026` AT LEAST `the entitling seniority` (p's `part stage`)
+
+GIVEN c IS A `jubilee case`, p IS AN `employment part`
+GIVETH A BOOLEAN
+DECIDE `the part entitles under 2.ד` c p IF
+    c's `seniority fixed in September 2025` AT LEAST `the entitling seniority` (p's `part stage`)
+
+-- 2.ה.4: by the position held that year, up to one position, and by the
+-- part of the year employed.
+@ref akn:art_2__para_e__subpara_4
+GIVEN c IS A `jubilee case`
+GIVETH A NUMBER
+DECIDE `entitling position fraction` c IS
+    min (sum (map (GIVEN p YIELD p's `part fraction`)
+                  (filter (GIVEN p YIELD `the part entitles under 2.ה.2` c p) (c's `parts of the employment`))))
+        1
+
+-- 2.ג: 60% of the determining salary.
+@ref akn:art_2__para_c
+`the jubilee rate` MEANS 0.6
+
+@export The jubilee grant (מענק יובל) one employer pays a teaching employee in June 2026 under circular תשפ"ו/7
+GIVEN c IS A `jubilee case` @desc the teacher's seniority, parts of the employment and determining salary
+GIVETH A NUMBER
+DECIDE `jubilee grant` c IS
+    `the jubilee rate`
+        TIMES c's `determining salary for pension and severance`
+        TIMES `entitling position fraction` c
+        TIMES min (c's `share of the year employed`) 1
+
+-- 2.ה.5: with more than one employer, the rules of 1.ו to 1.ח apply with
+-- the necessary changes: each employer pays on its own part, one position
+-- at most with each, within the limits on the total position.
+@ref akn:art_2__para_e__subpara_5
+GIVEN `position fraction with this employer` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `jubilee position share with one of several employers` `position fraction with this employer` IS
+    min `position fraction with this employer` 1
+
+@ref akn:art_2__para_a
+GIVEN c IS A `jubilee case`
+GIVETH A DEONTIC Party `circular action`
+DECIDE `jubilee grant paid with June's salary` c IS
+    IF `entitling position fraction` c GREATER THAN 0
+    THEN PARTY `the employer`
+         MUST  `pay the jubilee grant` a
+               PROVIDED a AT LEAST `jubilee grant` c
+         WITHIN `month number` June
+         LEST BREACH BY `the employer` BECAUSE "תשפ\"ו/7 §2.א: the jubilee grant is paid with June 2026's salary"
+    ELSE FULFILLED
+
+-- akn:conclusions The contact line, signatures and copies; no rule.
+
+-- Examples. Seniority, positions and salaries are placeholders; the day
+-- value of 511.6 and the table are the circular's.
+`a full year, year 22` MEANS
+    `employee year` WITH
+        `seniority in teaching`               IS 22
+        `position fraction at this employer`  IS 1
+        `months of work`                      IS 10
+#ASSERT `recuperation allowance for תשפ"ו` `a full year, year 22` EQUALS 12 TIMES 511.6
+
+`half a position for five months, year 2` MEANS
+    `employee year` WITH
+        `seniority in teaching`               IS 2
+        `position fraction at this employer`  IS 0.5
+        `months of work`                      IS 5
+#ASSERT `recuperation allowance for תשפ"ו` `half a position for five months, year 2` EQUALS 7 TIMES 0.25 TIMES 511.6
+
+`a mixed teacher with 27 years` MEANS
+    `jubilee case` WITH
+        `seniority fixed in September 2025`             IS 26
+        `seniority completed by 1 June 2026`            IS 27
+        `parts of the employment`                       IS LIST `employment part` `junior high` 0.6, `employment part` `kindergarten` 0.4
+        `share of the year employed`                    IS 1
+        `determining salary for pension and severance`  IS 10000
+#ASSERT `jubilee grant` `a mixed teacher with 27 years` EQUALS 3600
+
+`a teacher completing 25 years in March 2026` MEANS
+    `jubilee case` WITH
+        `seniority fixed in September 2025`             IS 24
+        `seniority completed by 1 June 2026`            IS 25
+        `parts of the employment`                       IS LIST `employment part` `upper division` 1
+        `share of the year employed`                    IS 1
+        `determining salary for pension and severance`  IS 10000
+
+`2.ד and 2.ה.2 disagree for a teacher completing 25 years after September` MEANS
+    NOT (`the part entitles under 2.ד` `a teacher completing 25 years in March 2026` (`employment part` `upper division` 1)
+         EQUALS `the part entitles under 2.ה.2` `a teacher completing 25 years in March 2026` (`employment part` `upper division` 1))
+#ASSERT `2.ד and 2.ה.2 disagree for a teacher completing 25 years after September`
+
+#TRACE `recuperation paid with June's salary` `a full year, year 22` AT 0 WITH
+    PARTY `the employer` DOES `pay the recuperation allowance` 6139.2 AT 10
+#TRACE `jubilee grant paid with June's salary` `a mixed teacher with 27 years` AT 0 WITH
+    PARTY `the employer` DOES `pay the jubilee grant` 3600 AT 10
+#TRACE `no employment beyond the limits` `teacher outside the reform` FALSE AT 0 WITH
+    PARTY `the employer` DOES `employ beyond the limits` 1.3 44 AT 2

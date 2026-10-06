@@ -1,0 +1,215 @@
+-- חוזר לבעלויות תשפ"א/9: תגמול עובדי הוראה בגין הישגי בית הספר לשנת
+-- הלימודים תשפ"א
+-- The one-time grant to upper-secondary teaching employees for their
+-- school's achievements in school year תשפ"א (section 36 of the agreement
+-- of 14.8.2011): whom it covers, the grant by the school's ranking,
+-- pro-rating, payment with the August 2021 salary, what it is not part of,
+-- the pension contributions, and the owners' indemnity.
+
+IMPORT prelude
+IMPORT common
+
+-- Time in the regulative rules is counted in school months of תשפ"א
+-- (common.l4: September 2020 = 1, so the August 2021 salary is month 12).
+
+§ `חוזר תשפ"א/9 תגמול בגין הישגי בית הספר`
+
+-- akn:preamble The letterhead, date, reference number, addressee (the owners of post-primary education), greeting and subject line; the rows below that say something are cited on their own.
+
+-- ¶13-¶15: the general collective agreement of 14.8.2011 between the
+-- Centre of Local Government and the three large cities and the Secondary
+-- School Teachers' Association, approved by the Treasury's wage
+-- commissioner, on עוז לתמורה in upper secondary and on all its teaching
+-- employees; this circular publishes the grant for תשפ"א under its section 36.
+-- akn:preamble/p13 The agreement of 14.8.2011 this circular implements; it names the source and sets no rule.
+-- akn:preamble/p14 What that agreement covers; no rule.
+-- akn:preamble/p15 The circular's purpose: the grant for 2020-21 under section 36 of the agreement, encoded in sections 1-2 below.
+
+§§ `1 תחולה`
+
+@desc A teaching employee's school year תשפ"א, as far as the circular asks about it.
+DECLARE `achievement year` HAS
+    `graded in the teaching-employees grading`     IS A BOOLEAN
+    `employed by a post-primary owner the Ministry supervises` IS A BOOLEAN
+    `teaching in upper secondary`                  IS A BOOLEAN @desc employed in the upper grades: 9-12/14 in a four-year school, 10-12/14 in a three- or six-year school
+    `school ranking`                               IS A `school grade`
+    `upper-secondary position fraction`            IS A NUMBER  @desc the share of a full position held in upper secondary (1 = 100%)
+    `months employed at the school`                IS A NUMBER  @desc months of school year 2020-21 employed at the excelling school, unpaid leave and sabbatical excluded
+    `months of maternity leave`                    IS A NUMBER  @desc months of maternity leave under the Women's Employment Law, 1954, not counting unpaid leave or absence treated as such after it
+    `on full sabbatical or unpaid leave all year`  IS A BOOLEAN
+
+-- Whether under עוז לתמורה or not yet, by the share employed in upper
+-- secondary.
+@ref akn:art_1
+GIVEN a IS AN `achievement year`
+GIVETH A BOOLEAN
+DECIDE `the circular applies to` a IF
+        a's `graded in the teaching-employees grading`
+    AND a's `employed by a post-primary owner the Ministry supervises`
+    AND a's `teaching in upper secondary`
+
+§§ `2 תגמול עובדי הוראה בגין הישגי בית הספר`
+
+-- (א): the programme runs from תשע"ג under the format and rules of the
+-- pedagogical administration's letter of 21.10.2012 (an input: which
+-- schools rank where, published by the link of section 3).
+DECLARE `school grade` IS ONE OF
+    `grade 1, the top 10%`
+    `grade 2, the next 10%`
+    `grade 3, the next 10% after that`
+    `grade 4, the next 10% after that`
+    `not ranked for a grant`
+
+@ref akn:art_2__para_a akn:art_3
+GIVEN a IS AN `achievement year`
+GIVETH A BOOLEAN
+DECIDE `the school ranks for a grant` a IF
+    NOT (a's `school ranking` EQUALS `not ranked for a grant`)
+
+-- (ב): the grant for a teacher at 100%, updated to May 2021, by the
+-- school's grade — one row per printed line. The asterisk: updated by the
+-- consumer price index of May 2021 against that of May 2020.
+@ref akn:art_2__para_b akn:art_2__para_b/p2 akn:art_2__para_b/p3 akn:art_2__para_b/p4 akn:art_2__para_b/p5 akn:art_2__para_b/p6 akn:art_2__para_b/p7 akn:art_2__para_b/p8 akn:art_2__para_b/p9
+DECLARE `grant row` HAS
+    `grade of the row`  IS A `school grade`
+    `full-time grant`   IS A NUMBER
+
+`the grant table` MEANS
+    LIST `grant row` `grade 1, the top 10%`               8443.19,
+         `grant row` `grade 2, the next 10%`              6332.39,
+         `grant row` `grade 3, the next 10% after that`   4221.6,
+         `grant row` `grade 4, the next 10% after that`   3166.19
+
+GIVEN g IS A `school grade`
+GIVETH A NUMBER
+DECIDE `full-time grant for` g IS
+    sum (map (GIVEN r YIELD r's `full-time grant`)
+             (filter (GIVEN r YIELD r's `grade of the row` EQUALS g) `the grant table`))
+
+-- The grant falls with the grade, and each grade has one row.
+`the grant falls with the grade` MEANS
+        `full-time grant for` `grade 1, the top 10%` GREATER THAN `full-time grant for` `grade 2, the next 10%`
+    AND `full-time grant for` `grade 2, the next 10%` GREATER THAN `full-time grant for` `grade 3, the next 10% after that`
+    AND `full-time grant for` `grade 3, the next 10% after that` GREATER THAN `full-time grant for` `grade 4, the next 10% after that`
+#ASSERT `the grant falls with the grade`
+#ASSERT count `the grant table` EQUALS 4
+
+-- (ג): a part-time or part-year teacher (unpaid leave or sabbatical for
+-- part of the year included) gets the proportional part, by the upper-
+-- secondary position and by the part of תשפ"א employed at the excelling
+-- school. "ו/או" is read as applying whichever of the two the case has, so
+-- both where both are partial. Maternity leave counts as employed. A full
+-- year's sabbatical or unpaid leave gives no grant. (ד): employment above
+-- 100% is not counted.
+@ref akn:art_2__para_c akn:art_2__para_d
+GIVEN a IS AN `achievement year`
+GIVETH A NUMBER
+DECIDE `share of the year` a IS
+    min 12 (a's `months employed at the school` PLUS a's `months of maternity leave`)
+    DIVIDED BY 12
+
+@ref akn:art_2__para_c/p2
+GIVEN a IS AN `achievement year`
+GIVETH A BOOLEAN
+DECIDE `excluded by a full year's sabbatical or unpaid leave` a IF
+    a's `on full sabbatical or unpaid leave all year`
+
+@export default The one-time school-achievement grant in shekels for an upper-secondary teaching employee for 2020-21 under circular תשפ"א/9
+GIVEN a IS AN `achievement year` @desc the employee's school year
+GIVETH A NUMBER
+DECIDE `achievement grant` a IS
+    IF `the circular applies to` a
+       AND `the school ranks for a grant` a
+       AND NOT `excluded by a full year's sabbatical or unpaid leave` a
+    THEN `full-time grant for` (a's `school ranking`)
+         TIMES min (a's `upper-secondary position fraction`) 1
+         TIMES `share of the year` a
+    ELSE 0
+
+DECLARE `grant action` IS ONE OF
+    `pay the achievement grant` HAS `grant paid` IS A NUMBER
+    `contribute to a pension fund` HAS `employer contribution` IS A NUMBER
+                                       `employee deduction` IS A NUMBER
+
+-- (ה): paid with the August 2021 salary; (ז): with pension-fund
+-- contributions of 5% from the employer and 5% deducted from the teacher.
+@ref akn:art_2__para_e
+GIVEN a IS AN `achievement year`
+GIVETH A DEONTIC Party `grant action`
+DECIDE `paying the grant with August's salary` a IS
+    PARTY `the employer`
+    MUST  `pay the achievement grant` `amount`
+          PROVIDED `amount` AT LEAST `achievement grant` a
+    WITHIN `month number` August
+    LEST  BREACH BY `the employer` BECAUSE "circular 2020-21/9 2e: the grants are paid with the August 2021 salary"
+
+`employer pension rate on the grant` MEANS 0.05
+`employee pension rate on the grant` MEANS 0.05
+
+-- The corpus prints (ז) inside (ו) (art_2__para_f/p2-p3), with the word
+-- "הפרשת" out of place: a corpus defect, reported.
+@ref akn:art_2__para_f/p2 akn:art_2__para_f/p3
+GIVEN a IS AN `achievement year`
+GIVETH A DEONTIC Party `grant action`
+DECIDE `pension contributions on the grant` a IS
+    PARTY `the employer`
+    MUST  `contribute to a pension fund` `from the employer` `from the teacher`
+          PROVIDED `from the employer` AT LEAST `employer pension rate on the grant` TIMES `achievement grant` a
+                   AND `from the teacher` EQUALS `employee pension rate on the grant` TIMES `achievement grant` a
+    WITHIN `month number` August
+    LEST  BREACH BY `the employer` BECAUSE "circular 2020-21/9 2g: 5% employer and 5% employee pension contributions on the grant"
+
+-- (ו): the grant is not part of the base for the hourly value, severance
+-- or percentage supplements, and no study-fund contributions are made.
+DECLARE `salary base` IS ONE OF
+    `the hourly value`
+    `severance pay`
+    `percentage supplements`
+    `study-fund contributions`
+    `pension-fund contributions`
+
+@ref akn:art_2__para_f
+GIVEN b IS A `salary base`
+GIVETH A BOOLEAN
+DECIDE `the grant counts toward` b IF
+    b EQUALS `pension-fund contributions`
+
+-- 4: the owners are indemnified in the payment system, topic 583, in the
+-- August 2021 payments transferred at the start of 9/2021.
+@ref akn:art_4
+`the payment-system topic of the indemnity` MEANS 583
+
+-- akn:conclusions The contact line, signatures and copies list; no rule.
+
+-- Worked examples: the shekel figures are the circular's own.
+`a full-time teacher at a grade-2 school` MEANS
+    `achievement year` WITH
+        `graded in the teaching-employees grading`     IS TRUE
+        `employed by a post-primary owner the Ministry supervises` IS TRUE
+        `teaching in upper secondary`                  IS TRUE
+        `school ranking`                               IS `grade 2, the next 10%`
+        `upper-secondary position fraction`            IS 1.2
+        `months employed at the school`                IS 12
+        `months of maternity leave`                    IS 0
+        `on full sabbatical or unpaid leave all year`  IS FALSE
+
+`a half-time teacher at a grade-1 school, three months on maternity leave` MEANS
+    `achievement year` WITH
+        `graded in the teaching-employees grading`     IS TRUE
+        `employed by a post-primary owner the Ministry supervises` IS TRUE
+        `teaching in upper secondary`                  IS TRUE
+        `school ranking`                               IS `grade 1, the top 10%`
+        `upper-secondary position fraction`            IS 0.5
+        `months employed at the school`                IS 9
+        `months of maternity leave`                    IS 3
+        `on full sabbatical or unpaid leave all year`  IS FALSE
+
+#ASSERT `achievement grant` `a full-time teacher at a grade-2 school` EQUALS 6332.39
+#ASSERT `achievement grant` `a half-time teacher at a grade-1 school, three months on maternity leave` EQUALS 4221.595
+#ASSERT NOT `the grant counts toward` `severance pay`
+#ASSERT `the grant counts toward` `pension-fund contributions`
+
+#TRACE `paying the grant with August's salary` `a full-time teacher at a grade-2 school` AT 0 WITH
+    PARTY `the employer` DOES `pay the achievement grant` 6332.39 AT 12
+#TRACE `pension contributions on the grant` `a full-time teacher at a grade-2 school` AT 0 WITH
+    PARTY `the employer` DOES `contribute to a pension fund` 316.6195 316.6195 AT 12
