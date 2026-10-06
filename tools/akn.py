@@ -49,9 +49,12 @@ class Row:
     heading: str = ""
     runs: list[Run] = field(default_factory=list)
     aliases: list[str] = field(default_factory=list)
+    cells: list[list[str]] | None = None   # a table: rows of cell texts
 
     @property
     def text(self) -> str:
+        if self.cells is not None:
+            return " | ".join(" ".join(row) for row in self.cells)
         return "".join(r.text for r in self.runs)
 
 
@@ -140,13 +143,20 @@ def runs_of(p, notes: dict[str, str]) -> list[Run]:
     return [r for r in merged if r.text or r.sic]
 
 
-def section_rows(sec, notes) -> list[Row]:
+def section_rows(sec, notes, holder0: str | None = None) -> list[Row]:
     rows: list[Row] = []
 
     def walk(e, holder: str, depth: int, counter: dict):
         for ch in e:
             t = tag(ch)
-            if t in ("num", "heading", "note"):
+            if t in ("num", "heading", "note", "meta"):
+                continue
+            if t == "table":
+                # a table is one row, cited whole: "<holder>/t<N>"
+                tables[holder] = tables.get(holder, 0) + 1
+                cells = [[squash("".join(c.itertext())) for c in tr if tag(c) in ("td", "th")]
+                         for tr in ch.iter(AKN + "tr")]
+                rows.append(Row(f"{holder}/t{tables[holder]}", depth, "text", cells=cells))
                 continue
             if t == "p":
                 counter[holder] = counter.get(holder, 0) + 1
@@ -180,7 +190,8 @@ def section_rows(sec, notes) -> list[Row]:
                 walk(ch, holder, depth, counter)
 
     labelled: set[str] = set()
-    walk(sec, sec.get("eId"), 0, {})
+    tables: dict[str, int] = {}
+    walk(sec, holder0 or sec.get("eId"), 0, {})
     return rows
 
 
@@ -188,7 +199,40 @@ def section_rows(sec, notes) -> list[Row]:
 BREADCRUMB = re.compile(r"^תחום תנאי שירות עובדי הוראה תקנון שירות עובדי הוראה")
 
 
+# A document that is not divided into chapters and sections — a circular, a
+# letter — is one Section: its front matter, body, sign-off and annexes.
+# Parts with no eId of their own are keyed by the part's name.
+WHOLE_PARTS = ("preamble", "mainBody", "body", "conclusions", "attachments")
+
+
+def is_whole(relative: str) -> bool:
+    return not relative.startswith("takanon/")
+
+
+def whole_section(relative: str) -> Section:
+    root = load(relative)
+    notes = sic_notes(root)
+    doc = root[0]
+    rows: list[Row] = []
+    for part in doc:
+        name = tag(part)
+        if name not in WHOLE_PARTS:
+            continue
+        key = {"mainBody": "body"}.get(name, name)
+        part_rows = section_rows(part, notes, key)
+        if part_rows:
+            rows.append(Row(key, 0, "label", "", {"preamble": "Front matter", "body": "",
+                                                   "conclusions": "Sign-off",
+                                                   "attachments": "Attachments"}.get(key, key)))
+            rows += [r for r in part_rows]
+    rows = [r for r in rows if not (r.kind == "label" and r.key == "body" and not r.heading)]
+    stem = Path(relative).stem
+    return Section(stem, stem, title(relative), "", "", "", rows)
+
+
 def sections(relative: str) -> list[Section]:
+    if is_whole(relative):
+        return [whole_section(relative)]
     root = load(relative)
     notes = sic_notes(root)
     out = []
@@ -212,5 +256,8 @@ def sections(relative: str) -> list[Section]:
 
 def title(relative: str) -> str:
     root = load(relative)
-    lt = root.find(f".//{AKN}longTitle")
-    return squash("".join(lt.itertext())) if lt is not None else relative
+    for t in ("docTitle", "longTitle", "shortTitle"):
+        e = root.find(f".//{AKN}{t}")
+        if e is not None:
+            return squash("".join(e.itertext()))
+    return relative

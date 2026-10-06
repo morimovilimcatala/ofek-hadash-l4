@@ -110,3 +110,35 @@ reader can see past, a dated amount.
 - `common.l4` holds `Party`. Do not edit it; if a section needs an actor it
   lacks, declare a section-local party type (`DECLARE \`1.28 party\` IS ONE
   OF …`) and say so in the hand-off.
+
+## Circulars (and any document that is not divided into sections)
+
+A circular is ONE unit: `l4/<collection>/<file>.l4` beside the corpus's
+`akn/<collection>/<file>.xml`, findings in `findings/<collection>/<file>.toml`
+(`l4 = "l4/<collection>/<file>.l4"` in each finding). `common.l4` in each
+collection directory is a link to the takanon's, so `IMPORT common` works.
+
+    python3 tools/rows.py circulars/2016-17_tashaz_05          # its rows and keys
+    python3 tools/rows.py circulars/2016-17_tashaz_05 --todo
+
+- **Front matter and sign-off** are keyed `preamble/…` and `conclusions/…`.
+  The letterhead, date, reference number, addressee and greeting carry no
+  rule: one note on `akn:preamble` covers them all (an ancestor key covers
+  its rows). The sign-off's contact line, signature and copies likewise
+  (`akn:conclusions`) — unless a line in it SAYS something (a deadline, an
+  instruction to the owners), which then gets a rule of its own.
+- **A table is one row**, keyed `<holder eId>/t<N>` and shown as a table.
+  Encode it as data (a LIST of records, one per printed row, in the
+  printed order) and cite the table key on that declaration. Overlapping or
+  missing rows are findings, as in §1.7.
+- **A circular carries AMOUNTS and DATES** where the takanon leaves them to
+  "the circulars". Here they are data, with the date they take effect as
+  printed. A circular never outranks an agreement: where it restates an
+  agreement's rule, encode what the circular says and cite the agreement it
+  names in a comment; where the two disagree on the page, that is a
+  finding (kind `contradiction`), not a correction.
+- **Instructions to the owners (הבעלויות) are regulative rules**: PARTY
+  `the employer` (or the owning body) MUST pay / report / deduct … WITHIN
+  the month the circular names, with a `#TRACE`.
+- Each circular is encoded on its own words. Do not import another circular;
+  name what it relies on as an input with an `@desc` saying where it comes from.

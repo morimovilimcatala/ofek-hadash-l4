@@ -37,13 +37,27 @@ L4_OUT = ROOT / "build" / "l4"
 ASSETS = Path(__file__).resolve().parent / "assets"
 FINDINGS = ROOT / "findings"           # one <section>.toml per section
 MANIFEST = ROOT / "corpus" / "manifest.json"
+MANIFEST_DOCS = json.loads(MANIFEST.read_text(encoding="utf-8"))["documents"]
 CORPUS_SITE = "https://morimovilimcatala.github.io/ofek-hadash-corpus"
 REPO = "https://github.com/morimovilimcatala/ofek-hadash-l4"
 TITLE = "Ofek Hadash in L4"
 
 # what is encoded, by the corpus document it encodes; the l4/ directory
 # mirrors the corpus's akn/ path without the extension
-DOCUMENTS = ["takanon/takanon-sherut-ovdei-horaa.xml"]
+# the collections in work: every document of them, by the corpus's own list
+WORK_COLLECTIONS = ("takanon", "circulars", "circulars-sachar", "circulars-tnai-sherut")
+
+
+def _documents() -> list[str]:
+    docs = json.loads((Path(__file__).resolve().parent.parent / "corpus" / "manifest.json")
+                      .read_text(encoding="utf-8"))["documents"]
+    out = ["takanon/takanon-sherut-ovdei-horaa.xml"]
+    out += sorted(d["path"] for d in docs
+                  if d["collection"] in WORK_COLLECTIONS[1:])
+    return out
+
+
+DOCUMENTS = _documents()
 
 # the corpus's collections, so the reader sees what is not started as well
 COLLECTIONS = [
@@ -110,6 +124,11 @@ class SectionView:
         return self.doc.removesuffix(".xml")
 
     @property
+    def whole(self) -> bool:
+        """A document that is one section (a circular), not a takanon section."""
+        return akn.is_whole(self.doc)
+
+    @property
     def page(self) -> str:
         """The document's one page; a section is an anchor on it, named by
         the same eId the corpus site uses, so links between the two match."""
@@ -117,7 +136,7 @@ class SectionView:
 
     @property
     def href(self) -> str:
-        return f"{self.page}#{self.section.eid}"
+        return self.page if self.whole else f"{self.page}#{self.section.eid}"
 
     @property
     def old_href(self) -> str:
@@ -126,7 +145,7 @@ class SectionView:
 
     @property
     def render_href(self) -> str:
-        return f"{self.dir}/{self.section.num}.render.html"
+        return f"{self.dir}.render.html" if self.whole else f"{self.dir}/{self.section.num}.render.html"
 
     @property
     def text_rows(self):
@@ -151,6 +170,8 @@ class SectionView:
 
 
 def l4_path(doc: str, num: str) -> Path:
+    if akn.is_whole(doc):
+        return ROOT / "l4" / f"{doc.removesuffix('.xml')}.l4"
     return ROOT / "l4" / doc.removesuffix(".xml") / f"{num}.l4"
 
 
@@ -224,7 +245,13 @@ def citations(sec: akn.Section) -> dict[str, str]:
         # a label that restates the section's own number adds nothing
         stack.append("" if r.num.startswith(sec.num) else num)
         parts = [p for p in stack if p]
-        cite = "§" + sec.num + "".join(("." if p.isdigit() else "") + p for p in parts)
+        if sec.chapter_eid:
+            cite = "§" + sec.num + "".join(("." if p.isdigit() else "") + p for p in parts)
+        else:   # a whole document: its clauses are cited from its own numbering
+            cite = "§" + "".join(("." if p.isdigit() and i else "") + p for i, p in enumerate(parts))
+            if cite == "§":
+                cite = {"preamble": "front matter", "conclusions": "sign-off",
+                        "attachments": "attachments"}.get(r.key.split("/")[0].split("__")[0], "§")
         for k in [r.key, *r.aliases]:
             out.setdefault(k, cite)
     for k in list(out):
@@ -391,6 +418,9 @@ def text_cell(r: akn.Row) -> str:
     head = f'<span class="h">{esc(r.heading)}</span>' if r.heading else ""
     if r.kind == "label":
         return num + head
+    if r.cells is not None:
+        body = "".join("<tr>" + "".join(f"<td>{esc(c)}</td>" for c in row) + "</tr>" for row in r.cells)
+        return f'<div class="ctable"><table>{body}</table></div>'
     # a corpus sic mark is the corpus's: its correction is taken as given and
     # the text is shown plain (the client, 2026-10-06: no כך במקור on this site)
     return num + head + f'<span class="t">{"".join(esc(run.text) for run in r.runs)}</span>'
@@ -441,7 +471,7 @@ def segment_html(v: SectionView, s: l4src.Segment, rendered: dict[int, str]) -> 
 FINDINGS_BY_KEY: dict[str, list[dict]] = {}
 
 
-def section_block(v: SectionView, here: str) -> str:
+def section_block(v: SectionView, here: str, headless: bool = False) -> str:
     """One section of the document page: its head, its findings, and the
     text beside the L4, row by row."""
     sec = v.section
@@ -468,10 +498,11 @@ def section_block(v: SectionView, here: str) -> str:
                  + (f'<span class="fcount"><b>{len(found)}</b> finding{"s" * (len(found) != 1)}</span>' if found else "")
                  + '</div>')
     head = (f'<header class="tsec-head">'
-            f'<div class="title-row"><h2 lang="he" dir="rtl"><a class="anchor" href="#{esc(sec.eid)}">'
-            f'<span class="secnum" dir="ltr">§{esc(sec.num)}</span>{esc(sec.heading)}</a></h2>'
-            f'<div class="tsec-meta">{badge(v.status)}<span class="links">{"".join(links)}</span></div></div>'
-            f'{stats}</header>')
+            + ("" if headless else
+               f'<div class="title-row"><h2 lang="he" dir="rtl"><a class="anchor" href="#{esc(sec.eid)}">'
+               f'<span class="secnum" dir="ltr">§{esc(sec.num)}</span>{esc(sec.heading)}</a></h2>'
+               f'<div class="tsec-meta">{badge(v.status)}<span class="links">{"".join(links)}</span></div></div>')
+            + f'{stats}</header>')
     if found:
         head += ('<div class="sec-findings"><h3>Findings in this section</h3><ul>'
                  + "".join(f'<li><a href="{rel("findings.html", here)}#{esc(f["id"])}"><span class="kind-tag {f["kind"]}">'
@@ -537,10 +568,11 @@ def render_page(v: SectionView) -> str:
     m = re.search(r"<body[^>]*>(.*)</body>", v.render, re.S)
     inner = m.group(1) if m else v.render
     here = v.render_href
-    body = (f'<header class="sec-head"><nav class="crumbs"><a href="{rel(v.href, here)}">← §{esc(v.section.num)} side by side</a></nav>'
-            f'<div class="title-row"><h1 lang="he" dir="rtl"><span class="secnum" dir="ltr">§{esc(v.section.num)}</span>'
-            f'{esc(v.section.heading)}</h1></div>'
-            f'<p class="lede">The whole section as <code>l4 render</code> writes the rules back out as prose.</p></header>'
+    body = (f'<header class="sec-head"><nav class="crumbs"><a href="{rel(v.href, here)}">← {"" if v.whole else "§" + esc(v.section.num) + " "}side by side</a></nav>'
+            f'<div class="title-row"><h1 lang="he" dir="rtl">'
+            + ("" if v.whole else f'<span class="secnum" dir="ltr">§{esc(v.section.num)}</span>')
+            + f'{esc(v.section.heading)}</h1></div>'
+            f'<p class="lede">The whole {"document" if v.whole else "section"} as <code>l4 render</code> writes the rules back out as prose.</p></header>'
             f'<div class="render-frame">{inner or "<p>l4 render produced nothing for this file.</p>"}</div>')
     return page(here, f"§{v.section.num} — l4 render", body, tab="docs")
 
@@ -614,6 +646,71 @@ def document_page(doc: str, views: list[SectionView]) -> str:
                 desc="The teaching staff service regulations, whole, each paragraph beside its L4 encoding")
 
 
+def doc_meta(doc: str) -> dict:
+    for d in MANIFEST_DOCS:
+        if d["path"] == doc:
+            return d
+    return {"path": doc, "title": akn.title(doc), "date": None, "collection": doc.split("/")[0]}
+
+
+def coll_name(coll: str) -> str:
+    return dict(COLLECTIONS).get(coll, coll)
+
+
+def single_page(doc: str, v: SectionView) -> str:
+    """A document that is one section — a circular — on a page of its own,
+    at the corpus's own path."""
+    here = v.page
+    meta = doc_meta(doc)
+    coll = doc.split("/")[0]
+    corpus = f"{CORPUS_SITE}/{v.dir}.html"
+    links = [f'<a href="{corpus}">In the corpus ↗</a>']
+    if v.l4:
+        links += [f'<a href="{REPO}/blob/main/{v.l4.relative_to(ROOT)}">Source ↗</a>',
+                  f'<a href="{rel(v.render_href, here)}">Whole document as prose</a>']
+    switch = ('<div class="switch" role="group" aria-label="How to show the L4">'
+              '<button type="button" data-view="code-view" aria-pressed="true">Code</button>'
+              '<button type="button" data-view="rendered" aria-pressed="false">As prose</button></div>')
+    head = (f'<header class="sec-head"><nav class="crumbs"><a href="{rel("index.html", here)}">Documents</a><span>/</span>'
+            f'<a href="{rel(coll + ".html", here)}">{esc(coll_name(coll))}</a></nav>'
+            f'<div class="title-row"><h1 lang="he" dir="rtl">{esc(v.section.heading)}</h1>{badge(v.status)}</div>'
+            f'<p class="meta"><span class="docid" dir="ltr">{esc(v.section.num)}</span>'
+            + (f' · {esc(meta["date"])}' if meta.get("date") else "") + '</p>'
+            f'<div class="links">{"".join(links)}</div></header>')
+    toolbar = (f'<div class="doc-toolbar"><span class="tb-label">L4 shown as</span>{switch}'
+               f'<span class="tb-where"></span><span class="tb-cols"></span></div>')
+    body = head + toolbar + section_block(v, here, headless=True)
+    return page(here, f"{v.section.heading} — {TITLE}", body, tab="docs", wide=True,
+                desc=f"{v.section.heading}: the circular's text beside its L4 encoding")
+
+
+def school_year(doc: str) -> str:
+    return Path(doc).stem.split("_")[0][:7]
+
+
+def collection_page(coll: str, views: list[SectionView]) -> str:
+    """Every document of a collection, by year, newest first."""
+    here = f"{coll}.html"
+    by_year: dict[str, list[SectionView]] = {}
+    for v in views:
+        by_year.setdefault(school_year(v.doc), []).append(v)
+    done = sum(v.status == "done" for v in views)
+    parts = [f'<header class="sec-head"><nav class="crumbs"><a href="index.html">Documents</a></nav>'
+             f'<div class="title-row"><h1>{esc(coll_name(coll))}</h1></div>'
+             f'<div class="stats"><span><b>{done}</b> of {len(views)} documents encoded</span>'
+             f'<a href="{CORPUS_SITE}/">In the corpus ↗</a></div>{progress(views)}</header>']
+    for year in sorted(by_year, reverse=True):
+        vs = sorted(by_year[year], key=lambda v: v.doc)
+        lis = "".join(
+            f'<li class="{v.status}"><a href="{rel(v.href, here)}">{dot(v.status)}'
+            f'<span class="secnum" dir="ltr">{esc(Path(v.doc).stem.split("_", 1)[-1])}</span>'
+            f'<span class="sh" lang="he">{esc(v.section.heading)}</span></a></li>' for v in vs)
+        parts.append(f'<section class="chapter" dir="rtl"><div class="chapter-head"><h2 dir="ltr">{esc(year)}</h2>'
+                     f'<span class="ccount" dir="ltr">{sum(v.status == "done" for v in vs)} of {len(vs)} encoded</span></div>'
+                     f'<ul class="secs docs">{lis}</ul></section>')
+    return page(here, f"{coll_name(coll)} — {TITLE}", "".join(parts), tab="docs")
+
+
 def index_page(all_views: dict[str, list[SectionView]], findings: list[dict]) -> str:
     flat = [v for vs in all_views.values() for v in vs]
     done = sum(v.status == "done" for v in flat)
@@ -625,13 +722,20 @@ def index_page(all_views: dict[str, list[SectionView]], findings: list[dict]) ->
             cards.append(f'<li class="coll todo"><span class="cname">{esc(name)}</span>'
                          f'<span class="cstate">not started</span></li>')
             continue
-        for d in docs:
-            vs = all_views[d]
-            n = sum(v.status == "done" for v in vs)
-            cards.append(f'<li class="coll live"><a href="{d.removesuffix(".xml")}.html">'
-                         f'<span class="cname">{esc(name)}</span>'
-                         f'<span class="ctitle" lang="he" dir="rtl">{esc(akn.title(d))}</span>'
-                         f'{progress(vs)}<span class="cstate">{n} of {len(vs)} sections encoded</span></a></li>')
+        if coll == "takanon":
+            for d in docs:
+                vs = all_views[d]
+                n = sum(v.status == "done" for v in vs)
+                cards.append(f'<li class="coll live wide"><a href="{d.removesuffix(".xml")}.html">'
+                             f'<span class="cname">{esc(name)}</span>'
+                             f'<span class="ctitle" lang="he" dir="rtl">{esc(akn.title(d))}</span>'
+                             f'{progress(vs)}<span class="cstate">{n} of {len(vs)} sections encoded</span></a></li>')
+            continue
+        vs = [v for d in docs for v in all_views[d]]
+        n = sum(v.status == "done" for v in vs)
+        cards.append(f'<li class="coll live"><a href="{coll}.html">'
+                     f'<span class="cname">{esc(name)}</span>'
+                     f'{progress(vs)}<span class="cstate">{n} of {len(vs)} documents encoded</span></a></li>')
     body = (f'<section class="hero"><h1>The rules of Israeli teachers\' employment, '
             f'written as code beside the text.</h1>'
             f'<p class="lede">Each section of the <a href="{CORPUS_SITE}/">Ofek Hadash corpus</a> appears '
@@ -641,7 +745,7 @@ def index_page(all_views: dict[str, list[SectionView]], findings: list[dict]) ->
             f'who is entitled, under what conditions, who must do what and by when.</p>'
             f'<p class="lede">Writing law as code exposes where it does not hold together. Those places are the '
             f'<a href="findings.html">findings</a>: each one shown, in code, to be in the text.</p>'
-            f'<div class="kpis"><div><b>{done}</b><span>sections encoded</span></div>'
+            f'<div class="kpis"><div><b>{done}</b><span>sections and documents encoded</span></div>'
             f'<div><b>{rules}</b><span>paragraphs with a rule</span></div>'
             f'<div><a href="findings.html"><b>{len(findings)}</b><span>findings in the text</span></a></div></div>'
             f'</section>'
@@ -836,7 +940,23 @@ def coverage_page(all_views: dict[str, list[SectionView]]) -> str:
             f'<div><b>{t["rule"]}</b><span>paragraphs with a rule</span></div>'
             f'</div>')
     parts = [head]
+    def cell(v: SectionView) -> str:
+        n = max(len(v.text_rows), 1)
+        name = v.section.num if not v.whole else Path(v.doc).stem
+        if v.src is None:
+            segs = '<i class="todo" style="flex:1"></i>'
+            tip = f"{name} {v.section.heading}: not encoded ({len(v.text_rows)} paragraphs)"
+        else:
+            c = tally(v)
+            segs = "".join(f'<i class="{k}" style="flex:{c[k]}"></i>'
+                           for k in ("rule", "note", "missing") if c[k])
+            tip = (f"{name} {v.section.heading}: {c['rule']} with a rule, "
+                   f"{c['note']} with no rule, {c['missing']} not cited")
+        return (f'<a class="cell" href="{v.href}" title="{esc(tip)}" style="flex:{n}">{segs}</a>')
+
     for doc, vs in all_views.items():
+        if akn.is_whole(doc):
+            continue
         parts.append(f'<h2><a href="{doc.removesuffix(".xml")}.html">{he(akn.title(doc))}</a></h2>'
                      '<p class="meta">One strip per chapter, one cell per section, its width the section\'s '
                      'paragraphs. Hover for the counts; click to open.</p>')
@@ -846,22 +966,22 @@ def coverage_page(all_views: dict[str, list[SectionView]]) -> str:
         rows = []
         for cvs in chapters.values():
             s0 = cvs[0].section
-            cells = []
-            for v in cvs:
-                n = max(len(v.text_rows), 1)
-                if v.src is None:
-                    segs = '<i class="todo" style="flex:1"></i>'
-                    tip = f"§{v.section.num} {v.section.heading}: not encoded ({len(v.text_rows)} paragraphs)"
-                else:
-                    c = tally(v)
-                    segs = "".join(f'<i class="{k}" style="flex:{c[k]}"></i>'
-                                   for k in ("rule", "note", "missing") if c[k])
-                    tip = (f"§{v.section.num} {v.section.heading}: {c['rule']} with a rule, "
-                           f"{c['note']} with no rule, {c['missing']} not cited")
-                cells.append(f'<a class="cell" href="{v.href}" title="{esc(tip)}" style="flex:{n}">'
-                             f'{segs}</a>')
             rows.append(f'<div class="strip-row"><div class="strip-name">Chapter {esc(s0.chapter_num)} '
-                        f'{he(s0.chapter_heading)}</div><div class="strip">{"".join(cells)}</div></div>')
+                        f'{he(s0.chapter_heading)}</div><div class="strip">{"".join(cell(v) for v in cvs)}</div></div>')
+        parts.append(f'<div class="strips">{"".join(rows)}</div>')
+    for coll in WORK_COLLECTIONS[1:]:
+        cvs_all = [v for d, vs in all_views.items() if d.startswith(coll + "/") for v in vs]
+        if not cvs_all:
+            continue
+        parts.append(f'<h2><a href="{coll}.html">{esc(coll_name(coll))}</a></h2>'
+                     '<p class="meta">One strip per year, one cell per document, its width the document\'s '
+                     'paragraphs.</p>')
+        by_year: dict[str, list[SectionView]] = {}
+        for v in cvs_all:
+            by_year.setdefault(school_year(v.doc), []).append(v)
+        rows = [f'<div class="strip-row"><div class="strip-name">{esc(y)}</div>'
+                f'<div class="strip">{"".join(cell(v) for v in sorted(by_year[y], key=lambda v: v.doc))}</div></div>'
+                for y in sorted(by_year)]
         parts.append(f'<div class="strips">{"".join(rows)}</div>')
     names = dict(COLLECTIONS)
     by_coll: dict[str, list[dict]] = {}
@@ -938,6 +1058,13 @@ def build() -> int:
         views = [build_view(doc, s) for s in akn.sections(doc)]
         all_views[doc] = views
         d = OUT / doc.removesuffix(".xml")
+        if akn.is_whole(doc):
+            v = views[0]
+            (OUT / v.page).parent.mkdir(parents=True, exist_ok=True)
+            (OUT / v.page).write_text(single_page(doc, v), encoding="utf-8")
+            if v.src is not None:
+                (OUT / v.render_href).write_text(render_page(v), encoding="utf-8")
+            continue
         d.mkdir(parents=True, exist_ok=True)
         (OUT / f"{doc.removesuffix('.xml')}.html").write_text(document_page(doc, views), encoding="utf-8")
         # the per-section pages and the chapter list this site had first
@@ -954,6 +1081,10 @@ def build() -> int:
     for v in flat:
         for k in v.section.keys():
             key_to_view.setdefault(k, v)
+    for coll in WORK_COLLECTIONS[1:]:
+        vs = [v for d, views in all_views.items() if d.startswith(coll + "/") for v in views]
+        if vs:
+            (OUT / f"{coll}.html").write_text(collection_page(coll, vs), encoding="utf-8")
     (OUT / "index.html").write_text(index_page(all_views, findings), encoding="utf-8")
     (OUT / "findings.html").write_text(findings_page(findings, by_file, key_to_view), encoding="utf-8")
     (OUT / "findings.json").write_text(findings_json(findings, by_file, key_to_view), encoding="utf-8")
