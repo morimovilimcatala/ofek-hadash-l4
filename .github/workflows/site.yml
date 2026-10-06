@@ -1,0 +1,95 @@
+# Build the pinned L4 compiler, check every encoding, build the site and
+# publish it to GitHub Pages (Settings → Pages → Source: GitHub Actions).
+#
+# legalese/l4-ide publishes no Linux binary, so the compiler is built from
+# source at toolchain/L4_COMMIT. The first run pays for it (~40 min on the
+# runner) and caches the binary under that commit; later runs restore it.
+name: site
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: site-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    # pinned, never -latest: an image bump changes GHC's environment under
+    # the compiler and would show up here as a diff nobody made
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Read the toolchain pins
+        id: pin
+        run: |
+          echo "l4=$(cat toolchain/L4_COMMIT)" >> "$GITHUB_OUTPUT"
+          echo "ghc=$(cat toolchain/GHC_VERSION)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore the l4 binary for this pin
+        id: l4bin
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/bin/l4
+          key: l4-bin-${{ runner.os }}-${{ steps.pin.outputs.l4 }}-ghc${{ steps.pin.outputs.ghc }}
+
+      - name: Set up GHC
+        if: steps.l4bin.outputs.cache-hit != 'true'
+        id: ghc
+        uses: haskell-actions/setup@v2
+        with:
+          ghc-version: ${{ steps.pin.outputs.ghc }}
+          cabal-version: latest
+
+      - name: Restore the cabal store
+        if: steps.l4bin.outputs.cache-hit != 'true'
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.ghc.outputs.cabal-store }}
+          key: cabal-${{ runner.os }}-ghc${{ steps.pin.outputs.ghc }}-${{ steps.pin.outputs.l4 }}
+          restore-keys: cabal-${{ runner.os }}-ghc${{ steps.pin.outputs.ghc }}-
+
+      - name: Build l4 at the pinned commit
+        if: steps.l4bin.outputs.cache-hit != 'true'
+        run: |
+          sudo apt-get update && sudo apt-get install -y pkg-config liblzma-dev libgmp-dev
+          toolchain/build-l4.sh ~/.local/bin/l4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Check every encoding (l4 run + l4 render)
+        run: L4=~/.local/bin/l4 make l4
+
+      - name: Build the site
+        run: make site
+
+      - name: Tests
+        run: make test
+
+      - uses: actions/upload-pages-artifact@v3
+        if: github.ref == 'refs/heads/main'
+        with:
+          path: build/site
+
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-24.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

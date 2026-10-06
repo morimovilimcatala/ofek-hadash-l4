@@ -51,19 +51,35 @@ with `HENCE`/`LEST`), not booleans standing in for them.
 
 ## Findings: errors the encoding exposes in the text
 
-`findings/findings.toml` is the register the site's "ממצאי L4" page shows —
-overlaps, conflicts, gaps, dangling references, arithmetic that does not
-close. Each finding:
+`findings/findings.toml` is the register the site's "ממצאי L4" page and
+`findings.json` show. Its model is MMS-415's (Linear), taken from L4 alone —
+not from the Catala proofs, the corpus's ambiguity ledger or its sic kinds:
 
-- names the row keys it is about, its kind (`tools/build_site.py` KINDS), a Hebrew
-  title and body, and the reading the encoding adopts;
-- has EVIDENCE: a boolean in the section's L4 that is TRUE while the defect
-  is in the text, asserted with `#ASSERT <name>` in that file. The assertion
-  passes while the text is wrong; if the text is ever corrected the build
-  goes red and the finding is stale, which is the point.
+- `kind` — what is wrong with the LAW: `gap`, `overlap`, `contradiction`,
+  `undefined-term`, `broken-reference`, `ambiguity`.
+- `stage` — what CAUGHT it: `writing` (the text cannot be written as it
+  stands), `compiling`, `examples` (the rules contradict a worked example or
+  table the text itself states), `verification`. The tool's message is the
+  evidence, not the category.
+- `keys` — the rows it is about; `title` — one line in Hebrew; `body`;
+  `reading` — the reading the encoding adopts to get past it;
+  `depends_on` — earlier findings whose readings this one assumes;
+  `read_by` and `review` (`unreviewed` until the lawyer has seen it): a
+  finding is a legal reading and says whose.
+- `l4` + `evidence` — a boolean in the section's file that is TRUE while
+  the defect is in the text, asserted there with `#ASSERT`. It passes while
+  the text is wrong; if the text is ever corrected the build goes red and
+  the finding is stale, which is the point.
 
-A finding is about the TEXT. A mistake in our own L4 is a bug, fixed in the
-L4, never filed. A corpus sic is not a finding.
+Three rules (MMS-415): nothing is fixed quietly to make the code compile —
+every choice the text does not make is a finding with its reading; a later
+finding names the readings it depends on; and the page shows the LAW's
+flaws, one row per flaw, never our own L4 mistakes (those are bugs, fixed in
+the L4). A corpus sic is not a finding.
+
+The build also publishes `index.json` — a row per L4 segment with its file,
+lines, names and corpus addresses `<akn path without .xml>#<eId>` — for the
+corpus reader (MMS-414).
 
 ## Checks — run before every push
 

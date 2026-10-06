@@ -13,13 +13,17 @@ ghc_version="$(cat "$here/GHC_VERSION")"
 dest="${1:-$HOME/.local/bin/l4}"
 src="${L4_SRC:-$HOME/.cache/l4-ide}"
 
-if ! command -v ghcup >/dev/null && [ ! -x "$HOME/.ghcup/bin/ghcup" ]; then
-  export BOOTSTRAP_HASKELL_NONINTERACTIVE=1 BOOTSTRAP_HASKELL_MINIMAL=1
-  curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org | sh
-fi
+# a GHC of the pinned version already on PATH (CI's haskell-actions/setup)
+# is used as it is; otherwise ghcup installs one
 export PATH="$HOME/.ghcup/bin:$PATH"
-ghcup install ghc "$ghc_version" --set
-ghcup install cabal latest --set
+if [ "$(ghc --numeric-version 2>/dev/null)" != "$ghc_version" ] || ! command -v cabal >/dev/null; then
+  if ! command -v ghcup >/dev/null; then
+    export BOOTSTRAP_HASKELL_NONINTERACTIVE=1 BOOTSTRAP_HASKELL_MINIMAL=1
+    curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org | sh
+  fi
+  ghcup install ghc "$ghc_version" --set
+  ghcup install cabal latest --set
+fi
 
 if [ ! -d "$src/.git" ]; then
   git clone --filter=blob:none https://github.com/legalese/l4-ide "$src"

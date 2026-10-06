@@ -91,8 +91,12 @@ class Findings(unittest.TestCase):
         for f in self.findings:
             with self.subTest(finding=f["id"]):
                 self.assertIn(f["kind"], site_mod.KINDS)
-                for field in ("title", "body", "reading", "l4", "evidence", "keys"):
+                self.assertIn(f["stage"], site_mod.STAGES)
+                self.assertIn(f["review"], site_mod.REVIEW)
+                for field in ("title", "body", "reading", "l4", "evidence", "keys", "read_by"):
                     self.assertTrue(f.get(field), field)
+                for d in f.get("depends_on", []):
+                    self.assertIn(d, ids, "depends on a finding that does not exist")
                 for k in f["keys"]:
                     self.assertIn(k, self.keys)
                 self.assertTrue((ROOT / f["l4"]).exists(), f["l4"])

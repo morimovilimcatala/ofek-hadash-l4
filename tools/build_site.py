@@ -55,15 +55,22 @@ COLLECTIONS = [
     ("tables", "טבלאות"),
 ]
 
+# The two labels every finding carries (MMS-415). KIND is what is wrong with
+# the law; STAGE is what caught it. The tool's message is the evidence, not
+# the category: a gap is a gap whether a warning or an example exposed it.
 KINDS = {
-    "overlap": "חפיפה — שני כללים לאותו מקרה",
-    "conflict": "סתירה — שני סעיפים, שתי תוצאות",
-    "gap": "פער — מקרה שאין לו כלל",
-    "dangling-reference": "הפניה שאינה מגיעה ליעדה",
+    "gap": "פער — מקרה שהמסמך אינו מכריע בו",
+    "overlap": "חפיפה — שני כללים לאותו מקרה, או כלל שלעולם אינו חל",
+    "contradiction": "סתירה — מה שהמסמך קובע ואין כלל שלו מפיק, או שני סעיפים שאינם מתיישבים",
     "undefined-term": "מונח שלא הוגדר",
-    "arithmetic": "חשבון שאינו מתיישב",
-    "numbering": "מספור",
-    "ambiguity": "עמימות — יותר מקריאה אחת",
+    "broken-reference": "הפניה שאינה מגיעה ליעדה",
+    "ambiguity": "עמימות — נוסח שנקרא בשתי דרכים",
+}
+STAGES = {
+    "writing": "בכתיבת הכלל — הטקסט אינו ניתן לכתיבה כפי שהוא",
+    "compiling": "בהידור — הכללים אינם מתיישבים זה עם זה",
+    "examples": "בהרצת הדוגמאות של המסמך — הכללים סותרים את מה שהמסמך עצמו קובע",
+    "verification": "באימות פורמלי — פגם שאף דוגמה בודדת אינה מראה",
 }
 
 esc = html.escape
@@ -483,47 +490,124 @@ def load_findings() -> list[dict]:
     return tomllib.loads(FINDINGS.read_text(encoding="utf-8")).get("finding", [])
 
 
-def evidence_result(f: dict, views_by_file: dict[str, SectionView]) -> tuple[str, bool | None]:
+REVIEW = {
+    "unreviewed": "טרם נבדק בידי עורך הדין",
+    "lawyer-seen": "עורך הדין ראה",
+    "lawyer-agreed": "עורך הדין הסכים",
+    "lawyer-disagreed": "עורך הדין חלק",
+}
+
+
+def address(doc: str, key: str) -> str:
+    """A corpus address (MMS-414): `<akn path without .xml>#<eId>`, with
+    `/p<N>` kept for a paragraph the corpus gives no eId of its own."""
+    return f"{doc.removesuffix('.xml')}#{key}"
+
+
+def evidence_result(f: dict, views_by_file: dict[str, SectionView]) -> dict:
+    """Where the finding's #ASSERT is, and what `l4 run` said about it."""
     v = views_by_file.get(f.get("l4", ""))
+    out = {"line": None, "url": "", "held": None, "messages": []}
     if v is None or v.src is None:
-        return "", None
+        return out
     ev = f.get("evidence", "")
     for n, line in enumerate(v.src.lines, 1):
         if line.lstrip().startswith("#ASSERT") and ev in line:
+            out["line"], out["url"] = n, f"{REPO}/blob/main/{f['l4']}#L{n}"
             for res in v.run.get("results", []):
                 if line_of(res.get("range")) == n:
-                    return f"{REPO}/blob/main/{f['l4']}#L{n}", True
-            return f"{REPO}/blob/main/{f['l4']}#L{n}", None
-    return "", False
+                    val = res.get("value")
+                    out["messages"].append(f"#ASSERT {line.strip()[8:]} → "
+                                           f"{val if isinstance(val, str) else json.dumps(val, ensure_ascii=False)}")
+                    out["held"] = v.ok
+            break
+    return out
 
 
 def findings_page(findings, views_by_file, key_to_view) -> str:
-    cards = []
+    counts: dict[tuple[str, str], int] = {}
     for f in findings:
-        url, held = evidence_result(f, views_by_file)
-        where = []
-        for k in f.get("keys", []):
-            v = key_to_view.get(k)
-            if v:
-                where.append(f'<a href="{v.href}#{esc(k)}">§{esc(v.section.num)}</a>')
-        state = ("<span class=\"okay\">ה־#ASSERT מתקיים: הליקוי עדיין בטקסט</span>" if held else
-                 "<span class=\"notok\">אין ראיה ב־L4 — ראו אבחון</span>")
-        cards.append(
-            f'<article class="finding" id="{esc(f["id"])}">'
-            f'<h2><span class="fid">{esc(f["id"])}</span> {esc(f["title"])}</h2>'
-            f'<p class="fmeta"><span class="kind">{esc(KINDS.get(f.get("kind", ""), f.get("kind", "")))}</span> · '
-            f'{" · ".join(where)} · {state}</p>'
-            f'<div class="fbody">{"".join(f"<p>{esc(p)}</p>" for p in f["body"].strip().split(chr(10) + chr(10)))}</div>'
-            + (f'<p class="reading"><strong>הקריאה שהקידוד נוקט:</strong> {esc(f["reading"])}</p>' if f.get("reading") else "")
-            + (f'<p class="ev"><a href="{url}">הראיה ב־L4</a>: <code dir="ltr">{esc(f["evidence"])}</code></p>' if url else "")
-            + "</article>")
-    intro = ('<h1>ממצאי L4</h1><p class="lede">מה שהקידוד מצא בטקסט עצמו. כל ממצא נשען על '
-             '<code>#ASSERT</code> בקוד שמתקיים כל עוד הליקוי בטקסט — אם הטקסט יתוקן, הבדיקה תיכשל '
-             'והממצא יסומן כמיושן. שגיאות הקלדה שהמאגר כבר הכריע בהן ("כך במקור") אינן כאן: '
-             'הקידוד מקבל את הכרעת המאגר כנתונה (<a href="sic.html">כך במקור</a>).</p>')
-    if not cards:
-        cards.append('<p class="empty">אין עדיין ממצאים.</p>')
-    return page("findings.html", f"ממצאי L4 — {TITLE}", intro + "".join(cards), tab="findings")
+        counts[(f["kind"], f["stage"])] = counts.get((f["kind"], f["stage"]), 0) + 1
+    matrix = ('<table class="diag matrix"><thead><tr><th>סוג \\ שלב</th>'
+              + "".join(f'<th title="{esc(t)}">{esc(t.split(" — ")[0])}</th>' for t in STAGES.values())
+              + "</tr></thead><tbody>"
+              + "".join(f'<tr><th title="{esc(t)}"><a href="#k-{k}">{esc(t.split(" — ")[0])}</a></th>'
+                        + "".join(f"<td>{counts.get((k, st), '') }</td>" for st in STAGES) + "</tr>"
+                        for k, t in KINDS.items())
+              + "</tbody></table>")
+    by_id = {f["id"]: f for f in findings}
+    groups = []
+    for kind, label in KINDS.items():
+        cards = []
+        for f in (x for x in findings if x["kind"] == kind):
+            ev = evidence_result(f, views_by_file)
+            where = []
+            for k in f.get("keys", []):
+                v = key_to_view.get(k)
+                if v:
+                    where.append(f'<a href="{v.href}#{esc(k)}">§{esc(v.section.num)}</a>')
+            state = ('<span class="okay">ה־#ASSERT מתקיים: הליקוי עדיין בטקסט</span>' if ev["held"] else
+                     '<span class="notok">הראיה אינה מתקיימת — ראו אבחון</span>')
+            deps = "".join(f'<a href="#{esc(d)}">{esc(d)}</a> ' for d in f.get("depends_on", []) if d in by_id)
+            cards.append(
+                f'<article class="finding" id="{esc(f["id"])}">'
+                f'<h3><span class="fid">{esc(f["id"])}</span> {esc(f["title"])}</h3>'
+                f'<p class="fmeta"><span class="stage">{esc(STAGES[f["stage"]])}</span> · '
+                f'{" · ".join(where)}</p>'
+                f'<div class="fbody">{"".join(f"<p>{esc(p)}</p>" for p in f["body"].strip().split(chr(10) + chr(10)))}</div>'
+                f'<p class="reading"><strong>הקריאה שהקידוד נוקט:</strong> {esc(f["reading"])}</p>'
+                + (f'<p class="deps">נשען על הקריאות של: {deps}</p>' if deps else "")
+                + (f'<p class="ev"><a href="{ev["url"]}">הראיה ב־L4</a> · {state}</p>'
+                   + "".join(f'<pre class="msg" dir="ltr">{esc(m)}</pre>' for m in ev["messages"])
+                   if ev["url"] else "")
+                + f'<p class="who">קרא: {esc(f["read_by"])} · {esc(REVIEW[f["review"]])}</p>'
+                + "</article>")
+        if cards:
+            groups.append(f'<section id="k-{kind}"><h2>{esc(label)}</h2>{"".join(cards)}</section>')
+    intro = ('<h1>ממצאי L4</h1><p class="lede">מה שהכללים עושים לא נכון כשכותבים אותם באופן פורמלי — '
+             'לא מה שהעמוד מדפיס לא נכון (לזה <a href="sic.html">כך במקור</a>, שהכרעותיו נלקחות כאן כנתונות). '
+             'לכל ממצא שתי תוויות: <strong>סוג</strong> — מה לא בסדר בחוק, ו<strong>שלב</strong> — מה גילה את זה. '
+             'שורה אחת לכל פגם, ולא לכל הודעה. כל ממצא נשען על <code>#ASSERT</code> בקוד שמתקיים כל עוד '
+             'הפגם בטקסט; אם הטקסט יתוקן הבדיקה תיכשל. כל ממצא הוא קריאה משפטית, ולכן הוא אומר מי קרא '
+             'אותו והאם עורך הדין ראה.</p>'
+             f'<p><a href="findings.json">findings.json</a> — אותם ממצאים לקריאה במכונה, עם כתובות במאגר.</p>')
+    body = intro + matrix + ("".join(groups) or '<p class="empty">אין עדיין ממצאים.</p>')
+    return page("findings.html", f"ממצאי L4 — {TITLE}", body, tab="findings")
+
+
+def findings_json(findings, views_by_file, key_to_view) -> str:
+    rows = []
+    for f in findings:
+        ev = evidence_result(f, views_by_file)
+        rows.append({
+            "id": f["id"], "kind": f["kind"], "stage": f["stage"],
+            "addresses": [address(key_to_view[k].doc, k) for k in f["keys"] if k in key_to_view],
+            "statement": f["title"], "body": f["body"].strip(), "reading": f["reading"],
+            "depends_on": f.get("depends_on", []),
+            "l4": {"file": f["l4"], "line": ev["line"], "evidence": f["evidence"]},
+            "messages": ev["messages"], "message_count": len(ev["messages"]),
+            "evidence_holds": ev["held"],
+            "read_by": f["read_by"], "review": f["review"],
+        })
+    return json.dumps({"source": REPO, "findings": rows}, ensure_ascii=False, indent=1)
+
+
+def index_json(flat: list[SectionView]) -> str:
+    """One row per L4 segment (MMS-414): the file, the lines, the names it
+    declares, its text, and the corpus addresses it encodes."""
+    rows = []
+    for v in flat:
+        if v.src is None:
+            continue
+        for s in v.src.segments:
+            rows.append({
+                "file": str(v.l4.relative_to(ROOT)), "line": s.start, "end": s.end,
+                "names": declared(s), "kind": "note" if s.note_only else "rule",
+                "note": s.note if s.note_only else None,
+                "addresses": [address(v.doc, k) for k in s.keys],
+                "text": "\n".join(s.lines),
+            })
+    return json.dumps({"source": REPO, "rules": rows}, ensure_ascii=False, indent=1)
 
 
 def sic_page(all_views) -> str:
@@ -710,7 +794,10 @@ def build() -> int:
         for k in v.section.keys():
             key_to_view.setdefault(k, v)
     (OUT / "index.html").write_text(index_page(all_views), encoding="utf-8")
-    (OUT / "findings.html").write_text(findings_page(load_findings(), by_file, key_to_view), encoding="utf-8")
+    findings = load_findings()
+    (OUT / "findings.html").write_text(findings_page(findings, by_file, key_to_view), encoding="utf-8")
+    (OUT / "findings.json").write_text(findings_json(findings, by_file, key_to_view), encoding="utf-8")
+    (OUT / "index.json").write_text(index_json(flat), encoding="utf-8")
     (OUT / "coverage.html").write_text(coverage_page(all_views), encoding="utf-8")
     (OUT / "sic.html").write_text(sic_page(all_views), encoding="utf-8")
     (OUT / "diagnostics.html").write_text(diagnostics_page(flat), encoding="utf-8")
