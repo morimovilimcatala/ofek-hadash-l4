@@ -12,9 +12,10 @@ legalese/l4-ide `skills/`) for anything about the language.
   A defect in the text as the corpus publishes it — a lost table, a wrong
   date — is the corpus's to fix: file it there (Linear team `MMS`, project
   `AKN corpus`), then re-sync with `tools/sync_corpus.py`.
-- **A sic the corpus has marked (`[כך במקור]`) is taken as given.** The site
-  shows the mark; the L4 encodes the reading the corpus settled on. It is
-  never re-litigated here and never filed as an L4 finding.
+- **A sic the corpus has marked (`[כך במקור]`) is taken as given.** The L4
+  encodes the reading the corpus settled on; it is never re-litigated here
+  and never filed as an L4 finding. The site does not show sic marks at all
+  (the client, 2026-10-06): the text column is the corpus text, plain.
 - `corpus/manifest.json` is the corpus's own document list and is the
   coverage page's denominator. A collection nobody has started is a row of
   nothing, not a missing row.

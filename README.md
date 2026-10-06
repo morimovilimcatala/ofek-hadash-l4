@@ -33,7 +33,6 @@ obligations as L4 regulative rules.
   by the stage that caught it (`findings.json` for machines).
 - **Coverage** — how much of the corpus is encoded, against the corpus's own
   document list.
-- **Sic** — the corpus's sic marks, taken as given.
 - **Diagnostics** — the L4 checker's report, file by file.
 - `index.json` — every L4 segment with the corpus address it encodes.
 

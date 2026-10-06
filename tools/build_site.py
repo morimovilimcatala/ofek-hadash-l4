@@ -10,7 +10,6 @@ Pages, laid out like the corpus they encode:
   takanon/<doc>/<num>.render.html  L4's own rendering of that section
   findings.html  findings.json     errors in the LAW that encoding exposed
   coverage.html                    how much of the corpus is encoded
-  sic.html                         the corpus's sic marks, carried as given
   diagnostics.html                 what the L4 checker reported, file by file
   index.json                       every L4 segment with its corpus address
 
@@ -314,7 +313,6 @@ def page(here: str, title: str, body: str, *, tab: str = "", desc: str = "") -> 
     nav = [("index.html", "Documents", "docs"),
            ("findings.html", "L4 findings", "findings"),
            ("coverage.html", "Coverage", "coverage"),
-           ("sic.html", "Sic", "sic"),
            ("diagnostics.html", "Diagnostics", "diagnostics"),
            ("about.html", "About", "about")]
     links = "".join(
@@ -359,14 +357,9 @@ def text_cell(r: akn.Row) -> str:
     label = f'<span class="num">{esc(r.num)}</span>{head}' if (r.num or r.heading) else ""
     if r.kind == "label":
         return label
-    parts = [label + (" " if label else "")]
-    for run in r.runs:
-        if run.sic:
-            parts.append(f'<span class="sic" title="sic (כך במקור): {esc(run.sic)}">'
-                         f'{esc(run.text)}</span><sup class="sic-mark">[כך במקור]</sup>')
-        else:
-            parts.append(esc(run.text))
-    return "".join(parts)
+    # a corpus sic mark is the corpus's: its correction is taken as given and
+    # the text is shown plain (the client, 2026-10-06: no כך במקור on this site)
+    return label + (" " if label else "") + "".join(esc(run.text) for run in r.runs)
 
 
 def results_html(seg: l4src.Segment) -> str:
@@ -607,8 +600,8 @@ def findings_page(findings, views_by_file, key_to_view) -> str:
         if cards:
             groups.append(f'<section id="k-{kind}"><h2>{esc(label)} <small>— {esc(gloss)}</small></h2>{"".join(cards)}</section>')
     intro = ('<h1>L4 findings</h1><p class="lede">What the RULES get wrong when they are written down '
-             'formally — not what a page prints wrong (that is <a href="sic.html">Sic</a>, whose '
-             'corrections are taken here as given). Every finding carries two labels: its '
+             'formally — not what a page prints wrong (a typo the corpus has corrected is taken '
+             'here as corrected). Every finding carries two labels: its '
              '<strong>kind</strong>, what is wrong with the law, and its <strong>stage</strong>, what caught it. '
              'One row per flaw, not per message. Each rests on an <code>#ASSERT</code> in the code that holds '
              'while the flaw is in the text; if the text is ever corrected, the check fails and the finding '
@@ -652,28 +645,6 @@ def index_json(flat: list[SectionView]) -> str:
                 "text": "\n".join(s.lines),
             })
     return json.dumps({"source": REPO, "rules": rows}, ensure_ascii=False, indent=1)
-
-
-def sic_page(all_views) -> str:
-    items = []
-    for doc, vs in all_views.items():
-        for v in vs:
-            for r in v.section.rows:
-                for run in r.runs:
-                    if run.sic:
-                        items.append(f'<li><a href="{v.href}#{esc(r.key)}">§{esc(v.section.num)}</a> '
-                                     f'<span class="sic" lang="he" dir="rtl">{esc(run.text)}</span> — {he(run.sic)}</li>')
-    intro = ('<h1>Sic (כך במקור)</h1><p class="lede">Errors the printed page itself carries, as the corpus '
-             f'<a href="{CORPUS_SITE}/sic.html">marked and settled them</a>. Here the corpus\'s decision is '
-             'taken as given: the text is shown with the mark, and the L4 encodes what the corpus decided the '
-             'text says. A new flaw the encoding exposes goes to <a href="findings.html">L4 findings</a>, '
-             'not here.</p>')
-    if items:
-        body = intro + f'<ul class="sics">{"".join(items)}</ul>'
-    else:
-        body = intro + ('<p class="empty">The corpus marks no sic in the documents encoded so far. '
-                        'When it does, the mark appears here and in the text beside the code.</p>')
-    return page("sic.html", f"Sic — {TITLE}", body, tab="sic")
 
 
 def diagnostics_page(views: list[SectionView]) -> str:
@@ -809,7 +780,8 @@ marked <em>Not encoded</em>.</p>
 <h2>What the encoding takes as given</h2>
 <ul>
 <li>The text is the corpus's. A copy is kept in <code>corpus/</code> and never edited here.</li>
-<li>An error the corpus marked <em>sic</em> (כך במקור) — the corpus's decision stands.</li>
+<li>An error in the printed page that the corpus has already settled — the corpus's
+reading stands.</li>
 <li>An amount the text says is set elsewhere (by the Treasury, in a circular) is an input,
 never a number made up.</li>
 </ul>
@@ -855,7 +827,6 @@ def build() -> int:
     (OUT / "findings.json").write_text(findings_json(findings, by_file, key_to_view), encoding="utf-8")
     (OUT / "index.json").write_text(index_json(flat), encoding="utf-8")
     (OUT / "coverage.html").write_text(coverage_page(all_views), encoding="utf-8")
-    (OUT / "sic.html").write_text(sic_page(all_views), encoding="utf-8")
     (OUT / "diagnostics.html").write_text(diagnostics_page(flat), encoding="utf-8")
     (OUT / "about.html").write_text(about_page(), encoding="utf-8")
     (OUT / ".nojekyll").write_text("")
