@@ -1,0 +1,377 @@
+-- חוזר לבעלויות תשפ"ד/4 (13.9.2023), הסכם קיבוצי כללי מיום 12.9.2023
+-- The general collective agreement of 12.9.2023 for upper-secondary
+-- teaching staff, as the circular publishes its main points: an advance on
+-- account of salary in September 2023, how it is later deducted, the
+-- changes to the upper-secondary holiday calendar for התשפ"ד, and the
+-- reimbursement in the payment system.
+
+IMPORT prelude
+IMPORT common
+
+-- Time in this file is counted in calendar MONTHS from August 2023 (0), the
+-- month the agreement was signed in: September 2023 is 1, December 2023 is
+-- 4, and so on.
+`September 2023` MEANS 1
+`October 2023`   MEANS 2
+`1 December 2023 as a month` MEANS 4
+
+§ `חוזר לבעלויות תשפ"ד/4 — הסכם קיבוצי כללי מיום 12.9.2023`
+
+-- akn:preamble The letterhead, date, reference number, addressees (the owners of upper-secondary schools), greeting, subject line, the recital that the agreement was signed on 12.9.2023 and approved by the Treasury's wage commissioner, and the circular's purpose; no rule.
+
+@desc A teaching employee, as far as this circular asks.
+DECLARE `upper-secondary teaching employee` HAS
+    `covered by the Oz LaTmura agreement` IS A BOOLEAN @desc the collective agreement of 14.8.2011 (רפורמת עוז לתמורה) applies to the employee, whether or not employed under the reform's terms
+    `employed under the Oz LaTmura terms` IS A BOOLEAN @desc employed under the terms of the Oz LaTmura reform
+    `role`                                IS A `teaching role`
+    `position fraction`                   IS A NUMBER  @desc share of a full position (1 = full position)
+    `employment ends before the deduction` IS A BOOLEAN @desc the employment ends before the advance is deducted (section 3, last paragraph)
+
+@desc The roles section 2's definitions name ("מורים ומנהלים"), and every other teaching employee.
+DECLARE `teaching role` IS ONE OF
+    `teacher`
+    `principal`
+    `other teaching employee` @desc an employee who is a teaching employee under section 1 but neither a teacher nor a principal
+
+§§ `1 תחולה`
+
+@ref akn:art_1/p1
+GIVEN e IS AN `upper-secondary teaching employee`
+GIVETH A BOOLEAN
+DECIDE `the agreement applies to` e IF
+    e's `covered by the Oz LaTmura agreement`
+
+§§ `2 הגדרות`
+
+GIVEN e IS AN `upper-secondary teaching employee`
+GIVETH A BOOLEAN
+DECIDE `is a teacher or principal` e IF
+    CONSIDER e's `role`
+    WHEN `teacher`   THEN TRUE
+    WHEN `principal` THEN TRUE
+    OTHERWISE FALSE
+
+@ref akn:art_2/p1
+GIVEN e IS AN `upper-secondary teaching employee`
+GIVETH A BOOLEAN
+DECIDE `is a teaching employee in the reform` e IF
+        `the agreement applies to` e
+    AND `is a teacher or principal` e
+    AND e's `employed under the Oz LaTmura terms`
+
+@ref akn:art_2/p2
+GIVEN e IS AN `upper-secondary teaching employee`
+GIVETH A BOOLEAN
+DECIDE `is a teaching employee not in the reform` e IF
+        `the agreement applies to` e
+    AND `is a teacher or principal` e
+    AND NOT e's `employed under the Oz LaTmura terms`
+
+-- F-2023-24_tashpad_04-a: section 1 applies the agreement to every teaching
+-- employee covered by the Oz LaTmura agreement; section 2 divides only
+-- "מורים ומנהלים" into the two classes section 3 pays. A teaching employee
+-- who is neither a teacher nor a principal is covered and in no class. The
+-- reading adopted: the classes are read as covering every teaching employee
+-- of section 1 (`reform class`), the reading under which section 1's
+-- "בין אם מועסקים על פי תנאי הרפורמה ובין אם לאו" leaves no one out.
+`a covered counsellor-type employee` MEANS
+    `upper-secondary teaching employee` WITH
+        `covered by the Oz LaTmura agreement`  IS TRUE
+        `employed under the Oz LaTmura terms`  IS TRUE
+        `role`                                 IS `other teaching employee`
+        `position fraction`                    IS 1
+        `employment ends before the deduction` IS FALSE
+
+`a covered teaching employee who is neither teacher nor principal is in neither class` MEANS
+        `the agreement applies to` `a covered counsellor-type employee`
+    AND (NOT `is a teaching employee in the reform` `a covered counsellor-type employee`)
+    AND (NOT `is a teaching employee not in the reform` `a covered counsellor-type employee`)
+#ASSERT `a covered teaching employee who is neither teacher nor principal is in neither class`
+
+DECLARE `reform class` IS ONE OF
+    `in the reform`
+    `not in the reform`
+    `not covered`
+
+-- The adopted reading of F-2023-24_tashpad_04-a: section 1's population,
+-- divided by the reform's terms alone.
+GIVEN e IS AN `upper-secondary teaching employee`
+GIVETH A `reform class`
+DECIDE `the class of` e IS
+    IF NOT `the agreement applies to` e
+    THEN `not covered`
+    ELSE IF e's `employed under the Oz LaTmura terms`
+         THEN `in the reform`
+         ELSE `not in the reform`
+
+§§ `3 תשלום מקדמה`
+
+@ref akn:art_3/p1
+`the full-position advance in the reform` MEANS 2400
+
+@ref akn:art_3/p3
+`the full-position advance not in the reform` MEANS 1500
+
+-- akn:art_3/p2 A stray page number ("4") from the page layout; no rule.
+
+-- Section 3, first and third paragraphs: the advance with September 2023's
+-- salary, and the proportional part for a part-time position.
+-- "החלק היחסי": the share of a full position, at most one.
+GIVEN e IS AN `upper-secondary teaching employee`
+GIVETH A NUMBER
+DECIDE `share of a position` e IS
+    min (e's `position fraction`) 1
+
+@ref akn:art_3/p1 akn:art_3/p3
+GIVEN e IS AN `upper-secondary teaching employee`
+GIVETH A NUMBER
+DECIDE `the advance` e IS
+    CONSIDER `the class of` e
+    WHEN `in the reform`     THEN `the full-position advance in the reform` TIMES `share of a position` e
+    WHEN `not in the reform` THEN `the full-position advance not in the reform` TIMES `share of a position` e
+    OTHERWISE 0
+
+DECLARE `advance action` IS ONE OF
+    `pay the advance` HAS `advance paid` IS A NUMBER
+    `make a provident-fund provision for the advance`
+    `deduct the advance` HAS `deduction` IS A NUMBER
+    `deduct the advance in the final settlement` HAS `settled` IS A NUMBER
+    `give notice of the deduction` HAS `notice month` IS A NUMBER
+    `pay the reimbursement`
+
+@ref akn:art_3/p1 akn:art_3/p3
+GIVEN e IS AN `upper-secondary teaching employee`
+GIVETH A DEONTIC Party `advance action`
+DECIDE `the advance with September 2023's salary` e IS
+    PARTY `the employer`
+    MUST  `pay the advance` amount PROVIDED amount AT LEAST `the advance` e
+    WITHIN `September 2023`
+    LEST BREACH BY `the employer` BECAUSE "section 3: the advance is paid with the salary of September 2023"
+
+-- Section 3, fourth paragraph: no provision to any provident fund
+-- (training fund, pension fund or managers' insurance) is made for the
+-- advance; provisions for the raise itself are made retroactively under the
+-- agreement still to be signed (an input of that agreement, not of this file).
+@ref akn:art_3/p4
+GIVETH A DEONTIC Party `advance action`
+DECIDE `no provident-fund provision for the advance` IS
+    PARTY `the employer`
+    SHANT `make a provident-fund provision for the advance`
+    WITHIN `October 2023`
+    LEST BREACH BY `the employer` BECAUSE "section 3: no provident-fund provisions are made for the advance"
+
+-- Section 3, fifth and sixth paragraphs: the advance is deducted as the
+-- agreement still to be signed (after the understandings of 31.8.2023) will
+-- say; if it is not signed by 1.12.2023, in six equal parts, after a notice
+-- of at least 30 days from the Treasury's wage commissioner to the
+-- employers and the union, published to the owners in the circulars.
+@ref akn:art_3/p5
+ASSUME `the deduction schedule of the agreement to be signed` IS A LIST OF NUMBER
+@desc The deductions the collective agreement still to be signed sets (section 3, fifth paragraph); not known to this circular.
+
+@ref akn:art_3/p6
+`the number of equal parts` MEANS 6
+`the minimum notice in days` MEANS 30
+
+@ref akn:art_3/p6
+GIVEN `signed by 1.12.2023` IS A BOOLEAN @desc the collective agreement following the 31.8.2023 understandings was signed on or before 1.12.2023
+GIVETH A BOOLEAN
+DECIDE `the advance is deducted in six equal parts` `signed by 1.12.2023` IF
+    NOT `signed by 1.12.2023`
+
+@ref akn:art_3/p6
+GIVEN e IS AN `upper-secondary teaching employee`
+GIVETH A NUMBER
+DECIDE `one of the six equal parts` e IS
+    `the advance` e DIVIDED BY `the number of equal parts`
+
+@ref akn:art_3/p6
+GIVEN `notice given on day` IS A NUMBER @desc the day the wage commissioner's notice is given, in days
+      `first deduction on day` IS A NUMBER @desc the day the first part is deducted, in days
+GIVETH A BOOLEAN
+DECIDE `the deduction follows enough notice` `notice given on day` `first deduction on day` IF
+    `first deduction on day` MINUS `notice given on day` AT LEAST `the minimum notice in days`
+
+-- Six equal deductions, each one a duty of the employer; the months they
+-- fall in are not printed and are set by the notice (an input).
+@ref akn:art_3/p6
+GIVEN `part` IS A NUMBER, `parts left` IS A NUMBER
+GIVETH A DEONTIC Party `advance action`
+DECIDE `the six deductions` `part` `parts left` IS
+    IF `parts left` GREATER THAN 0
+    THEN PARTY `the employer`
+         MUST  `deduct the advance` d PROVIDED d EQUALS `part`
+         WITHIN 1
+         HENCE `the six deductions` `part` (`parts left` MINUS 1)
+    ELSE FULFILLED
+
+@ref akn:art_3/p7
+GIVEN e IS AN `upper-secondary teaching employee`
+GIVETH A BOOLEAN
+DECIDE `the advance is deducted in the final settlement` e IF
+        `the advance` e GREATER THAN 0
+    AND e's `employment ends before the deduction`
+
+@ref akn:art_3/p7
+GIVEN e IS AN `upper-secondary teaching employee`
+GIVETH A DEONTIC Party `advance action`
+DECIDE `deduction on leaving` e IS
+    PARTY `the employer`
+    MUST  `deduct the advance in the final settlement` s PROVIDED s EQUALS `the advance` e
+    WITHIN 1
+    LEST BREACH BY `the employer` BECAUSE "section 3: an advance not yet deducted is deducted in the final settlement"
+
+§§ `4 לוח החופשות בחטיבות העליונות לשנת הלימודים תשפ"ד`
+
+-- akn:art_4/p2 The lead-in: the changes below apply in התשפ"ד only to the holiday calendar published yearly in the director-general's circular; the year is carried by `the calendar changes apply in`.
+@ref akn:art_4
+GIVEN `school year` IS A STRING @desc the school year, as the circular names it ("תשפ"ד")
+GIVETH A BOOLEAN
+DECIDE `the calendar changes apply in` `school year` IF
+    `school year` EQUALS "תשפ\"ד"
+
+DECLARE `sector` IS ONE OF
+    `the Jewish sector`
+    `another sector`
+
+-- The Hebrew calendar days the section names, by their day of the month.
+DECLARE `Hebrew day` HAS
+    `Hebrew month` IS A STRING
+    `day of the Hebrew month` IS A NUMBER
+
+@ref akn:art_4__para_a__subpara_1
+`Isru Chag of Pesach` MEANS `Hebrew day` WITH `Hebrew month` IS "ניסן", `day of the Hebrew month` IS 22
+@ref akn:art_4__para_a__subpara_2
+`Isru Chag of Shavuot` MEANS `Hebrew day` WITH `Hebrew month` IS "סיוון", `day of the Hebrew month` IS 7
+@ref akn:art_4__para_a__subpara_3
+`the Fast of Esther` MEANS `Hebrew day` WITH `Hebrew month` IS "אדר ב'", `day of the Hebrew month` IS 11
+
+@ref akn:art_4__para_a
+`the days of study added` MEANS
+    LIST `Isru Chag of Pesach`, `Isru Chag of Shavuot`, `the Fast of Esther`
+
+@ref akn:art_4__para_a
+GIVEN s IS A `sector`, d IS A `Hebrew day`
+GIVETH A BOOLEAN
+DECIDE `studies are held on` s d IF
+        s EQUALS `the Jewish sector`
+    AND elem d `the days of study added`
+
+-- Section 4ב: "the days falling between Yom Kippur (י"א בתשרי) and the eve
+-- of Sukkot (י"ד בתשרי)" become holidays, in place of the three days of
+-- 4א. F-2023-24_tashpad_04-b: Yom Kippur is 10 Tishrei, and "between" does
+-- not say whether its ends are in. The printed dates and the two ends give
+-- two, three or four days.
+`Yom Kippur as printed` MEANS 11
+`the eve of Sukkot as printed` MEANS 14
+
+GIVEN `first` IS A NUMBER, `last` IS A NUMBER
+GIVETH A LIST OF NUMBER
+DECIDE `the Tishrei days from` `first` `to` `last` IS
+    filter (GIVEN n YIELD n AT LEAST `first` AND n AT MOST `last`)
+           (LIST 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20)
+
+`strictly between the printed dates` MEANS
+    `the Tishrei days from` (`Yom Kippur as printed` PLUS 1) `to` (`the eve of Sukkot as printed` MINUS 1)
+`between the printed dates, both included` MEANS
+    `the Tishrei days from` `Yom Kippur as printed` `to` `the eve of Sukkot as printed`
+`strictly between Yom Kippur (10 Tishrei) and the eve of Sukkot` MEANS
+    `the Tishrei days from` 11 `to` 13
+
+`section 4ב's holidays read three ways give different day counts` MEANS
+        count `strictly between the printed dates` EQUALS 2
+    AND count `between the printed dates, both included` EQUALS 4
+    AND count `strictly between Yom Kippur (10 Tishrei) and the eve of Sukkot` EQUALS 3
+#ASSERT `section 4ב's holidays read three ways give different day counts`
+
+-- The reading adopted: the holidays are 11, 12 and 13 Tishrei — the days
+-- after Yom Kippur up to the eve of Sukkot, the printed 11 Tishrei being
+-- the first of them; three holidays in place of the three days of study.
+@ref akn:art_4__para_b akn:art_4__para_b/p2
+`the Tishrei holidays added` MEANS `the Tishrei days from` 11 `to` 13
+
+@ref akn:art_4__para_b akn:art_4__para_b/p2
+GIVEN `day of Tishrei` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `is a holiday under section 4ב` `day of Tishrei` IF
+    elem `day of Tishrei` `the Tishrei holidays added`
+
+#ASSERT count `the Tishrei holidays added` EQUALS count `the days of study added`
+
+-- akn:art_4__para_b/p3 A stray page number ("4") from the page layout; no rule.
+
+§§ `5 שיפוי`
+
+-- Section 5: "a reimbursement is given in the payment system, in
+-- September's payments paid at the start of October". F-2023-24_tashpad_04-c:
+-- the sentence names neither what is reimbursed nor to whom. The reading
+-- adopted: the Ministry reimburses the owners for the advance of section 3.
+@ref akn:art_5
+GIVETH A DEONTIC Party `advance action`
+DECIDE `the reimbursement in October's payments` IS
+    PARTY `the Ministry of Education`
+    MUST  `pay the reimbursement`
+    WITHIN `October 2023`
+    LEST BREACH BY `the Ministry of Education` BECAUSE "section 5: the reimbursement is given in September's payments, paid at the start of October"
+
+`section 5 names what is reimbursed` MEANS FALSE
+`section 5 names who is reimbursed` MEANS FALSE
+`section 5's reimbursement has no object and no recipient` MEANS
+    (NOT `section 5 names what is reimbursed`) AND (NOT `section 5 names who is reimbursed`)
+#ASSERT `section 5's reimbursement has no object and no recipient`
+
+-- akn:conclusions The sign-off: whom to ask about the circular, the signatures and the copies list; no rule.
+
+-- Worked examples, on the circular's own figures.
+`a full-time teacher in the reform` MEANS
+    `upper-secondary teaching employee` WITH
+        `covered by the Oz LaTmura agreement`  IS TRUE
+        `employed under the Oz LaTmura terms`  IS TRUE
+        `role`                                 IS `teacher`
+        `position fraction`                    IS 1
+        `employment ends before the deduction` IS FALSE
+
+`a half-time teacher not in the reform who leaves` MEANS
+    `upper-secondary teaching employee` WITH
+        `covered by the Oz LaTmura agreement`  IS TRUE
+        `employed under the Oz LaTmura terms`  IS FALSE
+        `role`                                 IS `teacher`
+        `position fraction`                    IS 0.5
+        `employment ends before the deduction` IS TRUE
+
+`a teacher outside the Oz LaTmura agreement` MEANS
+    `upper-secondary teaching employee` WITH
+        `covered by the Oz LaTmura agreement`  IS FALSE
+        `employed under the Oz LaTmura terms`  IS FALSE
+        `role`                                 IS `teacher`
+        `position fraction`                    IS 1
+        `employment ends before the deduction` IS FALSE
+
+#ASSERT `the advance` `a full-time teacher in the reform` EQUALS 2400
+#ASSERT `the advance` `a half-time teacher not in the reform who leaves` EQUALS 750
+#ASSERT `the advance` `a teacher outside the Oz LaTmura agreement` EQUALS 0
+#ASSERT `one of the six equal parts` `a full-time teacher in the reform` EQUALS 400
+#ASSERT `the advance is deducted in the final settlement` `a half-time teacher not in the reform who leaves`
+#ASSERT `the advance is deducted in six equal parts` FALSE
+#ASSERT `the deduction follows enough notice` 0 30
+#ASSERT NOT `the deduction follows enough notice` 0 29
+#ASSERT `studies are held on` `the Jewish sector` `the Fast of Esther`
+#ASSERT NOT `studies are held on` `another sector` `the Fast of Esther`
+#ASSERT `the calendar changes apply in` "תשפ\"ד"
+#ASSERT `the advance` `a covered counsellor-type employee` EQUALS 2400
+
+#TRACE `the advance with September 2023's salary` `a full-time teacher in the reform` AT 0 WITH
+    PARTY `the employer` DOES `pay the advance` 2400 AT 1
+#TRACE `the advance with September 2023's salary` `a full-time teacher in the reform` AT 0 WITH
+    PARTY `the employer` DOES `pay the advance` 1500 AT 1
+#TRACE `the six deductions` 400 6 AT 4 WITH
+    PARTY `the employer` DOES `deduct the advance` 400 AT 5
+    PARTY `the employer` DOES `deduct the advance` 400 AT 6
+    PARTY `the employer` DOES `deduct the advance` 400 AT 7
+    PARTY `the employer` DOES `deduct the advance` 400 AT 8
+    PARTY `the employer` DOES `deduct the advance` 400 AT 9
+    PARTY `the employer` DOES `deduct the advance` 400 AT 10
+#TRACE `deduction on leaving` `a half-time teacher not in the reform who leaves` AT 0 WITH
+    PARTY `the employer` DOES `deduct the advance in the final settlement` 750 AT 1
+#TRACE `the reimbursement in October's payments` AT 0 WITH
+    PARTY `the Ministry of Education` DOES `pay the reimbursement` AT 2
