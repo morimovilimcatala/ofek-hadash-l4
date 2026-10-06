@@ -1,6 +1,6 @@
 """Build the static site: the corpus text beside its L4, document by document.
 
-    python3 tools/build_site.py            # after tools/l4run.py, writes build/site/
+    python3 tools/build_site.py      # after tools/l4run.py; writes build/site/
 
 Pages, laid out like the corpus they encode:
 
@@ -8,9 +8,13 @@ Pages, laid out like the corpus they encode:
   takanon/<doc>/index.html         a document's chapters and sections
   takanon/<doc>/<num>.html         one section: text | L4, row by row
   takanon/<doc>/<num>.render.html  L4's own rendering of that section
-  findings.html                    errors in the TEXT that encoding it exposed
+  findings.html  findings.json     errors in the LAW that encoding exposed
+  coverage.html                    how much of the corpus is encoded
   sic.html                         the corpus's sic marks, carried as given
   diagnostics.html                 what the L4 checker reported, file by file
+  index.json                       every L4 segment with its corpus address
+
+The site is in English; the corpus's text is shown as it is, in Hebrew.
 """
 from __future__ import annotations
 
@@ -36,44 +40,54 @@ FINDINGS = ROOT / "findings" / "findings.toml"
 MANIFEST = ROOT / "corpus" / "manifest.json"
 CORPUS_SITE = "https://morimovilimcatala.github.io/ofek-hadash-corpus"
 REPO = "https://github.com/morimovilimcatala/ofek-hadash-l4"
-TITLE = "L4 — מאגר אופק חדש"
+TITLE = "Ofek Hadash in L4"
 
 # what is encoded, by the corpus document it encodes; the l4/ directory
 # mirrors the corpus's akn/ path without the extension
 DOCUMENTS = ["takanon/takanon-sherut-ovdei-horaa.xml"]
 
-# the corpus's collections, in its own order, so the reader sees what is
-# not started as well as what is
+# the corpus's collections, so the reader sees what is not started as well
 COLLECTIONS = [
-    ("takanon", "תקנון שירות עובדי הוראה"),
-    ("agreements", "הסכמים קיבוציים"),
-    ("circulars", "חוזרים"),
-    ("circulars-sachar", "חוזרי שכר"),
-    ("circulars-tnai-sherut", "חוזרי תנאי שירות"),
-    ("letters", "מכתבים"),
-    ("takam", "תקשי\"ר"),
-    ("tables", "טבלאות"),
+    ("takanon", "Takanon — teaching staff service regulations"),
+    ("agreements", "Collective agreements"),
+    ("circulars", "Circulars"),
+    ("circulars-sachar", "Salary circulars"),
+    ("circulars-tnai-sherut", "Conditions-of-service circulars"),
+    ("letters", "Letters"),
+    ("takam", "Takshir (civil service regulations)"),
+    ("tables", "Tables"),
 ]
 
 # The two labels every finding carries (MMS-415). KIND is what is wrong with
 # the law; STAGE is what caught it. The tool's message is the evidence, not
 # the category: a gap is a gap whether a warning or an example exposed it.
 KINDS = {
-    "gap": "פער — מקרה שהמסמך אינו מכריע בו",
-    "overlap": "חפיפה — שני כללים לאותו מקרה, או כלל שלעולם אינו חל",
-    "contradiction": "סתירה — מה שהמסמך קובע ואין כלל שלו מפיק, או שני סעיפים שאינם מתיישבים",
-    "undefined-term": "מונח שלא הוגדר",
-    "broken-reference": "הפניה שאינה מגיעה ליעדה",
-    "ambiguity": "עמימות — נוסח שנקרא בשתי דרכים",
+    "gap": ("Gap", "a case the instrument does not decide"),
+    "overlap": ("Overlap", "two rules for one case, or a rule that can never apply"),
+    "contradiction": ("Contradiction", "what the instrument states and its own rule does not produce, or two clauses that disagree"),
+    "undefined-term": ("Undefined term", "a term used and never defined"),
+    "broken-reference": ("Broken reference", "a clause, annex or instrument the text points to that is not there"),
+    "ambiguity": ("Ambiguity", "wording that reads two ways"),
 }
 STAGES = {
-    "writing": "בכתיבת הכלל — הטקסט אינו ניתן לכתיבה כפי שהוא",
-    "compiling": "בהידור — הכללים אינם מתיישבים זה עם זה",
-    "examples": "בהרצת הדוגמאות של המסמך — הכללים סותרים את מה שהמסמך עצמו קובע",
-    "verification": "באימות פורמלי — פגם שאף דוגמה בודדת אינה מראה",
+    "writing": ("Writing the rule", "the text cannot be written down as it stands"),
+    "compiling": ("Compiling", "the rules do not fit together"),
+    "examples": ("Running the law's examples", "the rules contradict a table or example the instrument itself states"),
+    "verification": ("Formal verification", "a flaw no single example shows"),
+}
+REVIEW = {
+    "unreviewed": "not yet seen by the lawyer",
+    "lawyer-seen": "seen by the lawyer",
+    "lawyer-agreed": "the lawyer agrees",
+    "lawyer-disagreed": "the lawyer disagrees",
 }
 
 esc = html.escape
+
+
+def he(text: str) -> str:
+    """Corpus text inside English chrome."""
+    return f'<span lang="he" dir="rtl">{esc(text)}</span>'
 
 
 # ----------------------------------------------------------------- model
@@ -115,6 +129,11 @@ class SectionView:
     def ok(self) -> bool:
         return bool(self.run.get("ok"))
 
+    @property
+    def problems(self) -> list[dict]:
+        return [d for d in self.run.get("diagnostics", [])
+                if d.get("severity") in ("error", "warning")]
+
 
 def l4_path(doc: str, num: str) -> Path:
     return ROOT / "l4" / doc.removesuffix(".xml") / f"{num}.l4"
@@ -125,7 +144,8 @@ def under(key: str, anc: str) -> bool:
 
 
 def line_of(rng) -> int | None:
-    """The first line of a range as `l4 run --json` prints it."""
+    """The first line of a range as `l4 run --json` prints it
+    ("1.7.l4:93:1-49" for a result, "71:5-71:8" for a diagnostic)."""
     if not rng:
         return None
     m = re.search(r":(\d+):\d+", str(rng)) or re.match(r"(\d+):\d+", str(rng))
@@ -138,19 +158,19 @@ def build_view(doc: str, sec: akn.Section) -> SectionView:
         v.l4 = None
         return v
     v.src = l4src.parse(v.l4)
-    rel = v.l4.relative_to(ROOT / "l4")
-    base = L4_OUT / rel.parent / rel.stem
-    run = base.with_suffix(".run.json")
+    import l4run
+    outs = l4run.outputs(v.l4)
+    run = outs["run"]
     v.run = json.loads(run.read_text(encoding="utf-8")) if run.exists() else {
         "ok": False, "results": [], "diagnostics": [
             {"severity": "error", "message": "not run: tools/l4run.py has not been run on this file"}]}
-    rend = base.with_suffix(".render.html")
+    rend = outs["render"]
     v.render = rend.read_text(encoding="utf-8") if rend.exists() else ""
     for res in v.run.get("results", []):
         s = l4src.segment_at(v.src, line_of(res.get("range")) or -1)
         if s:
             s.results.append(res)
-    for d in v.run.get("diagnostics", []):
+    for d in v.problems:
         s = l4src.segment_at(v.src, line_of(d.get("range")) or -1)
         if s:
             s.diagnostics.append(d)
@@ -162,9 +182,10 @@ def build_view(doc: str, sec: akn.Section) -> SectionView:
             where.setdefault(a, r)
     for s in v.src.segments:
         first = next((k for k in s.keys if k in where), None)
-        if first is None:
+        if first is None or any(k not in where for k in s.keys):
             v.unplaced.append(s)
-            continue
+            if first is None:
+                continue
         v.anchors.setdefault(where[first].key, []).append(s)
         for k in s.keys:
             for r in rows:
@@ -173,6 +194,25 @@ def build_view(doc: str, sec: akn.Section) -> SectionView:
                     if v.kind_of.get(r.key) != "rule":
                         v.kind_of[r.key] = "note" if s.note_only else "rule"
     return v
+
+
+def citations(sec: akn.Section) -> dict[str, str]:
+    """Row key -> the clause as a reader cites it: §1.7.2ב, not an eId."""
+    out, stack = {}, []
+    for r in sec.rows:
+        stack = stack[:r.depth]
+        stack += [""] * (r.depth - len(stack))
+        num = r.num.strip().rstrip(".)").lstrip("(")
+        # a label that restates the section's own number adds nothing
+        stack.append("" if r.num.startswith(sec.num) else num)
+        parts = [p for p in stack if p]
+        cite = "§" + sec.num + "".join(("." if p.isdigit() else "") + p for p in parts)
+        for k in [r.key, *r.aliases]:
+            out.setdefault(k, cite)
+    for k in list(out):
+        if "/" in k:
+            out[k] = out[k] + " ¶" + k.rsplit("/p", 1)[1]
+    return out
 
 
 def tally(v: SectionView) -> dict[str, int]:
@@ -192,16 +232,15 @@ class _Clauses(HTMLParser):
     def __init__(self, text: str):
         super().__init__(convert_charrefs=False)
         self.text, self.out = text, {}
-        self.depth = 0
-        self.start = None
-        self.term = None
-        self.in_term = False
+        self.lines = [0]
+        for line in text.split("\n"):
+            self.lines.append(self.lines[-1] + len(line) + 1)
+        self.depth, self.start, self.term, self.in_term = 0, None, None, False
         self.feed(text)
 
     def _offset(self) -> int:
         line, col = self.getpos()
-        lines = self.text.split("\n")
-        return sum(len(l) + 1 for l in lines[:line - 1]) + col
+        return self.lines[line - 1] + col
 
     def handle_starttag(self, tag, attrs):
         a = dict(attrs)
@@ -210,7 +249,8 @@ class _Clauses(HTMLParser):
                 self.start, self.depth, self.term = self._offset(), 1, ""
             elif self.start is not None:
                 self.depth += 1
-        if self.start is not None and tag == "span" and a.get("class") == "term" and self.term == "":
+        if (self.start is not None and tag == "span" and a.get("class") == "term"
+                and self.term == ""):
             self.in_term = True
 
     def handle_endtag(self, tag):
@@ -220,8 +260,7 @@ class _Clauses(HTMLParser):
             self.depth -= 1
             if self.depth == 0:
                 end = self.text.find(">", self._offset()) + 1
-                frag = self.text[self.start:end]
-                self.out.setdefault(_norm(self.term), []).append(frag)
+                self.out.setdefault(_norm(self.term), []).append(self.text[self.start:end])
                 self.start = None
 
     def handle_data(self, data):
@@ -268,22 +307,21 @@ def rendered_for(v: SectionView) -> dict[int, str]:
 # ------------------------------------------------------------------ pages
 
 def rel(target: str, here: str) -> str:
-    depth = here.count("/")
-    return "../" * depth + target
+    return "../" * here.count("/") + target
 
 
 def page(here: str, title: str, body: str, *, tab: str = "", desc: str = "") -> str:
-    nav = [("index.html", "מסמכים", "docs"),
-           ("findings.html", "ממצאי L4", "findings"),
-           ("coverage.html", "כיסוי", "coverage"),
-           ("sic.html", "כך במקור", "sic"),
-           ("diagnostics.html", "אבחון", "diagnostics"),
-           ("about.html", "על האתר", "about")]
+    nav = [("index.html", "Documents", "docs"),
+           ("findings.html", "L4 findings", "findings"),
+           ("coverage.html", "Coverage", "coverage"),
+           ("sic.html", "Sic", "sic"),
+           ("diagnostics.html", "Diagnostics", "diagnostics"),
+           ("about.html", "About", "about")]
     links = "".join(
         f'<a href="{rel(h, here)}"{" aria-current=page" if k == tab else ""}>{esc(t)}</a>'
         for h, t, k in nav)
     return f"""<!doctype html>
-<html lang="he" dir="rtl">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -295,15 +333,16 @@ def page(here: str, title: str, body: str, *, tab: str = "", desc: str = "") -> 
 </head>
 <body>
 <header class="top">
-  <a class="brand" href="{rel('index.html', here)}">L4 · אופק חדש</a>
+  <a class="brand" href="{rel('index.html', here)}">Ofek Hadash · L4</a>
   <nav class="tabs-top">{links}</nav>
 </header>
 <main>
 {body}
 </main>
 <footer class="foot">
-  הטקסט — <a href="{CORPUS_SITE}/">מאגר אופק חדש</a>, כפי שפורסם; הקוד — <a href="{REPO}">{esc(REPO.split('github.com/')[1])}</a>.
-  הקידוד הוא קריאה של הטקסט ואינו מחליף אותו.
+  Text: the <a href="{CORPUS_SITE}/">Ofek Hadash corpus</a>, as published. Code:
+  <a href="{REPO}">{esc(REPO.split('github.com/')[1])}</a>. The encoding is a reading of
+  the text and does not replace it.
 </footer>
 </body>
 </html>
@@ -311,18 +350,19 @@ def page(here: str, title: str, body: str, *, tab: str = "", desc: str = "") -> 
 
 
 def chip(status: str) -> str:
-    label = {"done": "מקודד", "partial": "חלקי", "todo": "טרם קודד"}[status]
+    label = {"done": "encoded", "partial": "partly encoded", "todo": "not yet encoded"}[status]
     return f'<span class="chip {status}">{label}</span>'
 
 
 def text_cell(r: akn.Row) -> str:
+    head = f' <span class="h">{esc(r.heading)}</span>' if r.heading else ""
+    label = f'<span class="num">{esc(r.num)}</span>{head}' if (r.num or r.heading) else ""
     if r.kind == "label":
-        head = f' <span class="h">{esc(r.heading)}</span>' if r.heading else ""
-        return f'<span class="num">{esc(r.num)}</span>{head}'
-    parts = []
+        return label
+    parts = [label + (" " if label else "")]
     for run in r.runs:
         if run.sic:
-            parts.append(f'<span class="sic" title="כך במקור: {esc(run.sic)}">'
+            parts.append(f'<span class="sic" title="sic (כך במקור): {esc(run.sic)}">'
                          f'{esc(run.text)}</span><sup class="sic-mark">[כך במקור]</sup>')
         else:
             parts.append(esc(run.text))
@@ -334,32 +374,35 @@ def results_html(seg: l4src.Segment) -> str:
         return ""
     items = []
     for res in seg.results:
-        kind = res.get("kind", "")
+        kind = str(res.get("kind", ""))
         val = res.get("value")
         sval = val if isinstance(val, str) else json.dumps(val, ensure_ascii=False)
-        bad = kind.lower().startswith("assert") and str(sval).lower() not in ("true", "passed", "ok")
-        items.append(f'<li class="res{" bad" if bad else ""}"><span class="rk">#{esc(kind.upper())}</span> '
-                     f'<span class="rl">שורה {line_of(res.get("range"))}</span> '
-                     f'<code dir="ltr">{esc(str(sval))[:400]}</code></li>')
+        label = {"assertion": "#ASSERT", "value": "#EVAL"}.get(kind, kind)
+        if kind == "value" and "\n" in str(sval):
+            label = "#TRACE"
+        bad = kind == "assertion" and str(sval).strip().lower() != "true"
+        items.append(f'<li class="res{" bad" if bad else ""}"><span class="rk">{esc(label)}</span> '
+                     f'<span class="rl">line {line_of(res.get("range"))}</span> '
+                     f'<code>{esc(str(sval))[:600]}</code></li>')
     for d in seg.diagnostics:
         items.append(f'<li class="res bad"><span class="rk">{esc(d.get("severity", ""))}</span> '
-                     f'<code dir="ltr">{esc(d.get("message", ""))[:600]}</code></li>')
+                     f'<code>{esc(d.get("message", ""))[:600]}</code></li>')
     return '<ul class="results">' + "".join(items) + "</ul>"
 
 
 def segment_html(v: SectionView, s: l4src.Segment, rendered: dict[int, str]) -> str:
     gh = f"{REPO}/blob/main/{v.l4.relative_to(ROOT)}#L{s.start}-L{s.end}"
     if s.note_only:
-        return (f'<div class="seg note"><span class="note-label">אין כאן כלל</span> '
-                f'{esc(s.note)} <a class="gh" href="{gh}" title="בקוד המקור">L{s.start}</a></div>')
-    others = "".join(f'<a class="also" href="#{esc(k)}">גם {esc(k.split("__")[-1])}</a>'
+        return (f'<div class="seg note"><span class="note-label">No rule here:</span> '
+                f'{esc(s.note)} <a class="gh" href="{gh}">L{s.start}</a></div>')
+    others = "".join(f'<a class="also" href="#{esc(k)}">also {esc(k.split("__")[-1])}</a>'
                      for k in s.keys[1:])
     r = rendered.get(s.start)
     rend = (f'<div class="view rendered l4-doc" hidden>{r}</div>' if r else
-            '<div class="view rendered empty" hidden>L4 אינו מציג את הקטע הזה כסעיף נפרד '
-            '(הצהרת טיפוס, בדיקה או חלק מכלל שהוצג במקום אחר).</div>')
+            '<div class="view rendered empty" hidden>l4 render shows nothing of its own '
+            'for this segment (a type, a test, or part of a rule rendered elsewhere).</div>')
     return (f'<div class="seg">'
-            f'<div class="seg-bar"><a class="gh" href="{gh}">שורות {s.start}–{s.end}</a>{others}</div>'
+            f'<div class="seg-bar"><a class="gh" href="{gh}">lines {s.start}–{s.end}</a>{others}</div>'
             f'<div class="view code-view">{l4src.code_html(s.lines, s.start)}</div>'
             f'{rend}{results_html(s)}</div>')
 
@@ -368,63 +411,65 @@ def section_page(v: SectionView, prev_next) -> str:
     sec = v.section
     here = v.href
     corpus = f"{CORPUS_SITE}/{v.dir}.html#{sec.eid}"
-    head = (f'<nav class="crumbs"><a href="{rel("index.html", here)}">מסמכים</a> › '
-            f'<a href="index.html">{esc(akn.title(v.doc))}</a> › '
-            f'<span>פרק {esc(sec.chapter_num)} {esc(sec.chapter_heading)}</span></nav>'
-            f'<h1><span class="secnum">{esc(sec.num)}</span> {esc(sec.heading)} {chip(v.status)}</h1>'
-            f'<p class="meta"><a href="{corpus}">הסעיף במאגר</a>')
+    head = (f'<nav class="crumbs"><a href="{rel("index.html", here)}">Documents</a> › '
+            f'<a href="index.html">{he(akn.title(v.doc))}</a> › '
+            f'chapter {esc(sec.chapter_num)} {he(sec.chapter_heading)}</nav>'
+            f'<h1><span class="secnum">§{esc(sec.num)}</span> {he(sec.heading)} {chip(v.status)}</h1>'
+            f'<p class="meta"><a href="{corpus}">this section in the corpus</a>')
     if v.l4:
-        head += (f' · <a href="{REPO}/blob/main/{v.l4.relative_to(ROOT)}">קוד המקור ({esc(v.l4.name)})</a>'
-                 f' · <a href="{esc(sec.num)}.render.html">התצוגה של L4 כמסמך</a>')
+        head += (f' · <a href="{REPO}/blob/main/{v.l4.relative_to(ROOT)}">source ({esc(v.l4.name)})</a>'
+                 f' · <a href="{esc(sec.num)}.render.html">the whole section as l4 render shows it</a>')
     head += "</p>"
     pn = '<nav class="prevnext">' + "".join(
-        f'<a class="{cls}" href="{esc(x.section.num)}.html">{lab} {esc(x.section.num)} {esc(x.section.heading)}</a>'
+        f'<a class="{cls}" href="{esc(x.section.num)}.html">{lab} §{esc(x.section.num)} {he(x.section.heading)}</a>'
         for x, cls, lab in prev_next if x) + "</nav>"
 
     if v.src is None:
         rows = "".join(
-            f'<div class="row {r.kind} d{min(r.depth, 6)}" id="{esc(r.key)}"><div class="txt">{text_cell(r)}</div></div>'
+            f'<div class="row {r.kind} d{min(r.depth, 6)}" id="{esc(r.key)}">'
+            f'<div class="txt" lang="he" dir="rtl">{text_cell(r)}</div></div>'
             for r in sec.rows)
-        body = (head + '<p class="banner">הסעיף טרם קודד. מוצג כאן הטקסט שלו כפי שהוא במאגר.</p>'
+        body = (head + '<p class="banner">This section is not encoded yet. Its text is shown as the corpus has it.</p>'
                 + f'<div class="grid only-text">{rows}</div>' + pn)
-        return page(here, f"{sec.num} {sec.heading} — {TITLE}", body, tab="docs")
+        return page(here, f"§{sec.num} {sec.heading} — {TITLE}", body, tab="docs")
 
     rendered = rendered_for(v)
     pre_lines = v.src.lines[v.src.preamble[0] - 1:v.src.preamble[1] - 1]
     preamble = ""
     if any(l.strip() for l in pre_lines):
-        preamble = (f'<details class="preamble" open><summary>אוצר המילים של הסעיף '
-                    f'(ייבוא, טיפוסים והנחות)</summary>'
+        preamble = (f'<details class="preamble" open><summary>The section\'s vocabulary '
+                    f'(imports, types and inputs)</summary>'
                     f'{l4src.code_html(pre_lines, v.src.preamble[0])}</details>')
     out = []
     for r in sec.rows:
         segs = v.anchors.get(r.key, [])
-        cls = [r.kind, f"d{min(r.depth, 6)}"]
+        cls = ["row", r.kind, f"d{min(r.depth, 6)}"]
         if r.kind == "text" and r.key not in v.covered:
             cls.append("gap")
         elif r.key in v.covered and not segs:
             cls.append("covered")
         code = "".join(segment_html(v, s, rendered) for s in segs)
         if "gap" in cls:
-            code = '<div class="seg missing">לא מקודד — אף כלל אינו מפנה לפסקה הזו</div>'
-        ids = " ".join(esc(a) for a in r.aliases)
+            code = '<div class="seg missing">Not encoded: no rule cites this paragraph.</div>'
         alias = "".join(f'<span id="{esc(a)}"></span>' for a in r.aliases)
-        out.append(f'<div class="{" ".join(cls)}" id="{esc(r.key)}" data-aliases="{ids}">'
-                   f'<div class="txt">{alias}{text_cell(r)}</div><div class="l4">{code}</div></div>')
+        out.append(f'<div class="{" ".join(cls)}" id="{esc(r.key)}">'
+                   f'<div class="txt" lang="he" dir="rtl">{alias}{text_cell(r)}</div>'
+                   f'<div class="l4">{code}</div></div>')
     unplaced = ""
     if v.unplaced:
-        unplaced = ('<div class="banner bad">קטעי קוד שמפנים למפתח שאינו בסעיף: ' +
+        unplaced = ('<div class="banner bad">Code cites keys that are not in this section: ' +
                     ", ".join(esc(" ".join(s.keys)) for s in v.unplaced) + "</div>")
-    ok = ('<span class="okay">L4 בודק את הקובץ וכל ה־#ASSERT מתקיימים</span>' if v.ok else
-          '<span class="notok">L4 מדווח על שגיאה בקובץ — ראו <a href="../../diagnostics.html">אבחון</a></span>')
-    switch = ('<div class="switch" role="group" aria-label="תצוגת הצד של L4">'
-              '<button type="button" data-view="code-view" aria-pressed="true">קוד</button>'
-              '<button type="button" data-view="rendered" aria-pressed="false">L4 מעובד</button></div>')
+    ok = ('<span class="okay">l4 checks this file and every #ASSERT holds.</span>' if v.ok else
+          f'<span class="notok">l4 reports an error in this file — see '
+          f'<a href="{rel("diagnostics.html", here)}">Diagnostics</a>.</span>')
+    switch = ('<div class="switch" role="group" aria-label="L4 view">'
+              '<button type="button" data-view="code-view" aria-pressed="true">code</button>'
+              '<button type="button" data-view="rendered" aria-pressed="false">l4 render</button></div>')
     body = (head + f'<p class="status">{ok}</p>' + unplaced +
-            f'<div class="colheads"><div>הטקסט</div><div>L4 {switch}</div></div>' +
+            f'<div class="colheads"><div>The text</div><div>L4 {switch}</div></div>' +
             preamble + f'<div class="grid">{"".join(out)}</div>' + pn)
-    return page(here, f"{sec.num} {sec.heading} — {TITLE}", body, tab="docs",
-                desc=f"סעיף {sec.num} בתקנון שירות עובדי הוראה, בטקסט ובקידוד L4")
+    return page(here, f"§{sec.num} {sec.heading} — {TITLE}", body, tab="docs",
+                desc=f"Section {sec.num} of the teaching staff service regulations, its text beside its L4")
 
 
 def render_page(v: SectionView) -> str:
@@ -432,11 +477,11 @@ def render_page(v: SectionView) -> str:
     m = re.search(r"<body[^>]*>(.*)</body>", v.render, re.S)
     inner = m.group(1) if m else v.render
     here = v.href.replace(".html", ".render.html")
-    body = (f'<nav class="crumbs"><a href="{esc(v.section.num)}.html">← חזרה להשוואה</a></nav>'
-            f'<h1><span class="secnum">{esc(v.section.num)}</span> {esc(v.section.heading)} — '
-            f'כפי ש־<code>l4 render</code> מציג אותו</h1>'
-            f'<div class="render-frame" dir="ltr">{inner}</div>')
-    return page(here, f"{v.section.num} — l4 render", body, tab="docs")
+    body = (f'<nav class="crumbs"><a href="{esc(v.section.num)}.html">← back to the comparison</a></nav>'
+            f'<h1><span class="secnum">§{esc(v.section.num)}</span> {he(v.section.heading)} — '
+            f'as <code>l4 render</code> shows it</h1>'
+            f'<div class="render-frame">{inner or "<p>l4 render produced nothing for this file.</p>"}</div>')
+    return page(here, f"§{v.section.num} — l4 render", body, tab="docs")
 
 
 def document_page(doc: str, views: list[SectionView]) -> str:
@@ -446,16 +491,16 @@ def document_page(doc: str, views: list[SectionView]) -> str:
         chapters.setdefault(v.section.chapter_eid, []).append(v)
     done = sum(v.status == "done" for v in views)
     part = sum(v.status == "partial" for v in views)
-    parts = [f'<nav class="crumbs"><a href="{rel("index.html", here)}">מסמכים</a></nav>',
-             f'<h1>{esc(akn.title(doc))}</h1>',
-             f'<p class="meta"><a href="{CORPUS_SITE}/{doc.removesuffix(".xml")}.html">המסמך במאגר</a> · '
-             f'{len(views)} סעיפים: {done} מקודדים, {part} חלקית, {len(views) - done - part} טרם.</p>']
+    parts = [f'<nav class="crumbs"><a href="{rel("index.html", here)}">Documents</a></nav>',
+             f'<h1>{he(akn.title(doc))}</h1>',
+             f'<p class="meta"><a href="{CORPUS_SITE}/{doc.removesuffix(".xml")}.html">this document in the corpus</a> · '
+             f'{len(views)} sections: {done} encoded, {part} partly, {len(views) - done - part} not yet.</p>']
     for vs in chapters.values():
         s0 = vs[0].section
         lis = "".join(
-            f'<li><a href="{esc(v.section.num)}.html"><span class="secnum">{esc(v.section.num)}</span> '
-            f'{esc(v.section.heading)}</a> {chip(v.status)}</li>' for v in vs)
-        parts.append(f'<section class="chapter"><h2>פרק {esc(s0.chapter_num)} {esc(s0.chapter_heading)}</h2>'
+            f'<li><a href="{esc(v.section.num)}.html"><span class="secnum">§{esc(v.section.num)}</span> '
+            f'{he(v.section.heading)}</a> {chip(v.status)}</li>' for v in vs)
+        parts.append(f'<section class="chapter"><h2>Chapter {esc(s0.chapter_num)} {he(s0.chapter_heading)}</h2>'
                      f'<ul class="secs">{lis}</ul></section>')
     return page(here, f"{akn.title(doc)} — {TITLE}", "".join(parts), tab="docs")
 
@@ -470,32 +515,26 @@ def index_page(all_views: dict[str, list[SectionView]]) -> str:
         for d in docs:
             vs = all_views[d]
             done = sum(v.status == "done" for v in vs)
-            rows.append(f'<li class="coll"><a href="{d.removesuffix(".xml")}/index.html">{esc(akn.title(d))}</a> '
-                        f'<span class="count">{done} / {len(vs)} סעיפים מקודדים</span></li>')
-    body = (f'<h1>קידוד L4 של מאגר אופק חדש</h1>'
-            f'<p class="lede">כל סעיף מוצג פעמיים, זה לצד זה: הטקסט כפי שהוא ב'
-            f'<a href="{CORPUS_SITE}/">מאגר</a>, והכללים שקראנו בו כתובים ב־'
-            f'<a href="https://legalese.com/l4/">L4</a> — שפת תכנות למשפט שהמהדר שלה בודק טיפוסים, '
-            f'מריץ את הדוגמאות ומציג את הכללים כמסמך. כשהקידוד נתקל בטקסט שאינו מתיישב — שני כללים לאותו מקרה, '
-            f'מקרה שאין לו כלל, הפניה שאינה מגיעה ליעדה — הממצא נרשם ב<a href="findings.html">ממצאי L4</a>, '
-            f'עם הקוד שמראה אותו.</p>'
+            rows.append(f'<li class="coll"><a href="{d.removesuffix(".xml")}/index.html">{he(akn.title(d))}</a> '
+                        f'<span class="count">{esc(name)} · {done} of {len(vs)} sections encoded</span></li>')
+    body = (f'<h1>The Ofek Hadash corpus, encoded in L4</h1>'
+            f'<p class="lede">Every section is shown twice, side by side: its text as the '
+            f'<a href="{CORPUS_SITE}/">corpus</a> holds it, and the rules read from it written in '
+            f'<a href="https://legalese.com/l4/">L4</a>, a language for law whose compiler checks types, '
+            f'runs the examples and renders the rules back as a document. All of a section\'s logic is '
+            f'encoded — who is entitled, how much, who must do what and by when — not only the pay. '
+            f'When the text does not hold together — two rules for one case, a case with no rule, a '
+            f'reference to nothing — the finding goes to <a href="findings.html">L4 findings</a>, with '
+            f'the code that shows it.</p>'
             f'<ul class="colls">{"".join(rows)}</ul>')
     return page("index.html", TITLE, body, tab="docs",
-                desc="הטקסט של תקנון שירות עובדי הוראה לצד קידוד L4 שלו, סעיף אחר סעיף")
+                desc="The teaching staff service regulations beside their L4 encoding, section by section")
 
 
 def load_findings() -> list[dict]:
     if not FINDINGS.exists():
         return []
     return tomllib.loads(FINDINGS.read_text(encoding="utf-8")).get("finding", [])
-
-
-REVIEW = {
-    "unreviewed": "טרם נבדק בידי עורך הדין",
-    "lawyer-seen": "עורך הדין ראה",
-    "lawyer-agreed": "עורך הדין הסכים",
-    "lawyer-disagreed": "עורך הדין חלק",
-}
 
 
 def address(doc: str, key: str) -> str:
@@ -517,9 +556,8 @@ def evidence_result(f: dict, views_by_file: dict[str, SectionView]) -> dict:
             for res in v.run.get("results", []):
                 if line_of(res.get("range")) == n:
                     val = res.get("value")
-                    out["messages"].append(f"#ASSERT {line.strip()[8:]} → "
-                                           f"{val if isinstance(val, str) else json.dumps(val, ensure_ascii=False)}")
-                    out["held"] = v.ok
+                    out["messages"].append(f"{line.strip()}  →  {val}")
+                    out["held"] = str(val).strip().lower() == "true"
             break
     return out
 
@@ -528,16 +566,16 @@ def findings_page(findings, views_by_file, key_to_view) -> str:
     counts: dict[tuple[str, str], int] = {}
     for f in findings:
         counts[(f["kind"], f["stage"])] = counts.get((f["kind"], f["stage"]), 0) + 1
-    matrix = ('<table class="diag matrix"><thead><tr><th>סוג \\ שלב</th>'
-              + "".join(f'<th title="{esc(t)}">{esc(t.split(" — ")[0])}</th>' for t in STAGES.values())
+    matrix = ('<div class="scroll-x"><table class="diag matrix"><thead><tr><th>kind \\ stage</th>'
+              + "".join(f'<th title="{esc(d)}">{esc(t)}</th>' for t, d in STAGES.values())
               + "</tr></thead><tbody>"
-              + "".join(f'<tr><th title="{esc(t)}"><a href="#k-{k}">{esc(t.split(" — ")[0])}</a></th>'
-                        + "".join(f"<td>{counts.get((k, st), '') }</td>" for st in STAGES) + "</tr>"
-                        for k, t in KINDS.items())
-              + "</tbody></table>")
+              + "".join(f'<tr><th title="{esc(d)}"><a href="#k-{k}">{esc(t)}</a></th>'
+                        + "".join(f"<td>{counts.get((k, st), '')}</td>" for st in STAGES) + "</tr>"
+                        for k, (t, d) in KINDS.items())
+              + "</tbody></table></div>")
     by_id = {f["id"]: f for f in findings}
     groups = []
-    for kind, label in KINDS.items():
+    for kind, (label, gloss) in KINDS.items():
         cards = []
         for f in (x for x in findings if x["kind"] == kind):
             ev = evidence_result(f, views_by_file)
@@ -545,34 +583,38 @@ def findings_page(findings, views_by_file, key_to_view) -> str:
             for k in f.get("keys", []):
                 v = key_to_view.get(k)
                 if v:
-                    where.append(f'<a href="{v.href}#{esc(k)}">§{esc(v.section.num)}</a>')
-            state = ('<span class="okay">ה־#ASSERT מתקיים: הליקוי עדיין בטקסט</span>' if ev["held"] else
-                     '<span class="notok">הראיה אינה מתקיימת — ראו אבחון</span>')
+                    where.append(f'<a href="{v.href}#{esc(k)}">{esc(citations(v.section).get(k, "§" + v.section.num))}</a>')
+            state = ('<span class="okay">the #ASSERT holds: the flaw is still in the text</span>' if ev["held"] else
+                     '<span class="notok">the evidence does not hold — see Diagnostics</span>')
             deps = "".join(f'<a href="#{esc(d)}">{esc(d)}</a> ' for d in f.get("depends_on", []) if d in by_id)
+            stage, sgloss = STAGES[f["stage"]]
+            quote = (f'<blockquote lang="he" dir="rtl">{esc(f["quote"])}</blockquote>' if f.get("quote") else "")
             cards.append(
                 f'<article class="finding" id="{esc(f["id"])}">'
                 f'<h3><span class="fid">{esc(f["id"])}</span> {esc(f["title"])}</h3>'
-                f'<p class="fmeta"><span class="stage">{esc(STAGES[f["stage"]])}</span> · '
-                f'{" · ".join(where)}</p>'
+                f'<p class="fmeta"><span class="stage" title="{esc(sgloss)}">caught {esc(stage.lower())}</span> · '
+                f'{" · ".join(where)}</p>{quote}'
                 f'<div class="fbody">{"".join(f"<p>{esc(p)}</p>" for p in f["body"].strip().split(chr(10) + chr(10)))}</div>'
-                f'<p class="reading"><strong>הקריאה שהקידוד נוקט:</strong> {esc(f["reading"])}</p>'
-                + (f'<p class="deps">נשען על הקריאות של: {deps}</p>' if deps else "")
-                + (f'<p class="ev"><a href="{ev["url"]}">הראיה ב־L4</a> · {state}</p>'
-                   + "".join(f'<pre class="msg" dir="ltr">{esc(m)}</pre>' for m in ev["messages"])
+                f'<p class="reading"><strong>Reading the encoding adopts:</strong> {esc(f["reading"])}</p>'
+                + (f'<p class="deps">Depends on the readings of: {deps}</p>' if deps else "")
+                + (f'<p class="ev"><a href="{ev["url"]}">The evidence in L4</a> · {state}</p>'
+                   + "".join(f'<pre class="msg">{esc(m)}</pre>' for m in ev["messages"])
                    if ev["url"] else "")
-                + f'<p class="who">קרא: {esc(f["read_by"])} · {esc(REVIEW[f["review"]])}</p>'
+                + f'<p class="who">Read by {esc(f["read_by"])} · {esc(REVIEW[f["review"]])}</p>'
                 + "</article>")
         if cards:
-            groups.append(f'<section id="k-{kind}"><h2>{esc(label)}</h2>{"".join(cards)}</section>')
-    intro = ('<h1>ממצאי L4</h1><p class="lede">מה שהכללים עושים לא נכון כשכותבים אותם באופן פורמלי — '
-             'לא מה שהעמוד מדפיס לא נכון (לזה <a href="sic.html">כך במקור</a>, שהכרעותיו נלקחות כאן כנתונות). '
-             'לכל ממצא שתי תוויות: <strong>סוג</strong> — מה לא בסדר בחוק, ו<strong>שלב</strong> — מה גילה את זה. '
-             'שורה אחת לכל פגם, ולא לכל הודעה. כל ממצא נשען על <code>#ASSERT</code> בקוד שמתקיים כל עוד '
-             'הפגם בטקסט; אם הטקסט יתוקן הבדיקה תיכשל. כל ממצא הוא קריאה משפטית, ולכן הוא אומר מי קרא '
-             'אותו והאם עורך הדין ראה.</p>'
-             f'<p><a href="findings.json">findings.json</a> — אותם ממצאים לקריאה במכונה, עם כתובות במאגר.</p>')
-    body = intro + matrix + ("".join(groups) or '<p class="empty">אין עדיין ממצאים.</p>')
-    return page("findings.html", f"ממצאי L4 — {TITLE}", body, tab="findings")
+            groups.append(f'<section id="k-{kind}"><h2>{esc(label)} <small>— {esc(gloss)}</small></h2>{"".join(cards)}</section>')
+    intro = ('<h1>L4 findings</h1><p class="lede">What the RULES get wrong when they are written down '
+             'formally — not what a page prints wrong (that is <a href="sic.html">Sic</a>, whose '
+             'corrections are taken here as given). Every finding carries two labels: its '
+             '<strong>kind</strong>, what is wrong with the law, and its <strong>stage</strong>, what caught it. '
+             'One row per flaw, not per message. Each rests on an <code>#ASSERT</code> in the code that holds '
+             'while the flaw is in the text; if the text is ever corrected, the check fails and the finding '
+             'is stale. A finding is a legal reading, so it says whose reading it is and whether the lawyer '
+             'has seen it.</p>'
+             '<p><a href="findings.json">findings.json</a> — the same findings for machines, with corpus addresses.</p>')
+    body = intro + matrix + ("".join(groups) or '<p class="empty">No findings yet.</p>')
+    return page("findings.html", f"L4 findings — {TITLE}", body, tab="findings")
 
 
 def findings_json(findings, views_by_file, key_to_view) -> str:
@@ -583,7 +625,7 @@ def findings_json(findings, views_by_file, key_to_view) -> str:
             "id": f["id"], "kind": f["kind"], "stage": f["stage"],
             "addresses": [address(key_to_view[k].doc, k) for k in f["keys"] if k in key_to_view],
             "statement": f["title"], "body": f["body"].strip(), "reading": f["reading"],
-            "depends_on": f.get("depends_on", []),
+            "quote": f.get("quote"), "depends_on": f.get("depends_on", []),
             "l4": {"file": f["l4"], "line": ev["line"], "evidence": f["evidence"]},
             "messages": ev["messages"], "message_count": len(ev["messages"]),
             "evidence_holds": ev["held"],
@@ -618,17 +660,18 @@ def sic_page(all_views) -> str:
                 for run in r.runs:
                     if run.sic:
                         items.append(f'<li><a href="{v.href}#{esc(r.key)}">§{esc(v.section.num)}</a> '
-                                     f'<span class="sic">{esc(run.text)}</span> — {esc(run.sic)}</li>')
-    intro = ('<h1>כך במקור</h1><p class="lede">טעויות שהעמוד המודפס עצמו נושא, כפי שהמאגר '
-             f'<a href="{CORPUS_SITE}/sic.html">סימן והכריע</a>. כאן ההכרעה נלקחת כנתונה: הטקסט מוצג '
-             'עם הסימון, והקידוד קורא את מה שהמאגר קבע שהטקסט אומר. ממצא חדש שהקידוד מעלה נרשם '
-             'ב<a href="findings.html">ממצאי L4</a>, לא כאן.</p>')
+                                     f'<span class="sic" lang="he" dir="rtl">{esc(run.text)}</span> — {he(run.sic)}</li>')
+    intro = ('<h1>Sic (כך במקור)</h1><p class="lede">Errors the printed page itself carries, as the corpus '
+             f'<a href="{CORPUS_SITE}/sic.html">marked and settled them</a>. Here the corpus\'s decision is '
+             'taken as given: the text is shown with the mark, and the L4 encodes what the corpus decided the '
+             'text says. A new flaw the encoding exposes goes to <a href="findings.html">L4 findings</a>, '
+             'not here.</p>')
     if items:
         body = intro + f'<ul class="sics">{"".join(items)}</ul>'
     else:
-        body = intro + ('<p class="empty">במסמכים שקודדו עד כה המאגר אינו מסמן אף "כך במקור". '
-                        'כשיסמן, הסימון יופיע כאן ובטקסט שליד הקוד.</p>')
-    return page("sic.html", f"כך במקור — {TITLE}", body, tab="sic")
+        body = intro + ('<p class="empty">The corpus marks no sic in the documents encoded so far. '
+                        'When it does, the mark appears here and in the text beside the code.</p>')
+    return page("sic.html", f"Sic — {TITLE}", body, tab="sic")
 
 
 def diagnostics_page(views: list[SectionView]) -> str:
@@ -636,27 +679,30 @@ def diagnostics_page(views: list[SectionView]) -> str:
     for v in views:
         if v.src is None:
             continue
-        diags = v.run.get("diagnostics", [])
-        asserts = [r for r in v.run.get("results", []) if str(r.get("kind", "")).lower().startswith("assert")]
-        nbad = len(diags) + len(v.unplaced)
+        diags = v.problems
+        asserts = [r for r in v.run.get("results", []) if r.get("kind") == "assertion"]
+        failed = [r for r in asserts if str(r.get("value")).strip().lower() != "true"]
+        bad = len(diags) + len(failed) + len(v.unplaced)
         cls = "okay" if v.ok and not v.unplaced else "notok"
-        detail = "".join(f'<li><code dir="ltr">{esc(d.get("severity", ""))} {esc(str(d.get("range", "")))} '
+        detail = "".join(f'<li><code>{esc(d.get("severity", ""))} {esc(str(d.get("range", "")))} '
                          f'{esc(d.get("message", ""))}</code></li>' for d in diags)
-        detail += "".join(f'<li>קטע קוד מפנה למפתח שאינו בסעיף: <code dir="ltr">{esc(" ".join(s.keys))}</code></li>'
+        detail += "".join(f'<li>#ASSERT failed at line {line_of(r.get("range"))}</li>' for r in failed)
+        detail += "".join(f'<li>code cites keys not in the section: <code>{esc(" ".join(s.keys))}</code></li>'
                           for s in v.unplaced)
         gaps = sum(1 for r in v.text_rows if r.key not in v.covered)
         rows.append(f'<tr><td><a href="{v.href}">§{esc(v.section.num)}</a></td>'
-                    f'<td dir="ltr"><code>{esc(str(v.l4.relative_to(ROOT)))}</code></td>'
-                    f'<td class="{cls}">{"תקין" if cls == "okay" else "שגיאה"}</td>'
-                    f'<td>{len(asserts)}</td><td>{gaps}</td><td>{nbad}</td></tr>'
+                    f'<td><code>{esc(str(v.l4.relative_to(ROOT)))}</code></td>'
+                    f'<td class="{cls}">{"ok" if cls == "okay" else "error"}</td>'
+                    f'<td>{len(asserts)}</td><td>{gaps}</td><td>{bad}</td></tr>'
                     + (f'<tr class="detail"><td colspan="6"><ul>{detail}</ul></td></tr>' if detail else ""))
-    body = ('<h1>אבחון</h1><p class="lede">מה שהמהדר של L4 (<code>l4 run</code>) אומר על כל קובץ: '
-            'שגיאות טיפוס ותחביר, ו־<code>#ASSERT</code> שנכשל. "פסקאות חסרות" הן פסקאות הטקסט שאף קטע '
-            'קוד אינו מפנה אליהן. בעמוד תקין כל העמודות האדומות אפס.</p>'
-            '<table class="diag"><thead><tr><th>סעיף</th><th>קובץ</th><th>מצב</th><th>#ASSERT</th>'
-            '<th>פסקאות חסרות</th><th>שגיאות</th></tr></thead><tbody>'
+    body = ('<h1>Diagnostics</h1><p class="lede">What the L4 compiler (<code>l4 run</code>) says about each '
+            'file: type and syntax errors, and any <code>#ASSERT</code> that fails. "Paragraphs not cited" '
+            'counts the paragraphs of the text that no code segment cites. On a healthy site the last two '
+            'columns are zero.</p>'
+            '<table class="diag"><thead><tr><th>section</th><th>file</th><th>state</th><th>#ASSERTs</th>'
+            '<th>paragraphs not cited</th><th>problems</th></tr></thead><tbody>'
             + "".join(rows) + "</tbody></table>")
-    return page("diagnostics.html", f"אבחון — {TITLE}", body, tab="diagnostics")
+    return page("diagnostics.html", f"Diagnostics — {TITLE}", body, tab="diagnostics")
 
 
 def coverage_page(all_views: dict[str, list[SectionView]]) -> str:
@@ -674,23 +720,26 @@ def coverage_page(all_views: dict[str, list[SectionView]]) -> str:
     paras = t["rule"] + t["note"] + t["missing"] + untouched
     done = sum(v.status == "done" for v in flat)
     part = sum(v.status == "partial" for v in flat)
-    head = (f'<h1>כיסוי</h1>'
-            f'<p class="lede">כמה מן המאגר מקודד ב־L4. המכנה הוא רשימת המסמכים של המאגר עצמו — '
-            f'{len(manifest)} מסמכים — ולא רק מה שהתחלנו בו. מסמך מתחלק לסעיפים, וסעיף לפסקאות; '
-            f'פסקה היא <span class="sw rule"></span> כלל מקודד, <span class="sw note"></span> פסקה שנקבע '
-            f'שאין בה כלל (אסמכתאות, הערות תיקון — עם הסיבה), <span class="sw missing"></span> פסקה '
-            f'בסעיף מקודד שאף קוד אינו מפנה אליה, או <span class="sw todo"></span> פסקה בסעיף שטרם קודד.</p>'
+    head = (f'<h1>Coverage</h1>'
+            f'<p class="lede">How much of the corpus is encoded in L4. The denominator is the corpus\'s own '
+            f'document list — {len(manifest)} documents — not only what has been started. A document '
+            f'divides into sections and a section into paragraphs; a paragraph is '
+            f'<span class="sw rule"></span> encoded as a rule, <span class="sw note"></span> read and found '
+            f'to carry no rule (a source list, an amendment note — with the reason), '
+            f'<span class="sw missing"></span> in an encoded section but cited by no code, or '
+            f'<span class="sw todo"></span> in a section not encoded yet.</p>'
             f'<div class="kpis">'
-            f'<div><b>{len(DOCUMENTS)}</b> / {len(manifest)}<span>מסמכים בעבודה</span></div>'
-            f'<div><b>{done}</b> / {len(flat)}<span>סעיפים מקודדים במלואם</span></div>'
-            f'<div><b>{part}</b><span>סעיפים חלקית</span></div>'
-            f'<div><b>{t["rule"] + t["note"]}</b> / {paras}<span>פסקאות שנקראו</span></div>'
-            f'<div><b>{t["rule"]}</b><span>פסקאות עם כלל</span></div>'
+            f'<div><b>{len(DOCUMENTS)}</b> / {len(manifest)}<span>documents in progress</span></div>'
+            f'<div><b>{done}</b> / {len(flat)}<span>sections fully encoded</span></div>'
+            f'<div><b>{part}</b><span>sections partly encoded</span></div>'
+            f'<div><b>{t["rule"] + t["note"]}</b> / {paras}<span>paragraphs read</span></div>'
+            f'<div><b>{t["rule"]}</b><span>paragraphs with a rule</span></div>'
             f'</div>')
     parts = [head]
-    # the documents in work, a strip per chapter, a cell per section
     for doc, vs in all_views.items():
-        parts.append(f'<h2><a href="{doc.removesuffix(".xml")}/index.html">{esc(akn.title(doc))}</a></h2>')
+        parts.append(f'<h2><a href="{doc.removesuffix(".xml")}/index.html">{he(akn.title(doc))}</a></h2>'
+                     '<p class="meta">One strip per chapter, one cell per section, its width the section\'s '
+                     'paragraphs. Hover for the counts; click to open.</p>')
         chapters: dict[str, list[SectionView]] = {}
         for v in vs:
             chapters.setdefault(v.section.chapter_eid, []).append(v)
@@ -701,70 +750,75 @@ def coverage_page(all_views: dict[str, list[SectionView]]) -> str:
             for v in cvs:
                 n = max(len(v.text_rows), 1)
                 if v.src is None:
-                    segs = f'<i class="todo" style="flex:{n}"></i>'
-                    tip = f"{v.section.num} {v.section.heading}: טרם קודד ({len(v.text_rows)} פסקאות)"
+                    segs = '<i class="todo" style="flex:1"></i>'
+                    tip = f"§{v.section.num} {v.section.heading}: not encoded ({len(v.text_rows)} paragraphs)"
                 else:
                     c = tally(v)
-                    segs = "".join(f'<i class="{k}" style="flex:{c[k]}"></i>' for k in ("rule", "note", "missing") if c[k])
-                    tip = (f"{v.section.num} {v.section.heading}: {c['rule']} כלל, {c['note']} ללא כלל, "
-                           f"{c['missing']} חסרות")
+                    segs = "".join(f'<i class="{k}" style="flex:{c[k]}"></i>'
+                                   for k in ("rule", "note", "missing") if c[k])
+                    tip = (f"§{v.section.num} {v.section.heading}: {c['rule']} with a rule, "
+                           f"{c['note']} with no rule, {c['missing']} not cited")
                 cells.append(f'<a class="cell" href="{v.href}" title="{esc(tip)}" style="flex:{n}">'
-                             f'{segs}<span class="lab">{esc(v.section.num)}</span></a>')
-            rows.append(f'<div class="strip-row"><div class="strip-name">פרק {esc(s0.chapter_num)} '
-                        f'{esc(s0.chapter_heading)}</div><div class="strip">{"".join(cells)}</div></div>')
+                             f'{segs}</a>')
+            rows.append(f'<div class="strip-row"><div class="strip-name">Chapter {esc(s0.chapter_num)} '
+                        f'{he(s0.chapter_heading)}</div><div class="strip">{"".join(cells)}</div></div>')
         parts.append(f'<div class="strips">{"".join(rows)}</div>')
-    # every corpus document, by collection
     names = dict(COLLECTIONS)
     by_coll: dict[str, list[dict]] = {}
     for d in manifest:
         by_coll.setdefault(d["collection"], []).append(d)
-    parts.append('<h2>כל המאגר, אוסף אחר אוסף</h2><div class="coll-table">')
+    parts.append('<h2>The whole corpus, collection by collection</h2><div class="coll-table">')
     for coll, _ in COLLECTIONS:
         docs = by_coll.get(coll, [])
         if not docs:
             continue
         working = [d for d in docs if d["path"] in all_views]
-        pct = 0
-        for d in working:
-            vs = all_views[d["path"]]
-            pct += sum(v.status == "done" for v in vs) / max(len(vs), 1)
-        share = pct / len(docs)
+        share = sum(sum(v.status == "done" for v in all_views[d["path"]]) / max(len(all_views[d["path"]]), 1)
+                    for d in working) / len(docs)
         lis = "".join(
             f'<li class="{"work" if d["path"] in all_views else ""}">'
-            + (f'<a href="{d["path"].removesuffix(".xml")}/index.html">{esc(d["title"])}</a>'
+            + (f'<a href="{d["path"].removesuffix(".xml")}/index.html">{he(d["title"])}</a>'
                if d["path"] in all_views else
-               f'<a href="{CORPUS_SITE}/{esc(d["path"].removesuffix(".xml"))}.html">{esc(d["title"])}</a>')
+               f'<a href="{CORPUS_SITE}/{esc(d["path"].removesuffix(".xml"))}.html">{he(d["title"])}</a>')
             + f' <span class="date">{esc(d["date"] or "")}</span></li>'
             for d in sorted(docs, key=lambda d: (d["path"] not in all_views, d["date"] or "", d["path"])))
         parts.append(
             f'<details class="coll-row"><summary><span class="cname">{esc(names.get(coll, coll))}</span>'
             f'<span class="bar"><i class="rule" style="width:{share * 100:.2f}%"></i></span>'
-            f'<span class="cnum">{len(working)} / {len(docs)} מסמכים בעבודה</span></summary>'
+            f'<span class="cnum">{len(working)} of {len(docs)} documents in progress</span></summary>'
             f'<ul class="doclist">{lis}</ul></details>')
     parts.append("</div>")
-    return page("coverage.html", f"כיסוי — {TITLE}", "".join(parts), tab="coverage",
-                desc="כמה ממאגר אופק חדש מקודד ב־L4, מסמך אחר מסמך וסעיף אחר סעיף")
+    return page("coverage.html", f"Coverage — {TITLE}", "".join(parts), tab="coverage",
+                desc="How much of the Ofek Hadash corpus is encoded in L4, document by document and section by section")
 
 
 def about_page() -> str:
-    body = f"""<h1>על האתר</h1>
-<p class="lede">האתר מציב את הטקסט של מאגר אופק חדש ליד קידוד שלו ב־L4, סעיף אחר סעיף.</p>
-<h2>איך לקרוא עמוד סעיף</h2>
-<p>כל שורה בטבלה היא פסקה בטקסט. מימינה — הטקסט כפי שהוא במאגר; משמאלה — הכללים שקודדו ממנה.
-הכפתור "L4 מעובד" מחליף את הקוד בתצוגה ש־<code>l4 render</code> מפיק מאותם כללים, בשפה טבעית.
-פסקה שאין בה כלל (רשימת אסמכתאות, הערת תיקון) מסומנת "אין כאן כלל" עם הסיבה; פסקה שאף קטע קוד
-אינו מפנה אליה מסומנת "לא מקודד".</p>
-<h2>מה הקידוד מקבל כנתון</h2>
+    body = f"""<h1>About</h1>
+<p class="lede">This site sets the text of the Ofek Hadash corpus — the instruments that govern
+Israeli teachers' employment — beside an encoding of it in L4, section by section.</p>
+<h2>Reading a section page</h2>
+<p>Each row of the table is one paragraph of the text. On the left, the text as the corpus
+holds it; on the right, the rules encoded from it. The <em>l4 render</em> switch replaces the
+code with the natural-language rendering <code>l4 render</code> produces from the same rules.
+The results of the file's <code>#ASSERT</code>, <code>#EVAL</code> and <code>#TRACE</code>
+directives sit under the code they test. A paragraph that carries no rule (a list of sources,
+an amendment note) is marked <em>No rule here</em> with the reason; one that no code cites is
+marked <em>Not encoded</em>.</p>
+<h2>What the encoding takes as given</h2>
 <ul>
-<li>הטקסט הוא של המאגר — עותק שלו נשמר ב־<code>corpus/</code> ואינו נערך כאן.</li>
-<li>טעות שהמאגר סימן "כך במקור" — הכרעת המאגר נלקחת כנתונה.</li>
-<li>סכומים ותעריפים שהטקסט אומר שנקבעים במקום אחר (חוזרי שכר, האוצר) הם קלט, לא מספר שהומצא.</li>
+<li>The text is the corpus's. A copy is kept in <code>corpus/</code> and never edited here.</li>
+<li>An error the corpus marked <em>sic</em> (כך במקור) — the corpus's decision stands.</li>
+<li>An amount the text says is set elsewhere (by the Treasury, in a circular) is an input,
+never a number made up.</li>
 </ul>
-<h2>מה הקידוד מוסיף</h2>
-<p>כשהטקסט אינו מתיישב עם עצמו, הממצא נרשם ב<a href="findings.html">ממצאי L4</a> עם
-<code>#ASSERT</code> שמראה אותו, והקידוד אומר במפורש איזו קריאה הוא נוקט.</p>
-<p>הקוד ב־<a href="{REPO}">{esc(REPO.split('github.com/')[1])}</a>.</p>"""
-    return page("about.html", f"על האתר — {TITLE}", body, tab="about")
+<h2>What the encoding adds</h2>
+<p>Where the text does not hold together, the finding goes to <a href="findings.html">L4 findings</a>
+with an <code>#ASSERT</code> that shows it, and the code says which reading it adopts.</p>
+<h2>For machines</h2>
+<p><a href="index.json">index.json</a> lists every L4 segment with the corpus address it encodes
+(<code>&lt;document&gt;#&lt;eId&gt;</code>); <a href="findings.json">findings.json</a> lists the findings.</p>
+<p>Source: <a href="{REPO}">{esc(REPO.split('github.com/')[1])}</a>.</p>"""
+    return page("about.html", f"About — {TITLE}", body, tab="about")
 
 
 def build() -> int:
@@ -781,8 +835,8 @@ def build() -> int:
         d.mkdir(parents=True, exist_ok=True)
         (d / "index.html").write_text(document_page(doc, views), encoding="utf-8")
         for i, v in enumerate(views):
-            pn = [(views[i - 1] if i else None, "prev", "→"),
-                  (views[i + 1] if i + 1 < len(views) else None, "next", "←")]
+            pn = [(views[i - 1] if i else None, "prev", "←"),
+                  (views[i + 1] if i + 1 < len(views) else None, "next", "→")]
             (OUT / v.href).write_text(section_page(v, pn), encoding="utf-8")
             if v.src is not None:
                 (OUT / v.href.replace(".html", ".render.html")).write_text(
@@ -793,8 +847,8 @@ def build() -> int:
     for v in flat:
         for k in v.section.keys():
             key_to_view.setdefault(k, v)
-    (OUT / "index.html").write_text(index_page(all_views), encoding="utf-8")
     findings = load_findings()
+    (OUT / "index.html").write_text(index_page(all_views), encoding="utf-8")
     (OUT / "findings.html").write_text(findings_page(findings, by_file, key_to_view), encoding="utf-8")
     (OUT / "findings.json").write_text(findings_json(findings, by_file, key_to_view), encoding="utf-8")
     (OUT / "index.json").write_text(index_json(flat), encoding="utf-8")
@@ -804,7 +858,7 @@ def build() -> int:
     (OUT / "about.html").write_text(about_page(), encoding="utf-8")
     (OUT / ".nojekyll").write_text("")
     done = sum(v.status == "done" for v in flat)
-    print(f"wrote {OUT.relative_to(ROOT)}: {len(flat)} sections, {done} encoded")
+    print(f"wrote {OUT.relative_to(ROOT)}: {len(flat)} sections, {done} encoded, {len(findings)} findings")
     return 0
 
 

@@ -5,7 +5,8 @@ section is read into ROWS, one per thing the reader sees: a numbered or
 headed element's label, and each <p>. Every row has a KEY, which is what an
 L4 file cites to sit beside it:
 
-  * an element's eId — its label row, or, when it has no label, its first <p>
+  * an element's eId — its label row (which, when the label is a bare number,
+    is also the row of its first <p>), or, with no label, its first <p>
   * "<eId>/p<N>" — the N-th <p> (1-based) held directly by that element,
     for the clauses the corpus publishes as running paragraphs without an
     eId of their own (§1.23 is one)
@@ -152,6 +153,15 @@ def section_rows(sec, notes) -> list[Row]:
                 key = f"{holder}/p{counter[holder]}"
                 row = Row(key, depth, "text", runs=runs_of(ch, notes))
                 if not row.text.strip() and not any(r.sic for r in row.runs):
+                    continue
+                # a numbered clause and its first paragraph are one row: the
+                # number is printed before the words, and a rule citing the
+                # clause sits beside them
+                last = rows[-1] if rows else None
+                if (counter[holder] == 1 and last is not None and last.kind == "label"
+                        and last.key == holder and not last.heading):
+                    last.kind, last.runs = "text", row.runs
+                    last.aliases.append(key)
                     continue
                 # an element with no label of its own is cited by its eId
                 # and lands on its first paragraph

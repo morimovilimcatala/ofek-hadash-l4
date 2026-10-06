@@ -82,9 +82,18 @@ def parse(path: Path) -> Source:
     starts = []
     for i, keys in markers:
         j = i
-        while (j - 1 >= 0 and LEAD_LINE.match(lines[j - 1])
-               and marker_keys(lines[j - 1]) is None):
-            j -= 1
+        while True:
+            while (j - 1 >= 0 and LEAD_LINE.match(lines[j - 1])
+                   and marker_keys(lines[j - 1]) is None):
+                j -= 1
+            # a `§` heading above a blank line heads the rule below it too
+            k = j
+            while k - 1 >= 0 and not lines[k - 1].strip():
+                k -= 1
+            if k < j and k - 1 >= 0 and lines[k - 1].lstrip().startswith("§"):
+                j = k - 1
+                continue
+            break
         # lines running straight up into another marker are THAT marker's
         # continuation, not this one's lead
         if j - 1 >= 0 and marker_keys(lines[j - 1]) is not None:

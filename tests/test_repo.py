@@ -139,6 +139,12 @@ class Segmenter(unittest.TestCase):
         self.assertEqual((b.keys, b.note_only), (["B"], True))
         self.assertEqual(src.preamble, (1, 3))
 
+    def test_a_heading_above_a_blank_line_heads_the_rule_below(self):
+        src = self.parse("@ref akn:A\nx MEANS 1\n\n§§ `2`\n\n@ref akn:B\ny MEANS 2\n")
+        a, b = src.segments
+        self.assertEqual((a.start, a.end), (1, 2))
+        self.assertEqual(b.start, 4)
+
     def test_a_note_does_not_lend_its_continuation_to_the_next(self):
         src = self.parse("-- akn:A first\n-- still A\n-- akn:B second\n")
         self.assertEqual([s.keys for s in src.segments], [["A"], ["B"]])

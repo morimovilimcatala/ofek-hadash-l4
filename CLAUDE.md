@@ -37,8 +37,8 @@ with `HENCE`/`LEST`), not booleans standing in for them.
   covered by a segment that cites it or an ancestor:
   - `@ref akn:<key>` on the declaration that encodes it, or
   - `-- akn:<key> <why this carries no rule>` — a source list, an amendment
-    note, a pointer to a section encoded elsewhere. One line; the reason in
-    Hebrew, because the site shows it.
+    note, a pointer to a section encoded elsewhere. One line, in English like
+    the rest of the site (the client, 2026-10-06: the site may be in English).
   `<key>` is a row key from `tools/akn.py`: an eId, or `<eId>/p<N>` for the
   N-th paragraph an element holds without an eId of its own. The tests fail
   on a key that is not in the section and on a text row nobody cites.
@@ -61,7 +61,8 @@ not from the Catala proofs, the corpus's ambiguity ledger or its sic kinds:
   stands), `compiling`, `examples` (the rules contradict a worked example or
   table the text itself states), `verification`. The tool's message is the
   evidence, not the category.
-- `keys` — the rows it is about; `title` — one line in Hebrew; `body`;
+- `keys` — the rows it is about; `title` — one line; `body`; `quote` — the
+  Hebrew words at issue, verbatim from the corpus;
   `reading` — the reading the encoding adopts to get past it;
   `depends_on` — earlier findings whose readings this one assumes;
   `read_by` and `review` (`unreviewed` until the lawyer has seen it): a

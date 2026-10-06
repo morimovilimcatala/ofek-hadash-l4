@@ -7,6 +7,7 @@
 #
 #   toolchain/build-l4.sh [DEST]     # installs to DEST (default ~/.local/bin/l4)
 set -euo pipefail
+export LANG=C.UTF-8 LC_ALL=C.UTF-8
 here="$(cd "$(dirname "$0")" && pwd)"
 commit="$(cat "$here/L4_COMMIT")"
 ghc_version="$(cat "$here/GHC_VERSION")"
@@ -36,5 +37,11 @@ cabal update
 cabal build -j exe:l4 --disable-tests --disable-documentation
 mkdir -p "$(dirname "$dest")"
 cp "$(cabal list-bin exe:l4)" "$dest"
+# the binary's embedded-library fallback finds nothing at this revision, so
+# IMPORT prelude resolves only from disk: install the libraries where l4
+# looks (its XDG data dir)
+libs="${XDG_DATA_HOME:-$HOME/.local/share}/jl4/libraries"
+mkdir -p "$libs"
+cp "$src"/jl4-core/libraries/*.l4 "$libs"/
 "$dest" --help | head -1
 echo "installed $dest at legalese/l4-ide@$commit"

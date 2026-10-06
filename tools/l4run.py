@@ -18,6 +18,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -55,11 +56,43 @@ def key(path: Path, cid: str) -> str:
 
 
 def outputs(path: Path) -> dict[str, Path]:
+    # by name, not with_suffix: a section file is "1.7.l4", and
+    # with_suffix would read ".7" as the suffix and write "1.run.json"
     rel = path.relative_to(L4_DIR)
-    base = OUT / rel.parent / rel.stem
-    return {"run": base.with_suffix(".run.json"),
-            "render": base.with_suffix(".render.html"),
-            "key": base.with_suffix(".key")}
+    stem = rel.name.removesuffix(".l4")
+    d = OUT / rel.parent
+    return {"run": d / f"{stem}.run.json",
+            "render": d / f"{stem}.render.html",
+            "key": d / f"{stem}.key"}
+
+
+BLOCK = re.compile(r"^File:\s*(?P<file>.*?)\n(?P<body>.*?)(?=^File:|\Z)", re.S | re.M)
+
+
+def diagnostics(raw) -> list[dict]:
+    """`l4 run --json` prints each diagnostic as the LSP's text block
+    ("File: … Range: 71:5-71:8 … Severity: DiagnosticSeverity_Error …
+    Message: …"); split them into {file, range, severity, message}."""
+    out = []
+    for item in raw or []:
+        if isinstance(item, dict):
+            out.append(item)
+            continue
+        text = str(item)
+        blocks = list(BLOCK.finditer(text))
+        if not blocks:
+            out.append({"severity": "error", "range": None, "message": text.strip()})
+            continue
+        for b in blocks:
+            body = b.group("body")
+            rng = re.search(r"Range:\s*(\S+)", body)
+            sev = re.search(r"Severity:\s*DiagnosticSeverity_(\w+)", body)
+            msg = body.split("Message:", 1)[1] if "Message:" in body else body
+            out.append({"file": b.group("file").strip(),
+                        "range": rng.group(1) if rng else None,
+                        "severity": (sev.group(1) if sev else "Error").lower(),
+                        "message": "\n".join(l.strip() for l in msg.strip().splitlines()).strip()})
+    return out
 
 
 def run_one(path: Path, exe: str, cid: str) -> tuple[Path, bool, bool]:
@@ -78,6 +111,7 @@ def run_one(path: Path, exe: str, cid: str) -> tuple[Path, bool, bool]:
         data = {"file": path.name, "ok": False, "results": [],
                 "diagnostics": [{"severity": "error",
                                  "message": (r.stdout + r.stderr).strip()}]}
+    data["diagnostics"] = diagnostics(data.get("diagnostics"))
     out["run"].write_text(json.dumps(data, ensure_ascii=False, indent=1),
                           encoding="utf-8")
     rr = subprocess.run([exe, "render", "--format", "html",

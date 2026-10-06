@@ -65,6 +65,17 @@ jobs:
           sudo apt-get update && sudo apt-get install -y pkg-config liblzma-dev libgmp-dev
           toolchain/build-l4.sh ~/.local/bin/l4
 
+      # l4 resolves IMPORT prelude from disk, not from the binary, so its
+      # libraries are fetched at the same pin on every run (seconds)
+      - name: Install the L4 libraries at the pin
+        run: |
+          git clone --depth 1 --filter=blob:none --sparse https://github.com/legalese/l4-ide /tmp/l4-ide
+          git -C /tmp/l4-ide fetch --depth 1 origin ${{ steps.pin.outputs.l4 }}
+          git -C /tmp/l4-ide checkout --detach ${{ steps.pin.outputs.l4 }}
+          git -C /tmp/l4-ide sparse-checkout set jl4-core/libraries
+          mkdir -p ~/.local/share/jl4/libraries
+          cp /tmp/l4-ide/jl4-core/libraries/*.l4 ~/.local/share/jl4/libraries/
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
