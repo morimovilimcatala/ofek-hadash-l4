@@ -949,6 +949,7 @@ def coverage_page(all_views: dict[str, list[SectionView]]) -> str:
     paras = t["rule"] + t["note"] + t["missing"] + untouched
     done = sum(v.status == "done" for v in flat)
     part = sum(v.status == "partial" for v in flat)
+    n_docs_done = sum(all(v.status == "done" for v in vs) for vs in all_views.values())
     head = (f'<h1>Coverage</h1>'
             f'<p class="lede">How much of the corpus is encoded in L4. The denominator is the corpus\'s own '
             f'document list — {len(manifest)} documents — not only what has been started. A document '
@@ -958,8 +959,10 @@ def coverage_page(all_views: dict[str, list[SectionView]]) -> str:
             f'<span class="sw missing"></span> in an encoded section but cited by no code, or '
             f'<span class="sw todo"></span> in a section not encoded yet.</p>'
             f'<div class="kpis">'
-            f'<div><b>{len(DOCUMENTS)}</b> / {len(manifest)}<span>documents in progress</span></div>'
-            f'<div><b>{done}</b> / {len(flat)}<span>sections fully encoded</span></div>'
+            f'<div><b>{n_docs_done}</b> / {len(manifest)}<span>documents fully encoded</span></div>'
+            + (f'<div><b>{len(DOCUMENTS) - n_docs_done}</b><span>documents in progress</span></div>'
+               if len(DOCUMENTS) > n_docs_done else "")
+            + f'<div><b>{done}</b> / {len(flat)}<span>sections fully encoded</span></div>'
             f'<div><b>{part}</b><span>sections partly encoded</span></div>'
             f'<div><b>{t["rule"] + t["note"]}</b> / {paras}<span>paragraphs read</span></div>'
             f'<div><b>{t["rule"]}</b><span>paragraphs with a rule</span></div>'
@@ -982,7 +985,7 @@ def coverage_page(all_views: dict[str, list[SectionView]]) -> str:
     for doc, vs in all_views.items():
         if akn.is_whole(doc):
             continue
-        parts.append(f'<h2><a href="{doc.removesuffix(".xml")}.html">{he(akn.title(doc))}</a></h2>'
+        parts.append(f'<h2 class="cov-doc"><a href="{doc.removesuffix(".xml")}.html">{he(akn.title(doc))}</a></h2>'
                      '<p class="meta">One strip per chapter, one cell per section, its width the section\'s '
                      'paragraphs. Hover for the counts; click to open.</p>')
         chapters: dict[str, list[SectionView]] = {}
@@ -991,7 +994,7 @@ def coverage_page(all_views: dict[str, list[SectionView]]) -> str:
         rows = []
         for cvs in chapters.values():
             s0 = cvs[0].section
-            rows.append(f'<div class="strip-row"><div class="strip-name">Chapter {esc(s0.chapter_num)} '
+            rows.append(f'<div class="strip-row"><div class="strip-name">Chapter <bdi>{esc(s0.chapter_num)}</bdi> · '
                         f'{he(s0.chapter_heading)}</div><div class="strip">{"".join(cell(v) for v in cvs)}</div></div>')
         parts.append(f'<div class="strips">{"".join(rows)}</div>')
     for coll in WORK_COLLECTIONS[1:]:
@@ -1018,6 +1021,7 @@ def coverage_page(all_views: dict[str, list[SectionView]]) -> str:
         if not docs:
             continue
         working = [d for d in docs if d["path"] in all_views]
+        n_enc = sum(all(v.status == "done" for v in all_views[d["path"]]) for d in working)
         share = sum(sum(v.status == "done" for v in all_views[d["path"]]) / max(len(all_views[d["path"]]), 1)
                     for d in working) / len(docs)
         lis = "".join(
@@ -1030,7 +1034,9 @@ def coverage_page(all_views: dict[str, list[SectionView]]) -> str:
         parts.append(
             f'<details class="coll-row"><summary><span class="cname">{esc(names.get(coll, coll))}</span>'
             f'<span class="bar"><i class="rule" style="width:{share * 100:.2f}%"></i></span>'
-            f'<span class="cnum">{len(working)} of {len(docs)} documents in progress</span></summary>'
+            f'<span class="cnum">{n_enc} of {len(docs)} documents encoded'
+            + (f', {len(working) - n_enc} in progress' if len(working) > n_enc else "")
+            + '</span></summary>'
             f'<ul class="doclist">{lis}</ul></details>')
     parts.append("</div>")
     return page("coverage.html", f"Coverage — {TITLE}", "".join(parts), tab="coverage",
