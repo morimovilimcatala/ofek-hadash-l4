@@ -150,6 +150,12 @@ class Segmenter(unittest.TestCase):
         self.assertEqual([s.keys for s in src.segments], [["A"], ["B"]])
         self.assertEqual(src.segments[0].end, 2)
 
+    def test_code_after_a_note_is_not_the_notes(self):
+        src = self.parse("-- akn:A sources\n\n`example` MEANS 1\n#ASSERT `example` EQUALS 1\n")
+        note, rest = src.segments
+        self.assertEqual((note.keys, note.note_only, note.end), (["A"], True, 1))
+        self.assertEqual((rest.keys, rest.start), ([], 3))
+
     def test_one_marker_may_cite_several_keys(self):
         src = self.parse("@ref akn:A akn:B__x\ny MEANS 2\n")
         self.assertEqual(src.segments[0].keys, ["A", "B__x"])

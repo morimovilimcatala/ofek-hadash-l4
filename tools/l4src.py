@@ -91,6 +91,14 @@ def marker_keys(line: str) -> list[str] | None:
     return None
 
 
+def _mark_index(seg: "Segment") -> int:
+    """Index, within the segment, of its marker line."""
+    for i, line in enumerate(seg.lines):
+        if marker_keys(line) is not None:
+            return i
+    return 0
+
+
 def parse(path: Path) -> Source:
     lines = path.read_text(encoding="utf-8").split("\n")
     if lines and lines[-1] == "":
@@ -127,6 +135,28 @@ def parse(path: Path) -> Source:
             for l in lines[mark:stop])
         segs.append(Segment(keys, start + 1, stop, lines[start:stop],
                             note_only))
+    # A note is its comment lines. Code that follows a note — the section's
+    # shared definitions, its worked examples — is not what the note cites,
+    # so it becomes a segment of its own with no key: shown apart, counted
+    # as no paragraph's rule.
+    split: list[Segment] = []
+    for seg in segs:
+        if seg.note_only or not NOTE_LINE.match(seg.lines[_mark_index(seg)]):
+            split.append(seg)
+            continue
+        m = _mark_index(seg)
+        k = m + 1
+        while k < len(seg.lines) and seg.lines[k].strip().startswith("--") and not marker_keys(seg.lines[k]):
+            k += 1
+        note = Segment(seg.keys, seg.start, seg.start + k - 1, seg.lines[:k], True)
+        rest_lines = seg.lines[k:]
+        off = k
+        while rest_lines and not rest_lines[0].strip():
+            rest_lines, off = rest_lines[1:], off + 1
+        split.append(note)
+        if rest_lines:
+            split.append(Segment([], seg.start + off, seg.end, rest_lines, False))
+    segs = split
     first = starts[0][0] if starts else len(lines)
     # 1-based [start, stop): the lines before the first segment
     return Source(path, lines, (1, first + 1), segs)

@@ -103,6 +103,7 @@ class SectionView:
     covered: set = field(default_factory=set)      # row keys covered
     kind_of: dict = field(default_factory=dict)    # row key -> "rule" | "note"
     unplaced: list = field(default_factory=list)   # segments citing no row
+    appendix: list = field(default_factory=list)   # code no paragraph is cited by
 
     @property
     def dir(self) -> str:
@@ -180,6 +181,9 @@ def build_view(doc: str, sec: akn.Section) -> SectionView:
         for a in r.aliases:
             where.setdefault(a, r)
     for s in v.src.segments:
+        if not s.keys:
+            v.appendix.append(s)
+            continue
         first = next((k for k in s.keys if k in where), None)
         if first is None or any(k not in where for k in s.keys):
             v.unplaced.append(s)
@@ -314,7 +318,7 @@ def page(here: str, title: str, body: str, *, tab: str = "", desc: str = "",
     nav = [("index.html", "Documents", "docs"),
            ("findings.html", "Findings", "findings"),
            ("coverage.html", "Coverage", "coverage"),
-           ("diagnostics.html", "Diagnostics", "diagnostics"),
+           ("diagnostics.html", "Checks", "diagnostics"),
            ("about.html", "About", "about")]
     links = "".join(
         f'<a href="{rel(h, here)}"{" aria-current=page" if k == tab else ""}>{esc(t)}</a>'
@@ -509,9 +513,14 @@ def section_page(v: SectionView, prev_next) -> str:
     switch = ('<div class="switch" role="group" aria-label="How to show the L4">'
               '<button type="button" data-view="code-view" aria-pressed="true">Code</button>'
               '<button type="button" data-view="rendered" aria-pressed="false">As prose</button></div>')
+    appendix = ""
+    if v.appendix:
+        appendix = ('<section class="appendix"><h2>Shared definitions, examples and checks</h2>'
+                    '<p class="meta">Code that serves the rules above without encoding a paragraph of its own.</p>'
+                    + "".join(segment_html(v, s, rendered) for s in v.appendix) + '</section>')
     body = (head + unplaced +
             f'<div class="colheads"><div class="ch-l4">L4 {switch}</div><div class="ch-text">Text</div></div>' +
-            preamble + f'<div class="grid">{"".join(out)}</div>' + pn)
+            preamble + f'<div class="grid">{"".join(out)}</div>' + appendix + pn)
     return page(here, f"§{sec.num} {sec.heading} — {TITLE}", body, tab="docs", wide=True,
                 desc=f"Section {sec.num} of the teaching staff service regulations, its text beside its L4")
 
@@ -724,7 +733,8 @@ def index_json(flat: list[SectionView]) -> str:
         for s in v.src.segments:
             rows.append({
                 "file": str(v.l4.relative_to(ROOT)), "line": s.start, "end": s.end,
-                "names": declared(s), "kind": "note" if s.note_only else "rule",
+                "names": declared(s),
+                "kind": "note" if s.note_only else ("rule" if s.keys else "support"),
                 "note": s.note if s.note_only else None,
                 "addresses": [address(v.doc, k) for k in s.keys],
                 "text": "\n".join(s.lines),
