@@ -42,7 +42,8 @@ class Segment:
         """The reason a no-rule clause carries no rule."""
         if not self.note_only:
             return ""
-        text = " ".join(self.lines)
+        # a `§` heading above the note heads it in the file, and is not its reason
+        text = " ".join(l for l in self.lines if not l.lstrip().startswith("§"))
         text = re.sub(r"^\s*--\s*", "", text)
         text = KEY.sub("", text)
         text = re.sub(r"\s*--\s*", " ", text)

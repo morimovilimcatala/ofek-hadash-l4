@@ -175,6 +175,10 @@ class Segmenter(unittest.TestCase):
         self.assertEqual((rule.keys, rule.end), (["A"], 2))
         self.assertEqual((shared.keys, shared.start), ([], 4))
 
+    def test_a_heading_is_not_part_of_the_note_below_it(self):
+        src = self.parse("§ `Circular 9`\n\n-- akn:A The letterhead; no rule.\n")
+        self.assertEqual(src.segments[0].note, "The letterhead; no rule.")
+
     def test_one_marker_may_cite_several_keys(self):
         src = self.parse("@ref akn:A akn:B__x\ny MEANS 2\n")
         self.assertEqual(src.segments[0].keys, ["A", "B__x"])
