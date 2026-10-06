@@ -1,0 +1,141 @@
+-- חוזר לבעלויות תשפ"ו/6 (25.2.2026): עדכון תוספת שקלית 2016 לעובדי הוראה בגני ילדים, בתי ספר יסודיים, חטיבת ביניים ומכללות להכשרת עובדי הוראה
+-- The 2016 shekel supplement, linked to the consumer price index, from
+-- 1.1.2026, by the teacher's grade in the Ofek Hadash salary tables.
+
+IMPORT prelude
+IMPORT common
+
+-- Time in the regulative rules is counted in calendar months of 2026
+-- (January 2026 = 1, March = 3).
+
+§ `תשפ"ו/6 עדכון תוספת שקלית 2016`
+
+-- akn:hc_1/p1 The letterhead; no rule.
+-- akn:hc_1/p2 The letterhead; no rule.
+-- akn:hc_1/p3 The letterhead; no rule.
+-- akn:hc_1/p4 The letterhead; no rule.
+-- akn:hc_1/p5 The Hebrew date; no rule.
+-- akn:hc_1/p6 The date, 25.2.2026; no rule.
+-- akn:hc_1/p7 The reference number; no rule.
+-- akn:hc_1/p8 The circular's number; no rule.
+-- akn:hc_1/p9 The addressee; no rule.
+-- akn:hc_1/p10 The addressee; no rule.
+-- akn:hc_1/p11 The greeting; no rule.
+-- akn:hc_1/p12 The subject line; no rule.
+
+-- Under the wage agreements of 30.9.2016 (§6ד) and 19.3.2017 and circular
+-- תשפ"ד/6, the 2016 shekel supplement is linked to the consumer price
+-- index; this circular updates it from 1.1.2026 by the index of December
+-- 2025 (published January 2026) against that of December 2024.
+@ref akn:hc_1/p13 akn:hc_1/p14 akn:hc_1/p15
+GIVEN `index of December 2025` IS A NUMBER, `index of December 2024` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the linkage factor` `index of December 2025` `index of December 2024` IS
+    `index of December 2025` DIVIDED BY `index of December 2024`
+
+DECLARE `stage of education` IS ONE OF
+    `kindergarten`
+    `primary school`
+    `junior high`
+    `college for training teaching staff`
+    `other stage`
+
+-- Scope: every employee graded as teaching staff, employed by a supervised
+-- owning body in kindergartens, primary schools, junior highs or colleges
+-- for training teaching staff, in Ofek Hadash or not.
+@ref akn:hc_1/p16 akn:hc_1/p17 akn:hc_1/p18
+GIVEN `graded as teaching staff` IS A BOOLEAN
+      `employed by a supervised owning body` IS A BOOLEAN
+      stage IS A `stage of education`
+GIVETH A BOOLEAN
+DECIDE `the circular applies to` `graded as teaching staff` `employed by a supervised owning body` stage IF
+        `graded as teaching staff`
+    AND `employed by a supervised owning body`
+    AND (CONSIDER stage
+         WHEN `other stage` THEN FALSE
+         OTHERWISE TRUE)
+
+@desc A grade-to-amount row of the list of paragraphs 20-28.
+DECLARE `supplement row` HAS
+    `Ofek Hadash grade` IS A NUMBER
+    `monthly supplement at a full position` IS A NUMBER
+
+-- From 1.1.2026, for a full position, by grade in the Ofek Hadash salary
+-- tables for academic and non-academic teachers.
+@ref akn:hc_1/p19 akn:hc_1/p20 akn:hc_1/p21 akn:hc_1/p22 akn:hc_1/p23 akn:hc_1/p24 akn:hc_1/p25 akn:hc_1/p26 akn:hc_1/p27
+`the supplement by grade from 1.1.2026` MEANS
+    LIST `supplement row` 1   1280.34,
+         `supplement row` 1.5 1205.39,
+         `supplement row` 2   1130.45,
+         `supplement row` 2.5 1039.73,
+         `supplement row` 3   949.03,
+         `supplement row` 3.5 900.47,
+         `supplement row` 4   851.91,
+         `supplement row` 4.5 749.54
+
+-- Every other teaching employee the circular covers, in Ofek Hadash or not.
+@ref akn:hc_1/p28
+`the supplement for every other employee from 1.1.2026` MEANS 647.49
+
+-- The amount falls as the grade rises: each listed grade gets more than the
+-- next, and the last listed more than every other employee.
+#ASSERT all (GIVEN i YIELD (at `the supplement by grade from 1.1.2026` i)'s `monthly supplement at a full position`
+                              GREATER THAN (at `the supplement by grade from 1.1.2026` (i PLUS 1))'s `monthly supplement at a full position`)
+            (range 0 6)
+#ASSERT (at `the supplement by grade from 1.1.2026` 7)'s `monthly supplement at a full position` GREATER THAN `the supplement for every other employee from 1.1.2026`
+
+@export The monthly 2016 shekel supplement at a full position from 1.1.2026 under circular תשפ"ו/6, for kindergarten, primary, junior-high and teacher-training-college staff
+GIVEN `in Ofek Hadash's salary tables` IS A BOOLEAN @desc the employee is placed on the Ofek Hadash salary tables for academic or non-academic teachers
+      grade IS A NUMBER @desc the employee's grade in those tables (1, 1.5, … 4.5, or any other)
+GIVETH A NUMBER
+DECIDE `the 2016 shekel supplement from 1.1.2026` `in Ofek Hadash's salary tables` grade IS
+    IF `in Ofek Hadash's salary tables`
+    THEN fromMaybe `the supplement for every other employee from 1.1.2026`
+                   (lookup grade (map (GIVEN r YIELD PAIR OF r's `Ofek Hadash grade`, r's `monthly supplement at a full position`)
+                                      `the supplement by grade from 1.1.2026`))
+    ELSE `the supplement for every other employee from 1.1.2026`
+
+-- akn:hc_1/p29 The other rules for paying the supplement (part-time, etc.) are those of circular תשע"ז/3, not restated here.
+-- akn:hc_1/p30 The link to circular תשע"ז/3; no rule.
+
+DECLARE `supplement action` IS ONE OF
+    `pay the updated supplement with retroactive differences from January 2026` HAS `supplement paid` IS A NUMBER
+    `reimburse the owning bodies` HAS `reimbursed` IS A NUMBER
+
+-- The reimbursement was transferred in the relevant hour costs in
+-- February 2026's payments, retroactive to January 2026, paid early March.
+@ref akn:hc_1/p31
+GIVEN `owed for January and February` IS A NUMBER
+GIVETH A DEONTIC Party `supplement action`
+DECIDE `the reimbursement in February's payments` `owed for January and February` IS
+    PARTY `the Ministry of Education`
+    MUST  `reimburse the owning bodies` r
+          PROVIDED r AT LEAST `owed for January and February`
+    WITHIN 3
+    LEST BREACH BY `the Ministry of Education` BECAUSE "תשפ\"ו/6: reimbursement in the February 2026 payments, retroactive to January, paid early March 2026"
+
+-- Pay the updated supplement, with retroactive differences, from January
+-- 2026. No month is set by which the arrears are paid: no deadline.
+@ref akn:hc_1/p32
+GIVEN `owed from January 2026` IS A NUMBER
+GIVETH A DEONTIC Party `supplement action`
+DECIDE `the updated supplement paid` `owed from January 2026` IS
+    PARTY `the employer`
+    MUST  `pay the updated supplement with retroactive differences from January 2026` a
+          PROVIDED a AT LEAST `owed from January 2026`
+    LEST BREACH BY `the employer` BECAUSE "תשפ\"ו/6: the updated supplement, with retroactive differences from January 2026"
+
+-- akn:conclusions The signatures and copies; no rule.
+
+-- Examples.
+#ASSERT `the 2016 shekel supplement from 1.1.2026` TRUE 2 EQUALS 1130.45
+#ASSERT `the 2016 shekel supplement from 1.1.2026` TRUE 4.5 EQUALS 749.54
+#ASSERT `the 2016 shekel supplement from 1.1.2026` TRUE 6 EQUALS 647.49
+#ASSERT `the 2016 shekel supplement from 1.1.2026` FALSE 1 EQUALS 647.49
+#ASSERT `the circular applies to` TRUE TRUE `junior high`
+#ASSERT NOT `the circular applies to` TRUE TRUE `other stage`
+
+#TRACE `the reimbursement in February's payments` 2260.90 AT 0 WITH
+    PARTY `the Ministry of Education` DOES `reimburse the owning bodies` 2260.90 AT 3
+#TRACE `the updated supplement paid` 2260.90 AT 0 WITH
+    PARTY `the employer` DOES `pay the updated supplement with retroactive differences from January 2026` 2260.90 AT 2

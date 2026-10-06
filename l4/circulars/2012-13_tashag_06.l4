@@ -1,0 +1,214 @@
+-- חוזר לבעלויות תשע"ג/6 — יישום פעימה שלישית בגין תוספת 2011 בהשלמה לשיעור
+-- של 5.75%, לעובדי הוראה המועסקים בבעלויות שלא בחטיבה העליונה (29.4.2013)
+-- The third instalment of the 2011 raise, to a total of 5.75%, for teachers
+-- employed by the owners outside the upper division: Ofek Hadash salary
+-- tables and personal shekel supplements; the 2011 supplement and the '87
+-- and '94 supplements of teachers not under a reform; payment in April or
+-- May 2013.
+
+IMPORT prelude
+IMPORT common
+
+-- Dates are numbers YYYYMMDD; salary months are numbers YYYYMM.
+`1 January 2011` MEANS 20110101
+`1 January 2012` MEANS 20120101
+`1 April 2013`   MEANS 20130401
+
+§ `חוזר תשע"ג/6 פעימה שלישית תוספת 2011 שלא בחטיבה העליונה`
+
+-- akn:preamble The letterhead, title and date; no rule.
+-- akn:preamble/p8 The heading "כללי"; no rule.
+-- akn:preamble/p9 Background: the circular carries out the Wage Commissioner's circular of 21.3.2013 on the third instalment, to a total of 5.75%, following circular תשע"ב/9 (second instalment, to 4%); the 4% it names is used below as the level the update starts from.
+-- akn:preamble/p10 States the circular's purpose; no rule.
+
+-- The level of the previous instalment, as ¶9 names it ("בהשלמה ל-4%").
+`the total update after the second instalment` MEANS 4%
+`the total update after the third instalment`  MEANS 5.75%
+
+DECLARE `stage of education` IS ONE OF
+    `kindergarten`
+    `primary`
+    `junior high`
+    `teacher-training college`
+    `upper division`
+    `grades 13-14`
+
+@desc A teaching employee as this circular asks about them.
+DECLARE `teacher in the third instalment` HAS
+    `graded as a teaching employee`  IS A BOOLEAN @desc graded in the teaching-employees grading
+    `employed by a supervised owner` IS A BOOLEAN @desc employed by an owner of education supervised by the Ministry of Education
+    `employed under Ofek Hadash`     IS A BOOLEAN @desc employed in the junior high under the Ofek Hadash reform
+
+§§ `1. תחולה`
+
+@ref akn:art_1/p1
+GIVEN s IS A `stage of education`
+GIVETH A BOOLEAN
+DECIDE `a stage this circular covers` s IF
+    CONSIDER s
+    WHEN `kindergarten`             THEN TRUE
+    WHEN `primary`                  THEN TRUE
+    WHEN `junior high`              THEN TRUE
+    WHEN `teacher-training college` THEN TRUE
+    OTHERWISE FALSE
+
+-- ¶2: not the upper division nor grades 13-14 — those are under circular
+-- תשע"ג/4. ¶3: a teacher in both is covered only for the salary paid for
+-- the covered stages.
+@ref akn:art_1/p2 akn:art_1/p3
+GIVEN t IS A `teacher in the third instalment`, s IS A `stage of education`
+GIVETH A BOOLEAN
+DECIDE `this circular governs the salary for the stage` t s IF
+        t's `graded as a teaching employee`
+    AND t's `employed by a supervised owner`
+    AND `a stage this circular covers` s
+
+DECLARE `governing circular` IS ONE OF
+    `this circular`
+    `circular תשע"ג/4`
+
+@ref akn:art_1/p2 akn:art_1/p3
+GIVEN s IS A `stage of education`
+GIVETH A `governing circular`
+DECIDE `the circular that governs the stage` s IS
+    IF `a stage this circular covers` s THEN `this circular` ELSE `circular תשע"ג/4`
+
+§§ `2. אופק חדש בחט"ב`
+
+-- akn:art_2 Heading of section 2: the raise for owners' employees under Ofek Hadash in the junior high; the rules are 2א and 2ב.
+
+-- 2א: from 1.4.2013 the Ofek Hadash salary tables are updated so that the
+-- total update over the tables in force before the update of 1.1.2011 (the
+-- agreement of 25.1.2011) is 5.75%. The tables themselves are published
+-- by the Treasury (¶2); a table value before the 2011 update is an input.
+@ref akn:art_2__para_a akn:art_2__para_a/p2
+GIVEN `table value before 1.1.2011` IS A NUMBER @desc an Ofek Hadash salary-table value as it stood before the update of 1.1.2011 (Treasury tables)
+      `date` IS A NUMBER @desc YYYYMMDD
+GIVETH A MAYBE NUMBER
+DECIDE `the Ofek Hadash table value under this circular` `table value before 1.1.2011` `date` IS
+    IF `date` AT LEAST `1 April 2013`
+    THEN JUST (`table value before 1.1.2011` TIMES (1 PLUS `the total update after the third instalment`))
+    ELSE NOTHING
+
+-- 2ב: the personal shekel supplements of the agreement of 5.7.2010, paid in
+-- the salary of December 2011 and still paid (in April 2013 at least), are
+-- updated from 1.4.2013 by 1.68269%.
+@ref akn:art_2__para_b
+`the 2ב update rate` MEANS 1.68269%
+
+GIVEN `paid in December 2011` IS A BOOLEAN, `still paid in April 2013` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `a personal shekel supplement 2ב updates` `paid in December 2011` `still paid in April 2013` IF
+    `paid in December 2011` AND `still paid in April 2013`
+
+@ref akn:art_2__para_b
+GIVEN `supplement before the update` IS A NUMBER @desc the personal shekel supplement as paid before 1.4.2013
+GIVETH A NUMBER
+DECIDE `the personal shekel supplement from 1.4.2013` `supplement before the update` IS
+    `supplement before the update` TIMES (1 PLUS `the 2ב update rate`)
+
+-- 2ב's parenthesis says the 1.68269% brings the total over the pre-1.1.2011
+-- value to 5.75%. With the previous level at 4% (¶9) that holds to the
+-- printed precision: 1.04 × 1.0168269 = 1.0575 to six places.
+`the compound of 4% and 1.68269%` MEANS
+    (1 PLUS `the total update after the second instalment`) TIMES (1 PLUS `the 2ב update rate`)
+
+`the 1.68269% brings 4% to 5.75% to six places` MEANS
+        `the compound of 4% and 1.68269%` MINUS 1.0575 LESS THAN 0.000001
+    AND 1.0575 MINUS `the compound of 4% and 1.68269%` LESS THAN 0.000001
+#ASSERT `the 1.68269% brings 4% to 5.75% to six places`
+
+§§ `3. שלא באופק חדש ושלא בחטיבה העליונה`
+
+-- akn:art_3 Heading of section 3: the raise for teachers neither under Ofek Hadash nor in the upper division; the rules are 3(1) and 3(2).
+
+-- 3(1): from 1.4.2013 the 2011 supplement rises to a uniform 5.75%.
+@ref akn:art_3__para_1
+GIVEN `date` IS A NUMBER @desc YYYYMMDD
+GIVETH A MAYBE NUMBER
+DECIDE `the 2011 supplement rate under 3(1)` `date` IS
+    IF `date` AT LEAST `1 April 2013` THEN JUST (5.75%) ELSE NOTHING
+
+-- 3(2): the '87 and '94 shekel supplements are updated so that the total
+-- update over their value before 1.1.2011 is 5.75% "from 1.1.2012"; ¶2-¶4
+-- print the updated amounts.
+DECLARE `shekel supplement` IS ONE OF
+    `the '87 agreement supplement`
+    `the '94 agreement supplement (teaching reinforcement)`
+
+@ref akn:art_3__para_2/p2 akn:art_3__para_2/p3 akn:art_3__para_2/p4
+GIVEN s IS A `shekel supplement`
+GIVETH A NUMBER
+DECIDE `the updated shekel amount` s IS
+    CONSIDER s
+    WHEN `the '87 agreement supplement`                          THEN 173.49
+    WHEN `the '94 agreement supplement (teaching reinforcement)` THEN 156.01
+
+-- The date each clause gives for the 5.75% level, as printed.
+DECLARE `clause naming a date` IS ONE OF
+    `section 2ב, the update`
+    `section 2ב, the parenthesis`
+    `section 3(1)`
+    `section 3(2)`
+
+@ref akn:art_3__para_2
+GIVEN c IS A `clause naming a date`
+GIVETH A NUMBER
+DECIDE `the date the clause gives for the 5.75% level` c IS
+    CONSIDER c
+    WHEN `section 2ב, the update`      THEN `1 April 2013`
+    WHEN `section 2ב, the parenthesis` THEN `1 January 2012`
+    WHEN `section 3(1)`                THEN `1 April 2013`
+    WHEN `section 3(2)`                THEN `1 January 2012`
+
+-- F-2012-13_tashag_06-a: the circular raises the level to 5.75% "from
+-- 1.4.2013" (2ב's update, 3(1)), and in the same breath says the shekel
+-- supplements stand at 5.75% "from 1.1.2012" (2ב's parenthesis, 3(2)) —
+-- fifteen months earlier, which would make the April 2013 payment carry
+-- arrears the circular nowhere mentions.
+`the circular gives the 5.75% level two start dates` MEANS
+    NOT (`the date the clause gives for the 5.75% level` `section 3(1)`
+         EQUALS `the date the clause gives for the 5.75% level` `section 3(2)`)
+#ASSERT `the circular gives the 5.75% level two start dates`
+
+-- The reading adopted: 1.4.2013 governs every part of the update, the date
+-- of every operative "יעודכנו … החל ביום" and the only one the payment
+-- instructions (section 4) can carry out.
+GIVEN s IS A `shekel supplement`, `date` IS A NUMBER @desc YYYYMMDD
+GIVETH A MAYBE NUMBER
+DECIDE `the shekel amount under this circular on` s `date` IS
+    IF `date` AT LEAST `1 April 2013` THEN JUST (`the updated shekel amount` s) ELSE NOTHING
+
+§§ `4. ביצוע תשלומים`
+
+DECLARE `third instalment action` IS ONE OF
+    `pay the third instalment` HAS `in the salary of month` IS A NUMBER
+
+-- Time in months from April 2013 (0 = the April 2013 salary): paid in April
+-- 2013, or at the latest in May 2013.
+@ref akn:art_4/p1
+GIVETH A DEONTIC Party `third instalment action`
+DECIDE `payment in April or May 2013` IS
+    PARTY `the local authority or owning body`
+    MUST  `pay the third instalment` m PROVIDED m AT MOST 201305
+    WITHIN 2
+    LEST  BREACH BY `the local authority or owning body` BECAUSE "circular תשע\"ג/6, section 4: paid in the salary of April 2013, or May 2013 at the latest"
+
+-- akn:conclusions The contact line, the greeting and the signature; no rule.
+
+-- Examples; figures are placeholders, not from a payslip.
+`a junior-high teacher` MEANS
+    `teacher in the third instalment` WITH
+        `graded as a teaching employee`  IS TRUE
+        `employed by a supervised owner` IS TRUE
+        `employed under Ofek Hadash`     IS FALSE
+
+#ASSERT `this circular governs the salary for the stage` `a junior-high teacher` `junior high`
+#ASSERT NOT `this circular governs the salary for the stage` `a junior-high teacher` `upper division`
+#ASSERT `the circular that governs the stage` `grades 13-14` EQUALS `circular תשע"ג/4`
+#ASSERT `the 2011 supplement rate under 3(1)` 20130401 EQUALS JUST (5.75%)
+#ASSERT `the Ofek Hadash table value under this circular` 10000 20130501 EQUALS JUST 10575
+#EVAL   `the personal shekel supplement from 1.4.2013` 100
+
+#TRACE `payment in April or May 2013` AT 0 WITH
+    PARTY `the local authority or owning body` DOES `pay the third instalment` 201305 AT 1

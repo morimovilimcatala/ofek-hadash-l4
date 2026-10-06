@@ -1,0 +1,110 @@
+-- חוזר לבעלויות תשס"ז/3 — קיזוז שכר מעובדי הוראה בשל עיצומים/השבתות במערכת החינוך בשנת הלימודים תשס"ז (11.3.2007)
+-- No salary for strike days: the owning body deducts it from each teacher
+-- who took part, by the teacher's fixed timetable; the Ministry offsets the
+-- owning bodies through the March 2007 payments.
+
+IMPORT prelude
+IMPORT daydate
+IMPORT common
+
+§ `קיזוז שכר בשל עיצומים/השבתות תשס"ז`
+
+-- akn:hc_1/p1 akn:hc_1/p2 akn:hc_1/p3 akn:hc_1/p4 akn:hc_1/p5 akn:hc_1/p6 akn:hc_1/p7 akn:hc_1/p8 akn:hc_1/p9 The letterhead, title, date, addressee and subject line; no rule.
+
+-- akn:hc_1/p10 akn:hc_1/p11 The background: the teachers' organisations held sanctions and strikes in several localities; the dates follow in ¶12.
+
+§§ `The strike dates`
+
+@ref akn:hc_1/p12
+`the strike dates` MEANS
+    LIST Date 4 1 2007, Date 10 1 2007, Date 16 1 2007, Date 22 1 2007,
+         Date 25 2 2007, Date 26 2 2007, Date 8 3 2007, Date 11 3 2007
+
+GIVEN `day` IS A DATE
+GIVETH A BOOLEAN
+DECIDE `is a strike date` `day` IF
+    elem `day` `the strike dates`
+
+§§ `The deduction`
+
+@desc One day of a teacher's fixed timetable at the school.
+DECLARE `timetable day` HAS
+    `calendar date`            IS A DATE
+    `hours on the timetable`   IS A NUMBER  @desc the teacher's hours that day by the school's fixed timetable
+    `took part in the strike`  IS A BOOLEAN
+
+@desc A teacher, as far as this circular asks about them.
+DECLARE `teacher record` HAS
+    `days of the timetable`    IS A LIST OF `timetable day`
+    `value of one hour`        IS A NUMBER  @desc the salary of one timetable hour; an input, not set by this circular
+
+-- ¶13–14: by the State's decision no salary is paid to an employee who takes
+-- part in the strike, so salary is deducted from every teacher who did.
+-- ¶15: the owning body deducts by the teacher's fixed timetable at the school.
+@ref akn:hc_1/p13 akn:hc_1/p14
+GIVEN d IS A `timetable day`
+GIVETH A BOOLEAN
+DECIDE `no salary is paid for` d IF
+        d's `took part in the strike`
+    AND `is a strike date` (d's `calendar date`)
+
+@ref akn:hc_1/p15
+GIVEN t IS A `teacher record`
+GIVETH A NUMBER
+DECIDE `hours to deduct` t IS
+    sum (map (GIVEN d YIELD d's `hours on the timetable`)
+             (filter (GIVEN d YIELD `no salary is paid for` d) (t's `days of the timetable`)))
+
+GIVEN t IS A `teacher record`
+GIVETH A NUMBER
+DECIDE `salary to deduct` t IS
+    `hours to deduct` t TIMES t's `value of one hour`
+
+DECLARE `strike action` IS ONE OF
+    `deduct the salary` HAS `amount deducted` IS A NUMBER
+    `offset the owning body's payments` HAS `hours offset` IS A NUMBER
+
+-- The owning body's duty to deduct (¶13–15). The circular sets no date for it.
+GIVEN t IS A `teacher record`
+GIVETH A DEONTIC Party `strike action`
+DECIDE `the owning body deducts the strike salary` t IS
+    PARTY `the local authority or owning body`
+    MUST  `deduct the salary` amount
+          PROVIDED amount AT LEAST `salary to deduct` t
+
+-- Time in months from March 2007 (0): the Ministry offsets the owning
+-- bodies through the March 2007 standing-payment (מת"מ) transfers, by the
+-- budgeted hours of the striking institutions and the dates and localities
+-- of the strike (¶16–17). The hours are the Ministry's figure: an input.
+@ref akn:hc_1/p16 akn:hc_1/p17
+GIVEN `budgeted hours of the striking institutions` IS A NUMBER
+GIVETH A DEONTIC Party `strike action`
+DECIDE `the Ministry offsets the strike` `budgeted hours of the striking institutions` IS
+    PARTY `the Ministry of Education`
+    MUST  `offset the owning body's payments` h
+          PROVIDED h EQUALS `budgeted hours of the striking institutions`
+    WITHIN 1
+
+-- akn:hc_1/p18 Notice that a further circular on later sanctions will be sent separately; no rule.
+
+-- akn:conclusions The sign-off and signature; no rule.
+
+-- Examples; the hour value of 100 is a placeholder.
+`a teacher who struck twice` MEANS
+    `teacher record` WITH
+        `days of the timetable` IS
+            LIST `timetable day` (Date 4 1 2007) 5 TRUE,
+                 `timetable day` (Date 5 1 2007) 6 FALSE,
+                 `timetable day` (Date 10 1 2007) 4 TRUE,
+                 `timetable day` (Date 16 1 2007) 5 FALSE
+        `value of one hour` IS 100
+
+#ASSERT `hours to deduct` `a teacher who struck twice` EQUALS 9
+#ASSERT `salary to deduct` `a teacher who struck twice` EQUALS 900
+#ASSERT `is a strike date` (Date 25 2 2007)
+#ASSERT NOT `is a strike date` (Date 24 2 2007)
+
+#TRACE `the owning body deducts the strike salary` `a teacher who struck twice` AT 0 WITH
+    PARTY `the local authority or owning body` DOES `deduct the salary` 900 AT 1
+#TRACE `the Ministry offsets the strike` 40 AT 0 WITH
+    PARTY `the Ministry of Education` DOES `offset the owning body's payments` 40 AT 1

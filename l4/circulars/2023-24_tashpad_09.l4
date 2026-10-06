@@ -1,0 +1,81 @@
+-- חוזר לבעלויות תשפ"ד/9 (23.5.2024), תשלום שכר ראוי בגין שביתה חלקית —
+-- עובדי הוראה בחטיבות העליונות
+-- A teaching employee who takes part in a partial strike (sanctions) is
+-- paid only "proper pay" for the work actually done, by the Treasury wage
+-- commissioner's instructions of 9.4.2024 — and the circular itself is
+-- frozen, by the National Labour Court's decision of 23.5.2024, until
+-- further instructions.
+
+IMPORT prelude
+IMPORT daydate
+IMPORT common
+
+§ `חוזר לבעלויות תשפ"ד/9 — תשלום שכר ראוי בגין שביתה חלקית`
+
+-- akn:hc_1/p1 akn:hc_1/p2 akn:hc_1/p3 akn:hc_1/p4 akn:hc_1/p5 akn:hc_1/p6 akn:hc_1/p7 akn:hc_1/p8 akn:hc_1/p9 akn:hc_1/p10 akn:hc_1/p11 akn:hc_1/p12 The letterhead, date, reference number, addressees (the owners of upper-secondary schools), greeting and subject line; no rule.
+
+-- The freeze: by the National Labour Court's decision of 23.5.2024 the
+-- circular is frozen "at this stage", until further instructions. Whether
+-- such instructions have since been given is an input; the circular as
+-- published is frozen.
+@ref akn:hc_1/p13
+GIVEN `further instructions given` IS A BOOLEAN @desc further instructions lifting the freeze have been given after the National Labour Court's decision of 23.5.2024
+GIVETH A BOOLEAN
+DECIDE `the circular is frozen` `further instructions given` IF
+    NOT `further instructions given`
+
+-- The union announced sanctions from 10.3.2024.
+@ref akn:hc_1/p15
+`the sanctions began on` MEANS Date 10 3 2024
+
+@desc A teaching employee's month, as far as this circular asks.
+DECLARE `month under sanctions` HAS
+    `took part in the partial strike`  IS A BOOLEAN @desc took part in the partial strike (sanctions, עיצומים) the union announced
+    `full monthly pay`                 IS A NUMBER  @desc the pay for the month had the employee done all the work
+    `the proper pay`                   IS A NUMBER  @desc the pay for the work actually done, as the wage commissioner's instructions of 9.4.2024 compute it (an input: the circular does not restate them)
+
+-- Government decisions 647 (22.4.80) and 646 (26.5.81) and the wage
+-- commissioner's circular of 9.4.2024: an employee in a partial strike is
+-- paid only partial pay ("proper pay") for the work actually done.
+@ref akn:hc_1/p14
+GIVEN m IS A `month under sanctions`
+GIVETH A NUMBER
+DECIDE `the pay for the month` m IS
+    IF m's `took part in the partial strike`
+    THEN min (m's `the proper pay`) (m's `full monthly pay`)
+    ELSE m's `full monthly pay`
+
+DECLARE `sanctions action` IS ONE OF
+    `pay by the wage commissioner's instructions` HAS `paid` IS A NUMBER
+
+-- The owners must act by the wage commissioner's instructions of 9.4.2024
+-- (linked as tashlomc.pdf) — while the circular is not frozen. Time in
+-- salary months from the month of the sanctions (0).
+@ref akn:hc_1/p16 akn:hc_1/p17
+GIVEN m IS A `month under sanctions`, `further instructions given` IS A BOOLEAN
+GIVETH A DEONTIC Party `sanctions action`
+DECIDE `the owner pays proper pay` m `further instructions given` IS
+    IF `the circular is frozen` `further instructions given`
+    THEN FULFILLED
+    ELSE PARTY `the employer`
+         MUST  `pay by the wage commissioner's instructions` p PROVIDED p EQUALS `the pay for the month` m
+         WITHIN 1
+         LEST BREACH BY `the employer` BECAUSE "the owners must act by the wage commissioner's instructions of 9.4.2024 on proper pay"
+
+-- akn:conclusions The sign-off: the signatures and the copies list; no rule.
+
+-- Examples. The pay figures are placeholders: the circular leaves the
+-- computation of proper pay to the wage commissioner's instructions.
+`a month in the sanctions` MEANS
+    `month under sanctions` WITH
+        `took part in the partial strike` IS TRUE
+        `full monthly pay`                IS 10000
+        `the proper pay`                  IS 9000
+
+#ASSERT `the pay for the month` `a month in the sanctions` EQUALS 9000
+#ASSERT `the circular is frozen` FALSE
+#ASSERT `the sanctions began on` EQUALS Date 10 3 2024
+
+#TRACE `the owner pays proper pay` `a month in the sanctions` FALSE AT 0 WITH
+#TRACE `the owner pays proper pay` `a month in the sanctions` TRUE AT 0 WITH
+    PARTY `the employer` DOES `pay by the wage commissioner's instructions` 9000 AT 1

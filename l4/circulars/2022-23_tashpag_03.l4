@@ -1,0 +1,485 @@
+-- חוזר לבעלויות תשפ"ג/3 (10.11.2022): הסדר לתגמול עובדי הוראה המגישים
+-- תלמידים לבחינת בגרות לפי התכנית שברפורמה להתחדשות הלמידה.
+-- For school year 2022-23: the matriculation-preparation allowance (גמול
+-- הכנה לבגרות) for the humanities subjects (מקצועות המח"ר) taught under the
+-- renewed-learning reform, its split across years, the multidisciplinary
+-- summary work, the new "מוביל מח"ר" role and the ICT coordinator's hour.
+
+IMPORT prelude
+IMPORT common
+
+-- Time in this file is counted in SCHOOL MONTHS of 2022-23 (common.l4's
+-- `month number`: September 2022 = 1, August 2023 = 12).
+`31 August 2023` MEANS `month number` August
+
+§ `חוזר לבעלויות תשפ"ג/3`
+
+-- akn:preamble The letterhead, date, reference number, circular number, addressees (owners of upper-division institutions; principals of six-year schools), greeting and subject line; no rule.
+-- akn:preamble/p14 The source: the Treasury wage controller's letter of 10.11.2022, which this circular publishes; no rule of its own.
+-- akn:preamble/p15 The heading "תחולת ההסדר"; no rule.
+-- akn:preamble/p17 The circular's purpose: to set out the allowance for teachers presenting students under the reform program and for role holders; the rules are sections 1-3.
+
+DECLARE `school year` IS ONE OF
+    `the school year 2021-22`
+    `the school year 2022-23`
+    `the school year 2023-24`
+
+@desc The supervision streams (פיקוח) section 1 names, each with its own humanities subjects.
+DECLARE `supervision stream` IS ONE OF
+    `state`
+    `state-religious`
+    `Haredi`
+    `Arab society`
+
+DECLARE `humanities subject` IS ONE OF
+    `history`
+    `literature`
+    `Bible`
+    `civics`
+    `Oral Torah`
+    `Judaism`
+    `Hebrew`
+    `Arabic`
+
+@desc A teaching employee presenting one class in one subject for matriculation, as far as this circular asks.
+DECLARE `matriculation teacher` HAS
+    `graded in the teaching employees' grading`      IS A BOOLEAN
+    `employed in a supervised three- or four-year upper division` IS A BOOLEAN @desc a חטיבה עליונה of three or four years supervised by the Ministry of Education
+    `teacher's school year`                          IS A `school year`
+    `teacher's stream`                               IS A `supervision stream`
+    `subject presented`                              IS A `humanities subject`
+    `under the renewed-learning program`             IS A BOOLEAN @desc the subject is taught under the program of the renewed-learning reform
+    `study units`                                    IS A NUMBER  @desc the subject's study units (יחידות לימוד) as taught
+    `employed under Oz LaTmura`                      IS A BOOLEAN
+
+-- ¶16: the arrangement applies to every employee graded as a teaching
+-- employee in the three- and four-year upper divisions the Ministry supervises.
+@ref akn:preamble/p16
+GIVEN t IS A `matriculation teacher`
+GIVETH A BOOLEAN
+DECIDE `the arrangement applies to` t IF
+        t's `graded in the teaching employees' grading`
+    AND t's `employed in a supervised three- or four-year upper division`
+
+§§ `1 גמול עבור הכנה לבגרות במקצועות מח"ר`
+
+-- akn:art_1 The heading of section 1; no rule.
+
+-- 1(א)-(ד): each stream's humanities subjects ("מקצועות המח"ר, קרי …").
+@ref akn:art_1__para_a/p1 akn:art_1__para_b/p1 akn:art_1__para_c/p1 akn:art_1__para_d/p1
+GIVEN s IS A `supervision stream`
+GIVETH A LIST OF `humanities subject`
+DECIDE `the humanities subjects of` s IS
+    CONSIDER s
+    WHEN `state`           THEN LIST `history`, `literature`, `Bible`, `civics`
+    WHEN `state-religious` THEN LIST `history`, `Oral Torah`, `civics`, `Bible`
+    WHEN `Haredi`          THEN LIST `history`, `civics`, `literature`, `Judaism`, `Bible`
+    WHEN `Arab society`    THEN LIST `history`, `civics`, `Hebrew`, `Arabic`
+
+-- 1(1): in 2022-23, a teacher presenting students in a humanities subject
+-- under the reform program is entitled to the allowance "as follows".
+@ref akn:art_1/p1
+GIVEN t IS A `matriculation teacher`
+GIVETH A BOOLEAN
+DECIDE `entitled under the arrangement` t IF
+        `the arrangement applies to` t
+    AND t's `teacher's school year` EQUALS `the school year 2022-23`
+    AND t's `under the renewed-learning program`
+    AND elem (t's `subject presented`) (`the humanities subjects of` (t's `teacher's stream`))
+    AND `the equivalent units on the eve of the arrangement` t GREATER THAN 0
+
+-- 1(א)-(ד): the allowance is paid at the rate, weekly hours and rules the
+-- teachers who prepared for the higher level were entitled to on the eve
+-- of the arrangement: 1.5 units as 2; 2.5 units as 3 (not in the state
+-- stream, whose paragraph (א) names 1.5 units only). 0 = no equivalence.
+@ref akn:art_1__para_a akn:art_1__para_b akn:art_1__para_c akn:art_1__para_d
+GIVEN t IS A `matriculation teacher`
+GIVETH A NUMBER
+DECIDE `the equivalent units on the eve of the arrangement` t IS
+    IF t's `study units` EQUALS 1.5
+    THEN 2
+    ELSE IF t's `study units` EQUALS 2.5 AND NOT t's `teacher's stream` EQUALS `state`
+         THEN 3
+         ELSE 0
+
+-- The allowance on the eve of the arrangement is not in this circular: it
+-- is an input, in weekly hours, for the subject at the equivalent units.
+@export The weekly hours of matriculation-preparation allowance a teacher presenting a humanities (מח"ר) subject under the renewed-learning reform is owed in 2022-23 under circular תשפ"ג/3, before the split across years
+GIVEN t IS A `matriculation teacher` @desc the teacher, the class's subject and its units
+      `hours on the eve of the arrangement` IS A NUMBER @desc the weekly hours of matriculation-preparation allowance the subject carried on the eve of the arrangement at the equivalent units (2 for 1.5, 3 for 2.5); not printed in this circular
+GIVETH A NUMBER
+DECIDE `the reform allowance in weekly hours` t `hours on the eve of the arrangement` IS
+    IF `entitled under the arrangement` t
+    THEN `hours on the eve of the arrangement`
+    ELSE 0
+
+§§ `1(2) The split across years`
+
+DECLARE `assessment component` IS ONE OF
+    `individual task`
+    `group task`
+    `controlled exam`
+    `annual grade`
+
+@desc A row of 1(2)'s example table for a 1.5-unit subject: the component, its weight in the final grade, its weekly hours of allowance and its allowance percentage.
+DECLARE `assessment row` HAS
+    `component`               IS AN `assessment component`
+    `weight in final grade`   IS A NUMBER
+    `allowance weekly hours`  IS A NUMBER
+    `allowance percentage`    IS A NUMBER
+
+-- The example table as printed (its total row is checked below rather than stored).
+@ref akn:art_1__para_d/t1
+`the example weights for 1.5 units` MEANS
+    LIST `assessment row` `individual task` 0.15 0.225 0.003,
+         `assessment row` `group task`      0.15 0.225 0.003,
+         `assessment row` `controlled exam` 0.30 0.45  0.006,
+         `assessment row` `annual grade`    0.40 0.6   0.008
+
+-- akn:art_1__para_d/p4 The label "סה"כ" of the table's total row (100%, 1.5, 2%), which the asserts below reproduce.
+
+-- The table's own arithmetic: weights sum to 100%, hours to 1.5 and
+-- percentages to 2%, and each row is its weight's share of the totals.
+#ASSERT sum (map (GIVEN r YIELD r's `weight in final grade`) `the example weights for 1.5 units`) EQUALS 1
+#ASSERT sum (map (GIVEN r YIELD r's `allowance weekly hours`) `the example weights for 1.5 units`) EQUALS 1.5
+#ASSERT sum (map (GIVEN r YIELD r's `allowance percentage`) `the example weights for 1.5 units`) EQUALS 0.02
+#ASSERT all (GIVEN r YIELD r's `allowance weekly hours` EQUALS r's `weight in final grade` TIMES 1.5
+                       AND r's `allowance percentage` EQUALS r's `weight in final grade` TIMES 0.02)
+            `the example weights for 1.5 units`
+
+-- The assessment EVENTS 1(2) and its 2022-23 rule speak of: the tasks and
+-- the controlled exam, checked externally by the exams department.
+GIVEN c IS AN `assessment component`
+GIVETH A BOOLEAN
+DECIDE `is an assessment event` c IF
+    CONSIDER c
+    WHEN `annual grade` THEN FALSE
+    OTHERWISE TRUE
+
+GIVEN `components done` IS A LIST OF `assessment component`
+      rows IS A LIST OF `assessment row`
+GIVETH A NUMBER
+DECIDE `the weight of` `components done` `among` rows IS
+    sum (map (GIVEN r YIELD r's `weight in final grade`)
+             (filter (GIVEN r YIELD elem (r's `component`) `components done`) rows))
+
+GIVEN rows IS A LIST OF `assessment row`
+GIVETH A LIST OF `assessment component`
+DECIDE `the events of` rows IS
+    map (GIVEN r YIELD r's `component`) (filter (GIVEN r YIELD `is an assessment event` (r's `component`)) rows)
+
+-- 1(2): where the computerized assessment tasks are not all performed in
+-- one school year, the allowance is divided by the weights the exams
+-- department sets (an input: the table is its example for 1.5 units); and,
+-- "למען הסר ספק", all of them in one year is the whole allowance that year.
+-- F-2022-23_tashpag_03-a: the annual grade's share is tied to no event;
+-- it is read as paid in the year the last event is performed.
+@ref akn:art_1__para_d/p3 akn:art_1__para_d/p5
+GIVEN rows IS A LIST OF `assessment row` @desc the weights the exams department sets for the subject
+      `done this year` IS A LIST OF `assessment component` @desc the events performed in this school year
+      `done before`    IS A LIST OF `assessment component` @desc the events performed in earlier school years
+GIVETH A NUMBER
+DECIDE `the share of the allowance paid this year` rows `done this year` `done before` IS
+    `the weight of` `done this year` `among` rows
+    PLUS (IF `this year completes the events` rows `done this year` `done before`
+          THEN `the weight of` (LIST `annual grade`) `among` rows
+          ELSE 0)
+
+GIVEN rows IS A LIST OF `assessment row`
+      `done this year` IS A LIST OF `assessment component`
+      `done before`    IS A LIST OF `assessment component`
+GIVETH A BOOLEAN
+DECIDE `this year completes the events` rows `done this year` `done before` IF
+        NOT null `done this year`
+    AND all (GIVEN c YIELD elem c `done this year` OR elem c `done before`) (`the events of` rows)
+
+-- 1(2), 2022-23: given the gradual roll-out, ONE assessment event of the
+-- controlled-exam kind or TWO of the task kind may be performed.
+@ref akn:art_1__para_d/p6 akn:art_1__para_d/p7
+GIVEN `events done` IS A LIST OF `assessment component`
+GIVETH A BOOLEAN
+DECIDE `the events are permitted in 2022-23` `events done` IF
+       `events done` EQUALS LIST `controlled exam`
+    OR (count `events done` EQUALS 2 AND all (GIVEN c YIELD c EQUALS `individual task` OR c EQUALS `group task`) `events done`)
+
+-- F-2022-23_tashpag_03-a: of the table's 100%, the events carry 60%; the
+-- annual grade's 40% is assigned to no year by 1(2)'s split.
+`the events carry only part of the weights` MEANS
+    `the weight of` (`the events of` `the example weights for 1.5 units`) `among` `the example weights for 1.5 units` EQUALS 0.6
+#ASSERT `the events carry only part of the weights`
+
+§§ `1(3) The multidisciplinary summary work`
+
+@desc A teacher accompanying students in the multidisciplinary summary work (העבודה המסכמת הרב-תחומית, 2 study units), for one class.
+DECLARE `summary work class` HAS
+    `students accompanied in the class` IS A NUMBER  @desc all the students of the one class the teacher accompanies and guides (the footnote)
+    `subjects in the work`              IS A NUMBER  @desc the subjects the work the teacher accompanies includes
+    `work submitted this year`          IS A BOOLEAN @desc the work was submitted this year to the exams department for external evaluation
+    `is the civics work`                IS A BOOLEAN @desc the teacher presents civics under the reform program (1(4))
+
+@desc A row of 1(3)'s table: a band of students and its weekly hours per subject.
+DECLARE `students band` HAS
+    `from students`    IS A NUMBER
+    `to students`      IS A NUMBER @desc 999 stands for "ומעלה", with no upper bound
+    `hours per subject` IS A NUMBER
+
+@ref akn:art_1__para_d/p10 akn:art_1__para_d/t2
+`the summary-work table` MEANS
+    LIST `students band` 10 999 0.4,
+         `students band` 6  9   0.2,
+         `students band` 1  5   0.1
+
+GIVEN n IS A NUMBER
+GIVETH A LIST OF NUMBER
+DECIDE `the hours the table gives for` n IS
+    map (GIVEN b YIELD b's `hours per subject`)
+        (filter (GIVEN b YIELD n AT LEAST b's `from students` AND n AT MOST b's `to students`) `the summary-work table`)
+
+-- Every class size from 1 to 40 has exactly one row.
+#ASSERT all (GIVEN n YIELD count (`the hours the table gives for` n) EQUALS 1)
+            (LIST 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
+                  21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40)
+
+-- 1(3): 0.4 weekly hours for a group of at least ten, less by the table
+-- below ten, for EACH subject the work includes, on account of the frontal
+-- hours in the teacher's position; the footnote caps it per class at 0.4 a
+-- subject and at four subjects; and only in the year the work is
+-- submitted for external evaluation.
+@ref akn:art_1__para_d/p8 akn:art_1__para_d/p9 akn:art_1__para_d/p11
+GIVEN w IS A `summary work class`
+GIVETH A NUMBER
+DECIDE `the summary-work allowance in weekly hours` w IS
+    IF w's `work submitted this year`
+    THEN sum (`the hours the table gives for` (w's `students accompanied in the class`))
+         TIMES min (w's `subjects in the work`) 4
+    ELSE 0
+
+-- 1(4): in civics under the reform, the summary-work allowance replaces the
+-- performance-task allowance of the agreement of 22.4.2009 ("יישאר בהיקף
+-- של 0.4ש"ש"). F-2022-23_tashpag_03-b: read as 1(3)'s allowance, table
+-- included; 0.4 is its full rate.
+@ref akn:art_1__para_d/p12 akn:art_1__para_d/p13
+GIVEN w IS A `summary work class`
+GIVETH A BOOLEAN
+DECIDE `the civics performance-task allowance is replaced` w IF
+    w's `is the civics work`
+
+`the civics allowance as 1(4) states it` MEANS 0.4
+
+DECLARE `circular 3 action` IS ONE OF
+    `pay the civics performance-task allowance for the class`
+    `pay the pre-arrangement matriculation allowance for the class and subject`
+    `appoint a humanities lead` HAS `lead already appointed` IS A BOOLEAN
+    `use two frontal hours as role hours`
+    `use one frontal hour as a role hour`
+    `perform the assessment events` HAS `events performed` IS A LIST OF `assessment component`
+
+-- 1(4), "למען הסר ספק": for the same class, not both the civics
+-- performance-task allowance and the summary-work allowance.
+@ref akn:art_1__para_d/p14
+GIVEN w IS A `summary work class`
+GIVETH A DEONTIC Party `circular 3 action`
+DECIDE `no civics performance-task allowance besides the summary work` w IS
+    IF `the civics performance-task allowance is replaced` w AND w's `work submitted this year`
+    THEN PARTY `the employer`
+         SHANT `pay the civics performance-task allowance for the class`
+         WITHIN `31 August 2023`
+         LEST BREACH BY `the employer` BECAUSE "circular תשפ\"ג/3 1(4): not both the performance-task allowance and the summary-work allowance for one class"
+    ELSE FULFILLED
+
+-- 1(5): no change where the humanities subjects are studied at one unit.
+@ref akn:art_1__para_d/p15
+GIVEN t IS A `matriculation teacher`
+GIVETH A BOOLEAN
+DECIDE `the pre-arrangement allowance continues unchanged` t IF
+    t's `study units` EQUALS 1
+
+-- 1(6): the arrangement's allowance comes INSTEAD of the pre-arrangement
+-- one; never both for the same class and subject.
+@ref akn:art_1__para_d/p16
+GIVEN t IS A `matriculation teacher`
+GIVETH A DEONTIC Party `circular 3 action`
+DECIDE `not both allowances for one class and subject` t IS
+    IF `entitled under the arrangement` t
+    THEN PARTY `the employer`
+         SHANT `pay the pre-arrangement matriculation allowance for the class and subject`
+         WITHIN `31 August 2023`
+         LEST BREACH BY `the employer` BECAUSE "circular תשפ\"ג/3 1(6): the arrangement's allowance replaces the pre-arrangement one"
+    ELSE FULFILLED
+
+§§ `2 גמול תפקיד חדש - מוביל מח"ר`
+
+@desc A teaching employee filling the humanities-lead role (מוביל מח"ר).
+DECLARE `humanities lead` HAS
+    `lead's school year`             IS A `school year`
+    `lead employed under Oz LaTmura` IS A BOOLEAN
+    `combined salary`                IS A NUMBER @desc the monthly combined salary (שכר משולב), an input
+    `Oz LaTmura supplement`          IS A NUMBER @desc the monthly Oz LaTmura supplement, an input
+
+-- 2: in 2022-23 the role is added to the roles that entitle teachers
+-- under Oz LaTmura to a role allowance.
+@ref akn:art_2/p1
+GIVEN l IS A `humanities lead`
+GIVETH A BOOLEAN
+DECIDE `the humanities-lead role allowance is due` l IF
+        l's `lead's school year` EQUALS `the school year 2022-23`
+    AND l's `lead employed under Oz LaTmura`
+
+-- 2(1): 6%, on the combined salary and the Oz LaTmura supplement. 2(3):
+-- calculated and paid by the rules for a subject coordinator (Oz LaTmura
+-- agreement of 14.8.2011, section 17(א)) — those rules are not in this
+-- circular, so the base is read as the two amounts the clause names.
+@ref akn:art_2/p2 akn:art_2/p4
+GIVEN l IS A `humanities lead`
+GIVETH A NUMBER
+DECIDE `the humanities-lead allowance` l IS
+    IF `the humanities-lead role allowance is due` l
+    THEN 0.06 TIMES (l's `combined salary` PLUS l's `Oz LaTmura supplement`)
+    ELSE 0
+
+-- 2(2): the lead may use two frontal hours of the position as role hours.
+@ref akn:art_2/p3
+GIVEN l IS A `humanities lead`
+GIVETH A DEONTIC Party `circular 3 action`
+DECIDE `the lead's role hours` l IS
+    IF `the humanities-lead role allowance is due` l
+    THEN PARTY `the teaching employee`
+         MAY   `use two frontal hours as role hours`
+         WITHIN `31 August 2023`
+    ELSE FULFILLED
+
+-- 2(4): one teaching employee only per upper division. The text does not
+-- say who appoints; the owner is the party here.
+@ref akn:art_2/p5
+GIVETH A DEONTIC Party `circular 3 action`
+DECIDE `one humanities lead per upper division` IS
+    PARTY `the employer`
+    SHANT `appoint a humanities lead` `already`
+          PROVIDED `already`
+    WITHIN `31 August 2023`
+    LEST BREACH BY `the employer` BECAUSE "circular תשפ\"ג/3 2(4): one humanities lead only in each upper division"
+
+§§ `3 שינוי הגמול לתפקיד רכז תקשוב`
+
+-- 3: in 2022-23 the ICT coordinator may also use one frontal hour of the
+-- position as a role hour; nothing else changes.
+@ref akn:art_3/p1
+GIVEN y IS A `school year`
+GIVETH A DEONTIC Party `circular 3 action`
+DECIDE `the ICT coordinator's role hour` y IS
+    IF y EQUALS `the school year 2022-23`
+    THEN PARTY `the teaching employee`
+         MAY   `use one frontal hour as a role hour`
+         WITHIN `31 August 2023`
+    ELSE FULFILLED
+
+§§ `4 Validity`
+
+-- 4: the circular's instructions are in force until 31.8.2023.
+@ref akn:art_4/p1
+GIVEN y IS A `school year`, m IS A NUMBER @desc the school month (September = 1)
+GIVETH A BOOLEAN
+DECIDE `the circular is in force in` y m IF
+    y EQUALS `the school year 2022-23` AND m AT MOST `31 August 2023`
+
+-- akn:art_4/p2 akn:art_4/p3 akn:art_4/p4 akn:art_4/p5 akn:art_4/p6 akn:art_4/p7 akn:art_4/p8 akn:art_4/p9 akn:art_4/p10 akn:art_4/p11 akn:art_4/p12 akn:art_4/p13 akn:art_4/p14 akn:art_4/p15 akn:art_4/p16 akn:art_4/p17 akn:art_4/p18 akn:art_4/p19 akn:art_4/p20 akn:art_4/p21 akn:art_4/p22 akn:art_4/p23 akn:art_4/p24 akn:art_4/p25 akn:art_4/p26 akn:art_4/p27 akn:art_4/p28 akn:art_4/p29 akn:art_4/p30 akn:art_4/p31 akn:art_4/p32 akn:art_4/p33 The sign-off, signatories and list of copies (the corpus nests them under section 4); no rule.
+
+-- Examples. The teachers are made up; the allowance on the eve of the
+-- arrangement is a placeholder (2 weekly hours at 2 units, 3 at 3), since
+-- this circular does not print it.
+`a state-religious Bible teacher at 2.5 units` MEANS
+    `matriculation teacher` WITH
+        `graded in the teaching employees' grading`      IS TRUE
+        `employed in a supervised three- or four-year upper division` IS TRUE
+        `teacher's school year`                          IS `the school year 2022-23`
+        `teacher's stream`                               IS `state-religious`
+        `subject presented`                              IS `Bible`
+        `under the renewed-learning program`             IS TRUE
+        `study units`                                    IS 2.5
+        `employed under Oz LaTmura`                      IS TRUE
+
+`a state history teacher at 1.5 units` MEANS
+    `matriculation teacher` WITH
+        `graded in the teaching employees' grading`      IS TRUE
+        `employed in a supervised three- or four-year upper division` IS TRUE
+        `teacher's school year`                          IS `the school year 2022-23`
+        `teacher's stream`                               IS `state`
+        `subject presented`                              IS `history`
+        `under the renewed-learning program`             IS TRUE
+        `study units`                                    IS 1.5
+        `employed under Oz LaTmura`                      IS FALSE
+
+`an Arab-society Bible teacher` MEANS
+    `matriculation teacher` WITH
+        `graded in the teaching employees' grading`      IS TRUE
+        `employed in a supervised three- or four-year upper division` IS TRUE
+        `teacher's school year`                          IS `the school year 2022-23`
+        `teacher's stream`                               IS `Arab society`
+        `subject presented`                              IS `Bible`
+        `under the renewed-learning program`             IS TRUE
+        `study units`                                    IS 1.5
+        `employed under Oz LaTmura`                      IS TRUE
+
+#ASSERT `the equivalent units on the eve of the arrangement` `a state-religious Bible teacher at 2.5 units` EQUALS 3
+#ASSERT `the equivalent units on the eve of the arrangement` `a state history teacher at 1.5 units` EQUALS 2
+#ASSERT `entitled under the arrangement` `a state history teacher at 1.5 units`
+#ASSERT NOT `entitled under the arrangement` `an Arab-society Bible teacher`
+
+-- 1(2) on the example table: a controlled exam in 2022-23 and both tasks
+-- the year after; the second year completes the events and carries the
+-- annual grade's share (F-2022-23_tashpag_03-a's reading).
+#ASSERT `the events are permitted in 2022-23` (LIST `controlled exam`)
+#ASSERT `the events are permitted in 2022-23` (LIST `individual task`, `group task`)
+#ASSERT NOT `the events are permitted in 2022-23` (LIST `controlled exam`, `group task`)
+#ASSERT `the share of the allowance paid this year` `the example weights for 1.5 units` (LIST `controlled exam`) EMPTY EQUALS 0.3
+#ASSERT `the share of the allowance paid this year` `the example weights for 1.5 units` (LIST `individual task`, `group task`) (LIST `controlled exam`) EQUALS 0.7
+#ASSERT `the share of the allowance paid this year` `the example weights for 1.5 units` (LIST `individual task`, `group task`, `controlled exam`) EMPTY EQUALS 1
+
+-- 1(3): eight students in a class, a work of three subjects: 0.2 × 3.
+`eight students, three subjects` MEANS
+    `summary work class` WITH
+        `students accompanied in the class` IS 8
+        `subjects in the work`              IS 3
+        `work submitted this year`          IS TRUE
+        `is the civics work`                IS FALSE
+`twelve students, five subjects` MEANS
+    `summary work class` WITH
+        `students accompanied in the class` IS 12
+        `subjects in the work`              IS 5
+        `work submitted this year`          IS TRUE
+        `is the civics work`                IS FALSE
+#ASSERT `the summary-work allowance in weekly hours` `eight students, three subjects` EQUALS 0.6
+#ASSERT `the summary-work allowance in weekly hours` `twelve students, five subjects` EQUALS 1.6
+
+-- F-2022-23_tashpag_03-b: a civics work with eight students: 1(3)'s table
+-- gives 0.2; 1(4)'s "remains at 0.4" gives 0.4.
+`a civics work with eight students` MEANS
+    `summary work class` WITH
+        `students accompanied in the class` IS 8
+        `subjects in the work`              IS 1
+        `work submitted this year`          IS TRUE
+        `is the civics work`                IS TRUE
+`1(3) and 1(4) give a small civics class different hours` MEANS
+    NOT (`the summary-work allowance in weekly hours` `a civics work with eight students`
+         EQUALS `the civics allowance as 1(4) states it`)
+#ASSERT `1(3) and 1(4) give a small civics class different hours`
+
+`a humanities lead on 10,000 and 2,000` MEANS
+    `humanities lead` WITH
+        `lead's school year`             IS `the school year 2022-23`
+        `lead employed under Oz LaTmura` IS TRUE
+        `combined salary`                IS 10000
+        `Oz LaTmura supplement`          IS 2000
+#ASSERT `the humanities-lead allowance` `a humanities lead on 10,000 and 2,000` EQUALS 720
+
+#ASSERT `the circular is in force in` `the school year 2022-23` 12
+#ASSERT NOT `the circular is in force in` `the school year 2023-24` 1
+
+-- A second humanities lead appointed in the same upper division breaches 2(4);
+-- appointing the first does not.
+#TRACE `one humanities lead per upper division` AT 0 WITH
+    PARTY `the employer` DOES `appoint a humanities lead` FALSE AT 1
+#TRACE `one humanities lead per upper division` AT 0 WITH
+    PARTY `the employer` DOES `appoint a humanities lead` TRUE AT 3
+#TRACE `not both allowances for one class and subject` `a state history teacher at 1.5 units` AT 0 WITH
+    PARTY `the employer` DOES `pay the pre-arrangement matriculation allowance for the class and subject` AT 5

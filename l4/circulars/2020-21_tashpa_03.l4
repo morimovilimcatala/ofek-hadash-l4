@@ -1,0 +1,368 @@
+-- חוזר לבעלויות תשפ"א/3, 29 November 2020: נוהל שיפויים לבעלויות על המכללות
+-- האקדמיות להכשרת עובדי הוראה בגין מענק יישום רפורמה במכללות (נוסח מעודכן)
+-- The procedure under which the Ministry indemnifies the owners of the
+-- academic teacher-training colleges for the "special grant" (the reform-
+-- implementation grant of the wage agreement of 21.1.2019) paid to teaching
+-- employees whose employment ended through the colleges' reorganisation:
+-- who is entitled to the grant and how much, when the owner is indemnified,
+-- and how and when the owner applies.
+
+IMPORT prelude
+IMPORT common
+
+-- Time in the regulative rules is counted from the day the employee's
+-- employment ended (day or month 0), in the unit each rule names.
+-- Ages are in MONTHS, so that the table's "54 ו-11 חודשים" is exact.
+
+§ `חוזר תשפ"א/3 נוהל שיפויים — מענק יישום רפורמה במכללות`
+
+-- akn:preamble The letterhead, date (29.11.2020), reference number, addressee (the owners of the academic teacher-training colleges), greeting and subject line. The subject says the procedure cancels circular "תשפ 8/" — read as תש"פ/8, the earlier version of this procedure (2019-20_tashaf_08), not the later תשפ"א/8 on clothing.
+
+@desc A teaching employee whose employment at a teacher-training college ended, as far as the procedure asks about it.
+DECLARE `college leaver` HAS
+    `ended on or after 31 August 2015`                    IS A BOOLEAN
+    `ended as a result of the colleges' organisational changes` IS A BOOLEAN @desc not, for example, for pedagogical reasons (section g-f)
+    `ended for administrative reasons`                    IS A BOOLEAN
+    `continuous years teaching at the colleges`           IS A NUMBER
+    `entitled now or ever to Civil Service Commission retirement terms` IS A BOOLEAN @desc under a Civil Service Commission retirement plan, an earlier retirement from the civil service included
+    `age in months at the end of employment`              IS A NUMBER  @desc the age at the end of the employer-employee relation, in months (50 years = 600)
+    `weighted position fraction`                          IS A NUMBER  @desc the weighted position at all employments together (1 = 100%)
+    `entitled to the section 22 retirement grant`         IS A BOOLEAN @desc the grant of section 22 of the State Service (Pensions) Law [Consolidated Version], 1970
+    `section 22 grant paid`                               IS A NUMBER  @desc the amount paid under that section 22, in shekels
+    `actually teaching at the college`                    IS A BOOLEAN @desc a teacher, principal or deputy actually teaching at the college, not only graded as a teaching employee, and not in an administrative role
+    `a state employee only`                               IS A BOOLEAN
+    `share of employment reported in the staff report`    IS A NUMBER  @desc the share of the employment the owner reported to the Ministry in the staff report, at the scope actually worked (1 = all of it)
+    `working at the college as a pensioner of the same employer` IS A BOOLEAN
+    `official notice of termination by the competent body` IS A BOOLEAN
+
+§§ `א כללי`
+
+-- א.1-א.2: the indemnity is for the special grant only, to the owners of
+-- the colleges budgeted by the teacher-training division, for teaching
+-- employees (teachers, principals, deputies) who actually teach there and
+-- retired or stopped working while doing so.
+@ref akn:art_a__para_1 akn:art_a__para_2
+GIVEN l IS A `college leaver`
+GIVETH A BOOLEAN
+DECIDE `within the scope of the indemnity` l IF
+    l's `actually teaching at the college`
+
+-- א.3: the owner that pays is the LAST owner, where the work stopped.
+@ref akn:art_a__para_3
+GIVEN `owners in order of employment` IS A LIST OF STRING @desc the owners the employee worked for, the last one last
+GIVETH A LIST OF STRING
+DECIDE `the owner that pays` `owners in order of employment` IS
+    drop (count `owners in order of employment` MINUS 1) `owners in order of employment`
+
+§§ `ב התנאים לקבלת השיפוי`
+
+@ref akn:art_b akn:art_b__para_1 akn:art_b__para_2 akn:art_b__para_4
+GIVEN l IS A `college leaver`
+GIVETH A BOOLEAN
+DECIDE `meets the conditions for indemnity` l IF
+        `within the scope of the indemnity` l
+    AND l's `ended for administrative reasons`
+    AND NOT l's `a state employee only`
+
+-- ב.5: periods not reported (or reported at another scope) are the
+-- owner's to bear; an employee not reported at all is not considered.
+@ref akn:art_b__para_5
+GIVEN l IS A `college leaver`
+GIVETH A NUMBER
+DECIDE `share the Ministry indemnifies` l IS
+    min (l's `share of employment reported in the staff report`) 1
+
+DECLARE `indemnity action` IS ONE OF
+    `report the teaching staff in the staff report`
+    `collect the details from the employee`
+    `apply for the indemnity` HAS `with all the documents` IS A BOOLEAN
+                                  `with a final account signed by the treasurer or HR manager` IS A BOOLEAN
+    `pay the special grant` HAS `special grant paid` IS A NUMBER
+    `declare that the indemnity was passed on`
+    `offset the indemnity from the owner's budgets`
+
+-- ב.3: every teaching employee teaching at the institution who is the
+-- owner's employee only is reported in the yearly staff report, under the
+-- instructions published each year (the תש"ף ones are linked). When that
+-- report is due is in those instructions: an input.
+@ref akn:art_b__para_3 akn:art_b__para_3/p2
+GIVEN `the staff report is due` IS A NUMBER @desc months from 1 September by which the yearly instructions require the staff report; an input
+GIVETH A DEONTIC Party `indemnity action`
+DECIDE `reporting the teaching staff` `the staff report is due` IS
+    PARTY `the local authority or owning body`
+    MUST  `report the teaching staff in the staff report`
+    WITHIN `the staff report is due`
+    LEST  BREACH BY `the local authority or owning body` BECAUSE "circular 2020-21/3 b3: the owner reports all its teaching staff in the staff report"
+
+-- ב.6: the owner deals with the employee directly for the details; the
+-- application's own deadline (ו.1, two months) bounds it.
+@ref akn:art_b__para_6
+GIVETH A DEONTIC Party `indemnity action`
+DECIDE `collecting the details` IS
+    PARTY `the local authority or owning body`
+    MUST  `collect the details from the employee`
+    WITHIN `months to apply`
+    LEST  BREACH BY `the local authority or owning body` BECAUSE "circular 2020-21/3 b6: the owner collects the details from the employee directly"
+
+§§ `ג זכאות למענק המיוחד`
+
+@ref akn:art_c akn:art_c__para_a akn:art_c__para_a__subpara_1 akn:art_c__para_a__subpara_2 akn:art_c__para_a__subpara_3
+GIVEN l IS A `college leaver`
+GIVETH A BOOLEAN
+DECIDE `meets the cumulative conditions` l IF
+        l's `ended on or after 31 August 2015`
+    AND l's `ended as a result of the colleges' organisational changes`
+    AND l's `continuous years teaching at the colleges` AT LEAST 10
+    AND NOT l's `entitled now or ever to Civil Service Commission retirement terms`
+
+-- The table of ג.א(3) ¶2-¶9, one row per printed line: column A "מגיל" and
+-- "עד גיל", column B the grant in shekels. Ages in months; the last row's
+-- "עד גיל 65" is taken as printed, the 65th birthday (F-2020-21_tashpa_03-b).
+@ref akn:art_c__para_a__subpara_3/p2 akn:art_c__para_a__subpara_3/p3 akn:art_c__para_a__subpara_3/p4 akn:art_c__para_a__subpara_3/p5 akn:art_c__para_a__subpara_3/p6 akn:art_c__para_a__subpara_3/p7 akn:art_c__para_a__subpara_3/p8 akn:art_c__para_a__subpara_3/p9
+DECLARE `grant row` HAS
+    `from age in months` IS A NUMBER
+    `to age in months`   IS A NUMBER
+    `grant in shekels`   IS A NUMBER
+
+`the special grant table` MEANS
+    LIST `grant row` 600 659 200000,
+         `grant row` 660 719 120000,
+         `grant row` 720 767 80000,
+         `grant row` 768 780 35000
+
+GIVEN `age` IS A NUMBER
+GIVETH A LIST OF NUMBER
+DECIDE `the grants the table gives at` `age` IS
+    map (GIVEN r YIELD r's `grant in shekels`)
+        (filter (GIVEN r YIELD `age` AT LEAST r's `from age in months` AND `age` AT MOST r's `to age in months`)
+                `the special grant table`)
+
+GIVEN `age` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `table grant` `age` IS
+    sum (`the grants the table gives at` `age`)
+
+-- The rows meet: no month from 50 years to the 65th birthday is in two
+-- rows or in none.
+#ASSERT all (GIVEN a YIELD count (`the grants the table gives at` a) EQUALS 1)
+            (LIST 600, 659, 660, 719, 720, 767, 768, 779, 780)
+
+-- F-2020-21_tashpa_03-b: every other row ends "and 11 months"; the last
+-- ends "65". Read like the others, it runs to 65 years and 11 months:
+`the last row read like the others` MEANS
+    `grant row` 768 791 35000
+
+`an employee aged 65 years and 6 months` MEANS 786
+
+`the last row's bound decides an employee aged 65 and a half` MEANS
+        `the grants the table gives at` `an employee aged 65 years and 6 months` EQUALS EMPTY
+    AND `an employee aged 65 years and 6 months` AT MOST `the last row read like the others`'s `to age in months`
+#ASSERT `the last row's bound decides an employee aged 65 and a half`
+
+-- ג.ב: pro-rated to the weighted position, capped at 100% over all
+-- employments. ג.ג: one entitled to the section 22 grant gets only the
+-- positive difference between this grant and that one.
+@ref akn:art_c__para_b akn:art_c__para_c
+GIVEN l IS A `college leaver`
+GIVETH A NUMBER
+DECIDE `the special grant before section 22` l IS
+    `table grant` (l's `age in months at the end of employment`)
+    TIMES min (l's `weighted position fraction`) 1
+
+-- ה (art_e) and ו (art_f): no grant for one entitled to Civil Service
+-- Commission retirement terms, or whose employment ended not through the
+-- organisational changes. ז (art_g): one entitled to this grant gets no
+-- such retirement terms.
+@ref akn:art_e akn:art_f akn:art_g
+GIVEN l IS A `college leaver`
+GIVETH A BOOLEAN
+DECIDE `entitled to the special grant` l IF
+        `meets the cumulative conditions` l
+    AND NOT l's `entitled now or ever to Civil Service Commission retirement terms`
+    AND l's `ended as a result of the colleges' organisational changes`
+
+GIVEN l IS A `college leaver`
+GIVETH A BOOLEAN
+DECIDE `may receive Civil Service Commission retirement terms` l IF
+    NOT `entitled to the special grant` l
+
+@export default The special reform-implementation grant in shekels a teaching employee leaving a teacher-training college is owed under circular תשפ"א/3
+GIVEN l IS A `college leaver` @desc the employee whose employment at the college ended
+GIVETH A NUMBER
+DECIDE `special grant` l IS
+    IF `entitled to the special grant` l
+    THEN IF l's `entitled to the section 22 retirement grant`
+         THEN max 0 (`the special grant before section 22` l MINUS l's `section 22 grant paid`)
+         ELSE `the special grant before section 22` l
+    ELSE 0
+
+-- F-2020-21_tashpa_03-a: when the grant is paid. ד (art_d) says "with the
+-- end of the employer-employee relation" (day 0); ו.4 has the owner declare
+-- it passed the indemnity to the employee within 45 days of retirement;
+-- ו.1 lets the owner apply for the indemnity up to two months after the
+-- end of the work — and two calendar months are never fewer than 59 days.
+`days to pay under ד` MEANS 0
+`days to pass on the indemnity under ו.4` MEANS 45
+`the fewest days in two calendar months` MEANS 59
+
+`the grant's payment day is given three ways` MEANS
+        NOT (`days to pay under ד` EQUALS `days to pass on the indemnity under ו.4`)
+    AND `days to pass on the indemnity under ו.4` LESS THAN `the fewest days in two calendar months`
+#ASSERT `the grant's payment day is given three ways`
+
+-- The reading adopted (F-2020-21_tashpa_03-a): the owner pays the grant at
+-- the end of the relation, and in any case within 45 days of it, whether
+-- or not the indemnity has yet been applied for or received.
+@ref akn:art_d
+GIVEN l IS A `college leaver`
+GIVETH A DEONTIC Party `indemnity action`
+DECIDE `paying the special grant` l IS
+    PARTY `the local authority or owning body`
+    MUST  `pay the special grant` `amount`
+          PROVIDED `amount` AT LEAST `special grant` l
+    WITHIN `days to pass on the indemnity under ו.4`
+    LEST  BREACH BY `the local authority or owning body` BECAUSE "circular 2020-21/3 c-d, f4: the special grant is paid with the end of the employment, and within 45 days of it"
+
+§§ `ד הזכאות לשיפוי`
+
+-- Corpus defect (reported, not a finding): the page numbers ג's own
+-- sub-paragraphs א-ז and then the procedure's sections ד, ה, ו. The corpus
+-- makes ג's sub-paragraphs ד-ז top-level articles (art_d-art_g) and nests
+-- the procedure's sections ד, ה, ו under art_g (art_g__para_d-f).
+
+-- ד: indemnity upon an official notice of termination by the competent
+-- body, for at most 100% at all owners together, under the conditions and
+-- by the staff report in the Ministry's systems.
+-- ה: none for work as a pensioner of the same employer, or for less than
+-- ten continuous years at the college.
+@ref akn:art_g__para_d akn:art_g__para_e
+GIVEN l IS A `college leaver`
+GIVETH A BOOLEAN
+DECIDE `the owner is indemnified for` l IF
+        `meets the conditions for indemnity` l
+    AND `entitled to the special grant` l
+    AND l's `official notice of termination by the competent body`
+    AND l's `share of employment reported in the staff report` GREATER THAN 0
+    AND NOT l's `working at the college as a pensioner of the same employer`
+    AND l's `continuous years teaching at the colleges` AT LEAST 10
+
+@export The indemnity in shekels the Ministry of Education pays a college owner for one leaver's special grant under circular תשפ"א/3
+GIVEN l IS A `college leaver` @desc the employee whose employment at the college ended
+GIVETH A NUMBER
+DECIDE `indemnity` l IS
+    IF `the owner is indemnified for` l
+    THEN `special grant` l TIMES `share the Ministry indemnifies` l
+    ELSE 0
+
+§§ `ו הנחיות להגשת הבקשה`
+
+-- ו.1: the form filled in, every document attached, at once on the end of
+-- the work and no later than two months from it. Time here in months.
+`months to apply` MEANS 2
+
+GIVEN `with all the documents` IS A BOOLEAN
+      `with a final account signed by the treasurer or HR manager` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `a request the Ministry accepts` `with all the documents` `with a final account signed by the treasurer or HR manager` IF
+        `with all the documents`
+    AND `with a final account signed by the treasurer or HR manager`
+
+-- ו.2: a request without the documents is returned; ו.3: with an exact,
+-- final account signed by the treasurer or HR manager; ו.6: by e-mail to
+-- the address given.
+@ref akn:art_g__para_f akn:art_g__para_f/p2 akn:art_g__para_f/p3 akn:art_g__para_f/p4 akn:art_g__para_f/p5 akn:art_g__para_f/p6 akn:art_g__para_f/p7 akn:art_g__para_f/p11 akn:art_g__para_f/p12
+GIVETH A DEONTIC Party `indemnity action`
+DECIDE `applying for the indemnity` IS
+    PARTY `the local authority or owning body`
+    MUST  `apply for the indemnity` `documents` `account`
+          PROVIDED `a request the Ministry accepts` `documents` `account`
+    WITHIN `months to apply`
+    LEST  BREACH BY `the local authority or owning body` BECAUSE "circular 2020-21/3 f1-f3: the complete request is filed no later than two months from the end of the work"
+
+-- ו.4-ו.5: the owner declares on a form that the indemnity was passed to
+-- the employee within 45 days of retirement; an institution that does not
+-- is offset from the budgets the Ministry transfers to it. Time in days.
+@ref akn:art_g__para_f/p8 akn:art_g__para_f/p9 akn:art_g__para_f/p10
+GIVETH A DEONTIC Party `indemnity action`
+DECIDE `declaring the indemnity passed on` IS
+    PARTY `the local authority or owning body`
+    MUST  `declare that the indemnity was passed on`
+    WITHIN `days to pass on the indemnity under ו.4`
+    LEST  (PARTY `the Ministry of Education`
+           MAY   `offset the indemnity from the owner's budgets`)
+
+-- akn:conclusions The signatures (the deputy director-general for teaching staff and the Ministry's accountant) and copies list; no rule.
+
+-- Worked examples: the shekel figures are the table's; the position and
+-- the section 22 grant are placeholders.
+`a lecturer of 58 at 80%` MEANS
+    `college leaver` WITH
+        `ended on or after 31 August 2015`                    IS TRUE
+        `ended as a result of the colleges' organisational changes` IS TRUE
+        `ended for administrative reasons`                    IS TRUE
+        `continuous years teaching at the colleges`           IS 15
+        `entitled now or ever to Civil Service Commission retirement terms` IS FALSE
+        `age in months at the end of employment`              IS 696
+        `weighted position fraction`                          IS 0.8
+        `entitled to the section 22 retirement grant`         IS FALSE
+        `section 22 grant paid`                               IS 0
+        `actually teaching at the college`                    IS TRUE
+        `a state employee only`                               IS FALSE
+        `share of employment reported in the staff report`    IS 1
+        `working at the college as a pensioner of the same employer` IS FALSE
+        `official notice of termination by the competent body` IS TRUE
+
+`a lecturer of 51 at 120% with a section 22 grant` MEANS
+    `college leaver` WITH
+        `ended on or after 31 August 2015`                    IS TRUE
+        `ended as a result of the colleges' organisational changes` IS TRUE
+        `ended for administrative reasons`                    IS TRUE
+        `continuous years teaching at the colleges`           IS 12
+        `entitled now or ever to Civil Service Commission retirement terms` IS FALSE
+        `age in months at the end of employment`              IS 612
+        `weighted position fraction`                          IS 1.2
+        `entitled to the section 22 retirement grant`         IS TRUE
+        `section 22 grant paid`                               IS 150000
+        `actually teaching at the college`                    IS TRUE
+        `a state employee only`                               IS FALSE
+        `share of employment reported in the staff report`    IS 0.5
+        `working at the college as a pensioner of the same employer` IS FALSE
+        `official notice of termination by the competent body` IS TRUE
+
+`a lecturer of nine years` MEANS
+    `college leaver` WITH
+        `ended on or after 31 August 2015`                    IS TRUE
+        `ended as a result of the colleges' organisational changes` IS TRUE
+        `ended for administrative reasons`                    IS TRUE
+        `continuous years teaching at the colleges`           IS 9
+        `entitled now or ever to Civil Service Commission retirement terms` IS FALSE
+        `age in months at the end of employment`              IS 696
+        `weighted position fraction`                          IS 1
+        `entitled to the section 22 retirement grant`         IS FALSE
+        `section 22 grant paid`                               IS 0
+        `actually teaching at the college`                    IS TRUE
+        `a state employee only`                               IS FALSE
+        `share of employment reported in the staff report`    IS 1
+        `working at the college as a pensioner of the same employer` IS FALSE
+        `official notice of termination by the competent body` IS TRUE
+
+-- 120,000 (55 to 59 and 11 months) at 80%.
+#ASSERT `special grant` `a lecturer of 58 at 80%` EQUALS 96000
+#ASSERT `indemnity` `a lecturer of 58 at 80%` EQUALS 96000
+-- 200,000 capped at 100%, less the section 22 grant; half of it reported.
+#ASSERT `special grant` `a lecturer of 51 at 120% with a section 22 grant` EQUALS 50000
+#ASSERT `indemnity` `a lecturer of 51 at 120% with a section 22 grant` EQUALS 25000
+#ASSERT `special grant` `a lecturer of nine years` EQUALS 0
+#ASSERT `may receive Civil Service Commission retirement terms` `a lecturer of nine years`
+#ASSERT NOT `may receive Civil Service Commission retirement terms` `a lecturer of 58 at 80%`
+#ASSERT `table grant` 780 EQUALS 35000
+#ASSERT `the owner that pays` (LIST "owner A", "owner B") EQUALS LIST "owner B"
+
+#TRACE `paying the special grant` `a lecturer of 58 at 80%` AT 0 WITH
+    PARTY `the local authority or owning body` DOES `pay the special grant` 96000 AT 0
+#TRACE `applying for the indemnity` AT 0 WITH
+    PARTY `the local authority or owning body` DOES `apply for the indemnity` TRUE TRUE AT 1
+#TRACE `applying for the indemnity` AT 0 WITH
+    PARTY `the local authority or owning body` DOES `apply for the indemnity` FALSE TRUE AT 1
+#TRACE `declaring the indemnity passed on` AT 0 WITH
+    PARTY `the Ministry of Education` DOES `offset the indemnity from the owner's budgets` AT 50

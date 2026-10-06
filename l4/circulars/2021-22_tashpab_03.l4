@@ -1,0 +1,189 @@
+-- חוזר לבעלויות תשפ"ב/3 (6.12.2021), השלמת שעות עבודה על ידי מורים השוהים
+-- בבידוד עקב חזרתם מחו"ל.
+-- A teaching employee isolated after private travel abroad gets no
+-- isolation or sick pay and may not teach remotely; for isolation on the
+-- dates the circular names, the lost hours may instead be made up on free
+-- days by 4.3.2022, and hours not made up are absence without pay.
+
+IMPORT prelude
+IMPORT common
+
+-- Time in this file is counted in DAYS from 7 December 2021 (day 0), the
+-- first isolation date the circular names. The dates it prints, as days:
+`7 December 2021`  MEANS 0
+`9 December 2021`  MEANS 2
+`14 December 2021` MEANS 7
+`4 March 2022`     MEANS 87
+
+§ `תשפ"ב/3 השלמת שעות עבודה על ידי מורים השוהים בבידוד עקב חזרתם מחו"ל`
+
+-- akn:hc_1/p1 akn:hc_1/p2 akn:hc_1/p3 akn:hc_1/p4 akn:hc_1/p5 akn:hc_1/p6 akn:hc_1/p7 The letterhead, the date and the reference number; no rule.
+-- akn:hc_1/p8 akn:hc_1/p9 akn:hc_1/p10 akn:hc_1/p11 akn:hc_1/p12 akn:hc_1/p13 The circular's number, the addressees (the owners and the school principals), the greeting and the subject line; no rule.
+
+@desc The designation of the country a teaching employee returned from, as the circular names it ('מדינות כתומות', 'מדינות אדומות'); the designation itself is made outside the circular.
+DECLARE `country designation` IS ONE OF
+    `an orange country`
+    `a red country`
+    `a country of another designation`
+
+@desc One day a teaching employee spent in isolation, with the working hours the isolation cost that day.
+DECLARE `isolation day` HAS
+    `isolation date`        IS A NUMBER  @desc the day, counted in days from 7 December 2021
+    `working hours missed`  IS A NUMBER  @desc the hours of the employee's assignment that day that were not worked because of the isolation
+
+@desc A teaching employee in isolation on returning from abroad, as far as this circular asks about it.
+DECLARE `isolated teaching employee` HAS
+    `returned from private travel abroad` IS A BOOLEAN
+    `designation of the country left`     IS A `country designation`
+    `days in isolation`                   IS A LIST OF `isolation day`
+
+@desc One occasion on which a teaching employee works hours to make up the hours isolation cost.
+DECLARE `make-up session` HAS
+    `make-up date`                                    IS A NUMBER  @desc the day of the session, counted in days from 7 December 2021
+    `hours worked in the session`                     IS A NUMBER
+    `on a free day under the original assignment`     IS A BOOLEAN @desc a day free to the employee at the institution under the original assignment for the school year תשפ"ב
+    `coordinated with the principal or the owner`     IS A BOOLEAN @desc coordinated with the school principal or the owner's authorised official
+    `the employee consents`                           IS A BOOLEAN
+    `overtime under the Hours of Work and Rest Law`   IS A BOOLEAN @desc the hours would be overtime within the meaning of the Hours of Work and Rest Law, 5711-1951
+
+§§ `Isolation pay and remote teaching`
+
+-- The circular restates the Economic Assistance Program (Novel Coronavirus)
+-- (Temporary Provision) Law, 5780-2020: it decides only the private-travel case.
+@ref akn:hc_1/p14
+GIVEN e IS AN `isolated teaching employee`
+GIVETH A BOOLEAN
+DECIDE `the law denies isolation pay and sick pay for the isolation days` e IF
+    e's `returned from private travel abroad`
+
+DECLARE `isolation action` IS ONE OF
+    `work from home or teach remotely`
+    `make up the missed hours` HAS `hours made up` IS A NUMBER
+    `treat hours as absence without pay` HAS `hours treated as unpaid` IS A NUMBER
+
+-- ¶14 says a teaching employee also cannot teach remotely on isolation days;
+-- ¶17 makes it a prohibition. The isolation lasts at most the eight days of
+-- the red-country window, so the prohibition is written over that horizon.
+@ref akn:hc_1/p17
+GIVETH A DEONTIC Party `isolation action`
+DECIDE `no remote teaching from isolation` IS
+    PARTY `the teaching employee`
+    SHANT `work from home or teach remotely`
+    WITHIN `14 December 2021` PLUS 1
+    LEST BREACH BY `the teaching employee` BECAUSE "תשפ\"ב/3: a teaching employee in isolation after returning from abroad may not work from home or teach remotely"
+
+§§ `Making up the hours`
+
+-- ¶15: the isolation dates whose hours may be made up, by designation.
+@ref akn:hc_1/p15
+GIVEN d IS A `country designation`
+GIVETH A BOOLEAN
+DECIDE `the circular opens a make-up window for` d IF
+    CONSIDER d
+    WHEN `an orange country` THEN TRUE
+    WHEN `a red country` THEN TRUE
+    OTHERWISE FALSE
+
+GIVEN d IS A `country designation`
+GIVETH A NUMBER
+DECIDE `last isolation date of the window` d IS
+    CONSIDER d
+    WHEN `an orange country` THEN `9 December 2021`
+    WHEN `a red country` THEN `14 December 2021`
+    OTHERWISE `7 December 2021` MINUS 1
+
+GIVEN e IS AN `isolated teaching employee`, i IS AN `isolation day`
+GIVETH A BOOLEAN
+DECIDE `the hours of this isolation day may be made up` e i IF
+        e's `returned from private travel abroad`
+    AND `the circular opens a make-up window for` (e's `designation of the country left`)
+    AND i's `isolation date` AT LEAST `7 December 2021`
+    AND i's `isolation date` AT MOST `last isolation date of the window` (e's `designation of the country left`)
+
+GIVEN e IS AN `isolated teaching employee`
+GIVETH A NUMBER
+DECIDE `hours that may be made up` e IS
+    sum (map (GIVEN i YIELD i's `working hours missed`)
+             (filter (GIVEN i YIELD `the hours of this isolation day may be made up` e i)
+                     (e's `days in isolation`)))
+
+GIVEN e IS AN `isolated teaching employee`
+GIVETH A NUMBER
+DECIDE `hours missed in isolation` e IS
+    sum (map (GIVEN i YIELD i's `working hours missed`) (e's `days in isolation`))
+
+-- ¶15's conditions on a session: a free day under the original
+-- assignment, coordinated with the principal or the owner's authorised
+-- official, with the employee's consent, by 4.3.2022, and no overtime.
+@ref akn:hc_1/p15
+GIVEN s IS A `make-up session`
+GIVETH A BOOLEAN
+DECIDE `the session counts as making up` s IF
+        s's `on a free day under the original assignment`
+    AND s's `coordinated with the principal or the owner`
+    AND s's `the employee consents`
+    AND s's `make-up date` AT MOST `4 March 2022`
+    AND NOT s's `overtime under the Hours of Work and Rest Law`
+
+GIVEN e IS AN `isolated teaching employee`, sessions IS A LIST OF `make-up session`
+GIVETH A NUMBER
+DECIDE `hours made up` e sessions IS
+    min (`hours that may be made up` e)
+        (sum (map (GIVEN s YIELD s's `hours worked in the session`)
+                  (filter (GIVEN s YIELD `the session counts as making up` s) sessions)))
+
+-- ¶16: making up the hours replaces deducting them; ¶18: what is not made
+-- up is absence without pay. Hours outside the window cannot be made up, and
+-- the law (¶14) pays nothing for them, so they are unpaid as well.
+@ref akn:hc_1/p16 akn:hc_1/p18
+GIVEN e IS AN `isolated teaching employee`, sessions IS A LIST OF `make-up session`
+GIVETH A NUMBER
+DECIDE `hours of absence without pay` e sessions IS
+    `hours missed in isolation` e MINUS `hours made up` e sessions
+
+@ref akn:hc_1/p15 akn:hc_1/p18
+GIVEN e IS AN `isolated teaching employee`
+GIVETH A DEONTIC Party `isolation action`
+DECIDE `making up the isolation hours` e IS
+    PARTY `the teaching employee`
+    MAY   `make up the missed hours` h
+          PROVIDED h AT LEAST `hours that may be made up` e
+    WITHIN `4 March 2022`
+    HENCE FULFILLED
+    LEST  PARTY `the employer`
+          MAY   `treat hours as absence without pay` u
+                PROVIDED u AT MOST `hours that may be made up` e
+
+-- akn:conclusions The sign-off: the signatures of the two officials and the list of copies; no rule.
+
+-- Worked examples. The hours are placeholders: the circular sets none.
+`a teacher back from a red country` MEANS
+    `isolated teaching employee` WITH
+        `returned from private travel abroad` IS TRUE
+        `designation of the country left`     IS `a red country`
+        `days in isolation`                   IS LIST `isolation day` 0 6, `isolation day` 3 6, `isolation day` 7 6, `isolation day` 8 6
+
+`a teacher back from an orange country` MEANS
+    `isolated teaching employee` WITH
+        `returned from private travel abroad` IS TRUE
+        `designation of the country left`     IS `an orange country`
+        `days in isolation`                   IS LIST `isolation day` 0 5, `isolation day` 2 5, `isolation day` 3 5
+
+`a valid session of 12 hours` MEANS `make-up session` 40 12 TRUE TRUE TRUE FALSE
+`a session after the deadline`  MEANS `make-up session` 90 12 TRUE TRUE TRUE FALSE
+`a session in overtime`         MEANS `make-up session` 40 12 TRUE TRUE TRUE TRUE
+
+-- Red: 7.12–14.12 can be made up (days 0, 3, 7); day 8 (15.12) cannot.
+#ASSERT `hours that may be made up` `a teacher back from a red country` EQUALS 18
+-- Orange: only 7.12–9.12 (days 0 and 2).
+#ASSERT `hours that may be made up` `a teacher back from an orange country` EQUALS 10
+#ASSERT `hours of absence without pay` `a teacher back from a red country` (LIST `a valid session of 12 hours`) EQUALS 12
+#ASSERT `hours of absence without pay` `a teacher back from a red country` (LIST `a session after the deadline`, `a session in overtime`) EQUALS 24
+#ASSERT `hours made up` `a teacher back from an orange country` (LIST `a valid session of 12 hours`) EQUALS 10
+
+#TRACE `making up the isolation hours` `a teacher back from a red country` AT 0 WITH
+    PARTY `the teaching employee` DOES `make up the missed hours` 18 AT 40
+#TRACE `making up the isolation hours` `a teacher back from a red country` AT 0 WITH
+    PARTY `the employer` DOES `treat hours as absence without pay` 18 AT 95
+#TRACE `no remote teaching from isolation` AT 0 WITH
+    PARTY `the teaching employee` DOES `work from home or teach remotely` AT 3

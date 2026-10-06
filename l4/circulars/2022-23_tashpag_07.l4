@@ -1,0 +1,216 @@
+-- חוזר לבעלויות תשפ"ג/7 (16.2.2023): עדכון תוספת שקלית 2016 לעובדי הוראה.
+-- The index update of the 2016 shekel supplement from 1.1.2023 for teaching
+-- employees in kindergartens, primary and junior-high schools and teacher-
+-- training colleges: who is covered, the amounts by Ofek Hadash grade, and
+-- when the owners pay.
+
+IMPORT prelude
+IMPORT common
+
+-- Time in this file is counted in salary MONTHS from December 2022
+-- (month 0): January 2023 is 1, February 2023 is 2.
+`January 2023`  MEANS 1
+`February 2023` MEANS 2
+
+§ `חוזר לבעלויות תשפ"ג/7`
+
+-- akn:hc_1/p1 akn:hc_1/p2 akn:hc_1/p3 akn:hc_1/p4 akn:hc_1/p5 akn:hc_1/p6 akn:hc_1/p7 akn:hc_1/p8 akn:hc_1/p9 akn:hc_1/p10 akn:hc_1/p11 akn:hc_1/p12 The letterhead, date, reference number, circular number, addressee (the owners of educational institutions), greeting and subject line; no rule.
+-- akn:hc_1/p13 The sources: the wage agreements of 30.9.2016 (§6ד) and 19.3.2017 and circular תשפ"ב/5 — the 2016 shekel supplement is linked to the consumer price index; the amounts below carry it.
+-- akn:hc_1/p14 The circular's purpose: to publish the index update of the 2016 shekel supplement for the period from 1.1.2023; the update itself is ¶19-¶22.
+
+§§ `Indexation`
+
+-- ¶15: the supplement is linked to the December 2022 index (published in
+-- January 2023) against the December 2020 index (published in January
+-- 2021). The circular prints neither index nor the agreed base amount, so
+-- both are inputs; the amounts it prints (¶20-¶22) are data below.
+@ref akn:hc_1/p15
+GIVEN `amount at the base index` IS A NUMBER @desc the supplement's amount as the agreements set it at the December 2020 index (not printed in this circular)
+      `index of December 2022`  IS A NUMBER @desc the consumer price index for December 2022, published in January 2023
+      `index of December 2020`  IS A NUMBER @desc the consumer price index for December 2020, published in January 2021
+GIVETH A NUMBER
+DECIDE `the indexed amount` `amount at the base index` `index of December 2022` `index of December 2020` IS
+    `amount at the base index` TIMES (`index of December 2022` DIVIDED BY `index of December 2020`)
+
+§§ `תחולה`
+
+@desc The stage of education a teaching employee is employed in, as far as this circular asks.
+DECLARE `education stage` IS ONE OF
+    `kindergarten`
+    `primary school`
+    `junior high school`
+    `teacher-training college`
+    `upper division`
+    `other stage`
+
+@desc A teaching employee, as far as this circular asks about one.
+DECLARE `circular 7 employee` HAS
+    `graded in the teaching employees' grading`        IS A BOOLEAN
+    `employed by an owner of a supervised institution` IS A BOOLEAN @desc the employer owns an educational institution supervised by the Ministry of Education
+    `stage employed in`                                IS AN `education stage`
+    `employed under Ofek Hadash`                       IS A BOOLEAN @desc employed under the terms of the Ofek Hadash reform
+    `Ofek Hadash grade`                                IS A NUMBER  @desc the grade (דרגה) the employee is placed in on the Ofek Hadash salary tables; 0 if none
+    `position fraction`                                IS A NUMBER  @desc the share of a full position held (1 = a full position)
+
+-- akn:hc_1/p16 The heading "תחולה" (application); no rule.
+
+-- ¶17 defines "עובד הוראה" for the circular: graded in the teaching
+-- grading, employed by an owner of a supervised institution, in
+-- kindergartens, primary and junior-high schools or teacher-training colleges.
+@ref akn:hc_1/p17
+GIVEN e IS A `circular 7 employee`
+GIVETH A BOOLEAN
+DECIDE `the circular applies to` e IF
+        e's `graded in the teaching employees' grading`
+    AND e's `employed by an owner of a supervised institution`
+    AND `a stage the circular covers` (e's `stage employed in`)
+
+GIVEN s IS AN `education stage`
+GIVETH A BOOLEAN
+DECIDE `a stage the circular covers` s IS
+    CONSIDER s
+    WHEN `kindergarten` THEN TRUE
+    WHEN `primary school` THEN TRUE
+    WHEN `junior high school` THEN TRUE
+    WHEN `teacher-training college` THEN TRUE
+    OTHERWISE FALSE
+
+-- ¶18: for the avoidance of doubt, under Ofek Hadash and outside it alike —
+-- whether the employee is in the reform plays no part in `the circular applies to`.
+@ref akn:hc_1/p18
+GIVEN e IS A `circular 7 employee`
+GIVETH A BOOLEAN
+DECIDE `the reform status does not affect application` e IF
+    `the circular applies to` e EQUALS `the circular applies to` (`the same employee in the other regime` e)
+
+GIVEN x IS A `circular 7 employee`
+GIVETH A `circular 7 employee`
+DECIDE `the same employee in the other regime` x IS
+    `circular 7 employee` WITH
+        `graded in the teaching employees' grading`        IS x's `graded in the teaching employees' grading`
+        `employed by an owner of a supervised institution` IS x's `employed by an owner of a supervised institution`
+        `stage employed in`                                IS x's `stage employed in`
+        `employed under Ofek Hadash`                       IS NOT x's `employed under Ofek Hadash`
+        `Ofek Hadash grade`                                IS x's `Ofek Hadash grade`
+        `position fraction`                                IS x's `position fraction`
+
+§§ `הסכומים מיום 1.1.2023`
+
+@desc One printed amount of the 2016 shekel supplement: the Ofek Hadash grade it is paid at, and the monthly amount for a full position from 1.1.2023.
+DECLARE `grade amount row` HAS
+    `row grade`              IS A NUMBER
+    `full-position amount`   IS A NUMBER
+
+-- ¶19: from 1.1.2023 the amount for a teaching employee in a FULL position
+-- is as follows. ¶20-¶21 as printed: grades 1 to 4.5 on the Ofek Hadash
+-- salary tables for academic and non-academic teachers, in shekels a month.
+@ref akn:hc_1/p19 akn:hc_1/p20 akn:hc_1/p21
+`the amounts by grade from 1.1.2023` MEANS
+    LIST `grade amount row` 1   1173.52,
+         `grade amount row` 1.5 1104.83,
+         `grade amount row` 2   1036.14,
+         `grade amount row` 2.5 952.99,
+         `grade amount row` 3   869.86,
+         `grade amount row` 3.5 825.34,
+         `grade amount row` 4   780.83,
+         `grade amount row` 4.5 687.01
+
+-- ¶22: every other teaching employee the circular covers, in Ofek Hadash
+-- or not, who is not listed above.
+@ref akn:hc_1/p22
+`the amount for every other teaching employee` MEANS 593.47
+
+GIVEN e IS A `circular 7 employee`
+GIVETH A LIST OF NUMBER
+DECIDE `the printed rows for` e IS
+    IF e's `employed under Ofek Hadash`
+    THEN map (GIVEN r YIELD r's `full-position amount`)
+             (filter (GIVEN r YIELD r's `row grade` EQUALS e's `Ofek Hadash grade`) `the amounts by grade from 1.1.2023`)
+    ELSE EMPTY
+
+@export The monthly 2016 shekel supplement (תוספת שקלית 2016) for a FULL position that a teaching employee in kindergarten, primary, junior high or a teacher-training college is owed from 1 January 2023 under circular תשפ"ג/7; 0 outside the circular's scope or before January 2023
+GIVEN e IS A `circular 7 employee` @desc the employee
+      `month` IS A NUMBER @desc the salary month, counted from December 2022 (January 2023 = 1)
+GIVETH A NUMBER
+DECIDE `full-position 2016 shekel supplement` e `month` IS
+    IF `the circular applies to` e AND `month` AT LEAST `January 2023`
+    THEN CONSIDER `the printed rows for` e
+         WHEN x FOLLOWED BY rest THEN x
+         OTHERWISE `the amount for every other teaching employee`
+    ELSE 0
+
+-- ¶23-¶24: the other rules for paying the supplement — among them how a
+-- part-time position is paid — are those of circular תשע"ז/3 (linked in
+-- ¶24). This circular does not restate them, so the share of the
+-- full-position amount an employee receives is an input.
+@ref akn:hc_1/p23 akn:hc_1/p24
+GIVEN e IS A `circular 7 employee` @desc the employee
+      `month` IS A NUMBER @desc the salary month, counted from December 2022 (January 2023 = 1)
+      `share under circular תשע"ז/3` IS A NUMBER @desc the share of the full-position amount the rules of circular תשע"ז/3 give this employee (for instance by position fraction); not set by this circular
+GIVETH A NUMBER
+DECIDE `2016 shekel supplement payable` e `month` `share under circular תשע"ז/3` IS
+    `full-position 2016 shekel supplement` e `month` TIMES `share under circular תשע"ז/3`
+
+§§ `Payment`
+
+DECLARE `circular 7 action` IS ONE OF
+    `pay the updated supplement with January's differences` HAS `amount for January` IS A NUMBER
+
+-- ¶25: paid from January 2023's salary and no later than February 2023's,
+-- with retroactive differences for January 2023.
+@ref akn:hc_1/p25
+GIVEN e IS A `circular 7 employee`
+GIVETH A DEONTIC Party `circular 7 action`
+DECIDE `payment of the updated supplement` e IS
+    IF `the circular applies to` e
+    THEN PARTY `the employer`
+         MUST  `pay the updated supplement with January's differences` `paid for January`
+               PROVIDED `paid for January` AT LEAST (`full-position 2016 shekel supplement` e `January 2023` TIMES e's `position fraction`)
+         WITHIN `February 2023`
+         LEST BREACH BY `the employer` BECAUSE "circular תשפ\"ג/7: the updated supplement is paid no later than February 2023's salary, with January's differences"
+    ELSE FULFILLED
+
+DECLARE `reimbursement channel` IS ONE OF
+    `the relevant hour costs in the payments system`
+
+-- ¶26: the Ministry reimburses the owners through the relevant hour costs
+-- in the payments system.
+@ref akn:hc_1/p26
+`how the owners are reimbursed` MEANS
+    `the relevant hour costs in the payments system`
+
+-- akn:conclusions The sign-off, the signatories and the list of copies; no rule.
+
+-- Examples. The employees are made up; the amounts are the circular's.
+GIVEN `in Ofek` IS A BOOLEAN, `grade` IS A NUMBER, `stage` IS AN `education stage`
+GIVETH A `circular 7 employee`
+DECIDE `an employee` `in Ofek` `grade` `stage` IS
+    `circular 7 employee` WITH
+        `graded in the teaching employees' grading`        IS TRUE
+        `employed by an owner of a supervised institution` IS TRUE
+        `stage employed in`                                IS `stage`
+        `employed under Ofek Hadash`                       IS `in Ofek`
+        `Ofek Hadash grade`                                IS `grade`
+        `position fraction`                                IS 1
+
+#ASSERT `full-position 2016 shekel supplement` (`an employee` TRUE 1 `primary school`) `January 2023` EQUALS 1173.52
+#ASSERT `full-position 2016 shekel supplement` (`an employee` TRUE 2.5 `kindergarten`) `January 2023` EQUALS 952.99
+#ASSERT `full-position 2016 shekel supplement` (`an employee` TRUE 4.5 `junior high school`) `January 2023` EQUALS 687.01
+-- Grade 5 is not printed, so it takes the amount for every other employee.
+#ASSERT `full-position 2016 shekel supplement` (`an employee` TRUE 5 `primary school`) `January 2023` EQUALS 593.47
+-- Outside the reform, the grade plays no part.
+#ASSERT `full-position 2016 shekel supplement` (`an employee` FALSE 1 `teacher-training college`) `January 2023` EQUALS 593.47
+-- The upper division is outside this circular.
+#ASSERT `full-position 2016 shekel supplement` (`an employee` TRUE 1 `upper division`) `January 2023` EQUALS 0
+#ASSERT `full-position 2016 shekel supplement` (`an employee` TRUE 1 `primary school`) 0 EQUALS 0
+#ASSERT `the reform status does not affect application` (`an employee` TRUE 3 `kindergarten`)
+#ASSERT `2016 shekel supplement payable` (`an employee` TRUE 2 `primary school`) `January 2023` 0.5 EQUALS 518.07
+-- Each printed grade has one row and the amounts fall as the grade rises.
+#ASSERT all (GIVEN g YIELD count (filter (GIVEN r YIELD r's `row grade` EQUALS g) `the amounts by grade from 1.1.2023`) EQUALS 1)
+            (LIST 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5)
+#EVAL `the indexed amount` 1000 110 100
+
+#TRACE `payment of the updated supplement` (`an employee` TRUE 1 `primary school`) AT 0 WITH
+    PARTY `the employer` DOES `pay the updated supplement with January's differences` 1173.52 AT 2
+#TRACE `payment of the updated supplement` (`an employee` TRUE 1 `primary school`) AT 0 WITH
+    PARTY `the employer` DOES `pay the updated supplement with January's differences` 1173.52 AT 3

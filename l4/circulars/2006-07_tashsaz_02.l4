@@ -1,0 +1,166 @@
+-- חוזר לבעלויות תשס"ז/2 — היקפי משרת מנהלים בבתי הספר העל-יסודיים (14.12.2006)
+-- The Treasury's wage controller allows a secondary-school principal to be
+-- employed above 150% of a position, up to 175%, on three criteria; owning
+-- bodies that meet them report each year.
+
+IMPORT prelude
+IMPORT daydate
+IMPORT common
+
+§ `היקפי משרת מנהלים בבתי הספר העל-יסודיים`
+
+-- akn:hc_1/p1 akn:hc_1/p2 akn:hc_1/p3 akn:hc_1/p4 akn:hc_1/p5 akn:hc_1/p6 akn:hc_1/p7 akn:hc_1/p8 akn:hc_1/p9 akn:hc_1/p10 The letterhead, title, date, addressee, greeting and subject line; no rule.
+
+`the principals' position-scope agreement` MEANS Date 5 12 2002
+`the date the gloss names`                 MEANS Date 1 9 1999
+`effective from`                           MEANS Date 1 9 2006
+
+@desc A secondary-school principal and the school, as far as this circular asks about them.
+DECLARE `principal case` HAS
+    `employed above 150% since`              IS A DATE    @desc the date from which the principal has been employed continuously above 150% of a position
+    `the 5.12.2002 agreement applies`        IS A BOOLEAN @desc the provisions of the principals' position-scope agreement of 5.12.2002 apply to the principal
+    `number of pupils`                       IS A NUMBER  @desc pupils in the school
+    `the employer agrees to pay`             IS A BOOLEAN @desc the employer agrees to pay for the exceptional addition
+    `position share`                         IS A NUMBER  @desc the share of a position held (1.5 = 150%)
+
+§§ `The criteria`
+
+-- ¶12's first criterion, as its own gloss ("כלומר") states it: employed
+-- above 150% from 1.9.1999 or earlier, and the 5.12.2002 agreement applies.
+-- F-2006-07_tashsaz_02-a: the words before the gloss ("in the 3 years
+-- before the signing" of 5.12.2002) reach back only to 5.12.1999. The gloss
+-- governs here: it is the date the circular itself writes down.
+@ref akn:hc_1/p12
+GIVEN p IS A `principal case`
+GIVETH A BOOLEAN
+DECIDE `meets the seniority criterion` p IF
+        p's `employed above 150% since` AT MOST `the date the gloss names`
+    AND p's `the 5.12.2002 agreement applies`
+
+-- The words before the gloss: the three years before the agreement's signing.
+GIVEN p IS A `principal case`
+GIVETH A BOOLEAN
+DECIDE `meets the three-year words` p IF
+        Day (p's `employed above 150% since`) AT MOST Day (`the principals' position-scope agreement`) MINUS 3 TIMES 365
+    AND p's `the 5.12.2002 agreement applies`
+
+@ref akn:hc_1/p13
+GIVEN p IS A `principal case`
+GIVETH A BOOLEAN
+DECIDE `the school has over 1000 pupils` p IF
+    p's `number of pupils` GREATER THAN 1000
+
+@ref akn:hc_1/p14
+GIVEN p IS A `principal case`
+GIVETH A BOOLEAN
+DECIDE `the employer agrees` p IF
+    p's `the employer agrees to pay`
+
+@ref akn:hc_1/p11
+GIVEN p IS A `principal case`
+GIVETH A BOOLEAN
+DECIDE `may be employed above 150%` p IF
+        `meets the seniority criterion` p
+    AND `the school has over 1000 pupils` p
+    AND `the employer agrees` p
+
+-- ¶11: above 150%, but never above the ceiling of 175%. A principal who does
+-- not meet the criteria stays at the 150% the circular starts from.
+GIVEN p IS A `principal case`
+GIVETH A NUMBER
+DECIDE `the highest position share allowed` p IS
+    IF `may be employed above 150%` p
+    THEN 1.75
+    ELSE 1.5
+
+@ref akn:hc_1/p15
+GIVEN `day` IS A DATE
+GIVETH A BOOLEAN
+DECIDE `the arrangement applies on` `day` IF
+    `day` AT LEAST `effective from`
+
+§§ `The yearly list`
+
+DECLARE `principal report` HAS
+    `principal's full name, identity number and date of birth` IS A STRING
+    `school's full name, address and institution code`        IS A STRING
+    `pupils in the school`                                    IS A NUMBER
+    `start of employment above 150%`                          IS A DATE
+    `current position share`                                  IS A NUMBER
+
+DECLARE `report action` IS ONE OF
+    `transfer the list` HAS `rows of the list` IS A LIST OF `principal report`
+
+-- ¶16–17: an owning body meeting all the criteria transfers the list
+-- "each year" to the undersigned. Time is in school months from 1 September,
+-- so the year's list is due within the school year's twelve months.
+-- F-2006-07_tashsaz_02-b: the circular carries no signature, so "the
+-- undersigned" names no one; the recipient is read as the circular's
+-- issuer, the senior division for teaching personnel.
+@ref akn:hc_1/p16 akn:hc_1/p17
+GIVEN p IS A `principal case`
+GIVETH A DEONTIC Party `report action`
+DECIDE `the owning body reports each year` p IS
+    IF `may be employed above 150%` p
+    THEN PARTY `the local authority or owning body`
+         MUST  `transfer the list` rows
+               PROVIDED NOT null rows
+         WITHIN 12
+         LEST  BREACH BY `the local authority or owning body` BECAUSE "the list of principals above 150% was not transferred within the year"
+    ELSE FULFILLED
+
+-- F-2006-07_tashsaz_02-a: a principal above 150% from 1.10.1999 meets the
+-- three-year words and not the gloss.
+`a principal from October 1999` MEANS
+    `principal case` WITH
+        `employed above 150% since`       IS Date 1 10 1999
+        `the 5.12.2002 agreement applies` IS TRUE
+        `number of pupils`                IS 1200
+        `the employer agrees to pay`      IS TRUE
+        `position share`                  IS 1.6
+
+`the three-year words and their gloss disagree` MEANS
+        `meets the three-year words` `a principal from October 1999`
+    AND NOT `meets the seniority criterion` `a principal from October 1999`
+#ASSERT `the three-year words and their gloss disagree`
+
+-- F-2006-07_tashsaz_02-b: the list goes "לח"מ" — to the undersigned — and the
+-- circular is not signed.
+`the signatories the circular prints` MEANS EMPTY
+`the list's recipient is a signatory the circular does not print` MEANS
+    null `the signatories the circular prints`
+#ASSERT `the list's recipient is a signatory the circular does not print`
+
+-- Examples (pupil counts and dates are placeholders).
+`a qualifying principal` MEANS
+    `principal case` WITH
+        `employed above 150% since`       IS Date 1 9 1998
+        `the 5.12.2002 agreement applies` IS TRUE
+        `number of pupils`                IS 1500
+        `the employer agrees to pay`      IS TRUE
+        `position share`                  IS 1.7
+
+`a principal of a small school` MEANS
+    `principal case` WITH
+        `employed above 150% since`       IS Date 1 9 1998
+        `the 5.12.2002 agreement applies` IS TRUE
+        `number of pupils`                IS 1000
+        `the employer agrees to pay`      IS TRUE
+        `position share`                  IS 1.7
+
+#ASSERT `the highest position share allowed` `a qualifying principal` EQUALS 1.75
+#ASSERT `the highest position share allowed` `a principal of a small school` EQUALS 1.5
+#ASSERT `the arrangement applies on` (Date 1 9 2006)
+#ASSERT NOT `the arrangement applies on` (Date 31 8 2006)
+
+`a row for the qualifying principal` MEANS
+    `principal report` WITH
+        `principal's full name, identity number and date of birth` IS "placeholder"
+        `school's full name, address and institution code`        IS "placeholder"
+        `pupils in the school`                                    IS 1500
+        `start of employment above 150%`                          IS Date 1 9 1998
+        `current position share`                                  IS 1.7
+
+#TRACE `the owning body reports each year` `a qualifying principal` AT 0 WITH
+    PARTY `the local authority or owning body` DOES `transfer the list` (LIST `a row for the qualifying principal`) AT 4
+#TRACE `the owning body reports each year` `a qualifying principal` AT 0 WITH

@@ -1,0 +1,130 @@
+-- חוזר לבעלויות תשפ"ה/3 (5.9.2024): ניכוי שכר לעובדי הוראה בשל השבתת מערכת החינוך בשנת הלימודים התשפ"ה
+-- No salary for strike days: the owning bodies reduce the pay of teaching
+-- employees who took part in the strike announced by the teachers'
+-- organization in תשפ"ה, by the hours they were absent, and the Ministry
+-- deducts the striking institutions' budgeted hours from its payments.
+
+IMPORT prelude
+IMPORT common
+
+-- Time in the regulative rules is counted in school months of תשפ"ה
+-- (common.l4: September 2024 = 1, August 2025 = 12). The circular sets no
+-- month for the reduction; it is read as due within the school year.
+
+§ `תשפ"ה/3 ניכוי שכר בשל השבתה`
+
+-- akn:hc_1/p1 akn:hc_1/p2 akn:hc_1/p3 akn:hc_1/p4 akn:hc_1/p5 akn:hc_1/p6 akn:hc_1/p7 akn:hc_1/p8 akn:hc_1/p9 akn:hc_1/p10 akn:hc_1/p11 akn:hc_1/p12 The letterhead, date (5.9.2024), reference number, circular number, addressee, greeting and subject line; no rule.
+
+@desc One teaching employee's working hours in the strike of תשפ"ה, as the attendance reports at the place of work record them.
+DECLARE `strike record` HAS
+    `scheduled working hours on strike days`  IS A NUMBER  @desc the hours the employee was due to work on the days of the strike
+    `hours present on strike days`            IS A NUMBER  @desc the hours the attendance report shows the employee present on those days
+    `took part in the strike`                 IS A BOOLEAN @desc the employee declared or is otherwise known to have joined the strike
+    `produced an approval for the absence`    IS A BOOLEAN @desc the employee produced an approval of the absence under the procedures
+    `hourly value`                            IS A NUMBER  @desc the value of one working hour of the employee's salary; an input
+
+DECLARE `strike action` IS ONE OF
+    `reduce the salary` HAS `amount reduced` IS A NUMBER
+    `deduct from the MATAM payments` HAS `budgeted hours deducted` IS A NUMBER
+
+§§ `Government decisions`
+
+-- The paragraph's rule: no salary is paid for a strike day (government
+-- decisions 647 of 22.4.80 and 646 of 26.5.81), and for budgeted bodies
+-- section 29 of the Budget Foundations Law obliges it.
+@ref akn:hc_1/p13
+GIVEN `day is a strike day the employee took part in` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `salary is payable for the day` `day is a strike day the employee took part in` IF
+    NOT `day is a strike day the employee took part in`
+
+§§ `The reduction`
+
+-- p15, second sentence: an employee absent at the time of the strike who
+-- produced no approval under the procedures is held to have taken part.
+@ref akn:hc_1/p15
+GIVEN r IS A `strike record`
+GIVETH A NUMBER
+DECIDE `hours absent on strike days` r IS
+    max 0 (r's `scheduled working hours on strike days` MINUS r's `hours present on strike days`)
+
+GIVEN r IS A `strike record`
+GIVETH A BOOLEAN
+DECIDE `is held to have taken part in the strike` r IF
+        r's `took part in the strike`
+    OR (    `hours absent on strike days` r GREATER THAN 0
+        AND NOT r's `produced an approval for the absence`)
+
+-- p14: the reduction is "in accordance with the working hours in which
+-- they were absent", read off the attendance reports (p15).
+@ref akn:hc_1/p14
+GIVEN r IS A `strike record`
+GIVETH A NUMBER
+DECIDE `salary reduction` r IS
+    IF `is held to have taken part in the strike` r
+    THEN `hours absent on strike days` r TIMES r's `hourly value`
+    ELSE 0
+
+GIVEN r IS A `strike record`
+GIVETH A DEONTIC Party `strike action`
+DECIDE `the owning body reduces the salary` r IS
+    IF `salary reduction` r GREATER THAN 0
+    THEN PARTY `the local authority or owning body`
+         MUST  `reduce the salary` x
+               PROVIDED x AT LEAST `salary reduction` r
+         WITHIN `month number` August
+         LEST  BREACH BY `the local authority or owning body` BECAUSE "תשפ\"ה/3: the salary of a teaching employee who took part in the strike is reduced by the hours absent"
+    ELSE FULFILLED
+
+-- p16: the Ministry deducts from the current MATAM payments to the owning
+-- body by the hours budgeted in the striking institutions and the dates of
+-- the strike.
+@ref akn:hc_1/p16
+GIVEN `budgeted weekly hours of the striking institutions` IS A NUMBER, `share of the week the strike lasted` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `budgeted hours to deduct` `budgeted weekly hours of the striking institutions` `share of the week the strike lasted` IS
+    `budgeted weekly hours of the striking institutions` TIMES `share of the week the strike lasted`
+
+GIVEN `budgeted weekly hours of the striking institutions` IS A NUMBER, `share of the week the strike lasted` IS A NUMBER
+GIVETH A DEONTIC Party `strike action`
+DECIDE `the Ministry deducts from the MATAM payments` `budgeted weekly hours of the striking institutions` `share of the week the strike lasted` IS
+    PARTY `the Ministry of Education`
+    MAY   `deduct from the MATAM payments` h
+          PROVIDED h AT MOST `budgeted hours to deduct` `budgeted weekly hours of the striking institutions` `share of the week the strike lasted`
+
+-- akn:conclusions The sign-off, signatures and the list of copies; no rule.
+
+-- Examples. The hourly value of 100 is a placeholder; the circular sets none.
+`a striker` MEANS
+    `strike record` WITH
+        `scheduled working hours on strike days` IS 12
+        `hours present on strike days`           IS 0
+        `took part in the strike`                IS TRUE
+        `produced an approval for the absence`   IS FALSE
+        `hourly value`                           IS 100
+
+`absent without an approval` MEANS
+    `strike record` WITH
+        `scheduled working hours on strike days` IS 12
+        `hours present on strike days`           IS 6
+        `took part in the strike`                IS FALSE
+        `produced an approval for the absence`   IS FALSE
+        `hourly value`                           IS 100
+
+`absent with an approval` MEANS
+    `strike record` WITH
+        `scheduled working hours on strike days` IS 12
+        `hours present on strike days`           IS 6
+        `took part in the strike`                IS FALSE
+        `produced an approval for the absence`   IS TRUE
+        `hourly value`                           IS 100
+
+#ASSERT `salary reduction` `a striker` EQUALS 1200
+#ASSERT `salary reduction` `absent without an approval` EQUALS 600
+#ASSERT `salary reduction` `absent with an approval` EQUALS 0
+#ASSERT NOT `salary is payable for the day` TRUE
+
+#TRACE `the owning body reduces the salary` `a striker` AT 0 WITH
+    PARTY `the local authority or owning body` DOES `reduce the salary` 1200 AT 3
+#TRACE `the owning body reduces the salary` `a striker` AT 0 WITH
+    PARTY `the local authority or owning body` DOES `reduce the salary` 600 AT 3

@@ -1,0 +1,336 @@
+-- חוזר לבעלויות תש"ע/1: ביצוע פסק דין של בית הדין הארצי לעבודה בעניין
+-- הפרשות לקרנות פנסיה עבור עובדי הוראה
+-- Carrying out the National Labour Court's ruling on pension contributions
+-- for teaching staff employed by the owners of secondary schools: the new
+-- contribution rates from 30.11.09, the 1% salary addition, the compensation
+-- for over-deduction with interest and linkage, and the veteran-fund rates.
+
+IMPORT prelude
+IMPORT common
+
+§ `תש"ע/1 ביצוע פסק דין בעניין הפרשות לקרנות פנסיה`
+
+-- akn:preamble The letterhead, date (22.11.2009), addressee, greeting and subject line, which names the Treasury letter of 18/11/09 the instructions follow and says bracketed remarks are the Ministry's; no rule.
+
+-- Time in this file is counted in DAYS from 22 November 2009, the date the
+-- circular is signed (day 0).
+`30 November 2009` MEANS 8
+
+@desc The kind of pension fund a teaching employee is insured in.
+DECLARE `pension fund kind` IS ONE OF
+    `a new pension fund`
+    @desc a veteran fund to which chapter ז1 of the Financial Services Supervision (Insurance) Law, 1981 applies
+    `a veteran pension fund`
+
+@desc Contribution rates as fractions of the salary they are taken on.
+DECLARE `contribution rates` HAS
+    `employer contribution rate`           IS A NUMBER
+    `employee deduction rate`              IS A NUMBER
+
+@desc A teaching employee of the owner of a secondary school, as far as this circular asks about it.
+DECLARE `pension employee` HAS
+    `employed by the owner of a secondary school` IS A BOOLEAN @desc employed by an owning body (בעלות) of a secondary (על-יסודי) school
+    `fund kind`                           IS A `pension fund kind`
+    `pensionable salary`                  IS A NUMBER @desc the monthly pensionable salary (שכר פנסיוני), shekels
+    `gross salary`                        IS A NUMBER @desc the monthly gross salary (שכר ברוטו), shekels
+    `over-deducted months`                IS A LIST OF `over-deducted month`
+
+@desc One month between 1.1.04 and 30.11.09 in which contributions were made at 12% employer and 5.5% employee.
+DECLARE `over-deducted month` HAS
+    `pensionable salary that month`       IS A NUMBER @desc the pensionable salary in the month the contribution was made
+    `months from contribution to payment` IS A NUMBER @desc whole months from the contribution to the day the compensation is paid
+    `index known at the contribution`     IS A NUMBER @desc the consumer price index known at the contribution (section 3(ג)(3))
+    `index known at the payment`          IS A NUMBER @desc the consumer price index known on the day the compensation is paid
+    `employer rate that month`            IS A NUMBER
+    `employee rate that month`            IS A NUMBER
+    `day of the contribution`             IS A NUMBER @desc days from 22 November 2009 (negative before it)
+
+DECLARE `pension action` IS ONE OF
+    `contribute and deduct` HAS `employer contribution paid` IS A NUMBER
+                                `employee deduction made`    IS A NUMBER
+    `pay the 1% addition` HAS `addition paid` IS A NUMBER
+    `pay the compensation` HAS `compensation paid` IS A NUMBER
+    `transfer additional budget for the compensation`
+
+§§ `1 הרקע לפסק הדין`
+
+-- akn:art_1 The background: the rates customary until the ruling (13.5% employer, 4% employee), their conflict with the Income Tax (Provident Funds) Regulations, the 2003 events, and the 12% / 5.5% rates many owners moved to; narrative, no rule. Section 3(ג) uses the 12% / 5.5% rates as its condition.
+
+`the rates customary before the ruling` MEANS `contribution rates` 0.135 0.04
+`the rates many owners moved to` MEANS `contribution rates` 0.12 0.055
+
+§§ `2 פסק הדין של בית הדין הארצי לעבודה`
+
+-- akn:art_2/p1 The ruling's guiding principle, quoted: teachers do not lose and employers do not gain, the employers' cost and the teachers' income unchanged; the rulings follow. The principle is checked below against section 3's instructions.
+
+-- Section 2 restates what the court ruled; section 3 instructs. The ruling
+-- is encoded as data so that section 3 can be checked against it.
+@ref akn:art_2__para_a
+`the rates the ruling sets for new funds` MEANS `contribution rates` 0.125 0.05
+`the day the ruling's rates begin` MEANS `30 November 2009`
+
+@desc The salary a percentage is taken of.
+DECLARE `salary base` IS ONE OF
+    `the gross salary`
+    `the pensionable salary`
+
+@ref akn:art_2__para_b akn:art_2__para_b__subpara_b
+`the base the ruling gives the 1% addition` MEANS `the gross salary`
+
+@ref akn:art_2__para_b__subpara_c
+`the compensation rate the ruling sets` MEANS 0.015
+
+@ref akn:art_2__para_b__subpara_d
+`the rates the ruling keeps for veteran funds` MEANS `contribution rates` 0.15 0.055
+
+§§ `3 הנחיות לביצוע פסק הדין`
+
+-- akn:art_3/p1 The lead-in to the instructions; no rule of its own.
+
+§§§ `3(א)`
+
+@desc The share of the employer's 12.5% that goes to severance pay (פיצויים); the rest is benefits (תגמולים).
+`the severance part of the employer's contribution` MEANS 0.065
+`the benefits part of the employer's contribution` MEANS 0.06
+
+-- Section 3(א)'s rates and section 3(ד)'s, from 30.11.09. "No change in the
+-- salary components contributions are made on" (3(א), 3(ד)): the base is the
+-- pensionable salary as it was.
+@ref akn:art_3__para_a akn:art_3__para_d
+GIVEN k IS A `pension fund kind`
+GIVETH A `contribution rates`
+DECIDE `the contribution rates from 30.11.09` k IS
+    CONSIDER k
+    WHEN `a new pension fund` THEN `contribution rates` 0.125 0.05
+    WHEN `a veteran pension fund` THEN `contribution rates` 0.15 0.055
+
+`the two parts make the employer's 12.5%` MEANS
+    `the severance part of the employer's contribution` PLUS `the benefits part of the employer's contribution`
+    EQUALS (`the contribution rates from 30.11.09` `a new pension fund`)'s `employer contribution rate`
+#ASSERT `the two parts make the employer's 12.5%`
+
+-- Section 3 carries out section 2's rates as ruled.
+#ASSERT `the contribution rates from 30.11.09` `a new pension fund` EQUALS `the rates the ruling sets for new funds`
+#ASSERT `the contribution rates from 30.11.09` `a veteran pension fund` EQUALS `the rates the ruling keeps for veteran funds`
+
+-- Section 3(ד): 15% = 13.5% + 1.5% and 5.5% = 4% + 1.5%, as printed.
+#ASSERT (`the contribution rates from 30.11.09` `a veteran pension fund`)'s `employer contribution rate` EQUALS 0.135 PLUS 0.015
+#ASSERT (`the contribution rates from 30.11.09` `a veteran pension fund`)'s `employee deduction rate` EQUALS 0.04 PLUS 0.015
+
+GIVEN e IS A `pension employee`
+GIVETH A BOOLEAN
+DECIDE `this circular applies to` e IF
+    e's `employed by the owner of a secondary school`
+
+-- Each month from 30.11.09 the owner contributes and deducts at the rates.
+GIVEN e IS A `pension employee`
+GIVETH A DEONTIC Party `pension action`
+DECIDE `the month's contribution` e IS
+    PARTY `the local authority or owning body`
+    MUST  `contribute and deduct` `employer part` `employee part`
+          PROVIDED     `employer part` EQUALS e's `pensionable salary` TIMES (`the contribution rates from 30.11.09` (e's `fund kind`))'s `employer contribution rate`
+                   AND `employee part` EQUALS e's `pensionable salary` TIMES (`the contribution rates from 30.11.09` (e's `fund kind`))'s `employee deduction rate`
+    WITHIN 30
+    LEST BREACH BY `the local authority or owning body` BECAUSE "sections 3(א) and 3(ד): contributions at the rates from 30.11.09"
+
+§§§ `3(ב)`
+
+-- Section 3(ב): 1% of the PENSIONABLE salary, from 30.11.09, to a teacher
+-- insured in a new fund. Section 2(ב) says the court gave 1% of the GROSS
+-- salary (F-2009-10_tasha_01-a); the instruction is encoded as written.
+@ref akn:art_3__para_b
+`the base section 3(ב) gives the 1% addition` MEANS `the pensionable salary`
+
+GIVEN e IS A `pension employee`
+GIVETH A BOOLEAN
+DECIDE `entitled to the 1% addition` e IF
+        `this circular applies to` e
+    AND e's `fund kind` EQUALS `a new pension fund`
+
+GIVEN e IS A `pension employee`
+GIVETH A NUMBER
+DECIDE `the 1% addition` e IS
+    IF `entitled to the 1% addition` e
+    THEN e's `pensionable salary` TIMES 0.01
+    ELSE 0
+
+GIVEN e IS A `pension employee`
+GIVETH A NUMBER
+DECIDE `the 1% addition as the ruling states it` e IS
+    IF `entitled to the 1% addition` e
+    THEN e's `gross salary` TIMES 0.01
+    ELSE 0
+
+`the ruling and the instruction take the 1% addition on different salaries` MEANS
+    NOT (`the base the ruling gives the 1% addition` EQUALS `the base section 3(ב) gives the 1% addition`)
+#ASSERT `the ruling and the instruction take the 1% addition on different salaries`
+
+@desc What a salary payment may be counted toward.
+DECLARE `salary use` IS ONE OF
+    `the minimum-wage top-up`
+    `payment for paid absence`
+    `severance pay under the Severance Pay Law`
+    `the base of percentage additions`
+    `the hourly value`
+    `pension and other contributions`
+
+@ref akn:art_3__para_b/p2
+GIVEN u IS A `salary use`
+GIVETH A BOOLEAN
+DECIDE `the 1% addition counts toward` u IF
+    CONSIDER u
+    WHEN `the minimum-wage top-up` THEN TRUE
+    WHEN `payment for paid absence` THEN TRUE
+    WHEN `severance pay under the Severance Pay Law` THEN TRUE
+    OTHERWISE FALSE
+
+DECLARE `payslip line` IS ONE OF
+    `a separate line`
+    `merged into another line`
+
+@ref akn:art_3__para_b/p2
+`the payslip line the 1% addition is shown on` MEANS `a separate line`
+
+GIVEN e IS A `pension employee`
+GIVETH A DEONTIC Party `pension action`
+DECIDE `paying the 1% addition` e IS
+    PARTY `the local authority or owning body`
+    MUST  `pay the 1% addition` `amount`
+          PROVIDED `amount` AT LEAST `the 1% addition` e
+    WITHIN 30
+    LEST BREACH BY `the local authority or owning body` BECAUSE "section 3(ב): the 1% addition from 30.11.09"
+
+-- Section 2's principle: the employer's cost and the teacher's net are
+-- unchanged. Under section 3(ב)'s base it holds; the old rates were 13.5% / 4%.
+GIVEN e IS A `pension employee`
+GIVETH A BOOLEAN
+DECIDE `the employer's cost is unchanged for` e IF
+    e's `pensionable salary` TIMES 0.135
+    EQUALS e's `pensionable salary` TIMES 0.125 PLUS `the 1% addition` e
+
+§§§ `3(ג)`
+
+-- Section 3(ג)(1): 1.5% of the month's pensionable salary for each month
+-- in 1.1.04–30.11.09 in which 12% / 5.5% were contributed, linked to the
+-- consumer price index (3(ג)(3)) with interest (3(ג)(2)) from the
+-- contribution to the payment. The table of coefficients the paragraph says
+-- is attached is not in the document (a corpus defect: only its title,
+-- "טבלת מקדמים", is printed), so the coefficients are computed from the
+-- rate and the index.
+@ref akn:art_3__para_c__subpara_1
+GIVEN m IS AN `over-deducted month`
+GIVETH A BOOLEAN
+DECIDE `a month that earns compensation` m IF
+        m's `employer rate that month` EQUALS 0.12
+    AND m's `employee rate that month` EQUALS 0.055
+
+`the compensation rate` MEANS 0.015
+#ASSERT `the compensation rate` EQUALS `the compensation rate the ruling sets`
+
+-- Section 3(ג)(2): 2.25% for twelve months, or 0.1855% a month. "Effective"
+-- interest is compounded; the monthly figure is applied month by month.
+@ref akn:art_3__para_c__subpara_2
+`the monthly interest rate` MEANS 0.001855
+`the yearly interest rate` MEANS 0.0225
+
+GIVEN n IS A NUMBER
+GIVETH A NUMBER
+DECIDE `interest factor for` n IS
+    IF n AT MOST 0
+    THEN 1
+    ELSE (1 PLUS `the monthly interest rate`) TIMES `interest factor for` (n MINUS 1)
+
+-- The two figures state one rate: 0.1855% is the monthly equivalent of
+-- 2.25% a year rounded to four digits, and twelve of it compound to 2.2489%,
+-- within two thousandths of a percentage point. This file applies the
+-- monthly figure, the one stated per month as the compensation is.
+#ASSERT `the yearly interest rate` MINUS (`interest factor for` 12 MINUS 1) AT MOST 0.00002
+#ASSERT `the yearly interest rate` MINUS (`interest factor for` 12 MINUS 1) AT LEAST 0
+
+@ref akn:art_3__para_c__subpara_3
+GIVEN m IS AN `over-deducted month`
+GIVETH A NUMBER
+DECIDE `linkage factor` m IS
+    m's `index known at the payment` DIVIDED BY m's `index known at the contribution`
+
+-- 1 January 2004 as a day number counted from 22 November 2009.
+`1 January 2004` MEANS -2152
+
+GIVEN m IS AN `over-deducted month`
+GIVETH A NUMBER
+DECIDE `compensation for the month` m IS
+    IF      `a month that earns compensation` m
+        AND m's `day of the contribution` AT LEAST `1 January 2004`
+        AND m's `day of the contribution` AT MOST `30 November 2009`
+    THEN m's `pensionable salary that month`
+         TIMES `the compensation rate`
+         TIMES `linkage factor` m
+         TIMES `interest factor for` (m's `months from contribution to payment`)
+    ELSE 0
+
+@export The compensation for over-deduction a teaching employee insured in a new pension fund is owed under circular תש"ע/1, section 3(ג)
+GIVEN e IS A `pension employee` @desc the employee and the months in which 12% / 5.5% were contributed
+GIVETH A NUMBER
+DECIDE `the compensation` e IS
+    IF      `this circular applies to` e
+        AND e's `fund kind` EQUALS `a new pension fund`
+    THEN sum (map `compensation for the month` (e's `over-deducted months`))
+    ELSE 0
+
+-- The paragraph's own note: no additional budget goes to the owners for
+-- the compensation, the Ministry's budgeting having included 13.5%.
+@ref akn:art_3__para_c__subpara_1/p2
+GIVETH A DEONTIC Party `pension action`
+DECIDE `no additional budget for the compensation` IS
+    PARTY `the Ministry of Education`
+    SHANT `transfer additional budget for the compensation`
+    WITHIN 365
+    LEST BREACH BY `the Ministry of Education` BECAUSE "section 3(ג)(1): no additional budget is transferred for the compensation"
+
+@ref akn:art_3__para_c__subpara_4
+GIVEN e IS A `pension employee`
+GIVETH A DEONTIC Party `pension action`
+DECIDE `paying the compensation` e IS
+    PARTY `the local authority or owning body`
+    MUST  `pay the compensation` `amount`
+          PROVIDED `amount` AT LEAST `the compensation` e
+    WITHIN `30 November 2009`
+    LEST BREACH BY `the local authority or owning body` BECAUSE "section 3(ג)(4): the compensation is paid no later than 30.11.09"
+
+-- Section 2(ג) gives the same deadline: two months from the ruling, which
+-- section 2(א) dates as 30.11.09.
+@ref akn:art_3__para_c__subpara_5
+GIVEN u IS A `salary use`
+GIVETH A BOOLEAN
+DECIDE `the compensation is excluded from` u IF
+    CONSIDER u
+    WHEN `the hourly value` THEN TRUE
+    WHEN `pension and other contributions` THEN TRUE
+    OTHERWISE FALSE
+
+-- akn:art_4 The contact line for questions and the title of the attached table of coefficients ("חוזר תש"ע – טבלת מקדמים"), whose rows the document does not carry; no rule.
+
+-- akn:conclusions The sign-off and signature; no rule.
+
+-- Worked examples. The salaries and index values are round placeholders.
+`a new-fund teacher` MEANS
+    `pension employee` WITH
+        `employed by the owner of a secondary school` IS TRUE
+        `fund kind`            IS `a new pension fund`
+        `pensionable salary`   IS 8000
+        `gross salary`         IS 10000
+        `over-deducted months` IS LIST `over-deducted month` 6000 12 100 100 0.12 0.055 (0 MINUS 365),
+                                       `over-deducted month` 6000 0 100 100 0.135 0.04 (0 MINUS 30)
+
+#ASSERT `the 1% addition` `a new-fund teacher` EQUALS 80
+#ASSERT `the 1% addition as the ruling states it` `a new-fund teacher` EQUALS 100
+#ASSERT `the employer's cost is unchanged for` `a new-fund teacher`
+#EVAL   `the compensation` `a new-fund teacher`
+#ASSERT `the compensation` `a new-fund teacher` EQUALS 90 TIMES `interest factor for` 12
+
+#TRACE `paying the compensation` `a new-fund teacher` AT 0 WITH
+    PARTY `the local authority or owning body` DOES `pay the compensation` 92.03 AT 5
+#TRACE `paying the compensation` `a new-fund teacher` AT 0 WITH
+    PARTY `the local authority or owning body` DOES `pay the compensation` 92.03 AT 20
+#TRACE `the month's contribution` `a new-fund teacher` AT 8 WITH
+    PARTY `the local authority or owning body` DOES `contribute and deduct` 1000 400 AT 30

@@ -1,0 +1,164 @@
+-- חוזר לבעלויות תשע"ג/4 — תשלום פעימה שלישית של תוספת השכר במגזר הציבורי
+-- (תוספת 2011) לעובדי הוראה המועסקים בבעלויות בחטיבה העליונה
+-- The third instalment of the 2011 public-sector raise for teachers employed
+-- by the owners in the upper division: from 1.1.2013 to 30.6.2013 the 2011
+-- supplement rises to 6.25% and the '94 and '87 shekel supplements to the
+-- amounts printed, by employment terms; payment from January 2013's salary.
+
+IMPORT prelude
+IMPORT common
+
+-- Dates are numbers YYYYMMDD; salary months are numbers YYYYMM.
+`1 January 2013` MEANS 20130101
+`30 June 2013`   MEANS 20130630
+
+§ `חוזר תשע"ג/4 פעימה שלישית תוספת 2011 בחטיבה העליונה`
+
+-- akn:preamble The letterhead and the circular's title; no rule.
+-- akn:preamble/p6 Refers to circulars תשע"ב/2 (18.9.2011) and תשע"ב/9 (28.3.2012) and announces that the third instalment is paid under the teachers' collective agreements as set out below; the rules are the sections that follow.
+
+@desc A teaching employee as this circular asks about them.
+DECLARE `upper-division teacher` HAS
+    `graded as a teaching employee`        IS A BOOLEAN @desc graded in the teaching-employees grading
+    `employed by a supervised owner`       IS A BOOLEAN @desc employed by an owner of education supervised by the Ministry of Education
+    `upper-division fraction`              IS A NUMBER  @desc the share of a position held in the upper division (1 = a full position)
+    `other-division fraction`              IS A NUMBER  @desc the share of a position held in teaching hours outside the upper division
+    `employment terms`                     IS AN `employment terms for the shekel supplements`
+
+-- The three groups section ב.1(ב) prices separately.
+DECLARE `employment terms for the shekel supplements` IS ONE OF
+    `not employed under a reform, or a principal under Oz LeTmura`
+    `a non-principal in partial implementation of Oz LeTmura`
+    `a non-principal in full implementation of Oz LeTmura`
+
+§§ `א. תחולה`
+
+@ref akn:art_a/p1
+GIVEN t IS AN `upper-division teacher`
+GIVETH A BOOLEAN
+DECIDE `the circular applies to` t IF
+        t's `graded as a teaching employee`
+    AND t's `employed by a supervised owner`
+    AND t's `upper-division fraction` GREATER THAN 0
+
+-- Applied "by their fraction of employment in the upper division only".
+@ref akn:art_a/p1
+GIVEN t IS AN `upper-division teacher`
+GIVETH A NUMBER
+DECIDE `the fraction this circular prices` t IS
+    IF `the circular applies to` t THEN t's `upper-division fraction` ELSE 0
+
+-- ¶2: for hours outside the upper division the 2011, '94 and '87
+-- supplements go on being paid as in the salary of 12/2012 (as circular
+-- תשע"ב/9 sets out). What was paid then is an input: this circular does
+-- not restate it.
+@ref akn:art_a/p2
+GIVEN t IS AN `upper-division teacher`
+      `the amount paid for that fraction in 12/2012` IS A NUMBER @desc the supplements paid in the salary of December 2012 for the hours outside the upper division (circular תשע"ב/9)
+GIVETH A NUMBER
+DECIDE `the supplements for the other-division fraction` t `the amount paid for that fraction in 12/2012` IS
+    `the amount paid for that fraction in 12/2012`
+
+§§ `ב. השלמה ל-6.25%`
+
+-- akn:art_b__para_1 Heading of ב.1: "for teaching employees entitled to the 2011 supplement"; the condition is carried by the rules below.
+
+-- ב.1(א): from 1.1.2013 to 30.6.2013 the 2011 supplement is a uniform
+-- 6.25%. Outside that window the circular states no rate (finding
+-- F-2012-13_tashag_04-a): NOTHING is what the text gives.
+@ref akn:art_b__para_1__subpara_a
+GIVEN `date` IS A NUMBER @desc a date, YYYYMMDD
+GIVETH A MAYBE NUMBER
+DECIDE `the 2011 supplement rate under this circular on` `date` IS
+    IF `date` AT LEAST `1 January 2013` AND `date` AT MOST `30 June 2013`
+    THEN JUST (6.25%)
+    ELSE NOTHING
+
+DECLARE `shekel supplement` IS ONE OF
+    `the '94 teaching-reinforcement supplement`
+    `the '87 agreement supplement`
+
+-- ב.1(ב) and its second paragraph: the amounts, by employment terms, for
+-- 1.1.2013–30.6.2013, as printed.
+@ref akn:art_b__para_1__subpara_b akn:art_b__para_1__subpara_b/p2
+GIVEN e IS AN `employment terms for the shekel supplements`, s IS A `shekel supplement`
+GIVETH A NUMBER
+DECIDE `the shekel amount` e s IS
+    CONSIDER e
+    WHEN `not employed under a reform, or a principal under Oz LeTmura` THEN
+        CONSIDER s
+        WHEN `the '94 teaching-reinforcement supplement` THEN 156.75
+        WHEN `the '87 agreement supplement`              THEN 174.31
+    WHEN `a non-principal in partial implementation of Oz LeTmura` THEN
+        CONSIDER s
+        WHEN `the '94 teaching-reinforcement supplement` THEN 187.74
+        WHEN `the '87 agreement supplement`              THEN 208.77
+    WHEN `a non-principal in full implementation of Oz LeTmura` THEN
+        CONSIDER s
+        WHEN `the '94 teaching-reinforcement supplement` THEN 218.72
+        WHEN `the '87 agreement supplement`              THEN 243.22
+
+GIVEN e IS AN `employment terms for the shekel supplements`, s IS A `shekel supplement`, `date` IS A NUMBER
+GIVETH A MAYBE NUMBER
+DECIDE `the shekel amount under this circular on` e s `date` IS
+    IF `date` AT LEAST `1 January 2013` AND `date` AT MOST `30 June 2013`
+    THEN JUST (`the shekel amount` e s)
+    ELSE NOTHING
+
+-- F-2012-13_tashag_04-a: the raise is given for a closed window only, and
+-- nothing in the circular says what the rate or the amounts are from
+-- 1.7.2013. The text gives no answer for a date after 30.6.2013:
+`the circular gives no 2011 rate for 1 July 2013` MEANS
+    `the 2011 supplement rate under this circular on` 20130701 EQUALS NOTHING
+#ASSERT `the circular gives no 2011 rate for 1 July 2013`
+
+`the circular gives no '87 amount for 1 July 2013` MEANS
+    `the shekel amount under this circular on` `not employed under a reform, or a principal under Oz LeTmura` `the '87 agreement supplement` 20130701 EQUALS NOTHING
+#ASSERT `the circular gives no '87 amount for 1 July 2013`
+
+§§ `ג. ביצוע תשלומים ושיפויים`
+
+DECLARE `instalment action` IS ONE OF
+    `pay the raised supplements` HAS `from salary month` IS A NUMBER
+    `reimburse the owners` HAS `from tuition-payment month` IS A NUMBER
+
+-- ג ¶1: the owners carry this out from the salary of January 2013. Time
+-- is counted in months from January 2013 (0 = the January 2013 salary).
+@ref akn:art_c/p1
+GIVETH A DEONTIC Party `instalment action`
+DECIDE `the owners pay from January 2013` IS
+    PARTY `the local authority or owning body`
+    MUST  `pay the raised supplements` m PROVIDED m AT MOST 201301
+    WITHIN 1
+    LEST  BREACH BY `the local authority or owning body` BECAUSE "circular תשע\"ג/4, section ג: the raise is paid from the salary of January 2013"
+
+-- ג ¶2: the Ministry reimburses the owners from the tuition payment of
+-- January 2013, paid at the start of February 2013 (month 1 on this clock).
+@ref akn:art_c/p2
+GIVETH A DEONTIC Party `instalment action`
+DECIDE `the Ministry reimburses from January 2013` IS
+    PARTY `the Ministry of Education`
+    MUST  `reimburse the owners` m PROVIDED m AT MOST 201301
+    WITHIN 2
+    LEST  BREACH BY `the Ministry of Education` BECAUSE "circular תשע\"ג/4, section ג: reimbursement from the January 2013 tuition payment, paid early February 2013"
+
+-- akn:conclusions The contact line, the greeting and the signature; no rule.
+
+-- Examples. The teacher below is an illustration, not a payslip.
+`a half-time upper-division teacher` MEANS
+    `upper-division teacher` WITH
+        `graded as a teaching employee`  IS TRUE
+        `employed by a supervised owner` IS TRUE
+        `upper-division fraction`        IS 0.5
+        `other-division fraction`        IS 0.3
+        `employment terms`               IS `a non-principal in full implementation of Oz LeTmura`
+
+#ASSERT `the fraction this circular prices` `a half-time upper-division teacher` EQUALS 0.5
+#ASSERT `the 2011 supplement rate under this circular on` 20130315 EQUALS JUST (6.25%)
+#ASSERT `the shekel amount` `a non-principal in full implementation of Oz LeTmura` `the '87 agreement supplement` EQUALS 243.22
+#ASSERT `the 2011 supplement rate under this circular on` 20121231 EQUALS NOTHING
+
+#TRACE `the owners pay from January 2013` AT 0 WITH
+    PARTY `the local authority or owning body` DOES `pay the raised supplements` 201301 AT 0
+#TRACE `the Ministry reimburses from January 2013` AT 0 WITH
+    PARTY `the Ministry of Education` DOES `reimburse the owners` 201301 AT 1

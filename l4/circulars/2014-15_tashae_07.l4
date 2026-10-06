@@ -1,0 +1,303 @@
+-- חוזר לבעלויות תשע"ה/7 (15.7.2015): קצובת ביגוד לשנת הלימודים תשע"ה;
+-- קצובת ביגוד לעובדי הוראה בחינוך הגופני; קצובת ביגוד לעובדי הוראה בחינוך הטכנולוגי
+-- The clothing allowance for school year 2014-15 (level 4, pro rata to the
+-- position, the caps on employment volume), the additional allowance for
+-- physical-education teachers by employment band, and the additional
+-- allowance in technological education by profession.
+
+IMPORT prelude
+IMPORT common
+
+§ `חוזר לבעלויות תשע"ה/7 — קצובת ביגוד תשע"ה`
+
+-- akn:preamble The letterhead, the ministry's address, the date (15.7.2015), the reference number, the addressee and the three-item subject line; no rule.
+
+DECLARE `clothing action` IS ONE OF
+    `pay the clothing allowance` HAS `clothing amount paid` IS A NUMBER
+    `pay the additional clothing allowances` HAS `additional amount paid` IS A NUMBER
+    `work beyond the employment cap`
+    `employ beyond the employment cap`
+
+§§ `1 קצובת ביגוד לשנת הלימודים תשע"ה`
+
+-- akn:art_1/p1 The heading "תחולה" (application); no rule.
+-- akn:art_1/p3 "By the Treasury's instructions on the clothing allowance, act as follows": an introduction to the paragraphs below.
+-- akn:art_1/p4 The heading "כללי" (general); no rule.
+
+@desc A teaching employee's school year 2014-15 at one employer, as far as the clothing allowance asks about it.
+DECLARE `clothing case` HAS
+    `graded as a teaching employee`        IS A BOOLEAN @desc graded on the teaching employees' grading scale
+    `employed by a supervised owner`       IS A BOOLEAN @desc employed by an owner of education supervised by the Ministry of Education
+    `position with this employer`          IS A NUMBER  @desc the share of a full position held with this employer (1 = 100%)
+    `position with all the employers`      IS A NUMBER  @desc the total position held with all employers together
+
+-- §1, application: every employee graded as a teaching employee and
+-- employed by an owner the ministry supervises.
+@ref akn:art_1/p2
+GIVEN c IS A `clothing case`
+GIVETH A BOOLEAN
+DECIDE `a teaching employee under this circular` c IF
+    c's `graded as a teaching employee` AND c's `employed by a supervised owner`
+
+-- §1ב: entitled to the clothing allowance as public-facing staff in the
+-- civil service, for school year 2014-15 (09/14–08/15).
+@ref akn:art_1__para_b
+GIVEN c IS A `clothing case`
+GIVETH A BOOLEAN
+DECIDE `entitled to the clothing allowance` c IF
+    `a teaching employee under this circular` c
+
+-- §1ג: at level 4, that is 2,108 NIS.
+@ref akn:art_1__para_c
+`the level-4 clothing allowance` MEANS 2108
+
+-- §1ד: pro rata to the position, at most one full position.
+@ref akn:art_1__para_d
+GIVEN c IS A `clothing case`
+GIVETH A NUMBER
+DECIDE `clothing position share` c IS
+    min (c's `position with this employer`) 1
+
+-- §1ה: with more than one employer and above 100% in total, each employer
+-- pays the share for the position held with it — the reading adopted for
+-- F-2014-15_tashae_07-a, where §1ד's cap and §1ה part.
+@ref akn:art_1__para_e
+GIVEN c IS A `clothing case`
+GIVETH A BOOLEAN
+DECIDE `each employer pays its own clothing share` c IF
+    c's `position with all the employers` GREATER THAN 1
+
+@export default The clothing allowance a teaching employee is owed by one employer for school year 2014-15 under owners' circular 2014-15/7
+GIVEN c IS A `clothing case` @desc the employee's year at this employer
+GIVETH A NUMBER
+DECIDE `clothing allowance` c IS
+    IF `entitled to the clothing allowance` c
+    THEN `the level-4 clothing allowance` TIMES `clothing position share` c
+    ELSE 0
+
+-- F-2014-15_tashae_07-a: 70% at one employer and 60% at another: §1ה pays
+-- 1.3 allowances in all, §1ד's cap allows one.
+`the clothing shares §1ה pays at two employers` MEANS 0.7 PLUS 0.6
+`§1ד and §1ה give a two-employer teacher different totals` MEANS
+    NOT (`the clothing shares §1ה pays at two employers` EQUALS min (`the clothing shares §1ה pays at two employers`) 1)
+#ASSERT `§1ד and §1ה give a two-employer teacher different totals`
+
+-- §1א: paid in full with July 2015's salary (school month 11).
+@ref akn:art_1__para_a
+GIVEN c IS A `clothing case`
+GIVETH A DEONTIC Party `clothing action`
+DECIDE `paying the clothing allowance with July 2015's salary` c IS
+    PARTY `the employer`
+    MUST  `pay the clothing allowance` `amount`
+          PROVIDED `amount` AT LEAST `clothing allowance` c
+    WITHIN `month number` July
+    LEST BREACH BY `the employer` BECAUSE "circular 2014-15/7 section 1a: the clothing allowance is paid in full with July 2015's salary"
+
+§§ `1ו The caps on employment volume`
+
+DECLARE `employment track` IS ONE OF
+    `teacher outside the reforms`
+    `principal outside the reforms`
+    `teacher under Oz LaTmura in full implementation`
+    `teacher under Ofek Hadash`
+
+-- §1ו: 140% for every teaching employee, 150% for a principal outside the
+-- reforms; ¶2: 125% under Oz LaTmura in full implementation and 117% under
+-- Ofek Hadash; all with all employers together.
+@ref akn:art_1__para_f akn:art_1__para_f/p2
+GIVEN t IS AN `employment track`
+GIVETH A NUMBER
+DECIDE `the employment cap` t IS
+    CONSIDER t
+    WHEN `teacher outside the reforms` THEN 1.4
+    WHEN `principal outside the reforms` THEN 1.5
+    WHEN `teacher under Oz LaTmura in full implementation` THEN 1.25
+    WHEN `teacher under Ofek Hadash` THEN 1.17
+
+-- §1ו ¶3–¶4 and §1 ¶5: subject to the 2014-15 exceptional-employment
+-- procedure (named, not reproduced: an input); the circular neither changes
+-- the conditions for approval nor permits employment beyond the caps.
+@ref akn:art_1__para_f/p3 akn:art_1__para_f/p4 akn:art_1/p5
+GIVEN t IS AN `employment track`
+      `total position` IS A NUMBER @desc the position with all employers together (1 = 100%)
+      `approved under the exceptional-employment procedure` IS A BOOLEAN @desc approved under the 2014-15 exceptional-employment procedure, which this circular names and does not reproduce
+GIVETH A BOOLEAN
+DECIDE `employment within the cap` t `total position` `approved under the exceptional-employment procedure` IF
+    `total position` AT MOST `the employment cap` t
+    OR `approved under the exceptional-employment procedure`
+
+GIVEN `approved under the exceptional-employment procedure` IS A BOOLEAN
+GIVETH A DEONTIC Party `clothing action`
+DECIDE `the cap on the teacher's work` `approved under the exceptional-employment procedure` IS
+    IF `approved under the exceptional-employment procedure`
+    THEN FULFILLED
+    ELSE PARTY `the teaching employee`
+         SHANT `work beyond the employment cap`
+         WITHIN 12
+         LEST BREACH BY `the teaching employee` BECAUSE "circular 2014-15/7 section 1f: the teaching employee is restricted from working beyond the cap with all employers"
+
+GIVEN `approved under the exceptional-employment procedure` IS A BOOLEAN
+GIVETH A DEONTIC Party `clothing action`
+DECIDE `the cap on the employer` `approved under the exceptional-employment procedure` IS
+    IF `approved under the exceptional-employment procedure`
+    THEN FULFILLED
+    ELSE PARTY `the employer`
+         SHANT `employ beyond the employment cap`
+         WITHIN 12
+         LEST BREACH BY `the employer` BECAUSE "circular 2014-15/7 section 1f: employment beyond the cap is not permitted"
+
+#ASSERT `employment within the cap` `teacher under Oz LaTmura in full implementation` 1.25 FALSE
+#ASSERT NOT (`employment within the cap` `teacher outside the reforms` 1.45 FALSE)
+
+§§ `2 קצובת ביגוד נוספת למורה לחינוך גופני`
+
+-- §2 ¶1: in addition to the general allowance (and covering sun protection).
+@ref akn:art_2/p1
+`the physical-education allowance is in addition to the general one` MEANS TRUE
+
+-- §2's table as printed: the amounts of circular 2011-12/8 updated, as at
+-- 1/9/14, by the employment rate. 999 stands for "ומעלה" (and above).
+@ref akn:art_2/p2 akn:art_2/t1
+DECLARE `physical-education band` HAS
+    `band from rate`   IS A NUMBER
+    `band to rate`     IS A NUMBER
+    `band pe amount`   IS A NUMBER
+
+`the physical-education table` MEANS
+    LIST `physical-education band` 0   0.3 0,
+         `physical-education band` 0.3 0.5 673,
+         `physical-education band` 0.5 999 1342
+
+GIVEN r IS A NUMBER
+GIVETH A LIST OF NUMBER
+DECIDE `the amounts the table gives for rate` r IS
+    map (GIVEN b YIELD b's `band pe amount`)
+        (filter (GIVEN b YIELD r AT LEAST b's `band from rate` AND r AT MOST b's `band to rate`)
+                `the physical-education table`)
+
+-- F-2014-15_tashae_07-b: "עד 0.3" and "מ-0.3", "עד 0.5" and "מ-0.5" — the
+-- bounds 0.3 and 0.5 are each in two rows.
+`the table gives 0.3 and 0.5 two amounts each` MEANS
+        `the amounts the table gives for rate` 0.3 EQUALS LIST 0, 673
+    AND `the amounts the table gives for rate` 0.5 EQUALS LIST 673, 1342
+#ASSERT `the table gives 0.3 and 0.5 two amounts each`
+
+-- The reading adopted: the row that opens at a bound governs it.
+@desc The physical-education teacher's employment rate is the table's "שיעור העסקה" (1 = a full position).
+GIVEN `employment rate` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `physical-education allowance` `employment rate` IS
+    BRANCH IF `employment rate` AT LEAST 0.5 THEN 1342
+           IF `employment rate` AT LEAST 0.3 THEN 673
+           OTHERWISE 0
+
+#ASSERT all (GIVEN r YIELD `the amounts the table gives for rate` r EQUALS LIST (`physical-education allowance` r))
+            (LIST 0, 0.1, 0.29, 0.31, 0.49, 0.51, 1, 1.4)
+
+§§ `3 קצובת ביגוד בחינוך הטכנולוגי`
+
+-- §3.1א's list, in its printed numbering (1-13).
+@ref akn:art_3__para_1__subpara_a/t1
+`the professions with shoes and two coats` MEANS
+    LIST "מערכות תעופה", "מכטרוניקה", "טרמודינמיקה טכנית ימית", "מערכות סיב\"מ ותיב\"מ",
+         "תחזוקת מערכות מכניות", "מערכות מכונאות רכב", "מערכות ממוחשבות ברכב",
+         "מערכות הספק, פיקוד ובקרה", "מערכות בקרת אקלים", "אומנות הבישול והאפיה המלונאית",
+         "ימאות – ספינות", "מערכות טלוויזיה וקולנוע", "מערכות צילום"
+
+-- §3.1ב's list, in its printed numbering (1-13).
+@ref akn:art_3__para_1__subpara_b/t1
+`the professions with two coats` MEANS
+    LIST "מערכות אלקטרוניות", "מערכות מחשוב ובקרה", "מערכות מחשבים", "תכנון ותכנות מערכות",
+         "מערכות ביוטכנולוגיה", "ניהול תיירותי", "ניהול מלונאי", "חינוך לגיל הרך", "עיצוב",
+         "אופנה ותלבושות", "עיצוב שיער, וטיפוח החן", "סיעוד", "אומנות שימושית"
+
+#ASSERT count `the professions with shoes and two coats` EQUALS 13
+#ASSERT count `the professions with two coats` EQUALS 13
+-- No profession is on both lists.
+#ASSERT all (GIVEN p YIELD NOT elem p `the professions with two coats`) `the professions with shoes and two coats`
+
+-- §3.1א ¶2 and §3.1ב ¶2: the value of a pair of shoes and two coats, and of two coats.
+@ref akn:art_3__para_1__subpara_a/p2
+`the value of shoes and two coats` MEANS 554
+@ref akn:art_3__para_1__subpara_b/p2
+`the value of two coats` MEANS 344
+
+-- §3 ¶1, §3.1א–ב: a teaching employee in technological education or a
+-- vocational instructor in a listed profession gets the items each year.
+@ref akn:art_3/p1 akn:art_3__para_1__subpara_a akn:art_3__para_1__subpara_b
+GIVEN `profession` IS A STRING @desc the profession taught, as the lists print it
+GIVETH A NUMBER
+DECIDE `the full-position technological allowance` `profession` IS
+    IF elem `profession` `the professions with shoes and two coats`
+    THEN `the value of shoes and two coats`
+    ELSE IF elem `profession` `the professions with two coats`
+         THEN `the value of two coats`
+         ELSE 0
+
+-- §3.3: pro rata to the position, at most one full position.
+@ref akn:art_3__para_3
+GIVEN `profession` IS A STRING, `position` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `technological clothing allowance` `profession` `position` IS
+    `the full-position technological allowance` `profession` TIMES min `position` 1
+
+-- §3.2: in addition to the general allowance.
+@ref akn:art_3__para_2
+`the technological allowance is in addition to the general one` MEANS TRUE
+
+-- F-2014-15_tashae_07-c: §1א dates the general allowance (July 2015's
+-- salary); §2 and §3 name no month for theirs. The reading adopted pays
+-- them with the general allowance, as allowances "in addition" to it.
+`the month §1א names` MEANS `month number` July
+GIVEN `profession` IS A STRING, `position` IS A NUMBER, `employment rate` IS A NUMBER
+GIVETH A DEONTIC Party `clothing action`
+DECIDE `paying the additional allowances with the general one` `profession` `position` `employment rate` IS
+    PARTY `the employer`
+    MUST  `pay the additional clothing allowances` `amount`
+          PROVIDED `amount` AT LEAST (`technological clothing allowance` `profession` `position`
+                                      PLUS `physical-education allowance` `employment rate`)
+    WITHIN `the month §1א names`
+    LEST BREACH BY `the employer` BECAUSE "circular 2014-15/7 sections 2-3, read with section 1a: the additional allowances are paid with the general one"
+
+DECLARE `section of the circular` IS ONE OF `section 1`, `section 2`, `section 3`
+GIVEN s IS A `section of the circular`
+GIVETH A BOOLEAN
+DECIDE `names a payment month` s IF
+    CONSIDER s
+    WHEN `section 1` THEN TRUE
+    OTHERWISE FALSE
+
+`sections 2 and 3 name no payment month` MEANS
+    NOT `names a payment month` `section 2` AND NOT `names a payment month` `section 3`
+#ASSERT `sections 2 and 3 name no payment month`
+
+-- akn:conclusions The contact line, the signatures (Sonia Peretz, head of the senior division for teaching staff) and the list of copies; no rule.
+
+-- Worked examples.
+`a full-position teacher at one employer` MEANS
+    `clothing case` WITH
+        `graded as a teaching employee`   IS TRUE
+        `employed by a supervised owner`  IS TRUE
+        `position with this employer`     IS 1
+        `position with all the employers` IS 1
+
+`a half-position teacher` MEANS
+    `clothing case` WITH
+        `graded as a teaching employee`   IS TRUE
+        `employed by a supervised owner`  IS TRUE
+        `position with this employer`     IS 0.5
+        `position with all the employers` IS 0.5
+
+#ASSERT `clothing allowance` `a full-position teacher at one employer` EQUALS 2108
+#ASSERT `clothing allowance` `a half-position teacher` EQUALS 1054
+#ASSERT `technological clothing allowance` "מכטרוניקה" 0.5 EQUALS 277
+#ASSERT `technological clothing allowance` "סיעוד" 1.2 EQUALS 344
+#ASSERT `technological clothing allowance` "מתמטיקה" 1 EQUALS 0
+#ASSERT `physical-education allowance` 0.4 EQUALS 673
+
+#TRACE `paying the clothing allowance with July 2015's salary` `a full-position teacher at one employer` AT 0 WITH
+    PARTY `the employer` DOES `pay the clothing allowance` 2108 AT 11
+#TRACE `paying the clothing allowance with July 2015's salary` `a full-position teacher at one employer` AT 0 WITH
+    PARTY `the employer` DOES `pay the clothing allowance` 1000 AT 11
+#TRACE `paying the additional allowances with the general one` "מכטרוניקה" 1 0.6 AT 0 WITH
+    PARTY `the employer` DOES `pay the additional clothing allowances` 1896 AT 11

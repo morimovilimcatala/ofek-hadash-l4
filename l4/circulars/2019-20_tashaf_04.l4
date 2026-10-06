@@ -1,0 +1,209 @@
+-- חוזר לבעלויות תש"פ/4 (3.2.2020): עדכון תוספת שקלית 2016 לעובדי הוראה.
+-- The index-linked "shekel supplement 2016" for kindergarten, primary,
+-- junior-high and teacher-college employees, by Ofek Hadash grade, from
+-- 1.1.2020 and from 1.9.2020.
+
+IMPORT prelude
+IMPORT common
+IMPORT daydate
+
+§ `תש"פ/4 עדכון תוספת שקלית 2016 לעובדי הוראה`
+
+-- akn:preamble The letterhead, date, reference number, addressee, greeting and subject line; no rule.
+
+DECLARE `education stage` IS ONE OF
+    `kindergarten`
+    `primary school`
+    `junior high`
+    `teacher-training college`
+    `upper secondary`
+    `other stage`
+
+@desc A teaching employee as far as this circular asks about him or her.
+DECLARE `supplement employee` HAS
+    `graded on the teaching-employee scale`            IS A BOOLEAN @desc graded in the teaching employees' grading (דירוג עובדי הוראה)
+    `employed by an owner of a supervised institution` IS A BOOLEAN @desc employed by an owning body of an institution the Ministry of Education supervises
+    `stage of employment`                              IS AN `education stage`
+    `employed under Ofek Hadash`                       IS A BOOLEAN @desc employed on the terms of the Ofek Hadash reform
+    `Ofek Hadash grade`                                IS A NUMBER  @desc the grade (דרגה) in the Ofek Hadash salary tables for academic and non-academic teachers; meaningful only under Ofek Hadash
+    `share of the full amount payable`                 IS A NUMBER  @desc the share of the full-position amount this employee is paid; set by circular תשע"ז/3's rules for part positions (¶11), an input here
+
+§§ `Index linkage and its purpose`
+
+-- The circular rests on the wage agreements of 30.9.2016 (§6(d)) and
+-- 19.3.2017, and on circulars תשע"ז/3, תשע"ח/6 and תשע"ט/4; none of them is
+-- in this file.
+@ref akn:preamble/p13 akn:preamble/p14
+GIVETH A BOOLEAN
+DECIDE `the shekel supplement 2016 is linked to the consumer price index` IS TRUE
+
+@desc The consumer price index for a month, as published; an input of this file.
+ASSUME `consumer price index for` IS A FUNCTION FROM DATE TO NUMBER
+
+@ref akn:preamble/p15
+`the period this circular updates begins` MEANS Date 1 1 2020
+
+@ref akn:preamble/p16
+GIVETH A NUMBER
+DECIDE `the linkage factor` IS
+    `consumer price index for` (Date 1 12 2019)
+    DIVIDED BY `consumer price index for` (Date 1 12 2018)
+
+§§ `Applicability`
+
+@ref akn:preamble/p17 akn:preamble/p18 akn:preamble/p19
+GIVEN e IS A `supplement employee`
+GIVETH A BOOLEAN
+DECIDE `the circular applies to` e IF
+        e's `graded on the teaching-employee scale`
+    AND e's `employed by an owner of a supervised institution`
+    AND (    e's `stage of employment` EQUALS `kindergarten`
+         OR  e's `stage of employment` EQUALS `primary school`
+         OR  e's `stage of employment` EQUALS `junior high`
+         OR  e's `stage of employment` EQUALS `teacher-training college`)
+-- ¶19: Ofek Hadash and non-reform employees alike.
+
+§§ `א.–ב. The amounts for a full position`
+
+-- One printed row of a grade table: the grade and its amount for a full
+-- position. Grade 0 stands for ¶10's row, "all other teaching employees".
+DECLARE `grade row` HAS
+    `row grade`  IS A NUMBER
+    `row amount` IS A NUMBER
+
+@ref akn:art_a/p1 akn:art_a/p2 akn:art_a/p3 akn:art_a/p4 akn:art_a/p5 akn:art_a/p6 akn:art_a/p7 akn:art_a/p8 akn:art_a/p9 akn:art_a/p10
+`the amounts from 1.1.2020 to 31.8.2020` MEANS
+    LIST `grade row` 1   742.58,
+         `grade row` 1.5 715.04,
+         `grade row` 2   687.52,
+         `grade row` 2.5 654.20,
+         `grade row` 3   620.89,
+         `grade row` 3.5 603.05,
+         `grade row` 4   585.22,
+         `grade row` 4.5 547.62,
+         `grade row` 0   510.03
+
+@ref akn:art_b/p1 akn:art_b/p2 akn:art_b/p3 akn:art_b/p4 akn:art_b/p5 akn:art_b/p6 akn:art_b/p7 akn:art_b/p8 akn:art_b/p9 akn:art_b/p10
+`the amounts from 1.9.2020` MEANS
+    LIST `grade row` 1   1091.64,
+         `grade row` 1.5 1027.74,
+         `grade row` 2   963.84,
+         `grade row` 2.5 886.50,
+         `grade row` 3   809.16,
+         `grade row` 3.5 767.76,
+         `grade row` 4   726.35,
+         `grade row` 4.5 639.07,
+         `grade row` 0   551.79
+
+GIVEN d IS A DATE
+GIVETH A MAYBE (LIST OF `grade row`)
+DECIDE `the table in force on` d IS
+    BRANCH IF d AT LEAST Date 1 9 2020 THEN JUST `the amounts from 1.9.2020`
+           IF d AT LEAST Date 1 1 2020 THEN JUST `the amounts from 1.1.2020 to 31.8.2020`
+           OTHERWISE NOTHING
+
+-- The row an employee takes: the grade's own row for an Ofek Hadash
+-- employee in grades 1 to 4.5; ¶10's row for everyone else (other grades,
+-- and every employee not under Ofek Hadash).
+GIVEN e IS A `supplement employee`
+GIVETH A NUMBER
+DECIDE `the row grade for` e IS
+    IF      e's `employed under Ofek Hadash`
+        AND elem (e's `Ofek Hadash grade`) (LIST 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5)
+    THEN e's `Ofek Hadash grade`
+    ELSE 0
+
+GIVEN g IS A NUMBER, rows IS A LIST OF `grade row`
+GIVETH A LIST OF NUMBER
+DECIDE `the amounts the table gives for grade` g rows IS
+    map (GIVEN r YIELD r's `row amount`) (filter (GIVEN r YIELD r's `row grade` EQUALS g) rows)
+
+@export The monthly shekel supplement 2016 for a full position under circular תש"פ/4, for a teaching employee on a given date
+GIVEN e IS A `supplement employee` @desc the employee
+      d IS A DATE                  @desc the month the supplement is for
+GIVETH A MAYBE NUMBER
+DECIDE `full-position shekel supplement 2016` e d IS
+    IF `the circular applies to` e
+    THEN CONSIDER `the table in force on` d
+         WHEN JUST rows THEN
+             CONSIDER `the amounts the table gives for grade` (`the row grade for` e) rows
+             WHEN a FOLLOWED BY rest THEN JUST a
+             WHEN EMPTY THEN NOTHING
+         WHEN NOTHING THEN NOTHING
+    ELSE NOTHING
+
+DECLARE `supplement action` IS ONE OF
+    `pay the supplement` HAS `amount paid` IS A NUMBER
+    `reimburse the owner in the cost of the relevant hour`
+
+-- ¶11–12: every other rule for paying the supplement — part positions
+-- among them — is circular תשע"ז/3's (the link printed in ¶12), so the share
+-- of the full amount an employee is paid is an input.
+@ref akn:art_b/p11 akn:art_b/p12
+GIVEN e IS A `supplement employee`, d IS A DATE
+GIVETH A DEONTIC Party `supplement action`
+DECIDE `paying the supplement` e d IS
+    CONSIDER `full-position shekel supplement 2016` e d
+    WHEN JUST a THEN
+        PARTY `the employer`
+        MUST  `pay the supplement` `amount paid`
+              PROVIDED `amount paid` AT LEAST a TIMES e's `share of the full amount payable`
+        LEST BREACH BY `the employer` BECAUSE "תש\"פ/4: the shekel supplement 2016 is paid at the amount for the employee's grade"
+    WHEN NOTHING THEN FULFILLED
+
+@ref akn:art_b/p13
+GIVETH A DEONTIC Party `supplement action`
+DECIDE `reimbursing the owners` IS
+    PARTY `the Ministry of Education`
+    MUST  `reimburse the owner in the cost of the relevant hour`
+    LEST BREACH BY `the Ministry of Education` BECAUSE "תש\"פ/4: the owners are reimbursed in the cost of the relevant hour"
+
+-- akn:conclusions The sign-off, signatures and copies list; no rule.
+
+-- Examples.
+GIVEN g IS A NUMBER, ofek IS A BOOLEAN, s IS AN `education stage`, share IS A NUMBER
+GIVETH A `supplement employee`
+DECIDE `an employee on a share` g ofek s share IS
+    `supplement employee` WITH
+        `graded on the teaching-employee scale`            IS TRUE
+        `employed by an owner of a supervised institution` IS TRUE
+        `stage of employment`                              IS s
+        `employed under Ofek Hadash`                       IS ofek
+        `Ofek Hadash grade`                                IS g
+        `share of the full amount payable`                 IS share
+
+GIVEN g IS A NUMBER, ofek IS A BOOLEAN, s IS AN `education stage`
+GIVETH A `supplement employee`
+DECIDE `an employee` g ofek s IS `an employee on a share` g ofek s 1
+
+#ASSERT `full-position shekel supplement 2016` (`an employee` 1 TRUE `primary school`) (Date 1 3 2020) EQUALS JUST 742.58
+#ASSERT `full-position shekel supplement 2016` (`an employee` 4.5 TRUE `junior high`) (Date 1 10 2020) EQUALS JUST 639.07
+#ASSERT `full-position shekel supplement 2016` (`an employee` 6 TRUE `kindergarten`) (Date 1 3 2020) EQUALS JUST 510.03
+#ASSERT `full-position shekel supplement 2016` (`an employee` 1 FALSE `primary school`) (Date 1 10 2020) EQUALS JUST 551.79
+#ASSERT `full-position shekel supplement 2016` (`an employee` 1 TRUE `upper secondary`) (Date 1 3 2020) EQUALS NOTHING
+#ASSERT `full-position shekel supplement 2016` (`an employee` 1 TRUE `primary school`) (Date 1 12 2019) EQUALS NOTHING
+
+-- Each table gives each grade exactly one row, and the amounts fall as the
+-- grade rises, the "all others" row lowest.
+`each grade has one row in both tables` MEANS
+    all (GIVEN g YIELD     count (`the amounts the table gives for grade` g `the amounts from 1.1.2020 to 31.8.2020`) EQUALS 1
+                       AND count (`the amounts the table gives for grade` g `the amounts from 1.9.2020`) EQUALS 1)
+        (LIST 0, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5)
+#ASSERT `each grade has one row in both tables`
+
+GIVEN rows IS A LIST OF `grade row`
+GIVETH A BOOLEAN
+DECIDE `the amounts fall row by row` rows IF
+    CONSIDER rows
+    WHEN a FOLLOWED BY rest THEN
+        CONSIDER rest
+        WHEN b FOLLOWED BY more THEN a's `row amount` GREATER THAN b's `row amount` AND `the amounts fall row by row` rest
+        WHEN EMPTY THEN TRUE
+    WHEN EMPTY THEN TRUE
+#ASSERT `the amounts fall row by row` `the amounts from 1.1.2020 to 31.8.2020`
+#ASSERT `the amounts fall row by row` `the amounts from 1.9.2020`
+
+-- A grade-2 teacher paid half the full amount under circular תשע"ז/3's
+-- rules, in October 2020: half of 963.84 meets the duty.
+#TRACE `paying the supplement` (`an employee on a share` 2 TRUE `primary school` 0.5) (Date 1 10 2020) AT 0 WITH
+    PARTY `the employer` DOES `pay the supplement` 481.92 AT 1

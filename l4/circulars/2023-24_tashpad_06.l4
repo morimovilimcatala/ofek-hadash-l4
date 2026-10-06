@@ -1,0 +1,207 @@
+-- חוזר לבעלויות תשפ"ד/6 (14.2.2024), עדכון תוספת שקלית 2016 לעובדי הוראה
+-- The 2016 shekel supplement of teaching employees in kindergartens,
+-- primary and middle schools and teacher-training colleges, re-indexed from
+-- 1.1.2024: the full-position amount by Ofek Hadash grade, and for all other
+-- teaching employees the circular covers.
+
+IMPORT prelude
+IMPORT daydate
+IMPORT common
+
+-- Time for the payment duty is counted in calendar MONTHS from December
+-- 2023 (0): January 2024's salary is 1, February 2024's is 2.
+`January 2024`  MEANS 1
+`February 2024` MEANS 2
+
+§ `חוזר לבעלויות תשפ"ד/6 — עדכון תוספת שקלית 2016 לעובדי הוראה`
+
+-- akn:hc_1/p1 akn:hc_1/p2 akn:hc_1/p3 akn:hc_1/p4 akn:hc_1/p5 akn:hc_1/p6 akn:hc_1/p7 akn:hc_1/p8 akn:hc_1/p9 akn:hc_1/p10 akn:hc_1/p11 akn:hc_1/p12 The letterhead, date, reference number, addressees (the owners of educational institutions), greeting and subject line; no rule.
+
+-- The recital's rule: the 2016 shekel supplement is linked to the consumer
+-- price index (agreements with the teachers' union of 30.9.2016 §6ד and of
+-- 19.3.2017; and "our circular תשפ"ג/", whose number the page does not
+-- print), re-indexed from 1.1.2024 to the index of December 2023 (published
+-- January 2024) against that of December 2022 (published January 2023).
+DECLARE `consumer price index` HAS
+    `index month` IS A STRING
+    `published in` IS A STRING
+
+@ref akn:hc_1/p13 akn:hc_1/p14 akn:hc_1/p15
+`the index this circular links to` MEANS
+    `consumer price index` WITH `index month` IS "December 2023", `published in` IS "January 2024"
+
+@ref akn:hc_1/p15
+`the index it replaces` MEANS
+    `consumer price index` WITH `index month` IS "December 2022", `published in` IS "January 2023"
+
+@ref akn:hc_1/p14 akn:hc_1/p19
+GIVEN `the day` IS A DATE
+GIVETH A BOOLEAN
+DECIDE `the re-indexed amounts apply on` `the day` IF
+    `the day` AT LEAST Date 1 1 2024
+
+DECLARE `stage of education` IS ONE OF
+    `kindergarten`
+    `primary school`
+    `middle school`
+    `teacher-training college`
+    `upper-secondary school`
+    `another stage`
+
+@desc A teaching employee, as far as this circular asks.
+DECLARE `employee under circular 6` HAS
+    `graded on the teaching employees' scale`         IS A BOOLEAN @desc graded on the teaching employees' grading (דירוג עובדי הוראה)
+    `employed by an owner under Ministry supervision` IS A BOOLEAN @desc employed by an owner of an educational institution the Ministry of Education supervises
+    `stage`                                           IS A `stage of education`
+    `placed on the Ofek Hadash teachers' tables`      IS A BOOLEAN @desc placed in a grade of the Ofek Hadash salary tables for academic and non-academic teachers
+    `Ofek Hadash grade`                               IS A NUMBER  @desc that grade (1, 1.5, 2, … 9); read only where the employee is so placed
+    `position fraction`                               IS A NUMBER  @desc share of a full position (1 = full)
+
+@ref akn:hc_1/p16 akn:hc_1/p17 akn:hc_1/p18
+GIVEN e IS AN `employee under circular 6`
+GIVETH A BOOLEAN
+DECIDE `the circular applies to` e IF
+        e's `graded on the teaching employees' scale`
+    AND e's `employed by an owner under Ministry supervision`
+    AND `is one of the circular's stages` (e's `stage`)
+
+GIVEN s IS A `stage of education`
+GIVETH A BOOLEAN
+DECIDE `is one of the circular's stages` s IF
+    CONSIDER s
+    WHEN `kindergarten` THEN TRUE
+    WHEN `primary school` THEN TRUE
+    WHEN `middle school` THEN TRUE
+    WHEN `teacher-training college` THEN TRUE
+    OTHERWISE FALSE
+
+§§ `The amounts from 1.1.2024`
+
+DECLARE `grade row` HAS
+    `grade on the Ofek Hadash tables` IS A NUMBER
+    `full-position monthly amount`    IS A NUMBER
+
+-- The full-position amounts by grade, in the printed order.
+@ref akn:hc_1/p20 akn:hc_1/p21 akn:hc_1/p22
+`the amounts by grade` MEANS
+    LIST `grade row` 1   1208.26,
+         `grade row` 1.5 1137.53,
+         `grade row` 2   1066.80,
+         `grade row` 2.5 981.20,
+         `grade row` 3   895.60,
+         `grade row` 3.5 849.78,
+         `grade row` 4   803.95,
+         `grade row` 4.5 707.34
+
+@ref akn:hc_1/p23
+`the amount for every other teaching employee` MEANS 611.04
+
+GIVEN e IS AN `employee under circular 6`
+GIVETH A LIST OF NUMBER
+DECIDE `the grade amounts for` e IS
+    IF e's `placed on the Ofek Hadash teachers' tables`
+    THEN map (GIVEN r YIELD r's `full-position monthly amount`)
+             (filter (GIVEN r YIELD r's `grade on the Ofek Hadash tables` EQUALS e's `Ofek Hadash grade`)
+                     `the amounts by grade`)
+    ELSE EMPTY
+
+@ref akn:hc_1/p19 akn:hc_1/p20 akn:hc_1/p23
+GIVEN e IS AN `employee under circular 6`
+GIVETH A NUMBER
+DECIDE `the full-position 2016 shekel supplement` e IS
+    IF NOT `the circular applies to` e
+    THEN 0
+    ELSE CONSIDER `the grade amounts for` e
+         WHEN a FOLLOWED BY rest THEN a
+         OTHERWISE `the amount for every other teaching employee`
+
+-- The amount is printed for a full position; the rules for anything else
+-- (part-time positions among them) are those of circular תשע"ז/3, which
+-- the circular cites and links to — an input here.
+@ref akn:hc_1/p24 akn:hc_1/p25
+ASSUME `the rules of circular תשע"ז/3 for paying the supplement` IS A FUNCTION FROM NUMBER AND `employee under circular 6` TO NUMBER
+@desc The other rules for paying the 2016 shekel supplement (circular תשע"ז/3, tosefetshiklit.pdf): from the full-position amount to what an employee is paid.
+
+-- Each printed grade has exactly one row.
+#ASSERT all (GIVEN g YIELD count (filter (GIVEN r YIELD r's `grade on the Ofek Hadash tables` EQUALS g) `the amounts by grade`) EQUALS 1)
+            (LIST 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5)
+
+-- Every graded amount is above the amount for every other teaching employee.
+#ASSERT all (GIVEN r YIELD r's `full-position monthly amount` GREATER THAN `the amount for every other teaching employee`)
+            `the amounts by grade`
+
+DECLARE `supplement action` IS ONE OF
+    `pay the updated supplement, January 2024 included`
+
+@ref akn:hc_1/p26
+GIVETH A DEONTIC Party `supplement action`
+DECIDE `the updated supplement is paid by February 2024` IS
+    PARTY `the employer`
+    MUST  `pay the updated supplement, January 2024 included`
+    WITHIN `February 2024`
+    LEST BREACH BY `the employer` BECAUSE "pay from January 2024's salary and no later than February 2024's, with January's arrears"
+
+@ref akn:hc_1/p26
+GIVEN `paid from month` IS A NUMBER @desc the month (from December 2023 = 0) whose salary first carries the updated amount
+GIVETH A NUMBER
+DECIDE `the months of retroactive difference owed` `paid from month` IS
+    max 0 (`paid from month` MINUS `January 2024`)
+
+DECLARE `reimbursement` HAS
+    `reimbursed to` IS A Party
+    `through`       IS A STRING
+
+@ref akn:hc_1/p27
+`the reimbursement of the supplement` MEANS
+    `reimbursement` WITH
+        `reimbursed to` IS `the local authority or owning body`
+        `through`       IS "the relevant hour costs in the payment system"
+
+-- akn:conclusions The sign-off: the signatures and the copies list; no rule.
+
+-- Examples, on the circular's own amounts.
+`a kindergarten teacher in grade 3.5` MEANS
+    `employee under circular 6` WITH
+        `graded on the teaching employees' scale`         IS TRUE
+        `employed by an owner under Ministry supervision` IS TRUE
+        `stage`                                           IS `kindergarten`
+        `placed on the Ofek Hadash teachers' tables`      IS TRUE
+        `Ofek Hadash grade`                               IS 3.5
+        `position fraction`                               IS 1
+
+`a primary teacher in grade 6` MEANS
+    `employee under circular 6` WITH
+        `graded on the teaching employees' scale`         IS TRUE
+        `employed by an owner under Ministry supervision` IS TRUE
+        `stage`                                           IS `primary school`
+        `placed on the Ofek Hadash teachers' tables`      IS TRUE
+        `Ofek Hadash grade`                               IS 6
+        `position fraction`                               IS 1
+
+`a middle-school teacher outside Ofek Hadash` MEANS
+    `employee under circular 6` WITH
+        `graded on the teaching employees' scale`         IS TRUE
+        `employed by an owner under Ministry supervision` IS TRUE
+        `stage`                                           IS `middle school`
+        `placed on the Ofek Hadash teachers' tables`      IS FALSE
+        `Ofek Hadash grade`                               IS 0
+        `position fraction`                               IS 1
+
+`an upper-secondary teacher` MEANS
+    `employee under circular 6` WITH
+        `graded on the teaching employees' scale`         IS TRUE
+        `employed by an owner under Ministry supervision` IS TRUE
+        `stage`                                           IS `upper-secondary school`
+        `placed on the Ofek Hadash teachers' tables`      IS FALSE
+        `Ofek Hadash grade`                               IS 0
+        `position fraction`                               IS 1
+
+#ASSERT `the full-position 2016 shekel supplement` `a kindergarten teacher in grade 3.5` EQUALS 849.78
+#ASSERT `the full-position 2016 shekel supplement` `a primary teacher in grade 6` EQUALS 611.04
+#ASSERT `the full-position 2016 shekel supplement` `a middle-school teacher outside Ofek Hadash` EQUALS 611.04
+#ASSERT `the full-position 2016 shekel supplement` `an upper-secondary teacher` EQUALS 0
+#ASSERT `the re-indexed amounts apply on` (Date 1 1 2024)
+#ASSERT `the months of retroactive difference owed` `February 2024` EQUALS 1
+
+#TRACE `the updated supplement is paid by February 2024` AT 0 WITH
+    PARTY `the employer` DOES `pay the updated supplement, January 2024 included` AT 1

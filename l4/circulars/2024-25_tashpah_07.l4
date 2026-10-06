@@ -1,0 +1,163 @@
+-- חוזר לבעלויות תשפ"ה/7 (21.4.2025): עדכון תוספת שקלית 2016 לעובדי הוראה בגני ילדים, בתי ספר יסודיים, חטיבת ביניים ומכללות להכשרת עובדי הוראה
+-- The index update of 1.1.2025 of the 2016 shekel supplement for
+-- kindergartens, primary schools, junior-high schools and teacher-training
+-- colleges: one amount per Ofek Hadash grade up to 4.5 and one for
+-- everyone else, paid with arrears from January 2025.
+
+IMPORT prelude
+IMPORT common
+
+-- Time in the regulative rules is counted in school months of תשפ"ה
+-- (common.l4: September 2024 = 1, January 2025 = 5, April 2025 = 8).
+
+§ `תשפ"ה/7 עדכון תוספת שקלית 2016 בחינוך היסודי`
+
+-- akn:hc_1/p1 akn:hc_1/p2 akn:hc_1/p3 akn:hc_1/p4 akn:hc_1/p5 akn:hc_1/p6 akn:hc_1/p7 akn:hc_1/p8 akn:hc_1/p9 akn:hc_1/p10 akn:hc_1/p11 akn:hc_1/p12 The letterhead, date (21.4.2025), reference number, circular number, addressee, greeting and subject line; no rule.
+
+DECLARE `update action` IS ONE OF
+    `pay the updated supplement with arrears from January 2025` HAS `monthly amount paid` IS A NUMBER
+
+§§ `Purpose and linkage`
+
+-- p13 and p14: under the wage agreements with the teachers' union of
+-- 30.9.2016 (6ד) and 19.3.2017 and circular תשפ"ד/6, the 2016 shekel
+-- supplement is linked to the consumer price index; this circular
+-- publishes its update for the period from 1.1.2025.
+@ref akn:hc_1/p13 akn:hc_1/p14
+GIVETH A BOOLEAN
+DECIDE `the 2016 shekel supplement is linked to the consumer price index` IS TRUE
+
+-- p15: the December 2024 index (published January 2025) against the
+-- December 2023 index (published January 2024). The index values are not
+-- in the circular; they are inputs.
+@ref akn:hc_1/p15
+GIVEN `index of December 2024` IS A NUMBER, `index of December 2023` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the linkage ratio` `index of December 2024` `index of December 2023` IS
+    `index of December 2024` DIVIDED BY `index of December 2023`
+
+§§ `Application`
+
+-- akn:hc_1/p16 The heading "תחולה"; no rule.
+
+DECLARE `stage of education` IS ONE OF
+    kindergarten
+    `primary school`
+    `junior high school`
+    `teacher-training college`
+    `upper division`
+
+DECLARE `primary-stage employee` HAS
+    `graded on the teaching-staff scale`   IS A BOOLEAN
+    `employed by a supervised owning body` IS A BOOLEAN
+    `stage`                                IS A `stage of education`
+    `employed under Ofek Hadash`           IS A BOOLEAN
+    `Ofek Hadash grade`                    IS A NUMBER  @desc the grade in the Ofek Hadash salary tables for academic and non-academic teachers (half grades exist); 0 where the employee has none
+
+-- p17 and p18: every employee graded as teaching staff, employed by an
+-- owning body the Ministry supervises, at one of the four stages — in Ofek
+-- Hadash or not.
+@ref akn:hc_1/p17 akn:hc_1/p18
+GIVEN e IS A `primary-stage employee`
+GIVETH A BOOLEAN
+DECIDE `the circular applies to` e IF
+        e's `graded on the teaching-staff scale`
+    AND e's `employed by a supervised owning body`
+    AND NOT e's `stage` EQUALS `upper division`
+
+§§ `The amounts from 1.1.2025`
+
+@desc A row of the amounts from 1.1.2025: a grade in the Ofek Hadash salary tables and the 2016 shekel supplement for a full position at it.
+DECLARE `grade amount` HAS
+    `at grade`         IS A NUMBER
+    `monthly amount`   IS A NUMBER
+
+-- p19-p21, in the printed order. The 2.5 row prints "1.012.99", a
+-- thousands separator printed as a point; it is read as 1,012.99, the only
+-- value between its neighbours 1,101.37 and 924.62.
+@ref akn:hc_1/p19 akn:hc_1/p20 akn:hc_1/p21
+`the amounts by Ofek Hadash grade` MEANS
+    LIST `grade amount` 1   1247.41,
+         `grade amount` 1.5 1174.39,
+         `grade amount` 2   1101.37,
+         `grade amount` 2.5 1012.99,
+         `grade amount` 3   924.62,
+         `grade amount` 3.5 877.31,
+         `grade amount` 4   829.99,
+         `grade amount` 4.5 730.26
+
+-- p22: every other employee the circular applies to, in Ofek Hadash or not.
+@ref akn:hc_1/p22
+`the amount for every other employee` MEANS 630.84
+
+GIVEN e IS A `primary-stage employee`
+GIVETH A NUMBER
+DECIDE `the 2016 shekel supplement for a full position from 1.1.2025` e IS
+    IF NOT `the circular applies to` e
+    THEN 0
+    ELSE IF e's `employed under Ofek Hadash`
+         THEN CONSIDER filter (GIVEN r YIELD r's `at grade` EQUALS e's `Ofek Hadash grade`) `the amounts by Ofek Hadash grade`
+              WHEN r FOLLOWED BY rest THEN r's `monthly amount`
+              WHEN EMPTY THEN `the amount for every other employee`
+         ELSE `the amount for every other employee`
+
+-- p23 and p24: the other rules for paying the supplement (for a part-time
+-- position among them) are those of circular תשע"ז/3 at the address given.
+-- They are not in this circular; the share of a position is an input.
+@ref akn:hc_1/p23 akn:hc_1/p24
+GIVEN e IS A `primary-stage employee`, `share of the full supplement under circular 5777/3` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the 2016 shekel supplement from 1.1.2025` e `share of the full supplement under circular 5777/3` IS
+    `the 2016 shekel supplement for a full position from 1.1.2025` e TIMES `share of the full supplement under circular 5777/3`
+
+-- p25: the reimbursement went out in the March 2025 payments (paid early
+-- April 2025); the supplement is paid at its updated value with retroactive
+-- differences from January 2025.
+@ref akn:hc_1/p25
+GIVEN e IS A `primary-stage employee`, `share of the full supplement under circular 5777/3` IS A NUMBER
+GIVETH A DEONTIC Party `update action`
+DECIDE `pay the updated value from January 2025` e `share of the full supplement under circular 5777/3` IS
+    PARTY `the local authority or owning body`
+    MUST  `pay the updated supplement with arrears from January 2025` a
+          PROVIDED a AT LEAST `the 2016 shekel supplement from 1.1.2025` e `share of the full supplement under circular 5777/3`
+    WITHIN `month number` August
+    LEST  BREACH BY `the local authority or owning body` BECAUSE "תשפ\"ה/7: the 2016 shekel supplement is paid at its updated value, with arrears, from January 2025"
+
+-- akn:conclusions The sign-off, signatures and the list of copies; no rule.
+
+-- Examples.
+`a grade-3 kindergarten teacher` MEANS
+    `primary-stage employee` WITH
+        `graded on the teaching-staff scale`   IS TRUE
+        `employed by a supervised owning body` IS TRUE
+        `stage`                                IS kindergarten
+        `employed under Ofek Hadash`           IS TRUE
+        `Ofek Hadash grade`                    IS 3
+
+`a grade-6 primary teacher` MEANS
+    `primary-stage employee` WITH
+        `graded on the teaching-staff scale`   IS TRUE
+        `employed by a supervised owning body` IS TRUE
+        `stage`                                IS `primary school`
+        `employed under Ofek Hadash`           IS TRUE
+        `Ofek Hadash grade`                    IS 6
+
+`a college lecturer outside Ofek Hadash` MEANS
+    `primary-stage employee` WITH
+        `graded on the teaching-staff scale`   IS TRUE
+        `employed by a supervised owning body` IS TRUE
+        `stage`                                IS `teacher-training college`
+        `employed under Ofek Hadash`           IS FALSE
+        `Ofek Hadash grade`                    IS 0
+
+#ASSERT `the 2016 shekel supplement for a full position from 1.1.2025` `a grade-3 kindergarten teacher` EQUALS 924.62
+#ASSERT `the 2016 shekel supplement for a full position from 1.1.2025` `a grade-6 primary teacher` EQUALS 630.84
+#ASSERT `the 2016 shekel supplement for a full position from 1.1.2025` `a college lecturer outside Ofek Hadash` EQUALS 630.84
+
+-- Every grade row pays more than the amount for everyone else.
+#ASSERT all (GIVEN r YIELD r's `monthly amount` GREATER THAN `the amount for every other employee`) `the amounts by Ofek Hadash grade`
+
+#TRACE `pay the updated value from January 2025` `a grade-3 kindergarten teacher` 1 AT 0 WITH
+    PARTY `the local authority or owning body` DOES `pay the updated supplement with arrears from January 2025` 924.62 AT 9
+#TRACE `pay the updated value from January 2025` `a grade-3 kindergarten teacher` 1 AT 0 WITH
+    PARTY `the local authority or owning body` DOES `pay the updated supplement with arrears from January 2025` 896.00 AT 9

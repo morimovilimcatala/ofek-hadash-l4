@@ -1,0 +1,111 @@
+-- חוזר לבעלויות תשפ"ה/9 (5.5.2025): יישום החוק "להשתתפותם של העובדים ובעלי תפקיד בשירות הציבורי, בצעדים לייצוב המצב הפיסקאלי במדינה במהלך השנים 2025 ו-2026 (הוראת שעה), תשפ"ה-2025" על עובדי ההוראה
+-- The 2025 wage-reduction law applied to teaching employees: it covers the
+-- employees of budgeted and supported bodies and of recognised schools; the
+-- salary is cut from the determining base, 3.307% from 1.4.2025 to
+-- 31.12.2025 and 1.2% in 2026, starting with April 2025's salary, and the
+-- Ministry deducts accordingly from its payments to the owning bodies.
+
+IMPORT prelude
+IMPORT common
+
+-- Time in the regulative rule is counted in salary months from April 2025
+-- (April 2025 = 0); the reduction runs to December 2026 (month 20).
+
+§ `תשפ"ה/9 חוק ההפחתה`
+
+-- akn:preamble/p1 akn:preamble/p2 akn:preamble/p3 akn:preamble/p4 akn:preamble/p5 akn:preamble/p6 akn:preamble/p7 akn:preamble/p8 akn:preamble/p9 akn:preamble/p10 akn:preamble/p11 akn:preamble/p12 akn:preamble/p13 akn:preamble/p14 akn:preamble/p15 akn:preamble/p16 The circular number, letterhead, address footer, date (5.5.2025), reference number, addressee, greeting and subject line; no rule.
+
+-- akn:preamble/p17 akn:preamble/p18 Background: the law was published on 27.3.2025 and is called "חוק ההפחתה" or "the law" below; its title is quoted. The rules are those of sections א-ב.
+
+-- akn:preamble/p19 Background: on 9.4.2025 the Treasury's wages commissioner issued instructions to public-sector employers; this circular applies them below.
+
+GIVEN d IS A DATE, e IS A DATE
+GIVETH A BOOLEAN
+DECIDE d `is on or after` e IF
+    DATE_SERIAL d AT LEAST DATE_SERIAL e
+
+GIVEN d IS A DATE, from IS A DATE, to IS A DATE
+GIVETH A BOOLEAN
+DECIDE `falls between` d from to IF
+    d `is on or after` from AND to `is on or after` d
+
+DECLARE `kind of body` IS ONE OF
+    `budgeted body`
+    `supported body`
+    `education institution`
+    `recognised unofficial education institution`
+    `other employer`
+
+DECLARE `reduction action` IS ONE OF
+    `reduce the salary from the determining base` HAS `amount reduced` IS A NUMBER
+    `deduct from the payments to the owning body` HAS `amount deducted` IS A NUMBER
+
+§§ `א תחולה`
+
+-- א: by the law and the commissioner's instructions, the law applies also
+-- to every employee of the budgeted and supported bodies (as the Budget
+-- Foundations Law, 1985, defines them), to employees of education
+-- institutions, and to those of recognised unofficial institutions; the
+-- owning body acts by the law and carries out the reduction.
+@ref akn:art_a/p1
+GIVEN k IS A `kind of body`
+GIVETH A BOOLEAN
+DECIDE `the reduction law applies to the employees of` k IF
+    NOT k EQUALS `other employer`
+
+§§ `ב ההוראה`
+
+-- ב, the two bullets: the rate of the cut by the day the salary is for.
+@ref akn:art_b/p2 akn:art_b/p3
+GIVEN d IS A DATE
+GIVETH A NUMBER
+DECIDE `the reduction rate on` d IS
+    BRANCH IF `falls between` d (DATE_FROM_DMY 1 4 2025) (DATE_FROM_DMY 31 12 2025) THEN 3.307%
+           IF `falls between` d (DATE_FROM_DMY 1 1 2026) (DATE_FROM_DMY 31 12 2026) THEN 1.2%
+           OTHERWISE 0
+
+-- ב, lead-in: from April 2025's salary the cut is taken from the
+-- determining base as the law defines it. The base is the law's and an
+-- input here.
+@ref akn:art_b/p1
+GIVEN `determining base` IS A NUMBER, d IS A DATE
+GIVETH A NUMBER
+DECIDE `the salary reduction` `determining base` d IS
+    `determining base` TIMES `the reduction rate on` d
+
+GIVEN k IS A `kind of body`, `determining base` IS A NUMBER, d IS A DATE, `months from April 2025` IS A NUMBER
+GIVETH A DEONTIC Party `reduction action`
+DECIDE `the owning body reduces the salary` k `determining base` d `months from April 2025` IS
+    IF `the reduction law applies to the employees of` k AND `the salary reduction` `determining base` d GREATER THAN 0
+    THEN PARTY `the local authority or owning body`
+         MUST  `reduce the salary from the determining base` x
+               PROVIDED x EQUALS `the salary reduction` `determining base` d
+         WITHIN `months from April 2025` PLUS 1
+         LEST  BREACH BY `the local authority or owning body` BECAUSE "תשפ\"ה/9 ב: the salary is reduced from the determining base by the law's rate, from April 2025's salary"
+    ELSE FULFILLED
+
+-- ב, last paragraph: the Ministry deducts accordingly from the payments it
+-- transfers to the owning bodies, for the teaching employees it budgets.
+@ref akn:art_b/p4
+GIVEN `budgeted determining base` IS A NUMBER, d IS A DATE
+GIVETH A DEONTIC Party `reduction action`
+DECIDE `the Ministry deducts from its payments` `budgeted determining base` d IS
+    PARTY `the Ministry of Education`
+    MAY   `deduct from the payments to the owning body` x
+          PROVIDED x AT MOST `the salary reduction` `budgeted determining base` d
+
+-- akn:conclusions The sign-off, signatures and the list of copies; no rule.
+
+-- Examples. The base of 10,000 is a placeholder.
+#ASSERT `the salary reduction` 10000 (DATE_FROM_DMY 1 4 2025) EQUALS 330.7
+#ASSERT `the salary reduction` 10000 (DATE_FROM_DMY 31 12 2025) EQUALS 330.7
+#ASSERT `the salary reduction` 10000 (DATE_FROM_DMY 1 1 2026) EQUALS 120
+#ASSERT `the salary reduction` 10000 (DATE_FROM_DMY 31 3 2025) EQUALS 0
+#ASSERT `the salary reduction` 10000 (DATE_FROM_DMY 1 1 2027) EQUALS 0
+#ASSERT `the reduction law applies to the employees of` `recognised unofficial education institution`
+
+-- April 2025 (month 0): the cut is made with April's salary.
+#TRACE `the owning body reduces the salary` `education institution` 10000 (DATE_FROM_DMY 1 4 2025) 0 AT 0 WITH
+    PARTY `the local authority or owning body` DOES `reduce the salary from the determining base` 330.7 AT 1
+#TRACE `the owning body reduces the salary` `education institution` 10000 (DATE_FROM_DMY 1 4 2025) 0 AT 0 WITH
+    PARTY `the local authority or owning body` DOES `reduce the salary from the determining base` 120 AT 1

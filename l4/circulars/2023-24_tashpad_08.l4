@@ -1,0 +1,126 @@
+-- חוזר לבעלויות תשפ"ד/8 (19.5.2024), ניכוי המקדמה מכוח ההסכם הקיבוצי מיום
+-- 12.09.2023 לעובדי הוראה בחטיבות העליונות
+-- How the owners of upper-secondary schools deduct the advance paid under
+-- the collective agreement of 12.9.2023: six equal parts in six consecutive
+-- monthly salaries from May 2024's, and the balance in the final settlement
+-- of an employee who leaves first.
+
+IMPORT prelude
+IMPORT common
+
+-- Time is counted in SALARY MONTHS from April 2024's (0): May 2024's salary,
+-- paid on 1.6.2024, is 1, and the sixth consecutive salary, October 2024's, is 6.
+`May 2024's salary` MEANS 1
+
+§ `חוזר לבעלויות תשפ"ד/8 — ניכוי המקדמה מכוח ההסכם הקיבוצי מיום 12.09.2023`
+
+-- akn:preamble/p1 akn:preamble/p2 akn:preamble/p3 akn:preamble/p4 akn:preamble/p5 akn:preamble/p6 akn:preamble/p7 akn:preamble/p8 akn:preamble/p9 akn:preamble/p10 akn:preamble/p11 akn:preamble/p12 akn:preamble/p13 The letterhead, date, reference number, addressees (the owners of upper-secondary schools), greeting, subject line and the earlier circular it follows (תשפ"ד/4); no rule.
+
+-- The sources the owners act on: the collective agreement of 12.9.2023
+-- (published in circular תשפ"ד/4) and the Treasury wage commissioner's
+-- instructions of 17.3.2024 and 9.4.2024, linked from the last paragraph
+-- (meyda.education.gov.il/files/Sherut/mikdama.pdf). They are not restated
+-- here; where they set more than this circular says, they are an input.
+@ref akn:preamble/p14 akn:art_4/p2
+ASSUME `the wage commissioner's instructions of 17.3.2024 and 9.4.2024` IS A STRING
+@desc The Treasury wage commissioner's instructions on deducting the advance, linked from the circular (mikdama.pdf); not restated in the circular.
+
+@desc A teaching employee who was paid the advance, as far as this circular asks.
+DECLARE `employee paid the advance` HAS
+    `advance received`              IS A NUMBER  @desc the advance the employee was paid under the agreement of 12.9.2023
+    `last salary month employed`    IS A NUMBER  @desc the last salary month (May 2024 = 1) in which the employee is employed by the employer; 99 if employment continues
+
+@ref akn:art_2
+`the number of equal payments` MEANS 6
+
+@ref akn:art_1 akn:art_2
+GIVEN e IS AN `employee paid the advance`
+GIVETH A NUMBER
+DECIDE `one monthly deduction` e IS
+    e's `advance received` DIVIDED BY `the number of equal payments`
+
+-- The salary months that carry a deduction: six consecutive from May 2024's.
+@ref akn:art_2 akn:art_3
+GIVEN m IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `a deduction falls in salary month` m IF
+        m AT LEAST `May 2024's salary`
+    AND m AT MOST `May 2024's salary` PLUS `the number of equal payments` MINUS 1
+
+GIVEN e IS AN `employee paid the advance`
+GIVETH A BOOLEAN
+DECIDE `leaves before the six months end` e IF
+    e's `last salary month employed` LESS THAN `May 2024's salary` PLUS `the number of equal payments` MINUS 1
+
+GIVEN e IS AN `employee paid the advance`
+GIVETH A NUMBER
+DECIDE `deductions made while employed` e IS
+    max 0 (min `the number of equal payments` (e's `last salary month employed` MINUS `May 2024's salary` PLUS 1))
+
+-- Notwithstanding the above, an employee who leaves the employer before the
+-- six months end has the balance deducted in the final settlement.
+@ref akn:art_4
+GIVEN e IS AN `employee paid the advance`
+GIVETH A NUMBER
+DECIDE `the balance deducted in the final settlement` e IS
+    IF `leaves before the six months end` e
+    THEN e's `advance received`
+         MINUS `one monthly deduction` e TIMES `deductions made while employed` e
+    ELSE 0
+
+DECLARE `deduction action` IS ONE OF
+    `deduct a part of the advance` HAS `part deducted` IS A NUMBER
+    `deduct the balance in the final settlement` HAS `balance deducted` IS A NUMBER
+
+-- The six deductions as a chain of monthly duties: each one in its own
+-- salary month, the first in May 2024's (paid 1.6.2024).
+@ref akn:art_1 akn:art_2 akn:art_3
+GIVEN `part` IS A NUMBER, `parts left` IS A NUMBER
+GIVETH A DEONTIC Party `deduction action`
+DECIDE `the six monthly deductions` `part` `parts left` IS
+    IF `parts left` GREATER THAN 0
+    THEN PARTY `the employer`
+         MUST  `deduct a part of the advance` d PROVIDED d EQUALS `part`
+         WITHIN 1
+         HENCE `the six monthly deductions` `part` (`parts left` MINUS 1)
+         LEST BREACH BY `the employer` BECAUSE "sections 2–3: the advance is deducted in six equal parts in six consecutive salaries from May 2024's"
+    ELSE FULFILLED
+
+@ref akn:art_4
+GIVEN e IS AN `employee paid the advance`
+GIVETH A DEONTIC Party `deduction action`
+DECIDE `the balance on leaving` e IS
+    PARTY `the employer`
+    MUST  `deduct the balance in the final settlement` b PROVIDED b EQUALS `the balance deducted in the final settlement` e
+    WITHIN 1
+    LEST BREACH BY `the employer` BECAUSE "section 4: the balance of the advance is deducted in the final settlement"
+
+-- akn:conclusions The sign-off: the signatures and the copies list; no rule.
+
+-- Examples. The advances are those circular תשפ"ד/4 printed for a full position.
+`a reform teacher who stays` MEANS
+    `employee paid the advance` WITH
+        `advance received`           IS 2400
+        `last salary month employed` IS 99
+
+`a non-reform teacher who leaves after July 2024` MEANS
+    `employee paid the advance` WITH
+        `advance received`           IS 1500
+        `last salary month employed` IS 3
+
+#ASSERT `one monthly deduction` `a reform teacher who stays` EQUALS 400
+#ASSERT `one monthly deduction` `a non-reform teacher who leaves after July 2024` EQUALS 250
+#ASSERT `a deduction falls in salary month` 1 AND `a deduction falls in salary month` 6
+#ASSERT NOT `a deduction falls in salary month` 7
+#ASSERT `the balance deducted in the final settlement` `a reform teacher who stays` EQUALS 0
+#ASSERT `the balance deducted in the final settlement` `a non-reform teacher who leaves after July 2024` EQUALS 750
+
+#TRACE `the six monthly deductions` 400 6 AT 0 WITH
+    PARTY `the employer` DOES `deduct a part of the advance` 400 AT 1
+    PARTY `the employer` DOES `deduct a part of the advance` 400 AT 2
+    PARTY `the employer` DOES `deduct a part of the advance` 400 AT 3
+    PARTY `the employer` DOES `deduct a part of the advance` 400 AT 4
+    PARTY `the employer` DOES `deduct a part of the advance` 400 AT 5
+    PARTY `the employer` DOES `deduct a part of the advance` 400 AT 6
+#TRACE `the balance on leaving` `a non-reform teacher who leaves after July 2024` AT 3 WITH
+    PARTY `the employer` DOES `deduct the balance in the final settlement` 750 AT 4

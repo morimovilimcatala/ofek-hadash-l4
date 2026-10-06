@@ -1,0 +1,461 @@
+-- חוזר לבעלויות תשע"ז/8 (17.8.2017): מענק לעובדי הוראה ותיקים במקצועות נדרשים עבור שנת הלימודים תשע"ז
+-- The persistence grant (מענק ההתמדה) for veteran teaching employees who
+-- teach a required subject: who is entitled, the amount and its
+-- pro-rating, what it is not counted for, and when the owners pay it.
+
+IMPORT prelude
+IMPORT common
+
+-- Time in the regulative rules is counted in school months of the year
+-- תשע"ז (common.l4: September 2016 = 1, August 2017 = 12).
+
+§ `חוזר תשע"ז/8 מענק התמדה`
+
+-- akn:preamble The letterhead, date, reference number, addressee, subject line, the Treasury wage controller's letter of 20.1.2015 the decision rests on, and the circular's stated purpose; no rule of its own.
+
+@desc The kinds of school the circular distinguishes for the seniority threshold (section 3a.2).
+DECLARE `kind of school` IS ONE OF
+    `an official school`
+    `an upper division`
+    `a recognised unofficial primary school or middle division`
+
+@desc One of the teaching employee's employments in the school year, at one school.
+DECLARE `employment at a school` HAS
+    `school kind`                       IS A `kind of school`
+    `position fraction at the school`   IS A NUMBER  @desc the (weighted) position held there, 1 = a full position, after any partial unpaid leave or half sabbatical
+
+@desc An absence during the school year, as section 4g asks about it.
+DECLARE `absence` HAS
+    `absence months`                        IS A NUMBER
+    `salary is paid from the employer's funds` IS A BOOLEAN @desc mourning leave, reserve duty, maternity leave, sick pay and the like (section 4g)
+
+DECLARE `leave status` IS ONE OF
+    `no leave`
+    `full sabbatical`
+    `full unpaid leave`
+    `partial unpaid leave`
+    `half sabbatical`
+
+@desc A teaching employee's school year תשע"ז, as far as this circular asks about it.
+DECLARE `persistence year` HAS
+    `rated in the teaching employees' grading`      IS A BOOLEAN
+    `employed by an owner of a ministry-supervised institution` IS A BOOLEAN
+    `employed in primary, middle or upper division schools` IS A BOOLEAN @desc in school year תשע"ז (section 2)
+    `subjects actually taught`                       IS A LIST OF STRING @desc the subjects taught in practice that school year, by annex A's names
+    `seniority for pay purposes`                     IS A NUMBER @desc years, counted per the takanon and the collective agreements (section 3a.2); an input
+    `years in formal education in Israel`            IS A NUMBER @desc in official or recognised unofficial institutions under the Compulsory Education Law 1949
+    `entitled to the jubilee grant this year`        IS A BOOLEAN @desc the jubilee grant (מענק יובל) is set elsewhere; an input
+    `employments`                                    IS A LIST OF `employment at a school`
+    `months employed in the year`                    IS A NUMBER @desc months of the school year for which the employee was employed, of 12
+    `absences`                                       IS A LIST OF `absence`
+    `leave in the year`                              IS A `leave status`
+
+§§ `1 כללי`
+
+-- §1a: the grant is paid up to and including school year תשע"ז; its
+-- extension is to be examined afresh after that.
+@ref akn:art_1__para_a
+DECLARE `school year` IS ONE OF
+    `תשע"ד`, `תשע"ה`, `תשע"ו`, `תשע"ז`, `a later school year`
+
+@ref akn:art_1__para_a
+GIVEN y IS A `school year`
+GIVETH A BOOLEAN
+DECIDE `the persistence grant is paid for` y IF
+    CONSIDER y
+    WHEN `a later school year` THEN FALSE
+    OTHERWISE TRUE
+
+-- akn:art_1__para_b Introduces the conditions that follow; no rule of its own.
+
+§§ `2 תחולה`
+
+@ref akn:art_2/p1 akn:art_2/p2
+GIVEN p IS A `persistence year`
+GIVETH A BOOLEAN
+DECIDE `the circular applies to` p IF
+        p's `rated in the teaching employees' grading`
+    AND p's `employed by an owner of a ministry-supervised institution`
+    AND p's `employed in primary, middle or upper division schools`
+
+-- §2's period of application, 1.9.2016 to 31.8.2017, in school months.
+@ref akn:art_2/p2
+GIVEN `school month number` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `the circular is in force in school month` `school month number` IF
+    `school month number` AT LEAST 1 AND `school month number` AT MOST 12
+
+§§ `3 תנאי הזכאות`
+
+-- Annex A, the required subjects, in the printed order. "מערכות הספק
+-- פיקוד ובקרה" is one subject printed over two lines (p17-p18).
+@ref akn:att_1__hc_1
+`the required subjects` MEANS
+    LIST "אלקטרוניקה ומחשבים",
+         "אנגלית",
+         "חשבונאות",
+         "חשמל ואלקטרוניקה",
+         "טכנולוגיה",
+         "כימיה",
+         "מדע וטכנולוגיה",
+         "מדעי המחשב",
+         "מדעים",
+         "מחשבים",
+         "מחשבים ומערכות",
+         "מינהל וכלכלה",
+         "מכטרוניקה",
+         "מכניקה הנדסית",
+         "מערכות אלקטרוניות",
+         "מערכות ביוטכנולוגיה",
+         "מערכות הספק פיקוד ובקרה",
+         "מערכות חשמל",
+         "מתמטיקה",
+         "פיסיקה",
+         "תשתיות מחשוב ותקשוב"
+
+GIVEN s IS A STRING
+GIVETH A BOOLEAN
+DECIDE `is a required subject` s IF
+    any (GIVEN r YIELD r EQUALS s) `the required subjects`
+
+@ref akn:art_3__para_a__subpara_1
+GIVEN p IS A `persistence year`
+GIVETH A BOOLEAN
+DECIDE `teaches a required subject` p IF
+    any (GIVEN s YIELD `is a required subject` s) (p's `subjects actually taught`)
+
+@ref akn:art_3__para_a__subpara_2__cls_a akn:art_3__para_a__subpara_2__cls_b
+GIVEN k IS A `kind of school`
+GIVETH A NUMBER
+DECIDE `seniority threshold at` k IS
+    CONSIDER k
+    WHEN `an official school`  THEN 25
+    WHEN `an upper division`   THEN 25
+    WHEN `a recognised unofficial primary school or middle division` THEN 30
+
+-- F-2016-17_tashaz_08-a: §3a.2 sets the threshold by the school the
+-- employee is employed in and does not say which governs an employee
+-- employed in schools of both kinds. The reading adopted: each employment
+-- qualifies against its own school's threshold, and only qualifying
+-- employment counts towards the grant (§4d's "חלקיות ההעסקה המזכה במענק").
+GIVEN p IS A `persistence year`, e IS AN `employment at a school`
+GIVETH A BOOLEAN
+DECIDE `the employment qualifies on seniority` p e IF
+    p's `seniority for pay purposes` AT LEAST `seniority threshold at` (e's `school kind`)
+
+GIVEN p IS A `persistence year`
+GIVETH A BOOLEAN
+DECIDE `meets the seniority condition` p IF
+    any (GIVEN e YIELD `the employment qualifies on seniority` p e) (p's `employments`)
+
+-- §3a.2's last paragraph: seniority is counted per the takanon and the
+-- collective agreements; here it is an input (`seniority for pay purposes`).
+@ref akn:art_3__para_a__subpara_2__cls_b/p2
+GIVEN p IS A `persistence year`
+GIVETH A NUMBER
+DECIDE `the seniority counted` p IS p's `seniority for pay purposes`
+
+@ref akn:art_3__para_a__subpara_3
+GIVEN p IS A `persistence year`
+GIVETH A BOOLEAN
+DECIDE `has ten years in formal education` p IF
+    p's `years in formal education in Israel` AT LEAST 10
+
+-- The fourth condition, printed as the heading of a "§4" (a corpus
+-- defect: the condition list continues into it).
+@ref akn:art_4/p1
+GIVEN p IS A `persistence year`
+GIVETH A BOOLEAN
+DECIDE `is not entitled to the jubilee grant` p IF
+    NOT p's `entitled to the jubilee grant this year`
+
+-- §5c, first paragraph: a full sabbatical or full unpaid leave excludes.
+@ref akn:art_5__para_c
+GIVEN p IS A `persistence year`
+GIVETH A BOOLEAN
+DECIDE `is on full sabbatical or full unpaid leave` p IF
+    CONSIDER p's `leave in the year`
+    WHEN `full sabbatical`   THEN TRUE
+    WHEN `full unpaid leave` THEN TRUE
+    OTHERWISE FALSE
+
+-- §5a: entitlement ends when the employee reaches entitlement to the
+-- jubilee grant; in a year in which it arises, no persistence grant. The
+-- same test as the fourth condition.
+@ref akn:art_5__para_a akn:art_5__para_a/p2
+GIVEN p IS A `persistence year`
+GIVETH A BOOLEAN
+DECIDE `the jubilee grant ends the persistence grant` p IF
+    p's `entitled to the jubilee grant this year`
+
+@ref akn:art_3__para_a
+GIVEN p IS A `persistence year`
+GIVETH A BOOLEAN
+DECIDE `entitled to the persistence grant` p IF
+        `the circular applies to` p
+    AND `teaches a required subject` p
+    AND `meets the seniority condition` p
+    AND `has ten years in formal education` p
+    AND `is not entitled to the jubilee grant` p
+    AND NOT `is on full sabbatical or full unpaid leave` p
+
+§§ `4 תשלום מענק ההתמדה`
+
+@ref akn:art_4__para_4__subpara_b
+`the full grant` MEANS 4000
+
+-- §4d: the position counted is the qualifying employment in all the
+-- employee's schools together; §4c and §4f cap it at a full position.
+@ref akn:art_4__para_4__subpara_d
+GIVEN p IS A `persistence year`
+GIVETH A NUMBER
+DECIDE `qualifying position fraction` p IS
+    sum (map (GIVEN e YIELD e's `position fraction at the school`)
+             (filter (GIVEN e YIELD `the employment qualifies on seniority` p e) (p's `employments`)))
+
+@ref akn:art_4__para_4__subpara_c
+GIVEN p IS A `persistence year`
+GIVETH A NUMBER
+DECIDE `position share` p IS
+    min (`qualifying position fraction` p) 1
+
+-- §4g: an absence paid from the employer's funds counts as employment;
+-- any other absence does not.
+@ref akn:art_4__para_4__subpara_g
+GIVEN p IS A `persistence year`
+GIVETH A NUMBER
+DECIDE `months of absence not counted` p IS
+    sum (map (GIVEN a YIELD a's `absence months`)
+             (filter (GIVEN a YIELD NOT a's `salary is paid from the employer's funds`) (p's `absences`)))
+
+@ref akn:art_4__para_4__subpara_e
+GIVEN p IS A `persistence year`
+GIVETH A NUMBER
+DECIDE `period share` p IS
+    max 0 (min (p's `months employed in the year` MINUS `months of absence not counted` p) 12) DIVIDED BY 12
+
+-- §5c, second paragraph: on partial unpaid leave or half a sabbatical the
+-- grant is proportional to the position actually held, which is what the
+-- employments' fractions record.
+@ref akn:art_5__para_c/p2
+GIVEN p IS A `persistence year`
+GIVETH A BOOLEAN
+DECIDE `paid in proportion to the position actually held` p IF
+    CONSIDER p's `leave in the year`
+    WHEN `partial unpaid leave` THEN TRUE
+    WHEN `half sabbatical`      THEN TRUE
+    OTHERWISE FALSE
+
+@export default The persistence grant a veteran teaching employee in a required subject is owed for school year 5777 (2016-17) under the owners' circular 5777/8
+@ref akn:art_4__para_4__subpara_f
+GIVEN p IS A `persistence year` @desc the employee's school year
+GIVETH A NUMBER
+DECIDE `persistence grant` p IS
+    IF `entitled to the persistence grant` p
+    THEN `the full grant` TIMES `position share` p TIMES `period share` p
+    ELSE 0
+
+-- §4h-§4i: what the grant is not.
+DECLARE `purpose` IS ONE OF
+    `the salary base in the salary tables`
+    `the base of any salary increment`
+    `salary for any matter`
+    `severance pay under the Severance Pay Law 1963`
+    `the hourly value of overtime, stand-bys and call-outs`
+    `incentive pay`
+    `duty rosters and shifts`
+
+@ref akn:art_4__para_4__subpara_h akn:art_4__para_4__subpara_i
+GIVEN u IS A `purpose`
+GIVETH A BOOLEAN
+DECIDE `the grant counts for` u IF FALSE
+
+-- §4j: no provident-fund deposits from the grant, except at the rates for
+-- expense-reimbursement components: 5% employer, 5% employee deduction.
+@ref akn:art_4__para_4__subpara_j
+`employer's provident contribution rate` MEANS 0.05
+@ref akn:art_4__para_4__subpara_j
+`employee's provident deduction rate` MEANS 0.05
+
+GIVEN g IS A NUMBER
+GIVETH A NUMBER
+DECIDE `employer's provident contribution on` g IS g TIMES `employer's provident contribution rate`
+
+GIVEN g IS A NUMBER
+GIVETH A NUMBER
+DECIDE `employee's provident deduction on` g IS g TIMES `employee's provident deduction rate`
+
+DECLARE `grant action` IS ONE OF
+    `pay the grant` HAS `grant paid` IS A NUMBER
+    `deposit from the grant to a study, pension or managers' insurance fund`
+    `publish the list of eligible teachers in the Oshar system`
+    `indemnify the owner under payments topic 613` HAS `indemnity paid` IS A NUMBER
+
+@ref akn:art_4__para_4__subpara_j
+GIVETH A DEONTIC Party `grant action`
+DECIDE `no other deposits from the grant` IS
+    PARTY `the employer`
+    SHANT `deposit from the grant to a study, pension or managers' insurance fund`
+    WITHIN 12
+    LEST BREACH BY `the employer` BECAUSE "section 4j: no provident deposits from the grant beyond the expense-reimbursement rates"
+
+-- §4a and §5e: paid in August for the school year just ended; for תשע"ז,
+-- with the salary of August 2017 (school month 12).
+@ref akn:art_4__para_4__subpara_a akn:art_5__para_e
+GIVEN p IS A `persistence year`
+GIVETH A DEONTIC Party `grant action`
+DECIDE `payment with August's salary` p IS
+    PARTY `the employer`
+    MUST  `pay the grant` `amount`
+          PROVIDED `amount` AT LEAST `persistence grant` p
+    WITHIN `month number` August
+    LEST BREACH BY `the employer` BECAUSE "sections 4a and 5e: the grant is paid with the salary of August 2017"
+
+-- §5e: the Ministry indemnifies the owners in the payments system, topic
+-- 613, in the August 2017 payments.
+@ref akn:art_5__para_e
+GIVEN p IS A `persistence year`
+GIVETH A DEONTIC Party `grant action`
+DECIDE `indemnity to the owner` p IS
+    PARTY `the Ministry of Education`
+    MUST  `indemnify the owner under payments topic 613` `amount`
+          PROVIDED `amount` AT LEAST `persistence grant` p
+    WITHIN `month number` August
+    LEST BREACH BY `the Ministry of Education` BECAUSE "section 5e: indemnity in the August 2017 payments"
+
+-- §5d: the list of eligible teachers for תשע"ז appears in the Oshar system;
+-- the circular names no date, read as before the August payment.
+@ref akn:art_5__para_d
+GIVETH A DEONTIC Party `grant action`
+DECIDE `the list of eligible teachers` IS
+    PARTY `the Ministry of Education`
+    MUST  `publish the list of eligible teachers in the Oshar system`
+    WITHIN `month number` August
+    LEST BREACH BY `the Ministry of Education` BECAUSE "section 5d: the list of eligible teachers appears in Oshar"
+
+§§ `5 הבהרות`
+
+-- §5b: employed above a full position by the State and an owner, the
+-- State pays by its position and the owner the rest, up to a full
+-- position in all.
+@ref akn:art_5__para_b akn:art_5__para_b/p2
+GIVEN `state fraction` IS A NUMBER, `owner fraction` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the owner's position share beside the State` `state fraction` `owner fraction` IS
+    min (`owner fraction`) (max 0 (1 MINUS `state fraction`))
+
+-- §5b: with several owners, each pays in proportion, up to a full position
+-- in all.
+@ref akn:art_5__para_b
+GIVEN `this owner's fraction` IS A NUMBER, `all owners' fractions` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `this owner's share among several` `this owner's fraction` `all owners' fractions` IS
+    IF `all owners' fractions` AT MOST 1
+    THEN `this owner's fraction`
+    ELSE `this owner's fraction` TIMES (1 DIVIDED BY `all owners' fractions`)
+
+-- akn:art_5__para_e/p2 akn:art_5__para_e/p3 akn:art_5__para_e/p4 akn:art_5__para_e/p5 akn:art_5__para_e/p6 akn:art_5__para_e/p7 akn:art_5__para_e/p8 akn:art_5__para_e/p9 akn:art_5__para_e/p10 akn:art_5__para_e/p11 akn:art_5__para_e/p12 akn:art_5__para_e/p13 akn:art_5__para_e/p14 akn:art_5__para_e/p15 akn:art_5__para_e/p16 akn:art_5__para_e/p17 akn:art_5__para_e/p18 akn:art_5__para_e/p19 The sign-off and the copies list, which the corpus nests under section 5e; no rule.
+
+-- Findings.
+
+-- F-2016-17_tashaz_08-a: an employee in an official school AND a
+-- recognised unofficial primary school, with 27 years: §3a.2(a) is met
+-- and §3a.2(b) is not.
+`a 27-year employee in both kinds of school` MEANS
+    `persistence year` WITH
+        `rated in the teaching employees' grading`        IS TRUE
+        `employed by an owner of a ministry-supervised institution` IS TRUE
+        `employed in primary, middle or upper division schools` IS TRUE
+        `subjects actually taught`                        IS LIST "כימיה"
+        `seniority for pay purposes`                      IS 27
+        `years in formal education in Israel`             IS 27
+        `entitled to the jubilee grant this year`         IS FALSE
+        `employments`                                     IS LIST `employment at a school` `an official school` 0.5, `employment at a school` `a recognised unofficial primary school or middle division` 0.5
+        `months employed in the year`                     IS 12
+        `absences`                                        IS EMPTY
+        `leave in the year`                               IS `no leave`
+
+`section 3a.2 gives an employee in both kinds of school two thresholds` MEANS
+    map (GIVEN e YIELD `the employment qualifies on seniority` `a 27-year employee in both kinds of school` e)
+        (`a 27-year employee in both kinds of school`'s `employments`)
+    EQUALS LIST TRUE, FALSE
+#ASSERT `section 3a.2 gives an employee in both kinds of school two thresholds`
+
+-- Under the adopted reading only the official school's half position counts.
+#ASSERT `persistence grant` `a 27-year employee in both kinds of school` EQUALS 2000
+
+-- F-2016-17_tashaz_08-b: the position the grant is pro-rated by — the
+-- employee's whole (weighted) position (§4f), or only the part that
+-- teaches a required subject (§4d's "employment entitling to the grant",
+-- §3a.1)? A full-position teacher with a quarter of the post in a required
+-- subject gets 4,000 under one reading and 1,000 under the other. The
+-- reading adopted is the whole position: §3a.1 makes teaching a required
+-- subject a condition, not a measure.
+`the grant on the whole position` MEANS `the full grant` TIMES 1
+`the grant on the required-subject part` MEANS `the full grant` TIMES 0.25
+`the two readings of the position give different grants` MEANS
+    NOT (`the grant on the whole position` EQUALS `the grant on the required-subject part`)
+#ASSERT `the two readings of the position give different grants`
+
+-- Worked examples. The figures are placeholders, not from any payslip.
+`a 27-year mathematics teacher in an official school` MEANS
+    `persistence year` WITH
+        `rated in the teaching employees' grading`        IS TRUE
+        `employed by an owner of a ministry-supervised institution` IS TRUE
+        `employed in primary, middle or upper division schools` IS TRUE
+        `subjects actually taught`                        IS LIST "מתמטיקה"
+        `seniority for pay purposes`                      IS 27
+        `years in formal education in Israel`             IS 27
+        `entitled to the jubilee grant this year`         IS FALSE
+        `employments`                                     IS LIST `employment at a school` `an official school` 1
+        `months employed in the year`                     IS 12
+        `absences`                                        IS LIST `absence` 1 TRUE
+        `leave in the year`                               IS `no leave`
+
+#ASSERT `persistence grant` `a 27-year mathematics teacher in an official school` EQUALS 4000
+
+-- The same teacher in a recognised unofficial primary school does not
+-- reach that school's 30 years.
+`a 27-year teacher in a recognised unofficial primary school` MEANS
+    `persistence year` WITH
+        `rated in the teaching employees' grading`        IS TRUE
+        `employed by an owner of a ministry-supervised institution` IS TRUE
+        `employed in primary, middle or upper division schools` IS TRUE
+        `subjects actually taught`                        IS LIST "אנגלית"
+        `seniority for pay purposes`                      IS 27
+        `years in formal education in Israel`             IS 27
+        `entitled to the jubilee grant this year`         IS FALSE
+        `employments`                                     IS LIST `employment at a school` `a recognised unofficial primary school or middle division` 1
+        `months employed in the year`                     IS 12
+        `absences`                                        IS EMPTY
+        `leave in the year`                               IS `no leave`
+
+#ASSERT `persistence grant` `a 27-year teacher in a recognised unofficial primary school` EQUALS 0
+
+-- 120% of a position is capped at 100% (§4c); five months, two of them of
+-- unpaid absence, give a quarter of the year (§4e, §4g).
+`an over-full position for part of the year` MEANS
+    `persistence year` WITH
+        `rated in the teaching employees' grading`        IS TRUE
+        `employed by an owner of a ministry-supervised institution` IS TRUE
+        `employed in primary, middle or upper division schools` IS TRUE
+        `subjects actually taught`                        IS LIST "פיסיקה", "היסטוריה"
+        `seniority for pay purposes`                      IS 26
+        `years in formal education in Israel`             IS 26
+        `entitled to the jubilee grant this year`         IS FALSE
+        `employments`                                     IS LIST `employment at a school` `an upper division` 0.7, `employment at a school` `an official school` 0.5
+        `months employed in the year`                     IS 5
+        `absences`                                        IS LIST `absence` 2 FALSE
+        `leave in the year`                               IS `no leave`
+
+#ASSERT `persistence grant` `an over-full position for part of the year` EQUALS 1000
+
+#ASSERT `the owner's position share beside the State` 0.6 0.7 EQUALS 0.4
+#ASSERT `this owner's share among several` 0.6 1.2 EQUALS 0.5
+#ASSERT `employer's provident contribution on` 4000 EQUALS 200
+#ASSERT NOT `the persistence grant is paid for` `a later school year`
+
+#TRACE `payment with August's salary` `a 27-year mathematics teacher in an official school` AT 0 WITH
+    PARTY `the employer` DOES `pay the grant` 4000 AT 12
+#TRACE `payment with August's salary` `a 27-year mathematics teacher in an official school` AT 0 WITH
+    PARTY `the employer` DOES `pay the grant` 2000 AT 12

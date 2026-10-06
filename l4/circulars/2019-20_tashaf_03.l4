@@ -1,0 +1,220 @@
+-- חוזר לבעלויות תש"פ/3 (3.2.2020): עדכון תוספת שקלית 2016 לעובדי הוראה
+-- בחטיבה העליונה ובכיתות יג'-יד' ועדכון תוספת 87' מעבר לרפורמה למנהלים
+-- בעוז לתמורה.
+-- The index-linked "shekel supplement 2016" for upper-secondary teachers
+-- from 1.1.2020, and the principals' '87 transition supplement.
+
+IMPORT prelude
+IMPORT common
+IMPORT daydate
+
+§ `תש"פ/3 עדכון תוספת שקלית 2016 בחטיבה העליונה ותוספת 87' למנהלים`
+
+-- akn:preamble The letterhead, date, reference number, addressee, greeting and subject line; no rule.
+
+@desc A teaching employee as far as this circular asks about him or her.
+DECLARE `upper-secondary employee` HAS
+    `graded on the teaching-employee scale`        IS A BOOLEAN @desc graded in the teaching employees' grading (דירוג עובדי הוראה)
+    `employed by an owner of a supervised institution` IS A BOOLEAN @desc employed by an owning body of an institution the Ministry of Education supervises
+    `employed in upper secondary or grades 13-14`  IS A BOOLEAN @desc employed in the upper-secondary division (חטיבה עליונה) or in grades 13-14
+    `employed under Oz LeTmura`                    IS A BOOLEAN @desc employed on the terms of the Oz LeTmura reform
+    `is a principal`                               IS A BOOLEAN @desc a school principal (מנהל)
+
+§§ `Index linkage and its purpose`
+
+-- The circular rests on the wage agreements of 14.3.2018 (§5(a)(b), §5(b)(b))
+-- and 23.3.2017 (§4(d)), and on earlier circulars תשע"ז/4, תשע"ח/5 and
+-- תשע"ט/3; none of them is in this file. The supplement's payment rules
+-- (who is paid it, pro-rating) come from those instruments.
+@ref akn:preamble/p13 akn:preamble/p14
+GIVETH A BOOLEAN
+DECIDE `the shekel supplement 2016 is linked to the consumer price index` IS TRUE
+
+@desc The consumer price index for a month, as published; an input of this file.
+ASSUME `consumer price index for` IS A FUNCTION FROM DATE TO NUMBER
+
+-- ¶15–16: the update is for the period from 1.1.2020, and the linkage is the
+-- December 2019 index (published January 2020) against December 2018's.
+@ref akn:preamble/p15
+`the period this circular updates begins` MEANS Date 1 1 2020
+
+@ref akn:preamble/p16
+GIVETH A NUMBER
+DECIDE `the linkage factor` IS
+    `consumer price index for` (Date 1 12 2019)
+    DIVIDED BY `consumer price index for` (Date 1 12 2018)
+
+§§ `Applicability`
+
+@ref akn:preamble/p17 akn:preamble/p18 akn:preamble/p19
+GIVEN e IS AN `upper-secondary employee`
+GIVETH A BOOLEAN
+DECIDE `the circular applies to` e IF
+        e's `graded on the teaching-employee scale`
+    AND e's `employed by an owner of a supervised institution`
+    AND e's `employed in upper secondary or grades 13-14`
+-- ¶19: Oz LeTmura and non-reform employees alike, so the reform is not a condition.
+
+§§ `א. Updating the shekel supplement 2016`
+
+
+-- Which of the two printed amounts an employee takes. ¶3's group is
+-- "teachers not in Oz LeTmura AND principals", so a principal takes the
+-- lower amount even under Oz LeTmura.
+DECLARE `supplement group` IS ONE OF
+    `Oz LeTmura teacher`
+    `non-reform teacher or principal`
+
+GIVEN e IS AN `upper-secondary employee`
+GIVETH A `supplement group`
+DECIDE `the supplement group of` e IS
+    IF e's `employed under Oz LeTmura` AND NOT e's `is a principal`
+    THEN `Oz LeTmura teacher`
+    ELSE `non-reform teacher or principal`
+
+-- The amounts are per month, as printed, with the dates they take effect.
+-- The 1.1.2020 amounts replace what was paid for that period ("במקום … כפי
+-- ששולם בגין אותה תקופה"), so they are owed retroactively.
+@ref akn:art_a/p1 akn:art_a/p2 akn:art_a/p3 akn:art_a/p4 akn:art_a/p5 akn:art_a/p6
+GIVEN g IS A `supplement group`, d IS A DATE
+GIVETH A MAYBE NUMBER
+DECIDE `monthly shekel supplement 2016` g d IS
+    CONSIDER g
+    WHEN `Oz LeTmura teacher` THEN
+        BRANCH IF d AT LEAST Date 1 9 2020 THEN JUST 1282.69
+               IF d AT LEAST Date 1 1 2020 THEN JUST 1242.05
+               OTHERWISE NOTHING
+    WHEN `non-reform teacher or principal` THEN
+        BRANCH IF d AT LEAST Date 1 9 2020 THEN JUST 1065.83
+               IF d AT LEAST Date 1 1 2020 THEN JUST 1025.19
+               OTHERWISE NOTHING
+
+-- What had been paid for 1.1.2020–31.8.2020, as the circular states it.
+@ref akn:art_a/p2 akn:art_a/p3
+GIVEN g IS A `supplement group`
+GIVETH A NUMBER
+DECIDE `amount paid before this update` g IS
+    CONSIDER g
+    WHEN `Oz LeTmura teacher`               THEN 1153.84
+    WHEN `non-reform teacher or principal`  THEN 938.27
+
+GIVEN g IS A `supplement group`
+GIVETH A NUMBER
+DECIDE `monthly difference owed for January to August 2020` g IS
+    CONSIDER `monthly shekel supplement 2016` g (Date 1 1 2020)
+    WHEN JUST a THEN a MINUS `amount paid before this update` g
+    WHEN NOTHING THEN 0
+
+-- The amounts for 1.1.2020 are not the earlier ones times one linkage
+-- factor (Oz LeTmura +7.6%, the other group +9.3%, part ב's supplement
+-- +0.6%): ¶14 says the supplement is paid in several steps, and the circular
+-- does not show which step of the agreements makes up the rest. The amounts
+-- are therefore encoded as data, never derived.
+
+DECLARE `supplement action` IS ONE OF
+    `pay the updated supplement` HAS `amount paid` IS A NUMBER
+    `reimburse the owner`        HAS `through` IS A `reimbursement route`
+
+DECLARE `reimbursement route` IS ONE OF
+    `in the cost of the relevant hour in the payments system`
+    `in the payments system under topic 558`
+
+GIVEN e IS AN `upper-secondary employee`, d IS A DATE
+GIVETH A DEONTIC Party `supplement action`
+DECIDE `paying the updated supplement` e d IS
+    CONSIDER `monthly shekel supplement 2016` (`the supplement group of` e) d
+    WHEN JUST a THEN
+        IF `the circular applies to` e
+        THEN PARTY `the employer`
+             MUST  `pay the updated supplement` `amount paid`
+                   PROVIDED `amount paid` AT LEAST a
+             LEST BREACH BY `the employer` BECAUSE "תש\"פ/3 part א: the shekel supplement 2016 is paid at the updated amount"
+        ELSE FULFILLED
+    WHEN NOTHING THEN FULFILLED
+
+@ref akn:art_a/p7
+GIVETH A DEONTIC Party `supplement action`
+DECIDE `reimbursing the owners for the supplement` IS
+    PARTY `the Ministry of Education`
+    MUST  `reimburse the owner` `in the cost of the relevant hour in the payments system`
+    LEST BREACH BY `the Ministry of Education` BECAUSE "תש\"פ/3 part א: the owners are reimbursed in the cost of the relevant hour"
+
+§§ `ב. The '87 transition supplement for principals in Oz LeTmura`
+
+
+-- ¶1 rests on §18 of circular תשע"ח/9, which is not in this file.
+@ref akn:art_b/p1
+GIVEN e IS AN `upper-secondary employee`
+GIVETH A BOOLEAN
+DECIDE `entitled to the '87 transition supplement` e IF
+        `the circular applies to` e
+    AND e's `is a principal`
+    AND e's `employed under Oz LeTmura`
+
+@ref akn:art_b/p2
+GIVEN d IS A DATE
+GIVETH A MAYBE NUMBER
+DECIDE `monthly '87 transition supplement` d IS
+    IF d AT LEAST Date 1 1 2020
+    THEN JUST 1024.73
+    ELSE NOTHING
+
+`the '87 supplement paid before this update` MEANS 1018.62
+
+@ref akn:art_b/p3
+GIVETH A DEONTIC Party `supplement action`
+DECIDE `reimbursing the owners for the '87 supplement` IS
+    PARTY `the Ministry of Education`
+    MUST  `reimburse the owner` `in the payments system under topic 558`
+    LEST BREACH BY `the Ministry of Education` BECAUSE "תש\"פ/3 part ב: the owners are reimbursed under payments topic 558"
+
+-- akn:conclusions The sign-off, signatures and copies list; no rule.
+
+-- Examples.
+`an Oz LeTmura teacher` MEANS
+    `upper-secondary employee` WITH
+        `graded on the teaching-employee scale`            IS TRUE
+        `employed by an owner of a supervised institution` IS TRUE
+        `employed in upper secondary or grades 13-14`      IS TRUE
+        `employed under Oz LeTmura`                        IS TRUE
+        `is a principal`                                   IS FALSE
+
+`an Oz LeTmura principal` MEANS
+    `upper-secondary employee` WITH
+        `graded on the teaching-employee scale`            IS TRUE
+        `employed by an owner of a supervised institution` IS TRUE
+        `employed in upper secondary or grades 13-14`      IS TRUE
+        `employed under Oz LeTmura`                        IS TRUE
+        `is a principal`                                   IS TRUE
+
+`a junior-high teacher` MEANS
+    `upper-secondary employee` WITH
+        `graded on the teaching-employee scale`            IS TRUE
+        `employed by an owner of a supervised institution` IS TRUE
+        `employed in upper secondary or grades 13-14`      IS FALSE
+        `employed under Oz LeTmura`                        IS FALSE
+        `is a principal`                                   IS FALSE
+
+#ASSERT `the circular applies to` `an Oz LeTmura teacher`
+#ASSERT NOT `the circular applies to` `a junior-high teacher`
+#ASSERT `monthly shekel supplement 2016` (`the supplement group of` `an Oz LeTmura teacher`) (Date 1 3 2020) EQUALS JUST 1242.05
+#ASSERT `monthly shekel supplement 2016` (`the supplement group of` `an Oz LeTmura principal`) (Date 1 3 2020) EQUALS JUST 1025.19
+#ASSERT `monthly shekel supplement 2016` `Oz LeTmura teacher` (Date 1 10 2020) EQUALS JUST 1282.69
+#ASSERT `monthly shekel supplement 2016` `Oz LeTmura teacher` (Date 1 12 2019) EQUALS NOTHING
+#ASSERT `monthly difference owed for January to August 2020` `Oz LeTmura teacher` EQUALS 88.21
+#ASSERT `monthly difference owed for January to August 2020` `non-reform teacher or principal` EQUALS 86.92
+#ASSERT `entitled to the '87 transition supplement` `an Oz LeTmura principal`
+#ASSERT NOT `entitled to the '87 transition supplement` `an Oz LeTmura teacher`
+#ASSERT `monthly '87 transition supplement` (Date 1 2 2020) EQUALS JUST 1024.73
+
+-- The '87 supplement's own update is the one part a single linkage factor
+-- explains: about +0.6%.
+#EVAL `monthly '87 transition supplement` (Date 1 2 2020)
+#EVAL 1024.73 DIVIDED BY `the '87 supplement paid before this update`
+
+-- Time in months from January 2020: paid at the updated amount, the duty is
+-- met; paid at the old amount, it is still owed (the circular sets no deadline).
+#TRACE `paying the updated supplement` `an Oz LeTmura teacher` (Date 1 3 2020) AT 0 WITH
+    PARTY `the employer` DOES `pay the updated supplement` 1242.05 AT 1
+#TRACE `paying the updated supplement` `an Oz LeTmura teacher` (Date 1 3 2020) AT 0 WITH
+    PARTY `the employer` DOES `pay the updated supplement` 1153.84 AT 1

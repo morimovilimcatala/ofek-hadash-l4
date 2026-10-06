@@ -1,0 +1,261 @@
+-- חוזר לבעלויות תשפ"א/2, 28 October 2020: הסכם קיבוצי מיוחד מיום 15.10.2020,
+-- עובדי הוראה במכללות להכשרת עובדי הוראה בתקופת חירום (נגיף קורונה)
+-- The special collective agreement for teaching employees at teacher-training
+-- colleges during the coronavirus emergency, as the circular quotes it: whom
+-- it covers, its period, the academic duties and deferred duties, pay
+-- unchanged and nothing extra for deferred duties, reporting, and deduction.
+
+IMPORT prelude
+IMPORT common
+
+-- Time in this file is counted in DAYS from the day school year תשפ"א
+-- begins at the institution (day 0); when the agreement period ends — the
+-- start of the academic year תשפ"ב at that institution — is an input.
+
+§ `חוזר תשפ"א/2 הסכם קיבוצי מיוחד — מכללות להכשרת עובדי הוראה, קורונה`
+
+-- akn:preamble The letterhead, date (28.10.2020), reference number, addressee (the owners of teacher-training colleges), greeting and subject line; the closing lines report that the agreement was signed on 15.10.2020 between the State and the Teachers' Union.
+
+@desc The parties of the agreement as the circular quotes it. common.l4's Party has no college or labour-relations commissioner, so the file declares its own.
+DECLARE `college party` IS ONE OF
+    `the teaching employee at the college`
+    `the college`
+    `the director`
+    `the labour-relations commissioner`
+
+§§ `1 תחולת ההסכם`
+
+@desc A teaching employee at a teacher-training college, as far as the agreement asks about it.
+DECLARE `college teaching employee` HAS
+    `employed at a teacher-training college`        IS A BOOLEAN
+    `graded in the teaching-employees grading`      IS A BOOLEAN
+    `salary under the teaching employees' agreements` IS A BOOLEAN
+    `employed in the civil service`                 IS A BOOLEAN
+    `the college signed the accession letter`       IS A BOOLEAN @desc the college signed the accession letter in the wording of annex A to the agreement
+    `salary for the work actually done`             IS A NUMBER  @desc the salary the agreements and arrangements would pay for the employee's actual work in תשפ"א, in shekels; an input
+    `reporting-dependent components`                IS A NUMBER  @desc the part of that salary that depends on reporting (travel allowance among them), in shekels
+    `share of the duties fulfilled`                 IS A NUMBER  @desc the share of the academic duties the employee fulfilled (1 = all), for the proportional reduction of section 5
+
+@ref akn:art_1 akn:art_1__para_a akn:art_1__para_b akn:art_1__para_b/p2
+GIVEN e IS A `college teaching employee`
+GIVETH A BOOLEAN
+DECIDE `the agreement applies to` e IF
+        e's `employed at a teacher-training college`
+    AND e's `graded in the teaching-employees grading`
+    AND e's `salary under the teaching employees' agreements`
+    AND (    e's `employed in the civil service`
+         OR  e's `the college signed the accession letter`)
+
+DECLARE `agreement action` IS ONE OF
+    `send the signed accession letter to the labour-relations commissioner`
+    `send a copy of the accession letter to the Ministry's college staffing officer`
+    `perform the academic duties`
+    `come and teach on campus`
+    `complete the deferred duties`
+    `report a duty prevented` HAS `duty prevented` IS A STRING
+    `reduce or set off the consideration` HAS `amount reduced` IS A NUMBER
+
+-- 1ב ¶3-¶4: the signed letter goes to the labour-relations commissioner at
+-- the Ministry of Labour and Welfare, with a copy to the Ministry of
+-- Education's officer named. The text sets no deadline; the agreement
+-- period bounds it.
+@ref akn:art_1__para_b/p3 akn:art_1__para_b/p4
+GIVEN `the agreement period in days` IS A NUMBER @desc days from the start of school year 2020-21 at the institution to the start of academic year 2021-22 there
+GIVETH A DEONTIC `college party` `agreement action`
+DECIDE `sending the accession letter` `the agreement period in days` IS
+    (PARTY `the college`
+     MUST  `send the signed accession letter to the labour-relations commissioner`
+     WITHIN `the agreement period in days`
+     LEST  BREACH BY `the college` BECAUSE "circular 2020-21/2 1b: the signed accession letter is sent to the labour-relations commissioner")
+    RAND
+    (PARTY `the college`
+     MUST  `send a copy of the accession letter to the Ministry's college staffing officer`
+     WITHIN `the agreement period in days`
+     LEST  BREACH BY `the college` BECAUSE "circular 2020-21/2 1b: a copy of the accession letter is sent to the Ministry of Education")
+
+§§ `2 תקופת ההסכם ותוקפו`
+
+@ref akn:art_2/p1
+GIVEN `day` IS A NUMBER @desc days from the start of school year 2020-21 at the institution
+      `the agreement period in days` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `within the agreement period` `day` `the agreement period in days` IF
+        `day` AT LEAST 0
+    AND `day` LESS THAN `the agreement period in days`
+
+-- ¶2-¶3: "שנת הלימודים תשפ"א" is semesters A, B and summer of the academic
+-- year 2020-21; the employees go on performing every academic duty of the
+-- year, as the institution decides.
+DECLARE `semester` IS ONE OF `semester A`, `semester B`, `summer semester`
+
+@ref akn:art_2/p2 akn:art_2/p3
+`the school year תשפ"א in the agreement` MEANS
+    LIST `semester A`, `semester B`, `summer semester`
+
+GIVEN `the agreement period in days` IS A NUMBER
+GIVETH A DEONTIC `college party` `agreement action`
+DECIDE `performing the academic duties` `the agreement period in days` IS
+    PARTY `the teaching employee at the college`
+    MUST  `perform the academic duties`
+    WITHIN `the agreement period in days`
+    LEST  BREACH BY `the teaching employee at the college` BECAUSE "circular 2020-21/2 2: the employees go on performing all academic duties of 2020-21"
+
+-- ¶4: the institution may hold part of the studies face to face; on three
+-- days' notice the lecturer must come and teach on campus, subject to the
+-- Purple Badge rules and the Ministry of Health's updates (an input).
+@ref akn:art_2/p4
+`notice for teaching on campus in days` MEANS 3
+
+GIVEN `the health rules allow it` IS A BOOLEAN @desc whether the Purple Badge rules and the Ministry of Health's updates in force allow the face-to-face teaching
+GIVETH A DEONTIC `college party` `agreement action`
+DECIDE `teaching on campus on notice` `the health rules allow it` IS
+    IF `the health rules allow it`
+    THEN PARTY `the teaching employee at the college`
+         MUST  `come and teach on campus`
+         WITHIN `notice for teaching on campus in days`
+         LEST  BREACH BY `the teaching employee at the college` BECAUSE "circular 2020-21/2 2: on three days' notice the lecturer comes and teaches on campus"
+    ELSE FULFILLED
+
+-- ¶5: duties that could not be done in the year are completed in full by
+-- the end of the agreement period, whatever the institution's vacation
+-- arrangements, as the institution directs.
+@ref akn:art_2/p5
+GIVEN `the agreement period in days` IS A NUMBER
+GIVETH A DEONTIC `college party` `agreement action`
+DECIDE `completing the deferred duties` `the agreement period in days` IS
+    PARTY `the teaching employee at the college`
+    MUST  `complete the deferred duties`
+    WITHIN `the agreement period in days`
+    LEST  BREACH BY `the teaching employee at the college` BECAUSE "circular 2020-21/2 2: deferred academic duties are completed in full by the end of the agreement period"
+
+-- ¶6: the salary for the work actually done is unchanged ("התמורה"); it
+-- does not include the reporting-dependent components, which go on under
+-- their own rules.
+@ref akn:art_2/p6
+GIVEN e IS A `college teaching employee`
+GIVETH A NUMBER
+DECIDE `the consideration` e IS
+    e's `salary for the work actually done` MINUS e's `reporting-dependent components`
+
+§§ `3 תשלום שכר`
+
+-- Nothing beyond the consideration for deferred duties, even when they are
+-- done when no studies would be held, or after the school year.
+@ref akn:art_3
+GIVEN `done outside the usual study times` IS A BOOLEAN
+      `done after the school year` IS A BOOLEAN
+GIVETH A NUMBER
+DECIDE `additional pay for deferred duties` `done outside the usual study times` `done after the school year` IS
+    0
+
+§§ `4 דיווח`
+
+@ref akn:art_4
+GIVEN `the agreement period in days` IS A NUMBER
+GIVETH A DEONTIC `college party` `agreement action`
+DECIDE `reporting prevented duties` `the agreement period in days` IS
+    PARTY `the teaching employee at the college`
+    MUST  `report a duty prevented` `duty`
+    WITHIN `the agreement period in days`
+    LEST  BREACH BY `the teaching employee at the college` BECAUSE "circular 2020-21/2 4: the employee reports to the director every academic duty he was prevented from doing"
+
+§§ `5 ניכוי שכר`
+
+-- F-2020-21_tashpa_02-a: section 5 deducts from an employee who "did not
+-- meet the conditions of section 3", but section 3 lays no duty on the
+-- employee: it denies extra pay. The duties the employee can fail to meet
+-- are section 2's.
+DECLARE `employee duty` IS ONE OF
+    `go on performing the academic duties`
+    `teach on campus on three days' notice`
+    `complete the deferred duties by the end of the period`
+    `claim no pay beyond the consideration`
+
+`the duties section 2 lays on the employee` MEANS
+    LIST `go on performing the academic duties`,
+         `teach on campus on three days' notice`,
+         `complete the deferred duties by the end of the period`
+
+`the duties section 3 lays on the employee` MEANS
+    EMPTY
+
+`section 3 lays no duty on the employee that section 5 can find unmet` MEANS
+        null `the duties section 3 lays on the employee`
+    AND NOT null `the duties section 2 lays on the employee`
+#ASSERT `section 3 lays no duty on the employee that section 5 can find unmet`
+
+-- The reading adopted (F-2020-21_tashpa_02-a): "the conditions of section
+-- 3" are the academic and deferred duties section 2 sets, which section 3
+-- calls the basic condition of paying the full consideration.
+GIVEN e IS A `college teaching employee`
+      `the director determines the conditions were not met` IS A BOOLEAN @desc the director's determination under section 5
+GIVETH A NUMBER
+DECIDE `consideration due` e `the director determines the conditions were not met` IS
+    IF `the director determines the conditions were not met`
+    THEN `the consideration` e TIMES e's `share of the duties fulfilled`
+    ELSE `the consideration` e
+
+@ref akn:art_5/p1
+GIVEN e IS A `college teaching employee`
+      `the director determines the conditions were not met` IS A BOOLEAN
+GIVETH A DEONTIC `college party` `agreement action`
+DECIDE `reducing the consideration` e `the director determines the conditions were not met` IS
+    IF `the director determines the conditions were not met`
+    THEN PARTY `the college`
+         MAY   `reduce or set off the consideration` `reduction`
+               PROVIDED `reduction` AT MOST `the consideration` e MINUS `consideration due` e TRUE
+    ELSE PARTY `the college`
+         SHANT `reduce or set off the consideration` `reduction`
+               PROVIDED `reduction` GREATER THAN 0
+         WITHIN 365
+         LEST  BREACH BY `the college` BECAUSE "circular 2020-21/2 5: no reduction without the director's determination"
+
+-- akn:art_5/p2 The heading of the list of enclosures ("מצ"ב"); no rule.
+-- akn:art_5__para_1 Enclosure 1, the text of the agreement of 15.10.2020; it is in neither the source PDF nor the corpus; no rule.
+-- akn:art_5__para_2 Enclosure 2, the accession letter (annex A); it is in neither the source PDF nor the corpus; no rule.
+
+-- akn:conclusions The signatures and copies list; no rule.
+
+-- Worked examples. The salary figures are placeholders: the circular leaves
+-- the salary to the agreements it does not restate.
+`a lecturer at a college that acceded` MEANS
+    `college teaching employee` WITH
+        `employed at a teacher-training college`          IS TRUE
+        `graded in the teaching-employees grading`        IS TRUE
+        `salary under the teaching employees' agreements` IS TRUE
+        `employed in the civil service`                   IS FALSE
+        `the college signed the accession letter`         IS TRUE
+        `salary for the work actually done`               IS 10000
+        `reporting-dependent components`                  IS 500
+        `share of the duties fulfilled`                   IS 0.8
+
+`a lecturer at a college that did not accede` MEANS
+    `college teaching employee` WITH
+        `employed at a teacher-training college`          IS TRUE
+        `graded in the teaching-employees grading`        IS TRUE
+        `salary under the teaching employees' agreements` IS TRUE
+        `employed in the civil service`                   IS FALSE
+        `the college signed the accession letter`         IS FALSE
+        `salary for the work actually done`               IS 10000
+        `reporting-dependent components`                  IS 0
+        `share of the duties fulfilled`                   IS 1
+
+#ASSERT `the agreement applies to` `a lecturer at a college that acceded`
+#ASSERT NOT `the agreement applies to` `a lecturer at a college that did not accede`
+#ASSERT `the consideration` `a lecturer at a college that acceded` EQUALS 9500
+#ASSERT `consideration due` `a lecturer at a college that acceded` TRUE EQUALS 7600
+#ASSERT `additional pay for deferred duties` TRUE TRUE EQUALS 0
+#ASSERT `within the agreement period` 300 330
+#ASSERT count `the school year תשפ"א in the agreement` EQUALS 3
+
+#TRACE `teaching on campus on notice` TRUE AT 0 WITH
+    PARTY `the teaching employee at the college` DOES `come and teach on campus` AT 3
+#TRACE `teaching on campus on notice` TRUE AT 0 WITH
+    PARTY `the teaching employee at the college` DOES `come and teach on campus` AT 5
+#TRACE `completing the deferred duties` 330 AT 0 WITH
+    PARTY `the teaching employee at the college` DOES `complete the deferred duties` AT 320
+#TRACE `sending the accession letter` 330 AT 0 WITH
+    PARTY `the college` DOES `send the signed accession letter to the labour-relations commissioner` AT 10
+    PARTY `the college` DOES `send a copy of the accession letter to the Ministry's college staffing officer` AT 10
+#TRACE `reducing the consideration` `a lecturer at a college that acceded` FALSE AT 0 WITH
+    PARTY `the college` DOES `reduce or set off the consideration` 1000 AT 30

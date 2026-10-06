@@ -1,0 +1,232 @@
+-- חוזר לבעלויות תשפ"ג/6 (16.2.2023): עדכון תוספת שקלית 2016 לעובדי הוראה
+-- בחטיבה העליונה ובכיתות יג'-יד' ועדכון תוספת 87 מעבר לרפורמה למנהלים בעוז לתמורה.
+-- The index update of two shekel supplements from 1.1.2023: who is
+-- covered, the amounts, and when the owners pay the principals' one.
+
+IMPORT prelude
+IMPORT common
+
+-- Time in this file is counted in salary MONTHS from December 2022
+-- (month 0): January 2023 is 1, February 2023 is 2.
+`January 2023`  MEANS 1
+`February 2023` MEANS 2
+
+§ `חוזר לבעלויות תשפ"ג/6`
+
+-- akn:preamble The letterhead, date, reference number, circular number, addressee (the owners of educational institutions), greeting and subject line; no rule.
+-- akn:preamble/p13 The sources: the wage agreements of 14.3.2018 (§§5א(ב), 5ב(ב)) and 23.3.2017 (§4ד) and circular תשפ"ב/4 — the 2016 shekel supplement is linked to the consumer price index; the amounts below carry it.
+-- akn:preamble/p14 The circular's purpose: to publish the index update of the 2016 shekel supplement from 1.1.2023; the update itself is section א.
+
+§§ `Indexation`
+
+-- ¶15: the supplement is linked to the December 2022 index (published in
+-- January 2023) against the December 2020 index (published in January
+-- 2021). The circular prints neither index nor the agreed base amount, so
+-- both are inputs; the amounts it prints in section א are data below.
+@ref akn:preamble/p15
+GIVEN `amount at the base index` IS A NUMBER @desc the supplement's amount as the agreements set it at the December 2020 index (not printed in this circular)
+      `index of December 2022`  IS A NUMBER @desc the consumer price index for December 2022, published in January 2023
+      `index of December 2020`  IS A NUMBER @desc the consumer price index for December 2020, published in January 2021
+GIVETH A NUMBER
+DECIDE `the indexed amount` `amount at the base index` `index of December 2022` `index of December 2020` IS
+    `amount at the base index` TIMES (`index of December 2022` DIVIDED BY `index of December 2020`)
+
+§§ `Application`
+
+@desc A teaching employee, as far as this circular asks about one.
+DECLARE `circular 6 employee` HAS
+    `graded in the teaching employees' grading`      IS A BOOLEAN
+    `employed by an owner of a supervised institution` IS A BOOLEAN @desc the employer owns an educational institution supervised by the Ministry of Education
+    `employed in the upper division or grades 13-14` IS A BOOLEAN @desc employed in a חטיבה עליונה or in classes יג'-יד'
+    `employed under the Oz LaTmura reform`           IS A BOOLEAN
+    `is a principal`                                 IS A BOOLEAN
+
+-- ¶16 defines "עובד הוראה" for the circular and limits it to the upper
+-- division and grades 13-14; ¶17: under Oz LaTmura and outside it alike.
+@ref akn:preamble/p16 akn:preamble/p17
+GIVEN e IS A `circular 6 employee`
+GIVETH A BOOLEAN
+DECIDE `the circular applies to` e IF
+        e's `graded in the teaching employees' grading`
+    AND e's `employed by an owner of a supervised institution`
+    AND e's `employed in the upper division or grades 13-14`
+
+§§ `א. עדכון תוספת שקלית 2016`
+
+@desc A printed amount of the 2016 shekel supplement: the group it is paid to, the monthly amount from 1.1.2023, and the amount it replaces.
+DECLARE `shekel supplement row` HAS
+    `row group`        IS A `supplement group`
+    `amount from January 2023` IS A NUMBER
+    `amount it replaces`       IS A NUMBER
+
+DECLARE `supplement group` IS ONE OF
+    `teachers in Oz LaTmura`
+    `teachers not in Oz LaTmura, and principals`
+
+-- ¶1-¶3 as printed, in shekels a month, from 1.1.2023.
+@ref akn:art_a/p1 akn:art_a/p2 akn:art_a/p3
+`the 2016 shekel supplement from 1.1.2023` MEANS
+    LIST `shekel supplement row` `teachers in Oz LaTmura`                     1509.98 1433.98,
+         `shekel supplement row` `teachers not in Oz LaTmura, and principals` 1276.85 1212.59
+
+-- F-2022-23_tashpag_06-a: ¶3 "מורים שאינם ברפורמת עוז לתמורה ומנהלים" is
+-- read with "not in Oz LaTmura" qualifying the teachers only, so EVERY
+-- principal falls in the second group, in the reform or not.
+GIVEN e IS A `circular 6 employee`
+GIVETH A `supplement group`
+DECIDE `the group of` e IS
+    IF e's `is a principal`
+    THEN `teachers not in Oz LaTmura, and principals`
+    ELSE IF e's `employed under the Oz LaTmura reform`
+         THEN `teachers in Oz LaTmura`
+         ELSE `teachers not in Oz LaTmura, and principals`
+
+GIVEN g IS A `supplement group`
+GIVETH A NUMBER
+DECIDE `the printed amount for` g IS
+    sum (map (GIVEN r YIELD r's `amount from January 2023`)
+             (filter (GIVEN r YIELD r's `row group` EQUALS g) `the 2016 shekel supplement from 1.1.2023`))
+
+@export The monthly 2016 shekel supplement (תוספת שקלית 2016) a teaching employee in the upper division or grades 13-14 is owed from 1 January 2023 under circular תשפ"ג/6; 0 outside the circular's scope
+GIVEN e IS A `circular 6 employee` @desc the employee
+      `month` IS A NUMBER @desc the salary month, counted from December 2022 (January 2023 = 1)
+GIVETH A NUMBER
+DECIDE `2016 shekel supplement` e `month` IS
+    IF `the circular applies to` e AND `month` AT LEAST `January 2023`
+    THEN `the printed amount for` (`the group of` e)
+    ELSE 0
+
+DECLARE `reimbursement channel` IS ONE OF
+    `the relevant hour costs in the payments system`
+    `the payments system under subject 558`
+
+-- ¶4: the Ministry reimburses the owners for the 2016 supplement through the hour costs.
+@ref akn:art_a/p4
+`how the owners are reimbursed for the 2016 shekel supplement` MEANS
+    `the relevant hour costs in the payments system`
+
+-- F-2022-23_tashpag_06-a: under the other reading the qualifier governs
+-- "ומנהלים" too, and a principal in Oz LaTmura is in the second group only
+-- if he is not in the reform — i.e. never; he then falls in the first group
+-- if a principal is a "מורה", or in no group. Either way his amount differs.
+`a principal in Oz LaTmura` MEANS
+    `circular 6 employee` WITH
+        `graded in the teaching employees' grading`      IS TRUE
+        `employed by an owner of a supervised institution` IS TRUE
+        `employed in the upper division or grades 13-14` IS TRUE
+        `employed under the Oz LaTmura reform`           IS TRUE
+        `is a principal`                                 IS TRUE
+
+GIVEN e IS A `circular 6 employee`
+GIVETH A LIST OF NUMBER
+DECIDE `the amounts if the qualifier also governs principals, principals counted as teachers` e IS
+    IF e's `employed under the Oz LaTmura reform`
+    THEN LIST (`the printed amount for` `teachers in Oz LaTmura`)
+    ELSE LIST (`the printed amount for` `teachers not in Oz LaTmura, and principals`)
+
+`the readings of ¶3 pay a principal in Oz LaTmura differently` MEANS
+    NOT (`the amounts if the qualifier also governs principals, principals counted as teachers` `a principal in Oz LaTmura`
+         EQUALS LIST (`2016 shekel supplement` `a principal in Oz LaTmura` `January 2023`))
+#ASSERT `the readings of ¶3 pay a principal in Oz LaTmura differently`
+
+§§ `ב. עדכון סכום תוספת 87 מעבר רפורמה למנהלים`
+
+-- ¶1: per the agreement and section 18 of circular תשע"ח/9, the 87
+-- transition supplement of principals employed under Oz LaTmura is updated
+-- by the same index; ¶2 prints the amount.
+@ref akn:art_b/p1
+GIVEN e IS A `circular 6 employee`
+GIVETH A BOOLEAN
+DECIDE `entitled to the updated 87 transition supplement` e IF
+        `the circular applies to` e
+    AND e's `is a principal`
+    AND e's `employed under the Oz LaTmura reform`
+
+@ref akn:art_b/p2
+`the 87 transition supplement from 1.1.2023` MEANS 1101.60
+`the 87 transition supplement it replaces`    MEANS 1046.15
+
+@export The monthly '87 transition-to-reform supplement (תוספת 87 מעבר לרפורמה) of a principal under Oz LaTmura from 1 January 2023 under circular תשפ"ג/6; 0 for anyone else
+GIVEN e IS A `circular 6 employee` @desc the employee
+      `month` IS A NUMBER @desc the salary month, counted from December 2022 (January 2023 = 1)
+GIVETH A NUMBER
+DECIDE `87 transition supplement` e `month` IS
+    IF `entitled to the updated 87 transition supplement` e AND `month` AT LEAST `January 2023`
+    THEN `the 87 transition supplement from 1.1.2023`
+    ELSE 0
+
+DECLARE `circular 6 action` IS ONE OF
+    `pay the updated 87 supplement with January's differences` HAS `amount for January` IS A NUMBER
+
+-- ¶3: paid from January 2023's salary and no later than February 2023's,
+-- with retroactive differences for January.
+@ref akn:art_b/p3
+GIVEN e IS A `circular 6 employee`
+GIVETH A DEONTIC Party `circular 6 action`
+DECIDE `payment of the updated 87 supplement` e IS
+    IF `entitled to the updated 87 transition supplement` e
+    THEN PARTY `the employer`
+         MUST  `pay the updated 87 supplement with January's differences` `paid for January`
+               PROVIDED `paid for January` AT LEAST `87 transition supplement` e `January 2023`
+         WITHIN `February 2023`
+         LEST BREACH BY `the employer` BECAUSE "circular תשפ\"ג/6 ב: the updated supplement is paid no later than February 2023's salary, with January's differences"
+    ELSE FULFILLED
+
+-- ¶4: the reimbursement for the 87 supplement runs under subject 558.
+@ref akn:art_b/p4
+`how the owners are reimbursed for the 87 transition supplement` MEANS
+    `the payments system under subject 558`
+
+-- akn:conclusions The sign-off, the signatories and the list of copies; no rule.
+
+-- Examples. The employees are made up; the amounts are the circular's.
+`an Oz LaTmura teacher in the upper division` MEANS
+    `circular 6 employee` WITH
+        `graded in the teaching employees' grading`      IS TRUE
+        `employed by an owner of a supervised institution` IS TRUE
+        `employed in the upper division or grades 13-14` IS TRUE
+        `employed under the Oz LaTmura reform`           IS TRUE
+        `is a principal`                                 IS FALSE
+
+`a teacher outside the reform in grades 13-14` MEANS
+    `circular 6 employee` WITH
+        `graded in the teaching employees' grading`      IS TRUE
+        `employed by an owner of a supervised institution` IS TRUE
+        `employed in the upper division or grades 13-14` IS TRUE
+        `employed under the Oz LaTmura reform`           IS FALSE
+        `is a principal`                                 IS FALSE
+
+`a middle-school teacher` MEANS
+    `circular 6 employee` WITH
+        `graded in the teaching employees' grading`      IS TRUE
+        `employed by an owner of a supervised institution` IS TRUE
+        `employed in the upper division or grades 13-14` IS FALSE
+        `employed under the Oz LaTmura reform`           IS TRUE
+        `is a principal`                                 IS FALSE
+
+#ASSERT `2016 shekel supplement` `an Oz LaTmura teacher in the upper division` `January 2023` EQUALS 1509.98
+#ASSERT `2016 shekel supplement` `a teacher outside the reform in grades 13-14` `February 2023` EQUALS 1276.85
+#ASSERT `2016 shekel supplement` `a principal in Oz LaTmura` `January 2023` EQUALS 1276.85
+#ASSERT `2016 shekel supplement` `a middle-school teacher` `January 2023` EQUALS 0
+#ASSERT `87 transition supplement` `a principal in Oz LaTmura` `January 2023` EQUALS 1101.60
+#ASSERT `87 transition supplement` `an Oz LaTmura teacher in the upper division` `January 2023` EQUALS 0
+
+-- The three printed updates are one index step: each new amount over its
+-- old one is 1.053 to three decimals (5.3%, the December 2021 → December
+-- 2022 change the previous update had not yet carried).
+GIVEN `old amount` IS A NUMBER, `new amount` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `is the old amount indexed by 5.3%` `old amount` `new amount` IF
+        `new amount` DIVIDED BY `old amount` AT LEAST 1.0525
+    AND `new amount` DIVIDED BY `old amount` LESS THAN 1.0535
+
+#ASSERT all (GIVEN r YIELD `is the old amount indexed by 5.3%` (r's `amount it replaces`) (r's `amount from January 2023`))
+            `the 2016 shekel supplement from 1.1.2023`
+#ASSERT `is the old amount indexed by 5.3%` `the 87 transition supplement it replaces` `the 87 transition supplement from 1.1.2023`
+
+-- Paid in February with January's differences: fulfilled. Not paid by
+-- the end of February: breached.
+#TRACE `payment of the updated 87 supplement` `a principal in Oz LaTmura` AT 0 WITH
+    PARTY `the employer` DOES `pay the updated 87 supplement with January's differences` 1101.60 AT 2
+#TRACE `payment of the updated 87 supplement` `a principal in Oz LaTmura` AT 0 WITH
+    PARTY `the employer` DOES `pay the updated 87 supplement with January's differences` 1046.15 AT 2
