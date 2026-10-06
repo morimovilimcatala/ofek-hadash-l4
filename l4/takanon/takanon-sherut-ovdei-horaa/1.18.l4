@@ -1,0 +1,103 @@
+-- תקנון שירות עובדי הוראה, פרק 1א', §1.18 תוספת למורים למחוננים
+-- A teacher of classes of gifted children is paid as if the hours taught in
+-- those classes were 20% more than the hours actually taught there.
+
+IMPORT prelude
+IMPORT common
+
+§ `1.18 תוספת למורים למחוננים`
+
+@desc A teacher's week of teaching, as far as section 1.18 asks about it.
+DECLARE `teaching week` HAS
+    `hours actually taught`                 IS A NUMBER  @desc all the weekly hours the teacher actually teaches
+    `hours actually taught in gifted classes` IS A NUMBER @desc of those, the weekly hours actually taught in classes populated by gifted children
+    `date of the salary month`              IS A NUMBER  @desc the salary month as a number YYYYMMDD (e.g. 19830901)
+
+-- 1 September 1983, written YYYYMMDD.
+`the start of the gifted-class arrangement` MEANS 19830901
+
+§§ `1.18 ¶1–¶2 The 20% credit`
+
+-- ¶1: from 1.9.83 salary is computed as if the teacher taught 20% more hours;
+-- ¶2 settles the base of that 20%: the hours actually taught in gifted
+-- classes, not all the teacher's hours.
+@ref akn:chp_1א___sec_1_18__ssec_1_18/p1
+GIVEN w IS A `teaching week`
+GIVETH A BOOLEAN
+DECIDE `the gifted-class credit applies` w IF
+        w's `date of the salary month` AT LEAST `the start of the gifted-class arrangement`
+    AND w's `hours actually taught in gifted classes` GREATER THAN 0
+
+@ref akn:chp_1א___sec_1_18__ssec_1_18/p2
+GIVEN w IS A `teaching week`
+GIVETH A NUMBER
+DECIDE `the gifted-class credit in hours` w IS
+    IF `the gifted-class credit applies` w
+    THEN w's `hours actually taught in gifted classes` TIMES 20%
+    ELSE 0
+
+@export default The weekly hours a teacher's salary is computed on under section 1.18 of the takanon, adding 20% of the hours actually taught in classes of gifted children
+GIVEN w IS A `teaching week` @desc the teacher's week of teaching
+GIVETH A NUMBER
+DECIDE `hours the salary is computed on` w IS
+    w's `hours actually taught` PLUS `the gifted-class credit in hours` w
+
+DECLARE `gifted-class action` IS ONE OF
+    `pay salary for hours` HAS `hours paid for` IS A NUMBER
+
+-- The duty the credit puts on the employer, in salary months: the month's
+-- salary is paid on the credited hours.
+GIVEN w IS A `teaching week`
+GIVETH A DEONTIC Party `gifted-class action`
+DECIDE `pay on the credited hours` w IS
+    PARTY `the employer`
+    MUST  `pay salary for hours` h
+          PROVIDED h AT LEAST `hours the salary is computed on` w
+    WITHIN 1
+    LEST  BREACH BY `the employer` BECAUSE "section 1.18: salary is computed as if 20% more hours were taught in gifted classes"
+
+§§ `1.18 ¶3`
+
+-- ¶3: this arrangement cancels every earlier one on the matter, so from its
+-- start no earlier arrangement governs. What the earlier arrangements were
+-- the takanon does not say; it only names them so as to cancel them.
+@ref akn:chp_1א___sec_1_18__ssec_1_18/p3
+DECLARE `gifted-class arrangement` IS ONE OF
+    `the arrangement of section 1.18`
+    `an earlier arrangement`
+
+GIVEN `salary month` IS A NUMBER
+GIVETH A `gifted-class arrangement`
+DECIDE `the arrangement that governs` `salary month` IS
+    IF `salary month` AT LEAST `the start of the gifted-class arrangement`
+    THEN `the arrangement of section 1.18`
+    ELSE `an earlier arrangement`
+
+-- Worked examples. The hours are placeholders, not from any payslip.
+`a teacher with 10 of 24 hours in gifted classes` MEANS
+    `teaching week` WITH
+        `hours actually taught`                   IS 24
+        `hours actually taught in gifted classes` IS 10
+        `date of the salary month`                IS 19840101
+
+-- The 20% is of the 10 gifted-class hours only (¶2), not of all 24.
+#ASSERT `hours the salary is computed on` `a teacher with 10 of 24 hours in gifted classes` EQUALS 26
+#ASSERT NOT `hours the salary is computed on` `a teacher with 10 of 24 hours in gifted classes` EQUALS 24 TIMES 1.2
+
+`the same week before 1.9.83` MEANS
+    `teaching week` WITH
+        `hours actually taught`                   IS 24
+        `hours actually taught in gifted classes` IS 10
+        `date of the salary month`                IS 19830801
+
+#ASSERT `hours the salary is computed on` `the same week before 1.9.83` EQUALS 24
+#ASSERT `the arrangement that governs` 19830801 EQUALS `an earlier arrangement`
+#EVAL   `the arrangement that governs` 19840101
+
+#TRACE `pay on the credited hours` `a teacher with 10 of 24 hours in gifted classes` AT 0 WITH
+    PARTY `the employer` DOES `pay salary for hours` 26 AT 1
+#TRACE `pay on the credited hours` `a teacher with 10 of 24 hours in gifted classes` AT 0 WITH
+    PARTY `the employer` DOES `pay salary for hours` 24 AT 1
+
+-- akn:chp_1א___sec_1_18__ssec_1_18/p4 The heading of the section's source list (אסמכתא).
+-- akn:chp_1א___sec_1_18__ssec_1_18/p5 The source itself: a Director-General's circular.

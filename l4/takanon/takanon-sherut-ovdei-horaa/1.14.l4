@@ -1,0 +1,112 @@
+-- תקנון שירות עובדי הוראה, פרק 1א', §1.14 תוספת מעונות
+-- The day-care supplement: which parents are entitled, pro-rating for a
+-- part-time position, and the choice between it and an employer's discount.
+
+IMPORT prelude
+IMPORT common
+
+§ `1.14 תוספת מעונות`
+
+@desc A teaching employee and her children, as far as section 1.14 asks about them.
+DECLARE `day-care claimant` HAS
+    `is a woman teaching employee who is a mother` IS A BOOLEAN
+    `is a widower or divorcé whose children live with him` IS A BOOLEAN
+    `children's ages in completed years`   IS A LIST OF NUMBER
+    `position fraction held`                IS A NUMBER  @desc the share of a full position (1 = one full position)
+    `employer gives a day-care discount`    IS A BOOLEAN @desc the employer grants a discount on kindergarten or day-care fees (section 1.14.3)
+    `chose the employer's discount`         IS A BOOLEAN @desc where both are offered, the employee chose the discount over the supplement
+    `full-position supplement`              IS A NUMBER  @desc the supplement for a full position; section 1.14 states no amount, so it is an input, never a number of this file
+
+§§ `1.14.4`
+
+-- §1.14.4 widens "mother" for the whole section.
+@ref akn:chp_1א___sec_1_14__hc_2__para_4
+GIVEN c IS A `day-care claimant`
+GIVETH A BOOLEAN
+DECIDE `is a mother for section 1.14` c IF
+        c's `is a woman teaching employee who is a mother`
+    OR  c's `is a widower or divorcé whose children live with him`
+
+§§ `1.14.1`
+
+-- "עד גיל 5 שנים" is read as "before the child's fifth birthday", the
+-- reading §1.13.2 gives the same words ("עד גיל 14") where it says what
+-- happens once the child has turned 14.
+GIVEN age IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `is a child up to age 5` age IF
+    age LESS THAN 5
+
+@ref akn:chp_1א___sec_1_14__hc_2__para_1
+GIVEN c IS A `day-care claimant`
+GIVETH A BOOLEAN
+DECIDE `entitled to the day-care supplement` c IF
+        `is a mother for section 1.14` c
+    AND any (GIVEN a YIELD `is a child up to age 5` a) (c's `children's ages in completed years`)
+
+§§ `1.14.2`
+
+-- Only a PART-time position is pro-rated; at a full position or above the
+-- supplement of §1.14.1 is paid as it stands.
+@ref akn:chp_1א___sec_1_14__hc_2__para_2
+GIVEN c IS A `day-care claimant`
+GIVETH A NUMBER
+DECIDE `position share of the supplement` c IS
+    min (c's `position fraction held`) 1
+
+§§ `1.14.3`
+
+DECLARE `day-care action` IS ONE OF
+    `take the supplement`
+    `take the employer's discount`
+
+@ref akn:chp_1א___sec_1_14__hc_2__para_3
+GIVEN c IS A `day-care claimant`
+GIVETH A DEONTIC Party `day-care action`
+DECIDE `the choice between supplement and discount` c IS
+    IF c's `employer gives a day-care discount` AND `entitled to the day-care supplement` c
+    THEN (PARTY `the teaching employee` MAY `take the supplement`)
+         ROR
+         (PARTY `the teaching employee` MAY `take the employer's discount`)
+    ELSE FULFILLED
+
+@export default The day-care supplement a teaching employee is owed under section 1.14 of the takanon
+GIVEN c IS A `day-care claimant` @desc the employee and her children
+GIVETH A NUMBER
+DECIDE `day-care supplement` c IS
+    IF      `entitled to the day-care supplement` c
+        AND (NOT (c's `employer gives a day-care discount` AND c's `chose the employer's discount`))
+    THEN c's `full-position supplement` TIMES `position share of the supplement` c
+    ELSE 0
+
+-- Worked examples. The supplement of 100 is a placeholder: the section
+-- states no amount.
+`a half-time mother of a three-year-old` MEANS
+    `day-care claimant` WITH
+        `is a woman teaching employee who is a mother`          IS TRUE
+        `is a widower or divorcé whose children live with him`  IS FALSE
+        `children's ages in completed years`                    IS LIST 3, 8
+        `position fraction held`                                IS 0.5
+        `employer gives a day-care discount`                    IS FALSE
+        `chose the employer's discount`                         IS FALSE
+        `full-position supplement`                              IS 100
+
+`a divorced father of a four-year-old who took the discount` MEANS
+    `day-care claimant` WITH
+        `is a woman teaching employee who is a mother`          IS FALSE
+        `is a widower or divorcé whose children live with him`  IS TRUE
+        `children's ages in completed years`                    IS LIST 4
+        `position fraction held`                                IS 1.2
+        `employer gives a day-care discount`                    IS TRUE
+        `chose the employer's discount`                         IS TRUE
+        `full-position supplement`                              IS 100
+
+#ASSERT `day-care supplement` `a half-time mother of a three-year-old` EQUALS 50
+#ASSERT `is a mother for section 1.14` `a divorced father of a four-year-old who took the discount`
+#ASSERT `day-care supplement` `a divorced father of a four-year-old who took the discount` EQUALS 0
+#ASSERT (NOT `is a child up to age 5` 5)
+
+#TRACE `the choice between supplement and discount` `a divorced father of a four-year-old who took the discount` AT 0 WITH
+    PARTY `the teaching employee` DOES `take the employer's discount` AT 1
+
+-- akn:chp_1א___sec_1_14__hc_3 The section's sources (אסמכתא): the circulars it rests on.

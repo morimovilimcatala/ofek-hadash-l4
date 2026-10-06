@@ -1,0 +1,172 @@
+-- תקנון שירות עובדי הוראה, פרק 6, §6.9 מורה מרכז מעבדה
+-- The laboratory coordinator in a post-primary school: when one may be
+-- appointed, who qualifies, for how long, and the coordination reward.
+
+IMPORT prelude
+IMPORT common
+
+§ `6.9 מורה מרכז מעבדה`
+
+@desc Who acts under section 6.9. The institution's management (הנהלת המוסד) is not one of the takanon's shared parties, so it is declared here.
+DECLARE `6.9 party` IS ONE OF
+    `the institution's management`
+    `the lab coordinator`
+
+@desc An institution and the year's laboratory, as far as section 6.9 asks about them.
+DECLARE `laboratory school` HAS
+    `is a post-primary institution`             IS A BOOLEAN
+    `number of classes`                         IS A NUMBER
+    `has a laboratory recognised by the Ministry` IS A BOOLEAN  @desc recognised by the Ministry of Education for this purpose
+    `weekly hours the school's classes use the laboratory` IS A NUMBER
+
+@desc The laboratory coordination reward, whose amount section 1.12 sets; an input until 1.12 is encoded.
+ASSUME `the lab coordination reward set by section 1.12` IS A NUMBER
+
+@desc A teacher considered for laboratory coordinator.
+DECLARE `lab coordinator candidate` HAS
+    `position fraction in laboratory subjects` IS A NUMBER @desc the share of a full position the teacher holds in the subjects in which the laboratory hours are given (1 = full)
+
+@desc The approvals an appointment was given.
+DECLARE `lab appointment approvals` HAS
+    `approved by the supervisor`               IS A BOOLEAN
+    `approved by the institution's management` IS A BOOLEAN
+    `approved by the owner`                    IS A BOOLEAN @desc the owning body (הבעלות)
+
+§§ `6.9.2 מינוי`
+
+@ref akn:chp_6__sec_6_9__ssec_6_9_2__para_1
+GIVEN s IS A `laboratory school`
+GIVETH A BOOLEAN
+DECIDE `the institution may have a lab coordinator` s IF
+        s's `is a post-primary institution`
+    AND s's `number of classes` AT LEAST 8
+    AND s's `has a laboratory recognised by the Ministry`
+
+-- The approvals §6.9.2.1 names, as printed: the supervisor's and the
+-- institution management's — the appointing body's own (F-6.9-a).
+@ref akn:chp_6__sec_6_9__ssec_6_9_2__para_1
+GIVEN a IS A `lab appointment approvals`
+GIVETH A BOOLEAN
+DECIDE `has the approvals §6.9.2.1 names` a IF
+    a's `approved by the supervisor` AND a's `approved by the institution's management`
+
+-- §6.9.2.3's approvals: the supervisor's and the owner's.
+@ref akn:chp_6__sec_6_9__ssec_6_9_2__para_3
+GIVEN a IS A `lab appointment approvals`
+GIVETH A BOOLEAN
+DECIDE `has the approvals §6.9.2.3 names` a IF
+    a's `approved by the supervisor` AND a's `approved by the owner`
+
+-- F-6.9-a: the two clauses name different approvals for one appointment.
+-- An appointment the supervisor and the owner approved passes §6.9.2.3
+-- and fails §6.9.2.1; one approved by the supervisor and the management
+-- passes §6.9.2.1 and fails §6.9.2.3.
+`supervisor and owner only` MEANS
+    `lab appointment approvals` WITH
+        `approved by the supervisor`               IS TRUE
+        `approved by the institution's management` IS FALSE
+        `approved by the owner`                    IS TRUE
+
+`§6.9.2.1 and §6.9.2.3 name different approvals for the appointment` MEANS
+    NOT (`has the approvals §6.9.2.1 names` `supervisor and owner only`
+         EQUALS `has the approvals §6.9.2.3 names` `supervisor and owner only`)
+#ASSERT `§6.9.2.1 and §6.9.2.3 name different approvals for the appointment`
+
+-- The reading adopted (F-6.9-a): the management appoints, so its own
+-- approval is no condition; the approvals required are the supervisor's
+-- and the owner's, as §6.9.2.3 says.
+GIVEN a IS A `lab appointment approvals`
+GIVETH A BOOLEAN
+DECIDE `the appointment is approved` a IF
+    `has the approvals §6.9.2.3 names` a
+
+-- "המועסק ב-1/3 משרה" is read as at least a third of a position in the
+-- laboratory subjects: §6.10.2ב.4 says "לפחות" in the same rule for
+-- subject coordinators, and nothing suggests more is a bar.
+@ref akn:chp_6__sec_6_9__ssec_6_9_2__para_2
+GIVEN c IS A `lab coordinator candidate`
+GIVETH A BOOLEAN
+DECIDE `may be appointed lab coordinator` c IF
+    c's `position fraction in laboratory subjects` AT LEAST 1/3
+
+DECLARE `lab coordinator action` IS ONE OF
+    `appoint a lab coordinator` HAS `for school years` IS A NUMBER
+
+-- §6.9.2.1 (permission) and §6.9.2.3 (one school year, made at the start
+-- of each year). Time is in school months: the appointment is made by the
+-- start of the year (month 1, September) and for one year only.
+@ref akn:chp_6__sec_6_9__ssec_6_9_2__para_3
+GIVEN s IS A `laboratory school`, c IS A `lab coordinator candidate`, a IS A `lab appointment approvals`
+GIVETH A DEONTIC `6.9 party` `lab coordinator action`
+DECIDE `appointing a lab coordinator` s c a IS
+    IF `the institution may have a lab coordinator` s
+       AND `may be appointed lab coordinator` c
+       AND `the appointment is approved` a
+    THEN PARTY `the institution's management`
+         MAY   `appoint a lab coordinator` years
+               PROVIDED years EQUALS 1
+         WITHIN 1
+    ELSE PARTY `the institution's management`
+         SHANT `appoint a lab coordinator` years
+         LEST BREACH BY `the institution's management` BECAUSE "section 6.9.2: the school, the teacher or the approvals do not meet the conditions"
+
+-- §6.9.2.3: the number of hours the school's classes use the laboratory
+-- governs the appointment; the text gives no figure, so it is carried as
+-- the input on which the coordination reward of section 1.12 is set.
+@ref akn:chp_6__sec_6_9__ssec_6_9_2__para_3
+GIVEN s IS A `laboratory school`
+GIVETH A NUMBER
+DECIDE `laboratory hours the appointment follows` s IS
+    s's `weekly hours the school's classes use the laboratory`
+
+-- §6.9.2.4: a change in hours that changes the reward or ends the
+-- appointment takes effect from the start of the month after the change.
+-- Months are school months (September = 1).
+@ref akn:chp_6__sec_6_9__ssec_6_9_2__para_4
+GIVEN `month of the change` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `month the change takes effect` `month of the change` IS
+    `month of the change` PLUS 1
+
+@ref akn:chp_6__sec_6_9__ssec_6_9_2__para_5
+GIVETH A BOOLEAN
+DECIDE `serving as lab coordinator confers tenure in the role or the reward` IF
+    FALSE
+
+-- akn:chp_6__sec_6_9__ssec_6_9_2__para_6 A pointer to section 1.12 (appointments and rewards of post-holders), encoded there.
+
+-- akn:chp_6__sec_6_9__ssec_6_9_2/p1 akn:chp_6__sec_6_9__ssec_6_9_2/p2 akn:chp_6__sec_6_9__ssec_6_9_2/p3 akn:chp_6__sec_6_9__ssec_6_9_2/p4 akn:chp_6__sec_6_9__ssec_6_9_2/p5 The section's sources (אסמכתא): a list of the circulars it rests on.
+
+§§ `6.9.6 גמול ריכוז מעבדה`
+
+@ref akn:chp_6__sec_6_9__ssec_6_9_6/p1 akn:chp_6__sec_6_9__ssec_6_9_6/p2
+GIVEN `is an appointed lab coordinator` IS A BOOLEAN
+GIVETH A NUMBER
+DECIDE `lab coordination reward` `is an appointed lab coordinator` IS
+    IF `is an appointed lab coordinator`
+    THEN `the lab coordination reward set by section 1.12`
+    ELSE 0
+
+-- Examples (placeholder school and teacher).
+`a 12-class high school with a recognised lab` MEANS
+    `laboratory school` WITH
+        `is a post-primary institution`               IS TRUE
+        `number of classes`                           IS 12
+        `has a laboratory recognised by the Ministry` IS TRUE
+        `weekly hours the school's classes use the laboratory` IS 20
+
+`a half-position chemistry teacher` MEANS
+    `lab coordinator candidate` WITH `position fraction in laboratory subjects` IS 1/2
+
+`approved by supervisor and owner` MEANS
+    `lab appointment approvals` WITH
+        `approved by the supervisor`               IS TRUE
+        `approved by the institution's management` IS TRUE
+        `approved by the owner`                    IS TRUE
+
+#ASSERT `the institution may have a lab coordinator` `a 12-class high school with a recognised lab`
+#ASSERT `month the change takes effect` (`month number` November) EQUALS `month number` December
+
+-- Appointed for one year at the start of the year: the permission is used.
+#TRACE `appointing a lab coordinator` `a 12-class high school with a recognised lab` `a half-position chemistry teacher` `approved by supervisor and owner` AT 0 WITH
+    PARTY `the institution's management` DOES `appoint a lab coordinator` 1 AT 1

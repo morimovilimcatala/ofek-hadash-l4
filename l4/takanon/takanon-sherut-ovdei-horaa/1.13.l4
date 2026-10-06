@@ -1,0 +1,374 @@
+-- תקנון שירות עובדי הוראה, פרק 1א', §1.13 עובדת הוראה אם
+-- The mother-teacher supplement: who counts as a "mother-teacher", the 79%
+-- threshold and how hours are counted toward it, the 10% supplement and its
+-- caps, payment by several owners, and how the supplement is requested.
+
+IMPORT prelude
+IMPORT common
+
+§ `1.13 עובדת הוראה אם`
+
+@desc A child, as far as section 1.13 asks about it.
+DECLARE `child` HAS
+    `relation to the employee`     IS A `relation to the child`
+    `age on 1 September`           IS A NUMBER  @desc completed years on 1 September of the school year
+    `age now`                      IS A NUMBER  @desc completed years in the month in question
+    `age when taken into foster care` IS A NUMBER @desc only for a foster child
+    `months in foster care`        IS A NUMBER  @desc only for a foster child: the length of the fostering
+
+DECLARE `relation to the child` IS ONE OF
+    `own child`, `adopted child`, `stepchild`, `foster child`
+
+@desc The hours a teaching employee holds with one owner, each as a share of a full position.
+DECLARE `hours with an owner` HAS
+    `teaching share`               IS A NUMBER
+    `guidance share`               IS A NUMBER  @desc guidance (הדרכה) duties
+    `education-hours share`        IS A NUMBER  @desc class-education hours (section 1.13.6)
+    `year-long auxiliary share`    IS A NUMBER  @desc auxiliary hours given all year, not single hours (section 1.13.7)
+    `single auxiliary share`       IS A NUMBER  @desc single auxiliary hours, which section 1.13.7 does not count
+    `study-grant share`            IS A NUMBER  @desc hours of a further-training grant, section 1.26 (section 1.13.9)
+
+@desc A teaching employee's school year, as far as section 1.13 asks about it.
+DECLARE `mother-teacher year` HAS
+    `is a woman teaching employee or instructor` IS A BOOLEAN
+    `has custody of his children under a divorce agreement or judgment` IS A BOOLEAN @desc a man to whose custody his children were given by an approved divorce agreement or a judgment
+    `is married now` IS A BOOLEAN
+    `is a foster parent approved by the Welfare Minister's delegate` IS A BOOLEAN
+    `children`                     IS A LIST OF `child`
+    `the other parent is also a teaching employee` IS A BOOLEAN
+    `the couple chose this parent` IS A BOOLEAN
+    `hours with each owner`        IS A LIST OF `hours with an owner`
+    `works at the employer's demand` IS A BOOLEAN @desc section 1.13.1, the clause of 1.9.93
+    `asked by the Ministry to work beyond a position` IS A BOOLEAN @desc section 1.13.1, last paragraph
+    `is a coordinating kindergarten teacher required to work a full position` IS A BOOLEAN
+    `full-position combined salary` IS A NUMBER @desc the combined salary of one full position (section 1.1א); an input
+
+§§ `1.13.1 Who is a "mother-teacher"`
+
+-- §1.13.1 ¶3 and §1.13.8: a child up to 14 includes an adopted child and a
+-- stepchild; a foster child counts on §1.13.1 ¶5–8's three conditions.
+@ref akn:chp_1א___sec_1_13__ssec_1_13/p3 akn:chp_1א___sec_1_13__ssec_1_13/p19 akn:chp_1א___sec_1_13__ssec_1_13/p5 akn:chp_1א___sec_1_13__ssec_1_13/p6 akn:chp_1א___sec_1_13__ssec_1_13/p7 akn:chp_1א___sec_1_13__ssec_1_13/p8
+GIVEN y IS A `mother-teacher year`, c IS A `child`
+GIVETH A BOOLEAN
+DECIDE `is a child of the employee for section 1.13` y c IF
+    CONSIDER c's `relation to the employee`
+    WHEN `foster child` THEN
+            y's `is a foster parent approved by the Welfare Minister's delegate`
+        AND c's `age when taken into foster care` LESS THAN 10
+        AND c's `months in foster care` AT LEAST 6
+    OTHERWISE TRUE
+
+-- §1.13.2: a child who turns 14 after 1 September still counts for the rest
+-- of that school year; "up to 14" is before the fourteenth birthday.
+@ref akn:chp_1א___sec_1_13__ssec_1_13/p13
+GIVEN c IS A `child`
+GIVETH A BOOLEAN
+DECIDE `is a child up to 14 this year` c IF
+    c's `age now` LESS THAN 14 OR c's `age on 1 September` LESS THAN 14
+
+-- §1.13.1 ¶4: the "mother-teacher" includes a married man with custody
+-- under a divorce instrument, and a foster parent. F-1.13-b: "עובד נשוי"
+-- beside a divorce is read as naming the father whose marriage the divorce
+-- ended, so custody, not remarriage, is the condition.
+-- §1.13.1 ¶9: where both parents teach, only the one they choose.
+@ref akn:chp_1א___sec_1_13__ssec_1_13/p1 akn:chp_1א___sec_1_13__ssec_1_13/p4 akn:chp_1א___sec_1_13__ssec_1_13/p9
+GIVEN y IS A `mother-teacher year`
+GIVETH A BOOLEAN
+DECIDE `is a mother-teacher` y IF
+        (    y's `is a woman teaching employee or instructor`
+         OR  y's `has custody of his children under a divorce agreement or judgment`
+         OR  y's `is a foster parent approved by the Welfare Minister's delegate`)
+    AND any (GIVEN c YIELD `is a child of the employee for section 1.13` y c AND `is a child up to 14 this year` c)
+            (y's `children`)
+    AND ((NOT y's `the other parent is also a teaching employee`) OR y's `the couple chose this parent`)
+
+§§ `1.13.6–1.13.9 The hours that count toward 79%`
+
+-- §§1.13.6, 7 and 9: education hours, year-long auxiliary hours and
+-- study-grant hours count; single auxiliary hours do not. Guidance counts
+-- with teaching (§1.13.1, last paragraph).
+@ref akn:chp_1א___sec_1_13__ssec_1_13/p17 akn:chp_1א___sec_1_13__ssec_1_13/p18 akn:chp_1א___sec_1_13__ssec_1_13/p20
+GIVEN h IS A `hours with an owner`
+GIVETH A NUMBER
+DECIDE `counted share` h IS
+    h's `teaching share` PLUS h's `guidance share` PLUS h's `education-hours share`
+        PLUS h's `year-long auxiliary share` PLUS h's `study-grant share`
+
+GIVEN h IS A `hours with an owner`
+GIVETH A NUMBER
+DECIDE `paid share` h IS
+    `counted share` h PLUS h's `single auxiliary share`
+
+GIVEN y IS A `mother-teacher year`
+GIVETH A NUMBER
+DECIDE `counted position` y IS
+    sum (map `counted share` (y's `hours with each owner`))
+
+GIVEN y IS A `mother-teacher year`
+GIVETH A NUMBER
+DECIDE `paid position` y IS
+    sum (map `paid share` (y's `hours with each owner`))
+
+-- F-1.13-a: §1.13.1 ¶2, §§1.13.3–5 say "at least 79%" / "79% and above";
+-- the clause of 1.9.93 that grants the 10% says "above 79%". The reading
+-- adopted is "at least", the threshold of every other clause.
+`the threshold` MEANS 0.79
+
+@ref akn:chp_1א___sec_1_13__ssec_1_13/p2 akn:chp_1א___sec_1_13__ssec_1_13/p14
+GIVEN share IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `reaches 79%` share IF
+    share AT LEAST `the threshold`
+
+GIVEN share IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `is above 79%, as the clause of 1.9.93 words it` share IF
+    share GREATER THAN `the threshold`
+
+`a 79% mother qualifies by the other clauses and not by the clause of 1.9.93` MEANS
+    `reaches 79%` 0.79 AND (NOT `is above 79%, as the clause of 1.9.93 words it` 0.79)
+#ASSERT `a 79% mother qualifies by the other clauses and not by the clause of 1.9.93`
+
+§§ `1.13.1 The 10% supplement and its caps`
+
+@ref akn:chp_1א___sec_1_13__ssec_1_13/p10
+`the mother supplement rate` MEANS 10%
+
+-- F-1.13-c: "בתנאי ש…לא יעלה על 150% משרה" (and "על 100% משרה" for
+-- teaching with guidance) is read as printed — a CONDITION: past the cap
+-- there is no supplement — not as a ceiling the supplement is cut down to.
+-- The 100% cap applies to teaching with guidance unless the Ministry asked
+-- for more than a position and teaching is at least half of it; the
+-- coordinating kindergarten teacher of §1.13.1 ¶11 is paid "beyond the
+-- position" too.
+@ref akn:chp_1א___sec_1_13__ssec_1_13/p12
+GIVEN y IS A `mother-teacher year`
+GIVETH A NUMBER
+DECIDE `the cap on salary with the supplement` y IS
+    IF      any (GIVEN h YIELD h's `guidance share` GREATER THAN 0) (y's `hours with each owner`)
+        AND (NOT (    y's `asked by the Ministry to work beyond a position`
+                  AND sum (map (GIVEN h YIELD h's `teaching share`) (y's `hours with each owner`)) AT LEAST 0.5))
+        AND (NOT y's `is a coordinating kindergarten teacher required to work a full position`)
+    THEN 1
+    ELSE 1.5
+
+GIVEN y IS A `mother-teacher year`
+GIVETH A BOOLEAN
+DECIDE `within the cap` y IF
+    `paid position` y TIMES (1 PLUS `the mother supplement rate`) AT MOST `the cap on salary with the supplement` y
+
+-- The clause of 1.9.93 asks that the employee work at the EMPLOYER'S demand.
+GIVEN y IS A `mother-teacher year`
+GIVETH A BOOLEAN
+DECIDE `entitled to the mother supplement` y IF
+        `is a mother-teacher` y
+    AND `reaches 79%` (`counted position` y)
+    AND y's `works at the employer's demand`
+    AND `within the cap` y
+
+§§ `1.13.4–1.13.5 Which owner pays`
+
+-- §1.13.4: one owner at 79% or more pays the supplement on its own salary,
+-- and the others nothing. §1.13.5: where no owner reaches 79% but all of
+-- them together do, each pays on its own share.
+@ref akn:chp_1א___sec_1_13__ssec_1_13/p15 akn:chp_1א___sec_1_13__ssec_1_13/p16
+GIVEN y IS A `mother-teacher year`
+GIVETH A LIST OF NUMBER
+DECIDE `supplement paid by each owner` y IS
+    IF (NOT `entitled to the mother supplement` y)
+    THEN map (GIVEN h YIELD 0) (y's `hours with each owner`)
+    ELSE IF any (GIVEN h YIELD `reaches 79%` (`counted share` h)) (y's `hours with each owner`)
+         THEN map (GIVEN h YIELD
+                      IF `reaches 79%` (`counted share` h)
+                      THEN `the mother supplement rate` TIMES y's `full-position combined salary` TIMES `paid share` h
+                      ELSE 0)
+                  (y's `hours with each owner`)
+         ELSE map (GIVEN h YIELD `the mother supplement rate` TIMES y's `full-position combined salary` TIMES `paid share` h)
+                  (y's `hours with each owner`)
+
+@export default The mother-teacher supplement a teaching employee is owed for a month under section 1.13 of the takanon, summed over her owners
+GIVEN y IS A `mother-teacher year` @desc the employee's school year
+GIVETH A NUMBER
+DECIDE `mother supplement` y IS
+    sum (`supplement paid by each owner` y)
+
+§§ `1.13.1 ¶11 Kindergarten teachers`
+
+DECLARE `mother-teacher action` IS ONE OF
+    `be absent for weekly hours` HAS `weekly hours absent` IS A NUMBER
+    `submit the request through the principal`
+    `notify a change in family or employment`
+    `pass the request to the approving authority`
+
+-- A full-position kindergarten mother-teacher may be absent up to 3 weekly
+-- hours where a substitute is found with the supervision's approval; it was
+-- phased in from תש"ן (800 teachers that year) to תשנ"ד, under procedures a
+-- joint committee sets — whether a teacher is within the phase is an input.
+@ref akn:chp_1א___sec_1_13__ssec_1_13/p11
+GIVEN `a full-position kindergarten mother-teacher` IS A BOOLEAN
+      `a substitute approved by the supervision` IS A BOOLEAN
+      `within the phase-in` IS A BOOLEAN
+GIVETH A DEONTIC Party `mother-teacher action`
+DECIDE `absence of a kindergarten mother-teacher`
+        `a full-position kindergarten mother-teacher`
+        `a substitute approved by the supervision`
+        `within the phase-in` IS
+    IF `a full-position kindergarten mother-teacher` AND `a substitute approved by the supervision` AND `within the phase-in`
+    THEN PARTY `the teaching employee`
+         MAY   `be absent for weekly hours` h
+               PROVIDED h AT MOST 3
+    ELSE FULFILLED
+
+§§ `1.13.10`
+
+DECLARE `use of the salary` IS ONE OF `computing the pension`, `paying the month's salary`
+
+@ref akn:chp_1א___sec_1_13__ssec_1_13/p21
+GIVEN u IS A `use of the salary`
+GIVETH A BOOLEAN
+DECIDE `section 1.13 changes the arrangements for` u IF
+    CONSIDER u
+    WHEN `computing the pension` THEN FALSE
+    OTHERWISE TRUE
+
+-- akn:chp_1א___sec_1_13__ssec_1_13/p22 A pointer: the של"ח instructor who is a mother is in section 6.17.8.
+-- akn:chp_1א___sec_1_13__ssec_1_13/p23 A pointer: a mother-teacher's working conditions are in section 1.25.5, subsection 15.
+
+§§ `הוראות ביצוע`
+
+-- akn:chp_1א___sec_1_13__ssec_1_13/p24 A heading: "execution instructions".
+
+-- ¶1: a request made on entering work or on returning from maternity leave
+-- runs from then; a later one from the start of the month after it was
+-- made. Months are numbered on one timeline.
+@ref akn:chp_1א___sec_1_13__ssec_1_13/p25
+GIVEN `month entitlement began` IS A NUMBER
+      `month the request was made` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `first month paid` `month entitlement began` `month the request was made` IS
+    IF `month the request was made` AT MOST `month entitlement began`
+    THEN `month entitlement began`
+    ELSE `month the request was made` PLUS 1
+
+-- ¶2: the request names the child and declares care and no completion of
+-- the position elsewhere; the employee undertakes to report any change.
+@ref akn:chp_1א___sec_1_13__ssec_1_13/p26
+GIVETH A DEONTIC Party `mother-teacher action`
+DECIDE `reporting a change` IS
+    PARTY `the teaching employee`
+    MUST  `notify a change in family or employment`
+    WITHIN 1
+    LEST BREACH BY `the teaching employee` BECAUSE "section 1.13: the employee undertakes to report any change that affects the right"
+
+DECLARE `kind of institution` IS ONE OF `official`, `non-official`
+
+@ref akn:chp_1א___sec_1_13__ssec_1_13/p27
+GIVEN k IS A `kind of institution`
+GIVETH A Party
+DECIDE `who approves the request` k IS
+    CONSIDER k
+    WHEN `official` THEN `the district manager`
+    WHEN `non-official` THEN `the local authority or owning body`
+
+-- ¶4: the principal of an official school passes the request on with the
+-- monthly attendance report, so within the month.
+@ref akn:chp_1א___sec_1_13__ssec_1_13/p28
+GIVETH A DEONTIC Party `mother-teacher action`
+DECIDE `the principal passes the request on` IS
+    PARTY `the school principal`
+    MUST  `pass the request to the approving authority`
+    WITHIN 1
+    LEST BREACH BY `the school principal` BECAUSE "section 1.13: the request goes to the district manager with the monthly attendance report"
+
+-- Worked examples. The combined salary of 10,000 is a placeholder.
+`a ten-year-old` MEANS
+    `child` WITH
+        `relation to the employee`        IS `own child`
+        `age on 1 September`              IS 10
+        `age now`                         IS 10
+        `age when taken into foster care` IS 0
+        `months in foster care`           IS 0
+
+GIVEN teaching IS A NUMBER, guidance IS A NUMBER
+GIVETH A `hours with an owner`
+DECIDE `hours of` teaching guidance IS
+    `hours with an owner` WITH
+        `teaching share`            IS teaching
+        `guidance share`            IS guidance
+        `education-hours share`     IS 0
+        `year-long auxiliary share` IS 0
+        `single auxiliary share`    IS 0
+        `study-grant share`         IS 0
+
+GIVEN owners IS A LIST OF `hours with an owner`
+GIVETH A `mother-teacher year`
+DECIDE `a mother's year with` owners IS
+    `mother-teacher year` WITH
+        `is a woman teaching employee or instructor`                                 IS TRUE
+        `has custody of his children under a divorce agreement or judgment`          IS FALSE
+        `is married now`                                                             IS FALSE
+        `is a foster parent approved by the Welfare Minister's delegate`             IS FALSE
+        `children`                                                                   IS LIST `a ten-year-old`
+        `the other parent is also a teaching employee`                               IS FALSE
+        `the couple chose this parent`                                               IS FALSE
+        `hours with each owner`                                                      IS owners
+        `works at the employer's demand`                                   IS TRUE
+        `asked by the Ministry to work beyond a position`                            IS FALSE
+        `is a coordinating kindergarten teacher required to work a full position`    IS FALSE
+        `full-position combined salary`                                              IS 10000
+
+-- Two owners at 50% each: neither reaches 79%, together they do; each pays
+-- 10% of its own half.
+#ASSERT `supplement paid by each owner` (`a mother's year with` (LIST `hours of` 0.5 0, `hours of` 0.5 0)) EQUALS LIST 500, 500
+-- One owner at 80% and one at 30%: only the first pays.
+#ASSERT `supplement paid by each owner` (`a mother's year with` (LIST `hours of` 0.8 0, `hours of` 0.3 0)) EQUALS LIST 800, 0
+-- 79% teaching and 15% guidance: 94% with the supplement passes 100%.
+#ASSERT `mother supplement` (`a mother's year with` (LIST `hours of` 0.79 0.15)) EQUALS 0
+
+-- F-1.13-c's evidence: at 140%, read as a condition the supplement is lost;
+-- read as a ceiling it is paid up to 150%.
+`a mother at 140%` MEANS `a mother's year with` (LIST `hours of` 1.4 0)
+`the 150% clause read as a ceiling` MEANS
+    min (`the mother supplement rate` TIMES `paid position` `a mother at 140%`)
+        (`the cap on salary with the supplement` `a mother at 140%` MINUS `paid position` `a mother at 140%`)
+`the 150% clause read as a condition and as a ceiling give different supplements` MEANS
+        `mother supplement` `a mother at 140%` EQUALS 0
+    AND `the 150% clause read as a ceiling` GREATER THAN 0
+#ASSERT `the 150% clause read as a condition and as a ceiling give different supplements`
+
+-- F-1.13-b's evidence: a divorced father with custody who has not remarried
+-- is a "mother-teacher" under the reading adopted and not under the letter.
+`a divorced father with custody` MEANS
+    `mother-teacher year` WITH
+        `is a woman teaching employee or instructor`                                 IS FALSE
+        `has custody of his children under a divorce agreement or judgment`          IS TRUE
+        `is married now`                                                             IS FALSE
+        `is a foster parent approved by the Welfare Minister's delegate`             IS FALSE
+        `children`                                                                   IS LIST `a ten-year-old`
+        `the other parent is also a teaching employee`                               IS FALSE
+        `the couple chose this parent`                                               IS FALSE
+        `hours with each owner`                                                      IS LIST `hours of` 1 0
+        `works at the employer's demand`                                   IS TRUE
+        `asked by the Ministry to work beyond a position`                            IS FALSE
+        `is a coordinating kindergarten teacher required to work a full position`    IS FALSE
+        `full-position combined salary`                                              IS 10000
+GIVEN y IS A `mother-teacher year`
+GIVETH A BOOLEAN
+DECIDE `is a custodial father by the letter of "עובד נשוי"` y IF
+    y's `has custody of his children under a divorce agreement or judgment` AND y's `is married now`
+
+`"עובד נשוי" read by the letter excludes a father who has not remarried` MEANS
+        `is a mother-teacher` `a divorced father with custody`
+    AND (NOT `is a custodial father by the letter of "עובד נשוי"` `a divorced father with custody`)
+#ASSERT `"עובד נשוי" read by the letter excludes a father who has not remarried`
+
+#ASSERT `first month paid` 3 5 EQUALS 6
+#ASSERT `who approves the request` `official` EQUALS `the district manager`
+
+#TRACE `absence of a kindergarten mother-teacher` TRUE TRUE TRUE AT 0 WITH
+    PARTY `the teaching employee` DOES `be absent for weekly hours` 3 AT 1
+#TRACE `the principal passes the request on` AT 0 WITH
+    PARTY `the school principal` DOES `pass the request to the approving authority` AT 1
+
+-- akn:chp_1א___sec_1_13__ssec_1_13/p29 The heading of the section's sources (אסמכתא).
+-- akn:chp_1א___sec_1_13__ssec_1_13/p30 akn:chp_1א___sec_1_13__ssec_1_13/p31 akn:chp_1א___sec_1_13__ssec_1_13/p32 akn:chp_1א___sec_1_13__ssec_1_13/p33 akn:chp_1א___sec_1_13__ssec_1_13/p34 akn:chp_1א___sec_1_13__ssec_1_13/p35 akn:chp_1א___sec_1_13__ssec_1_13/p36 akn:chp_1א___sec_1_13__ssec_1_13/p37 akn:chp_1א___sec_1_13__ssec_1_13/p38 akn:chp_1א___sec_1_13__ssec_1_13/p39 akn:chp_1א___sec_1_13__ssec_1_13/p40 The sources themselves: circulars, agreements and the takshir.

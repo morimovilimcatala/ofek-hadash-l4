@@ -1,0 +1,359 @@
+-- תקנון שירות עובדי הוראה, פרק 6, §6.10 מורה מרכז מקצוע
+-- The subject coordinator in a post-primary school: when one is appointed,
+-- who qualifies, for how long, and the coordination reward's rate and payer.
+
+IMPORT prelude
+IMPORT common
+
+§ `6.10 מורה מרכז מקצוע`
+
+@desc A subject as it is taught in one post-primary institution, as far as section 6.10 asks.
+DECLARE `subject in a school` HAS
+    `is a post-primary institution`            IS A BOOLEAN
+    `classes in the school`                    IS A NUMBER
+    `weekly hours taught in the subject`       IS A NUMBER
+    `other teachers at half a position or more` IS A NUMBER @desc teachers of the subject, besides the coordinator, employed in it at half a position or more
+    `other teachers at less than half a position` IS A NUMBER @desc teachers of the subject, besides the coordinator, employed in it at less than half a position
+    `is a small school`                        IS A BOOLEAN @desc in the sense of section 6.10.2א's last paragraph, for 6.10.2א.2
+    `teachers of the subject`                  IS A NUMBER @desc all who teach the subject, for 6.10.2א.2
+    `positions the subject's hours fill`       IS A NUMBER @desc the subject's hours over all its teachers, in full positions, for 6.10.2א.2
+
+@desc The two kinds of subject section 6.10.2ב.1 defines, by what a permanent licence to teach them in the upper division requires.
+DECLARE `kind of subject` IS ONE OF
+    `theoretical subject`
+    `other subject`
+
+@desc A candidate for subject coordinator.
+DECLARE `coordinator candidate` HAS
+    `holds an academic degree in the subject`         IS A BOOLEAN @desc recognised by the Ministry for a permanent licence in the subject
+    `has full pedagogical training`                   IS A BOOLEAN
+    `holds a permanent licence in the subject`        IS A BOOLEAN
+    `licence earned by completion exams or the licensing committee` IS A BOOLEAN @desc the permanent licence was granted on all the completion exams, or by the clarification committee for teaching licences
+    `supervision finds him the most suitable teacher of the subject` IS A BOOLEAN @desc in the pedagogical supervision's opinion, more suitable professionally and pedagogically than every other teacher of the subject in the school
+    `years teaching the subject`                      IS A NUMBER
+    `has guidance ability in pedagogical work`        IS A BOOLEAN
+    `position fraction teaching the subject in the school` IS A NUMBER
+
+@desc The approvals an appointment was given.
+DECLARE `coordinator approvals` HAS
+    `approved by the school's supervisor` IS A BOOLEAN
+    `approved by the owner`               IS A BOOLEAN
+
+DECLARE `6.10 action` IS ONE OF
+    `appoint a subject coordinator` HAS `for school years` IS A NUMBER
+    `pay the coordination reward`
+    `notify the other owner of the payment`
+
+§§ `6.10.2 מינוי`
+
+-- §6.10.2, opening paragraph: coordinators are appointed by the criteria
+-- below, "but not fewer than one subject coordinator per institution".
+@ref akn:chp_6__sec_6_10__ssec_6_10_2/p1
+GIVEN `coordinators the criteria give` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `coordinators the institution has` `coordinators the criteria give` IS
+    max `coordinators the criteria give` 1
+
+-- akn:chp_6__sec_6_10__ssec_6_10_2__para_a/p1 The heading of §6.10.2א (conditions for appointing a subject coordinator); its two paragraphs are encoded below.
+
+-- §6.10.2א.1's staffing condition: "two more teachers at ½ position, or 3
+-- more teachers at less than ½ position". ½ is read as at least ½, as in
+-- §6.10.6.2א. The words, as printed, do not decide a mixed staff (F-6.10-b).
+@ref akn:chp_6__sec_6_10__ssec_6_10_2__para_a__subpara_1
+GIVEN s IS A `subject in a school`, `at half or more` IS A NUMBER, `at less than half` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `the staff condition as printed` s `at half or more` `at less than half` IF
+       s's `other teachers at half a position or more` AT LEAST `at half or more`
+    OR s's `other teachers at less than half a position` AT LEAST `at less than half`
+
+-- The reading adopted (F-6.10-b): a teacher at half a position or more also
+-- counts towards the larger number of teachers the second alternative asks
+-- for, so more teaching never disqualifies.
+GIVEN s IS A `subject in a school`, `at half or more` IS A NUMBER, `at less than half` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `the staff condition` s `at half or more` `at less than half` IF
+       s's `other teachers at half a position or more` AT LEAST `at half or more`
+    OR s's `other teachers at half a position or more` PLUS s's `other teachers at less than half a position` AT LEAST `at less than half`
+
+@ref akn:chp_6__sec_6_10__ssec_6_10_2__para_a__subpara_1
+GIVEN s IS A `subject in a school`
+GIVETH A BOOLEAN
+DECIDE `the principal may appoint a coordinator for the subject` s IF
+        s's `is a post-primary institution`
+    AND s's `classes in the school` AT LEAST 8
+    AND s's `weekly hours taught in the subject` AT LEAST 48
+    AND `the staff condition` s 2 3
+
+-- §6.10.2א.2: in a small school, or where two or more teach the subject
+-- and their hours come to at least one position, the district manager may
+-- recommend a coordinator, who receives 4% (rate under §6.10.6.1א).
+@ref akn:chp_6__sec_6_10__ssec_6_10_2__para_a__subpara_2
+GIVEN s IS A `subject in a school`
+GIVETH A BOOLEAN
+DECIDE `the district manager may recommend a coordinator` s IF
+       s's `is a small school`
+    OR (s's `teachers of the subject` AT LEAST 2 AND s's `positions the subject's hours fill` AT LEAST 1)
+
+-- The cap on §6.10.2א.2's arrangement: 280 teachers in 5754 (תשנ"ד), and
+-- no more than 500 in all in 5754 and 5755 (תשנ"ה). No cap, and no end, is
+-- stated for any later year (F-6.10-d).
+@ref akn:chp_6__sec_6_10__ssec_6_10_2__para_a/p2
+GIVEN `school year` IS A NUMBER
+GIVETH A MAYBE NUMBER
+DECIDE `teachers the arrangement may be approved for` `school year` IS
+    BRANCH IF `school year` EQUALS 5754 THEN JUST 280
+           IF `school year` EQUALS 5755 THEN JUST 500
+           OTHERWISE NOTHING
+
+@ref akn:chp_6__sec_6_10__ssec_6_10_2__para_a/p2
+GIVEN `average parallel classes` IS A NUMBER, `entitled under the existing criteria` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `is a small school for the arrangement` `average parallel classes` `entitled under the existing criteria` IF
+    `average parallel classes` AT MOST 2 OR NOT `entitled under the existing criteria`
+
+`the cap is stated for no year after 5755` MEANS
+    all (GIVEN y YIELD `teachers the arrangement may be approved for` y EQUALS NOTHING)
+        (LIST 5756, 5757, 5760, 5770, 5780)
+#ASSERT `the cap is stated for no year after 5755`
+
+-- akn:chp_6__sec_6_10__ssec_6_10_2__para_b/p1 The heading of §6.10.2ב (the requirements of the post); its paragraphs are encoded below.
+-- akn:chp_6__sec_6_10__ssec_6_10_2__para_b__subpara_1/p1 The heading "הגדרות" of the two definitions that follow.
+
+@ref akn:chp_6__sec_6_10__ssec_6_10_2__para_b__subpara_1/p2 akn:chp_6__sec_6_10__ssec_6_10_2__para_b__subpara_1/p3
+GIVEN `a permanent upper-division licence requires a degree in it` IS A BOOLEAN
+GIVETH A `kind of subject`
+DECIDE `kind of subject by its licence` `a permanent upper-division licence requires a degree in it` IS
+    IF `a permanent upper-division licence requires a degree in it`
+    THEN `theoretical subject`
+    ELSE `other subject`
+
+@ref akn:chp_6__sec_6_10__ssec_6_10_2__para_b__subpara_2__cls_a
+GIVEN c IS A `coordinator candidate`
+GIVETH A BOOLEAN
+DECIDE `qualifies for a theoretical subject in the ordinary way` c IF
+    c's `holds an academic degree in the subject` AND c's `has full pedagogical training`
+
+@ref akn:chp_6__sec_6_10__ssec_6_10_2__para_b__subpara_2__cls_b
+GIVEN c IS A `coordinator candidate`, `the case is special and exceptional` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `qualifies for a theoretical subject by exception` c `the case is special and exceptional` IF
+        `the case is special and exceptional`
+    AND c's `holds a permanent licence in the subject`
+    AND c's `licence earned by completion exams or the licensing committee`
+    AND c's `supervision finds him the most suitable teacher of the subject`
+
+@ref akn:chp_6__sec_6_10__ssec_6_10_2__para_b__subpara_3
+GIVEN c IS A `coordinator candidate`
+GIVETH A BOOLEAN
+DECIDE `qualifies for an other subject` c IF
+    c's `holds a permanent licence in the subject`
+
+@ref akn:chp_6__sec_6_10__ssec_6_10_2__para_b__subpara_4
+GIVEN c IS A `coordinator candidate`
+GIVETH A BOOLEAN
+DECIDE `meets the experience requirements` c IF
+        c's `years teaching the subject` AT LEAST 3
+    AND c's `has guidance ability in pedagogical work`
+    AND c's `position fraction teaching the subject in the school` AT LEAST 1/3
+
+@ref akn:chp_6__sec_6_10__ssec_6_10_2__para_b__subpara_2__cls_a akn:chp_6__sec_6_10__ssec_6_10_2__para_b__subpara_3
+GIVEN a IS A `coordinator approvals`
+GIVETH A BOOLEAN
+DECIDE `the appointment is approved` a IF
+    a's `approved by the school's supervisor` AND a's `approved by the owner`
+
+@ref akn:chp_6__sec_6_10__ssec_6_10_2__para_b__subpara_4
+GIVEN k IS A `kind of subject`, c IS A `coordinator candidate`, `the case is special and exceptional` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `may be appointed subject coordinator` k c `the case is special and exceptional` IF
+        `meets the experience requirements` c
+    AND CONSIDER k
+        WHEN `theoretical subject` THEN    `qualifies for a theoretical subject in the ordinary way` c
+                                        OR `qualifies for a theoretical subject by exception` c `the case is special and exceptional`
+        WHEN `other subject`       THEN `qualifies for an other subject` c
+
+-- §6.10.2ב.5: for one school year only, made at the start of each year by
+-- the institution's management with the supervisor's and owner's approval.
+-- Time in school months; the appointment is made by month 1 (September).
+@ref akn:chp_6__sec_6_10__ssec_6_10_2__para_a__subpara_1 akn:chp_6__sec_6_10__ssec_6_10_2__para_b__subpara_5
+GIVEN s IS A `subject in a school`, k IS A `kind of subject`, c IS A `coordinator candidate`, a IS A `coordinator approvals`
+GIVETH A DEONTIC Party `6.10 action`
+DECIDE `appointing a subject coordinator` s k c a IS
+    IF     `the principal may appoint a coordinator for the subject` s
+       AND `may be appointed subject coordinator` k c FALSE
+       AND `the appointment is approved` a
+    THEN PARTY `the school principal`
+         MAY   `appoint a subject coordinator` years PROVIDED years EQUALS 1
+         WITHIN 1
+    ELSE PARTY `the school principal`
+         SHANT `appoint a subject coordinator` years
+         LEST  BREACH BY `the school principal` BECAUSE "section 6.10.2: the subject, the candidate or the approvals do not meet the conditions"
+
+-- akn:chp_6__sec_6_10__ssec_6_10_2/p2 akn:chp_6__sec_6_10__ssec_6_10_2/p3 akn:chp_6__sec_6_10__ssec_6_10_2/p4 akn:chp_6__sec_6_10__ssec_6_10_2/p5 akn:chp_6__sec_6_10__ssec_6_10_2/p6 The sources (אסמכתא) of section 6.10.2.
+
+§§ `6.10.6 גמול ריכוז מקצוע`
+
+-- §6.10.6.2א–ג: three rates, each with its own hours and staff. Each
+-- higher rate's conditions include the lower's, and the highest met governs.
+@ref akn:chp_6__sec_6_10__ssec_6_10_6__para_2__subpara_a akn:chp_6__sec_6_10__ssec_6_10_6__para_2__subpara_b akn:chp_6__sec_6_10__ssec_6_10_6__para_2__subpara_c
+GIVEN s IS A `subject in a school`
+GIVETH A MAYBE NUMBER
+DECIDE `coordination rate by the subject's size` s IS
+    BRANCH
+        IF s's `is a post-primary institution` AND s's `weekly hours taught in the subject` AT LEAST 100 AND `the staff condition` s 5 6
+        THEN JUST (7%)
+        IF s's `is a post-primary institution` AND s's `weekly hours taught in the subject` AT LEAST 72 AND `the staff condition` s 4 5
+        THEN JUST (6%)
+        IF s's `is a post-primary institution` AND s's `weekly hours taught in the subject` AT LEAST 48 AND `the staff condition` s 2 3
+        THEN JUST (5%)
+        OTHERWISE NOTHING
+
+-- §6.10.6.1א's second paragraph ("1א"): a coordinator appointed under
+-- §6.10.2א.2 receives 4%.
+@ref akn:chp_6__sec_6_10__ssec_6_10_6__para_1__subpara_b/p2
+GIVEN s IS A `subject in a school`, `appointed under 6.10.2א.2` IS A BOOLEAN
+GIVETH A MAYBE NUMBER
+DECIDE `coordination rate` s `appointed under 6.10.2א.2` IS
+    CONSIDER `coordination rate by the subject's size` s
+    WHEN JUST r THEN JUST r
+    WHEN NOTHING THEN IF `appointed under 6.10.2א.2` THEN JUST (4%) ELSE NOTHING
+
+-- F-6.10-a: §6.10.2 requires at least one coordinator in every
+-- post-primary institution, but a coordinator appointed to meet that floor
+-- in a school that meets neither §6.10.6.2 nor §6.10.2א.2 has no rate.
+`a 6-class school, 20 hours, two teachers at a third` MEANS
+    `subject in a school` WITH
+        `is a post-primary institution`               IS TRUE
+        `classes in the school`                       IS 6
+        `weekly hours taught in the subject`          IS 20
+        `other teachers at half a position or more`   IS 0
+        `other teachers at less than half a position` IS 1
+        `is a small school`                           IS FALSE
+        `teachers of the subject`                     IS 2
+        `positions the subject's hours fill`          IS 20/24
+
+`the floor's coordinator has no rate` MEANS
+        `coordinators the institution has` 0 EQUALS 1
+    AND `coordination rate` `a 6-class school, 20 hours, two teachers at a third` FALSE EQUALS NOTHING
+    AND NOT `the district manager may recommend a coordinator` `a 6-class school, 20 hours, two teachers at a third`
+#ASSERT `the floor's coordinator has no rate`
+
+-- F-6.10-b: as printed, 48 hours with three other teachers, one of them at
+-- half a position or more, meets neither alternative — though three at
+-- less than half do.
+`48 hours, one other at half and two at less` MEANS
+    `subject in a school` WITH
+        `is a post-primary institution`               IS TRUE
+        `classes in the school`                       IS 12
+        `weekly hours taught in the subject`          IS 48
+        `other teachers at half a position or more`   IS 1
+        `other teachers at less than half a position` IS 2
+        `is a small school`                           IS FALSE
+        `teachers of the subject`                     IS 4
+        `positions the subject's hours fill`          IS 2
+
+`48 hours, three others at less than half` MEANS
+    `subject in a school` WITH
+        `is a post-primary institution`               IS TRUE
+        `classes in the school`                       IS 12
+        `weekly hours taught in the subject`          IS 48
+        `other teachers at half a position or more`   IS 0
+        `other teachers at less than half a position` IS 3
+        `is a small school`                           IS FALSE
+        `teachers of the subject`                     IS 4
+        `positions the subject's hours fill`          IS 2
+
+`a mixed staff meets neither alternative as printed` MEANS
+        (NOT `the staff condition as printed` `48 hours, one other at half and two at less` 2 3)
+    AND `the staff condition as printed` `48 hours, three others at less than half` 2 3
+#ASSERT `a mixed staff meets neither alternative as printed`
+
+-- §6.10.6.1א: from 1.11.83 the reward is a percentage of the coordinator's
+-- combined salary (משכורת משולבת) by grade and seniority. §6.10.2א.2 says
+-- its 4% is "משכרו המשולם" — of the salary paid him (F-6.10-c).
+@ref akn:chp_6__sec_6_10__ssec_6_10_6__para_1__subpara_a
+GIVEN rate IS A NUMBER, `combined salary by grade and seniority` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `coordination reward` rate `combined salary by grade and seniority` IS
+    rate TIMES `combined salary by grade and seniority`
+
+@ref akn:chp_6__sec_6_10__ssec_6_10_2__para_a__subpara_2
+GIVEN `salary paid` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the 4% reward as §6.10.2א.2 words it` `salary paid` IS
+    4% TIMES `salary paid`
+
+`§6.10.2א.2 and §6.10.6.1א price the 4% on different salaries` MEANS
+    NOT (`the 4% reward as §6.10.2א.2 words it` 6000 EQUALS `coordination reward` (4%) 10000)
+#ASSERT `§6.10.2א.2 and §6.10.6.1א price the 4% on different salaries`
+
+@ref akn:chp_6__sec_6_10__ssec_6_10_6__para_1__subpara_b
+GIVETH A BOOLEAN
+DECIDE `the reward counts as salary for cost-of-living, severance and pension` IF FALSE
+
+@ref akn:chp_6__sec_6_10__ssec_6_10_6__para_2__subpara_d
+GIVEN `still fills the post` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `the reward is paid` `still fills the post` IF `still fills the post`
+
+-- §6.10.6.3: a six-year school is one institution, so a teacher of the
+-- subject in both divisions counts as teaching in one; where two owners pay
+-- his salary, the owner in whose division most of the subject's hours are
+-- taught pays the reward. Equal hours have no majority (F-6.10-e).
+DECLARE `paying owner` IS ONE OF `the middle division's owner`, `the upper division's owner`
+
+@ref akn:chp_6__sec_6_10__ssec_6_10_6__para_3
+GIVEN `hours in the middle division` IS A NUMBER, `hours in the upper division` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `hours counted for the reward` `hours in the middle division` `hours in the upper division` IS
+    `hours in the middle division` PLUS `hours in the upper division`
+
+@ref akn:chp_6__sec_6_10__ssec_6_10_6__para_3
+GIVEN `hours in the middle division` IS A NUMBER, `hours in the upper division` IS A NUMBER
+GIVETH A MAYBE `paying owner`
+DECIDE `who pays the reward` `hours in the middle division` `hours in the upper division` IS
+    BRANCH IF `hours in the middle division` GREATER THAN `hours in the upper division`
+           THEN JUST `the middle division's owner`
+           IF `hours in the upper division` GREATER THAN `hours in the middle division`
+           THEN JUST `the upper division's owner`
+           OTHERWISE NOTHING
+
+`equal hours name no paying owner` MEANS `who pays the reward` 10 10 EQUALS NOTHING
+#ASSERT `equal hours name no paying owner`
+
+-- The paying owner notifies the other, so that it pays nothing. No time is
+-- set; the school month of payment is read as the deadline.
+@ref akn:chp_6__sec_6_10__ssec_6_10_6__para_3/p2
+GIVETH A DEONTIC Party `6.10 action`
+DECIDE `paying and notifying` IS
+    PARTY `the local authority or owning body`
+    MUST  `pay the coordination reward`
+    WITHIN 1
+    HENCE (PARTY `the local authority or owning body`
+           MUST  `notify the other owner of the payment`
+           WITHIN 1)
+
+-- akn:chp_6__sec_6_10__ssec_6_10_6__para_3/p3 A pointer to section 1.12 of the takanon, encoded there.
+
+-- Examples (placeholder schools and salaries).
+`100 hours, five others at half` MEANS
+    `subject in a school` WITH
+        `is a post-primary institution`               IS TRUE
+        `classes in the school`                       IS 30
+        `weekly hours taught in the subject`          IS 100
+        `other teachers at half a position or more`   IS 5
+        `other teachers at less than half a position` IS 0
+        `is a small school`                           IS FALSE
+        `teachers of the subject`                     IS 6
+        `positions the subject's hours fill`          IS 4
+
+#ASSERT `coordination rate` `100 hours, five others at half` FALSE EQUALS JUST (7%)
+#ASSERT `coordination rate` `48 hours, one other at half and two at less` FALSE EQUALS JUST (5%)
+#ASSERT `coordination reward` (7%) 10000 EQUALS 700
+#ASSERT `who pays the reward` 4 8 EQUALS JUST `the upper division's owner`
+
+#TRACE `paying and notifying` AT 0 WITH
+    PARTY `the local authority or owning body` DOES `pay the coordination reward` AT 1
+    PARTY `the local authority or owning body` DOES `notify the other owner of the payment` AT 1
+
+-- akn:chp_6__sec_6_10__ssec_6_10_6/p1 akn:chp_6__sec_6_10__ssec_6_10_6/p2 akn:chp_6__sec_6_10__ssec_6_10_6/p3 akn:chp_6__sec_6_10__ssec_6_10_6/p4 akn:chp_6__sec_6_10__ssec_6_10_6/p5 akn:chp_6__sec_6_10__ssec_6_10_6/p6 akn:chp_6__sec_6_10__ssec_6_10_6/p7 akn:chp_6__sec_6_10__ssec_6_10_6/p8 akn:chp_6__sec_6_10__ssec_6_10_6/p9 akn:chp_6__sec_6_10__ssec_6_10_6/p10 akn:chp_6__sec_6_10__ssec_6_10_6/p11 The sources (אסמכתא) of section 6.10.6.

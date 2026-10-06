@@ -1,0 +1,239 @@
+-- תקנון שירות עובדי הוראה, פרק 1ב', §1.46 מענק יובל
+-- The jubilee grant: paid each June to a teaching employee with 30 years'
+-- cumulative seniority (25 for state-employed teachers on the teachers'
+-- scale from 1.6.2008), at 60% of the determining salary, pro-rated by
+-- position and period; which years count towards the seniority.
+
+IMPORT prelude
+IMPORT common
+
+§ `1.46 מענק יובל`
+
+DECLARE `employer of earlier years` IS ONE OF
+    `the State service`
+    `the IDF`
+    `the Israel Police`
+    `the Israel Prison Service`
+    `a local authority`
+    `a licensed school supervised under the Schools Supervision Law and funded or supported by the Ministry`
+    `the Jewish Agency`
+    `the World Zionist Organization`
+    `the Jewish National Fund`
+    `Keren Hayesod`
+    `a recognised institution of higher education in Israel`
+    `another employer`
+
+DECLARE `kind of year` IS ONE OF
+    `teaching`
+    `military service`
+    `unpaid leave with 18.5% paid for rights`
+    `unpaid leave without that payment`
+    `an earlier scale` HAS `earlier employer` IS AN `employer of earlier years`, `recognised as teaching seniority` IS A BOOLEAN
+
+DECLARE `period of service` HAS
+    `period kind`          IS A `kind of year`
+    `length in years`      IS A NUMBER
+    `before age 18`        IS A BOOLEAN
+
+@desc A teaching employee in the year a jubilee grant may be paid, as far as section 1.46 asks about it.
+DECLARE `jubilee year` HAS
+    `year of the grant`                          IS A NUMBER  @desc the Gregorian year whose June salary carries the grant
+    `state employee on the teachers' scale`      IS A BOOLEAN @desc employed in the State service and graded on the teaching employees' scale (¶2)
+    `periods`                                    IS A LIST OF `period of service`
+    `seniority set in September of the year before` IS A NUMBER @desc the seniority recorded for the employee in September of the previous year (¶4)
+    `determining salary`                         IS A NUMBER  @desc the salary that determines pension and severance pay, without once-a-year payments such as clothing and recuperation (¶3); an input
+    `position fraction that year`                IS A NUMBER  @desc share of a full position held in the year (1 = one position)
+    `share of the year employed`                 IS A NUMBER  @desc the part of the year the employee was employed (1 = all of it)
+    `a pensioner`                                IS A BOOLEAN @desc retired, receiving a pension (ב ¶3)
+
+§§ `1`
+
+-- ¶1: from the June 1995 salary, every year in June, to a teaching employee
+-- with 30 years' cumulative teaching seniority including military service.
+-- ¶2: 25 years for a state employee on the teachers' scale, from 1.6.2008.
+@ref akn:chp_1ב__sec_1_46__hc_2__para_1 akn:chp_1ב__sec_1_46__hc_2__para_1/p2
+GIVEN y IS A `jubilee year`
+GIVETH A NUMBER
+DECIDE `years of seniority required` y IS
+    IF y's `state employee on the teachers' scale` AND y's `year of the grant` AT LEAST 2008
+    THEN 25
+    ELSE 30
+
+GIVEN y IS A `jubilee year`
+GIVETH A BOOLEAN
+DECIDE `a year the grant is paid` y IF
+    y's `year of the grant` AT LEAST 1995
+
+@ref akn:chp_1ב__sec_1_46__hc_2__para_1/p3
+GIVEN y IS A `jubilee year`
+GIVETH A NUMBER
+DECIDE `full jubilee grant` y IS
+    y's `determining salary` TIMES 0.6
+
+-- ¶4: the grant follows the seniority set in September of the year before.
+@ref akn:chp_1ב__sec_1_46__hc_2__para_1/p4
+GIVEN y IS A `jubilee year`
+GIVETH A BOOLEAN
+DECIDE `qualifies by the September seniority of ¶4` y IF
+    y's `seniority set in September of the year before` AT LEAST `years of seniority required` y
+
+-- akn:chp_1ב__sec_1_46__hc_2__para_1/p5 A heading ("clarifications") over א and ב.
+
+§§ `Which years count (1א, 2א-ג)`
+
+@ref akn:chp_1ב__sec_1_46__hc_2__para_1__subpara_a
+GIVEN `grant year` IS A NUMBER, p IS A `period of service`
+GIVETH A BOOLEAN
+DECIDE `the period counts in` `grant year` p IF
+        (NOT p's `before age 18`)
+    AND `the kind counts in` `grant year` (p's `period kind`)
+
+GIVEN `grant year` IS A NUMBER, k IS A `kind of year`
+GIVETH A BOOLEAN
+DECIDE `the kind counts in` `grant year` k IF
+    CONSIDER k
+    WHEN `teaching` THEN TRUE
+    WHEN `military service` THEN TRUE
+    WHEN `unpaid leave with 18.5% paid for rights` THEN TRUE
+    WHEN `unpaid leave without that payment` THEN FALSE
+    WHEN `an earlier scale` e recognised THEN `counted earlier-scale years` `grant year` e recognised
+
+-- 2א: years on an earlier scale with an employer on the list, recognised as
+-- teaching seniority, count. 2ב: unrecognised years do not. The list:
+@ref akn:chp_1ב__sec_1_46__hc_2__para_2__subpara_a
+`the employers of 2א` MEANS
+    LIST
+        @ref akn:chp_1ב__sec_1_46__hc_2__para_2__subpara_a/p2
+        `the State service`,
+        @ref akn:chp_1ב__sec_1_46__hc_2__para_2__subpara_a/p3
+        `the IDF`,
+        @ref akn:chp_1ב__sec_1_46__hc_2__para_2__subpara_a/p4
+        `the Israel Police`,
+        @ref akn:chp_1ב__sec_1_46__hc_2__para_2__subpara_a/p5
+        `the Israel Prison Service`,
+        @ref akn:chp_1ב__sec_1_46__hc_2__para_2__subpara_a/p6
+        `a local authority`,
+        @ref akn:chp_1ב__sec_1_46__hc_2__para_2__subpara_a/p7
+        `a licensed school supervised under the Schools Supervision Law and funded or supported by the Ministry`,
+        @ref akn:chp_1ב__sec_1_46__hc_2__para_2__subpara_a/p8
+        `the Jewish Agency`,
+        @ref akn:chp_1ב__sec_1_46__hc_2__para_2__subpara_a/p9
+        `the World Zionist Organization`,
+        @ref akn:chp_1ב__sec_1_46__hc_2__para_2__subpara_a/p10
+        `the Jewish National Fund`,
+        @ref akn:chp_1ב__sec_1_46__hc_2__para_2__subpara_a/p11
+        `Keren Hayesod`,
+        @ref akn:chp_1ב__sec_1_46__hc_2__para_2__subpara_a/p12
+        `a recognised institution of higher education in Israel`
+
+-- The licensed school counts from 15.12.2009 (p7); the first June after it
+-- is 2010's, so a grant year before 2010 does not count it.
+@ref akn:chp_1ב__sec_1_46__hc_2__para_2__subpara_b
+GIVEN `grant year` IS A NUMBER, e IS AN `employer of earlier years`, recognised IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `counted earlier-scale years` `grant year` e recognised IF
+        recognised
+    AND elem e `the employers of 2א`
+    AND (    (NOT e EQUALS `a licensed school supervised under the Schools Supervision Law and funded or supported by the Ministry`)
+         OR `grant year` AT LEAST 2010)
+
+@ref akn:chp_1ב__sec_1_46__hc_2__para_2__subpara_c
+GIVEN y IS A `jubilee year`
+GIVETH A NUMBER
+DECIDE `years that count` y IS
+    sum (map (GIVEN p YIELD p's `length in years`)
+             (filter (GIVEN p YIELD `the period counts in` (y's `year of the grant`) p) (y's `periods`)))
+
+-- ב: a teaching employee who completed 30 years' work in Israel (25 for
+-- the employees of ¶2) by 1 June of the year in question, compulsory IDF
+-- service included, gets the grant that year.
+@ref akn:chp_1ב__sec_1_46__hc_2__para_1__subpara_b
+GIVEN y IS A `jubilee year`
+GIVETH A BOOLEAN
+DECIDE `qualifies by the 1 June count of ב` y IF
+    `years that count` y AT LEAST `years of seniority required` y
+
+-- F-1.46-a: ¶4 and ב fix eligibility at different dates. ¶4 looks at the
+-- seniority set the September BEFORE the grant year; ב at the years
+-- completed by 1 June OF it. A teacher who completes the required years
+-- between the two dates qualifies by ב and not by ¶4 — a year earlier by
+-- one than by the other. The reading adopted is ב's, the clause that says
+-- in terms in which year the grant is won ("יזכה באותה שנה").
+GIVEN y IS A `jubilee year`
+GIVETH A BOOLEAN
+DECIDE `entitled to the jubilee grant` y IF
+    `a year the grant is paid` y AND `qualifies by the 1 June count of ב` y
+
+-- ב ¶2: pro-rated by the year's position fraction, up to one position, and
+-- by the share of the year employed.
+@ref akn:chp_1ב__sec_1_46__hc_2__para_1__subpara_b/p2
+@export default The jubilee grant a teaching employee is paid with June's salary for one year under section 1.46 of the takanon
+GIVEN y IS A `jubilee year` @desc the employee and the year
+GIVETH A NUMBER
+DECIDE `jubilee grant` y IS
+    IF `entitled to the jubilee grant` y
+    THEN `full jubilee grant` y TIMES min (y's `position fraction that year`) 1 TIMES y's `share of the year employed`
+    ELSE 0
+
+-- ב ¶3: pensioners get it too, as retired state employees do. How that
+-- usage works is not in this section; it is an input of the pensioner's case.
+@ref akn:chp_1ב__sec_1_46__hc_2__para_1__subpara_b/p3
+ASSUME `the jubilee grant of a pensioner, as for retired state employees` IS A FUNCTION FROM `jubilee year` TO NUMBER
+
+GIVEN y IS A `jubilee year`
+GIVETH A BOOLEAN
+DECIDE `a pensioner is within the grant` y IF
+    y's `a pensioner`
+
+-- akn:chp_1ב__sec_1_46__hc_2__para_2 The label of clause 2, whose rows are cited above.
+-- akn:chp_1ב__sec_1_46__hc_3 The heading of the source list (אסמכתא).
+-- akn:chp_1ב__sec_1_46__hc_3__para_1 A source: collective agreement of 31.8.94.
+-- akn:chp_1ב__sec_1_46__hc_3__para_1/p2 A source (1א): collective agreement with the Teachers' Union of 27.8.2008.
+-- akn:chp_1ב__sec_1_46__hc_3__para_2 A source: letter of the wages unit of 3.12.97.
+-- akn:chp_1ב__sec_1_46__hc_3__para_3 A source: clarification letter of the deputy accountant of 6.12.94.
+-- akn:chp_1ב__sec_1_46__hc_3__para_4 A source: director-general's circular נה/9, section 356.
+-- akn:chp_1ב__sec_1_46__hc_3__para_5 A source: circular of the wages commissioner הע/49/94.
+-- akn:chp_1ב__sec_1_46__hc_3__para_6 A source: decision of the supreme parity committee of 18.11.96.
+-- akn:chp_1ב__sec_1_46__hc_3__para_6/p2 A source: circular of the head of the personnel division נה/2.
+-- akn:chp_1ב__sec_1_46__hc_3__para_6/p3 A source: decision of the conditions-of-service committee of 12.10.97.
+-- akn:chp_1ב__sec_1_46__hc_3__para_6/p4 A source: circular of the head of the personnel division נח/2.
+-- akn:chp_1ב__sec_1_46__hc_3__para_7 A source: summary of a discussion of 15.12.2009 (the licensed-schools date of 2א).
+
+-- Worked examples. The salary of 10,000 is a placeholder.
+-- A teacher not in the State service whose seniority reached 30 in March
+-- of the grant year: the September before, 29 years were set; by 1 June,
+-- 30 years and 3 months are completed (29.5 actual years the September before).
+`thirty years in March` MEANS
+    `jubilee year` WITH
+        `year of the grant`                          IS 2020
+        `state employee on the teachers' scale`      IS FALSE
+        `periods`                                    IS LIST `period of service` `teaching` 27.25 FALSE,
+                                                             `period of service` `military service` 2 FALSE,
+                                                             `period of service` `unpaid leave with 18.5% paid for rights` 1 FALSE,
+                                                             `period of service` (`an earlier scale` `the Israel Police` FALSE) 3 FALSE,
+                                                             `period of service` `teaching` 0.5 TRUE
+        `seniority set in September of the year before` IS 29
+        `determining salary`                         IS 10000
+        `position fraction that year`                IS 1.2
+        `share of the year employed`                 IS 1
+        `a pensioner`                                IS FALSE
+
+#ASSERT `years that count` `thirty years in March` EQUALS 30.25
+#ASSERT `jubilee grant` `thirty years in March` EQUALS 6000
+
+`¶4 and ב give the March teacher different answers` MEANS
+        `qualifies by the 1 June count of ב` `thirty years in March`
+    AND NOT `qualifies by the September seniority of ¶4` `thirty years in March`
+#ASSERT `¶4 and ב give the March teacher different answers`
+
+`a state teacher in 2010 with 25 years` MEANS
+    `jubilee year` WITH
+        `year of the grant`                          IS 2010
+        `state employee on the teachers' scale`      IS TRUE
+        `periods`                                    IS LIST `period of service` `teaching` 25 FALSE
+        `seniority set in September of the year before` IS 24
+        `determining salary`                         IS 10000
+        `position fraction that year`                IS 0.5
+        `share of the year employed`                 IS 1
+        `a pensioner`                                IS FALSE
+#ASSERT `jubilee grant` `a state teacher in 2010 with 25 years` EQUALS 3000

@@ -1,0 +1,159 @@
+-- תקנון שירות עובדי הוראה, פרק 4, §4.10 מתי"א
+-- The settlement integration class (its definition and size), and the
+-- terms of employment where single special-education pupils are integrated
+-- in regular classes.
+
+IMPORT prelude
+IMPORT daydate
+IMPORT common
+
+§ `4.10 מתי"א`
+
+@desc A primary-school class, as section 4.10(a) asks about it.
+DECLARE `integration class` HAS
+    `pupils with complex functional learning problems from several schools in the locality or area` IS A BOOLEAN
+    `pupils with sensory impairments`  IS A BOOLEAN @desc the integrated pupils are sensory-impaired (לקויי חושים)
+    `number of integrated pupils`      IS A NUMBER
+
+@desc A teacher who integrates single special-education pupils in regular classes (section 4.10(c)).
+DECLARE `integrating teacher` HAS
+    `role`                             IS A `integration role`
+    `weekly working hours`             IS A NUMBER
+    `certified for special education`  IS A BOOLEAN @desc as section 4.2 defines it; an input
+    `number of schools worked in`      IS A NUMBER
+    `the day`                          IS A DATE
+
+DECLARE `integration role` IS ONE OF
+    `the integrating homeroom teacher`
+    `the mobile teacher assisting integration`
+
+DECLARE `integration-class staff` IS ONE OF
+    `an integrating teacher (מורה משלב)`
+    `an integrated teacher (מורה משתלב)`
+
+§§ `4.10(a) הגדרה`
+
+-- akn:chp_4__sec_4_10__hc_2__para_a/p1 The sub-clause's heading ("הגדרה").
+
+@ref akn:chp_4__sec_4_10__hc_2__para_a/p2
+GIVEN c IS AN `integration class`
+GIVETH A BOOLEAN
+DECIDE `a settlement integration class` c IF
+    c's `pupils with complex functional learning problems from several schools in the locality or area`
+
+@ref akn:chp_4__sec_4_10__hc_2__para_a/p3
+GIVEN c IS AN `integration class`
+GIVETH A BOOLEAN
+DECIDE `the class has the prescribed number of integrated pupils` c IF
+    IF c's `pupils with sensory impairments`
+    THEN c's `number of integrated pupils` AT LEAST 6 AND c's `number of integrated pupils` AT MOST 8
+    ELSE c's `number of integrated pupils` AT LEAST 8 AND c's `number of integrated pupils` AT MOST 10
+
+§§ `4.10(b) איוש כיתות ותנאי שירות`
+
+-- akn:chp_4__sec_4_10__hc_2__para_b/p1 The sub-clause's heading ("איוש כיתות ותנאי שירות").
+
+@ref akn:chp_4__sec_4_10__hc_2__para_b/p2
+`the staff of an integration class` MEANS
+    LIST `an integrating teacher (מורה משלב)`, `an integrated teacher (מורה משתלב)`
+
+-- §4.10(b) ¶3 introduces "a table summarising their terms of service". The
+-- corpus does not carry it: on the source page "להלן טבלה" links to a
+-- separate PDF (table_15.pdf) the corpus did not ingest. That is a loss in
+-- the corpus, not a flaw of the text; the terms are an input until it does.
+@ref akn:chp_4__sec_4_10__hc_2__para_b/p3
+GIVEN `the terms the table sets` IS A STRING @desc the terms of service the linked table sets for the staff member; an input
+GIVETH A STRING
+DECIDE `terms of service of integration-class staff` `the terms the table sets` IS
+    `the terms the table sets`
+
+§§ `4.10(c) Single integrated pupils`
+
+-- The opening words set the case: single pupils lawfully defined as
+-- special-education pupils, integrated in regular classes.
+@ref akn:chp_4__sec_4_10__hc_2__para_c/p1 akn:chp_4__sec_4_10__hc_2__para_c__subpara_1
+GIVEN `pupils defined by the placement committee as special-education pupils` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `weekly hours the school receives for integrated pupils` `pupils defined by the placement committee as special-education pupils` IS
+    3 TIMES `pupils defined by the placement committee as special-education pupils`
+
+-- F-4.10-a: the integrating homeroom teacher gets 5.5% whatever her
+-- certification, where section 4.6.2(b) gives a certified integration
+-- teacher 9%. This file encodes 4.10(c)(2) as printed: it is the clause
+-- written for this case, and (c)(3) beside it shows the drafter
+-- distinguishing certification where meant.
+@ref akn:chp_4__sec_4_10__hc_2__para_c__subpara_2
+GIVEN t IS AN `integrating teacher`
+GIVETH A NUMBER
+DECIDE `special-education allowance rate of the homeroom teacher` t IS 5.5%
+
+@ref akn:chp_4__sec_4_10__hc_2__para_c__subpara_3 akn:chp_4__sec_4_10__hc_2__para_c__subpara_3__cls_a akn:chp_4__sec_4_10__hc_2__para_c__subpara_3__cls_b/p1
+GIVEN t IS AN `integrating teacher`
+GIVETH A NUMBER
+DECIDE `education hours of the mobile teacher` t IS
+    BRANCH IF t's `weekly working hours` AT LEAST 19 THEN 2
+           IF t's `weekly working hours` AT LEAST 11 THEN 1
+           OTHERWISE 0
+
+@ref akn:chp_4__sec_4_10__hc_2__para_c__subpara_3__cls_b/p2
+GIVEN t IS AN `integrating teacher`
+GIVETH A NUMBER
+DECIDE `special-education allowance rate of the mobile teacher` t IS
+    IF t's `certified for special education` THEN 9% ELSE 5.5%
+
+@ref akn:chp_4__sec_4_10__hc_2__para_c__subpara_3__cls_b/p3
+GIVEN t IS AN `integrating teacher`
+GIVETH A BOOLEAN
+DECIDE `the mobile teacher is entitled to the split allowance` t IF
+    t's `number of schools worked in` AT LEAST 3
+
+@ref akn:chp_4__sec_4_10__hc_2__para_c__subpara_3__cls_b/p4
+`the day the arrangement applies from` MEANS Date 1 9 1991
+
+@export The special-education allowance rate of a teacher who integrates single special-education pupils in regular classes, under section 4.10(c) of the takanon
+GIVEN t IS AN `integrating teacher` @desc the teacher
+GIVETH A NUMBER
+DECIDE `integration allowance rate` t IS
+    IF t's `the day` LESS THAN `the day the arrangement applies from`
+    THEN 0
+    ELSE CONSIDER t's `role`
+         WHEN `the integrating homeroom teacher`         THEN `special-education allowance rate of the homeroom teacher` t
+         WHEN `the mobile teacher assisting integration` THEN `special-education allowance rate of the mobile teacher` t
+
+-- akn:chp_4__sec_4_10__hc_3/p1 Source (אסמכתא): a Director-General's circular.
+-- akn:chp_4__sec_4_10__hc_3/p2 Source (אסמכתא): a Director-General's circular.
+-- akn:chp_4__sec_4_10__hc_3/p3 Source (אסמכתא): the collective agreement of 8.9.98.
+-- akn:chp_4__sec_4_10__hc_3/p4 Source (אסמכתא): the collective agreement of 18.12.01.
+-- akn:chp_4__sec_4_10__hc_3/p5 Source (אסמכתא): the collective agreement of 10.7.02.
+
+`a certified homeroom teacher` MEANS
+    `integrating teacher` WITH
+        `role`                            IS `the integrating homeroom teacher`
+        `weekly working hours`            IS 30
+        `certified for special education` IS TRUE
+        `number of schools worked in`     IS 1
+        `the day`                         IS Date 1 9 2005
+
+`a certified mobile teacher in three schools` MEANS
+    `integrating teacher` WITH
+        `role`                            IS `the mobile teacher assisting integration`
+        `weekly working hours`            IS 15
+        `certified for special education` IS TRUE
+        `number of schools worked in`     IS 3
+        `the day`                         IS Date 1 9 2005
+
+#ASSERT `integration allowance rate` `a certified mobile teacher in three schools` EQUALS 9%
+#ASSERT `education hours of the mobile teacher` `a certified mobile teacher in three schools` EQUALS 1
+#ASSERT `the mobile teacher is entitled to the split allowance` `a certified mobile teacher in three schools`
+#ASSERT `weekly hours the school receives for integrated pupils` 2 EQUALS 6
+#ASSERT `the class has the prescribed number of integrated pupils` (`integration class` WITH `pupils with complex functional learning problems from several schools in the locality or area` IS TRUE, `pupils with sensory impairments` IS TRUE, `number of integrated pupils` IS 7)
+
+-- F-4.10-a evidence: the rate section 4.6.2(b) prints for a certified
+-- teacher teaching "as an integration teacher" in regular education is 9%;
+-- 4.10(c)(2) gives the certified integrating homeroom teacher 5.5%.
+`section 4.6.2(b)'s rate for a certified integration teacher` MEANS 9%
+
+`a certified integrating homeroom teacher gets 5.5% where section 4.6.2(b) gives 9%` MEANS
+    NOT (`integration allowance rate` `a certified homeroom teacher`
+         EQUALS `section 4.6.2(b)'s rate for a certified integration teacher`)
+#ASSERT `a certified integrating homeroom teacher gets 5.5% where section 4.6.2(b) gives 9%`

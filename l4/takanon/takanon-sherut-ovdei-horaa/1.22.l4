@@ -1,0 +1,225 @@
+-- תקנון שירות עובדי הוראה, פרק 1א', §1.22 שעות העבודה ומשך השיעורים
+-- How long a lesson is, how long a class must stay in school, the two
+-- timetables the pedagogical secretariat recommends, and who may change them.
+
+IMPORT prelude
+IMPORT common
+
+§ `1.22 שעות העבודה ומשך השיעורים`
+
+-- akn:chp_1א___sec_1_22__ssec_1_22 Section heading only; its paragraphs below carry the rules.
+
+§§ `1.22.1 משך השיעורים`
+
+-- akn:chp_1א___sec_1_22__ssec_1_22__para_1 Lead-in ("the length of lessons in all institutions shall be as follows"); the rules are its sub-paragraphs.
+
+@desc One school day of a class, as far as section 1.22 asks about it. Times are minutes after midnight (8:00 is 480).
+DECLARE `school day of a class` HAS
+    `lesson lengths`                   IS A LIST OF NUMBER @desc the length in minutes of each of the day's first four lessons, in order
+    `lessons the class studies`        IS A NUMBER  @desc how many lessons the class studies that day
+    `the school is a special school`   IS A BOOLEAN
+    `the school gives joined lessons`  IS A BOOLEAN @desc the school gives lessons joined into a double period (שיעורים מצורפים)
+    `minutes the class is in school`   IS A NUMBER  @desc from the start of the first lesson to the end of the last
+    `the school has a restaurant`      IS A BOOLEAN @desc the school has a dining hall (מסעדה)
+
+-- §1.22.1א: of the first four lessons, two are of 50 minutes and two of 45.
+@ref akn:chp_1א___sec_1_22__ssec_1_22__para_1__subpara_a
+GIVEN lengths IS A LIST OF NUMBER
+GIVETH A BOOLEAN
+DECIDE `the first four lessons are two of 50 and two of 45 minutes` lengths IF
+        count lengths EQUALS 4
+    AND count (filter (GIVEN m YIELD m EQUALS 50) lengths) EQUALS 2
+    AND count (filter (GIVEN m YIELD m EQUALS 45) lengths) EQUALS 2
+
+-- §1.22.1ב, first sentence: the minimum time a class must be in school.
+-- The 240/230 minutes are for a class "studying 4 lessons"; the 170 for a
+-- special-school class "studying only 3". A class studying another number of
+-- lessons has no minimum here.
+@ref akn:chp_1א___sec_1_22__ssec_1_22__para_1__subpara_b
+GIVEN d IS A `school day of a class`
+GIVETH A NUMBER
+DECIDE `minimum minutes in school` d IS
+    BRANCH IF d's `the school is a special school` AND d's `lessons the class studies` EQUALS 3 THEN 170
+           IF d's `lessons the class studies` EQUALS 4 AND d's `the school gives joined lessons` THEN 230
+           IF d's `lessons the class studies` EQUALS 4 THEN 240
+           OTHERWISE 0
+
+GIVEN d IS A `school day of a class`
+GIVETH A BOOLEAN
+DECIDE `the class is in school long enough` d IF
+    d's `minutes the class is in school` AT LEAST `minimum minutes in school` d
+
+DECLARE `timetable action` IS ONE OF
+    `organise the lessons and breaks` HAS `the day as organised` IS A `school day of a class`
+    `organise a teachers' duty roster at the end of the fourth lesson`
+    `decide which of the first four lessons are of 50 minutes`
+    `change the length of a lesson or the time of the breaks`
+    `approve a change in lesson length or break times`
+
+@ref akn:chp_1א___sec_1_22__ssec_1_22__para_1__subpara_b
+GIVETH A DEONTIC Party `timetable action`
+DECIDE `organising the day` IS
+    PARTY `the school principal`
+    MUST  `organise the lessons and breaks` day
+          PROVIDED `the class is in school long enough` day
+               AND `the first four lessons are two of 50 and two of 45 minutes` (day's `lesson lengths`)
+    LEST  BREACH BY `the school principal` BECAUSE "section 1.22.1(b): lessons and breaks must keep the class in school for the minimum time"
+
+-- The duty roster is owed only in schools that have a restaurant.
+@ref akn:chp_1א___sec_1_22__ssec_1_22__para_1__subpara_b
+GIVEN d IS A `school day of a class`
+GIVETH A DEONTIC Party `timetable action`
+DECIDE `the restaurant duty roster` d IS
+    IF d's `the school has a restaurant`
+    THEN PARTY `the school principal`
+         MUST  `organise a teachers' duty roster at the end of the fourth lesson`
+         LEST  BREACH BY `the school principal` BECAUSE "section 1.22.1(b): a school with a restaurant organises a teachers' duty roster at the end of the fourth lesson"
+    ELSE FULFILLED
+
+-- "The principal and the pedagogical council are empowered to decide" —
+-- the council acts with the principal; the principal is the party here.
+@ref akn:chp_1א___sec_1_22__ssec_1_22__para_1__subpara_b
+GIVETH A DEONTIC Party `timetable action`
+DECIDE `choosing the 50-minute lessons` IS
+    PARTY `the school principal`
+    MAY   `decide which of the first four lessons are of 50 minutes`
+
+§§ `1.22.1ג The two recommended timetables`
+
+DECLARE `timetable slot` HAS
+    `slot name`     IS A STRING
+    `slot starts`   IS A NUMBER @desc minutes after midnight
+    `slot ends`     IS A NUMBER @desc minutes after midnight
+    `slot is a lesson` IS A BOOLEAN
+
+GIVEN h IS A NUMBER, m IS A NUMBER
+GIVETH A NUMBER
+DECIDE `clock` h m IS h TIMES 60 PLUS m
+
+GIVEN s IS A `timetable slot`
+GIVETH A NUMBER
+DECIDE `slot length` s IS s's `slot ends` MINUS s's `slot starts`
+
+-- The first option: two joined lessons first. "שני השיעורים הראשונים" is one
+-- 90-minute slot holding two lessons of 45 minutes each.
+@ref akn:chp_1א___sec_1_22__ssec_1_22__para_1__subpara_c akn:chp_1א___sec_1_22__ssec_1_22__para_1__subpara_c/p2 akn:chp_1א___sec_1_22__ssec_1_22__para_1__subpara_c/p3 akn:chp_1א___sec_1_22__ssec_1_22__para_1__subpara_c/p4 akn:chp_1א___sec_1_22__ssec_1_22__para_1__subpara_c/p5 akn:chp_1א___sec_1_22__ssec_1_22__para_1__subpara_c/p6 akn:chp_1א___sec_1_22__ssec_1_22__para_1__subpara_c/p7
+`the first recommended timetable` MEANS
+    LIST `timetable slot` "the first two lessons, joined" (`clock` 8 0)   (`clock` 9 30)  TRUE,
+         `timetable slot` "meal break"                    (`clock` 9 30)  (`clock` 9 55)  FALSE,
+         `timetable slot` "third lesson"                  (`clock` 9 55)  (`clock` 10 45) TRUE,
+         `timetable slot` "break"                         (`clock` 10 45) (`clock` 11 0)  FALSE,
+         `timetable slot` "fourth lesson"                 (`clock` 11 0)  (`clock` 11 50) TRUE
+
+`the first timetable's lesson lengths` MEANS LIST 45, 45, 50, 50
+
+@ref akn:chp_1א___sec_1_22__ssec_1_22__para_1__subpara_c/p8 akn:chp_1א___sec_1_22__ssec_1_22__para_1__subpara_c/p9 akn:chp_1א___sec_1_22__ssec_1_22__para_1__subpara_c/p10 akn:chp_1א___sec_1_22__ssec_1_22__para_1__subpara_c/p11 akn:chp_1א___sec_1_22__ssec_1_22__para_1__subpara_c/p12
+`the second recommended timetable` MEANS
+    LIST `timetable slot` "first lesson"  (`clock` 8 0)   (`clock` 8 50)  TRUE,
+         `timetable slot` "second lesson" (`clock` 9 0)   (`clock` 9 50)  TRUE,
+         `timetable slot` "third lesson"  (`clock` 10 15) (`clock` 11 0)  TRUE,
+         `timetable slot` "fourth lesson" (`clock` 11 15) (`clock` 12 0)  TRUE
+
+GIVEN slots IS A LIST OF `timetable slot`
+GIVETH A NUMBER
+DECIDE `minutes from first to last` slots IS
+    CONSIDER slots
+    WHEN EMPTY THEN 0
+    WHEN first FOLLOWED BY rest THEN
+        maximum (map (GIVEN s YIELD s's `slot ends`) slots) MINUS first's `slot starts`
+
+GIVEN slots IS A LIST OF `timetable slot`
+GIVETH A LIST OF NUMBER
+DECIDE `lesson slot lengths` slots IS
+    map `slot length` (filter (GIVEN s YIELD s's `slot is a lesson`) slots)
+
+-- Both recommended timetables keep the section's own rules: the first (joined
+-- lessons) keeps the class in school 230 minutes, the second (all separate)
+-- 240, and each has two 50-minute and two 45-minute lessons.
+#ASSERT `minutes from first to last` `the first recommended timetable` EQUALS 230
+#ASSERT `minutes from first to last` `the second recommended timetable` EQUALS 240
+#ASSERT `lesson slot lengths` `the first recommended timetable` EQUALS LIST 90, 50, 50
+#ASSERT sum `the first timetable's lesson lengths` EQUALS 190
+#ASSERT `the first four lessons are two of 50 and two of 45 minutes` `the first timetable's lesson lengths`
+#ASSERT `the first four lessons are two of 50 and two of 45 minutes` (`lesson slot lengths` `the second recommended timetable`)
+
+`a day on the first timetable` MEANS
+    `school day of a class` WITH
+        `lesson lengths`                  IS `the first timetable's lesson lengths`
+        `lessons the class studies`       IS 4
+        `the school is a special school`  IS FALSE
+        `the school gives joined lessons` IS TRUE
+        `minutes the class is in school`  IS `minutes from first to last` `the first recommended timetable`
+        `the school has a restaurant`     IS TRUE
+
+`a day on the second timetable` MEANS
+    `school day of a class` WITH
+        `lesson lengths`                  IS `lesson slot lengths` `the second recommended timetable`
+        `lessons the class studies`       IS 4
+        `the school is a special school`  IS FALSE
+        `the school gives joined lessons` IS FALSE
+        `minutes the class is in school`  IS `minutes from first to last` `the second recommended timetable`
+        `the school has a restaurant`     IS FALSE
+
+#ASSERT `the class is in school long enough` `a day on the first timetable`
+#ASSERT `the class is in school long enough` `a day on the second timetable`
+
+-- The second timetable, run in a school that gives joined lessons, would need
+-- only 230 minutes; a school without them that keeps classes 230 minutes falls short.
+`a 230-minute day without joined lessons` MEANS
+    `school day of a class` WITH
+        `lesson lengths`                  IS LIST 50, 50, 45, 45
+        `lessons the class studies`       IS 4
+        `the school is a special school`  IS FALSE
+        `the school gives joined lessons` IS FALSE
+        `minutes the class is in school`  IS 230
+        `the school has a restaurant`     IS FALSE
+
+#ASSERT NOT `the class is in school long enough` `a 230-minute day without joined lessons`
+
+#TRACE `organising the day` AT 0 WITH
+    PARTY `the school principal` DOES `organise the lessons and breaks` `a day on the first timetable` AT 1
+
+§§ `1.22.2`
+
+-- F-1.22-a: §1.22.1ב empowers the principal and the pedagogical council to
+-- decide which lessons are of 50 minutes; §1.22.2 makes "every change in the
+-- length of a lesson" subject to the district manager's approval. Choosing a
+-- lesson to be 50 rather than 45 minutes changes its length. The reading
+-- adopted: §1.22.2 governs departures from §1.22.1's scheme, and the choice
+-- §1.22.1ב leaves to the school is not one.
+@ref akn:chp_1א___sec_1_22__ssec_1_22__para_2
+GIVEN `the change departs from section 1.22.1's scheme` IS A BOOLEAN
+GIVETH A DEONTIC Party `timetable action`
+DECIDE `changing lesson length or break times` `the change departs from section 1.22.1's scheme` IS
+    IF `the change departs from section 1.22.1's scheme`
+    THEN PARTY `the school principal`
+         SHANT `change the length of a lesson or the time of the breaks`
+         LEST  BREACH BY `the school principal` BECAUSE "section 1.22.2: a change in lesson length or break times needs the district manager's approval"
+    ELSE `choosing the 50-minute lessons`
+
+GIVEN `the district manager approved` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `a change in lesson length or break times is valid` `the district manager approved` IF
+    `the district manager approved`
+
+-- F-1.22-a's evidence: choosing which lessons are of 50 minutes is, in the
+-- words of §1.22.2, a change in a lesson's length — the second timetable
+-- gives the first lesson 50 minutes where the first timetable gives it 45.
+`choosing the 50-minute lessons changes a lesson's length` MEANS
+    NOT (at (`the first timetable's lesson lengths`) 0
+         EQUALS at (`lesson slot lengths` `the second recommended timetable`) 0)
+#ASSERT `choosing the 50-minute lessons changes a lesson's length`
+
+-- An unapproved change is not valid; the school's own choice under section 1.22.1(b) is a permission.
+#ASSERT NOT `a change in lesson length or break times is valid` FALSE
+#TRACE `changing lesson length or break times` TRUE AT 0 WITH
+    PARTY `the school principal` DOES `change the length of a lesson or the time of the breaks` AT 1
+
+§§ `1.22.3`
+
+-- akn:chp_1א___sec_1_22__ssec_1_22__para_3 Pointer: further rules for kindergarten teachers are in chapter 2.1.1 of the takanon, encoded there.
+
+-- akn:chp_1א___sec_1_22__ssec_1_22/p1 Heading of the source list (אסמכתא).
+-- akn:chp_1א___sec_1_22__ssec_1_22/p2 Source list: a Director-General's circular the section rests on.
+-- akn:chp_1א___sec_1_22__ssec_1_22/p3 Source list: a Director-General's circular the section rests on.
+-- akn:chp_1א___sec_1_22__ssec_1_22/p4 Source list: a Director-General's circular the section rests on.

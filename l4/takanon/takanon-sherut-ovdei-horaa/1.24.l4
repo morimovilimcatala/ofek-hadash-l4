@@ -1,0 +1,515 @@
+-- תקנון שירות עובדי הוראה, פרק 1א', §1.24 שעות נוספות
+-- Overtime: what it is, the 140% cap, who may approve it, what an hour of it
+-- pays, and the provident-fund plans that compensate for it (the 18⅓% plan
+-- and the redemption of the earlier 13⅓% plan).
+
+IMPORT prelude
+IMPORT common
+
+§ `1.24 שעות נוספות`
+
+§§ `1.24.1 תנאי שירות של עבודה בשעות נוספות`
+
+-- akn:chp_1א___sec_1_24__ssec_1_24_1 Sub-section heading; its paragraphs carry the rules.
+-- akn:chp_1א___sec_1_24__ssec_1_24_1__para_1 Heading "definitions"; the two definitions follow.
+
+@desc A teaching employee's employment in one school year, as far as section 1.24.1 asks about it.
+DECLARE `overtime case` HAS
+    `role`                                IS A `role for the full-position definition`
+    `full-position hours for the framework and age` IS A NUMBER @desc the weekly teaching hours of one full position in the education framework the employee works in, adjusted to the employee's age (sections 1.22-1.23); an input
+    `weekly hours worked`                 IS A NUMBER
+    `has an approval for overtime or additional work` IS A BOOLEAN
+    `monthly combined salary`             IS A NUMBER @desc the employee's monthly combined salary (משכורת משולבת); an input
+    `monthly work unit`                   IS A NUMBER @desc the monthly work unit for the employee's education, seniority and institution; an input set outside this section
+
+DECLARE `role for the full-position definition` IS ONE OF
+    `a teaching employee in general`
+    `a professional instructor`
+    `an SHL instructor` @desc מדריך של"ח (field, heritage and nature studies)
+
+-- §1.24.1, second definition: one full position is a unit of work measured by
+-- the teaching hours of the education framework, adjusted to age — "except a
+-- professional instructor and an SHL instructor", for whom the section gives
+-- no measure (F-1.24-a).
+@ref akn:chp_1א___sec_1_24__ssec_1_24_1__para_1/p2
+GIVEN c IS AN `overtime case`
+GIVETH A MAYBE NUMBER
+DECIDE `hours of one full position` c IS
+    CONSIDER c's `role`
+    WHEN `a teaching employee in general` THEN JUST (c's `full-position hours for the framework and age`)
+    OTHERWISE NOTHING
+
+-- §1.24.1, first definition: work in overtime is work above one full position.
+@ref akn:chp_1א___sec_1_24__ssec_1_24_1__para_1/p1
+GIVEN c IS AN `overtime case`
+GIVETH A MAYBE NUMBER
+DECIDE `weekly overtime hours` c IS
+    CONSIDER `hours of one full position` c
+    WHEN JUST full THEN JUST (max 0 (c's `weekly hours worked` MINUS full))
+    WHEN NOTHING THEN NOTHING
+
+GIVEN c IS AN `overtime case`
+GIVETH A MAYBE NUMBER
+DECIDE `position fraction employed` c IS
+    CONSIDER `hours of one full position` c
+    WHEN JUST full THEN JUST (c's `weekly hours worked` DIVIDED BY full)
+    WHEN NOTHING THEN NOTHING
+
+-- akn:chp_1א___sec_1_24__ssec_1_24_1__para_2 Heading "rules"; the rules are its sub-paragraphs.
+
+DECLARE `overtime action` IS ONE OF
+    `employ the teaching employee` HAS `fraction of a position employed` IS A NUMBER
+    `approve overtime in remedial lessons or substitution` HAS `weekly hours approved` IS A NUMBER
+    `approve overtime`
+    `work overtime without the district office's approval`
+    `employ the kindergarten teacher in the afternoon club`
+    `approve extra teaching hours in a subject with a surplus of teachers`
+    `work overtime in management` HAS `total management hours` IS A NUMBER
+    `deposit to the provident fund` HAS `provident deposit` IS A NUMBER
+    `deposit to the special fund` HAS `special deposit` IS A NUMBER
+    `pay the special payment` HAS `special payment paid` IS A NUMBER
+
+-- §1.24.2א: no teaching employee — principals least of all — may be employed above 140% of a position.
+@ref akn:chp_1א___sec_1_24__ssec_1_24_1__para_2__subpara_a
+`the cap on employment, as a fraction of a position` MEANS 1.4
+
+@ref akn:chp_1א___sec_1_24__ssec_1_24_1__para_2__subpara_a
+GIVETH A DEONTIC Party `overtime action`
+DECIDE `no employment above 140%` IS
+    PARTY `the employer`
+    SHANT `employ the teaching employee` fraction
+          PROVIDED fraction GREATER THAN `the cap on employment, as a fraction of a position`
+    WITHIN 12
+    LEST  BREACH BY `the employer` BECAUSE "section 1.24.1.2(a): no teaching employee may be employed above 140% of a position"
+
+-- §1.24.2ב: a principal may approve up to 6 weekly overtime hours in remedial
+-- lessons or substitution, provided the teacher has no other approval for
+-- overtime or additional work.
+@ref akn:chp_1א___sec_1_24__ssec_1_24_1__para_2__subpara_b
+GIVEN c IS AN `overtime case`
+GIVETH A DEONTIC Party `overtime action`
+DECIDE `the principal's approval of overtime` c IS
+    IF NOT c's `has an approval for overtime or additional work`
+    THEN PARTY `the school principal`
+         MAY   `approve overtime in remedial lessons or substitution` hours
+               PROVIDED hours AT MOST 6
+    ELSE PARTY `the school principal`
+         SHANT `approve overtime in remedial lessons or substitution` hours
+         LEST  BREACH BY `the school principal` BECAUSE "section 1.24.1.2(b): the teacher already has an approval for overtime or additional work"
+
+-- §§1.24.2ג–ה: who approves overtime, on whose opinion, and for how long.
+@desc An approval of overtime, as sections 1.24.1.2(c)-(e) test it.
+DECLARE `overtime approval` HAS
+    `approved by`                          IS AN `approver of overtime`
+    `the professional supervisor gave an opinion first` IS A BOOLEAN
+    `weekly hours of the approval`         IS A NUMBER
+    `school years the approval runs`       IS A NUMBER
+    `in remedial lessons or substitution`  IS A BOOLEAN
+
+DECLARE `approver of overtime` IS ONE OF
+    `the school principal under paragraph (b)`
+    `the district manager or a designee`
+    `someone else`
+
+-- §1.24.2ג: every approval of overtime follows the professional supervisor's
+-- opinion — read as applying to the principal's approval under (b) as well,
+-- since it says "an approval for work in overtime" without distinction.
+@ref akn:chp_1א___sec_1_24__ssec_1_24_1__para_2__subpara_c
+GIVEN a IS AN `overtime approval`
+GIVETH A BOOLEAN
+DECIDE `the supervisor's opinion preceded the approval` a IF
+    a's `the professional supervisor gave an opinion first`
+
+-- §1.24.2ד: overtime outside (b) needs the district office's approval, given
+-- by the district manager or someone the manager designates.
+@ref akn:chp_1א___sec_1_24__ssec_1_24_1__para_2__subpara_d
+GIVEN a IS AN `overtime approval`
+GIVETH A BOOLEAN
+DECIDE `the approver had authority` a IF
+    CONSIDER a's `approved by`
+    WHEN `the school principal under paragraph (b)` THEN
+            a's `in remedial lessons or substitution` AND a's `weekly hours of the approval` AT MOST 6
+    WHEN `the district manager or a designee` THEN TRUE
+    OTHERWISE FALSE
+
+@ref akn:chp_1א___sec_1_24__ssec_1_24_1__para_2__subpara_d
+GIVEN `approved under paragraph (b)` IS A BOOLEAN, `the district office approved` IS A BOOLEAN
+GIVETH A DEONTIC Party `overtime action`
+DECIDE `the duty to obtain the district office's approval` `approved under paragraph (b)` `the district office approved` IS
+    IF `approved under paragraph (b)` OR `the district office approved`
+    THEN FULFILLED
+    ELSE PARTY `the teaching employee`
+         SHANT `work overtime without the district office's approval`
+         LEST  BREACH BY `the teaching employee` BECAUSE "section 1.24.1.2(d): overtime outside paragraph (b) needs the district office's approval"
+
+-- §1.24.2ה: no approval runs for more than one school year.
+@ref akn:chp_1א___sec_1_24__ssec_1_24_1__para_2__subpara_e
+GIVEN a IS AN `overtime approval`
+GIVETH A BOOLEAN
+DECIDE `the approval is within its term` a IF
+    a's `school years the approval runs` AT MOST 1
+
+GIVEN a IS AN `overtime approval`
+GIVETH A BOOLEAN
+DECIDE `the overtime approval is valid` a IF
+        `the supervisor's opinion preceded the approval` a
+    AND `the approver had authority` a
+    AND `the approval is within its term` a
+
+-- §1.24.2ו: when needed, the permanent kindergarten teacher may be employed in
+-- the afternoon club held in her kindergarten, if she wishes it and the
+-- teachers' union does not object.
+@ref akn:chp_1א___sec_1_24__ssec_1_24_1__para_2__subpara_f
+GIVEN `there is a need` IS A BOOLEAN, `she wishes it` IS A BOOLEAN, `the union objects` IS A BOOLEAN
+GIVETH A DEONTIC Party `overtime action`
+DECIDE `employing the kindergarten teacher in the club` `there is a need` `she wishes it` `the union objects` IS
+    IF `there is a need` AND `she wishes it` AND NOT `the union objects`
+    THEN PARTY `the employer`
+         MAY   `employ the kindergarten teacher in the afternoon club`
+    ELSE PARTY `the employer`
+         SHANT `employ the kindergarten teacher in the afternoon club`
+         LEST  BREACH BY `the employer` BECAUSE "section 1.24.1.2(f): the club needs the teacher's wish and no objection from the teachers' union"
+
+-- §1.24.2ז: no extra teaching hours in a subject with a surplus of teachers,
+-- where those hours could place qualified teachers waiting for work.
+@ref akn:chp_1א___sec_1_24__ssec_1_24_1__para_2__subpara_g
+GIVEN `the subject has a surplus of teachers` IS A BOOLEAN, `the hours could place waiting qualified teachers` IS A BOOLEAN
+GIVETH A DEONTIC Party `overtime action`
+DECIDE `no extra hours in a surplus subject` `the subject has a surplus of teachers` `the hours could place waiting qualified teachers` IS
+    IF `the subject has a surplus of teachers` AND `the hours could place waiting qualified teachers`
+    THEN PARTY `the district manager`
+         SHANT `approve extra teaching hours in a subject with a surplus of teachers`
+         LEST  BREACH BY `the district manager` BECAUSE "section 1.24.1.2(g): the hours belong to qualified teachers waiting for work"
+    ELSE FULFILLED
+
+§§ `1.24.2ח A principal's overtime in management`
+
+DECLARE `education stratum` IS ONE OF
+    `grades 1 to 6`
+    `grades 7 to 12`
+
+-- The example's rows. The text prints them as an example of the rule, from
+-- 1 September 1982.
+@ref akn:chp_1א___sec_1_24__ssec_1_24_1__para_2__subpara_h/p2 akn:chp_1א___sec_1_24__ssec_1_24_1__para_2__subpara_h/p3 akn:chp_1א___sec_1_24__ssec_1_24_1__para_2__subpara_h/p4 akn:chp_1א___sec_1_24__ssec_1_24_1__para_2__subpara_h/p5 akn:chp_1א___sec_1_24__ssec_1_24_1__para_2__subpara_h/p6 akn:chp_1א___sec_1_24__ssec_1_24_1__para_2__subpara_h/p7 akn:chp_1א___sec_1_24__ssec_1_24_1__para_2__subpara_h/p8
+DECLARE `management example row` HAS
+    `example stratum`                    IS AN `education stratum`
+    `maximum management hours`           IS A NUMBER
+    `minimum teaching hours`             IS A NUMBER
+
+`the management example` MEANS
+    LIST `management example row` `grades 1 to 6`  30 6,
+         `management example row` `grades 7 to 12` 24 6
+
+@ref akn:chp_1א___sec_1_24__ssec_1_24_1__para_2__subpara_h/p9
+`the management rule applies from` MEANS 19820901
+
+-- F-1.24-b: "overtime in management, up to the extent of his position base".
+-- Read as an allowance of OVERTIME up to a whole base, it lets a principal
+-- work two positions, where §1.24.2א caps every principal at 140%. The
+-- reading adopted is the example's: the principal's management hours IN ALL
+-- run up to the base of the stratum (30 in grades 1-6, 24 in 7-12), with
+-- teaching hours on top, all inside the 140% cap.
+@ref akn:chp_1א___sec_1_24__ssec_1_24_1__para_2__subpara_h
+GIVEN `position base of the stratum` IS A NUMBER, `the institution's management-hours quota allows it` IS A BOOLEAN, `teaching hours` IS A NUMBER
+GIVETH A DEONTIC Party `overtime action`
+DECIDE `a principal's overtime in management` `position base of the stratum` `the institution's management-hours quota allows it` `teaching hours` IS
+    IF `the institution's management-hours quota allows it`
+    THEN PARTY `the school principal`
+         MAY   `work overtime in management` hours
+               PROVIDED hours AT MOST `position base of the stratum`
+                    AND (hours PLUS `teaching hours`) AT MOST `the cap on employment, as a fraction of a position` TIMES `position base of the stratum`
+    ELSE PARTY `the school principal`
+         SHANT `work overtime in management` hours
+         LEST  BREACH BY `the school principal` BECAUSE "section 1.24.1.2(h): the institution's quota of management hours does not allow it"
+
+-- F-1.24-b's evidence: on the other reading (overtime of up to a whole base on
+-- top of the position), a principal in grades 1-6 may work 60 hours on a
+-- 30-hour base — 200% of a position, above the 140% cap.
+GIVEN base IS A NUMBER
+GIVETH A NUMBER
+DECIDE `most hours if overtime runs up to a whole base` base IS base PLUS base
+
+`overtime up to a whole base breaks the 140% cap` MEANS
+    all (GIVEN r YIELD `most hours if overtime runs up to a whole base` (r's `maximum management hours`)
+                       GREATER THAN `the cap on employment, as a fraction of a position` TIMES r's `maximum management hours`)
+        `the management example`
+#ASSERT `overtime up to a whole base breaks the 140% cap`
+
+-- On the adopted reading every example row stays inside the cap with its minimum teaching hours.
+#ASSERT all (GIVEN r YIELD r's `maximum management hours` PLUS r's `minimum teaching hours`
+                           AT MOST `the cap on employment, as a fraction of a position` TIMES r's `maximum management hours`)
+            `the management example`
+
+§§ `1.24.2ט The pay for an hour of overtime`
+
+-- The pay for a WEEKLY overtime hour per month: the monthly combined salary
+-- divided by the monthly work unit. From 1.9.84 the rule does not apply to
+-- substitution hours given casually; what they are paid this section does not
+-- say (it is an input).
+@ref akn:chp_1א___sec_1_24__ssec_1_24_1__para_2__subpara_i
+GIVEN c IS AN `overtime case`, `a casual substitution hour` IS A BOOLEAN, `date` IS A NUMBER, `pay for a casual substitution hour` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `pay for an hour of overtime` c `a casual substitution hour` `date` `pay for a casual substitution hour` IS
+    IF `a casual substitution hour` AND `date` AT LEAST 19840901
+    THEN `pay for a casual substitution hour`
+    ELSE c's `monthly combined salary` DIVIDED BY c's `monthly work unit`
+
+-- F-1.24-a: for the two instructors the section excludes from its definition
+-- of a full position, neither the overtime nor the 140% cap can be measured.
+`the instructors' full position is undefined` MEANS
+    all (GIVEN r YIELD isNothing (`position fraction employed`
+                                      (`overtime case` r 30 36 FALSE 10000 100)))
+        (LIST `a professional instructor`, `an SHL instructor`)
+#ASSERT `the instructors' full position is undefined`
+
+§§ `1.24.2 קופת גמל לעובדים בשעות נוספות (תכנית 18⅓%)`
+
+-- akn:chp_1א___sec_1_24__ssec_1_24_2 Sub-section heading; its paragraphs carry the rules.
+-- akn:chp_1א___sec_1_24__ssec_1_24_2__para_1 Heading "conditions of the 18⅓% plan"; the conditions are its sub-paragraphs.
+
+@desc Work in an additional position, as the 18⅓% plan (section 1.24.2.1) tests it.
+DECLARE `additional-position work` HAS
+    `required by the ministry or the owner` IS A BOOLEAN
+    `beyond the position with that owner`   IS A BOOLEAN
+    `for a period set and approved in advance` IS A BOOLEAN
+    `substitution for an absent teacher`     IS A BOOLEAN
+    `pay for the additional position`        IS A NUMBER @desc the pay paid for the additional position in the period
+
+@ref akn:chp_1א___sec_1_24__ssec_1_24_2__para_1__subpara_a
+GIVEN w IS AN `additional-position work`
+GIVETH A BOOLEAN
+DECIDE `the 18⅓% plan applies` w IF
+        w's `required by the ministry or the owner`
+    AND w's `beyond the position with that owner`
+    AND w's `for a period set and approved in advance`
+    AND NOT w's `substitution for an absent teacher`
+
+@ref akn:chp_1א___sec_1_24__ssec_1_24_2__para_1__subpara_a
+`the employer's provident-fund rate` MEANS 5%
+`the employee's provident-fund rate` MEANS 5%
+`the employer's special-fund rate`   MEANS 25 DIVIDED BY 3 TIMES 1%
+
+-- The plan's name is the sum of its three deposits.
+`the three deposits add up to 18⅓%` MEANS
+    `the employer's provident-fund rate` PLUS `the employee's provident-fund rate` PLUS `the employer's special-fund rate`
+    EQUALS 55 DIVIDED BY 3 TIMES 1%
+#ASSERT `the three deposits add up to 18⅓%`
+
+@ref akn:chp_1א___sec_1_24__ssec_1_24_2__para_1__subpara_a
+GIVEN w IS AN `additional-position work`
+GIVETH A DEONTIC Party `overtime action`
+DECIDE `the 18⅓% deposits` w IS
+    IF `the 18⅓% plan applies` w
+    THEN    (PARTY `the employer`
+             MUST  `deposit to the provident fund` amount
+                   PROVIDED amount AT LEAST `the employer's provident-fund rate` TIMES w's `pay for the additional position`
+             LEST  BREACH BY `the employer` BECAUSE "section 1.24.2.1(a): the employer deposits 5% of the additional-position pay")
+         RAND
+            (PARTY `the teaching employee`
+             MUST  `deposit to the provident fund` amount
+                   PROVIDED amount AT LEAST `the employee's provident-fund rate` TIMES w's `pay for the additional position`
+             LEST  BREACH BY `the teaching employee` BECAUSE "section 1.24.2.1(a): the employee deposits 5% of the additional-position pay")
+         RAND
+            (PARTY `the employer`
+             MUST  `deposit to the special fund` amount
+                   PROVIDED amount AT LEAST `the employer's special-fund rate` TIMES w's `pay for the additional position`
+             LEST  BREACH BY `the employer` BECAUSE "section 1.24.2.1(a): the employer deposits 8⅓% of the additional-position pay to the special fund")
+    ELSE FULFILLED
+
+@ref akn:chp_1א___sec_1_24__ssec_1_24_2__para_1__subpara_b
+`the bank that manages the funds` MEANS "Bank Masad"
+
+-- §1.24.2.1ג: the employee receives the provident-fund money on leaving work
+-- in conditions that entitle to it, "as is usual for provident funds".
+@ref akn:chp_1א___sec_1_24__ssec_1_24_2__para_1__subpara_c
+GIVEN `left work in conditions that entitle to provident payments` IS A BOOLEAN, `balance in the provident fund` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `provident-fund money paid out` `left work in conditions that entitle to provident payments` `balance in the provident fund` IS
+    IF `left work in conditions that entitle to provident payments`
+    THEN `balance in the provident fund`
+    ELSE 0
+
+-- §1.24.2.1ד: the plan is the whole, final and agreed compensation for
+-- additional-position work, social rights included: no severance pay and no
+-- pension accrue on work above one full position.
+DECLARE `social right` IS ONE OF
+    `severance pay`
+    `pension`
+    `other social rights not given for work above one full position`
+
+@ref akn:chp_1א___sec_1_24__ssec_1_24_2__para_1__subpara_d
+GIVEN r IS A `social right`
+GIVETH A BOOLEAN
+DECIDE `the plan replaces the right for additional-position work` r IF TRUE
+
+§§ `1.24.2.2 פדיון תכנית 13⅓%`
+
+-- akn:chp_1א___sec_1_24__ssec_1_24_2__para_2 Heading "redemption of the 13⅓% plan"; the rules are its sub-paragraphs.
+
+@desc An employee's history under the earlier 13⅓% plan, as section 1.24.2.2 asks about it.
+DECLARE `13⅓% history` HAS
+    `saving period of 12 years ended or left teaching` IS A BOOLEAN @desc the earlier plan's conditions for withdrawal are met (end of the 12-year saving period, leaving the teaching profession, and the like)
+    `balance in the 13⅓% fund`         IS A NUMBER @desc everything accrued from the employer's deposits: principal, interest, linkage differences, grants
+    `left on or after 28.3.84 entitled to severance or retired on pension` IS A BOOLEAN
+    `value of additional-position pay from 1.9.74` IS A NUMBER @desc the value of the pay for additional-position work with that employer from 1.9.74 to 31.8.84 or the end of work, the earlier (F-1.24-c: how the value is measured is an input)
+    `additional-position pay 1.9.70-1.9.74 with no deposits` IS A NUMBER @desc the pay for that work, set by the grade, seniority and partiality of then at the pay scale in force when the payment is computed
+    `withdrawing the savings`          IS A BOOLEAN
+
+@ref akn:chp_1א___sec_1_24__ssec_1_24_2__para_2__subpara_a
+GIVEN h IS A `13⅓% history`
+GIVETH A NUMBER
+DECIDE `13⅓% savings paid out` h IS
+    IF h's `saving period of 12 years ended or left teaching`
+    THEN h's `balance in the 13⅓% fund`
+    ELSE 0
+
+-- §1.24.2.2ב: the earlier arrangement is the whole and final compensation for
+-- additional-position work, as the 18⅓% plan is under §1.24.2.1ד.
+@ref akn:chp_1א___sec_1_24__ssec_1_24_2__para_2__subpara_b
+GIVEN r IS A `social right`
+GIVETH A BOOLEAN
+DECIDE `the earlier arrangement replaced the right for additional-position work` r IF TRUE
+
+`8⅓%` MEANS 25 DIVIDED BY 3 TIMES 1%
+`13⅓%` MEANS 40 DIVIDED BY 3 TIMES 1%
+
+-- §1.24.2.2ד: the special payment is the difference between 8⅓% of the
+-- value of the additional-position pay and the 13⅓% fund balance. F-1.24-c:
+-- the text does not say what a negative difference means; it is read as no
+-- payment, never a debt.
+@ref akn:chp_1א___sec_1_24__ssec_1_24_2__para_2__subpara_d
+GIVEN h IS A `13⅓% history`
+GIVETH A NUMBER
+DECIDE `the difference the special payment is measured by` h IS
+    `8⅓%` TIMES h's `value of additional-position pay from 1.9.74` MINUS h's `balance in the 13⅓% fund`
+
+@ref akn:chp_1א___sec_1_24__ssec_1_24_2__para_2__subpara_c
+GIVEN h IS A `13⅓% history`
+GIVETH A NUMBER
+DECIDE `the special payment` h IS
+    IF h's `left on or after 28.3.84 entitled to severance or retired on pension`
+    THEN max 0 (`the difference the special payment is measured by` h)
+    ELSE 0
+
+@ref akn:chp_1א___sec_1_24__ssec_1_24_2__para_2__subpara_c
+GIVEN h IS A `13⅓% history`
+GIVETH A DEONTIC Party `overtime action`
+DECIDE `paying the special payment` h IS
+    IF `the special payment` h GREATER THAN 0
+    THEN PARTY `the employer`
+         MUST  `pay the special payment` amount
+               PROVIDED amount AT LEAST `the special payment` h
+         LEST  BREACH BY `the employer` BECAUSE "section 1.24.2.2(c)-(d): the special payment is owed on leaving"
+    ELSE FULFILLED
+
+-- §1.24.2.2ה: the earlier arrangement expired on 31.8.84; paragraphs 2א-2ד
+-- stay in force and the funds pay what accrued until then.
+@ref akn:chp_1א___sec_1_24__ssec_1_24_2__para_2__subpara_e
+GIVEN `date` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `deposits to the 13⅓% fund are owed on` `date` IF
+    `date` AT MOST 19840831
+
+-- §1.24.2.2ו: work in an additional position between 1.9.70 and 1.9.74 with
+-- no deposits gives, on withdrawal, 13⅓% of the pay for it, from the
+-- employers of then.
+@ref akn:chp_1א___sec_1_24__ssec_1_24_2__para_2__subpara_f akn:chp_1א___sec_1_24__ssec_1_24_2__para_2__subpara_f/p2 akn:chp_1א___sec_1_24__ssec_1_24_2__para_2__subpara_f/p3
+GIVEN h IS A `13⅓% history`
+GIVETH A NUMBER
+DECIDE `payment for 1970-74 work with no deposits` h IS
+    IF h's `withdrawing the savings`
+    THEN `13⅓%` TIMES h's `additional-position pay 1.9.70-1.9.74 with no deposits`
+    ELSE 0
+
+-- F-1.24-c's evidence: wherever the employer did deposit 13⅓% of the same
+-- pay, the fund holds at least 13⅓% of it, so 8⅓% of the pay less the fund is
+-- negative unless "the value of the pay" is revalued. Placeholder pay of 1,000.
+`a fund holding 13⅓% of the same pay` MEANS
+    `13⅓% history` FALSE (`13⅓%` TIMES 1000) TRUE 1000 0 FALSE
+`measured on the nominal pay, the special payment's difference is negative` MEANS
+    `the difference the special payment is measured by` `a fund holding 13⅓% of the same pay` LESS THAN 0
+#ASSERT `measured on the nominal pay, the special payment's difference is negative`
+#ASSERT `the special payment` `a fund holding 13⅓% of the same pay` EQUALS 0
+
+-- Revalued, the same work at a pay now worth 3,000 gives 250 less 133⅓.
+`the same work revalued` MEANS
+    `13⅓% history` FALSE (`13⅓%` TIMES 1000) TRUE 3000 0 FALSE
+#ASSERT `the special payment` `the same work revalued` EQUALS 350 DIVIDED BY 3
+#TRACE `paying the special payment` `the same work revalued` AT 0 WITH
+    PARTY `the employer` DOES `pay the special payment` 120 AT 1
+
+§§ `1.24.2.3 Saving clauses`
+
+-- F-1.24-d: §1.24.2.2ב names the 13⅓% arrangement "the previous arrangement"
+-- and defines it "(hereinafter — the existing arrangement)"; §1.24.2.3 then
+-- speaks of "the previous arrangement OR the existing arrangement" as two.
+-- Read: "the existing arrangement" in §1.24.2.3 is the 18⅓% plan, the one
+-- section 1.24.2 sets up, so the clause saves rights under both plans.
+DECLARE `arrangement` IS ONE OF
+    `the 13⅓% arrangement`
+    `the 18⅓% plan`
+
+@ref akn:chp_1א___sec_1_24__ssec_1_24_2__para_2__subpara_b
+GIVEN name IS A STRING
+GIVETH A MAYBE `arrangement`
+DECIDE `what section 1.24.2.2(b) makes the name mean` name IS
+    IF name EQUALS "ההסדר הקודם" OR name EQUALS "ההסדר הקיים"
+    THEN JUST `the 13⅓% arrangement`
+    ELSE NOTHING
+
+`the two arrangements section 1.24.2.3 names are one under 1.24.2.2(b)'s definition` MEANS
+    `what section 1.24.2.2(b) makes the name mean` "ההסדר הקודם"
+    EQUALS `what section 1.24.2.2(b) makes the name mean` "ההסדר הקיים"
+#ASSERT `the two arrangements section 1.24.2.3 names are one under 1.24.2.2(b)'s definition`
+
+DECLARE `matter the arrangements leave untouched` IS ONE OF
+    `the parity committees' authority over end-of-service payments in special cases`
+    `the current rules on paying for additional-position work, its pay components and pay in vacations`
+    `rights given expressly for additional-position work, such as the sick-days account`
+    `each party's arguments on employment above one full position`
+
+@ref akn:chp_1א___sec_1_24__ssec_1_24_2__para_3 akn:chp_1א___sec_1_24__ssec_1_24_2__para_3__subpara_a akn:chp_1א___sec_1_24__ssec_1_24_2__para_3__subpara_b akn:chp_1א___sec_1_24__ssec_1_24_2__para_3__subpara_c akn:chp_1א___sec_1_24__ssec_1_24_2__para_3__subpara_d
+GIVEN a IS AN `arrangement`, m IS A `matter the arrangements leave untouched`
+GIVETH A BOOLEAN
+DECIDE `the arrangement changes` a m IF FALSE
+
+#ASSERT NOT `the arrangement changes` `the 18⅓% plan` `each party's arguments on employment above one full position`
+
+-- akn:chp_1א___sec_1_24__ssec_1_24_2__para_4 Pointer: additional work of supervisors is in section 8.4.11 of the takanon, encoded there.
+
+-- akn:chp_1א___sec_1_24__ssec_1_24_2/p1 Heading of the source list (אסמכתא).
+-- akn:chp_1א___sec_1_24__ssec_1_24_2/p2 Source list: Director-General's circulars.
+-- akn:chp_1א___sec_1_24__ssec_1_24_2/p3 Source list: a Civil Service Commissioner's letter.
+-- akn:chp_1א___sec_1_24__ssec_1_24_2/p4 Source list: an entry marked cancelled (בוטל).
+-- akn:chp_1א___sec_1_24__ssec_1_24_2/p5 Source list: an entry marked cancelled (בוטל).
+-- akn:chp_1א___sec_1_24__ssec_1_24_2/p6 Source list: a circular of the institutions division.
+-- akn:chp_1א___sec_1_24__ssec_1_24_2/p7 Source list: a circular of the elementary-education administration.
+-- akn:chp_1א___sec_1_24__ssec_1_24_2/p8 Source list: a Director-General's circular.
+-- akn:chp_1א___sec_1_24__ssec_1_24_2/p9 Source list: the parity committee's summary (first line).
+-- akn:chp_1א___sec_1_24__ssec_1_24_2/p10 Source list: the parity committee's summary (second line).
+-- akn:chp_1א___sec_1_24__ssec_1_24_2/p11 Source list: an arbitration award and a deputy director-general's circular.
+
+-- Worked examples. Every figure is a placeholder.
+`a teacher at 36 of 30 hours` MEANS
+    `overtime case` `a teaching employee in general` 30 36 FALSE 10000 100
+#ASSERT `weekly overtime hours` `a teacher at 36 of 30 hours` EQUALS JUST 6
+#ASSERT `position fraction employed` `a teacher at 36 of 30 hours` EQUALS JUST 1.2
+#ASSERT `pay for an hour of overtime` `a teacher at 36 of 30 hours` FALSE 20000101 0 EQUALS 100
+
+`a valid principal's approval` MEANS
+    `overtime approval` `the school principal under paragraph (b)` TRUE 6 1 TRUE
+`a principal's approval of 8 hours` MEANS
+    `overtime approval` `the school principal under paragraph (b)` TRUE 8 1 TRUE
+#ASSERT `the overtime approval is valid` `a valid principal's approval`
+#ASSERT NOT `the overtime approval is valid` `a principal's approval of 8 hours`
+
+-- 45 hours on a 30-hour base is 150%: employing the teacher so breaches the cap.
+#TRACE `no employment above 140%` AT 0 WITH
+    PARTY `the employer` DOES `employ the teaching employee` 1.5 AT 1
+
+`a year of required additional work` MEANS
+    `additional-position work` TRUE TRUE TRUE FALSE 12000
+#TRACE `the 18⅓% deposits` `a year of required additional work` AT 0 WITH
+    PARTY `the employer` DOES `deposit to the provident fund` 600 AT 1
+    PARTY `the teaching employee` DOES `deposit to the provident fund` 600 AT 1
+    PARTY `the employer` DOES `deposit to the special fund` 1000 AT 1

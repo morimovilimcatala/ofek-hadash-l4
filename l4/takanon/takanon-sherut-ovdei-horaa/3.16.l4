@@ -1,0 +1,68 @@
+-- תקנון שירות עובדי הוראה, פרק 3, §3.16 מורה למדעי הטבע
+-- Compensation of a science teacher charged with laboratory preparation
+-- where no laboratory assistant can be employed.
+
+IMPORT prelude
+IMPORT common
+
+§ `3.16 מורה למדעי הטבע`
+
+§§ `3.16.6 פיצוי הכנה לבורטורית`
+
+@desc A school's situation as far as section 3.16.6 asks about it.
+DECLARE `laboratory situation` HAS
+    `grades 7-9 in a primary school or middle school` IS A BOOLEAN
+    `a laboratory assistant can be employed`          IS A BOOLEAN
+    `classes with laboratory activity`                IS A NUMBER @desc classes that hold laboratory activity as the curricula require
+
+@ref akn:chp_3__sec_3_16__ssec_3_16_6/p1
+GIVEN s IS A `laboratory situation`
+GIVETH A BOOLEAN
+DECIDE `laboratory preparation may be laid on a science teacher` s IF
+        s's `grades 7-9 in a primary school or middle school`
+    AND NOT s's `a laboratory assistant can be employed`
+
+-- The compensation is in weekly hours, taken from the school's hour
+-- standard: half a weekly hour for each class with laboratory activity.
+@ref akn:chp_3__sec_3_16__ssec_3_16_6/p1
+GIVEN s IS A `laboratory situation`
+GIVETH A NUMBER
+DECIDE `weekly hours of laboratory-preparation compensation` s IS
+    IF `laboratory preparation may be laid on a science teacher` s
+    THEN 0.5 TIMES s's `classes with laboratory activity`
+    ELSE 0
+
+DECLARE `laboratory action` IS ONE OF
+    `assign laboratory preparation to a science teacher`
+    `credit compensation hours` HAS `weekly hours credited` IS A NUMBER
+
+-- The permission ("ניתן להטיל") is the school's, exercised by its principal,
+-- and the teacher it is laid on is then credited the hours from the
+-- school's hour standard.
+@ref akn:chp_3__sec_3_16__ssec_3_16_6/p1
+GIVEN s IS A `laboratory situation`
+GIVETH A DEONTIC Party `laboratory action`
+DECIDE `laying laboratory preparation on a science teacher` s IS
+    IF `laboratory preparation may be laid on a science teacher` s
+    THEN PARTY `the school principal`
+         MAY   `assign laboratory preparation to a science teacher`
+         HENCE (PARTY `the school principal`
+                MUST `credit compensation hours` h
+                     PROVIDED h AT LEAST `weekly hours of laboratory-preparation compensation` s)
+    ELSE PARTY `the school principal`
+         SHANT `assign laboratory preparation to a science teacher`
+
+-- akn:chp_3__sec_3_16__ssec_3_16_6/p2 Heading of the source list (אסמכתא).
+-- akn:chp_3__sec_3_16__ssec_3_16_6/p3 Source (אסמכתא): a special Director-General's circular.
+
+`a middle school with 6 laboratory classes and no assistant` MEANS
+    `laboratory situation` WITH
+        `grades 7-9 in a primary school or middle school` IS TRUE
+        `a laboratory assistant can be employed`          IS FALSE
+        `classes with laboratory activity`                IS 6
+
+#ASSERT `weekly hours of laboratory-preparation compensation` `a middle school with 6 laboratory classes and no assistant` EQUALS 3
+
+#TRACE `laying laboratory preparation on a science teacher` `a middle school with 6 laboratory classes and no assistant` AT 0 WITH
+    PARTY `the school principal` DOES `assign laboratory preparation to a science teacher` AT 1
+    PARTY `the school principal` DOES `credit compensation hours` 3 AT 2

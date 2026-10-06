@@ -1,0 +1,173 @@
+-- תקנון שירות עובדי הוראה, פרק 4, §4.6 תוספת חינוך מיוחד
+-- The special-education supplement: who is a special-education teaching
+-- employee, the four rates by certification and framework, and the
+-- committee that may grant it retroactively.
+
+IMPORT prelude
+IMPORT common
+
+§ `4.6 תוספת חינוך מיוחד`
+
+@desc Where a teaching employee teaches, as section 4.6.2-4.6.3 distinguish it.
+DECLARE `special-education framework` IS ONE OF
+    `a special-education setting`
+        @desc a special-education kindergarten, school or institution, a מפת"ן, or a special-education class in a regular school
+    `integration in regular education`
+        @desc another framework recognised in regular education, as an integration teacher or integration kindergarten teacher
+    `no special-education framework`
+
+@desc The employee's post as section 4.6 asks about it.
+DECLARE `special-education post` HAS
+    `employed in a framework the supervision recognised as special education` IS A BOOLEAN
+    `an integration kindergarten teacher`        IS A BOOLEAN
+    `an integration teacher`                     IS A BOOLEAN @desc a teacher (not of a kindergarten) working as an integration teacher in regular education
+    `framework`                                  IS A `special-education framework`
+    `certified for special education`            IS A BOOLEAN @desc as section 4.2 defines it; an input until 4.2 is imported
+    `combined salary`                            IS A NUMBER  @desc the employee's combined salary (השכר המשולב); an input
+
+§§ `4.6.1 Definitions`
+
+-- akn:chp_4__sec_4_6__hc_2__para_1/p1 The opening words of the definitions ("לעניין סעיף זה").
+
+-- The definition's "including those employed in post-primary schools,
+-- middle schools among them" widens no condition: it says the school level
+-- does not matter, so no field asks for it.
+-- F-4.6-a: the definition names the integration KINDERGARTEN teacher but
+-- not the integration teacher of a school, whom 4.6.2(b) and 4.6.3(b) pay.
+-- The reading adopted counts the integration teacher in, as those clauses
+-- would otherwise pay her nothing.
+@ref akn:chp_4__sec_4_6__hc_2__para_1/p2
+GIVEN p IS A `special-education post`
+GIVETH A BOOLEAN
+DECIDE `a special-education teaching employee` p IF
+       p's `employed in a framework the supervision recognised as special education`
+    OR p's `an integration kindergarten teacher`
+    OR p's `an integration teacher`
+
+-- The definition as printed, without the reading.
+GIVEN p IS A `special-education post`
+GIVETH A BOOLEAN
+DECIDE `a special-education teaching employee as the definition prints it` p IF
+       p's `employed in a framework the supervision recognised as special education`
+    OR p's `an integration kindergarten teacher`
+
+-- "Certified for special education" is section 4.2's, so it is the post's
+-- input field `certified for special education`.
+@ref akn:chp_4__sec_4_6__hc_2__para_1/p3
+GIVEN p IS A `special-education post`
+GIVETH A BOOLEAN
+DECIDE `certified for special education under section 4.2` p IF
+    p's `certified for special education`
+
+§§ `4.6.2–4.6.3 The rates`
+
+@ref akn:chp_4__sec_4_6__hc_2__para_2/p1 akn:chp_4__sec_4_6__hc_2__para_3/p1
+GIVEN p IS A `special-education post`
+GIVETH A NUMBER
+DECIDE `special-education supplement rate` p IS
+    IF NOT `a special-education teaching employee` p
+    THEN 0
+    ELSE IF `certified for special education under section 4.2` p
+         THEN `the certified rate` (p's `framework`)
+         ELSE `the uncertified rate` (p's `framework`)
+
+@ref akn:chp_4__sec_4_6__hc_2__para_2__subpara_a akn:chp_4__sec_4_6__hc_2__para_2__subpara_b
+GIVEN f IS A `special-education framework`
+GIVETH A NUMBER
+DECIDE `the certified rate` f IS
+    CONSIDER f
+    WHEN `a special-education setting`      THEN 14%
+    WHEN `integration in regular education` THEN 9%
+    WHEN `no special-education framework`   THEN 0
+
+@ref akn:chp_4__sec_4_6__hc_2__para_3__subpara_a akn:chp_4__sec_4_6__hc_2__para_3__subpara_b
+GIVEN f IS A `special-education framework`
+GIVETH A NUMBER
+DECIDE `the uncertified rate` f IS
+    CONSIDER f
+    WHEN `a special-education setting`      THEN 8.5%
+    WHEN `integration in regular education` THEN 5.5%
+    WHEN `no special-education framework`   THEN 0
+
+@export The special-education supplement (תוספת חינוך מיוחד) a teaching employee is owed under section 4.6 of the takanon, as a sum of money
+GIVEN p IS A `special-education post` @desc the employee's post
+GIVETH A NUMBER
+DECIDE `special-education supplement` p IS
+    `special-education supplement rate` p TIMES p's `combined salary`
+
+§§ `4.6.4 Retroactive approval`
+
+@desc An application to the retroactive-approval committee.
+DECLARE `retroactive application` HAS
+    `in official (state) education`  IS A BOOLEAN @desc the applicant works in official education; otherwise for an owner (בעלות)
+    `years back claimed`             IS A NUMBER  @desc how many years before the day of application the claimed entitlement reaches
+
+DECLARE `channel of application` IS ONE OF
+    `the personnel department of the district office`
+    `the owner`
+
+DECLARE `retroactive action` IS ONE OF
+    `apply to the committee` HAS `through` IS A `channel of application`
+    `approve retroactively`  HAS `years approved` IS A NUMBER
+
+@ref akn:chp_4__sec_4_6__hc_2__para_4
+GIVEN a IS A `retroactive application`
+GIVETH A `channel of application`
+DECIDE `the channel an application goes through` a IS
+    IF a's `in official (state) education`
+    THEN `the personnel department of the district office`
+    ELSE `the owner`
+
+-- The committee (of the teaching-personnel division, set up on the
+-- Accountant-General's instructions) MAY approve up to 7 years back from
+-- the day of application, and no further.
+@ref akn:chp_4__sec_4_6__hc_2__para_4
+GIVEN a IS A `retroactive application`
+GIVETH A DEONTIC Party `retroactive action`
+DECIDE `retroactive approval of the supplement` a IS
+    PARTY `the teaching employee`
+    MAY   `apply to the committee` c PROVIDED c EQUALS `the channel an application goes through` a
+    HENCE (   (PARTY `the Ministry of Education`
+               MAY `approve retroactively` n PROVIDED n AT MOST 7)
+          RAND
+              (PARTY `the Ministry of Education`
+               SHANT `approve retroactively` n PROVIDED n GREATER THAN 7))
+
+-- akn:chp_4__sec_4_6__hc_3__para_1 Source (אסמכתא): a special Director-General's circular.
+-- akn:chp_4__sec_4_6__hc_3__para_2 Source (אסמכתא): a Director-General's circular.
+-- akn:chp_4__sec_4_6__hc_3__para_3 Source (אסמכתא): Director-General's circulars; the rates as amended by the collective agreement of 18.12.01.
+-- akn:chp_4__sec_4_6__hc_3__para_4 Source (אסמכתא): collective agreements, a parity-committee decision and circulars.
+-- akn:chp_4__sec_4_6__hc_3__para_5 Source (אסמכתא): a Director-General's circular.
+
+-- Examples, with a placeholder combined salary of 10000 (not from a payslip).
+`a certified teacher in a special-education school` MEANS
+    `special-education post` WITH
+        `employed in a framework the supervision recognised as special education` IS TRUE
+        `an integration kindergarten teacher`         IS FALSE
+        `an integration teacher`                      IS FALSE
+        `framework`                                   IS `a special-education setting`
+        `certified for special education`             IS TRUE
+        `combined salary`                             IS 10000
+
+`an uncertified integration teacher in a regular school` MEANS
+    `special-education post` WITH
+        `employed in a framework the supervision recognised as special education` IS FALSE
+        `an integration kindergarten teacher`         IS FALSE
+        `an integration teacher`                      IS TRUE
+        `framework`                                   IS `integration in regular education`
+        `certified for special education`             IS FALSE
+        `combined salary`                             IS 10000
+
+#ASSERT `special-education supplement` `a certified teacher in a special-education school` EQUALS 1400
+#ASSERT `special-education supplement` `an uncertified integration teacher in a regular school` EQUALS 550
+
+-- F-4.6-a: as the definition prints it, the integration teacher of a school
+-- is not a "special-education teaching employee", so 4.6.3(b)'s rate,
+-- which names her, would not reach her.
+`the definition leaves out the integration teacher whom the rates pay` MEANS
+    NOT `a special-education teaching employee as the definition prints it` `an uncertified integration teacher in a regular school`
+#ASSERT `the definition leaves out the integration teacher whom the rates pay`
+
+#TRACE `retroactive approval of the supplement` (`retroactive application` WITH `in official (state) education` IS TRUE, `years back claimed` IS 9) AT 0 WITH
+    PARTY `the teaching employee` DOES `apply to the committee` `the personnel department of the district office` AT 1
+    PARTY `the Ministry of Education` DOES `approve retroactively` 7 AT 2

@@ -1,0 +1,516 @@
+-- תקנון שירות עובדי הוראה, פרק 1ב', §1.42 החזרי שכר לימוד
+-- Tuition refunds for the school year 5764 (2003/04): who may apply, for
+-- which studies, in what order of priority, how much, and the procedure and
+-- deadlines for applying, for receipts and for the exceptions committee.
+
+IMPORT prelude
+IMPORT common
+
+§ `1.42 החזרי שכר לימוד`
+
+-- akn:chp_1ב__sec_1_42/p2 An amendment note: the date the section was last updated.
+-- akn:chp_1ב__sec_1_42/p3 The section's title line, naming the school year it is written for; its footnote marker points at the source list.
+-- akn:chp_1ב__sec_1_42/p4 A heading ("general") over clauses 1.1-1.8.
+
+@desc A teaching employee's application for a tuition refund in the school year the section is written for, as far as section 1.42 asks about it.
+DECLARE `tuition application` HAS
+    `member of a teachers' union`                IS A BOOLEAN @desc a member of one of the teachers' organisations (2.1א)
+    `works in a covered institution`             IS A BOOLEAN @desc works in an official, post-primary or teacher-training institution, a beit midrash or college, that has accounting relations with the Ministry (2.1א)
+    `permanent in post`                          IS A BOOLEAN @desc holds tenure (2.1ב)
+    `completed years of work`                    IS A NUMBER  @desc years of work completed (2.1ב)
+    `position fraction`                          IS A NUMBER  @desc share of a full position (1 = one position) (2.1ב)
+    `on a half sabbatical year`                  IS A BOOLEAN @desc a serving teacher on a half sabbatical year (2.1ג)
+    `kind of studies`                            IS A `kind of studies`
+    `weekly hours of study`                      IS A NUMBER  @desc weekly study hours (ש"ש), per the institution's confirmation (4.2)
+    `kind of institution`                        IS A `kind of institution`
+    `for an equivalent degree`                   IS A BOOLEAN @desc the studies are for an "equivalent" (אקוויוולנטי) degree (1.4)
+    `B.Ed. at a Haredi college supervised by the teacher-training division` IS A BOOLEAN @desc the 1.4 exception
+    `at an Israeli branch of a foreign university` IS A BOOLEAN @desc (1.5)
+    `began those studies before April 2002 and received a grant for them` IS A BOOLEAN @desc the 1.5 exception: a Ministry grant (refund or hours) or a training-fund grant while on sabbatical
+    `for a parallel academic degree`             IS A BOOLEAN @desc the studies are for an academic degree parallel to one already held (3.1א)
+    `full study years already refunded`          IS A NUMBER  @desc full-tuition refunds already received under the wage agreements, in years of 100% (1.6)
+    `grant hours already received`               IS A NUMBER  @desc grant hours (שעות מענק) already received (1.6)
+    `tuition charged`                            IS A NUMBER  @desc the tuition the institution charges, per its confirmation (4.2); excludes the 5.1ג items
+    `university tuition`                         IS A NUMBER  @desc the tuition charged at Israel's universities (1.1); an input
+    `approved by the exceptions committee`       IS A BOOLEAN @desc the joint committee of 7.1 approved the application beyond the criteria
+
+DECLARE `kind of studies` IS ONE OF
+    `first degree`
+    `teaching certificate`
+    `additional teaching certificate`
+    `completion studies for a second or third degree`
+    `second or third degree`
+    `thesis for a second or third degree`
+    `course for teaching employees at a training centre`
+    `technician or practical-engineer studies`
+    `other studies`
+
+DECLARE `kind of institution` IS ONE OF
+    `the Open University`
+    `a teacher-training college, academic track`
+    `an institution recognised by the Council for Higher Education`
+    `a framework recognised for the grant by the in-service training division`
+    `a training centre beside a higher-education or teacher-training institution`
+    `other institution`
+
+-- The parties of this section. The takanon's own parties come from common;
+-- the joint exceptions committee of 7.1-7.2 is this section's own.
+DECLARE `1.42 party` IS ONE OF
+    `a takanon party` HAS `who` IS A Party
+    `the joint exceptions committee`
+
+DECLARE `tuition action` IS ONE OF
+    `submit the application`
+    `submit the original receipts`
+    `issue approvals`
+    `pay the refund` HAS `refund paid` IS A NUMBER
+    `reimburse the owning body` HAS `amount reimbursed` IS A NUMBER
+    `convene before allocation`
+    `submit a request to the exceptions committee`
+    `submit more than one application`
+
+§§ `1.1-1.6 General`
+
+@ref akn:chp_1ב__sec_1_42/p5
+GIVEN a IS A `tuition application`
+GIVETH A NUMBER
+DECIDE `refund ceiling` a IS
+    min (a's `tuition charged`) (a's `university tuition`)
+
+@ref akn:chp_1ב__sec_1_42/p6
+GIVEN a IS A `tuition application`
+GIVETH A BOOLEAN
+DECIDE `technician or engineer studies count` a IF
+    a's `kind of studies` EQUALS `technician or practical-engineer studies`
+
+@ref akn:chp_1ב__sec_1_42/p7
+GIVEN a IS A `tuition application`
+GIVETH A BOOLEAN
+DECIDE `the institution is covered` a IF
+    NOT a's `kind of institution` EQUALS `other institution`
+
+@ref akn:chp_1ב__sec_1_42/p8
+GIVEN a IS A `tuition application`
+GIVETH A BOOLEAN
+DECIDE `not excluded as an equivalent degree` a IF
+        NOT a's `for an equivalent degree`
+    OR  a's `B.Ed. at a Haredi college supervised by the teacher-training division`
+
+@ref akn:chp_1ב__sec_1_42/p9
+GIVEN a IS A `tuition application`
+GIVETH A BOOLEAN
+DECIDE `not excluded as a foreign branch` a IF
+        NOT a's `at an Israeli branch of a foreign university`
+    OR  a's `began those studies before April 2002 and received a grant for them`
+
+@ref akn:chp_1ב__sec_1_42/p10
+GIVEN a IS A `tuition application`
+GIVETH A BOOLEAN
+DECIDE `the lifetime cap is not used up` a IF
+        a's `full study years already refunded` LESS THAN 3
+    AND a's `grant hours already received` LESS THAN 12
+
+-- 1.6 ¶2: the amount of the grant in 5764 is set by the Ministry's budget
+-- limits, so the share of the refund ceiling actually paid is an input.
+@ref akn:chp_1ב__sec_1_42/p11
+GIVEN a IS A `tuition application`, `share the budget allows` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `grant amount` a `share the budget allows` IS
+    `refund ceiling` a TIMES `share the budget allows` TIMES `sabbatical share` a
+
+§§ `1.7-1.8`
+
+@ref akn:chp_1ב__sec_1_42__ssec_1_7
+GIVEN `refunds by priority` IS A LIST OF NUMBER
+      `approved budget` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `refunds stay within the approved budget` `refunds by priority` `approved budget` IF
+    sum `refunds by priority` AT MOST `approved budget`
+
+@ref akn:chp_1ב__sec_1_42__ssec_1_8
+GIVEN `years after the year of approval` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `the Ministry is committed for that year` `years after the year of approval` IF
+    `years after the year of approval` EQUALS 0
+
+§§ `2 Who may apply`
+
+-- F-1.42-a: 2.1 lists three kinds of teacher and does not say whether א and
+-- ב are conditions every applicant must meet or alternative groups. The
+-- reading adopted: א and ב are cumulative (ב's own wording, "and who work
+-- at least half a position", reads as a further condition), and ג is the
+-- half-sabbatical case of an applicant who meets them, with its 50% cap.
+@ref akn:chp_1ב__sec_1_42__ssec_2_1 akn:chp_1ב__sec_1_42__ssec_2_1__para_a
+GIVEN a IS A `tuition application`
+GIVETH A BOOLEAN
+DECIDE `meets 2.1א` a IF
+        a's `member of a teachers' union`
+    AND a's `works in a covered institution`
+
+@ref akn:chp_1ב__sec_1_42__ssec_2_1__para_b
+GIVEN a IS A `tuition application`
+GIVETH A BOOLEAN
+DECIDE `meets 2.1ב` a IF
+        (a's `permanent in post` OR a's `completed years of work` AT LEAST 3)
+    AND a's `position fraction` AT LEAST 0.5
+
+@ref akn:chp_1ב__sec_1_42__ssec_2_1__para_c
+GIVEN a IS A `tuition application`
+GIVETH A NUMBER
+DECIDE `sabbatical share` a IS
+    IF a's `on a half sabbatical year` THEN 0.5 ELSE 1
+
+GIVEN a IS A `tuition application`
+GIVETH A BOOLEAN
+DECIDE `may apply` a IF
+    `meets 2.1א` a AND `meets 2.1ב` a
+
+-- F-1.42-a's evidence: read as alternatives, a union member in an official
+-- school in her first year, not permanent, may apply; read cumulatively, she
+-- may not.
+`a first-year union member` MEANS
+    `tuition application` WITH
+        `member of a teachers' union`                IS TRUE
+        `works in a covered institution`             IS TRUE
+        `permanent in post`                          IS FALSE
+        `completed years of work`                    IS 0
+        `position fraction`                          IS 1
+        `on a half sabbatical year`                  IS FALSE
+        `kind of studies`                            IS `first degree`
+        `weekly hours of study`                      IS 8
+        `kind of institution`                        IS `the Open University`
+        `for an equivalent degree`                   IS FALSE
+        `B.Ed. at a Haredi college supervised by the teacher-training division` IS FALSE
+        `at an Israeli branch of a foreign university` IS FALSE
+        `began those studies before April 2002 and received a grant for them` IS FALSE
+        `for a parallel academic degree`             IS FALSE
+        `full study years already refunded`          IS 0
+        `grant hours already received`               IS 0
+        `tuition charged`                            IS 10000
+        `university tuition`                         IS 10000
+        `approved by the exceptions committee`       IS FALSE
+
+`2.1 read as alternatives and as cumulative conditions differ` MEANS
+        (`meets 2.1א` `a first-year union member` OR `meets 2.1ב` `a first-year union member`)
+    AND NOT `may apply` `a first-year union member`
+#ASSERT `2.1 read as alternatives and as cumulative conditions differ`
+
+@ref akn:chp_1ב__sec_1_42__ssec_2_2 akn:chp_1ב__sec_1_42__ssec_2_2__para_a
+GIVEN a IS A `tuition application`
+GIVETH A BOOLEAN
+DECIDE `meets 2.2א` a IF
+        (a's `kind of studies` EQUALS `first degree` OR a's `kind of studies` EQUALS `teaching certificate`)
+    AND a's `weekly hours of study` AT LEAST 6
+
+@ref akn:chp_1ב__sec_1_42__ssec_2_2__para_b
+GIVEN a IS A `tuition application`
+GIVETH A BOOLEAN
+DECIDE `meets 2.2ב` a IF
+        a's `kind of studies` EQUALS `course for teaching employees at a training centre`
+    AND a's `weekly hours of study` AT LEAST 6
+
+@ref akn:chp_1ב__sec_1_42__ssec_2_2__para_c
+GIVEN a IS A `tuition application`
+GIVETH A BOOLEAN
+DECIDE `meets 2.2ג` a IF
+        (    a's `kind of studies` EQUALS `second or third degree`
+          OR a's `kind of studies` EQUALS `completion studies for a second or third degree`)
+    AND a's `weekly hours of study` AT LEAST 4
+
+@ref akn:chp_1ב__sec_1_42__ssec_2_2__para_d
+GIVEN a IS A `tuition application`
+GIVETH A BOOLEAN
+DECIDE `meets 2.2ד` a IF
+    a's `kind of studies` EQUALS `thesis for a second or third degree`
+
+GIVEN a IS A `tuition application`
+GIVETH A BOOLEAN
+DECIDE `meets a study condition` a IF
+    `meets 2.2א` a OR `meets 2.2ב` a OR `meets 2.2ג` a OR `meets 2.2ד` a
+
+§§ `3 Priorities`
+
+DECLARE `priority` IS ONE OF `first priority`, `second priority`, `no priority`
+
+@ref akn:chp_1ב__sec_1_42__ssec_3_1 akn:chp_1ב__sec_1_42__ssec_3_1__para_a
+GIVEN a IS A `tuition application`
+GIVETH A BOOLEAN
+DECIDE `first priority under 3.1א` a IF
+        (    a's `kind of studies` EQUALS `first degree`
+          OR a's `kind of studies` EQUALS `second or third degree`
+          OR a's `kind of studies` EQUALS `completion studies for a second or third degree`
+          OR a's `kind of studies` EQUALS `thesis for a second or third degree`)
+    AND NOT a's `for a parallel academic degree`
+
+@ref akn:chp_1ב__sec_1_42__ssec_3_1__para_b akn:chp_1ב__sec_1_42__ssec_3_1__para_c
+GIVEN a IS A `tuition application`
+GIVETH A BOOLEAN
+DECIDE `first priority under 3.1ב-ג` a IF
+    a's `kind of studies` EQUALS `teaching certificate` OR a's `kind of studies` EQUALS `additional teaching certificate`
+
+@ref akn:chp_1ב__sec_1_42__ssec_3_2 akn:chp_1ב__sec_1_42__ssec_3_2/p1
+GIVEN a IS A `tuition application`
+GIVETH A `priority`
+DECIDE `priority of` a IS
+    IF `first priority under 3.1א` a OR `first priority under 3.1ב-ג` a
+    THEN `first priority`
+    ELSE IF     a's `kind of studies` EQUALS `course for teaching employees at a training centre`
+            AND a's `kind of institution` EQUALS `a training centre beside a higher-education or teacher-training institution`
+            AND a's `weekly hours of study` AT LEAST 6
+         THEN `second priority`
+         ELSE `no priority`
+
+-- 3.2's note: a teacher on an equivalent salary grade may be refunded for
+-- the degree parallel to that grade, so long as the studies are not
+-- themselves equivalent (1.4). In this file that is the 1.4 test itself:
+-- an equivalent grade does not exclude, an equivalent degree does.
+@ref akn:chp_1ב__sec_1_42__ssec_3_2/p2
+GIVEN a IS A `tuition application`, `on an equivalent salary grade` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `an equivalent grade does not bar the parallel degree` a `on an equivalent salary grade` IF
+    `not excluded as an equivalent degree` a
+
+GIVEN a IS A `tuition application`
+GIVETH A BOOLEAN
+DECIDE `entitled to a tuition refund` a IF
+        a's `approved by the exceptions committee`
+    OR (    `may apply` a
+        AND `meets a study condition` a
+        AND `the institution is covered` a
+        AND `not excluded as an equivalent degree` a
+        AND `not excluded as a foreign branch` a
+        AND `the lifetime cap is not used up` a
+        AND NOT `priority of` a EQUALS `no priority`)
+
+§§ `4 Applying`
+
+@ref akn:chp_1ב__sec_1_42__ssec_4_1
+-- The application is made on the special form and sent to the district
+-- in-service training supervisor where the applicant works. Time below is in
+-- days from 1 September 2003; 16.11.03 (4.4) is day 76.
+GIVETH A DEONTIC `1.42 party` `tuition action`
+DECIDE `applying on the form by the deadline` IS
+    PARTY `a takanon party` `the teaching employee`
+    MAY   `submit the application`
+    WITHIN `application deadline`
+
+@ref akn:chp_1ב__sec_1_42__ssec_4_2
+DECLARE `confirmation from the institution` HAS
+    `states the weekly hours`       IS A BOOLEAN
+    `states the degree`             IS A BOOLEAN
+    `states the tuition charged`    IS A BOOLEAN
+    `states the thesis tuition`     IS A BOOLEAN @desc for a thesis writer: the tuition required to complete the thesis
+
+GIVEN c IS A `confirmation from the institution`, `writes a thesis` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `the confirmation is complete` c `writes a thesis` IF
+        c's `states the weekly hours`
+    AND c's `states the degree`
+    AND c's `states the tuition charged`
+    AND ((NOT `writes a thesis`) OR c's `states the thesis tuition`)
+
+DECLARE `where the applicant works` IS ONE OF
+    `an official institution, as a Ministry teacher`
+    `an official kindergarten, as a Ministry kindergarten teacher`
+    `an institution of another owner`
+    `a teacher-training institution`
+    `the settlement education administration`
+
+DECLARE `signatory` IS ONE OF
+    `the institution's principal`
+    `the supervisor of the institution`
+    `the kindergarten supervisor`
+    `the institution's owner`
+    `the supervisor of completion studies and teacher certification`
+    `the in-service supervisor of the settlement education administration`
+
+-- 4.3א-ד: who confirms the form, by where the applicant works. For 4.3א's
+-- teachers the principal confirms and the supervisor is informed; both are
+-- listed. 4.3ג and ד name where the form is sent, which is listed with them.
+@ref akn:chp_1ב__sec_1_42__ssec_4_3 akn:chp_1ב__sec_1_42__ssec_4_3__para_a akn:chp_1ב__sec_1_42__ssec_4_3__para_b akn:chp_1ב__sec_1_42__ssec_4_3__para_c akn:chp_1ב__sec_1_42__ssec_4_3__para_d
+GIVEN w IS A `where the applicant works`
+GIVETH A LIST OF `signatory`
+DECIDE `who signs the form` w IS
+    CONSIDER w
+    WHEN `an official institution, as a Ministry teacher`              THEN LIST `the institution's principal`, `the supervisor of the institution`
+    WHEN `an official kindergarten, as a Ministry kindergarten teacher` THEN LIST `the kindergarten supervisor`
+    WHEN `an institution of another owner`                              THEN LIST `the institution's principal`, `the institution's owner`
+    WHEN `a teacher-training institution`                               THEN LIST `the institution's principal`, `the supervisor of completion studies and teacher certification`
+    WHEN `the settlement education administration`                      THEN LIST `the in-service supervisor of the settlement education administration`
+
+-- 4.3ה: one application only, to the district where most hours are worked.
+@ref akn:chp_1ב__sec_1_42__ssec_4_3__para_e
+GIVETH A DEONTIC `1.42 party` `tuition action`
+DECIDE `one application only` IS
+    PARTY `a takanon party` `the teaching employee`
+    SHANT `submit more than one application`
+    LEST  BREACH BY `a takanon party` `the teaching employee` BECAUSE "1.42 4.3ה: an employee working in several places or districts may submit one application only, to the district of most hours"
+
+GIVEN `hours by district` IS A LIST OF NUMBER
+      `hours in the district applied to` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `applied in the district of most hours` `hours by district` `hours in the district applied to` IF
+    all (GIVEN h YIELD h AT MOST `hours in the district applied to`) `hours by district`
+
+@ref akn:chp_1ב__sec_1_42__ssec_4_3__para_f
+GIVEN `institution code on the form` IS A STRING, `the institution's code` IS A STRING
+GIVETH A BOOLEAN
+DECIDE `the institution code is filled in correctly` `institution code on the form` `the institution's code` IF
+    `institution code on the form` EQUALS `the institution's code`
+
+@ref akn:chp_1ב__sec_1_42__ssec_4_4
+`application deadline` MEANS 76
+
+-- 4.5: approvals go out in January 2004, days 122-152 from 1 September 2003.
+@ref akn:chp_1ב__sec_1_42__ssec_4_5
+GIVETH A DEONTIC `1.42 party` `tuition action`
+DECIDE `approvals in January` IS
+    PARTY `a takanon party` `the Ministry of Education`
+    MUST  `issue approvals`
+    WITHIN 152
+    LEST  BREACH BY `a takanon party` `the Ministry of Education` BECAUSE "1.42 4.5: the in-service training division issues approvals during January 2004"
+
+§§ `5 Refunding an approved applicant`
+
+@ref akn:chp_1ב__sec_1_42__ssec_5_1
+GIVEN `tuition receipted` IS A NUMBER, `fees excluded under 5.1ג` IS A NUMBER, `tax under law` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `refund against receipts` `tuition receipted` `fees excluded under 5.1ג` `tax under law` IS
+    `tuition receipted` MINUS `fees excluded under 5.1ג` MINUS `tax under law`
+
+-- 5.1א-ב: who pays, one month after the original receipts are submitted.
+-- Time in months from the submission of the receipts.
+@ref akn:chp_1ב__sec_1_42__ssec_5_1__para_a akn:chp_1ב__sec_1_42__ssec_5_1__para_b
+GIVEN `a state employee` IS A BOOLEAN
+GIVETH A Party
+DECIDE `who pays the refund` `a state employee` IS
+    IF `a state employee` THEN `the Ministry of Education` ELSE `the local authority or owning body`
+
+GIVEN `a state employee` IS A BOOLEAN, `refund due` IS A NUMBER
+GIVETH A DEONTIC `1.42 party` `tuition action`
+DECIDE `paying a month after the receipts` `a state employee` `refund due` IS
+    PARTY `a takanon party` (`who pays the refund` `a state employee`)
+    MUST  `pay the refund` paid PROVIDED paid AT LEAST `refund due`
+    WITHIN 1
+    LEST  BREACH BY `a takanon party` (`who pays the refund` `a state employee`) BECAUSE "1.42 5.1: the refund is paid one month after the original receipts are submitted"
+
+-- 5.1ג: education fees, registration fees, payments for the institution's
+-- services and late-payment interest are never refunded; tax is deducted.
+@ref akn:chp_1ב__sec_1_42__ssec_5_1__para_c
+DECLARE `receipted item` IS ONE OF
+    `tuition`
+    `education levy`
+    `registration fee`
+    `payment for services of the institution`
+    `late-payment interest`
+
+GIVEN i IS A `receipted item`
+GIVETH A BOOLEAN
+DECIDE `refundable item` i IF
+    i EQUALS `tuition`
+
+-- 5.2 (15.6.04, day 288 from 1 September 2003): the last day for receipts.
+@ref akn:chp_1ב__sec_1_42__ssec_5_2
+GIVETH A DEONTIC `1.42 party` `tuition action`
+DECIDE `receipts by 15 June 2004` IS
+    PARTY `a takanon party` `the teaching employee`
+    MAY   `submit the original receipts`
+    WITHIN 288
+
+-- akn:chp_1ב__sec_1_42__ssec_5_2/p1 A heading ("6. reporting and settling accounts with the owner").
+
+@ref akn:chp_1ב__sec_1_42__ssec_5_2/p2
+GIVEN `the owner has accounting relations with the Ministry` IS A BOOLEAN, `the owner reported execution` IS A BOOLEAN,
+      `refunds approved and paid` IS A NUMBER
+GIVETH A DEONTIC `1.42 party` `tuition action`
+DECIDE `reimbursing the owner` `the owner has accounting relations with the Ministry` `the owner reported execution` `refunds approved and paid` IS
+    IF `the owner has accounting relations with the Ministry` AND `the owner reported execution`
+    THEN PARTY `a takanon party` `the Ministry of Education`
+         MUST  `reimburse the owning body` r PROVIDED r AT LEAST `refunds approved and paid`
+    ELSE FULFILLED
+
+-- akn:chp_1ב__sec_1_42__ssec_5_2/p3 A heading ("7. special approvals and exceptions").
+
+§§ `7 The exceptions committee`
+
+-- 7.1: the joint committee may approve tuition beyond the criteria, for
+-- example a second or third degree for one who already had full grants, so
+-- long as the studies bear directly on classroom work and are not for a
+-- parallel degree. Its approval is the `approved by the exceptions
+-- committee` input, which `entitled to a tuition refund` honours.
+@ref akn:chp_1ב__sec_1_42__ssec_5_2/p4
+GIVEN `directly linked to classroom work` IS A BOOLEAN, `for a parallel academic degree` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `the committee may approve beyond the criteria` `directly linked to classroom work` `for a parallel academic degree` IF
+    `directly linked to classroom work` AND NOT `for a parallel academic degree`
+
+@ref akn:chp_1ב__sec_1_42__ssec_5_2/p5 akn:chp_1ב__sec_1_42__ssec_5_2/p6 akn:chp_1ב__sec_1_42__ssec_5_2/p7
+DECLARE `exceptions committee member` IS ONE OF
+    `the head of the in-service training division or a representative, as chair`
+    `representatives of the teachers' organisations`
+
+`the exceptions committee` MEANS
+    LIST `the head of the in-service training division or a representative, as chair`,
+         `representatives of the teachers' organisations`
+
+-- 7.2 ¶4: before the refunds are allocated the committee convenes on the
+-- problems the teachers' organisations raise. Time: the allocation is the
+-- deadline, given in days from 1 September 2003.
+@ref akn:chp_1ב__sec_1_42__ssec_5_2/p8
+GIVEN `day of allocation` IS A NUMBER
+GIVETH A DEONTIC `1.42 party` `tuition action`
+DECIDE `convening before allocation` `day of allocation` IS
+    PARTY `the joint exceptions committee`
+    MUST  `convene before allocation`
+    WITHIN `day of allocation`
+    LEST  BREACH BY `the joint exceptions committee` BECAUSE "1.42 7.2: the committee convenes before the refunds are allocated"
+
+-- 7.3: the last day for requests to the exceptions committee. The text
+-- prints "יום חמישי, כ"א בטבת, התשס"ד (15.1.03)"; the weekday and the
+-- Hebrew date are 15 January 2004, which is read here (day 136).
+@ref akn:chp_1ב__sec_1_42__ssec_5_2/p9
+GIVETH A DEONTIC `1.42 party` `tuition action`
+DECIDE `requests to the exceptions committee` IS
+    PARTY `a takanon party` `the teaching employee`
+    MAY   `submit a request to the exceptions committee`
+    WITHIN 136
+
+-- akn:chp_1ב__sec_1_42__ssec_5_2/p10 The heading of the source list (אסמכתא).
+-- akn:chp_1ב__sec_1_42__ssec_5_2/p11 A source: the special collective agreement of 16.11.83, section 13.
+-- akn:chp_1ב__sec_1_42__ssec_5_2/p12 A source: director-general's circular סד/1(א).
+
+-- Worked examples. Figures are placeholders, not from any payslip.
+`a second-year MA student, permanent` MEANS
+    `tuition application` WITH
+        `member of a teachers' union`                IS TRUE
+        `works in a covered institution`             IS TRUE
+        `permanent in post`                          IS TRUE
+        `completed years of work`                    IS 8
+        `position fraction`                          IS 1
+        `on a half sabbatical year`                  IS TRUE
+        `kind of studies`                            IS `second or third degree`
+        `weekly hours of study`                      IS 4
+        `kind of institution`                        IS `an institution recognised by the Council for Higher Education`
+        `for an equivalent degree`                   IS FALSE
+        `B.Ed. at a Haredi college supervised by the teacher-training division` IS FALSE
+        `at an Israeli branch of a foreign university` IS FALSE
+        `began those studies before April 2002 and received a grant for them` IS FALSE
+        `for a parallel academic degree`             IS FALSE
+        `full study years already refunded`          IS 1
+        `grant hours already received`               IS 0
+        `tuition charged`                            IS 14000
+        `university tuition`                         IS 12000
+        `approved by the exceptions committee`       IS FALSE
+
+#ASSERT `entitled to a tuition refund` `a second-year MA student, permanent`
+#ASSERT `priority of` `a second-year MA student, permanent` EQUALS `first priority`
+#ASSERT `grant amount` `a second-year MA student, permanent` 1 EQUALS 6000
+#ASSERT NOT `entitled to a tuition refund` `a first-year union member`
+#EVAL   `who signs the form` `an institution of another owner`
+
+#TRACE `applying on the form by the deadline` AT 0 WITH
+    PARTY `a takanon party` `the teaching employee` DOES `submit the application` AT 60
+#TRACE `paying a month after the receipts` TRUE 3000 AT 0 WITH
+    PARTY `a takanon party` `the Ministry of Education` DOES `pay the refund` 3000 AT 1
+#TRACE `paying a month after the receipts` FALSE 3000 AT 0 WITH
+    PARTY `a takanon party` `the local authority or owning body` DOES `pay the refund` 3000 AT 2

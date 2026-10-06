@@ -1,0 +1,323 @@
+-- תקנון שירות עובדי הוראה, פרק 7, §7.4 מנהל חטיבת הביניים
+-- The head of the middle division: how authority is divided with the
+-- principal of a six-year school, the school's management, the head's own
+-- tasks and signatures, and the management reward.
+
+IMPORT prelude
+IMPORT common
+
+§ `7.4 מנהל חטיבת הביניים`
+
+@desc Who acts under section 7.4. The middle division head and the school's management are not among the takanon's shared parties, so they are declared here.
+DECLARE `7.4 party` IS ONE OF
+    `the six-year school's principal`
+    `the middle division head`
+    `the deputy principal`
+    `the school's management`
+    `the class educator`
+
+@desc A question that arises in a six-year post-primary school.
+DECLARE `school question` HAS
+    `is a question of principle`          IS A BOOLEAN
+    `concerns the middle division`        IS A BOOLEAN
+
+DECLARE `7.4 action` IS ONE OF
+    `consult the middle division head` HAS `on the question` IS A `school question`
+    `decide` HAS `the question` IS A `school question`
+    `convene the management`
+    `appeal the principal's decision` HAS `with the principal's knowledge` IS A BOOLEAN
+    `consult the principal on a problematic pupil`
+    `send copies to the middle division head`
+    `send copies to the principal`
+    `sign` HAS `the document` IS A `school document`
+
+@desc The documents section 7.4.3(5) assigns signatures to.
+DECLARE `school document` IS ONE OF
+    `a middle division pedagogical record`
+    `a term report card`
+    `a year-end report card`
+
+@desc The middle division head, as far as the management reward asks.
+DECLARE `middle division head` HAS
+    `heads an independent middle school`                IS A BOOLEAN
+    `classes in the middle division`                    IS A NUMBER
+    `independent school was attached to a six-year school` IS A BOOLEAN
+    `years as head of the independent school before it was attached` IS A NUMBER
+    `average classes of the independent school in its last 3 years` IS A NUMBER
+    `was a tenured primary school principal until appointed` IS A BOOLEAN @desc served as a primary school principal with pedagogical tenure in that post until appointed head
+    `management rewards in the 3 years before appointment` IS A LIST OF NUMBER @desc the management reward received in each of the three years before appointment as head (empty if none)
+
+§§ `7.4.3 הגדרת תפקידים`
+
+-- akn:chp_7__sec_7_4__ssec_7_4_3/p1 The heading of the four principles that follow (§7.4.3(1)א–ד), each encoded below.
+
+@ref akn:chp_7__sec_7_4__ssec_7_4_3/p2
+GIVETH A BOOLEAN
+DECIDE `the six-year school is one institution` IF TRUE
+
+@desc The two divisions of a six-year post-primary school.
+@ref akn:chp_7__sec_7_4__ssec_7_4_3/p3
+DECLARE `division` IS ONE OF
+    `the middle division` @desc grades 7–9: heterogeneous home classes, setting by levels, counselling and guidance
+    `the upper division`  @desc grades 10–12
+
+-- (1)ג and (2)א: the principal's responsibility is not divided — the
+-- principal answers for everything done in the school and decides every
+-- question of principle.
+@ref akn:chp_7__sec_7_4__ssec_7_4_3/p4 akn:chp_7__sec_7_4__ssec_7_4_3/p6
+GIVEN q IS A `school question`
+GIVETH A `7.4 party`
+DECIDE `who decides` q IS
+    `the six-year school's principal`
+
+@ref akn:chp_7__sec_7_4__ssec_7_4_3/p5 akn:chp_7__sec_7_4__ssec_7_4_3/p12
+GIVEN p IS A `7.4 party`
+GIVETH A BOOLEAN
+DECIDE `the middle division head answers to` p IF
+    p EQUALS `the six-year school's principal`
+
+@ref akn:chp_7__sec_7_4__ssec_7_4_3/p5 akn:chp_7__sec_7_4__ssec_7_4_3/p14
+GIVEN d IS A `division`
+GIVETH A BOOLEAN
+DECIDE `the middle division head's field covers` d IF
+    d EQUALS `the middle division`
+
+-- (2)ב: in a question that concerns the middle division the principal
+-- consults the head before deciding it. Time in school days.
+@ref akn:chp_7__sec_7_4__ssec_7_4_3/p7
+GIVEN q IS A `school question`, `days to decide` IS A NUMBER
+GIVETH A DEONTIC `7.4 party` `7.4 action`
+DECIDE `deciding a middle division question` q `days to decide` IS
+    IF q's `concerns the middle division`
+    THEN PARTY `the six-year school's principal`
+         MUST  `consult the middle division head` asked PROVIDED asked EQUALS q
+         WITHIN `days to decide`
+         HENCE (PARTY `the six-year school's principal`
+                MUST  `decide` decided PROVIDED decided EQUALS q
+                WITHIN `days to decide`)
+         LEST  BREACH BY `the six-year school's principal` BECAUSE "section 7.4.3(2)ב: a middle division question is decided after consulting the division's head"
+    ELSE PARTY `the six-year school's principal`
+         MUST  `decide` decided PROVIDED decided EQUALS q
+         WITHIN `days to decide`
+
+@ref akn:chp_7__sec_7_4__ssec_7_4_3/p8 akn:chp_7__sec_7_4__ssec_7_4_3/p13
+`the members of the management` MEANS
+    LIST `the six-year school's principal`, `the middle division head`, `the deputy principal`
+
+@ref akn:chp_7__sec_7_4__ssec_7_4_3/p8
+`the chair of the management` MEANS `the six-year school's principal`
+
+-- (3)ב: the management meets regularly; once a week or every 10 days is
+-- "רצוי" (desirable), so the interval is an input and 7–10 days is only the
+-- recommendation.
+@ref akn:chp_7__sec_7_4__ssec_7_4_3/p9
+GIVEN `days between meetings` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `the meeting interval is the recommended one` `days between meetings` IF
+    `days between meetings` AT MOST 10
+
+@ref akn:chp_7__sec_7_4__ssec_7_4_3/p9
+GIVEN `days between meetings` IS A NUMBER
+GIVETH A DEONTIC `7.4 party` `7.4 action`
+DECIDE `the management's meetings` `days between meetings` IS
+    PARTY `the school's management`
+    MUST  `convene the management`
+    WITHIN `days between meetings`
+
+-- (3)ג: where the management disagrees, the principal decides; the head
+-- may appeal, with the principal's knowledge, as is customary.
+@ref akn:chp_7__sec_7_4__ssec_7_4_3/p10
+GIVEN q IS A `school question`
+GIVETH A `7.4 party`
+DECIDE `who decides a disagreement in the management` q IS
+    `the six-year school's principal`
+
+@ref akn:chp_7__sec_7_4__ssec_7_4_3/p10
+GIVETH A DEONTIC `7.4 party` `7.4 action`
+DECIDE `appealing the principal's decision` IS
+    PARTY `the middle division head`
+    MAY   `appeal the principal's decision` known PROVIDED known
+
+@ref akn:chp_7__sec_7_4__ssec_7_4_3/p11
+GIVEN `selected in a tender the Ministry published` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `validly selected as middle division head` `selected in a tender the Ministry published` IF
+    `selected in a tender the Ministry published`
+
+@desc The head's own tasks in shaping the middle division (section 7.4.3(4)).
+DECLARE `middle division task` IS ONE OF
+    `raising the level of teaching and achievement`
+    `advancing social integration`
+    `internal organisation of the division`
+    `forming and shaping heterogeneous home classes`
+    `varying and individualising teaching`
+    `setting the grouping system and electives`
+    `operating counselling and guidance`
+    `organising pupils' society and social activity`
+    `direct contact with and guidance of the division's teachers`
+    `holding pedagogical meetings and assessing pupils`
+    `shaping part two of the school day`
+    `shaping a heterogeneous non-selective division and guiding pupils into tracks after grade 9`
+    `chairing the committee for moving pupils from grade 9 to 10`
+
+@ref akn:chp_7__sec_7_4__ssec_7_4_3/p15 akn:chp_7__sec_7_4__ssec_7_4_3/p16
+`the middle division head's tasks` MEANS
+    LIST `raising the level of teaching and achievement`,
+         `advancing social integration`,
+         `internal organisation of the division`,
+         `forming and shaping heterogeneous home classes`,
+         `varying and individualising teaching`,
+         `setting the grouping system and electives`,
+         `operating counselling and guidance`,
+         `organising pupils' society and social activity`,
+         `direct contact with and guidance of the division's teachers`,
+         `holding pedagogical meetings and assessing pupils`,
+         `shaping part two of the school day`,
+         `chairing the committee for moving pupils from grade 9 to 10`
+
+-- (4), last paragraph: beside a single-track upper division the head also
+-- shapes a heterogeneous, non-selective middle division and guides pupils
+-- into tracks after grade 9; and (ה) chairs the grade 9→10 committee, but
+-- consults the principal in problematic cases.
+@ref akn:chp_7__sec_7_4__ssec_7_4_3/p17
+GIVEN `the upper division is single-track` IS A BOOLEAN
+GIVETH A LIST OF `middle division task`
+DECIDE `the head's tasks` `the upper division is single-track` IS
+    IF `the upper division is single-track`
+    THEN append `the middle division head's tasks` (LIST `shaping a heterogeneous non-selective division and guiding pupils into tracks after grade 9`)
+    ELSE `the middle division head's tasks`
+
+@ref akn:chp_7__sec_7_4__ssec_7_4_3/p17
+GIVEN `days before the committee decides` IS A NUMBER
+GIVETH A DEONTIC `7.4 party` `7.4 action`
+DECIDE `a problematic grade 9 to 10 case` `days before the committee decides` IS
+    PARTY `the middle division head`
+    MUST  `consult the principal on a problematic pupil`
+    WITHIN `days before the committee decides`
+    LEST  BREACH BY `the middle division head` BECAUSE "section 7.4.3(4)ה: in problematic cases the head consults the principal"
+
+-- (5): administration is shared; the signatures and the copies.
+@ref akn:chp_7__sec_7_4__ssec_7_4_3/p18 akn:chp_7__sec_7_4__ssec_7_4_3/p21
+GIVEN d IS A `school document`
+GIVETH A LIST OF `7.4 party`
+DECIDE `who signs` d IS
+    CONSIDER d
+    WHEN `a middle division pedagogical record` THEN LIST `the middle division head`
+    WHEN `a term report card`                   THEN LIST `the class educator`, `the middle division head`
+    WHEN `a year-end report card`               THEN LIST `the six-year school's principal`, `the middle division head`
+
+@ref akn:chp_7__sec_7_4__ssec_7_4_3/p19
+GIVEN `concerns the middle division` IS A BOOLEAN
+GIVETH A DEONTIC `7.4 party` `7.4 action`
+DECIDE `the principal's correspondence with the Ministry` `concerns the middle division` IS
+    IF `concerns the middle division`
+    THEN PARTY `the six-year school's principal`
+         MUST  `send copies to the middle division head`
+    ELSE FULFILLED
+
+@ref akn:chp_7__sec_7_4__ssec_7_4_3/p20
+GIVETH A DEONTIC `7.4 party` `7.4 action`
+DECIDE `the head's correspondence` IS
+    PARTY `the middle division head`
+    MUST  `send copies to the principal`
+
+@ref akn:chp_7__sec_7_4__ssec_7_4_3/p22
+GIVEN p IS A `7.4 party`
+GIVETH A BOOLEAN
+DECIDE `takes part in the middle division's budget and equipment orders` p IF
+    p EQUALS `the middle division head` OR p EQUALS `the six-year school's principal`
+
+@ref akn:chp_7__sec_7_4__ssec_7_4_3/p23
+GIVEN `the middle division is still growing` IS A BOOLEAN
+GIVETH A `7.4 party`
+DECIDE `who fills the middle division head's tasks` `the middle division is still growing` IS
+    IF `the middle division is still growing`
+    THEN `the six-year school's principal`
+    ELSE `the middle division head`
+
+-- akn:chp_7__sec_7_4__ssec_7_4_3/p24 akn:chp_7__sec_7_4__ssec_7_4_3/p25 The source (אסמכתא) of section 7.4.3.
+
+§§ `7.4.6.1 גמול ניהול`
+
+-- The post-primary principal's management reward is section 7.6's: a
+-- function of the number of classes, passed in until 7.6 is encoded.
+@ref akn:chp_7__sec_7_4__ssec_7_4_6_1__para_3
+GIVEN h IS A `middle division head`
+GIVETH A NUMBER
+DECIDE `classes counted for the head's reward` h IS
+    h's `classes in the middle division`
+
+@ref akn:chp_7__sec_7_4__ssec_7_4_6_1__para_1 akn:chp_7__sec_7_4__ssec_7_4_6_1__para_2 akn:chp_7__sec_7_4__ssec_7_4_6_1__para_4 akn:chp_7__sec_7_4__ssec_7_4_6_1__para_4/p2
+GIVEN h IS A `middle division head`
+      `principal's reward` IS A FUNCTION FROM NUMBER TO NUMBER @desc the management reward section 7.6 gives a post-primary school principal for a school of the given number of classes
+GIVETH A NUMBER
+DECIDE `the head's reward before the floor` h `principal's reward` IS
+    BRANCH
+        IF h's `heads an independent middle school`
+        THEN `principal's reward` (`classes counted for the head's reward` h)
+        IF h's `independent school was attached to a six-year school`
+           AND h's `years as head of the independent school before it was attached` AT LEAST 3
+        THEN `principal's reward` (h's `average classes of the independent school in its last 3 years`)
+        OTHERWISE 85% TIMES `principal's reward` (`classes counted for the head's reward` h)
+
+-- (5): a head who was a tenured primary principal keeps at least the
+-- lowest ("המינימום") reward of the three years before appointment.
+@ref akn:chp_7__sec_7_4__ssec_7_4_6_1__para_5
+GIVEN h IS A `middle division head`
+GIVETH A NUMBER
+DECIDE `the floor from a primary principalship` h IS
+    IF h's `was a tenured primary school principal until appointed`
+    THEN CONSIDER h's `management rewards in the 3 years before appointment`
+         WHEN EMPTY THEN 0
+         WHEN r FOLLOWED BY rest THEN minimum1 r rest
+    ELSE 0
+
+@desc The management reward of a middle division head under section 7.4.6.1 of the takanon, before management seniority
+GIVEN h IS A `middle division head` @desc the head
+      `principal's reward` IS A FUNCTION FROM NUMBER TO NUMBER @desc the management reward section 7.6 gives a post-primary school principal for a school of the given number of classes
+GIVETH A NUMBER
+DECIDE `middle division head's management reward` h `principal's reward` IS
+    max (`the head's reward before the floor` h `principal's reward`) (`the floor from a primary principalship` h)
+
+-- Examples. The principal's reward of 100 per class is a placeholder, NOT section 7.6's.
+`a placeholder principal's reward` MEANS GIVEN n YIELD 100 TIMES n
+
+`a head of a 9-class middle division` MEANS
+    `middle division head` WITH
+        `heads an independent middle school`                IS FALSE
+        `classes in the middle division`                    IS 9
+        `independent school was attached to a six-year school` IS FALSE
+        `years as head of the independent school before it was attached` IS 0
+        `average classes of the independent school in its last 3 years` IS 0
+        `was a tenured primary school principal until appointed` IS FALSE
+        `management rewards in the 3 years before appointment` IS EMPTY
+
+`a former primary principal heading 9 classes` MEANS
+    `middle division head` WITH
+        `heads an independent middle school`                IS FALSE
+        `classes in the middle division`                    IS 9
+        `independent school was attached to a six-year school` IS FALSE
+        `years as head of the independent school before it was attached` IS 0
+        `average classes of the independent school in its last 3 years` IS 0
+        `was a tenured primary school principal until appointed` IS TRUE
+        `management rewards in the 3 years before appointment` IS LIST 1000, 900, 950
+
+#ASSERT `middle division head's management reward` `a head of a 9-class middle division` `a placeholder principal's reward` EQUALS 765
+#ASSERT `middle division head's management reward` `a former primary principal heading 9 classes` `a placeholder principal's reward` EQUALS 900
+#ASSERT `who signs` `a term report card` EQUALS LIST `the class educator`, `the middle division head`
+
+-- A middle division question decided after consulting the head: fulfilled.
+-- Decided without consulting: the obligation to consult is still open.
+`a question on home classes` MEANS
+    `school question` WITH `is a question of principle` IS TRUE, `concerns the middle division` IS TRUE
+#TRACE `deciding a middle division question` `a question on home classes` 7 AT 0 WITH
+    PARTY `the six-year school's principal` DOES `consult the middle division head` `a question on home classes` AT 2
+    PARTY `the six-year school's principal` DOES `decide` `a question on home classes` AT 5
+#TRACE `deciding a middle division question` `a question on home classes` 7 AT 0 WITH
+    PARTY `the six-year school's principal` DOES `decide` `a question on home classes` AT 5
+
+-- akn:chp_7__sec_7_4__ssec_7_4_6_1/p1 akn:chp_7__sec_7_4__ssec_7_4_6_1/p2 akn:chp_7__sec_7_4__ssec_7_4_6_1/p3 akn:chp_7__sec_7_4__ssec_7_4_6_1/p4 akn:chp_7__sec_7_4__ssec_7_4_6_1/p5 akn:chp_7__sec_7_4__ssec_7_4_6_1/p6 The sources (אסמכתא) of section 7.4.6.1.
+
+§§ `7.4.6.3 גמול נסיעות`
+
+-- akn:chp_7__sec_7_4__ssec_7_4_6_3/p1 A pointer: travel reimbursement is section 7.3.6.3's, encoded there.

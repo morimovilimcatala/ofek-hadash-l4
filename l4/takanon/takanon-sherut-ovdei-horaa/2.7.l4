@@ -1,0 +1,248 @@
+-- תקנון שירות עובדי הוראה, פרק 2, §2.7 גננת שילוב
+-- The integration kindergarten teacher: her unit of work, how far her
+-- position may be split across days, her caseload, priority for completing
+-- a position, her travel, splitting and preparation-hours allowances, the
+-- education allowance, and age hours.
+
+IMPORT prelude
+IMPORT common
+
+§ `2.7 גננת שילוב`
+
+-- akn:chp_2__sec_2_7/p2 The page's table of contents ("contents of the page").
+-- akn:chp_2__sec_2_7/p3 Table of contents: 2.7.1.
+-- akn:chp_2__sec_2_7/p4 Table of contents: 2.7.6.
+-- akn:chp_2__sec_2_7/p5 Table of contents: 2.7.7.
+
+§§ `2.7.1 Unit of work`
+
+-- 1: a full position is 28 + 2 weekly hours — 28 with pupils and 2 of
+-- guidance (הדרכה), 30 in all — and, beyond it, work with parents within two
+-- "stay" hours.
+@ref akn:chp_2__sec_2_7__ssec_2_7_1__para_1
+`weekly hours with pupils in a full position` MEANS 28
+`weekly guidance hours in a full position` MEANS 2
+`weekly hours in an integration teacher's unit` MEANS
+    `weekly hours with pupils in a full position` PLUS `weekly guidance hours in a full position`
+`weekly stay hours for work with parents, beyond the unit` MEANS 2
+
+-- 2: the most days a week her position may be split across. The text gives
+-- three bands: up to 1/3 (inclusive) two days; above 1/2 to 3/4 (inclusive)
+-- four days; above 3/4 five days. Nothing is said for above 1/3 up to 1/2
+-- (F-2.7-a): such a position has no maximum.
+@ref akn:chp_2__sec_2_7__ssec_2_7_1__para_2
+DECLARE `days band` HAS
+    `above`         IS A NUMBER  @desc the band holds fractions greater than this
+    `up to`         IS A NUMBER  @desc and up to this, inclusive
+    `most days`     IS A NUMBER
+
+`the bands of 2.7.1.2` MEANS
+    LIST
+        @ref akn:chp_2__sec_2_7__ssec_2_7_1__para_2/p2
+        `days band` 0       (1/3) 2,
+        @ref akn:chp_2__sec_2_7__ssec_2_7_1__para_2/p3
+        `days band` (1/2) (3/4) 4,
+        @ref akn:chp_2__sec_2_7__ssec_2_7_1__para_2/p4
+        `days band` (3/4) 999   5
+
+GIVEN f IS A NUMBER
+GIVETH A LIST OF NUMBER
+DECIDE `most days the table gives` f IS
+    map (GIVEN b YIELD b's `most days`)
+        (filter (GIVEN b YIELD f GREATER THAN b's `above` AND f AT MOST b's `up to`) `the bands of 2.7.1.2`)
+
+GIVEN f IS A NUMBER
+GIVETH A MAYBE NUMBER
+DECIDE `most days a week` f IS
+    listToMaybe (`most days the table gives` f)
+
+`a position between a third and a half has no maximum` MEANS
+        `most days the table gives` 0.4 EQUALS EMPTY
+    AND `most days the table gives` 0.5 EQUALS EMPTY
+#ASSERT `a position between a third and a half has no maximum`
+
+-- ¶5: if the teacher agrees, she may be split further.
+@ref akn:chp_2__sec_2_7__ssec_2_7_1__para_2/p5
+GIVEN f IS A NUMBER, days IS A NUMBER, `she agrees to more splitting` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `the split is allowed` f days `she agrees to more splitting` IF
+    `she agrees to more splitting` OR `within the maximum` (`most days a week` f) days
+
+GIVEN m IS A MAYBE NUMBER, days IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `within the maximum` m days IF
+    CONSIDER m
+    WHEN JUST most THEN days AT MOST most
+    WHEN NOTHING THEN TRUE
+
+-- 3: the number of children follows the number of kindergartens and her
+-- weekly hours; at a full position (28 actual hours) 12-18 pupils in 3-5
+-- kindergartens. ¶2's "detailed table" is a linked document, not in this
+-- text, so the caseload at other positions is an input.
+@ref akn:chp_2__sec_2_7__ssec_2_7_1__para_3
+GIVEN pupils IS A NUMBER, kindergartens IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `a full position's caseload` pupils kindergartens IF
+        pupils AT LEAST 12 AND pupils AT MOST 18
+    AND kindergartens AT LEAST 3 AND kindergartens AT MOST 5
+
+-- akn:chp_2__sec_2_7__ssec_2_7_1__para_3/p2 Introduces the detailed caseload table, a linked document whose content is not in this text.
+
+-- 4: a permanent integration teacher comes before any outside teacher for
+-- completing her position.
+@ref akn:chp_2__sec_2_7__ssec_2_7_1__para_4
+GIVEN `a permanent integration teacher in the system` IS A BOOLEAN, `an outside teacher` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `comes first for completing a position` `a permanent integration teacher in the system` `an outside teacher` IF
+    `a permanent integration teacher in the system` AND `an outside teacher`
+
+-- 5: clauses 1-3 and 5 apply from 1.9.1981, clause 4 from 1.9.1982.
+@ref akn:chp_2__sec_2_7__ssec_2_7_1__para_5
+GIVEN clause IS A NUMBER
+GIVETH A NUMBER
+DECIDE `year clause 2.7.1 applies from` clause IS
+    IF clause EQUALS 4 THEN 1982 ELSE 1981
+
+-- akn:chp_2__sec_2_7__ssec_2_7_1/p1 The heading of the source list (אסמכתא).
+-- akn:chp_2__sec_2_7__ssec_2_7_1/p2 A source: director-general's circulars מב/6 and נח/9ב.
+
+§§ `2.7.6.1 Travel allowance`
+
+-- 1: with a car: paid for 200 km a month at the "global payment" rates,
+-- pro-rated by position and period. 2: without a car: by report, up to
+-- that sum. The per-km rate is an input.
+@ref akn:chp_2__sec_2_7__ssec_2_7_6_1__para_1
+GIVEN `global-payment rate per km` IS A NUMBER, `position fraction` IS A NUMBER, `share of the period worked` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `monthly travel allowance with a car` `global-payment rate per km` `position fraction` `share of the period worked` IS
+    200 TIMES `global-payment rate per km` TIMES `position fraction` TIMES `share of the period worked`
+
+@ref akn:chp_2__sec_2_7__ssec_2_7_6_1__para_2
+GIVEN `reported travel cost` IS A NUMBER, `the car-owner's sum` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `monthly travel allowance without a car` `reported travel cost` `the car-owner's sum` IS
+    min `reported travel cost` `the car-owner's sum`
+
+-- akn:chp_2__sec_2_7__ssec_2_7_6_1/p1 The heading of the source list (אסמכתא).
+-- akn:chp_2__sec_2_7__ssec_2_7_6_1/p2 A source: special director-general's circular ה' 5739; circular נח/9ב.
+
+§§ `2.7.6.2 Splitting allowance`
+
+@ref akn:chp_2__sec_2_7__ssec_2_7_6_2__para_1
+GIVEN kindergartens IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `entitled to the over-splitting allowance` kindergartens IF
+    kindergartens AT LEAST 3
+
+@desc The special allowance for over-splitting a position under section 1.11, given the number of kindergartens; an input until that section is imported
+ASSUME `the splitting allowance of section 1.11` IS A FUNCTION FROM NUMBER TO NUMBER
+
+-- akn:chp_2__sec_2_7__ssec_2_7_6_2/p1 The heading of the source list (אסמכתא).
+-- akn:chp_2__sec_2_7__ssec_2_7_6_2/p2 A source: special director-general's circular ה' 5739; deputy director-general's circular of 25.8.80.
+-- akn:chp_2__sec_2_7__ssec_2_7_6_2/p3 A source: director-general's circular מב/4, section 135ד.
+-- akn:chp_2__sec_2_7__ssec_2_7_6_2/p4 A source: deputy director-general's circular of 19.1.82.
+-- akn:chp_2__sec_2_7__ssec_2_7_6_2/p5 A source: director-general's circular נח/9ב.
+
+§§ `2.7.6.3 Preparation hours`
+
+-- 1: on top of her regular work she gets a supplement of preparation hours,
+-- by this key. F-2.7-b: the unit of 2.7.1 already holds "2 guidance hours"
+-- on top of the 28, 2.7.7 writes the full position as 28 "+ 2 preparation
+-- hours", and this clause's own heading calls them counselling hours. The
+-- reading adopted: they are one and the same two hours, so a full position
+-- is the unit's 30 hours, not 32.
+@ref akn:chp_2__sec_2_7__ssec_2_7_6_3/p1 akn:chp_2__sec_2_7__ssec_2_7_6_3/p2
+GIVEN `weekly hours worked` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `preparation hours` `weekly hours worked` IS
+    BRANCH
+    @ref akn:chp_2__sec_2_7__ssec_2_7_6_3/p3
+        IF `weekly hours worked` AT MOST 10 THEN 0
+    @ref akn:chp_2__sec_2_7__ssec_2_7_6_3/p4
+        IF `weekly hours worked` AT MOST 19 THEN 1
+    @ref akn:chp_2__sec_2_7__ssec_2_7_6_3/p5
+        OTHERWISE 2
+
+`hours paid for a full position if guidance and preparation are one` MEANS
+    `weekly hours with pupils in a full position` PLUS `preparation hours` 28
+`hours paid for a full position if they are two supplements` MEANS
+    `weekly hours in an integration teacher's unit` PLUS `preparation hours` 28
+
+`the unit's guidance hours and the preparation hours read as one or two` MEANS
+        `hours paid for a full position if guidance and preparation are one` EQUALS 30
+    AND `hours paid for a full position if they are two supplements` EQUALS 32
+#ASSERT `the unit's guidance hours and the preparation hours read as one or two`
+
+@ref akn:chp_2__sec_2_7__ssec_2_7_6_3/p6
+`year the preparation-hours key applies from` MEANS 1980
+
+@ref akn:chp_2__sec_2_7__ssec_2_7_6_3/p7
+`the key replaces every other procedure on preparation hours` MEANS TRUE
+
+-- akn:chp_2__sec_2_7__ssec_2_7_6_3/p8 The heading of the source list (אסמכתא).
+-- akn:chp_2__sec_2_7__ssec_2_7_6_3/p9 A source: director-general's circulars מא/3 and נח/9ב.
+-- akn:chp_2__sec_2_7__ssec_2_7_6_3/p10 A pointer to section 4.6, the special-education supplement.
+
+§§ `2.7.6.5 Education allowance`
+
+-- "An integration kindergarten teacher (formerly a special-education
+-- kindergarten teacher) is entitled to the education allowance. See section
+-- 1.12." Section 1.12 is a named input. F-2.7-c: 1.12 itself excepts
+-- integration kindergarten teachers from that allowance; this section's own
+-- words are encoded.
+@ref akn:chp_2__sec_2_7__ssec_2_7_6_5/p1
+`an integration teacher is entitled to the education allowance under 2.7.6.5` MEANS TRUE
+
+@desc The education allowance of section 1.12 for the employee's salary; an input until section 1.12 is imported
+ASSUME `the education allowance of section 1.12` IS A FUNCTION FROM NUMBER TO NUMBER
+
+-- The posts section 1.12 (¶33 of its rows) prints as excepted from the
+-- class-education allowance, quoted here as the finding's evidence only.
+DECLARE `kindergarten post` IS ONE OF
+    `kindergarten teacher entitled to the coordination allowance`
+    `assisting kindergarten teacher`
+    `integration kindergarten teacher`
+    `other kindergarten teacher`
+
+`the kindergarten posts section 1.12 excepts, as printed` MEANS
+    LIST `kindergarten teacher entitled to the coordination allowance`,
+         `assisting kindergarten teacher`,
+         `integration kindergarten teacher`
+
+`2.7.6.5 grants what section 1.12 excepts` MEANS
+        `an integration teacher is entitled to the education allowance under 2.7.6.5`
+    AND elem `integration kindergarten teacher` `the kindergarten posts section 1.12 excepts, as printed`
+#ASSERT `2.7.6.5 grants what section 1.12 excepts`
+
+§§ `2.7.7 Age hours`
+
+-- 1: the age-hours principle applies to her too: her position shrinks to
+-- 26 (+2 preparation) hours with 2 age hours, to 24 (+2) with 4; with 4 she
+-- works five days a week if she accepts it. 2: from 1.9.1981.
+@ref akn:chp_2__sec_2_7__ssec_2_7_7__para_1
+GIVEN `age hours` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `weekly hours with pupils after age hours` `age hours` IS
+    `weekly hours with pupils in a full position` MINUS `age hours`
+
+GIVEN `age hours` IS A NUMBER, `she accepts` IS A BOOLEAN
+GIVETH A MAYBE NUMBER
+DECIDE `days a week with age hours` `age hours` `she accepts` IS
+    IF `age hours` EQUALS 4 AND `she accepts` THEN JUST 5 ELSE NOTHING
+
+@ref akn:chp_2__sec_2_7__ssec_2_7_7__para_2
+`year age hours apply to integration teachers from` MEANS 1981
+
+-- akn:chp_2__sec_2_7__ssec_2_7_7/p1 The heading of the source list (אסמכתא).
+-- akn:chp_2__sec_2_7__ssec_2_7_7/p2 A source: director-general's circular מב/6, section 223.
+
+-- Worked examples; the per-km rate is a placeholder.
+#ASSERT `most days a week` (1/3) EQUALS JUST 2
+#ASSERT `most days a week` 0.75 EQUALS JUST 4
+#ASSERT `most days a week` 0.8 EQUALS JUST 5
+#ASSERT `the split is allowed` 0.6 5 TRUE
+#ASSERT NOT `the split is allowed` 0.6 5 FALSE
+#ASSERT `preparation hours` 15 EQUALS 1
+#ASSERT `weekly hours with pupils after age hours` 4 EQUALS 24
+#ASSERT `monthly travel allowance with a car` 2 0.5 1 EQUALS 200
+#ASSERT `monthly travel allowance without a car` 300 200 EQUALS 200

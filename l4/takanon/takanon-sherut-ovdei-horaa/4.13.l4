@@ -1,0 +1,128 @@
+-- תקנון שירות עובדי הוראה, פרק 4, §4.13 עובד הוראה במרכז טיפולי
+-- Teachers and managers of treatment centres: the special-education
+-- allowance, the split allowance, pupils per position, and the manager's
+-- allowance reckoned from the centre's weekly hours.
+
+IMPORT prelude
+IMPORT common
+
+§ `4.13 עובד הוראה במרכז טיפולי`
+
+@desc A teacher in a treatment centre, as section 4.13.1 asks about them.
+DECLARE `treatment-centre teacher` HAS
+    `certified for special education`     IS A BOOLEAN @desc as section 4.2 defines it; an input
+    `works both mornings and afternoons`  IS A BOOLEAN
+    `number of institutions worked in`    IS A NUMBER
+
+@desc A treatment centre's manager, as section 4.13.3 asks about them.
+DECLARE `treatment-centre manager` HAS
+    `weekly hours granted to the centre`  IS A NUMBER  @desc weekly hours the special-education branch grants the centre
+    `also principal of the school housing the centre` IS A BOOLEAN @desc the manager is also principal of a school that houses the centre within its walls
+    `classes of that school`              IS A NUMBER
+    `consecutive years managing the centre` IS A NUMBER
+
+-- akn:chp_4__sec_4_13__hc_2/p1 An amendment note: the section was updated on 5.11.02.
+
+§§ `4.13.1`
+
+-- F-4.13-a: "as customary and agreed in special education", and then rates
+-- of 9% and 5.5%, where section 4.6 gives teachers in a special-education
+-- setting 14% and 8.5%. The rates this clause prints are applied: they are
+-- the clause's own, written for treatment centres.
+@ref akn:chp_4__sec_4_13__hc_2__para_1/p1 akn:chp_4__sec_4_13__hc_2__para_1/p2
+GIVEN t IS A `treatment-centre teacher`
+GIVETH A NUMBER
+DECIDE `special-education allowance rate in a treatment centre` t IS
+    IF t's `certified for special education` THEN 9% ELSE 5.5%
+
+-- akn:chp_4__sec_4_13__hc_2__para_1/p3 The connecting words "בנוסף לכך" (in addition) before the next paragraph.
+
+-- Two grounds, one allowance at most: the result is the number of split
+-- allowances, never more than one.
+@ref akn:chp_4__sec_4_13__hc_2__para_1/p4
+GIVEN t IS A `treatment-centre teacher`
+GIVETH A NUMBER
+DECIDE `split allowances in a treatment centre` t IS
+    IF t's `works both mornings and afternoons` OR t's `number of institutions worked in` AT LEAST 3
+    THEN 1
+    ELSE 0
+
+§§ `4.13.2`
+
+@ref akn:chp_4__sec_4_13__hc_2__para_2
+GIVEN `pupils` IS A NUMBER, `full positions` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `pupils per full position are within the range` `pupils` `full positions` IF
+    `pupils` AT LEAST 20 TIMES `full positions` AND `pupils` AT MOST 22 TIMES `full positions`
+
+§§ `4.13.3`
+
+-- F-4.13-b: "every 25 weekly hours are recognised as a class" — hours that
+-- are not a multiple of 25 are not provided for. The reading adopted counts
+-- whole 25-hour blocks only, a remainder making no class.
+@ref akn:chp_4__sec_4_13__hc_2__para_3/p1
+GIVEN m IS A `treatment-centre manager`
+GIVETH A NUMBER
+DECIDE `classes the centre's hours are recognised as` m IS
+    FLOOR (m's `weekly hours granted to the centre` DIVIDED BY 25)
+
+-- The cap of 6 classes is the centre's alone; a principal who also runs the
+-- centre in the school's building has the centre's classes added to the
+-- school's, and the allowance reckoned on the sum.
+@ref akn:chp_4__sec_4_13__hc_2__para_3/p2
+GIVEN m IS A `treatment-centre manager`
+GIVETH A NUMBER
+DECIDE `classes the management allowance is reckoned on` m IS
+    IF m's `also principal of the school housing the centre`
+    THEN m's `classes of that school` PLUS `classes the centre's hours are recognised as` m
+    ELSE min (`classes the centre's hours are recognised as` m) 6
+
+-- The allowance for a number of classes is the special-education school's
+-- (as the clause says, "as customary in a special-education school"), an
+-- input here.
+@ref akn:chp_4__sec_4_13__hc_2__para_3/p1
+GIVEN m IS A `treatment-centre manager`,
+      `the special-education school's management allowance for` IS A FUNCTION FROM NUMBER TO NUMBER
+GIVETH A NUMBER
+DECIDE `management allowance of a treatment-centre manager` m `the special-education school's management allowance for` IS
+    `the special-education school's management allowance for` (`classes the management allowance is reckoned on` m)
+
+@ref akn:chp_4__sec_4_13__hc_2__para_3/p3
+GIVEN m IS A `treatment-centre manager`
+GIVETH A BOOLEAN
+DECIDE `the manager is exempt from a tender under the temporary order` m IF
+    m's `consecutive years managing the centre` AT LEAST 4
+
+-- akn:chp_4__sec_4_13__hc_3__para_1 Source (אסמכתא): a committee decision, a Director-General's circular and a wage agreement.
+-- akn:chp_4__sec_4_13__hc_3__para_2 Source (אסמכתא): a decision of the committee for primary education.
+
+-- Examples. The allowance table is a placeholder (100 per class), not a figure of the takanon.
+`a placeholder management-allowance table` MEANS GIVEN n YIELD 100 TIMES n
+
+`a manager of a 210-hour centre` MEANS
+    `treatment-centre manager` WITH
+        `weekly hours granted to the centre`               IS 210
+        `also principal of the school housing the centre`  IS FALSE
+        `classes of that school`                           IS 0
+        `consecutive years managing the centre`            IS 4
+
+#ASSERT `classes the management allowance is reckoned on` `a manager of a 210-hour centre` EQUALS 6
+#ASSERT `management allowance of a treatment-centre manager` `a manager of a 210-hour centre` `a placeholder management-allowance table` EQUALS 600
+#ASSERT `pupils per full position are within the range` 42 2
+#ASSERT `split allowances in a treatment centre` (`treatment-centre teacher` WITH `certified for special education` IS FALSE, `works both mornings and afternoons` IS TRUE, `number of institutions worked in` IS 3) EQUALS 1
+
+-- F-4.13-b: a centre granted 60 weekly hours holds two whole 25-hour blocks
+-- and 10 hours the rule does not place.
+`60 weekly hours are not a whole number of classes` MEANS
+    NOT ((60 DIVIDED BY 25) EQUALS FLOOR (60 DIVIDED BY 25))
+#ASSERT `60 weekly hours are not a whole number of classes`
+
+-- F-4.13-a: the clause's own rates against section 4.6's for a
+-- special-education setting (14% certified, 8.5% uncertified, as 4.6.2(a)
+-- and 4.6.3(a) print them).
+`section 4.6's rate for a certified teacher in a special-education setting` MEANS 14%
+`the treatment-centre rate is not special education's customary rate` MEANS
+    NOT (`special-education allowance rate in a treatment centre`
+             (`treatment-centre teacher` WITH `certified for special education` IS TRUE, `works both mornings and afternoons` IS FALSE, `number of institutions worked in` IS 1)
+         EQUALS `section 4.6's rate for a certified teacher in a special-education setting`)
+#ASSERT `the treatment-centre rate is not special education's customary rate`

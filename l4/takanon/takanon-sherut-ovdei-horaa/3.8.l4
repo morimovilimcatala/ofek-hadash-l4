@@ -1,0 +1,91 @@
+-- תקנון שירות עובדי הוראה, פרק 3, §3.8 מורה למלאכה
+-- The crafts teacher's work unit, the right to complete a 28-hour position
+-- split between two schools in a third, and full pay where no third school
+-- is found.
+
+IMPORT prelude
+IMPORT common
+
+§ `3.8 מורה למלאכה`
+
+@desc A crafts teacher's employment, as far as section 3.8.1 asks about it.
+DECLARE `crafts employment` HAS
+    `weekly hours in the first two schools` IS A NUMBER  @desc weekly hours the teacher is employed for, in total, across two schools
+    `number of schools`                     IS A NUMBER  @desc schools the teacher is employed in before any completion
+    `an institution to complete in was found` IS A BOOLEAN @desc a third school was found in which the remaining 2 weekly hours can be completed
+
+-- §3.8.1 ¶3: the case is a teacher of 28 weekly hours across two schools.
+GIVEN e IS A `crafts employment`
+GIVETH A BOOLEAN
+DECIDE `employed 28 hours in two schools` e IF
+    e's `weekly hours in the first two schools` EQUALS 28 AND e's `number of schools` EQUALS 2
+
+DECLARE `crafts action` IS ONE OF
+    `complete the position in a third school` HAS `hours completed` IS A NUMBER
+    `require extra working hours`             HAS `extra hours`     IS A NUMBER
+
+§§ `3.8.1 יחידת עבודה`
+
+@ref akn:chp_3__sec_3_8__ssec_3_8_1__para_1/p1
+GIVETH A NUMBER
+DECIDE `weekly hours in a crafts teacher's primary work unit` IS 30
+
+-- akn:chp_3__sec_3_8__ssec_3_8_1__para_1/p2 A heading ("הוראות ביצוע", implementing directions) over the two paragraphs below.
+
+@ref akn:chp_3__sec_3_8__ssec_3_8_1__para_1/p3
+GIVEN e IS A `crafts employment`
+GIVETH A NUMBER
+DECIDE `weekly hours the teacher may complete in a third school` e IS
+    IF `employed 28 hours in two schools` e
+    THEN 2
+    ELSE 0
+
+-- §3.8.1 ¶3: the teacher MAY complete up to 2 hours; the employer SHANT
+-- require hours beyond that, unless the teacher consents.
+@ref akn:chp_3__sec_3_8__ssec_3_8_1__para_1/p3
+GIVEN e IS A `crafts employment`, `the teacher consents` IS A BOOLEAN
+GIVETH A DEONTIC Party `crafts action`
+DECIDE `completing in a third school` e `the teacher consents` IS
+    IF `employed 28 hours in two schools` e
+    THEN (PARTY `the teaching employee`
+          MAY   `complete the position in a third school` h
+                PROVIDED h AT MOST `weekly hours the teacher may complete in a third school` e)
+         RAND
+         (IF `the teacher consents`
+          THEN FULFILLED
+          ELSE PARTY `the employer`
+               SHANT `require extra working hours` x
+                     PROVIDED x GREATER THAN 0)
+    ELSE FULFILLED
+
+-- §3.8.1 ¶4: no third school found, the teacher is paid a full salary.
+@ref akn:chp_3__sec_3_8__ssec_3_8_1__para_1/p4
+GIVEN e IS A `crafts employment`
+GIVETH A NUMBER
+DECIDE `paid position fraction` e IS
+    IF `employed 28 hours in two schools` e AND NOT e's `an institution to complete in was found`
+    THEN 1
+    ELSE e's `weekly hours in the first two schools` DIVIDED BY `weekly hours in a crafts teacher's primary work unit`
+
+-- akn:chp_3__sec_3_8__ssec_3_8_1/p1 Heading of the source list (אסמכתא).
+-- akn:chp_3__sec_3_8__ssec_3_8_1/p2 Source (אסמכתא): a circular of the primary-education administration.
+
+§§ `3.82 גמולים`
+
+-- akn:chp_3__sec_3_8__ssec_3_82/p1 A pure pointer: allowances are governed by section 1.12 (appointments and allowances of role-holders), encoded there.
+
+`28 hours in two schools, no third found` MEANS
+    `crafts employment` WITH
+        `weekly hours in the first two schools`   IS 28
+        `number of schools`                       IS 2
+        `an institution to complete in was found` IS FALSE
+
+#ASSERT `paid position fraction` `28 hours in two schools, no third found` EQUALS 1
+#ASSERT `weekly hours the teacher may complete in a third school` `28 hours in two schools, no third found` EQUALS 2
+
+-- Completing the 2 hours is within the permission; requiring a third hour
+-- without consent breaches the prohibition.
+#TRACE `completing in a third school` `28 hours in two schools, no third found` FALSE AT 0 WITH
+    PARTY `the teaching employee` DOES `complete the position in a third school` 2 AT 1
+#TRACE `completing in a third school` `28 hours in two schools, no third found` FALSE AT 0 WITH
+    PARTY `the employer` DOES `require extra working hours` 1 AT 1

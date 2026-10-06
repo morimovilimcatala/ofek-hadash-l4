@@ -1,0 +1,680 @@
+-- תקנון שירות עובדי הוראה, פרק 2, §2.1 כללי
+-- Kindergarten teachers in general: the unit of work and the kindergarten's
+-- hours, an additional month of study, the supplement equal to three
+-- education hours, substitution for an absent teacher or assistant and its
+-- payments, holiday-eve celebrations, the transfer agreements of 1981, the
+-- mother kindergarten teacher, and pointers to the rules shared with
+-- elementary-school teachers.
+
+IMPORT prelude
+IMPORT common
+
+§ `2.1 כללי`
+
+-- akn:chp_2__sec_2_1/p2 The page's table of contents ("contents of the page").
+-- akn:chp_2__sec_2_1/p3 Table of contents: 2.1.1.
+-- akn:chp_2__sec_2_1/p4 Table of contents: 2.1.2.
+-- akn:chp_2__sec_2_1/p5 Table of contents: 2.1.3.
+-- akn:chp_2__sec_2_1/p6 Table of contents: 2.1.4.
+-- akn:chp_2__sec_2_1/p7 Table of contents: 2.1.5.
+-- akn:chp_2__sec_2_1/p8 Table of contents: 2.1.8.
+-- akn:chp_2__sec_2_1/p9 Table of contents: 2.1.9.
+-- akn:chp_2__sec_2_1/p10 Table of contents: 2.1.10.
+-- akn:chp_2__sec_2_1/p11 Table of contents: 2.1.12.
+-- akn:chp_2__sec_2_1/p12 Table of contents: age hours.
+
+-- The parties of the kindergarten. The teacher, the owner, the supervisor and
+-- the district come from common (the district office as `the district
+-- manager`); the assistant, the person an owner names to handle substitutions
+-- and the parents' meeting are this section's own.
+DECLARE `2.1 party` IS ONE OF
+    `a takanon party` HAS `who` IS A Party
+    `the kindergarten assistant`
+    `the person responsible for substitutions`
+
+DECLARE `kindergarten action` IS ONE OF
+    `notify of own absence`                         HAS `notified` IS A LIST OF `2.1 party`
+    `notify of the teacher's absence`
+    `notify of the assistant's absence`
+    `send a substitute`                             HAS `substitute` IS A `kind of substitute`
+    `arrange a substitute for the assistant`
+    `name a person responsible for substitutions and a deputy`
+    `prepare the list of substitute candidates`
+    `supervise the children until relieved`
+    `claim the payment for being alone`             HAS `claim details complete` IS A BOOLEAN
+    `pay the assistant's daily compensation`        HAS `compensation` IS A NUMBER
+    `open an additional month`
+    `set parents' reception times`
+    `convene a parents' meeting`
+    `pay the education-hours supplement`            HAS `supplement paid` IS A NUMBER
+
+DECLARE `kind of substitute` IS ONE OF
+    `an unplaced kindergarten teacher`
+    `an unplaced teacher`
+    `a kindergarten teacher from an accelerated course`
+    `a kindergarten-teachers' seminar student`
+    `a twelfth-grade graduate after a colloquium`
+    `a candidate from the additional list`
+
+§§ `2.1.1 Unit of work`
+
+-- 1: in 5752 and 5753 kindergartens open six days a week, Sunday to Thursday
+-- 07:55-13:20 and Friday 07:55-12:45; the teachers work five days. Times are
+-- minutes from midnight.
+@ref akn:chp_2__sec_2_1__ssec_2_1_1__para_1
+DECLARE `weekday` IS ONE OF Sunday, Monday, Tuesday, Wednesday, Thursday, Friday, Saturday
+
+GIVEN d IS A `weekday`
+GIVETH A NUMBER
+DECIDE `minutes the kindergarten is open` d IS
+    CONSIDER d
+    WHEN Friday   THEN (12 TIMES 60 PLUS 45) MINUS (7 TIMES 60 PLUS 55)
+    WHEN Saturday THEN 0
+    OTHERWISE          (13 TIMES 60 PLUS 20) MINUS (7 TIMES 60 PLUS 55)
+
+`days a kindergarten teacher works` MEANS 5
+
+@ref akn:chp_2__sec_2_1__ssec_2_1_1__para_2
+`weekly teaching hours in a unit` MEANS 27
+`weekly education hours in a unit` MEANS 3
+`weekly hours in a kindergarten teacher's unit` MEANS `weekly teaching hours in a unit` PLUS `weekly education hours in a unit`
+
+-- 3: a complementing kindergarten teacher works by weekly hours, is paid by
+-- grade and seniority, and her weekly day is worth 5/28 of a position,
+-- subject to age hours and the mother supplement.
+@ref akn:chp_2__sec_2_1__ssec_2_1_1__para_3
+GIVEN `days a week` IS A NUMBER, `adjustment for age hours and mother supplement` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `position fraction of a complementing teacher` `days a week` `adjustment for age hours and mother supplement` IS
+    `days a week` TIMES 5 DIVIDED BY 28 TIMES `adjustment for age hours and mother supplement`
+
+-- 5/28 is, to four places, the Friday morning (12:45 less 07:55) as a share
+-- of the five Sunday-to-Thursday mornings a full-time teacher works — the
+-- sixth day a complementing teacher covers. The text does not say so; the
+-- check is that the figure is consistent with the hours of 1.
+`5/28 is the Friday morning as a share of five weekday mornings` MEANS
+    TRUNC (`minutes the kindergarten is open` Friday DIVIDED BY (5 TIMES `minutes the kindergarten is open` Sunday)) 3
+        EQUALS TRUNC (5 DIVIDED BY 28) 3
+#ASSERT `5/28 is the Friday morning as a share of five weekday mornings`
+
+-- 4: where complementing teachers are lacking, teachers may work extra and
+-- the sixth day's hours are excess hours.
+@ref akn:chp_2__sec_2_1__ssec_2_1_1__para_4
+GIVEN `complementing teachers are lacking` IS A BOOLEAN, `sixth-day hours` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `excess hours from the sixth day` `complementing teachers are lacking` `sixth-day hours` IS
+    IF `complementing teachers are lacking` THEN `sixth-day hours` ELSE 0
+
+-- akn:chp_2__sec_2_1__ssec_2_1_1/p1 The heading of the source list (אסמכתא).
+-- akn:chp_2__sec_2_1__ssec_2_1_1/p2 A source: agreement with the Teachers' Union of 15.7.91.
+-- akn:chp_2__sec_2_1__ssec_2_1_1/p3 A source: special director-general's circular, copy 24, of 21.7.85.
+
+§§ `2.1.2 An additional month of study`
+
+DECLARE `additional month` HAS
+    `prior approval of the district office`            IS A BOOLEAN
+    `the permanent teacher continues`                   IS A BOOLEAN
+    `another teacher approved by the supervision`       IS A BOOLEAN
+    `two training-institution students with the institution's consent, under guidance` IS A BOOLEAN
+    `physical conditions checked by the supervisor`     IS A BOOLEAN
+    `feeding continues`                                 IS A BOOLEAN
+    `the teacher takes part in training for it`         IS A BOOLEAN
+    `budget for work materials provided`                IS A BOOLEAN
+
+@ref akn:chp_2__sec_2_1__ssec_2_1_2/p1 akn:chp_2__sec_2_1__ssec_2_1_2/p2
+GIVEN m IS AN `additional month`
+GIVETH A BOOLEAN
+DECIDE `the additional month may open` m IF
+        m's `prior approval of the district office`
+    AND `staffed under 2.1.2.1` m
+    AND m's `physical conditions checked by the supervisor`
+    AND m's `feeding continues`
+    AND m's `the teacher takes part in training for it`
+    AND m's `budget for work materials provided`
+
+-- 1: preferably the permanent teacher; another teacher needs the
+-- supervision's approval; ¶2: or two students of a kindergarten-teacher
+-- training institution, with its consent and under guidance.
+@ref akn:chp_2__sec_2_1__ssec_2_1_2__para_1 akn:chp_2__sec_2_1__ssec_2_1_2__para_1/p2
+GIVEN m IS AN `additional month`
+GIVETH A BOOLEAN
+DECIDE `staffed under 2.1.2.1` m IF
+        m's `the permanent teacher continues`
+    OR  m's `another teacher approved by the supervision`
+    OR  m's `two training-institution students with the institution's consent, under guidance`
+
+@ref akn:chp_2__sec_2_1__ssec_2_1_2__para_2
+GIVEN m IS AN `additional month`
+GIVETH A BOOLEAN
+DECIDE `condition 2: physical conditions` m IF m's `physical conditions checked by the supervisor`
+
+@ref akn:chp_2__sec_2_1__ssec_2_1_2__para_3
+GIVEN m IS AN `additional month`
+GIVETH A BOOLEAN
+DECIDE `condition 3: feeding` m IF m's `feeding continues`
+
+@ref akn:chp_2__sec_2_1__ssec_2_1_2__para_4
+GIVEN m IS AN `additional month`
+GIVETH A BOOLEAN
+DECIDE `condition 4: training` m IF m's `the teacher takes part in training for it`
+
+@ref akn:chp_2__sec_2_1__ssec_2_1_2__para_5
+GIVEN m IS AN `additional month`
+GIVETH A BOOLEAN
+DECIDE `condition 5: materials budget` m IF m's `budget for work materials provided`
+
+-- akn:chp_2__sec_2_1__ssec_2_1_2/p3 The heading of the source list (אסמכתא).
+-- akn:chp_2__sec_2_1__ssec_2_1_2/p4 A source: director-general's circular לד/10, section 228.
+
+§§ `2.1.3 The supplement equal to three education hours`
+
+-- 1: besides the administrative responsibility for running the kindergarten,
+-- the teacher bears pedagogical responsibility for the children's education.
+@ref akn:chp_2__sec_2_1__ssec_2_1_3__para_1
+`a kindergarten teacher bears pedagogical responsibility` MEANS TRUE
+
+-- 1 ¶2: at the start of the year she sets times to receive parents, also
+-- outside working hours, convenes at least two parents' meetings in the
+-- year, and visits homes when needed; so she gets a supplement equal to the
+-- pay of 3 weekly hours, by her education and recognised seniority. Time in
+-- school months (September = 1).
+@ref akn:chp_2__sec_2_1__ssec_2_1_3__para_1/p2
+GIVETH A DEONTIC `2.1 party` `kindergarten action`
+DECIDE `the parents' duties of 2.1.3` IS
+    (PARTY `a takanon party` `the teaching employee`
+     MUST  `set parents' reception times`
+     WITHIN 1
+     LEST  BREACH BY `a takanon party` `the teaching employee` BECAUSE "2.1.3.1: parents' reception times are set at the start of the year")
+    RAND
+    (PARTY `a takanon party` `the teaching employee`
+     MUST  `convene a parents' meeting`
+     WITHIN 12
+     HENCE (PARTY `a takanon party` `the teaching employee`
+            MUST  `convene a parents' meeting`
+            WITHIN 12
+            LEST  BREACH BY `a takanon party` `the teaching employee` BECAUSE "2.1.3.1: at least two parents' meetings a year")
+     LEST  BREACH BY `a takanon party` `the teaching employee` BECAUSE "2.1.3.1: at least two parents' meetings a year")
+
+GIVEN `pay of one weekly hour, by education and recognised seniority` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `education-hours supplement` `pay of one weekly hour, by education and recognised seniority` IS
+    3 TIMES `pay of one weekly hour, by education and recognised seniority`
+
+-- 2: paid every month of the year, all twelve.
+@ref akn:chp_2__sec_2_1__ssec_2_1_3__para_2
+GIVEN `pay of one weekly hour, by education and recognised seniority` IS A NUMBER
+GIVETH A DEONTIC `2.1 party` `kindergarten action`
+DECIDE `the supplement every month` `pay of one weekly hour, by education and recognised seniority` IS
+    PARTY `a takanon party` `the employer`
+    MUST  `pay the education-hours supplement` s
+          PROVIDED s AT LEAST `education-hours supplement` `pay of one weekly hour, by education and recognised seniority`
+    WITHIN 1
+    LEST  BREACH BY `a takanon party` `the employer` BECAUSE "2.1.3.2: the supplement is paid every month of the year"
+
+`months a year the supplement is paid` MEANS 12
+
+@ref akn:chp_2__sec_2_1__ssec_2_1_3__para_3
+GIVEN p IS A Party
+GIVETH A BOOLEAN
+DECIDE `may supervise a kindergarten teacher's work` p IF
+    p EQUALS `the supervisor`
+
+-- akn:chp_2__sec_2_1__ssec_2_1_3/p1 The heading of the source list (אסמכתא).
+-- akn:chp_2__sec_2_1__ssec_2_1_3/p2 A source: special collective agreement of 16.11.83; director-general's circular מד/5.
+-- akn:chp_2__sec_2_1__ssec_2_1_3/p3 A source: special director-general's circulars of 5734 and 5737.
+-- akn:chp_2__sec_2_1__ssec_2_1_3/p4 A source: director-general's circular לה/4, section 91, and the conditions-of-service head's clarification.
+-- akn:chp_2__sec_2_1__ssec_2_1_3/p5 A source: director-general's circular לה/4, section 91.
+
+§§ `2.1.4-2.1.5 Probation, tenure and dismissal`
+
+-- The rules for an elementary-school teacher apply. They are sections 3.4
+-- and 3.5, named inputs here.
+@ref akn:chp_2__sec_2_1__ssec_2_1_4/p1
+ASSUME `the probation and tenure rules of section 3.4` IS A FUNCTION FROM NUMBER TO BOOLEAN
+
+-- akn:chp_2__sec_2_1__ssec_2_1_4/p2 A pointer to section 3.4.
+
+@ref akn:chp_2__sec_2_1__ssec_2_1_5/p1
+ASSUME `the dismissal rules of section 3.5` IS A FUNCTION FROM NUMBER TO BOOLEAN
+
+-- akn:chp_2__sec_2_1__ssec_2_1_5/p2 A pointer to section 3.5.
+
+§§ `2.1.8 Substitution`
+
+-- ¶1: every kindergarten class has two workers, a teacher and an assistant,
+-- from 8:00 to 12:30.
+@ref akn:chp_2__sec_2_1__ssec_2_1_8/p1
+GIVEN `teachers present` IS A NUMBER, `assistants present` IS A NUMBER, `minute of the day` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `the class is properly staffed` `teachers present` `assistants present` `minute of the day` IF
+        (NOT (`minute of the day` AT LEAST 8 TIMES 60 AND `minute of the day` AT MOST 12 TIMES 60 PLUS 30))
+    OR  (`teachers present` AT LEAST 1 AND `assistants present` AT LEAST 1)
+
+-- ¶2: when one of them is absent, a substitute is arranged the same day.
+-- Time in minutes from the moment the absence is known.
+@ref akn:chp_2__sec_2_1__ssec_2_1_8/p2
+GIVEN `minutes left in the working day` IS A NUMBER
+GIVETH A DEONTIC `2.1 party` `kindergarten action`
+DECIDE `a substitute the same day` `minutes left in the working day` IS
+    PARTY `the person responsible for substitutions`
+    MUST  `send a substitute` s
+    WITHIN `minutes left in the working day`
+    LEST  BREACH BY `the person responsible for substitutions` BECAUSE "2.1.8: a substitute is arranged the same day"
+
+-- akn:chp_2__sec_2_1__ssec_2_1_8/p3 A heading ("א. substituting for an absent kindergarten teacher").
+-- akn:chp_2__sec_2_1__ssec_2_1_8/p4 A heading ("(1) the teacher's notice of her absence").
+
+-- א(1): a teacher who cannot come notifies at once, herself or by a
+-- messenger; in the big cities, the district's officer and the owner; and
+-- where the absence may pass ten days, the supervisor and the owner in
+-- advance. "At once" carries no number; it is an input.
+@ref akn:chp_2__sec_2_1__ssec_2_1_8/p5
+GIVEN `in a big city` IS A BOOLEAN, `may exceed ten days` IS A BOOLEAN
+GIVETH A LIST OF `2.1 party`
+DECIDE `whom the absent teacher notifies` `in a big city` `may exceed ten days` IS
+    IF `may exceed ten days`
+    THEN LIST `a takanon party` `the supervisor`, `a takanon party` `the local authority or owning body`
+    ELSE IF `in a big city`
+         THEN LIST `a takanon party` `the district manager`, `a takanon party` `the local authority or owning body`
+         ELSE LIST `a takanon party` `the local authority or owning body`
+
+GIVEN `in a big city` IS A BOOLEAN, `may exceed ten days` IS A BOOLEAN, `minutes that count as at once` IS A NUMBER
+GIVETH A DEONTIC `2.1 party` `kindergarten action`
+DECIDE `the teacher's notice` `in a big city` `may exceed ten days` `minutes that count as at once` IS
+    PARTY `a takanon party` `the teaching employee`
+    MUST  `notify of own absence` whom
+          PROVIDED all (GIVEN w YIELD elem w whom) (`whom the absent teacher notifies` `in a big city` `may exceed ten days`)
+    WITHIN `minutes that count as at once`
+    LEST  BREACH BY `a takanon party` `the teaching employee` BECAUSE "2.1.8 א(1): the absent teacher notifies at once"
+
+-- akn:chp_2__sec_2_1__ssec_2_1_8/p6 A heading ("(2) the assistant's notice of the teacher's absence").
+
+-- א(2): if neither the teacher nor a substitute has come by 8:30, the
+-- assistant does her best to notify the authority or owner; the responsible
+-- person asks her to watch the children until the earliest of the end of the
+-- day, the teacher's arrival and the substitute's.
+@ref akn:chp_2__sec_2_1__ssec_2_1_8/p7
+GIVEN `teacher or substitute present at 8:30` IS A BOOLEAN
+GIVETH A DEONTIC `2.1 party` `kindergarten action`
+DECIDE `the assistant's notice` `teacher or substitute present at 8:30` IS
+    IF `teacher or substitute present at 8:30`
+    THEN FULFILLED
+    ELSE PARTY `the kindergarten assistant`
+         MUST  `notify of the teacher's absence`
+         HENCE (PARTY `the kindergarten assistant`
+                MUST  `supervise the children until relieved`)
+         LEST  BREACH BY `the kindergarten assistant` BECAUSE "2.1.8 א(2): the assistant notifies of the teacher's absence"
+
+GIVEN `end of the working day` IS A NUMBER, `teacher arrives` IS A NUMBER, `substitute arrives` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the assistant watches the children until` `end of the working day` `teacher arrives` `substitute arrives` IS
+    minimum (LIST `end of the working day`, `teacher arrives`, `substitute arrives`)
+
+-- akn:chp_2__sec_2_1__ssec_2_1_8/p8 A heading ("(3) naming a person responsible for substitutions").
+
+@ref akn:chp_2__sec_2_1__ssec_2_1_8/p9
+GIVETH A DEONTIC `2.1 party` `kindergarten action`
+DECIDE `naming a responsible person` IS
+    PARTY `a takanon party` `the local authority or owning body`
+    MUST  `name a person responsible for substitutions and a deputy`
+    LEST  BREACH BY `a takanon party` `the local authority or owning body` BECAUSE "2.1.8 א(3): every owner names a person responsible for substitutions, and a deputy"
+
+-- akn:chp_2__sec_2_1__ssec_2_1_8/p10 A heading ("(4) preparing a list of substitute candidates").
+
+-- א(4): the owners prepare lists of candidates in this order of priority.
+@ref akn:chp_2__sec_2_1__ssec_2_1_8/p11
+GIVEN s IS A `kind of substitute`
+GIVETH A NUMBER
+DECIDE `priority of the candidate` s IS
+    CONSIDER s
+    @ref akn:chp_2__sec_2_1__ssec_2_1_8/p12
+    WHEN `an unplaced kindergarten teacher` THEN 1
+    @ref akn:chp_2__sec_2_1__ssec_2_1_8/p13
+    WHEN `an unplaced teacher` THEN 2
+    @ref akn:chp_2__sec_2_1__ssec_2_1_8/p14
+    WHEN `a kindergarten teacher from an accelerated course` THEN 3
+    @ref akn:chp_2__sec_2_1__ssec_2_1_8/p15
+    WHEN `a kindergarten-teachers' seminar student` THEN 4
+    @ref akn:chp_2__sec_2_1__ssec_2_1_8/p16
+    WHEN `a twelfth-grade graduate after a colloquium` THEN 5
+    WHEN `a candidate from the additional list` THEN 6
+
+-- ¶17: an additional list, prepared in consultation with the kindergarten
+-- supervisor; separate lists for state and state-religious kindergartens;
+-- all prepared at the start of the school year (school month 1).
+@ref akn:chp_2__sec_2_1__ssec_2_1_8/p17
+DECLARE `stream` IS ONE OF `state`, `state-religious`
+
+GIVETH A DEONTIC `2.1 party` `kindergarten action`
+DECIDE `lists at the start of the year` IS
+    PARTY `a takanon party` `the local authority or owning body`
+    MUST  `prepare the list of substitute candidates`
+    WITHIN 1
+    LEST  BREACH BY `a takanon party` `the local authority or owning body` BECAUSE "2.1.8 א(4): the candidate lists are prepared at the start of the school year"
+
+GIVEN `kindergarten's stream` IS A `stream`, `candidate's list` IS A `stream`
+GIVETH A BOOLEAN
+DECIDE `the candidate's list fits the kindergarten` `kindergarten's stream` `candidate's list` IF
+    `kindergarten's stream` EQUALS `candidate's list`
+
+-- akn:chp_2__sec_2_1__ssec_2_1_8/p18 A heading ("(5) sending a substitute to the kindergarten").
+
+-- א(5): the responsible person sends a substitute at once, by the order of
+-- priority; the additional list only if none of (א)-(ה) is available. In a
+-- double kindergarten the teacher present watches both classes, with both
+-- assistants; in a single class the assistant watches until the substitute
+-- comes.
+@ref akn:chp_2__sec_2_1__ssec_2_1_8/p19
+GIVEN available IS A LIST OF `kind of substitute`
+GIVETH A DEONTIC `2.1 party` `kindergarten action`
+DECIDE `sending by priority` available IS
+    PARTY `the person responsible for substitutions`
+    MUST  `send a substitute` s
+          PROVIDED all (GIVEN a YIELD `priority of the candidate` s AT MOST `priority of the candidate` a) available
+    LEST  BREACH BY `the person responsible for substitutions` BECAUSE "2.1.8 א(5): the substitute is sent from the list by priority"
+
+DECLARE `who watches the children` IS ONE OF
+    `the other teacher of the double kindergarten, with both assistants`
+    `the assistant, until the substitute comes`
+
+GIVEN `a double kindergarten` IS A BOOLEAN
+GIVETH A `who watches the children`
+DECIDE `who watches until the substitute comes` `a double kindergarten` IS
+    IF `a double kindergarten`
+    THEN `the other teacher of the double kindergarten, with both assistants`
+    ELSE `the assistant, until the substitute comes`
+
+-- akn:chp_2__sec_2_1__ssec_2_1_8/p20 A heading ("ב. substituting for an absent assistant").
+-- akn:chp_2__sec_2_1__ssec_2_1_8/p21 A heading ("(1) the assistant's notice of her absence").
+
+@ref akn:chp_2__sec_2_1__ssec_2_1_8/p22
+GIVETH A DEONTIC `2.1 party` `kindergarten action`
+DECIDE `the absent assistant` IS
+    (PARTY `the kindergarten assistant`
+     MUST  `notify of own absence` whom
+           PROVIDED elem (`a takanon party` `the local authority or owning body`) whom
+                AND elem (`a takanon party` `the teaching employee`) whom
+     LEST  BREACH BY `the kindergarten assistant` BECAUSE "2.1.8 ב(1): the absent assistant notifies the owner and the teacher at once")
+    RAND
+    (PARTY `a takanon party` `the local authority or owning body`
+     MUST  `arrange a substitute for the assistant`
+     LEST  BREACH BY `a takanon party` `the local authority or owning body` BECAUSE "2.1.8 ב(1): the owner arranges a substitute for the assistant")
+
+-- akn:chp_2__sec_2_1__ssec_2_1_8/p23 A heading ("(2) the teacher's notice of the assistant's absence").
+
+@ref akn:chp_2__sec_2_1__ssec_2_1_8/p24
+GIVEN `assistant present at 8:30` IS A BOOLEAN, `told a substitute is coming` IS A BOOLEAN
+GIVETH A DEONTIC `2.1 party` `kindergarten action`
+DECIDE `the teacher's notice of the assistant's absence` `assistant present at 8:30` `told a substitute is coming` IS
+    IF `assistant present at 8:30` OR `told a substitute is coming`
+    THEN FULFILLED
+    ELSE PARTY `a takanon party` `the teaching employee`
+         MUST  `notify of the assistant's absence`
+         LEST  BREACH BY `a takanon party` `the teaching employee` BECAUSE "2.1.8 ב(2): the teacher reports the assistant's absence"
+
+-- akn:chp_2__sec_2_1__ssec_2_1_8/p25 A heading ("(3) the qualifications of an assistant's substitute").
+
+@ref akn:chp_2__sec_2_1__ssec_2_1_8/p26
+DECLARE `assistant's substitute` HAS
+    `age`                                    IS A NUMBER
+    `clean and tidy appearance`              IS A BOOLEAN
+    `inclined to work with children`         IS A BOOLEAN
+    `responsible at work`                    IS A BOOLEAN
+    `elementary knowledge of child care`     IS A BOOLEAN
+    `reads and writes Hebrew at elementary-school level` IS A BOOLEAN
+    `can keep an orderly household`          IS A BOOLEAN
+
+GIVEN c IS AN `assistant's substitute`
+GIVETH A BOOLEAN
+DECIDE `qualified to substitute for an assistant` c IF
+        c's `age` AT LEAST 18
+    @ref akn:chp_2__sec_2_1__ssec_2_1_8/p27
+    AND c's `clean and tidy appearance`
+    @ref akn:chp_2__sec_2_1__ssec_2_1_8/p28
+    AND c's `inclined to work with children`
+    @ref akn:chp_2__sec_2_1__ssec_2_1_8/p29
+    AND c's `responsible at work`
+    @ref akn:chp_2__sec_2_1__ssec_2_1_8/p30
+    AND c's `elementary knowledge of child care`
+    @ref akn:chp_2__sec_2_1__ssec_2_1_8/p31
+    AND c's `reads and writes Hebrew at elementary-school level`
+    @ref akn:chp_2__sec_2_1__ssec_2_1_8/p32
+    AND c's `can keep an orderly household`
+
+-- akn:chp_2__sec_2_1__ssec_2_1_8/p33 A heading ("(4) naming a person responsible for substitutions").
+
+@ref akn:chp_2__sec_2_1__ssec_2_1_8/p34
+GIVETH A DEONTIC `2.1 party` `kindergarten action`
+DECIDE `naming a responsible person for assistants` IS
+    PARTY `a takanon party` `the local authority or owning body`
+    MUST  `name a person responsible for substitutions and a deputy`
+    LEST  BREACH BY `a takanon party` `the local authority or owning body` BECAUSE "2.1.8 ב(4): every owner employing assistants names a person to turn to when one is absent"
+
+-- akn:chp_2__sec_2_1__ssec_2_1_8/p35 A heading ("(5) list of substitute candidates").
+
+@ref akn:chp_2__sec_2_1__ssec_2_1_8/p36
+GIVETH A DEONTIC `2.1 party` `kindergarten action`
+DECIDE `lists of assistants' substitutes` IS
+    PARTY `a takanon party` `the local authority or owning body`
+    MUST  `prepare the list of substitute candidates`
+    LEST  BREACH BY `a takanon party` `the local authority or owning body` BECAUSE "2.1.8 ב(5): the owners prepare lists of substitutes for assistants"
+
+-- akn:chp_2__sec_2_1__ssec_2_1_8/p37 A heading ("ג. arrangements in small localities").
+
+-- ג: in small localities the owners run special arrangements, under the
+-- district office's guidance and supervision. What they are is left to them.
+@ref akn:chp_2__sec_2_1__ssec_2_1_8/p38
+GIVEN `a small locality` IS A BOOLEAN, `special arrangement under the district's guidance` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `substitution in a small locality is arranged` `a small locality` `special arrangement under the district's guidance` IF
+    (NOT `a small locality`) OR `special arrangement under the district's guidance`
+
+-- akn:chp_2__sec_2_1__ssec_2_1_8/p39 A heading ("ד. payments").
+-- akn:chp_2__sec_2_1__ssec_2_1_8/p40 A heading ("(1) payments to the teacher and a permanent assistant").
+
+@ref akn:chp_2__sec_2_1__ssec_2_1_8/p41
+GIVEN `every option for a substitute was exhausted` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `the assistant may be left alone` `every option for a substitute was exhausted` IF
+    `every option for a substitute was exhausted`
+
+-- ד(1): an assistant alone in her class gets, from the owner, a global sum
+-- for each working day, bearing no other benefits, on top of her salary, if
+-- she works at least two hours beyond her regular hours that day. The sum
+-- is not given here: an input.
+@ref akn:chp_2__sec_2_1__ssec_2_1_8/p42
+GIVEN `alone in the class` IS A BOOLEAN, `hours beyond her regular hours` IS A NUMBER, `the global daily sum` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `daily compensation for being alone` `alone in the class` `hours beyond her regular hours` `the global daily sum` IS
+    IF `alone in the class` AND `hours beyond her regular hours` AT LEAST 2
+    THEN `the global daily sum`
+    ELSE 0
+
+-- ¶43: paid by the teacher's owner from the first day of the absence; the
+-- assistant claims it from the owner, giving dates, place and institution.
+@ref akn:chp_2__sec_2_1__ssec_2_1_8/p43
+GIVEN `compensation due` IS A NUMBER
+GIVETH A DEONTIC `2.1 party` `kindergarten action`
+DECIDE `claiming the compensation` `compensation due` IS
+    PARTY `the kindergarten assistant`
+    MAY   `claim the payment for being alone` complete PROVIDED complete
+    HENCE (PARTY `a takanon party` `the local authority or owning body`
+           MUST  `pay the assistant's daily compensation` c PROVIDED c AT LEAST `compensation due`
+           LEST  BREACH BY `a takanon party` `the local authority or owning body` BECAUSE "2.1.8 ד(1): the owner pays the assistant's compensation from the first day")
+
+-- akn:chp_2__sec_2_1__ssec_2_1_8/p44 A heading ("(2) payment to a kindergarten teacher's substitute").
+
+@ref akn:chp_2__sec_2_1__ssec_2_1_8/p45
+GIVEN `combined monthly salary of a senior kindergarten teacher in her third year` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `hourly pay of a teacher's substitute` `combined monthly salary of a senior kindergarten teacher in her third year` IS
+    `combined monthly salary of a senior kindergarten teacher in her third year` DIVIDED BY 120 TIMES 1.2
+
+-- akn:chp_2__sec_2_1__ssec_2_1_8/p46 A heading ("(3) payment to an assistant's substitute").
+
+@ref akn:chp_2__sec_2_1__ssec_2_1_8/p47
+GIVEN `the assistants' pay rates for the work` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `pay of an assistant's substitute` `the assistants' pay rates for the work` IS
+    `the assistants' pay rates for the work`
+
+-- akn:chp_2__sec_2_1__ssec_2_1_8/p48 The heading of the source list (אסמכתא).
+-- akn:chp_2__sec_2_1__ssec_2_1_8/p49 A source: director-general's circular לד/7, section 132.
+-- akn:chp_2__sec_2_1__ssec_2_1_8/p50 A source: director-general's circular לו/6; planning and budget division circular of 12.10.81.
+-- akn:chp_2__sec_2_1__ssec_2_1_8/p51 A source: director-general's circulars לח/6 and שן/3; collective agreement of 15.5.91.
+-- akn:chp_2__sec_2_1__ssec_2_1_8/p52 A source: director-general's circular לד/8, section 182.
+
+§§ `2.1.9 Holiday eves in the kindergarten`
+
+-- ¶1: involving parents in the kindergarten's celebrations is recommended
+-- through the year: a permission the teacher may use, no duty.
+@ref akn:chp_2__sec_2_1__ssec_2_1_9/p1
+`involving parents in celebrations is recommended, not required` MEANS TRUE
+
+-- ¶2: three times a year (Hanukkah, Purim, the end of the year) a teacher who
+-- celebrates with parents in the afternoon — and only she — may end the day
+-- at 11:00; a Purim morning celebration in costume ends at 11:30.
+@ref akn:chp_2__sec_2_1__ssec_2_1_9/p2
+DECLARE `celebration` IS ONE OF Hanukkah, Purim, `end of the school year`, `other occasion`
+
+GIVEN c IS A `celebration`, `with parents in the afternoon` IS A BOOLEAN, `a costumed Purim morning` IS A BOOLEAN
+GIVETH A MAYBE NUMBER
+DECIDE `earliest end of the day` c `with parents in the afternoon` `a costumed Purim morning` IS
+    IF c EQUALS Purim AND `a costumed Purim morning`
+    THEN JUST (11 TIMES 60 PLUS 30)
+    ELSE IF (NOT c EQUALS `other occasion`) AND `with parents in the afternoon`
+         THEN JUST (11 TIMES 60)
+         ELSE NOTHING
+
+-- ¶3: celebrations with parents need their consent; dates are agreed at a
+-- parents' meeting by the majority of those present, or with an elected
+-- parents' committee.
+@ref akn:chp_2__sec_2_1__ssec_2_1_9/p3
+GIVEN `in favour at the parents' meeting` IS A NUMBER, `present` IS A NUMBER, `agreed with the elected committee` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `the celebration's date is agreed` `in favour at the parents' meeting` `present` `agreed with the elected committee` IF
+    `in favour at the parents' meeting` TIMES 2 GREATER THAN `present` OR `agreed with the elected committee`
+
+-- akn:chp_2__sec_2_1__ssec_2_1_9/p4 The heading of the source list (אסמכתא).
+-- akn:chp_2__sec_2_1__ssec_2_1_9/p5 A source: director-general's circular שם/1, section 43.
+-- akn:chp_2__sec_2_1__ssec_2_1_9/p6 A source: director-general's circulars שם/5 and מא/5.
+-- akn:chp_2__sec_2_1__ssec_2_1_9/p7 A source: director-general's circular מח/2, section 92.
+
+§§ `2.1.10 The transfer of kindergarten teachers to the State service`
+
+-- akn:chp_2__sec_2_1__ssec_2_1_10_1/p1 An introduction to the agreements of 27.9.1981; their text is a linked document, not part of this section's text.
+-- akn:chp_2__sec_2_1__ssec_2_1_10_1/p2 The title of the special collective agreement, linked, not reproduced.
+-- akn:chp_2__sec_2_1__ssec_2_1_10_1/p3 The agreement's full title and date (27.9.1981); its terms are in the linked document.
+-- akn:chp_2__sec_2_1__ssec_2_1_10_1/p4 The title of the agreement's annex, linked, not reproduced.
+-- akn:chp_2__sec_2_1__ssec_2_1_10_1/p5 The title of the transfer form under section 4.2 of the agreement, linked, not reproduced.
+-- akn:chp_2__sec_2_1__ssec_2_1_10_1/p6 The heading of the source list (אסמכתא).
+-- akn:chp_2__sec_2_1__ssec_2_1_10_1/p7 A source: director-general's circular מב/4, sections 133-134.
+-- akn:chp_2__sec_2_1__ssec_2_1_10_2/p1 The title of the special collective agreement on severance pay, linked, not reproduced.
+-- akn:chp_2__sec_2_1__ssec_2_1_10_2/p2 The agreement's full title and date (27.9.1981); its terms are in the linked document.
+
+§§ `2.1.12 The mother kindergarten teacher`
+
+DECLARE `mother kindergarten teacher` HAS
+    `position fraction`                     IS A NUMBER
+    `substitute approved by the supervision` IS A BOOLEAN
+    `a coordinating teacher required by her employer to work a full position` IS A BOOLEAN
+    `mother of a child up to 14`            IS A BOOLEAN
+    `entitled to age hours`                 IS A BOOLEAN
+
+-- 1: a mother teacher in a full position may be absent up to 3 weekly hours
+-- if a substitute approved by the supervision is found.
+@ref akn:chp_2__sec_2_1__ssec_2_1_12__para_1
+GIVEN m IS A `mother kindergarten teacher`
+GIVETH A NUMBER
+DECIDE `weekly hours she may be absent` m IS
+    IF m's `position fraction` AT LEAST 1 AND m's `substitute approved by the supervision`
+    THEN 3
+    ELSE 0
+
+-- 2: her salary is computed as a mother teacher's (section 1.13), a named
+-- input. ¶2's note: one day's absence every two weeks — working 90% and paid
+-- for 100%; or no absence — working 100% and paid for 110%.
+@ref akn:chp_2__sec_2_1__ssec_2_1_12__para_2
+ASSUME `the mother-teacher salary of section 1.13` IS A FUNCTION FROM `mother kindergarten teacher` TO NUMBER
+
+@ref akn:chp_2__sec_2_1__ssec_2_1_12__para_2/p2
+GIVEN `takes a day off every two weeks` IS A BOOLEAN
+GIVETH A NUMBER
+DECIDE `share of a position worked` `takes a day off every two weeks` IS
+    IF `takes a day off every two weeks` THEN 0.9 ELSE 1
+
+GIVEN `takes a day off every two weeks` IS A BOOLEAN
+GIVETH A NUMBER
+DECIDE `share of a position paid` `takes a day off every two weeks` IS
+    IF `takes a day off every two weeks` THEN 1 ELSE 1.1
+
+-- The note's arithmetic agrees with 1 and with 2.1.1: one day in two weeks
+-- is half a day a week, three of the unit's thirty hours, 10%.
+`a day in two weeks is 10% of the unit` MEANS
+    `weekly hours in a kindergarten teacher's unit` DIVIDED BY `days a kindergarten teacher works` DIVIDED BY 2
+        EQUALS `weekly hours in a kindergarten teacher's unit` TIMES (1 MINUS `share of a position worked` TRUE)
+#ASSERT `a day in two weeks is 10% of the unit`
+
+-- 3א: a coordinating teacher, mother of a child up to 14, whom her employer
+-- requires to work a full position, gets a 10% mother supplement beyond the
+-- position.
+@ref akn:chp_2__sec_2_1__ssec_2_1_12__para_3__subpara_a
+GIVEN m IS A `mother kindergarten teacher`
+GIVETH A NUMBER
+DECIDE `mother supplement beyond the position` m IS
+    IF m's `a coordinating teacher required by her employer to work a full position` AND m's `mother of a child up to 14`
+    THEN 0.1
+    ELSE 0
+
+-- 3ב: a teacher entitled to age hours who is a mother of a child up to 14
+-- has her position base reduced and gets the mother supplement "as
+-- required". The size of the reduction is the age-hours rule's (1.23).
+@ref akn:chp_2__sec_2_1__ssec_2_1_12__para_3__subpara_b akn:chp_2__sec_2_1__ssec_2_1_12__para_3__subpara_b/p2
+GIVEN m IS A `mother kindergarten teacher`
+GIVETH A BOOLEAN
+DECIDE `base reduced and mother supplement too` m IF
+    m's `entitled to age hours` AND m's `mother of a child up to 14`
+
+@ref akn:chp_2__sec_2_1__ssec_2_1_12__para_3__subpara_c
+GIVEN `entitled to a training day under the old rules` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `keeps the training day` `entitled to a training day under the old rules` IF
+    `entitled to a training day under the old rules`
+
+-- akn:chp_2__sec_2_1__ssec_2_1_12/p1 The heading of the source list (אסמכתא).
+-- akn:chp_2__sec_2_1__ssec_2_1_12/p2 A source: collective agreement of 15.5.89; director-general's circular שן/3.
+-- akn:chp_2__sec_2_1__ssec_2_1_12/p3 A source: agreement with the Teachers' Union of 15.7.91.
+-- akn:chp_2__sec_2_1__ssec_2_1_12/p4 A heading ("age hours").
+
+-- Age hours: the rules for an elementary-school teacher apply (section 1.23).
+@ref akn:chp_2__sec_2_1__ssec_2_1_12/p5
+ASSUME `the age-hours rules of section 1.23` IS A FUNCTION FROM NUMBER TO NUMBER
+
+-- akn:chp_2__sec_2_1__ssec_2_1_12/p6 A pointer to section 1.23, age hours for teachers and kindergarten teachers.
+
+-- Worked examples; the salary of 9,000 is a placeholder.
+#ASSERT `hourly pay of a teacher's substitute` 9000 EQUALS 90
+#ASSERT `weekly hours in a kindergarten teacher's unit` EQUALS 30
+#ASSERT `earliest end of the day` Purim FALSE TRUE EQUALS JUST 690
+#ASSERT `earliest end of the day` Hanukkah TRUE FALSE EQUALS JUST 660
+#ASSERT `daily compensation for being alone` TRUE 2 50 EQUALS 50
+#ASSERT `the assistant watches the children until` 800 600 640 EQUALS 600
+
+`a 19-year-old candidate` MEANS
+    `assistant's substitute` WITH
+        `age`                                    IS 19
+        `clean and tidy appearance`              IS TRUE
+        `inclined to work with children`         IS TRUE
+        `responsible at work`                    IS TRUE
+        `elementary knowledge of child care`     IS TRUE
+        `reads and writes Hebrew at elementary-school level` IS TRUE
+        `can keep an orderly household`          IS TRUE
+#ASSERT `qualified to substitute for an assistant` `a 19-year-old candidate`
+
+#TRACE `sending by priority` (LIST `an unplaced teacher`, `a kindergarten-teachers' seminar student`) AT 0 WITH
+    PARTY `the person responsible for substitutions` DOES `send a substitute` `an unplaced teacher` AT 10
+#TRACE `sending by priority` (LIST `an unplaced teacher`, `a kindergarten-teachers' seminar student`) AT 0 WITH
+    PARTY `the person responsible for substitutions` DOES `send a substitute` `a kindergarten-teachers' seminar student` AT 10
+#TRACE `claiming the compensation` 50 AT 0 WITH
+    PARTY `the kindergarten assistant` DOES `claim the payment for being alone` TRUE AT 1
+    PARTY `a takanon party` `the local authority or owning body` DOES `pay the assistant's daily compensation` 50 AT 2

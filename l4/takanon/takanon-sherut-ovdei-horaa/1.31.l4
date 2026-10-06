@@ -1,0 +1,203 @@
+-- תקנון שירות עובדי הוראה, פרק 1ב, §1.31 הוצאות חברה ותרבות
+-- The Ministry's participation in the social and cultural activities of
+-- teaching employees who are state employees: who counts, how the money is
+-- budgeted, and what the two teachers' organisations must do to receive it.
+
+IMPORT prelude
+IMPORT common
+
+§ `1.31 הוצאות חברה ותרבות`
+
+@desc The actors of section 1.31 that the shared Party list lacks: the "management" it defines and the two teachers' organisations it names.
+DECLARE `1.31 party` IS ONE OF
+    `the management`                                @desc "הנהלה": the deputy director-general for peripheral services (section 1.31.1)
+    `the Teachers' Union (Histadrut HaMorim)`
+    `the Secondary School Teachers' Association`
+
+DECLARE `kind of teaching appointment` IS ONE OF
+    `permanent`
+    `under a special contract`
+    `temporary`
+    `other appointment`
+
+@desc A teaching employee in one school year, as far as section 1.31 asks about it.
+DECLARE `employee in the school year` HAS
+    `appointment`                  IS A `kind of teaching appointment`
+    `days employed in the year`    IS A NUMBER  @desc days the employee was employed during the school year
+    `is a state employee`          IS A BOOLEAN @desc employed by the state in the Ministry of Education (the budget basis of section 1.31.3(a))
+
+DECLARE `culture action` IS ONE OF
+    `submit a work plan`
+    `submit a report on execution`
+    `move money between purposes`
+    `transfer the money` HAS `an account was submitted` IS A BOOLEAN
+
+§§ `1.31.1 הגדרות`
+
+-- akn:chp_1ב__sec_1_31__hc_2__para_1/p1 The heading of the definitions; the two definitions follow.
+
+@ref akn:chp_1ב__sec_1_31__hc_2__para_1/p2
+`who "the management" is` MEANS `the management`
+
+-- F-1.31-a: "המועסק מעל 151 ימים" is read as qualifying all three kinds of
+-- appointment, not only the temporary one it follows.
+@ref akn:chp_1ב__sec_1_31__hc_2__para_1/p3
+GIVEN e IS A `employee in the school year`
+GIVETH A BOOLEAN
+DECIDE `a teaching employee for section 1.31` e IF
+        `the appointment is one of the three kinds` e
+    AND e's `days employed in the year` GREATER THAN 151
+
+GIVEN e IS A `employee in the school year`
+GIVETH A BOOLEAN
+DECIDE `the appointment is one of the three kinds` e IF
+    CONSIDER e's `appointment`
+    WHEN `permanent`                THEN TRUE
+    WHEN `under a special contract` THEN TRUE
+    WHEN `temporary`                THEN TRUE
+    OTHERWISE FALSE
+
+-- The other reading: the 151 days qualify only the temporary employee.
+GIVEN e IS A `employee in the school year`
+GIVETH A BOOLEAN
+DECIDE `a teaching employee if the 151 days qualify only the temporary` e IF
+    CONSIDER e's `appointment`
+    WHEN `permanent`                THEN TRUE
+    WHEN `under a special contract` THEN TRUE
+    WHEN `temporary`                THEN e's `days employed in the year` GREATER THAN 151
+    OTHERWISE FALSE
+
+`a permanent teacher employed 100 days` MEANS
+    `employee in the school year` WITH
+        `appointment`               IS `permanent`
+        `days employed in the year` IS 100
+        `is a state employee`       IS TRUE
+
+`the two readings of the 151 days differ for a permanent teacher` MEANS
+    NOT (`a teaching employee for section 1.31` `a permanent teacher employed 100 days`
+         EQUALS `a teaching employee if the 151 days qualify only the temporary` `a permanent teacher employed 100 days`)
+#ASSERT `the two readings of the 151 days differ for a permanent teacher`
+
+§§ `1.31.2`
+
+-- The amount per employee is "as set from time to time": an input.
+@ref akn:chp_1ב__sec_1_31__hc_2__para_2
+GIVEN `amount per teaching employee` IS A NUMBER @desc the management's participation per teaching employee for the school year, as set from time to time by the Ministry; not stated in the takanon
+      employees IS A LIST OF `employee in the school year`
+GIVETH A NUMBER
+DECIDE `the Ministry's participation for the year` `amount per teaching employee` employees IS
+    `amount per teaching employee` TIMES count (filter (GIVEN e YIELD `a teaching employee for section 1.31` e) employees)
+
+§§ `1.31.3`
+
+@ref akn:chp_1ב__sec_1_31__hc_2__para_3__subpara_a
+GIVEN employees IS A LIST OF `employee in the school year`
+GIVETH A NUMBER
+DECIDE `the number the budget is planned on` employees IS
+    count (filter (GIVEN e YIELD e's `is a state employee` AND `a teaching employee for section 1.31` e) employees)
+
+-- Time in school months (September = 1): "at the start of each school year"
+-- is read as within September.
+@ref akn:chp_1ב__sec_1_31__hc_2__para_3__subpara_b
+GIVETH A DEONTIC `1.31 party` `culture action`
+DECIDE `the work plans at the start of the year` IS
+        (PARTY `the Teachers' Union (Histadrut HaMorim)`
+         MUST  `submit a work plan`
+         WITHIN `month number` September
+         LEST  BREACH BY `the Teachers' Union (Histadrut HaMorim)` BECAUSE "section 1.31.3(b): a work plan is submitted to the management at the start of each school year")
+    RAND
+        (PARTY `the Secondary School Teachers' Association`
+         MUST  `submit a work plan`
+         WITHIN `month number` September
+         LEST  BREACH BY `the Secondary School Teachers' Association` BECAUSE "section 1.31.3(b): a work plan is submitted to the management at the start of each school year")
+
+-- F-1.31-b: the sums are "for the different purposes, as detailed in
+-- section 2 above", and section 1.31.2 details no purpose: it names only
+-- "activities of society and culture".
+@ref akn:chp_1ב__sec_1_31__hc_2__para_3__subpara_c
+GIVETH A DEONTIC `1.31 party` `culture action`
+DECIDE `no moving money between purposes` IS
+        (PARTY `the Teachers' Union (Histadrut HaMorim)`
+         SHANT `move money between purposes`
+         WITHIN `month number` August
+         LEST  BREACH BY `the Teachers' Union (Histadrut HaMorim)` BECAUSE "section 1.31.3(c): the sums allotted to each purpose are fixed and not transferable")
+    RAND
+        (PARTY `the Secondary School Teachers' Association`
+         SHANT `move money between purposes`
+         WITHIN `month number` August
+         LEST  BREACH BY `the Secondary School Teachers' Association` BECAUSE "section 1.31.3(c): the sums allotted to each purpose are fixed and not transferable")
+
+GIVETH A LIST OF STRING
+DECIDE `the purposes section 1.31.2 details` IS EMPTY
+
+`section 1.31.3(c) points at purposes section 1.31.2 does not list` MEANS
+    null `the purposes section 1.31.2 details`
+#ASSERT `section 1.31.3(c) points at purposes section 1.31.2 does not list`
+
+-- F-1.31-c: "המשתתפים העיקריים" read as paying more than half of the
+-- activities' cost from the organisations' own means.
+@ref akn:chp_1ב__sec_1_31__hc_2__para_3__subpara_d
+GIVEN `share funded by the organisations` IS A NUMBER @desc the share of the activities' cost the two organisations fund from their own means (0 to 1)
+GIVETH A BOOLEAN
+DECIDE `the allocation may be given` `share funded by the organisations` IF
+    `share funded by the organisations` GREATER THAN 0.5
+
+GIVEN `share funded by the organisations` IS A NUMBER, `largest share funded by any other single funder` IS A NUMBER @desc the largest share of the cost funded by any single other participant, the Ministry included (0 to 1)
+GIVETH A BOOLEAN
+DECIDE `the main participants if "main" means the largest funder` `share funded by the organisations` `largest share funded by any other single funder` IF
+    `share funded by the organisations` GREATER THAN `largest share funded by any other single funder`
+
+`the two readings of "main participants" differ at 40 against 35` MEANS
+    NOT (`the allocation may be given` 0.4
+         EQUALS `the main participants if "main" means the largest funder` 0.4 0.35)
+#ASSERT `the two readings of "main participants" differ at 40 against 35`
+
+@ref akn:chp_1ב__sec_1_31__hc_2__para_3__subpara_e
+GIVETH A DEONTIC `1.31 party` `culture action`
+DECIDE `no transfer before an account` IS
+    PARTY `the management`
+    SHANT `transfer the money` `account submitted`
+          PROVIDED NOT `account submitted`
+    WITHIN `month number` August
+    LEST  BREACH BY `the management` BECAUSE "section 1.31.3(e): the money is transferred only after an account is submitted, under the procedure prepared jointly"
+
+-- "At the end of each school year": by the end of August, the twelfth
+-- school month.
+@ref akn:chp_1ב__sec_1_31__hc_2__para_3__subpara_f
+GIVETH A DEONTIC `1.31 party` `culture action`
+DECIDE `the reports on execution at the end of the year` IS
+        (PARTY `the Teachers' Union (Histadrut HaMorim)`
+         MUST  `submit a report on execution`
+         WITHIN `month number` August
+         LEST  BREACH BY `the Teachers' Union (Histadrut HaMorim)` BECAUSE "section 1.31.3(f): a report on execution is submitted to the management at the end of each school year")
+    RAND
+        (PARTY `the Secondary School Teachers' Association`
+         MUST  `submit a report on execution`
+         WITHIN `month number` August
+         LEST  BREACH BY `the Secondary School Teachers' Association` BECAUSE "section 1.31.3(f): a report on execution is submitted to the management at the end of each school year")
+
+-- akn:chp_1ב__sec_1_31__hc_3/p1 Sources (אסמכתא): director-general's circulars.
+-- akn:chp_1ב__sec_1_31__hc_3/p2 Source (אסמכתא): a director-general's circular.
+
+-- Worked examples. The amount of 200 per employee is a placeholder: the
+-- takanon leaves it to be set from time to time.
+`a temporary teacher employed 160 days` MEANS
+    `employee in the school year` WITH
+        `appointment`               IS `temporary`
+        `days employed in the year` IS 160
+        `is a state employee`       IS TRUE
+
+`a temporary teacher employed 120 days` MEANS
+    `employee in the school year` WITH
+        `appointment`               IS `temporary`
+        `days employed in the year` IS 120
+        `is a state employee`       IS FALSE
+
+#ASSERT `the Ministry's participation for the year` 200 (LIST `a temporary teacher employed 160 days`, `a temporary teacher employed 120 days`) EQUALS 200
+#ASSERT `the number the budget is planned on` (LIST `a temporary teacher employed 160 days`, `a temporary teacher employed 120 days`) EQUALS 1
+
+#TRACE `the work plans at the start of the year` AT 0 WITH
+    PARTY `the Teachers' Union (Histadrut HaMorim)` DOES `submit a work plan` AT 1
+    PARTY `the Secondary School Teachers' Association` DOES `submit a work plan` AT 1
+#TRACE `no transfer before an account` AT 0 WITH
+    PARTY `the management` DOES `transfer the money` FALSE AT 3

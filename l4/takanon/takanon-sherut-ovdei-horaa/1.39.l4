@@ -1,0 +1,172 @@
+-- תקנון שירות עובדי הוראה, פרק 1ב, §1.39 עו"ה בראש רשות מקומית
+-- A teaching employee who stands for, or is elected to, the head or deputy
+-- head of a local authority: notice, resignation treated as dismissal,
+-- unpaid leave for the term, and how that leave is requested.
+
+IMPORT prelude
+IMPORT common
+
+§ `1.39 עו"ה בראש רשות מקומית`
+
+DECLARE `office stood for` IS ONE OF
+    `head of a local authority`
+    `deputy head of a local authority`
+    `member of a local council`
+
+DECLARE `notice recipient` IS ONE OF
+    `the district office`
+    `the employing owning body`
+
+@desc A teaching employee elected to, or standing for, local office, as far as section 1.39 asks about it.
+DECLARE `elected teacher` HAS
+    `office`                                   IS AN `office stood for`
+    `elected`                                  IS A BOOLEAN
+    `resigned because elected`                 IS A BOOLEAN @desc resigned from teaching because elected head or deputy head
+    `term salary paid from the authority's fund` IS A BOOLEAN @desc the salary of the term in office is paid from the local authority's fund
+    `wants to keep the teaching post`          IS A BOOLEAN @desc does not want to resign from teaching
+    `in an official institution`               IS A BOOLEAN @desc employed in an official educational institution, state employees in middle schools included
+    `has prior written approval to stop work`  IS A BOOLEAN @desc received written approval of unpaid leave before stopping work
+
+DECLARE `employment status` IS ONE OF
+    `unpaid leave for the term`
+    `resignation treated as dismissal`
+    `deemed to have resigned voluntarily`
+    `in post`
+
+DECLARE `local office action` IS ONE OF
+    `notify of the candidacy` HAS `notified` IS A `notice recipient`
+    `notify of the wish to resign` HAS `months before the resignation date` IS A NUMBER
+
+§§ `1.39.1`
+
+-- The duty is on every candidate for head of a local authority or for a
+-- local council; the section sets no time for the notice.
+@ref akn:chp_1ב__sec_1_39__hc_2__para_1
+GIVETH A DEONTIC Party `local office action`
+DECIDE `notice of candidacy` IS
+    PARTY `the teaching employee`
+    MUST  `notify of the candidacy` `recipient`
+    LEST  BREACH BY `the teaching employee` BECAUSE "section 1.39.1: a candidate for head or council member of a local authority notifies the district office or the employing owning body"
+
+§§ `1.39.2`
+
+-- Time in months: the notice must come at least one month before the
+-- resignation takes effect.
+@ref akn:chp_1ב__sec_1_39__hc_2__para_2
+GIVETH A DEONTIC Party `local office action`
+DECIDE `notice of resignation` IS
+    PARTY `the teaching employee`
+    MUST  `notify of the wish to resign` `months ahead`
+          PROVIDED `months ahead` AT LEAST 1
+    LEST  BREACH BY `the teaching employee` BECAUSE "section 1.39.2: the wish to resign is notified a month before the resignation date"
+
+§§ `1.39.3`
+
+@ref akn:chp_1ב__sec_1_39__hc_2__para_3
+GIVEN t IS AN `elected teacher`
+GIVETH A BOOLEAN
+DECIDE `the resignation is treated as dismissal, with severance pay` t IF
+        t's `resigned because elected`
+    AND `elected head or deputy` t
+    AND t's `term salary paid from the authority's fund`
+
+GIVEN t IS AN `elected teacher`
+GIVETH A BOOLEAN
+DECIDE `elected head or deputy` t IF
+        t's `elected`
+    AND (   t's `office` EQUALS `head of a local authority`
+         OR t's `office` EQUALS `deputy head of a local authority`)
+
+§§ `1.39.4`
+
+@ref akn:chp_1ב__sec_1_39__hc_2__para_4
+GIVEN t IS AN `elected teacher`
+GIVETH AN `employment status`
+DECIDE `status under section 1.39.4` t IS
+    IF `elected head or deputy` t AND t's `wants to keep the teaching post`
+    THEN `unpaid leave for the term`
+    ELSE `in post`
+
+§§ `1.39.5`
+
+@ref akn:chp_1ב__sec_1_39__hc_2__para_5__subpara_a
+GIVEN t IS AN `elected teacher`
+      `submitted to the district office` IS A BOOLEAN
+      `submitted in original and copy` IS A BOOLEAN
+      `suitable confirmation attached` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `the unpaid-leave request is properly made` t `submitted to the district office` `submitted in original and copy` `suitable confirmation attached` IF
+        t's `in an official institution`
+    AND `submitted to the district office`
+    AND `submitted in original and copy`
+    AND `suitable confirmation attached`
+
+-- The date is published from time to time in the director-general's
+-- circular: an input, never a date of this file.
+@ref akn:chp_1ב__sec_1_39__hc_2__para_5__subpara_b
+GIVEN `submitted on day` IS A NUMBER @desc the day the request was submitted, on the same count as the deadline
+      `the deadline the circular publishes` IS A NUMBER @desc the last day for requests, as published from time to time in the director-general's circular
+GIVETH A BOOLEAN
+DECIDE `the request is in time` `submitted on day` `the deadline the circular publishes` IF
+    `submitted on day` AT MOST `the deadline the circular publishes`
+
+-- "ויאבד על-ידי-כך את מרבית זכויותיו" describes what follows from a
+-- voluntary resignation; the rule is the deeming.
+@ref akn:chp_1ב__sec_1_39__hc_2__para_5__subpara_c
+GIVEN t IS AN `elected teacher`
+GIVETH AN `employment status`
+DECIDE `status under section 1.39.5(c)` t IS
+    IF `elected head or deputy` t AND t's `wants to keep the teaching post` AND NOT t's `has prior written approval to stop work`
+    THEN `deemed to have resigned voluntarily`
+    ELSE `status under section 1.39.4` t
+
+-- F-1.39-a: section 1.39.4 makes the term unpaid leave without condition;
+-- section 1.39.5(c) deems one who stops work without prior written
+-- approval to have resigned. For the elected head who keeps the post and
+-- has no approval, they give two statuses.
+`an elected head without written approval` MEANS
+    `elected teacher` WITH
+        `office`                                     IS `head of a local authority`
+        `elected`                                    IS TRUE
+        `resigned because elected`                   IS FALSE
+        `term salary paid from the authority's fund` IS TRUE
+        `wants to keep the teaching post`            IS TRUE
+        `in an official institution`                 IS TRUE
+        `has prior written approval to stop work`    IS FALSE
+
+`sections 1.39.4 and 1.39.5(c) give an unapproved head two statuses` MEANS
+    NOT (`status under section 1.39.4` `an elected head without written approval`
+         EQUALS `status under section 1.39.5(c)` `an elected head without written approval`)
+#ASSERT `sections 1.39.4 and 1.39.5(c) give an unapproved head two statuses`
+
+-- The reading adopted (F-1.39-a): the leave of section 1.39.4 is had
+-- through section 1.39.5's request; without prior written approval,
+-- section 1.39.5(c) governs.
+GIVEN t IS AN `elected teacher`
+GIVETH AN `employment status`
+DECIDE `employment status of an elected teacher` t IS
+    IF `the resignation is treated as dismissal, with severance pay` t
+    THEN `resignation treated as dismissal`
+    ELSE `status under section 1.39.5(c)` t
+
+-- akn:chp_1ב__sec_1_39__hc_3/p1 The section's source (אסמכתא): a director-general's circular.
+
+-- Worked examples (no figures in this section).
+`an elected deputy who resigned, paid by the authority` MEANS
+    `elected teacher` WITH
+        `office`                                     IS `deputy head of a local authority`
+        `elected`                                    IS TRUE
+        `resigned because elected`                   IS TRUE
+        `term salary paid from the authority's fund` IS TRUE
+        `wants to keep the teaching post`            IS FALSE
+        `in an official institution`                 IS TRUE
+        `has prior written approval to stop work`    IS FALSE
+
+#ASSERT `employment status of an elected teacher` `an elected deputy who resigned, paid by the authority` EQUALS `resignation treated as dismissal`
+#ASSERT `employment status of an elected teacher` `an elected head without written approval` EQUALS `deemed to have resigned voluntarily`
+#ASSERT `the unpaid-leave request is properly made` `an elected head without written approval` TRUE TRUE TRUE
+
+#TRACE `notice of resignation` AT 0 WITH
+    PARTY `the teaching employee` DOES `notify of the wish to resign` 1 AT 0
+#TRACE `notice of resignation` AT 0 WITH
+    PARTY `the teaching employee` DOES `notify of the wish to resign` 0.5 AT 0

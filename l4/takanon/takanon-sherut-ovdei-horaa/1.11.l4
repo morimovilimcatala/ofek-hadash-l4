@@ -1,0 +1,345 @@
+-- תקנון שירות עובדי הוראה, פרק 1א', §1.11 גמול פיצול
+-- The split-position allowance: who is entitled for teaching many classes or
+-- in several institutions, how classes are counted, its rates, and the
+-- conditions of payment.
+
+IMPORT prelude
+IMPORT common
+
+§ `1.11 גמול פיצול`
+
+GIVEN d IS A DATE, e IS A DATE
+GIVETH A BOOLEAN
+DECIDE d `is on or after` e IF
+    DATE_SERIAL d AT LEAST DATE_SERIAL e
+
+@desc A group of pupils a teaching employee teaches, as far as section 1.11.2 asks about it.
+DECLARE `taught group` HAS
+    `kind of group`                IS A `kind of taught group`
+    `is physical education`        IS A BOOLEAN
+    `grade of the group`           IS A NUMBER  @desc the grade (1 for א', 5 for ה')
+    `pupils in the group`          IS A NUMBER
+    `taught in overtime`           IS A BOOLEAN @desc the teaching is overtime work (section 1.11.5ג)
+    `prepared for matriculation`   IS A BOOLEAN @desc a class the employee prepares for the matriculation examinations (section 1.11.5ד)
+
+DECLARE `kind of taught group` IS ONE OF
+    `a whole class`
+    `a grouping of pupils from two classes or more`
+    `a technological work group`
+    `a crafts group`
+    `another part of a class`
+
+@desc One school year of a teaching employee's work, as far as section 1.11 asks about it.
+DECLARE `split year` HAS
+    `year starts`                              IS A DATE
+    `works in a primary or post-primary school or kindergarten` IS A BOOLEAN
+    `is a principal`                           IS A BOOLEAN
+    `groups taught with the employer`          IS A LIST OF `taught group`
+    `educational institutions with the employer` IS A NUMBER
+    `position fraction for the split`          IS A NUMBER  @desc the share of a full position held (1 = one full position)
+    `separate health institutions, as a nursing teacher` IS A NUMBER
+    `classes taught the whole mother tongue in, in one school` IS A NUMBER
+    `classes taught a foreign language in`     IS A NUMBER
+    `classes taught part of the mother tongue in` IS A NUMBER
+    `own hours of the mother tongue in those classes`   IS A NUMBER
+    `all hours of the mother tongue in those classes`   IS A NUMBER @desc by every teacher of it there (sections 1.11.3ג–ד)
+    `works shifts in a boarding school or pedagogic centre` IS A BOOLEAN
+    `shift days a week`                        IS A NUMBER
+    `hours between shifts`                     IS A NUMBER
+    `base of the percentage allowances`        IS A NUMBER @desc the combined salary and the supplements on it for one full position, by section 1.1ו; an input until that section is imported
+
+-- akn:chp_1א___sec_1_11__hc_2/p1 An amendment note: the section was amended on 12.01.04.
+
+§§ `1.11.2 Groupings and groups`
+
+@ref akn:chp_1א___sec_1_11__hc_2__para_2__subpara_a akn:chp_1א___sec_1_11__hc_2__para_2__subpara_a/p2
+GIVEN g IS A `taught group`
+GIVETH A BOOLEAN
+DECIDE `counts as a class under 2א` g IF
+    CONSIDER g's `kind of group`
+    WHEN `a whole class` THEN TRUE
+    WHEN `a grouping of pupils from two classes or more` THEN TRUE
+    WHEN `a technological work group` THEN g's `pupils in the group` AT LEAST 20
+    OTHERWISE FALSE
+
+-- 2ב: in grades 1–4 only a whole class counts for physical education; from
+-- grade 5 groups formed from different classes count too. In force from
+-- 1.9.1995.
+@ref akn:chp_1א___sec_1_11__hc_2__para_2__subpara_b akn:chp_1א___sec_1_11__hc_2__para_2__subpara_b/p2 akn:chp_1א___sec_1_11__hc_2__para_2__subpara_b/p3
+GIVEN g IS A `taught group`, starts IS A DATE
+GIVETH A BOOLEAN
+DECIDE `a physical-education group counts` g starts IF
+    IF g's `grade of the group` AT MOST 4
+    THEN g's `kind of group` EQUALS `a whole class`
+    ELSE     `counts as a class under 2א` g
+         AND (    g's `kind of group` EQUALS `a whole class`
+              OR  (starts `is on or after` (DATE_FROM_DMY 1 9 1995)))
+
+-- 2ג: every crafts group is a class, from grade 1 up, from 1.9.1995.
+@ref akn:chp_1א___sec_1_11__hc_2__para_2__subpara_c akn:chp_1א___sec_1_11__hc_2__para_2__subpara_c/p2 akn:chp_1א___sec_1_11__hc_2__para_2__subpara_c/p3 akn:chp_1א___sec_1_11__hc_2__para_2__subpara_c/p4
+GIVEN g IS A `taught group`, starts IS A DATE
+GIVETH A BOOLEAN
+DECIDE `a crafts group counts` g starts IF
+        g's `kind of group` EQUALS `a crafts group`
+    AND g's `grade of the group` AT LEAST 1
+    AND (starts `is on or after` (DATE_FROM_DMY 1 9 1995))
+
+§§ `1.11.5ג–ד Which classes are counted`
+
+@ref akn:chp_1א___sec_1_11__hc_2__para_5__subpara_c akn:chp_1א___sec_1_11__hc_2__para_5__subpara_d
+GIVEN g IS A `taught group`, starts IS A DATE
+GIVETH A BOOLEAN
+DECIDE `counts as a class` g starts IF
+        (NOT g's `taught in overtime`)
+    AND ((NOT g's `prepared for matriculation`) OR (starts `is on or after` (DATE_FROM_DMY 1 10 1987)))
+    AND (IF g's `is physical education`
+         THEN `a physical-education group counts` g starts
+         ELSE `counts as a class under 2א` g OR `a crafts group counts` g starts)
+
+GIVEN y IS A `split year`
+GIVETH A NUMBER
+DECIDE `classes counted` y IS
+    count (filter (GIVEN g YIELD `counts as a class` g (y's `year starts`)) (y's `groups taught with the employer`))
+
+§§ `1.11.1 The allowance`
+
+-- 1א names, among its alternatives, both "3 institutions with the same
+-- employer" and "3 institutions with the same employer within one teaching
+-- position" (F-1.11-c). The first alternative is read as written: three
+-- institutions qualify whatever the position.
+@ref akn:chp_1א___sec_1_11__hc_2__para_1__subpara_a
+GIVEN y IS A `split year`
+GIVETH A BOOLEAN
+DECIDE `qualifies under 1א` y IF
+        (    y's `works in a primary or post-primary school or kindergarten`
+         AND (    `classes counted` y AT LEAST 6
+              OR  y's `educational institutions with the employer` AT LEAST 3))
+    OR  y's `separate health institutions, as a nursing teacher` AT LEAST 3
+
+@ref akn:chp_1א___sec_1_11__hc_2__para_1__subpara_a/p2
+GIVEN y IS A `split year`
+GIVETH A NUMBER
+DECIDE `rate under 1א` y IS
+    IF (NOT `qualifies under 1א` y) THEN 0
+    ELSE BRANCH IF `classes counted` y AT LEAST 11 THEN 7%
+                IF `classes counted` y AT LEAST 8  THEN 6%
+                OTHERWISE 5%
+
+-- F-1.11-c's evidence: three institutions on more than one position.
+GIVEN y IS A `split year`
+GIVETH A BOOLEAN
+DECIDE `qualifies by institutions only within one position` y IF
+        y's `educational institutions with the employer` AT LEAST 3
+    AND y's `position fraction for the split` AT MOST 1
+
+@ref akn:chp_1א___sec_1_11__hc_2__para_1__subpara_b
+GIVEN y IS A `split year`
+GIVETH A NUMBER
+DECIDE `rate under 1ב` y IS
+    IF      y's `works in a primary or post-primary school or kindergarten`
+        AND y's `position fraction for the split` AT LEAST 0.79
+        AND y's `position fraction for the split` AT MOST 0.95
+        AND `classes counted` y AT LEAST 5
+    THEN 3%
+    ELSE 0
+
+@ref akn:chp_1א___sec_1_11__hc_2__para_1__subpara_c
+GIVEN y IS A `split year`
+GIVETH A BOOLEAN
+DECIDE `barred as a principal` y IF
+    y's `is a principal`
+
+§§ `1.11.3 Mother tongue and foreign language`
+
+@ref akn:chp_1א___sec_1_11__hc_2__para_3__subpara_e
+`the rate for languages` MEANS 5%
+
+@ref akn:chp_1א___sec_1_11__hc_2__para_3__subpara_a akn:chp_1א___sec_1_11__hc_2__para_3__subpara_b
+GIVEN y IS A `split year`
+GIVETH A NUMBER
+DECIDE `rate for the whole mother tongue or a foreign language` y IS
+    IF    y's `classes taught the whole mother tongue in, in one school` AT LEAST 4
+       OR y's `classes taught a foreign language in` AT LEAST 4
+    THEN `the rate for languages`
+    ELSE 0
+
+-- 3ג gives a part of the mother tongue a share by hours; 3ד shares the one
+-- allowance between several teachers by hours. Both are the same share:
+-- own hours over all the hours of the subject in those classes.
+@ref akn:chp_1א___sec_1_11__hc_2__para_3__subpara_c akn:chp_1א___sec_1_11__hc_2__para_3__subpara_d
+GIVEN y IS A `split year`
+GIVETH A NUMBER
+DECIDE `rate for part of the mother tongue` y IS
+    IF      y's `classes taught part of the mother tongue in` AT LEAST 4
+        AND y's `all hours of the mother tongue in those classes` GREATER THAN 0
+    THEN `the rate for languages` TIMES
+         (y's `own hours of the mother tongue in those classes`
+              DIVIDED BY y's `all hours of the mother tongue in those classes`)
+    ELSE 0
+
+§§ `1.11.4 Boarding schools`
+
+-- F-1.11-b: §1.11.4 says WHO is entitled and states no rate. The reading
+-- adopted is the 5% of §1.11.1א, the allowance's basic rate.
+@ref akn:chp_1א___sec_1_11__hc_2__para_4/p1
+GIVEN y IS A `split year`
+GIVETH A BOOLEAN
+DECIDE `qualifies for shift work` y IF
+        y's `works shifts in a boarding school or pedagogic centre`
+    AND y's `shift days a week` AT LEAST 3
+    AND y's `hours between shifts` AT LEAST 2
+
+GIVEN y IS A `split year`
+GIVETH A NUMBER
+DECIDE `rate for shift work` y IS
+    IF `qualifies for shift work` y THEN 5% ELSE 0
+
+DECLARE `split clause` IS ONE OF
+    `clause 1א`, `clause 1ב`, `clause 3`, `clause 4`
+
+-- What each clause states as its rate, as printed; NOTHING where it states none.
+GIVEN c IS A `split clause`
+GIVETH A MAYBE NUMBER
+DECIDE `the rate the clause states` c IS
+    CONSIDER c
+    WHEN `clause 1א` THEN JUST (5%)
+    WHEN `clause 1ב` THEN JUST (3%)
+    WHEN `clause 3`  THEN JUST (5%)
+    WHEN `clause 4`  THEN NOTHING
+
+`section 1.11.4 states no rate` MEANS
+    isNothing (`the rate the clause states` `clause 4`)
+#ASSERT `section 1.11.4 states no rate`
+
+§§ `1.11.5 Conditions of payment`
+
+GIVEN y IS A `split year`
+GIVETH A LIST OF NUMBER
+DECIDE `the rates the clauses give` y IS
+    filter (GIVEN r YIELD r GREATER THAN 0)
+        (LIST `rate under 1א` y,
+              `rate under 1ב` y,
+              `rate for the whole mother tongue or a foreign language` y,
+              `rate for part of the mother tongue` y,
+              `rate for shift work` y)
+
+-- 5א: one allowance only. F-1.11-a: where several clauses give one, the
+-- text does not say which; the reading adopted is the highest.
+-- 5ב: the full allowance even on a part-time position, so the base is the
+-- full-position one. (The third of a position §1.1ו.1 asks for is that
+-- section's condition and is applied there.)
+@ref akn:chp_1א___sec_1_11__hc_2__para_5__subpara_a akn:chp_1א___sec_1_11__hc_2__para_5__subpara_b
+GIVEN y IS A `split year`
+GIVETH A NUMBER
+DECIDE `split-position rate` y IS
+    IF `barred as a principal` y
+    THEN 0
+    ELSE foldr max 0 (`the rates the clauses give` y)
+
+@export default The split-position allowance (gemul pitsul) a teaching employee is owed under section 1.11 of the takanon
+GIVEN y IS A `split year` @desc the employee's school year
+GIVETH A NUMBER
+DECIDE `split-position allowance` y IS
+    `split-position rate` y TIMES y's `base of the percentage allowances`
+
+DECLARE `use of an allowance` IS ONE OF
+    `cost-of-living supplement`, `severance pay`, `pension`
+
+@ref akn:chp_1א___sec_1_11__hc_2__para_5__subpara_e
+GIVEN u IS A `use of an allowance`
+GIVETH A BOOLEAN
+DECIDE `the split allowance counts as salary for` u IF
+    FALSE
+
+-- 5ו: a six-year school is one school; the owner where the subject is taught
+-- most hours pays and tells the other, which pays nothing.
+@ref akn:chp_1א___sec_1_11__hc_2__para_5__subpara_f
+GIVEN `hours with the first owner` IS A NUMBER, `hours with the second owner` IS A NUMBER
+GIVETH A STRING
+DECIDE `the owner who pays in a six-year school` `hours with the first owner` `hours with the second owner` IS
+    IF `hours with the first owner` AT LEAST `hours with the second owner`
+    THEN "the first owner"
+    ELSE "the second owner"
+
+DECLARE `six-year school action` IS ONE OF
+    `notify the other owner of the payment`
+    `pay a split allowance`
+
+GIVETH A DEONTIC Party `six-year school action`
+DECIDE `the paying owner's notice` IS
+    PARTY `the local authority or owning body`
+    MUST  `notify the other owner of the payment`
+    WITHIN 1
+    LEST BREACH BY `the local authority or owning body` BECAUSE "section 1.11.5ו: the paying owner notifies the other so that it pays no allowance"
+
+-- akn:chp_1א___sec_1_11__hc_2__para_5__subpara_g A pointer: the split allowance of a therapeutic special-education kindergarten teacher is in chapter 2.
+
+-- Worked examples. The base of 10,000 is a placeholder.
+`an eighth-grade class` MEANS
+    `taught group` WITH
+        `kind of group`              IS `a whole class`
+        `is physical education`      IS FALSE
+        `grade of the group`         IS 8
+        `pupils in the group`        IS 30
+        `taught in overtime`         IS FALSE
+        `prepared for matriculation` IS FALSE
+
+`a grade-3 physical-education grouping` MEANS
+    `taught group` WITH
+        `kind of group`              IS `a grouping of pupils from two classes or more`
+        `is physical education`      IS TRUE
+        `grade of the group`         IS 3
+        `pupils in the group`        IS 25
+        `taught in overtime`         IS FALSE
+        `prepared for matriculation` IS FALSE
+
+GIVEN groups       IS A LIST OF `taught group`
+      fraction     IS A NUMBER
+      institutions IS A NUMBER
+GIVETH A `split year`
+DECIDE `a teacher's year with` groups fraction institutions IS
+    `split year` WITH
+        `year starts`                                               IS DATE_FROM_DMY 1 9 2003
+        `works in a primary or post-primary school or kindergarten` IS TRUE
+        `is a principal`                                            IS FALSE
+        `groups taught with the employer`                           IS groups
+        `educational institutions with the employer`                IS institutions
+        `position fraction for the split`                           IS fraction
+        `separate health institutions, as a nursing teacher`        IS 0
+        `classes taught the whole mother tongue in, in one school`  IS 0
+        `classes taught a foreign language in`                      IS 0
+        `classes taught part of the mother tongue in`               IS 0
+        `own hours of the mother tongue in those classes`           IS 0
+        `all hours of the mother tongue in those classes`           IS 0
+        `works shifts in a boarding school or pedagogic centre`     IS FALSE
+        `shift days a week`                                         IS 0
+        `hours between shifts`                                      IS 0
+        `base of the percentage allowances`                         IS 10000
+
+`an 85% teacher of 8 classes` MEANS
+    `a teacher's year with`
+        (LIST `an eighth-grade class`, `an eighth-grade class`, `an eighth-grade class`, `an eighth-grade class`,
+              `an eighth-grade class`, `an eighth-grade class`, `an eighth-grade class`, `an eighth-grade class`)
+        0.85 1
+
+#ASSERT `split-position allowance` `an 85% teacher of 8 classes` EQUALS 600
+
+-- A grade-3 PE grouping is not a class (2ב).
+#ASSERT `classes counted` (`a teacher's year with` (LIST `an eighth-grade class`, `a grade-3 physical-education grouping`) 1 1) EQUALS 1
+
+-- F-1.11-a's evidence: 1א gives 6% and 1ב gives 3% to the same teacher.
+`two clauses give the 85% teacher of 8 classes different rates` MEANS
+    `the rates the clauses give` `an 85% teacher of 8 classes` EQUALS LIST 6%, 3%
+#ASSERT `two clauses give the 85% teacher of 8 classes different rates`
+
+-- F-1.11-c's evidence: three institutions on 1.2 positions qualify under the
+-- second alternative of 1א and not under the third.
+`the two institution alternatives part on more than one position` MEANS
+        `qualifies under 1א` (`a teacher's year with` EMPTY 1.2 3)
+    AND (NOT `qualifies by institutions only within one position` (`a teacher's year with` EMPTY 1.2 3))
+#ASSERT `the two institution alternatives part on more than one position`
+
+#TRACE `the paying owner's notice` AT 0 WITH
+    PARTY `the local authority or owning body` DOES `notify the other owner of the payment` AT 1
+
+-- akn:chp_1א___sec_1_11__hc_3 The section's sources (אסמכתא): the agreements and circulars it rests on.

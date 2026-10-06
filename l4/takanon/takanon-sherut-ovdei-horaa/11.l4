@@ -1,0 +1,570 @@
+-- תקנון שירות עובדי הוראה, פרק 11, עו"ה במוסד להכשרת עו"ה
+-- Teachers in teacher-training institutions: the work unit and its age
+-- reductions, the seminar supplement, the allowances for role holders and
+-- coordinators, the management allowance in seminaries and academic
+-- colleges, the in-service training coordinator and the internship coordinator.
+
+IMPORT prelude
+IMPORT common
+IMPORT daydate
+
+§ `11 עו"ה במוסד להכשרת עו"ה`
+
+§§ `11.1.1 יחידת עבודה`
+
+-- The table of base positions (לוח בסיסי המשרות) the paragraph heads is not
+-- in the text as the corpus holds it: the base for the teacher's layer is an input.
+@ref akn:chp_11__ssec_11_1_1/p1
+DECLARE `training-institution teacher` HAS
+    `base for the layer`  IS A NUMBER @desc weekly hours of a full position in the educational layer the teacher is employed in, from the table of base positions; an input
+    `age`                 IS A NUMBER
+
+@ref akn:chp_11__ssec_11_1_1/p2 akn:chp_11__ssec_11_1_1/p3
+GIVEN t IS A `training-institution teacher`
+GIVETH A NUMBER
+DECIDE `age reduction` t IS
+    BRANCH IF t's `age` AT LEAST 55 THEN 4
+           IF t's `age` AT LEAST 50 THEN 2
+           OTHERWISE 0
+
+GIVEN t IS A `training-institution teacher`
+GIVETH A NUMBER
+DECIDE `base position after the age reduction` t IS
+    t's `base for the layer` MINUS `age reduction` t
+
+-- akn:chp_11__ssec_11_1_1/p4 Heading of the source list (אסמכתא).
+-- akn:chp_11__ssec_11_1_1/p5 Source: a director-general's circular.
+
+§§ `11.6.1 תוספת סמינרים`
+
+@desc The academic salary grades the seminar supplement distinguishes.
+DECLARE `academic grade` IS ONE OF
+    `below the MA grade`
+    `MA grade`
+    `doctorate grade`
+
+@desc A teacher in a teacher-training institution, in one month, as far as section 11.6.1 asks.
+DECLARE `seminar teacher` HAS
+    `paid by grade`                       IS AN `academic grade`
+    `teaches post-secondary classes in a training institution` IS A BOOLEAN
+    `weekly hours in those classes`       IS A NUMBER
+    `left official or recognised teaching before 18.9.1964` IS A BOOLEAN
+    `a survivor, a pensioner or on approved unpaid leave`   IS A BOOLEAN
+    `gross salary for those classes`      IS A NUMBER @desc the month's gross salary for the work in those classes; an input
+    `combined base salary`                IS A NUMBER @desc שכר היסוד המשולב; an input
+    `combined salary`                     IS A NUMBER @desc המשכורת המשולבת as defined at the month; an input
+    `month`                               IS A DATE
+
+-- F-11-a: paragraph 1 speaks of teachers "paid by the MA academic grade",
+-- paragraph 2(a)(1) of teachers paid by "the MA grade AT LEAST". Reading
+-- adopted: at least the MA grade throughout.
+@ref akn:chp_11__ssec_11_6_1__para_1/p2
+GIVEN g IS AN `academic grade`
+GIVETH A BOOLEAN
+DECIDE `grade qualifies for the seminar supplement` g IF
+    NOT g EQUALS `below the MA grade`
+
+GIVEN g IS AN `academic grade`
+GIVETH A BOOLEAN
+DECIDE `grade qualifies if paragraph 1 means the MA grade only` g IF
+    g EQUALS `MA grade`
+
+`a doctorate-grade teacher's entitlement before 1.4.1976 turns on the reading of "MA"` MEANS
+    NOT (`grade qualifies for the seminar supplement` `doctorate grade`
+         EQUALS `grade qualifies if paragraph 1 means the MA grade only` `doctorate grade`)
+#ASSERT `a doctorate-grade teacher's entitlement before 1.4.1976 turns on the reading of "MA"`
+
+-- At least 6 weekly hours until 1.4.1976; from then, fewer hours suffice.
+@ref akn:chp_11__ssec_11_6_1__para_1/p2 akn:chp_11__ssec_11_6_1__para_2/p3 akn:chp_11__ssec_11_6_1__para_2/p4
+GIVEN t IS A `seminar teacher`
+GIVETH A BOOLEAN
+DECIDE `teaches enough hours for the supplement` t IF
+        t's `weekly hours in those classes` AT LEAST 6
+    OR (    t's `month` AT LEAST Date 1 4 1976
+        AND t's `weekly hours in those classes` GREATER THAN 0)
+
+-- Not for those who left teaching before 18.9.1964, except survivors and
+-- teachers who went on pension or on approved unpaid leave.
+@ref akn:chp_11__ssec_11_6_1__para_1/p3
+GIVEN t IS A `seminar teacher`
+GIVETH A BOOLEAN
+DECIDE `not excluded as an early leaver` t IF
+        NOT t's `left official or recognised teaching before 18.9.1964`
+    OR  t's `a survivor, a pensioner or on approved unpaid leave`
+
+@ref akn:chp_11__ssec_11_6_1__para_1/p3
+GIVETH A BOOLEAN
+DECIDE `the seminar supplement is part of the salary for every purpose` IS TRUE
+
+@ref akn:chp_11__ssec_11_6_1__para_1
+GIVEN t IS A `seminar teacher`
+GIVETH A BOOLEAN
+DECIDE `entitled to the seminar supplement` t IF
+        t's `month` AT LEAST Date 1 4 1965
+    AND `grade qualifies for the seminar supplement` (t's `paid by grade`)
+    AND t's `teaches post-secondary classes in a training institution`
+    AND `teaches enough hours for the supplement` t
+    AND `not excluded as an early leaver` t
+
+-- The rate and its base, by period: 14% of the gross for those classes to
+-- 1.5.1965; 14% of the combined base salary from 2.5.1965 to 30.9.1982; 12%
+-- of the combined salary from 1.10.1982, unchanged from 1.4.86 when the
+-- combined salary was redefined.
+@ref akn:chp_11__ssec_11_6_1__para_2 akn:chp_11__ssec_11_6_1__para_2/p2
+GIVEN t IS A `seminar teacher`
+GIVETH A NUMBER
+DECIDE `seminar supplement from 2.5.1965 to 30.9.1982` t IS
+    0.14 TIMES t's `combined base salary`
+
+@ref akn:chp_11__ssec_11_6_1__para_3
+GIVETH A NUMBER
+DECIDE `seminar supplement rate from 1.10.1982` IS 0.12
+
+@ref akn:chp_11__ssec_11_6_1__para_4
+GIVEN t IS A `seminar teacher`
+GIVETH A NUMBER
+DECIDE `seminar supplement rate at` t IS
+    `seminar supplement rate from 1.10.1982`
+
+GIVEN t IS A `seminar teacher`
+GIVETH A NUMBER
+DECIDE `seminar supplement` t IS
+    IF NOT `entitled to the seminar supplement` t
+    THEN 0
+    ELSE BRANCH IF t's `month` AT MOST Date 1 5 1965 THEN 0.14 TIMES t's `gross salary for those classes`
+                IF t's `month` AT MOST Date 30 9 1982 THEN `seminar supplement from 2.5.1965 to 30.9.1982` t
+                OTHERWISE `seminar supplement rate at` t TIMES t's `combined salary`
+
+-- akn:chp_11__ssec_11_6_1/p1 Heading of the source list (אסמכתא).
+-- akn:chp_11__ssec_11_6_1/p2 Source: director-general's circulars.
+-- akn:chp_11__ssec_11_6_1/p3 Source: a memorandum with the teachers' union of 6.5.1971 and the collective agreement of 22.3.1977.
+-- akn:chp_11__ssec_11_6_1/p4 Source: a director-general's circular.
+-- akn:chp_11__ssec_11_6_1/p5 Source: a circular and the special collective agreement of 10.3.1983.
+-- akn:chp_11__ssec_11_6_1/p6 Source: collective agreement of 1.4.86.
+
+§§ `11.6.2 גמולים לבעלי תפקידים`
+
+-- The allowances a teacher in a teacher-training institution may receive,
+-- by role and under the rules of section 1.12.
+@ref akn:chp_11__ssec_11_6_2/p1
+DECLARE `training-institution allowance` IS ONE OF
+    @ref akn:chp_11__ssec_11_6_2/p2
+    `pedagogical-guide allowance`      @desc at the rate of the class-education allowance
+    @ref akn:chp_11__ssec_11_6_2/p3
+    `security-officer allowance`
+    @ref akn:chp_11__ssec_11_6_2/p4
+    `training-teacher allowance`       @desc for a training teacher or training kindergarten teacher
+    @ref akn:chp_11__ssec_11_6_2/p5
+    `seminar coordinators' allowance`  @desc see section 11.6.3
+    `any other allowance`              @desc the rest of the allowances, which p6 says are not meant for these teachers
+
+@ref akn:chp_11__ssec_11_6_2/p6
+GIVEN a IS A `training-institution allowance`
+GIVETH A BOOLEAN
+DECIDE `open to a teacher in a training institution` a IF
+    NOT a EQUALS `any other allowance`
+
+§§ `11.6.3 גמולי ריכוז`
+
+DECLARE `coordinator post` IS ONE OF
+    `guidance coordinator`
+    `studies coordinator`
+    `students coordinator`
+    `track or major coordinator`
+    `subject coordinator`
+
+DECLARE `coordinator` HAS
+    `post`                         IS A `coordinator post`
+    `combined salary`              IS A NUMBER
+    `key rate`                     IS A NUMBER @desc for a track or major coordinator: the rate the key of section 11.6.3.2(b) gives; the key is not in the text, so an input
+    `subject table rate`           IS A NUMBER @desc for a subject coordinator: the rate the table of section 11.6.3.2(c) gives; the table is not in the text, so an input
+    `permanent`                    IS A BOOLEAN
+    `position in seminars and colleges` IS A NUMBER @desc the share of a position held in the seminar and college system
+
+@ref akn:chp_11__ssec_11_6_3__para_1
+GIVEN c IS A `coordinator`
+GIVETH A NUMBER
+DECIDE `eight-percent concentration allowance` c IS
+    0.08 TIMES c's `combined salary`
+
+-- Track, major and subject coordinators are appointed in coordination with
+-- the ministry. Time in school months.
+DECLARE `coordinator action` IS ONE OF
+    `coordinate the appointment with the ministry`
+    `appoint a coordinator` HAS `appointee` IS A `coordinator`
+
+@ref akn:chp_11__ssec_11_6_3__para_2
+GIVETH A DEONTIC Party `coordinator action`
+DECIDE `appointing a track, major or subject coordinator` IS
+    PARTY `the local authority or owning body`
+    MUST  `coordinate the appointment with the ministry`
+    WITHIN 1
+    HENCE (PARTY `the local authority or owning body`
+           MAY `appoint a coordinator` c PROVIDED `may be a track, major or subject coordinator` c)
+    LEST  BREACH BY `the local authority or owning body` BECAUSE "section 11.6.3.2: coordinators are appointed in coordination with the ministry"
+
+-- F-11-b: (a) is headed "definitions" and defines "track" alone; a major
+-- (מגמה) and a subject (מקצוע), which (b) and (c) pay by different scales,
+-- are not defined.
+@ref akn:chp_11__ssec_11_6_3__para_2__subpara_a akn:chp_11__ssec_11_6_3__para_2__subpara_a/p2
+DECLARE `defined term` IS ONE OF
+    `track`  @desc "מסלול": the educational layer the learner trains for, such as music, art, creative education or special education
+
+`the terms section 11.6.3.2(a) defines` MEANS LIST `track`
+`the posts (b) and (c) pay by different scales` MEANS LIST "track", "major", "subject"
+
+`"major" and "subject" are paid apart but not defined` MEANS
+    count `the terms section 11.6.3.2(a) defines` LESS THAN count `the posts (b) and (c) pay by different scales`
+#ASSERT `"major" and "subject" are paid apart but not defined`
+
+@ref akn:chp_11__ssec_11_6_3__para_2__subpara_b
+GIVEN c IS A `coordinator`
+GIVETH A NUMBER
+DECIDE `track or major coordinator's allowance` c IS
+    c's `key rate` TIMES c's `combined salary`
+
+@ref akn:chp_11__ssec_11_6_3__para_2__subpara_c
+GIVEN c IS A `coordinator`
+GIVETH A NUMBER
+DECIDE `subject coordinator's allowance` c IS
+    c's `subject table rate` TIMES c's `combined salary`
+
+@ref akn:chp_11__ssec_11_6_3__para_2__subpara_d
+GIVEN c IS A `coordinator`
+GIVETH A BOOLEAN
+DECIDE `may be a track, major or subject coordinator` c IF
+    c's `permanent` AND c's `position in seminars and colleges` AT LEAST 2 DIVIDED BY 3
+
+GIVEN c IS A `coordinator`
+GIVETH A NUMBER
+DECIDE `allowance for the post` c IS
+    CONSIDER c's `post`
+    WHEN `track or major coordinator` THEN `track or major coordinator's allowance` c
+    WHEN `subject coordinator`        THEN `subject coordinator's allowance` c
+    OTHERWISE `eight-percent concentration allowance` c
+
+-- (e): one concentration allowance only. F-11-c: the text does not say
+-- which, where a teacher holds two posts. Reading adopted: the higher.
+@ref akn:chp_11__ssec_11_6_3__para_2__subpara_e
+GIVEN posts IS A LIST OF `coordinator`
+GIVETH A NUMBER
+DECIDE `concentration allowance paid` posts IS
+    CONSIDER posts
+    WHEN EMPTY THEN 0
+    WHEN p FOLLOWED BY rest THEN max (`allowance for the post` p) (`concentration allowance paid` rest)
+
+`a studies coordinator who also coordinates a subject` MEANS
+    LIST (`coordinator` WITH `post` IS `studies coordinator`, `combined salary` IS 10000, `key rate` IS 0,
+                             `subject table rate` IS 0, `permanent` IS TRUE, `position in seminars and colleges` IS 1),
+         (`coordinator` WITH `post` IS `subject coordinator`, `combined salary` IS 10000, `key rate` IS 0,
+                             `subject table rate` IS 0.05, `permanent` IS TRUE, `position in seminars and colleges` IS 1)
+
+GIVEN posts IS A LIST OF `coordinator`
+GIVETH A LIST OF NUMBER
+DECIDE `the allowances the posts carry` posts IS map `allowance for the post` posts
+
+`a teacher with two posts has two different allowances to choose from` MEANS
+    `the allowances the posts carry` `a studies coordinator who also coordinates a subject` EQUALS LIST 800, 500
+#ASSERT `a teacher with two posts has two different allowances to choose from`
+#ASSERT `concentration allowance paid` `a studies coordinator who also coordinates a subject` EQUALS 800
+
+-- akn:chp_11__ssec_11_6_3/p1 Heading of the source list (אסמכתא).
+-- akn:chp_11__ssec_11_6_3/p2 Source: annex B of the collective agreement of 16.11.83 and the agreement of 24.1.88.
+-- akn:chp_11__ssec_11_6_3/p3 Source: collective agreement of 15.5.89.
+
+§§ `11.6.4 גמול אימון`
+
+@ref akn:chp_11__ssec_11_6_4/p1
+GIVEN `is a training teacher` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `entitled to the training allowance` `is a training teacher` IF
+    `is a training teacher`
+
+-- akn:chp_11__ssec_11_6_4/p2 A pointer to section 1.12 for the allowance's details, encoded there.
+
+§§ `11.6.5 גמול ניהול`
+
+-- F-11-d: "25 students count as a class" (here) and "4 management hours
+-- count as a class" (section 11.9.3) do not say how a remainder counts.
+-- Reading adopted, for both: a remainder counts as one more class.
+GIVEN n IS A NUMBER, `per class` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `classes counted` n `per class` IS
+    CEILING (n DIVIDED BY `per class`)
+
+@ref akn:chp_11__ssec_11_6_5__para_1/p1
+GIVEN students IS A NUMBER
+GIVETH A NUMBER
+DECIDE `classes in a seminary for the management allowance` students IS
+    `classes counted` students 25
+
+`the whole-class readings of "25 students count as a class" differ for 60 students` MEANS
+    NOT (FLOOR (60 DIVIDED BY 25) EQUALS CEILING (60 DIVIDED BY 25))
+#ASSERT `the whole-class readings of "25 students count as a class" differ for 60 students`
+
+@desc An academic college, as far as section 11.6.5.2 asks.
+DECLARE `academic college` HAS
+    `recognised for the BEd by the Council for Higher Education` IS A BOOLEAN
+    `college name`               IS A STRING
+    `students`                   IS A NUMBER
+    `principal's table rate`     IS A NUMBER @desc the rate the academic-college table of section 11.6.5.2(a) gives (from 1.9.89); the table is not in the text, so an input
+
+-- (c): the colleges (a) and (b) refer to, and, apart, the institutions "on
+-- permit". F-11-e: whether the institutions on permit are among them.
+@ref akn:chp_11__ssec_11_6_5__para_2__subpara_c
+`the listed academic colleges` MEANS
+    LIST "David Yellin", "HaKibbutzim", "Wingate", "Beit Berl", "Levinsky",
+         "Jerusalem College for Women", "Oranim", "ORT college at the Hebrew University", "Gordon"
+
+@ref akn:chp_11__ssec_11_6_5__para_2__subpara_c/p2
+`the institutions on permit` MEANS
+    LIST "Lifshitz", "Arab teacher-training college in Haifa", "Orot", "Talpiot (Tel Aviv)"
+
+GIVEN c IS AN `academic college`
+GIVETH A BOOLEAN
+DECIDE `listed in (c)` c IF
+    elem (c's `college name`) `the listed academic colleges`
+
+GIVEN c IS AN `academic college`
+GIVETH A BOOLEAN
+DECIDE `listed in (c), counting the institutions on permit` c IF
+    elem (c's `college name`) `the listed academic colleges` OR elem (c's `college name`) `the institutions on permit`
+
+`Orot` MEANS
+    `academic college` WITH
+        `recognised for the BEd by the Council for Higher Education` IS TRUE
+        `college name`           IS "Orot"
+        `students`               IS 1000
+        `principal's table rate` IS 0.2
+
+`the two readings of the permit institutions differ for one of them` MEANS
+    NOT (`listed in (c)` `Orot` EQUALS `listed in (c), counting the institutions on permit` `Orot`)
+#ASSERT `the two readings of the permit institutions differ for one of them`
+
+-- (a): the principal of a listed, recognised academic college takes the
+-- academic-college table, in place of the seminary allowance.
+@ref akn:chp_11__ssec_11_6_5__para_2__subpara_a
+GIVEN c IS AN `academic college`
+GIVETH A BOOLEAN
+DECIDE `the academic-college table applies` c IF
+    c's `recognised for the BEd by the Council for Higher Education` AND `listed in (c)` c
+
+GIVEN c IS AN `academic college`, `seminary rate` IS A NUMBER @desc the rate under section 11.6.5.1 for the college's classes; an input
+GIVETH A NUMBER
+DECIDE `college principal's management allowance rate` c `seminary rate` IS
+    IF `the academic-college table applies` c
+    THEN c's `principal's table rate`
+    ELSE `seminary rate`
+
+-- (b): each 250 students entitle the college to a deputy, up to 5.
+@ref akn:chp_11__ssec_11_6_5__para_2__subpara_b
+GIVEN c IS AN `academic college`
+GIVETH A NUMBER
+DECIDE `deputies the college may appoint` c IS
+    IF `the academic-college table applies` c
+    THEN min (FLOOR (c's `students` DIVIDED BY 250)) 5
+    ELSE 0
+
+@ref akn:chp_11__ssec_11_6_5__para_2__subpara_b__cls_1 akn:chp_11__ssec_11_6_5__para_2__subpara_b__cls_2 akn:chp_11__ssec_11_6_5__para_2__subpara_b__cls_3
+GIVEN c IS AN `academic college`, `which deputy` IS A NUMBER @desc 1 for the first deputy, 2 for the second, and so on to 5
+GIVETH A NUMBER
+DECIDE `deputy's management allowance rate` c `which deputy` IS
+    IF `which deputy` GREATER THAN `deputies the college may appoint` c
+    THEN 0
+    ELSE BRANCH IF `which deputy` EQUALS 1 THEN 0.75 TIMES c's `principal's table rate`
+                IF `which deputy` EQUALS 2 THEN 0.70 TIMES c's `principal's table rate`
+                OTHERWISE 0.65 TIMES c's `principal's table rate`
+
+-- akn:chp_11__ssec_11_6_5/p1 Heading of the source list (אסמכתא).
+-- akn:chp_11__ssec_11_6_5/p2 Source: a circular of the teacher-training department.
+-- akn:chp_11__ssec_11_6_5/p3 Source: collective agreements of 15.5.98 and 20.12.90.
+-- akn:chp_11__ssec_11_6_5/p4 Source: a director-general's circular.
+-- akn:chp_11__ssec_11_6_5/p5 Source: collective agreement of 11.5.93.
+
+§§ `11.9 מרכז ההשתלמות`
+
+@ref akn:chp_11__ssec_11_9__para_1
+GIVETH A BOOLEAN
+DECIDE `an in-service training coordinator has a deputy principal's status` IS TRUE
+
+-- Like a deputy, 4 weekly teaching hours (section 7.3.1); the rest of the
+-- position from the institution's pool of management hours for in-service training.
+@ref akn:chp_11__ssec_11_9__para_2
+GIVEN `position in weekly hours` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `coordinator's hours from the management pool` `position in weekly hours` IS
+    max 0 (`position in weekly hours` MINUS 4)
+
+@ref akn:chp_11__ssec_11_9__para_2
+GIVETH A NUMBER
+DECIDE `coordinator's teaching hours` IS 4
+
+-- By the wage agreements, 4 management hours counting as a class (section
+-- 7.3.6.1); the remainder as read for F-11-d.
+@ref akn:chp_11__ssec_11_9__para_3
+GIVEN `management hours` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `classes for the coordinator's allowance` `management hours` IS
+    `classes counted` `management hours` 4
+
+-- akn:chp_11__ssec_11_9/p1 Heading of the source list (אסמכתא).
+-- akn:chp_11__ssec_11_9/p2 Source: a parity committee decision of 3 August 1987.
+
+§§ `11.10 מרכז התמחות בהוראה`
+
+-- akn:chp_11__ssec_11_10/p1 Effective date of the section (from 2.12.01); the file encodes the rules in force and carries no dates.
+-- akn:chp_11__ssec_11_10/p2 Heading ("הגדרת התפקיד") of the role's duties below.
+
+DECLARE `internship coordinator's duty` IS ONE OF
+    @ref akn:chp_11__ssec_11_10/p3
+    `shape the workshops' pedagogical content and run one workshop`
+    @ref akn:chp_11__ssec_11_10/p4
+    `bear overall responsibility for the interns, pedagogically and administratively`
+    @ref akn:chp_11__ssec_11_10/p5
+    `keep working ties with the mentors and the interns' school principals`
+    @ref akn:chp_11__ssec_11_10/p6
+    `keep working ties with the ministry's internship branch`
+    @ref akn:chp_11__ssec_11_10/p7
+    `sit in the MOFET forum of internship coordinators`
+
+DECLARE `internship action` IS ONE OF
+    `discharge` HAS `duty discharged` IS AN `internship coordinator's duty`
+
+GIVEN d IS AN `internship coordinator's duty`
+GIVETH A DEONTIC Party `internship action`
+DECIDE `the internship coordinator's duty` d IS
+    PARTY `the teaching employee`
+    MUST  `discharge` x PROVIDED x EQUALS d
+    WITHIN 12
+    LEST  BREACH BY `the teaching employee` BECAUSE "section 11.10.1: the internship coordinator's role"
+
+-- akn:chp_11__ssec_11_10/p8 Heading ("תנאים הנדרשים למינוי לתפקיד") of the conditions below.
+
+@desc A candidate for internship coordinator.
+DECLARE `internship candidate` HAS
+    `on the staff of the training institution`   IS A BOOLEAN
+    `holds at least a second degree`             IS A BOOLEAN
+    `holds a teaching certificate or licence`    IS A BOOLEAN
+    `years teaching in kindergartens`            IS A NUMBER
+    `years teaching in schools`                  IS A NUMBER
+    `years teaching in higher education`         IS A NUMBER
+    `years at the training institution`          IS A NUMBER
+    `experienced in pedagogical guidance or induction mentoring` IS A BOOLEAN
+    `has organisational ability`                 IS A BOOLEAN
+
+-- F-11-f: "בגני ילדים או / בבתי-ספר להשכלה גבוהה": kindergartens, or
+-- "schools of higher education". Reading adopted: kindergartens, schools
+-- or higher education, each counting.
+@ref akn:chp_11__ssec_11_10/p12 akn:chp_11__ssec_11_10/p13
+GIVEN c IS AN `internship candidate`
+GIVETH A NUMBER
+DECIDE `teaching experience that counts` c IS
+    c's `years teaching in kindergartens` PLUS c's `years teaching in schools` PLUS c's `years teaching in higher education`
+
+GIVEN c IS AN `internship candidate`
+GIVETH A NUMBER
+DECIDE `teaching experience that counts if school teaching does not` c IS
+    c's `years teaching in kindergartens` PLUS c's `years teaching in higher education`
+
+`a schoolteacher candidate` MEANS
+    `internship candidate` WITH
+        `on the staff of the training institution` IS TRUE
+        `holds at least a second degree`           IS TRUE
+        `holds a teaching certificate or licence`  IS TRUE
+        `years teaching in kindergartens`          IS 0
+        `years teaching in schools`                IS 5
+        `years teaching in higher education`       IS 0
+        `years at the training institution`        IS 4
+        `experienced in pedagogical guidance or induction mentoring` IS TRUE
+        `has organisational ability`               IS TRUE
+
+`the readings of "schools of higher education" differ for a schoolteacher` MEANS
+    NOT (`teaching experience that counts` `a schoolteacher candidate` AT LEAST 3
+         EQUALS `teaching experience that counts if school teaching does not` `a schoolteacher candidate` AT LEAST 3)
+#ASSERT `the readings of "schools of higher education" differ for a schoolteacher`
+
+@ref akn:chp_11__ssec_11_10/p9 akn:chp_11__ssec_11_10/p10 akn:chp_11__ssec_11_10/p11 akn:chp_11__ssec_11_10/p14 akn:chp_11__ssec_11_10/p15 akn:chp_11__ssec_11_10/p16
+GIVEN c IS AN `internship candidate`
+GIVETH A BOOLEAN
+DECIDE `may be appointed internship coordinator` c IF
+        c's `on the staff of the training institution`
+    AND c's `holds at least a second degree`
+    AND c's `holds a teaching certificate or licence`
+    AND `teaching experience that counts` c AT LEAST 3
+    AND c's `years at the training institution` AT LEAST 3
+    AND c's `experienced in pedagogical guidance or induction mentoring`
+    AND c's `has organisational ability`
+
+-- akn:chp_11__ssec_11_10/p17 Heading ("היקף ההעסקה וגמול התפקיד") of the rules below.
+
+@ref akn:chp_11__ssec_11_10/p18
+GIVEN `interns in the institution` IS A NUMBER,
+      `hours for a number of interns` IS A FUNCTION FROM NUMBER TO NUMBER @desc the scale linking hours to interns, which the text leaves to the operating circular; an input
+GIVETH A NUMBER
+DECIDE `internship coordinator's hours` `interns in the institution` `hours for a number of interns` IS
+    `hours for a number of interns` `interns in the institution`
+
+@ref akn:chp_11__ssec_11_10/p19
+DECLARE `funding source` IS ONE OF
+    `the institution's pedagogical-guidance quota`
+    `the teacher-training division's support`
+
+@ref akn:chp_11__ssec_11_10/p19
+`the coordinator's salary is paid from` MEANS
+    LIST `the institution's pedagogical-guidance quota`, `the teacher-training division's support`
+
+@ref akn:chp_11__ssec_11_10/p20
+GIVEN `pedagogical guide's education allowance` IS A NUMBER @desc the class-education allowance a pedagogical guide receives (sections 11.6.2 and 1.12); an input
+GIVETH A NUMBER
+DECIDE `internship coordinator's education allowance` `pedagogical guide's education allowance` IS
+    `pedagogical guide's education allowance`
+
+-- akn:chp_11__ssec_11_10/p21 Source (אסמכתא): a director-general's circular.
+
+-- Examples. Salaries, rates and dates are placeholders.
+`a doctorate-grade lecturer in 1990` MEANS
+    `seminar teacher` WITH
+        `paid by grade` IS `doctorate grade`
+        `teaches post-secondary classes in a training institution` IS TRUE
+        `weekly hours in those classes` IS 4
+        `left official or recognised teaching before 18.9.1964` IS FALSE
+        `a survivor, a pensioner or on approved unpaid leave`   IS FALSE
+        `gross salary for those classes` IS 2000
+        `combined base salary`           IS 3000
+        `combined salary`                IS 5000
+        `month`                          IS Date 1 9 1990
+
+#ASSERT `seminar supplement` `a doctorate-grade lecturer in 1990` EQUALS 600
+
+`an MA lecturer in 1970 with 4 hours` MEANS
+    `seminar teacher` WITH
+        `paid by grade` IS `MA grade`
+        `teaches post-secondary classes in a training institution` IS TRUE
+        `weekly hours in those classes` IS 4
+        `left official or recognised teaching before 18.9.1964` IS FALSE
+        `a survivor, a pensioner or on approved unpaid leave`   IS FALSE
+        `gross salary for those classes` IS 2000
+        `combined base salary`           IS 3000
+        `combined salary`                IS 5000
+        `month`                          IS Date 1 9 1970
+
+#ASSERT `seminar supplement` `an MA lecturer in 1970 with 4 hours` EQUALS 0
+
+#ASSERT `base position after the age reduction` (`training-institution teacher` WITH `base for the layer` IS 20, `age` IS 56) EQUALS 16
+#ASSERT `classes in a seminary for the management allowance` 60 EQUALS 3
+#ASSERT `deputy's management allowance rate` `Orot` 1 EQUALS 0
+
+`Beit Berl` MEANS
+    `academic college` WITH
+        `recognised for the BEd by the Council for Higher Education` IS TRUE
+        `college name`           IS "Beit Berl"
+        `students`               IS 1600
+        `principal's table rate` IS 0.2
+#ASSERT `deputies the college may appoint` `Beit Berl` EQUALS 5
+#ASSERT `deputy's management allowance rate` `Beit Berl` 3 EQUALS 0.13
+#ASSERT `may be appointed internship coordinator` `a schoolteacher candidate`
+
+#TRACE `the internship coordinator's duty` `keep working ties with the ministry's internship branch` AT 0 WITH
+    PARTY `the teaching employee` DOES `discharge` `keep working ties with the ministry's internship branch` AT 5
+#TRACE `appointing a track, major or subject coordinator` AT 0 WITH
+    PARTY `the local authority or owning body` DOES `coordinate the appointment with the ministry` AT 0

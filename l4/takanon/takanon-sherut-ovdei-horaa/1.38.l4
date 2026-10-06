@@ -1,0 +1,295 @@
+-- תקנון שירות עובדי הוראה, פרק 1ב, §1.38 פעילות ארגונית
+-- Organisational activity of teaching employees who are state employees:
+-- assemblies in working hours, workers' committees, and the absences of
+-- union office holders, union board members and committee members.
+
+IMPORT prelude
+IMPORT common
+
+§ `1.38 פעילות ארגונית`
+
+@desc The actors of section 1.38 that the shared Party list lacks.
+DECLARE `1.38 party` IS ONE OF
+    `the deputy director-general for manpower, coordination and control` @desc "הסמנכ\"ל לכא\"ב, תיאום ובקרה"
+    `the institutional committee`
+    `the institutional committee's coordinator`
+
+DECLARE `union office` IS ONE OF
+    `head of a union or branch secretary`  @desc the secretary-general of the Teachers' Union, the chair of the Secondary School Teachers' Association, or a branch secretary (section 1.38(c))
+    `member of a union's board or centre`  @desc a member of the board or of the centre of either organisation (section 1.38(d))
+    `member of an institutional committee` @desc section 1.38(e)
+
+@desc One school year of union absences of one teaching employee who is a state employee.
+DECLARE `union absences in the year` HAS
+    `office held`                       IS A `union office`
+    `days absent on invitation`         IS A NUMBER  @desc working days absent in the school year on the organisation's invitation, for a meeting, board, centre or conference
+    `days beyond two in a row`          IS A NUMBER  @desc days absent past the second consecutive day of a single absence (section 1.38(c)(1) allows at most two in a row)
+    `approved by the district manager`  IS A BOOLEAN @desc the district manager approved the absence (required for an institutional-committee member, section 1.38(e)(1))
+    `extra day permitted under (f)(1)`  IS A BOOLEAN @desc the conditions-of-service officer permitted one more day under section 1.38(f), note 1
+    `harms the normal course of work`   IS A BOOLEAN
+    `days of notice to the district manager` IS A NUMBER @desc how many days before the meeting the district manager was told
+
+DECLARE `organisational action` IS ONE OF
+    `hold an assembly in working hours` HAS
+        `approved by the department manager` IS A BOOLEAN
+    `permit an emergency assembly` HAS
+        `requested by an organisation` IS A BOOLEAN
+        `no practical way outside working hours` IS A BOOLEAN
+        `urgency requires it` IS A BOOLEAN
+    `hold a committee meeting` HAS `in the members' working hours` IS A BOOLEAN
+    `do committee work in teaching hours` HAS
+        `a special case` IS A BOOLEAN
+        `without harming the work` IS A BOOLEAN
+    `submit a reasoned request in advance`
+    `make every effort to allow the participation`
+
+§§ `1.38(a) אספות עובדים`
+
+-- akn:chp_1ב__sec_1_38__hc_2__para_a/p1 The heading of (a), "workers' assemblies"; its two rules follow.
+
+-- F-1.38-a: (a)(1)'s approval by the department manager and (a)(2)'s
+-- emergency permission by the deputy director-general overlap. This file
+-- reads (a)(2) as an additional path, not as narrowing (a)(1).
+@ref akn:chp_1ב__sec_1_38__hc_2__para_a__subpara_1
+GIVETH A DEONTIC Party `organisational action`
+DECIDE `no assemblies in working hours without approval` IS
+    PARTY `the teachers' union`
+    SHANT `hold an assembly in working hours` `approved`
+          PROVIDED NOT `approved`
+    LEST  BREACH BY `the teachers' union` BECAUSE "section 1.38(a)(1): assemblies of teaching employees who are state employees are not held in working hours without the approval of the manager of the conditions-of-service department"
+
+@ref akn:chp_1ב__sec_1_38__hc_2__para_a__subpara_2
+GIVETH A DEONTIC `1.38 party` `organisational action`
+DECIDE `the emergency permission` IS
+    PARTY `the deputy director-general for manpower, coordination and control`
+    MAY   `permit an emergency assembly` `requested` `no other way` `urgent`
+          PROVIDED `requested` AND `no other way` AND `urgent`
+
+GIVEN `approved by the department manager` IS A BOOLEAN
+      `permitted as an emergency` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `an assembly may be held in working hours` `approved by the department manager` `permitted as an emergency` IF
+    `approved by the department manager` OR `permitted as an emergency`
+
+-- The other reading: an emergency assembly needs (a)(2)'s permission and
+-- conditions, and the department manager's approval alone does not do.
+GIVEN `approved by the department manager` IS A BOOLEAN
+      `permitted as an emergency` IS A BOOLEAN
+      `is an emergency assembly` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `may be held if (a)(2) alone governs emergencies` `approved by the department manager` `permitted as an emergency` `is an emergency assembly` IF
+    IF `is an emergency assembly`
+    THEN `permitted as an emergency`
+    ELSE `approved by the department manager`
+
+`the two readings differ on an emergency assembly the department manager approved` MEANS
+    NOT (`an assembly may be held in working hours` TRUE FALSE
+         EQUALS `may be held if (a)(2) alone governs emergencies` TRUE FALSE TRUE)
+#ASSERT `the two readings differ on an emergency assembly the department manager approved`
+
+§§ `1.38(b) פעילות ועדי עובדים`
+
+-- akn:chp_1ב__sec_1_38__hc_2__para_b/p1 The heading of (b), "workers' committees"; its two rules follow.
+
+@ref akn:chp_1ב__sec_1_38__hc_2__para_b__subpara_1
+GIVETH A DEONTIC `1.38 party` `organisational action`
+DECIDE `committee meetings outside working hours` IS
+    PARTY `the institutional committee`
+    SHANT `hold a committee meeting` `in hours`
+          PROVIDED `in hours`
+    LEST  BREACH BY `the institutional committee` BECAUSE "section 1.38(b)(1): an institutional committee meets outside its members' working hours"
+
+@ref akn:chp_1ב__sec_1_38__hc_2__para_b__subpara_2
+GIVETH A DEONTIC `1.38 party` `organisational action`
+DECIDE `the coordinator's committee work` IS
+    PARTY `the institutional committee's coordinator`
+    SHANT `do committee work in teaching hours` `special` `harmless`
+          PROVIDED NOT (`special` AND `harmless`)
+    LEST  BREACH BY `the institutional committee's coordinator` BECAUSE "section 1.38(b)(2): the coordinator does committee work in teaching hours only in special cases and without harming the work"
+
+§§ `1.38(c)–(e) Absences for union business`
+
+-- akn:chp_1ב__sec_1_38__hc_2__para_c/p1 The heading of (c): absences of the union heads and branch secretaries.
+-- akn:chp_1ב__sec_1_38__hc_2__para_d/p1 The heading of (d): absences of board and centre members.
+-- akn:chp_1ב__sec_1_38__hc_2__para_e/p1 The heading of (e): absences of institutional-committee members.
+
+-- (c)(1): at most two consecutive days at a time, at most 33 working days in
+-- the school year, on account of work; (d)(1): at most two working days;
+-- (e)(1): two half days. (f)(1) can add one day.
+@ref akn:chp_1ב__sec_1_38__hc_2__para_c__subpara_1 akn:chp_1ב__sec_1_38__hc_2__para_d__subpara_1 akn:chp_1ב__sec_1_38__hc_2__para_e__subpara_1
+GIVEN a IS A `union absences in the year`
+GIVETH A NUMBER
+DECIDE `days allowed on account of work` a IS
+    `the office's yearly allowance` a PLUS `the extra day` a
+
+GIVEN a IS A `union absences in the year`
+GIVETH A NUMBER
+DECIDE `the office's yearly allowance` a IS
+    CONSIDER a's `office held`
+    WHEN `head of a union or branch secretary`  THEN 33
+    WHEN `member of a union's board or centre`  THEN 2
+    WHEN `member of an institutional committee` THEN 1
+
+@ref akn:chp_1ב__sec_1_38__hc_2__para_f__subpara_1
+GIVEN a IS A `union absences in the year`
+GIVETH A NUMBER
+DECIDE `the extra day` a IS
+    IF a's `extra day permitted under (f)(1)` AND a's `office held` EQUALS `member of an institutional committee`
+    THEN 1
+    ELSE 0
+
+GIVEN a IS A `union absences in the year`
+GIVETH A NUMBER
+DECIDE `days counted on account of work` a IS
+    IF `the conditions of the absence hold` a
+    THEN min (a's `days absent on invitation` MINUS `days outside the permission` a) (`days allowed on account of work` a)
+    ELSE 0
+
+-- Days past the second in a row are outside (c)(1)'s permission; what
+-- follows from an absence the permission does not cover is not this
+-- section's to say, so they are neither work nor unpaid leave here.
+GIVEN a IS A `union absences in the year`
+GIVETH A NUMBER
+DECIDE `days outside the permission` a IS
+    IF a's `office held` EQUALS `head of a union or branch secretary`
+    THEN a's `days beyond two in a row`
+    ELSE 0
+
+-- "Further absence ... is unpaid leave" ((c)(1), (d)(1)). (e) states no
+-- consequence for an absence beyond its allowance; the same is read in.
+GIVEN a IS A `union absences in the year`
+GIVETH A NUMBER
+DECIDE `days of unpaid leave` a IS
+    IF `the conditions of the absence hold` a
+    THEN a's `days absent on invitation` MINUS `days outside the permission` a MINUS `days counted on account of work` a
+    ELSE 0
+
+@ref akn:chp_1ב__sec_1_38__hc_2__para_c__subpara_2
+GIVETH A DEONTIC Party `organisational action`
+DECIDE `a request before unpaid leave` IS
+    PARTY `the teaching employee`
+    MUST  `submit a reasoned request in advance`
+    LEST  BREACH BY `the teaching employee` BECAUSE "section 1.38(c)(2): an absence on account of unpaid leave needs a reasoned request in advance"
+
+-- Counted in terms of office of the organisation, as its constitution sets them.
+@ref akn:chp_1ב__sec_1_38__hc_2__para_c__subpara_3
+GIVEN `terms of office already on unpaid leave` IS A NUMBER @desc full-position unpaid-leave terms already taken; a term is the years the office holder is elected for under the union's constitution
+GIVETH A BOOLEAN
+DECIDE `full-position unpaid leave is approved for another term` `terms of office already on unpaid leave` IF
+    `terms of office already on unpaid leave` LESS THAN 2
+
+@ref akn:chp_1ב__sec_1_38__hc_2__para_c__subpara_4
+`the Ministry undertakes to return the office holder to the same workplace` MEANS FALSE
+
+-- (c)(5), (d)(2), (e)(2): cumulative conditions. Notice: two weeks for
+-- (c) and (e), one week for (d).
+@ref akn:chp_1ב__sec_1_38__hc_2__para_c__subpara_5 akn:chp_1ב__sec_1_38__hc_2__para_d__subpara_2 akn:chp_1ב__sec_1_38__hc_2__para_e__subpara_2
+GIVEN a IS A `union absences in the year`
+GIVETH A BOOLEAN
+DECIDE `the conditions of the absence hold` a IF
+        (NOT a's `harms the normal course of work`)
+    AND a's `days of notice to the district manager` AT LEAST `notice days required` a
+    AND ((NOT (a's `office held` EQUALS `member of an institutional committee`)) OR a's `approved by the district manager`)
+
+GIVEN a IS A `union absences in the year`
+GIVETH A NUMBER
+DECIDE `notice days required` a IS
+    CONSIDER a's `office held`
+    WHEN `member of a union's board or centre` THEN 7
+    OTHERWISE 14
+
+-- An obligation of effort, with no time set.
+@ref akn:chp_1ב__sec_1_38__hc_2__para_c__subpara_6 akn:chp_1ב__sec_1_38__hc_2__para_d__subpara_3 akn:chp_1ב__sec_1_38__hc_2__para_e__subpara_3
+GIVETH A DEONTIC Party `organisational action`
+DECIDE `the district manager's effort` IS
+    PARTY `the district manager`
+    MUST  `make every effort to allow the participation`
+    LEST  BREACH BY `the district manager` BECAUSE "section 1.38(c)(6), (d)(3), (e)(3): the district manager does his best to allow the participation"
+
+§§ `1.38(f) דיון בענייני עבודה`
+
+-- akn:chp_1ב__sec_1_38__hc_2__para_f/p1 The heading of (f), "discussion of work matters".
+
+@ref akn:chp_1ב__sec_1_38__hc_2__para_f/p2
+GIVEN `invited as a representative by the district or the Ministry` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `per diem and travel under (f)` `invited as a representative by the district or the Ministry` IF
+    `invited as a representative by the district or the Ministry`
+
+-- akn:chp_1ב__sec_1_38__hc_2__para_f/p3 The heading "הערות" (notes) over (f)'s two notes.
+
+-- F-1.38-b: note 2 denies per diem and travel to every absence counted on
+-- account of work "under this section", and (f) itself counts the
+-- representative's absence as on duty and grants both.
+@ref akn:chp_1ב__sec_1_38__hc_2__para_f__subpara_2
+GIVEN `absence counted on account of work under section 1.38` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `per diem and travel under note 2` `absence counted on account of work under section 1.38` IF
+    NOT `absence counted on account of work under section 1.38`
+
+`note 2 and (f) disagree on the invited representative` MEANS
+    NOT (`per diem and travel under (f)` TRUE EQUALS `per diem and travel under note 2` TRUE)
+#ASSERT `note 2 and (f) disagree on the invited representative`
+
+-- The reading adopted (F-1.38-b): note 2 governs the union absences of
+-- (c)-(e); the representative invited under (f) keeps per diem and travel.
+GIVEN `invited as a representative by the district or the Ministry` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `entitled to per diem and travel` `invited as a representative by the district or the Ministry` IF
+    `invited as a representative by the district or the Ministry`
+
+@ref akn:chp_1ב__sec_1_38__hc_2__para_f__subpara_2/p2
+GIVEN `accident in and because of the committee role` IS A BOOLEAN
+      `the regulations' conditions are met` IS A BOOLEAN @desc the conditions the regulations set for a work accident
+GIVETH A BOOLEAN
+DECIDE `a work accident` `accident in and because of the committee role` `the regulations' conditions are met` IF
+    `accident in and because of the committee role` AND `the regulations' conditions are met`
+
+-- akn:chp_1ב__sec_1_38__hc_3__para_1 Source (אסמכתא): an annex to the collective agreement of 26.5.81 and a committee's summary.
+-- akn:chp_1ב__sec_1_38__hc_3__para_1/p2 Source (אסמכתא): a cancelled director-general's circular.
+-- akn:chp_1ב__sec_1_38__hc_3__para_1/p3 Source (אסמכתא): the circular in force from 1.9.2004.
+
+-- Worked examples.
+`a branch secretary absent 40 days` MEANS
+    `union absences in the year` WITH
+        `office held`                            IS `head of a union or branch secretary`
+        `days absent on invitation`              IS 40
+        `days beyond two in a row`               IS 0
+        `approved by the district manager`       IS FALSE
+        `extra day permitted under (f)(1)`       IS FALSE
+        `harms the normal course of work`        IS FALSE
+        `days of notice to the district manager` IS 14
+
+`a committee member with the extra day` MEANS
+    `union absences in the year` WITH
+        `office held`                            IS `member of an institutional committee`
+        `days absent on invitation`              IS 2
+        `days beyond two in a row`               IS 0
+        `approved by the district manager`       IS TRUE
+        `extra day permitted under (f)(1)`       IS TRUE
+        `harms the normal course of work`        IS FALSE
+        `days of notice to the district manager` IS 14
+
+`a branch secretary away three days at once` MEANS
+    `union absences in the year` WITH
+        `office held`                            IS `head of a union or branch secretary`
+        `days absent on invitation`              IS 3
+        `days beyond two in a row`               IS 1
+        `approved by the district manager`       IS FALSE
+        `extra day permitted under (f)(1)`       IS FALSE
+        `harms the normal course of work`        IS FALSE
+        `days of notice to the district manager` IS 14
+
+#ASSERT `days counted on account of work` `a branch secretary absent 40 days` EQUALS 33
+#ASSERT `days of unpaid leave` `a branch secretary absent 40 days` EQUALS 7
+#ASSERT `days counted on account of work` `a committee member with the extra day` EQUALS 2
+
+#ASSERT `days counted on account of work` `a branch secretary away three days at once` EQUALS 2
+
+#ASSERT `full-position unpaid leave is approved for another term` 1
+#ASSERT NOT `full-position unpaid leave is approved for another term` 2
+
+#TRACE `no assemblies in working hours without approval` AT 0 WITH
+    PARTY `the teachers' union` DOES `hold an assembly in working hours` TRUE AT 1
+#TRACE `committee meetings outside working hours` AT 0 WITH
+    PARTY `the institutional committee` DOES `hold a committee meeting` TRUE AT 1

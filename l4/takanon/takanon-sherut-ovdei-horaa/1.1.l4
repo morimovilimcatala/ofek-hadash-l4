@@ -1,0 +1,344 @@
+-- תקנון שירות עובדי הוראה, פרק 1א', §1.1 השכר
+-- What a teaching employee's salary is made of: the combined salary, the
+-- 3%, 2008, 2011 and 1994 supplements on it, and the three ways the
+-- percentage allowances are scaled to the position.
+
+IMPORT prelude
+IMPORT common
+
+§ `1.1 השכר`
+
+GIVEN d IS A DATE, e IS A DATE
+GIVETH A BOOLEAN
+DECIDE d `is on or after` e IF
+    DATE_SERIAL d AT LEAST DATE_SERIAL e
+
+@desc One month of a teaching employee's salary, as far as section 1.1 asks about it.
+DECLARE `salary month` HAS
+    `month`                               IS A DATE    @desc any day of the salary month
+    `full-position combined salary`       IS A NUMBER  @desc the combined salary of one full position by the salary table, seniority and grade (section 1.29); an input
+    `position fraction of the month`      IS A NUMBER  @desc the share of a full position held (1 = one full position)
+    `is a principal`                      IS A BOOLEAN
+    `in a population whose 5% step was postponed` IS A BOOLEAN @desc one of the four populations of the note to section 1.1ג.3
+    `1994 supplement per full position`   IS A NUMBER  @desc the "הסכם הוראה 94" supplement for one full position, updated with the cost-of-living supplements (section 1.1ה); an input
+
+-- akn:chp_1א___sec_1_1__hc_2/p1 An amendment note: the section was updated on 2.2.2010.
+
+§§ `1.1א`
+
+@ref akn:chp_1א___sec_1_1__hc_2__para_a
+GIVEN m IS A `salary month`
+GIVETH A NUMBER
+DECIDE `combined salary` m IS
+    m's `full-position combined salary` TIMES m's `position fraction of the month`
+
+§§ `1.1ב`
+
+@ref akn:chp_1א___sec_1_1__hc_2__para_b
+GIVEN d IS A DATE
+GIVETH A NUMBER
+DECIDE `3% supplement rate` d IS
+    IF d `is on or after` (DATE_FROM_DMY 1 1 2001) THEN 3% ELSE 0
+
+GIVEN m IS A `salary month`
+GIVETH A NUMBER
+DECIDE `3% supplement` m IS
+    `3% supplement rate` (m's `month`) TIMES `combined salary` m
+
+§§ `1.1ג`
+
+-- F-1.1-a: §1.1ב names the 3% supplement "תוספת השכר" for what follows
+-- ("להלן"), and §1.1ג.2–3 then raise "תוספת השכר" to 3% and to 5%. The
+-- reading adopted is the one the heading of ג gives: the steps are those of
+-- the 2008 supplement (1.5% → 3% → 5%), not of the 3% supplement.
+@ref akn:chp_1א___sec_1_1__hc_2__para_c akn:chp_1א___sec_1_1__hc_2__para_c__subpara_1 akn:chp_1א___sec_1_1__hc_2__para_c__subpara_2 akn:chp_1א___sec_1_1__hc_2__para_c__subpara_3
+GIVEN d IS A DATE, postponed IS A BOOLEAN
+GIVETH A NUMBER
+DECIDE `2008 supplement rate` d postponed IS
+    BRANCH IF d `is on or after` `the 5% step` THEN 5%
+           IF d `is on or after` (DATE_FROM_DMY 1 1 2009) THEN 3%
+           IF d `is on or after` (DATE_FROM_DMY 1 2 2008) THEN 1.5%
+           OTHERWISE 0
+    WHERE
+        `the 5% step` MEANS
+            IF postponed THEN DATE_FROM_DMY 1 10 2011 ELSE DATE_FROM_DMY 1 1 2010
+
+-- The note to ג.3: for four populations the 5% step was postponed to
+-- October 2011.
+@desc The four populations whose 5% step of the 2008 supplement was postponed (note to section 1.1ג.3).
+@ref akn:chp_1א___sec_1_1__hc_2__para_c__hc_1/p2 akn:chp_1א___sec_1_1__hc_2__para_c__hc_1__subpara_1 akn:chp_1א___sec_1_1__hc_2__para_c__hc_1__subpara_2 akn:chp_1א___sec_1_1__hc_2__para_c__hc_1__subpara_3 akn:chp_1א___sec_1_1__hc_2__para_c__hc_1__subpara_4
+DECLARE `postponed population` IS ONE OF
+    `state-employed teachers in official education`
+    `teachers in recognised non-official kindergartens, primary and middle schools`
+    `teachers in teacher-training colleges`
+    `teachers in government post-primary schools`
+
+GIVEN m IS A `salary month`
+GIVETH A NUMBER
+DECIDE `2008 supplement` m IS
+    `2008 supplement rate` (m's `month`) (m's `in a population whose 5% step was postponed`)
+        TIMES `combined salary` m
+
+-- F-1.1-a's evidence: in 2010, the two readings of "תוספת השכר" give the
+-- 3% and 2008 supplements together different rates.
+`3% and 2008 together in 2010, read by the heading` MEANS
+    `3% supplement rate` (DATE_FROM_DMY 1 3 2010) PLUS `2008 supplement rate` (DATE_FROM_DMY 1 3 2010) FALSE
+`3% and 2008 together in 2010, read by the defined term` MEANS
+    5% PLUS 1.5%
+`the defined term "תוספת השכר" and the heading of ג give different rates` MEANS
+    NOT (`3% and 2008 together in 2010, read by the heading`
+         EQUALS `3% and 2008 together in 2010, read by the defined term`)
+#ASSERT `the defined term "תוספת השכר" and the heading of ג give different rates`
+
+§§ `1.1ד`
+
+-- "תוספת 2001" is not a term §1.1 defines; it is read as the 3% supplement
+-- of ב, paid from 1.1.01 under the 2001 agreement (source 1).
+@ref akn:chp_1א___sec_1_1__hc_2__para_d akn:chp_1א___sec_1_1__hc_2__para_d/p2
+GIVEN d IS A DATE
+GIVETH A NUMBER
+DECIDE `2011 supplement rate` d IS
+    BRANCH IF d `is on or after` (DATE_FROM_DMY 1 1 2012) THEN 4%
+           IF d `is on or after` (DATE_FROM_DMY 1 1 2011) THEN 2.25%
+           OTHERWISE 0
+
+GIVEN m IS A `salary month`
+GIVETH A NUMBER
+DECIDE `2011 supplement` m IS
+    `2011 supplement rate` (m's `month`)
+        TIMES (`combined salary` m PLUS `3% supplement` m PLUS `2008 supplement` m)
+
+§§ `1.1ב–ד Salary for every purpose, on its own payslip line`
+
+DECLARE `salary component` IS ONE OF
+    `the combined salary`
+    `the 3% supplement`
+    `the 2008 supplement`
+    `the 2011 supplement`
+    `the 1994 teaching-agreement supplement`
+
+@ref akn:chp_1א___sec_1_1__hc_2__para_c__hc_1/p1 akn:chp_1א___sec_1_1__hc_2__para_d/p3
+GIVEN c IS A `salary component`
+GIVETH A BOOLEAN
+DECIDE `counts as salary for contributions and for computing allowances` c IF
+    CONSIDER c
+    WHEN `the combined salary` THEN TRUE
+    WHEN `the 3% supplement`   THEN TRUE
+    WHEN `the 2008 supplement` THEN TRUE
+    WHEN `the 2011 supplement` THEN TRUE
+    OTHERWISE FALSE
+
+DECLARE `payslip action` IS ONE OF
+    `show on its own payslip line` HAS `component shown` IS A `salary component`
+
+-- Time in months: the line is due on the payslip of the month itself.
+GIVEN c IS A `salary component`
+GIVETH A DEONTIC Party `payslip action`
+DECIDE `a separate payslip line for` c IS
+    PARTY `the employer`
+    MUST  `show on its own payslip line` shown
+          PROVIDED shown EQUALS c
+    WITHIN 1
+    LEST BREACH BY `the employer` BECAUSE "section 1.1: the supplement is recorded as a separate line on the payslip"
+
+GIVETH A DEONTIC Party `payslip action`
+DECIDE `the supplements' payslip lines` IS
+    `a separate payslip line for` `the 3% supplement`
+    RAND `a separate payslip line for` `the 2008 supplement`
+    RAND `a separate payslip line for` `the 2011 supplement`
+
+§§ `1.1ה`
+
+-- The note: from 1.9.2001 principals too are paid beyond one position,
+-- which says that before it they were not.
+@ref akn:chp_1א___sec_1_1__hc_2__para_e akn:chp_1א___sec_1_1__hc_2__para_e/p2
+GIVEN m IS A `salary month`
+GIVETH A NUMBER
+DECIDE `1994 supplement` m IS
+    m's `1994 supplement per full position` TIMES `1994 position factor`
+    WHERE
+        `1994 position factor` MEANS
+            IF m's `is a principal` AND (NOT (m's `month` `is on or after` (DATE_FROM_DMY 1 9 2001)))
+            THEN min (m's `position fraction of the month`) 1
+            ELSE m's `position fraction of the month`
+
+@ref akn:chp_1א___sec_1_1__hc_2/p2
+GIVEN m IS A `salary month`
+GIVETH A NUMBER
+DECIDE `salary before the percentage allowances` m IS
+    `combined salary` m PLUS `3% supplement` m PLUS `2008 supplement` m
+        PLUS `2011 supplement` m PLUS `1994 supplement` m
+
+§§ `1.1ו Percentage allowances`
+
+GIVEN m IS A `salary month`, fraction IS A NUMBER
+GIVETH A `salary month`
+DECIDE `the same month at position` m fraction IS
+    `salary month` WITH
+        `month`                                       IS m's `month`
+        `full-position combined salary`               IS m's `full-position combined salary`
+        `position fraction of the month`              IS fraction
+        `is a principal`                              IS m's `is a principal`
+        `in a population whose 5% step was postponed` IS m's `in a population whose 5% step was postponed`
+        `1994 supplement per full position`           IS m's `1994 supplement per full position`
+
+-- The base of the percentage allowances, as the NAMES in §1.1ו list it:
+-- the combined salary and the 3%, 2008, 2011 and 1994 supplements, for one
+-- full position. F-1.1-b: the letters beside them, "(א', ב', ג' ו- ד'
+-- לעיל)", stop at the 2011 supplement and leave the 1994 one (ה) out. The
+-- names are the reading adopted.
+@ref akn:chp_1א___sec_1_1__hc_2__para_f
+GIVEN m IS A `salary month`
+GIVETH A NUMBER
+DECIDE `base of the percentage allowances` m IS
+    `salary before the percentage allowances` (`the same month at position` m 1)
+
+GIVEN m IS A `salary month`
+GIVETH A NUMBER
+DECIDE `base by the letters א–ד` m IS
+    `base of the percentage allowances` m MINUS `1994 supplement` (`the same month at position` m 1)
+
+GIVEN m IS A `salary month`
+GIVETH A BOOLEAN
+DECIDE `the letters and the names of §1.1ו give different bases` m IF
+    (NOT (`base by the letters א–ד` m EQUALS `base of the percentage allowances` m))
+
+DECLARE `percentage allowance` IS ONE OF
+    `class education`
+    `subject, laboratory, grade-level and social coordination`
+    `split position`
+    `boarding-school supervision`
+    `security officer`
+    `training`
+    `seminar coordination and guidance`
+    `technical coordination in vocational centres`
+    `management`
+    `counselling`
+    `matriculation preparation`
+    `further training`
+    `subject and qualifications`
+    `special education`
+    `seminars`
+    `MA or PhD degree`
+    `supervision and guidance`
+    `out-of-school activity with pupils`
+    `incentives`
+    `jubilee grant`
+    `framework agreement`
+
+DECLARE `position scaling` IS ONE OF
+    `one full position, from a third of a position`
+    `in proportion to the position, beyond one position too`
+    `in proportion to the position, up to one position`
+
+-- §1.1ו.1–3 and the clauses ה–ו under them: which allowance is scaled how.
+-- The pointers in parentheses send each allowance's own rule to its section.
+@ref akn:chp_1א___sec_1_1__hc_2__para_f__subpara_1 akn:chp_1א___sec_1_1__hc_2__para_f__subpara_2 akn:chp_1א___sec_1_1__hc_2__para_f__subpara_3
+GIVEN a IS A `percentage allowance`
+GIVETH A `position scaling`
+DECIDE `the scaling of` a IS
+    CONSIDER a
+    WHEN `further training`              THEN `in proportion to the position, beyond one position too`
+    WHEN `subject and qualifications`    THEN `in proportion to the position, beyond one position too`
+    WHEN `special education`             THEN `in proportion to the position, beyond one position too`
+    WHEN `seminars`                      THEN `in proportion to the position, beyond one position too`
+    WHEN `MA or PhD degree`              THEN `in proportion to the position, beyond one position too`
+    WHEN `framework agreement`           THEN `in proportion to the position, beyond one position too`
+    WHEN `supervision and guidance`      THEN `in proportion to the position, up to one position`
+    WHEN `out-of-school activity with pupils` THEN `in proportion to the position, up to one position`
+    WHEN `incentives`                    THEN `in proportion to the position, up to one position`
+    WHEN `jubilee grant`                 THEN `in proportion to the position, up to one position`
+    OTHERWISE `one full position, from a third of a position`
+
+-- The note to ו.1: matriculation preparation is paid below a third too.
+@ref akn:chp_1א___sec_1_1__hc_2__para_f__subpara_1/p13
+GIVEN a IS A `percentage allowance`, fraction IS A NUMBER
+GIVETH A NUMBER
+DECIDE `position factor of` a `at` fraction IS
+    CONSIDER `the scaling of` a
+    WHEN `one full position, from a third of a position` THEN
+        IF fraction AT LEAST 1/3 OR a EQUALS `matriculation preparation` THEN 1 ELSE 0
+    WHEN `in proportion to the position, beyond one position too` THEN fraction
+    WHEN `in proportion to the position, up to one position` THEN min fraction 1
+
+@export The amount of one percentage allowance under section 1.1ו of the takanon, given its rate and the employee's month
+GIVEN a IS A `percentage allowance` @desc which allowance
+      rate IS A NUMBER @desc its rate, set by the allowance's own section (e.g. 0.1 for 10%)
+      m IS A `salary month` @desc the employee's month
+GIVETH A NUMBER
+DECIDE `percentage allowance amount` a rate m IS
+    rate TIMES `base of the percentage allowances` m
+         TIMES (`position factor of` a `at` (m's `position fraction of the month`))
+
+-- akn:chp_1א___sec_1_1__hc_2__para_f__subpara_1/p2 Listed in ו.1 (class education); its rule is section 1.12.
+-- akn:chp_1א___sec_1_1__hc_2__para_f__subpara_1/p3 Listed in ו.1 (the coordination allowances); their rules are section 1.12.
+-- akn:chp_1א___sec_1_1__hc_2__para_f__subpara_1/p4 Listed in ו.1 (split position); its rule is section 1.11.
+-- akn:chp_1א___sec_1_1__hc_2__para_f__subpara_1/p5 Listed in ו.1 (boarding-school supervision); its rule is section 1.12.
+-- akn:chp_1א___sec_1_1__hc_2__para_f__subpara_1/p6 Listed in ו.1 (security officer); its rule is section 1.12.
+-- akn:chp_1א___sec_1_1__hc_2__para_f__subpara_1/p7 Listed in ו.1 (training); its rule is section 1.12.
+-- akn:chp_1א___sec_1_1__hc_2__para_f__subpara_1/p8 Listed in ו.1 (seminar coordination and guidance); its rule is section 11.6.3.
+-- akn:chp_1א___sec_1_1__hc_2__para_f__subpara_1/p9 Listed in ו.1 (technical coordination); its rule is section 1.12.
+-- akn:chp_1א___sec_1_1__hc_2__para_f__subpara_1/p10 Listed in ו.1 (management); its rules are chapter 7 and sections 9.10, 9.11, 11.6.5, 14.10.6.
+-- akn:chp_1א___sec_1_1__hc_2__para_f__subpara_1/p11 Listed in ו.1 (counselling); its rule is section 1.12.
+-- akn:chp_1א___sec_1_1__hc_2__para_f__subpara_1/p12 Listed in ו.1 (matriculation preparation, 2%); its rule is section 6.6.4.
+-- akn:chp_1א___sec_1_1__hc_2__para_f__subpara_2/p2 Listed in ו.2 (further training); its rule is section 1.26.1.
+-- akn:chp_1א___sec_1_1__hc_2__para_f__subpara_2/p3 Listed in ו.2 (subject and qualifications); its rule is section 1.12.
+-- akn:chp_1א___sec_1_1__hc_2__para_f__subpara_2/p4 Listed in ו.2 (special education); its rule is section 4.6.
+-- akn:chp_1א___sec_1_1__hc_2__para_f__subpara_2/p5 Listed in ו.2 (seminars); its rule is section 11.6.1.
+-- akn:chp_1א___sec_1_1__hc_2__para_f__subpara_2/p6 Listed in ו.2 (MA or PhD degree); its rule is section 1.47.
+-- akn:chp_1א___sec_1_1__hc_2__para_f__subpara_3/p2 Listed in ו.3 (supervision and guidance); its rule is chapter 8.
+-- akn:chp_1א___sec_1_1__hc_2__para_f__subpara_3/p3 Listed in ו.3 (out-of-school activity); its rule is section 1.10.0.
+
+@ref akn:chp_1א___sec_1_1__hc_2__para_f__subpara_3__cls_e akn:chp_1א___sec_1_1__hc_2__para_f__subpara_3__cls_e__pnt_1 akn:chp_1א___sec_1_1__hc_2__para_f__subpara_3__cls_e__pnt_2 akn:chp_1א___sec_1_1__hc_2__para_f__subpara_3__cls_f
+`incentives, the jubilee grant and the framework agreement are scaled by the classes above` MEANS
+        `the scaling of` `incentives` EQUALS `in proportion to the position, up to one position`
+    AND `the scaling of` `jubilee grant` EQUALS `in proportion to the position, up to one position`
+    AND `the scaling of` `framework agreement` EQUALS `in proportion to the position, beyond one position too`
+#ASSERT `incentives, the jubilee grant and the framework agreement are scaled by the classes above`
+
+-- akn:chp_1א___sec_1_1__hc_2__para_f__subpara_3__cls_g Listed under ז (recuperation) with no scaling of its own; its rule is section 1.7.
+-- akn:chp_1א___sec_1_1__hc_2__para_f__subpara_3__cls_g/p2 Listed under ז (clothing); its rule is section 1.6.
+-- akn:chp_1א___sec_1_1__hc_2__para_f__subpara_3__cls_g/p3 Listed under ז (travel); its rule is section 1.9.
+-- akn:chp_1א___sec_1_1__hc_2__para_f__subpara_3__cls_g/p4 Listed under ז (telephone); its rule is section 1.8.
+-- akn:chp_1א___sec_1_1__hc_2__para_f__subpara_3__cls_g/p5 Listed under ז (the mother-teacher supplement); its rule is section 1.13.
+
+-- Worked examples. The full-position combined salary of 10,000 and the
+-- 1994 supplement of 200 are placeholders, not figures of the takanon.
+`a full-time teacher in March 2012` MEANS
+    `salary month` WITH
+        `month`                                       IS DATE_FROM_DMY 1 3 2012
+        `full-position combined salary`               IS 10000
+        `position fraction of the month`              IS 1
+        `is a principal`                              IS FALSE
+        `in a population whose 5% step was postponed` IS FALSE
+        `1994 supplement per full position`           IS 200
+
+`a half-time teacher in March 2012` MEANS
+    `the same month at position` `a full-time teacher in March 2012` 0.5
+
+-- 3% of 10,000 = 300; 2008 at 5% = 500; 2011 at 4% of 10,800 = 432.
+#ASSERT `3% supplement` `a full-time teacher in March 2012` EQUALS 300
+#ASSERT `2008 supplement` `a full-time teacher in March 2012` EQUALS 500
+#ASSERT `2011 supplement` `a full-time teacher in March 2012` EQUALS 432
+#ASSERT `base of the percentage allowances` `a half-time teacher in March 2012` EQUALS 11432
+
+-- The postponed populations were still at 3% in March 2011.
+#ASSERT `2008 supplement rate` (DATE_FROM_DMY 1 3 2011) TRUE EQUALS 3%
+#ASSERT `2008 supplement rate` (DATE_FROM_DMY 1 3 2011) FALSE EQUALS 5%
+
+-- Class education (10%) on a half position is paid as for a full one;
+-- the MA allowance is scaled to the half.
+#EVAL `percentage allowance amount` `class education` 0.1 `a half-time teacher in March 2012`
+#ASSERT `position factor of` `MA or PhD degree` `at` 0.5 EQUALS 0.5
+#ASSERT `position factor of` `class education` `at` 0.25 EQUALS 0
+#ASSERT `position factor of` `matriculation preparation` `at` 0.25 EQUALS 1
+
+-- F-1.1-b's evidence: wherever the 1994 supplement is paid at all.
+#ASSERT `the letters and the names of §1.1ו give different bases` `a full-time teacher in March 2012`
+
+#TRACE `the supplements' payslip lines` AT 0 WITH
+    PARTY `the employer` DOES `show on its own payslip line` `the 3% supplement` AT 1
+    PARTY `the employer` DOES `show on its own payslip line` `the 2008 supplement` AT 1
+    PARTY `the employer` DOES `show on its own payslip line` `the 2011 supplement` AT 1
+
+-- akn:chp_1א___sec_1_1__hc_3 The section's sources (אסמכתא): the agreements and circulars it rests on.

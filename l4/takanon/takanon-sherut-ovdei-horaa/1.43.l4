@@ -1,0 +1,306 @@
+-- תקנון שירות עובדי הוראה, פרק 1ב', §1.43 נזקי רכוש
+-- Compensation of a state-employed teaching employee for damage to property
+-- in the course of work: when the Ministry compensates, what it never
+-- compensates, and how a claim goes from the legal adviser to the
+-- inter-ministerial committee and on to payment.
+
+IMPORT prelude
+IMPORT common
+
+§ `1.43 נזקי רכוש`
+
+-- akn:chp_1ב__sec_1_43__hc_2 The section's title line ("property damage of teaching employees who are state employees").
+
+@desc A claim for damage to a teaching employee's property, as far as section 1.43 asks about it.
+DECLARE `property claim` HAS
+    `a state employee`                              IS A BOOLEAN @desc paid by the Ministry (א.1)
+    `in the course of duty`                         IS A BOOLEAN @desc the damage occurred while performing the employee's role (א.1)
+    `under the Ministry's responsibility`           IS A BOOLEAN @desc (א.1)
+    `caused by the special demands of the role`     IS A BOOLEAN @desc (א.1)
+    `caused by the employer's negligence`           IS A BOOLEAN @desc (א.1)
+    `kind of property`                              IS A `kind of property`
+    `brought to work by the employee`               IS A BOOLEAN @desc the employee's own object or device, brought to the workplace (א.2ג)
+    `insured by the employee`                       IS A BOOLEAN @desc covered by the employee's own insurance policy (א.2ז)
+    `took all reasonable measures`                  IS A BOOLEAN @desc took every reasonable step to prevent the loss, including telling the direct superior of a foreseeable danger (א.2ד)
+    `took the precautions for eyewear`              IS A BOOLEAN @desc e.g. tied the glasses (א.2ה)
+    `standard value at the asset's age`             IS A NUMBER  @desc the value of a standard object of that kind at the age of the damaged asset (א.1 ¶2); an input
+    `amount of the damage`                          IS A NUMBER  @desc per the repair receipt or the quotation (א.4ד)
+
+DECLARE `kind of property` IS ONE OF
+    `valuables`
+    `money`
+    `glasses, contact lenses or other visual aids`
+    `the employee's car`
+    `work tool supplied by the Ministry`
+    `other property`
+
+-- The section's parties: the Ministry and the employee from common; the
+-- Ministry's legal adviser, the inter-ministerial committee and the Ministry's
+-- finance division are this section's own.
+DECLARE `1.43 party` IS ONE OF
+    `a takanon party` HAS `who` IS A Party
+    `the Ministry's legal adviser`
+    `the inter-ministerial committee`
+    `the Ministry's finance division`
+
+DECLARE `property-claim action` IS ONE OF
+    `apply to the legal adviser's office`
+    `transfer the claim to the inter-ministerial committee`
+    `notify the employee of the decision`
+    `transfer the payment decision to the finance division`
+    `pay the compensation` HAS `compensation paid` IS A NUMBER
+
+§§ `א.1 When the Ministry compensates`
+
+@ref akn:chp_1ב__sec_1_43__hc_2__para_a akn:chp_1ב__sec_1_43__hc_2__para_a__subpara_1
+GIVEN c IS A `property claim`
+GIVETH A BOOLEAN
+DECIDE `the damage is of a compensable kind under א.1` c IF
+        c's `a state employee`
+    AND (    (    c's `in the course of duty`
+              AND c's `under the Ministry's responsibility`
+              AND c's `caused by the special demands of the role`)
+         OR c's `caused by the employer's negligence`)
+
+-- א.1 ¶2: the compensation is partial, based on the value of standard
+-- objects and on the age of the asset. The committee fixes the amount; the
+-- rule is its ceiling.
+@ref akn:chp_1ב__sec_1_43__hc_2__para_a__subpara_1/p2
+GIVEN c IS A `property claim`
+GIVETH A NUMBER
+DECIDE `compensation ceiling` c IS
+    min (c's `standard value at the asset's age`) (c's `amount of the damage`)
+
+§§ `א.2 What the Ministry does not compensate`
+
+@ref akn:chp_1ב__sec_1_43__hc_2__para_a__subpara_2__cls_a
+GIVEN c IS A `property claim`
+GIVETH A BOOLEAN
+DECIDE `excluded as valuables` c IF
+    c's `kind of property` EQUALS `valuables`
+
+@ref akn:chp_1ב__sec_1_43__hc_2__para_a__subpara_2__cls_b
+GIVEN c IS A `property claim`
+GIVETH A BOOLEAN
+DECIDE `excluded as money` c IF
+    c's `kind of property` EQUALS `money`
+
+-- א.2ג: the employee's own objects brought to work are not compensated,
+-- even if used for the role (work tools come from the Ministry only).
+@ref akn:chp_1ב__sec_1_43__hc_2__para_a__subpara_2__cls_c
+GIVEN c IS A `property claim`
+GIVETH A BOOLEAN
+DECIDE `excluded as brought to work under א.2ג` c IF
+    c's `brought to work by the employee`
+
+@ref akn:chp_1ב__sec_1_43__hc_2__para_a__subpara_2__cls_d akn:chp_1ב__sec_1_43__hc_2__para_a__subpara_2__cls_d/p2
+GIVEN c IS A `property claim`
+GIVETH A BOOLEAN
+DECIDE `excluded for want of reasonable measures` c IF
+    NOT c's `took all reasonable measures`
+
+@ref akn:chp_1ב__sec_1_43__hc_2__para_a__subpara_2__cls_e
+GIVEN c IS A `property claim`
+GIVETH A BOOLEAN
+DECIDE `eyewear compensated under א.2ה` c IF
+        c's `kind of property` EQUALS `glasses, contact lenses or other visual aids`
+    AND c's `took the precautions for eyewear`
+
+-- א.2ו: no liability for the employee's car. Its pointer, "ראה גם ב-ב'
+-- להלן", has nothing to point at (F-1.43-a).
+@ref akn:chp_1ב__sec_1_43__hc_2__para_a__subpara_2__cls_f
+GIVEN c IS A `property claim`
+GIVETH A BOOLEAN
+DECIDE `excluded as the employee's car` c IF
+    c's `kind of property` EQUALS `the employee's car`
+
+-- F-1.43-a: the section's clauses are lettered; only א is there.
+`the clauses the section prints` MEANS LIST "א"
+`the section has no clause ב for א.2ו to point at` MEANS
+    NOT elem "ב" `the clauses the section prints`
+#ASSERT `the section has no clause ב for א.2ו to point at`
+
+@ref akn:chp_1ב__sec_1_43__hc_2__para_a__subpara_2__cls_g
+GIVEN c IS A `property claim`
+GIVETH A BOOLEAN
+DECIDE `excluded as insured` c IF
+    c's `insured by the employee`
+
+-- F-1.43-b: eyewear the employee wears to work is his own object brought to
+-- the workplace, so א.2ג excludes it and א.2ה compensates it. The reading
+-- adopted: א.2ה is the specific rule and an exception to א.2ג.
+GIVEN c IS A `property claim`
+GIVETH A BOOLEAN
+DECIDE `excluded by א.2` c IF
+        `excluded as valuables` c
+    OR  `excluded as money` c
+    OR  (`excluded as brought to work under א.2ג` c AND NOT `eyewear compensated under א.2ה` c)
+    OR  `excluded for want of reasonable measures` c
+    OR  (    c's `kind of property` EQUALS `glasses, contact lenses or other visual aids`
+         AND NOT c's `took the precautions for eyewear`)
+    OR  `excluded as the employee's car` c
+    OR  `excluded as insured` c
+
+@export The ceiling of the compensation the Ministry may pay a state-employed teaching employee for property damaged at work under section 1.43 (0 when the claim is excluded)
+GIVEN c IS A `property claim` @desc the claim
+GIVETH A NUMBER
+DECIDE `compensable amount` c IS
+    IF `the damage is of a compensable kind under א.1` c AND NOT `excluded by א.2` c
+    THEN `compensation ceiling` c
+    ELSE 0
+
+§§ `א.3-א.6 The procedure`
+
+@ref akn:chp_1ב__sec_1_43__hc_2__para_a__subpara_3 akn:chp_1ב__sec_1_43__hc_2__para_a__subpara_3/p2
+DECLARE `committee seat` IS ONE OF
+    `the head of the labour-disputes department of the State Attorney, chair`
+    `a representative of the Accountant General, member`
+    `a representative of the Ministry's legal adviser, member`
+    `a representative of the National Insurance Institute, member`
+
+`the inter-ministerial committee's members` MEANS
+    LIST `the head of the labour-disputes department of the State Attorney, chair`,
+         `a representative of the Accountant General, member`,
+         `a representative of the Ministry's legal adviser, member`,
+         `a representative of the National Insurance Institute, member`
+
+@ref akn:chp_1ב__sec_1_43__hc_2__para_a__subpara_4
+DECLARE `claim documents` HAS
+    `personal details`                        IS A BOOLEAN @desc ID number, address, telephone, the institution's name, type and address (א.4א)
+    `the principal's account of the event`    IS A BOOLEAN @desc (א.4ב)
+    `police complaint or why none was made`   IS A BOOLEAN @desc (א.4ג)
+    `original repair receipt or quotation`    IS A BOOLEAN @desc (א.4ד)
+    `explanation of the causal link`          IS A BOOLEAN @desc (א.4ה)
+    `insurance policy with the cover and deductible clauses` IS A BOOLEAN @desc (א.4ו)
+
+-- א.4: the employee applies to the legal adviser's office with the documents
+-- below; the claim then moves to the legal adviser (א.5).
+GIVEN d IS A `claim documents`, `causal link found` IS A BOOLEAN
+GIVETH A DEONTIC `1.43 party` `property-claim action`
+DECIDE `applying for compensation` d `causal link found` IS
+    PARTY `a takanon party` `the teaching employee`
+    MAY   `apply to the legal adviser's office`
+    HENCE `the legal adviser's transfer` d `causal link found`
+
+@ref akn:chp_1ב__sec_1_43__hc_2__para_a__subpara_4__cls_a akn:chp_1ב__sec_1_43__hc_2__para_a__subpara_4__cls_b akn:chp_1ב__sec_1_43__hc_2__para_a__subpara_4__cls_c akn:chp_1ב__sec_1_43__hc_2__para_a__subpara_4__cls_d akn:chp_1ב__sec_1_43__hc_2__para_a__subpara_4__cls_e
+GIVEN d IS A `claim documents`
+GIVETH A BOOLEAN
+DECIDE `the claim documents are complete` d IF
+        d's `personal details`
+    AND d's `the principal's account of the event`
+    AND d's `police complaint or why none was made`
+    AND d's `original repair receipt or quotation`
+    AND d's `explanation of the causal link`
+    AND d's `insurance policy with the cover and deductible clauses`
+
+-- F-1.43-c: א.4ו asks for the policy's deductible clause, which matters only
+-- if the deductible could be compensated; א.2ז says an insured object is not
+-- compensated at all. The reading adopted is א.2ז's (`excluded as insured`);
+-- the deductible is read as asked for the committee's information.
+@ref akn:chp_1ב__sec_1_43__hc_2__para_a__subpara_4__cls_f
+`an insured pair of glasses with a deductible` MEANS
+    `property claim` WITH
+        `a state employee`                          IS TRUE
+        `in the course of duty`                     IS TRUE
+        `under the Ministry's responsibility`       IS TRUE
+        `caused by the special demands of the role` IS TRUE
+        `caused by the employer's negligence`       IS FALSE
+        `kind of property`                          IS `glasses, contact lenses or other visual aids`
+        `brought to work by the employee`           IS TRUE
+        `insured by the employee`                   IS TRUE
+        `took all reasonable measures`              IS TRUE
+        `took the precautions for eyewear`          IS TRUE
+        `standard value at the asset's age`         IS 600
+        `amount of the damage`                      IS 800
+
+`the deductible is asked for although an insured object gets nothing` MEANS
+    `compensable amount` `an insured pair of glasses with a deductible` EQUALS 0
+
+#ASSERT `the deductible is asked for although an insured object gets nothing`
+
+-- א.5: with all the material in, and once satisfied of the causal link, the
+-- legal adviser passes the claim to the inter-ministerial committee.
+@ref akn:chp_1ב__sec_1_43__hc_2__para_a__subpara_5
+GIVEN d IS A `claim documents`, `causal link found` IS A BOOLEAN
+GIVETH A DEONTIC `1.43 party` `property-claim action`
+DECIDE `the legal adviser's transfer` d `causal link found` IS
+    IF `the claim documents are complete` d AND `causal link found`
+    THEN PARTY `the Ministry's legal adviser`
+         MUST  `transfer the claim to the inter-ministerial committee`
+         HENCE `after the committee's decision` TRUE
+         LEST  BREACH BY `the Ministry's legal adviser` BECAUSE "1.43 א.5: a complete claim with a causal link goes to the inter-ministerial committee"
+    ELSE FULFILLED
+
+-- א.6: the employee is notified of the decision; a decision to pay goes to
+-- the Ministry's finance division to carry out.
+@ref akn:chp_1ב__sec_1_43__hc_2__para_a__subpara_6
+GIVEN `the committee decided to pay` IS A BOOLEAN
+GIVETH A DEONTIC `1.43 party` `property-claim action`
+DECIDE `after the committee's decision` `the committee decided to pay` IS
+    (PARTY `a takanon party` `the Ministry of Education`
+     MUST  `notify the employee of the decision`
+     LEST  BREACH BY `a takanon party` `the Ministry of Education` BECAUSE "1.43 א.6: the employee is notified of the committee's decision")
+    RAND
+    (IF `the committee decided to pay`
+     THEN PARTY `a takanon party` `the Ministry of Education`
+          MUST  `transfer the payment decision to the finance division`
+          LEST  BREACH BY `a takanon party` `the Ministry of Education` BECAUSE "1.43 א.6: a decision to pay goes to the finance division"
+     ELSE FULFILLED)
+
+-- akn:chp_1ב__sec_1_43__hc_3 The heading of the source list (אסמכתא).
+-- akn:chp_1ב__sec_1_43__hc_3/p1 A source: director-general's circular נג/1.
+
+-- Worked examples; the values are placeholders.
+`a coat torn in a school activity` MEANS
+    `property claim` WITH
+        `a state employee`                          IS TRUE
+        `in the course of duty`                     IS TRUE
+        `under the Ministry's responsibility`       IS TRUE
+        `caused by the special demands of the role` IS TRUE
+        `caused by the employer's negligence`       IS FALSE
+        `kind of property`                          IS `other property`
+        `brought to work by the employee`           IS FALSE
+        `insured by the employee`                   IS FALSE
+        `took all reasonable measures`              IS TRUE
+        `took the precautions for eyewear`          IS FALSE
+        `standard value at the asset's age`         IS 300
+        `amount of the damage`                      IS 500
+
+`glasses tied and broken in a playground duty` MEANS
+    `property claim` WITH
+        `a state employee`                          IS TRUE
+        `in the course of duty`                     IS TRUE
+        `under the Ministry's responsibility`       IS TRUE
+        `caused by the special demands of the role` IS TRUE
+        `caused by the employer's negligence`       IS FALSE
+        `kind of property`                          IS `glasses, contact lenses or other visual aids`
+        `brought to work by the employee`           IS TRUE
+        `insured by the employee`                   IS FALSE
+        `took all reasonable measures`              IS TRUE
+        `took the precautions for eyewear`          IS TRUE
+        `standard value at the asset's age`         IS 600
+        `amount of the damage`                      IS 800
+
+#ASSERT `compensable amount` `a coat torn in a school activity` EQUALS 300
+#ASSERT `compensable amount` `glasses tied and broken in a playground duty` EQUALS 600
+
+-- F-1.43-b's evidence: the same glasses are excluded by א.2ג and
+-- compensated by א.2ה.
+`eyewear brought to work falls under both א.2ג and א.2ה` MEANS
+        `excluded as brought to work under א.2ג` `glasses tied and broken in a playground duty`
+    AND `eyewear compensated under א.2ה` `glasses tied and broken in a playground duty`
+#ASSERT `eyewear brought to work falls under both א.2ג and א.2ה`
+
+`a complete file` MEANS
+    `claim documents` WITH
+        `personal details`                        IS TRUE
+        `the principal's account of the event`    IS TRUE
+        `police complaint or why none was made`   IS TRUE
+        `original repair receipt or quotation`    IS TRUE
+        `explanation of the causal link`          IS TRUE
+        `insurance policy with the cover and deductible clauses` IS TRUE
+
+#TRACE `the legal adviser's transfer` `a complete file` TRUE AT 0 WITH
+    PARTY `the Ministry's legal adviser` DOES `transfer the claim to the inter-ministerial committee` AT 1
+    PARTY `a takanon party` `the Ministry of Education` DOES `notify the employee of the decision` AT 2
+    PARTY `a takanon party` `the Ministry of Education` DOES `transfer the payment decision to the finance division` AT 2

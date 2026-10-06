@@ -1,0 +1,137 @@
+-- תקנון שירות עובדי הוראה, פרק 1ב, §1.40 מסירת מידע
+-- Information about a teaching employee's work in the state service: who may
+-- receive it, on what documents, and what Ministry employees may not hand
+-- to commercial bodies.
+
+IMPORT prelude
+IMPORT common
+
+§ `1.40 מסירת מידע`
+
+DECLARE `requester` IS ONE OF
+    `the employee himself`
+    `the employee's attorney`
+    `the employee's guardian`
+    `the employee's heir`
+    `a family member`
+    `any other person`
+
+DECLARE `document shown` IS ONE OF
+    `a power of attorney signed by the employee` @desc or another letter of authorisation signed by the employee
+    `a guardianship order`
+    `a succession order or a probate order`
+    `no document`
+
+@desc A request for information about a teaching employee's work, as far as section 1.40 asks about it.
+DECLARE `information request` HAS
+    `who asks`                       IS A `requester`
+    `documents shown`                IS A LIST OF `document shown`
+    `the employee has a guardian`    IS A BOOLEAN
+    `the requester is a survivor of the employee` IS A BOOLEAN
+
+@desc What section 1.40.1's second paragraph counts as "information".
+DECLARE `item` IS ONE OF
+    `a piece of information, true or not`
+    `a description`
+    `a plan`
+    `a password`
+    `a symbol`
+    `a formula`
+    `an object or part of one containing information or able to serve as its source`
+    `none of these`
+
+DECLARE `information action` IS ONE OF
+    `give the information` HAS `to whom` IS A `information request`
+    `advise a commercial body in writing` HAS `with the legal adviser's approval` IS A BOOLEAN
+    `hand over material not meant to be handed over` HAS `with approval` IS A BOOLEAN
+    `allow the name to be used in commercial publicity` HAS `name use approved` IS A BOOLEAN
+
+§§ `1.40.1`
+
+@ref akn:chp_1ב__sec_1_40__hc_2__para_1/p2
+GIVEN i IS AN `item`
+GIVETH A BOOLEAN
+DECIDE `is information` i IF
+    NOT (i EQUALS `none of these`)
+
+-- Section 1.40.2 says who is authorised: the employee, the attorney, the
+-- guardian, the heir, and a family member or other person on a document.
+@ref akn:chp_1ב__sec_1_40__hc_2__para_1/p1 akn:chp_1ב__sec_1_40__hc_2__para_1/p3
+GIVETH A DEONTIC Party `information action`
+DECIDE `no information to unauthorised persons` IS
+    PARTY `the Ministry of Education`
+    SHANT `give the information` r
+          PROVIDED NOT `may receive the information` r
+    LEST  BREACH BY `the Ministry of Education` BECAUSE "section 1.40.1: information about a teaching employee's work is not given to family members or to anyone not authorised; giving it is a criminal offence"
+
+§§ `1.40.2`
+
+@ref akn:chp_1ב__sec_1_40__hc_2__para_2/p1
+GIVEN r IS AN `information request`
+GIVETH A BOOLEAN
+DECIDE `may receive the information` r IF
+    CONSIDER r's `who asks`
+    WHEN `the employee himself`    THEN TRUE
+    WHEN `the employee's attorney` THEN TRUE
+    WHEN `the employee's guardian` THEN TRUE
+    WHEN `the employee's heir`     THEN TRUE
+    OTHERWISE any (GIVEN d YIELD `the document entitles` r d) (r's `documents shown`)
+
+@ref akn:chp_1ב__sec_1_40__hc_2__para_2__subpara_a akn:chp_1ב__sec_1_40__hc_2__para_2__subpara_b akn:chp_1ב__sec_1_40__hc_2__para_2__subpara_c
+GIVEN r IS AN `information request`, d IS A `document shown`
+GIVETH A BOOLEAN
+DECIDE `the document entitles` r d IF
+    CONSIDER d
+    WHEN `a power of attorney signed by the employee` THEN TRUE
+    WHEN `a guardianship order`                       THEN r's `the employee has a guardian`
+    WHEN `a succession order or a probate order`      THEN r's `the requester is a survivor of the employee`
+    OTHERWISE FALSE
+
+§§ `1.40.3`
+
+@ref akn:chp_1ב__sec_1_40__hc_2__para_3/p1 akn:chp_1ב__sec_1_40__hc_2__para_3/p2
+GIVETH A DEONTIC Party `information action`
+DECIDE `no unapproved dealings with commercial bodies` IS
+        (PARTY `the teaching employee`
+         SHANT `advise a commercial body in writing` `approved`
+               PROVIDED NOT `approved`
+         LEST  BREACH BY `the teaching employee` BECAUSE "section 1.40.3: written guidance, advice, recommendations or opinions to a commercial body need the legal adviser's approval; a deviation is a disciplinary offence")
+    RAND
+        (PARTY `the teaching employee`
+         SHANT `hand over material not meant to be handed over` `approved`
+               PROVIDED NOT `approved`
+         LEST  BREACH BY `the teaching employee` BECAUSE "section 1.40.3: work material not meant to be handed over needs the legal adviser's approval; a deviation is a disciplinary offence")
+    RAND
+        (PARTY `the teaching employee`
+         SHANT `allow the name to be used in commercial publicity` `approved`
+               PROVIDED NOT `approved`
+         LEST  BREACH BY `the teaching employee` BECAUSE "section 1.40.3: the Ministry's or an employee's name in commercial publicity needs the legal adviser's approval; a deviation is a disciplinary offence")
+
+-- akn:chp_1ב__sec_1_40__hc_3__para_1 Source (אסמכתא): a director-general's circular.
+-- akn:chp_1ב__sec_1_40__hc_3__para_2 Source (אסמכתא): a director-general's circular.
+
+-- Worked examples.
+`a spouse with a signed power of attorney` MEANS
+    `information request` WITH
+        `who asks`                                    IS `a family member`
+        `documents shown`                             IS LIST `a power of attorney signed by the employee`
+        `the employee has a guardian`                 IS FALSE
+        `the requester is a survivor of the employee` IS FALSE
+
+`a parent with no document` MEANS
+    `information request` WITH
+        `who asks`                                    IS `a family member`
+        `documents shown`                             IS EMPTY
+        `the employee has a guardian`                 IS FALSE
+        `the requester is a survivor of the employee` IS FALSE
+
+#ASSERT `may receive the information` `a spouse with a signed power of attorney`
+#ASSERT NOT `may receive the information` `a parent with no document`
+#ASSERT `is information` `a piece of information, true or not`
+
+-- Giving it to the spouse with the power of attorney breaches nothing; to
+-- the parent without a document, it is a breach.
+#TRACE `no information to unauthorised persons` AT 0 WITH
+    PARTY `the Ministry of Education` DOES `give the information` `a spouse with a signed power of attorney` AT 1
+#TRACE `no information to unauthorised persons` AT 0 WITH
+    PARTY `the Ministry of Education` DOES `give the information` `a parent with no document` AT 1

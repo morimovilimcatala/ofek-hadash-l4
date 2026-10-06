@@ -1,0 +1,186 @@
+-- תקנון שירות עובדי הוראה, פרק 1ב', §1.48 עו"ה מהצפון המלמד בדרום
+-- Teaching employees from the north who teach in the Bedouin localities of
+-- the south: a monthly rent participation, an exemption from the employee's
+-- share of the training funds, and refunds of travel home.
+
+IMPORT prelude
+IMPORT common
+
+§ `1.48 עו"ה מהצפון המלמד בדרום`
+
+-- akn:chp_1ב__sec_1_48__hc_2 The section's title line ("a teaching employee from the north teaching in the Bedouin localities of the south").
+
+-- Months are counted as year × 12 + month, so 1.9.1994 is 1994 × 12 + 9.
+GIVEN `day` IS A NUMBER, `month` IS A NUMBER, `year` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the month of` `day` `month` `year` IS
+    `year` TIMES 12 PLUS `month`
+
+@desc A teaching employee from the north teaching in the south, in one month, as far as section 1.48 asks about it.
+DECLARE `northern teacher` HAS
+    `lives in the north`                         IS A BOOLEAN @desc permanent residence in the north of the country
+    `teaches in a Bedouin locality in the south` IS A BOOLEAN
+    `teaches in the south`                       IS A BOOLEAN
+    `an Arab teacher`                            IS A BOOLEAN @desc (3)
+    `employed by an owning body`                 IS A BOOLEAN @desc an employee of a בעלות rather than of the State (1: included)
+    `position fraction`                          IS A NUMBER  @desc share of a full position
+    `receives another rent participation`        IS A BOOLEAN
+    `month`                                      IS A NUMBER  @desc the month, as year × 12 + month
+    `cost-of-living factor since 1.9.2010`       IS A NUMBER  @desc the product of the yearly cost-of-living updates applied since 1.9.2010 (1 = none yet); an input
+
+DECLARE `1.48 party` IS ONE OF
+    `a takanon party` HAS `who` IS A Party
+
+DECLARE `travel action` IS ONE OF
+    `refund duty travel against a detailed report` HAS `refund` IS A NUMBER
+
+§§ `1 Rent participation`
+
+-- 1: from 1.9.94 a rent participation; from 1.9.2010 it is 750 shekels a
+-- month, owners' employees included, pro-rated by position, if no other rent
+-- participation is received; updated once a year by the cost-of-living
+-- rates. Before 1.9.2010 the amount is not given here.
+@ref akn:chp_1ב__sec_1_48__hc_2__para_1
+GIVEN t IS A `northern teacher`
+GIVETH A BOOLEAN
+DECIDE `entitled to the rent participation` t IF
+        t's `lives in the north`
+    AND t's `teaches in a Bedouin locality in the south`
+    AND NOT t's `receives another rent participation`
+    AND t's `month` AT LEAST `the month of` 1 9 1994
+
+GIVEN t IS A `northern teacher`, `the amount before 1.9.2010` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `rent participation` t `the amount before 1.9.2010` IS
+    IF `entitled to the rent participation` t
+    THEN IF t's `month` AT LEAST `the month of` 1 9 2010
+         THEN 750 TIMES t's `cost-of-living factor since 1.9.2010` TIMES t's `position fraction`
+         ELSE `the amount before 1.9.2010` TIMES t's `position fraction`
+    ELSE 0
+
+§§ `2 Training funds`
+
+@ref akn:chp_1ב__sec_1_48__hc_2__para_2
+GIVEN t IS A `northern teacher`
+GIVETH A BOOLEAN
+DECIDE `exempt from the employee's share of the training funds` t IF
+    t's `lives in the north` AND t's `teaches in a Bedouin locality in the south`
+
+§§ `3 Travel`
+
+-- 3: an Arab teacher living in the north and teaching in the south is
+-- refunded four public-transport round trips south-north-south a month.
+-- F-1.48-b: 3 says "teaching in the south of the country"; the section is
+-- about teachers in the Bedouin localities. The reading adopted is 3's own
+-- words.
+@ref akn:chp_1ב__sec_1_48__hc_2__para_3
+GIVEN t IS A `northern teacher`
+GIVETH A BOOLEAN
+DECIDE `in the travel arrangement` t IF
+    t's `an Arab teacher` AND t's `lives in the north` AND t's `teaches in the south`
+
+GIVEN t IS A `northern teacher`, `public-transport fare south-north-south` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `monthly travel-home refund` t `public-transport fare south-north-south` IS
+    IF `in the travel arrangement` t
+    THEN 4 TIMES `public-transport fare south-north-south`
+    ELSE 0
+
+-- 3 ¶2: the refund is paid within the travel allowance paid to the employee.
+@ref akn:chp_1ב__sec_1_48__hc_2__para_3/p2
+GIVEN t IS A `northern teacher`, fare IS A NUMBER, `travel allowance otherwise due` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `travel allowance with the refund` t fare `travel allowance otherwise due` IS
+    `travel allowance otherwise due` PLUS `monthly travel-home refund` t fare
+
+-- 3 ¶3: a teacher in the arrangement loses the global 25% supplement of the
+-- travel allowance for duty travel; duty travel is refunded every three
+-- months against a detailed report. Time in months.
+@ref akn:chp_1ב__sec_1_48__hc_2__para_3/p3
+GIVEN t IS A `northern teacher`
+GIVETH A NUMBER
+DECIDE `global duty-travel supplement rate` t IS
+    IF `in the travel arrangement` t THEN 0 ELSE 0.25
+
+GIVEN `duty travel reported` IS A NUMBER
+GIVETH A DEONTIC `1.48 party` `travel action`
+DECIDE `quarterly duty-travel refund` `duty travel reported` IS
+    PARTY `a takanon party` `the employer`
+    MUST  `refund duty travel against a detailed report` r PROVIDED r AT LEAST `duty travel reported`
+    WITHIN 3
+    LEST  BREACH BY `a takanon party` `the employer` BECAUSE "1.48 section 3: duty travel is refunded once every three months against a detailed report"
+
+-- "תחולה: 1.12.85" stands after 3, footnoted to a parity-committee summary
+-- of 14.1.86, and does not say which clauses it dates (F-1.48-a). It is read
+-- as dating 3, the clause with no date of its own; 1 keeps its 1.9.94.
+@ref akn:chp_1ב__sec_1_48__hc_2/p1
+GIVEN `month` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `the travel arrangement is in force` `month` IF
+    `month` AT LEAST `the month of` 1 12 1985
+
+`a northern teacher in a Bedouin locality in January 1990` MEANS
+    `northern teacher` WITH
+        `lives in the north`                         IS TRUE
+        `teaches in a Bedouin locality in the south` IS TRUE
+        `teaches in the south`                       IS TRUE
+        `an Arab teacher`                            IS FALSE
+        `employed by an owning body`                 IS FALSE
+        `position fraction`                          IS 1
+        `receives another rent participation`        IS FALSE
+        `month`                                      IS `the month of` 1 1 1990
+        `cost-of-living factor since 1.9.2010`       IS 1
+
+-- Read as dating the whole section, 1.12.85 puts January 1990 in force for
+-- the rent participation; 1 starts it only on 1.9.94.
+`the section's start date and 1's start date disagree` MEANS
+        `the travel arrangement is in force` (`a northern teacher in a Bedouin locality in January 1990`'s `month`)
+    AND NOT `entitled to the rent participation` `a northern teacher in a Bedouin locality in January 1990`
+#ASSERT `the section's start date and 1's start date disagree`
+
+-- akn:chp_1ב__sec_1_48__hc_3 The heading of the source list (אסמכתא).
+-- akn:chp_1ב__sec_1_48__hc_3/p1 A source: collective agreement of 15.5.89 section 6.9; memorandum of 18.9.94.
+-- akn:chp_1ב__sec_1_48__hc_3/p2 A source: collective agreement of 31.8.94, section 26.2, and the wages commissioner's correction of 11.8.96.
+-- akn:chp_1ב__sec_1_48__hc_3/p3 A source: the wages division's summary of 23.1.2011 and its letters of 13.2.2011 and 16.2.2011.
+-- akn:chp_1ב__sec_1_48__hc_3/p4 A source (2): memorandum of 18.4.94.
+-- akn:chp_1ב__sec_1_48__hc_3/p5 A source: collective agreement of 31.8.94, section 26.2.
+-- akn:chp_1ב__sec_1_48__hc_3/p6 A source (3): parity committee summary of 14.1.86.
+
+-- Worked examples. The cost-of-living factor and the fare are placeholders.
+`a northern Arab teacher in Rahat, 2015` MEANS
+    `northern teacher` WITH
+        `lives in the north`                         IS TRUE
+        `teaches in a Bedouin locality in the south` IS TRUE
+        `teaches in the south`                       IS TRUE
+        `an Arab teacher`                            IS TRUE
+        `employed by an owning body`                 IS FALSE
+        `position fraction`                          IS 0.8
+        `receives another rent participation`        IS FALSE
+        `month`                                      IS `the month of` 1 3 2015
+        `cost-of-living factor since 1.9.2010`       IS 1
+
+#ASSERT `rent participation` `a northern Arab teacher in Rahat, 2015` 0 EQUALS 600
+#ASSERT `monthly travel-home refund` `a northern Arab teacher in Rahat, 2015` 100 EQUALS 400
+#ASSERT `global duty-travel supplement rate` `a northern Arab teacher in Rahat, 2015` EQUALS 0
+
+-- F-1.48-b's evidence: a northern Arab teacher in a southern town that is
+-- not a Bedouin locality is in 3's arrangement but not in the section's.
+`a northern Arab teacher in Beersheba` MEANS
+    `northern teacher` WITH
+        `lives in the north`                         IS TRUE
+        `teaches in a Bedouin locality in the south` IS FALSE
+        `teaches in the south`                       IS TRUE
+        `an Arab teacher`                            IS TRUE
+        `employed by an owning body`                 IS FALSE
+        `position fraction`                          IS 1
+        `receives another rent participation`        IS FALSE
+        `month`                                      IS `the month of` 1 3 2015
+        `cost-of-living factor since 1.9.2010`       IS 1
+
+`3 reaches a teacher the section's title does not` MEANS
+        `in the travel arrangement` `a northern Arab teacher in Beersheba`
+    AND NOT `a northern Arab teacher in Beersheba`'s `teaches in a Bedouin locality in the south`
+#ASSERT `3 reaches a teacher the section's title does not`
+
+#TRACE `quarterly duty-travel refund` 300 AT 0 WITH
+    PARTY `a takanon party` `the employer` DOES `refund duty travel against a detailed report` 300 AT 3

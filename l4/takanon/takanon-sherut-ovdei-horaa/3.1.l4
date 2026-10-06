@@ -1,0 +1,176 @@
+-- תקנון שירות עובדי הוראה, פרק 3, §3.1 יחידת עבודה
+-- The elementary-school teacher's unit of work: 30 weekly hours in grades
+-- 1-6, 24 in grades 7-8, and how a teacher who moves from grades 7-8 to 1-6
+-- keeps the 7-8 base for some of her hours.
+
+IMPORT prelude
+IMPORT common
+
+§ `3.1 יחידת עבודה`
+
+DECLARE `3.1 party` IS ONE OF
+    `a takanon party` HAS `who` IS A Party
+
+DECLARE `reform action` IS ONE OF
+    `transfer the teacher to the junior high school` HAS `hours transferred` IS A NUMBER
+    `try to place the teacher in grades 7-8 elsewhere`
+    `pay on the 4ב.2 key`
+
+@desc A teacher who moved from grades 7-8 to grades 1-6, as far as section 3.1 asks about it.
+DECLARE `moving teacher` HAS
+    `years in grades 7-8 among the last 17`      IS A NUMBER  @desc junior high included, continuous or not; a training-fund sabbatical year counts per what was paid (3)
+    `taught grades 7-8 in one of the last 7 years` IS A BOOLEAN
+    `average 7-8 hours over the last 10 such years` IS A NUMBER @desc training-grant hours included where 3א-ב allow
+    `average 7-8 hours over the last 3 years`    IS A NUMBER
+    `weekly hours now taught in grades 1-6`      IS A NUMBER
+
+§§ `1-2 The unit`
+
+@ref akn:chp_3__sec_3_1__hc_2__para_1
+`weekly hours in an elementary unit (grades 1-6)` MEANS 30
+
+@ref akn:chp_3__sec_3_1__hc_2__para_2
+`weekly hours in a grade 7-8 unit` MEANS 24
+
+GIVEN `hours in grades 1-6` IS A NUMBER, `hours in grades 7-8` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `position fraction` `hours in grades 1-6` `hours in grades 7-8` IS
+        `hours in grades 1-6` DIVIDED BY `weekly hours in an elementary unit (grades 1-6)`
+    PLUS `hours in grades 7-8` DIVIDED BY `weekly hours in a grade 7-8 unit`
+
+-- Hours of grades 1-6 paid at the 7-8 base up to a protected number, the
+-- rest at the 1-6 base.
+GIVEN `hours taught` IS A NUMBER, `protected hours` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `fraction with protected hours` `hours taught` `protected hours` IS
+    `position fraction` (`hours taught` MINUS min `hours taught` `protected hours`) (min `hours taught` `protected hours`)
+
+§§ `3 Keeping the 7-8 base`
+
+-- 3: ten years or more in grades 7-8 of the last 17, and one of the last 7:
+-- on moving to grades 1-6 the base of the position does not change, the
+-- hours of entitlement being the average of the last ten years in 7-8.
+@ref akn:chp_3__sec_3_1__hc_2__para_3
+GIVEN t IS A `moving teacher`
+GIVETH A BOOLEAN
+DECIDE `keeps the base under 3.1.3` t IF
+        t's `years in grades 7-8 among the last 17` AT LEAST 10
+    AND t's `taught grades 7-8 in one of the last 7 years`
+
+GIVEN t IS A `moving teacher`
+GIVETH A NUMBER
+DECIDE `fraction under 3.1.3` t IS
+    `fraction with protected hours` (t's `weekly hours now taught in grades 1-6`) (t's `average 7-8 hours over the last 10 such years`)
+
+-- 3 ¶2: training-grant hours count in that average only if (א) they were
+-- deducted from the position rather than added to it, and (ב) they were paid
+-- on the 7-8 base.
+@ref akn:chp_3__sec_3_1__hc_2__para_3/p2
+GIVEN `deducted from the position` IS A BOOLEAN, `paid on the 7-8 base` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `training-grant hours count` `deducted from the position` `paid on the 7-8 base` IF
+    `3.1.3א` `deducted from the position` AND `3.1.3ב` `paid on the 7-8 base`
+
+@ref akn:chp_3__sec_3_1__hc_2__para_3__subpara_a
+GIVEN `deducted from the position` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `3.1.3א` `deducted from the position` IF `deducted from the position`
+
+@ref akn:chp_3__sec_3_1__hc_2__para_3__subpara_b
+GIVEN `paid on the 7-8 base` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `3.1.3ב` `paid on the 7-8 base` IF `paid on the 7-8 base`
+
+§§ `4 Teachers moved by the reform`
+
+-- akn:chp_3__sec_3_1__hc_2__para_4 The label of clause 4; its footnote marker (5) points at the source list.
+
+-- 4א: where the reform moved a school's grades to a junior high school, the
+-- Ministry must transfer the teachers who taught 7-8 there in the last three
+-- years to the junior high school, for the same hours; failing that, they
+-- are paid under 4ב.2.
+@ref akn:chp_3__sec_3_1__hc_2__para_4__subpara_a
+GIVEN `hours taught in 7-8` IS A NUMBER
+GIVETH A DEONTIC `3.1 party` `reform action`
+DECIDE `transfer to the junior high school` `hours taught in 7-8` IS
+    PARTY `a takanon party` `the Ministry of Education`
+    MUST  `transfer the teacher to the junior high school` h PROVIDED h AT LEAST `hours taught in 7-8`
+    LEST  (PARTY `a takanon party` `the employer`
+           MUST  `pay on the 4ב.2 key`
+           LEST  BREACH BY `a takanon party` `the employer` BECAUSE "3.1.4א: a teacher not transferred is paid under 4ב.2")
+
+-- 4ב: "such teachers whom the Ministry is not bound to transfer": 4א binds
+-- it for those who worked in grades 7-8 there in (all of) the last three
+-- years, so 4ב's are the reform school's teachers who taught 7-8 in only part
+-- of them — whose 4ב.2 average then counts the years without 7-8 as nought.
+@ref akn:chp_3__sec_3_1__hc_2__para_4__subpara_b
+GIVEN `in a school the reform moved` IS A BOOLEAN, `years of the last three in grades 7-8` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `the Ministry is bound to transfer her` `in a school the reform moved` `years of the last three in grades 7-8` IF
+    `in a school the reform moved` AND `years of the last three in grades 7-8` EQUALS 3
+
+GIVEN `in a school the reform moved` IS A BOOLEAN, `years of the last three in grades 7-8` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `a 4ב teacher` `in a school the reform moved` `years of the last three in grades 7-8` IF
+        `in a school the reform moved`
+    AND `years of the last three in grades 7-8` GREATER THAN 0
+    AND `years of the last three in grades 7-8` LESS THAN 3
+
+@ref akn:chp_3__sec_3_1__hc_2__para_4__subpara_b__cls_1
+GIVETH A DEONTIC `3.1 party` `reform action`
+DECIDE `an effort to place her in 7-8 elsewhere` IS
+    PARTY `a takanon party` `the Ministry of Education`
+    MUST  `try to place the teacher in grades 7-8 elsewhere`
+    LEST  BREACH BY `a takanon party` `the Ministry of Education` BECAUSE "3.1.4ב.1: an effort is made to place her in grades 7-8 in other schools"
+
+-- 4ב.2: not placed, she is paid for teaching grades 1-6 as follows: the
+-- average hours she taught in 7-8 over the last three years on the 24-hour
+-- base, the rest on the 30-hour base.
+@ref akn:chp_3__sec_3_1__hc_2__para_4__subpara_b__cls_2
+GIVEN t IS A `moving teacher`
+GIVETH A NUMBER
+DECIDE `fraction under 3.1.4ב.2` t IS
+    `fraction with protected hours` (t's `weekly hours now taught in grades 1-6`) (t's `average 7-8 hours over the last 3 years`)
+
+-- F-3.1-a: a teacher the reform moved to grades 1-6 who has ten years of
+-- 7-8 in the last 17 meets both 3 and 4ב.2, and they protect different
+-- averages. The reading adopted: 3 — the later agreement (1993-94), which
+-- says the base does not change — governs where its conditions are met.
+@export default The position fraction of a teacher who moved from grades 7-8 to grades 1-6, under section 3.1 of the takanon
+GIVEN t IS A `moving teacher` @desc the teacher
+      `moved by the reform and not placed in 7-8` IS A BOOLEAN @desc 4ב.2 applies to her
+GIVETH A NUMBER
+DECIDE `fraction after the move` t `moved by the reform and not placed in 7-8` IS
+    IF `keeps the base under 3.1.3` t
+    THEN `fraction under 3.1.3` t
+    ELSE IF `moved by the reform and not placed in 7-8`
+         THEN `fraction under 3.1.4ב.2` t
+         ELSE `position fraction` (t's `weekly hours now taught in grades 1-6`) 0
+
+`a reform-moved teacher with twelve years of 7-8` MEANS
+    `moving teacher` WITH
+        `years in grades 7-8 among the last 17`      IS 12
+        `taught grades 7-8 in one of the last 7 years` IS TRUE
+        `average 7-8 hours over the last 10 such years` IS 24
+        `average 7-8 hours over the last 3 years`    IS 12
+        `weekly hours now taught in grades 1-6`      IS 30
+
+`3 and 4ב.2 price the same teacher differently` MEANS
+        `keeps the base under 3.1.3` `a reform-moved teacher with twelve years of 7-8`
+    AND NOT `fraction under 3.1.3` `a reform-moved teacher with twelve years of 7-8`
+            EQUALS `fraction under 3.1.4ב.2` `a reform-moved teacher with twelve years of 7-8`
+#ASSERT `3 and 4ב.2 price the same teacher differently`
+
+-- akn:chp_3__sec_3_1__hc_3 The heading of the source list (אסמכתא).
+-- akn:chp_3__sec_3_1__hc_3__para_1 A source: section 10 of the agreement of 29.8.69 and the circulars that followed.
+-- akn:chp_3__sec_3_1__hc_3__para_2 A source: special director-general's circular ד' 5737, section 11.
+-- akn:chp_3__sec_3_1__hc_3__para_3 A source: collective agreement of 11.5.93 and parity committee decisions of 7.9.93 and 18.9.94.
+-- akn:chp_3__sec_3_1__hc_3__para_4 A source: decision of the accountancy and the conditions-of-service head of 23.6.98.
+-- akn:chp_3__sec_3_1__hc_3__para_5 A source: the deputy director-general's letter of 2.3.79 and the agreements of 22.2.79 and 26.5.81.
+
+-- Worked examples.
+#ASSERT `position fraction` 15 12 EQUALS 1
+#ASSERT `fraction under 3.1.3` `a reform-moved teacher with twelve years of 7-8` EQUALS 1.2
+#ASSERT `fraction under 3.1.4ב.2` `a reform-moved teacher with twelve years of 7-8` EQUALS 1.1
+#TRACE `transfer to the junior high school` 12 AT 0 WITH
+    PARTY `a takanon party` `the Ministry of Education` DOES `transfer the teacher to the junior high school` 12 AT 1

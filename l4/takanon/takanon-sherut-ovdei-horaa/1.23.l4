@@ -1,0 +1,274 @@
+-- תקנון שירות עובדי הוראה, פרק 1א', §1.23 שעות גיל למורים וגננות
+-- Age hours: the reduction of a teaching employee's position base at 50 and
+-- at 55, who is entitled to it, the managers' version, and how salary is
+-- computed for those entitled.
+
+IMPORT prelude
+IMPORT common
+
+§ `1.23 שעות גיל למורים וגננות`
+
+-- akn:chp_1א___sec_1_23__ssec_1_23/p1 Amendment note ("this section was amended on 14.1.04").
+
+-- Dates are written as numbers YYYYMMDD (1 September 1978 is 19780901). A
+-- school year is named by the calendar year it starts in (5785 = 2024-25 is 2024).
+@desc A teaching employee in one school year, as far as section 1.23 asks about it.
+DECLARE `age-hours case` HAS
+    `school year`                         IS A NUMBER  @desc the calendar year the school year starts in, on 1 September
+    `birth year`                          IS A NUMBER
+    `full-position base hours`            IS A NUMBER  @desc the weekly hours of a full position before any age reduction, set by the takanon's rules on position bases (an input here)
+    `hours worked`                        IS A NUMBER  @desc the weekly hours the employee actually works
+    `employed part-time`                  IS A BOOLEAN
+    `was offered completion of the position and refused` IS A BOOLEAN
+    `refused on health grounds confirmed by the district medical committee` IS A BOOLEAN @desc the district medical committee confirmed that the employee cannot work a full position
+    `no full position could be found`     IS A BOOLEAN
+    `pensioner employed under section 35 of the pensions law` IS A BOOLEAN @desc a pensioner employed in the civil service or a "public fund" under section 35 of the State Service (Pensions) Law 1970
+    `mother of a child under 14`          IS A BOOLEAN
+    `monthly salary of a full position`   IS A NUMBER  @desc set by the salary scales; an input, never a number of this file
+
+-- akn:chp_1א___sec_1_23__ssec_1_23/p2 encodes below: "the number of teaching hours" in this section means the number of hours of the position base, so every reduction is taken off the base (`full-position base hours`).
+
+§§ `1.23 ¶3–¶4 The reduction at 50 and at 55`
+
+-- §1.23.1: reaching 50 "by 31 December" gives the reduction from the start of
+-- that school year; reaching it on 1 January or later, from the next one. The
+-- school year starting in year Y runs through 31 December of Y, so reaching 50
+-- by then means reaching it in calendar year Y or earlier; reaching it from
+-- 1 January means reaching it in calendar year Y + 1, and the reduction then
+-- starts with the school year Y + 1, which the first rule already gives.
+GIVEN age IS A NUMBER, c IS AN `age-hours case`
+GIVETH A BOOLEAN
+DECIDE `reaches` age `by 31 December of the school year` c IF
+    c's `birth year` PLUS age AT MOST c's `school year`
+
+GIVEN age IS A NUMBER, c IS AN `age-hours case`
+GIVETH A BOOLEAN
+DECIDE `reaches` age `on 1 January or later in the school year` c IF
+    c's `birth year` PLUS age EQUALS c's `school year` PLUS 1
+
+@ref akn:chp_1א___sec_1_23__ssec_1_23/p3
+GIVEN c IS AN `age-hours case`
+GIVETH A NUMBER
+DECIDE `reduction for 50` c IS
+    IF `reaches` 50 `by 31 December of the school year` c
+    THEN 2
+    ELSE 0
+
+@ref akn:chp_1א___sec_1_23__ssec_1_23/p4
+GIVEN c IS AN `age-hours case`
+GIVETH A NUMBER
+DECIDE `further reduction for 55` c IS
+    IF `reaches` 55 `by 31 December of the school year` c
+    THEN 2
+    ELSE 0
+
+GIVEN c IS AN `age-hours case`
+GIVETH A NUMBER
+DECIDE `age hours` c IS `reduction for 50` c PLUS `further reduction for 55` c
+
+§§ `1.23 ¶5–¶9 Who is entitled`
+
+@ref akn:chp_1א___sec_1_23__ssec_1_23/p5
+GIVEN c IS AN `age-hours case`
+GIVETH A BOOLEAN
+DECIDE `refused completion of a part-time position` c IF
+    c's `employed part-time` AND c's `was offered completion of the position and refused`
+
+@ref akn:chp_1א___sec_1_23__ssec_1_23/p6
+GIVEN c IS AN `age-hours case`
+GIVETH A BOOLEAN
+DECIDE `the health exception applies` c IF
+    `refused completion of a part-time position` c
+    AND c's `refused on health grounds confirmed by the district medical committee`
+
+@ref akn:chp_1א___sec_1_23__ssec_1_23/p7
+GIVEN c IS AN `age-hours case`
+GIVETH A BOOLEAN
+DECIDE `a part-timer for whom no full position was found` c IF
+    c's `employed part-time` AND c's `no full position could be found`
+
+@ref akn:chp_1א___sec_1_23__ssec_1_23/p8
+GIVEN c IS AN `age-hours case`
+GIVETH A BOOLEAN
+DECIDE `is an entitled pensioner` c IF
+    c's `pensioner employed under section 35 of the pensions law`
+
+-- §1.23.6, "notwithstanding §3": a mother of a child under 14, employed
+-- part-time for at least 24 hours, has her salary computed with the age
+-- hours "if she works 79% of a position". F-1.23-a: read as a floor of the
+-- full position for her age (the base less her age hours), it is the reading
+-- under which the clause can be met at all.
+@ref akn:chp_1א___sec_1_23__ssec_1_23/p9
+GIVEN c IS AN `age-hours case`
+GIVETH A BOOLEAN
+DECIDE `the mothers' exception applies` c IF
+        c's `mother of a child under 14`
+    AND c's `employed part-time`
+    AND c's `hours worked` AT LEAST 24
+    AND c's `hours worked` AT LEAST 0.79 TIMES `full position for the employee's age` c
+
+@ref akn:chp_1א___sec_1_23__ssec_1_23/p7
+GIVEN c IS AN `age-hours case`
+GIVETH A NUMBER
+DECIDE `full position for the employee's age` c IS
+    c's `full-position base hours` MINUS `age hours` c
+
+@export default Whether a teaching employee is entitled to the age-hours reduction in a school year, under section 1.23 of the takanon
+GIVEN c IS AN `age-hours case` @desc the employee and the school year
+GIVETH A BOOLEAN
+DECIDE `entitled to the age-hours reduction` c IF
+        `age hours` c GREATER THAN 0
+    AND (   (NOT `refused completion of a part-time position` c)
+         OR `a part-timer for whom no full position was found` c
+         OR `the health exception applies` c
+         OR `the mothers' exception applies` c
+         OR `is an entitled pensioner` c)
+
+-- §1.23.4: a part-time employee who could not be given a full position is
+-- entitled, and is paid on the hours counted as a full position for an
+-- employee of their age. The same base serves every entitled employee.
+@ref akn:chp_1א___sec_1_23__ssec_1_23/p7
+GIVEN c IS AN `age-hours case`
+GIVETH A NUMBER
+DECIDE `position fraction for salary` c IS
+    IF `entitled to the age-hours reduction` c
+    THEN c's `hours worked` DIVIDED BY `full position for the employee's age` c
+    ELSE c's `hours worked` DIVIDED BY c's `full-position base hours`
+
+GIVEN c IS AN `age-hours case`
+GIVETH A NUMBER
+DECIDE `monthly salary` c IS
+    c's `monthly salary of a full position` TIMES `position fraction for salary` c
+
+-- F-1.23-a: "works 79% of a position" read as an exact figure can never be
+-- met together with "at least 24 hours" for a base of up to 30 hours (24 is
+-- already more than 79% of 30), and read as a floor it adds nothing to the
+-- 24 hours there. Shown here for bases from 24 to 30 weekly hours.
+`exactly 79% of a base of up to 30 hours is fewer than 24 hours` MEANS
+    all (GIVEN b YIELD 0.79 TIMES b LESS THAN 24) (LIST 24, 25, 26, 27, 28, 29, 30)
+#ASSERT `exactly 79% of a base of up to 30 hours is fewer than 24 hours`
+
+`at least 24 hours already exceeds 79% of a base of up to 30 hours` MEANS
+    all (GIVEN b YIELD 24 AT LEAST 0.79 TIMES b) (LIST 24, 25, 26, 27, 28, 29, 30)
+#ASSERT `at least 24 hours already exceeds 79% of a base of up to 30 hours`
+
+§§ `1.23 ¶10–¶11 Age hours for principals, coordinators and deputy principals`
+
+-- akn:chp_1א___sec_1_23__ssec_1_23/p10 Sub-heading ("age hours for principals, coordinators and deputy principals").
+
+@desc A full-time principal, deputy principal or coordinator, as far as the managers' paragraph asks about them.
+DECLARE `manager's case` HAS
+    `manager's school year`             IS A NUMBER @desc the calendar year the school year starts in
+    `manager's birth year`              IS A NUMBER
+    `employed in a full position`       IS A BOOLEAN
+    `teaching hours in classes`         IS A NUMBER @desc weekly hours the manager teaches in classes
+    `manager's full-position hours`     IS A NUMBER @desc the weekly hours of the manager's full position (an input)
+
+@ref akn:chp_1א___sec_1_23__ssec_1_23/p11
+GIVEN m IS A `manager's case`
+GIVETH A NUMBER
+DECIDE `managers' weekly reduction` m IS
+    IF NOT m's `employed in a full position`
+    THEN 0
+    ELSE `teaching share` TIMES
+             (BRANCH IF m's `manager's birth year` PLUS 55 AT MOST m's `manager's school year` THEN 4
+                     IF m's `manager's birth year` PLUS 50 AT MOST m's `manager's school year` THEN 2
+                     OTHERWISE 0)
+    WHERE
+        `teaching share` MEANS
+            IF m's `teaching hours in classes` AT LEAST (2 DIVIDED BY 3) TIMES m's `manager's full-position hours`
+            THEN 1
+            ELSE 0.5
+
+§§ `1.23 ¶12–¶15 General`
+
+-- akn:chp_1א___sec_1_23__ssec_1_23/p12 Sub-heading ("general").
+
+-- §§1.23 general 1א, 1ב and 2: from 1.9.78 an entitled employee working above
+-- the full position is paid for every hour on the age-hours base, except
+-- substitution hours, which are paid "as usual" (on the unreduced base);
+-- from 1.9.80 the words excepting substitution hours are deleted.
+DECLARE `kind of hour above the position` IS ONE OF
+    `an extra hour`
+    `a substitution hour`
+
+@ref akn:chp_1א___sec_1_23__ssec_1_23/p13 akn:chp_1א___sec_1_23__ssec_1_23/p14 akn:chp_1א___sec_1_23__ssec_1_23/p15
+GIVEN c IS AN `age-hours case`, k IS A `kind of hour above the position`, `date` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `hours of the base an hour above the position is paid on` c k `date` IS
+    IF     `entitled to the age-hours reduction` c
+       AND `date` AT LEAST 19780901
+       AND NOT (k EQUALS `a substitution hour` AND `date` LESS THAN 19800901)
+    THEN `full position for the employee's age` c
+    ELSE c's `full-position base hours`
+
+GIVEN c IS AN `age-hours case`, k IS A `kind of hour above the position`, `date` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `value of a weekly hour above the position` c k `date` IS
+    c's `monthly salary of a full position` DIVIDED BY `hours of the base an hour above the position is paid on` c k `date`
+
+-- akn:chp_1א___sec_1_23__ssec_1_23/p16 Heading of the source list (אסמכתא).
+-- akn:chp_1א___sec_1_23__ssec_1_23/p17 Source list: circulars and the education-law compilation the section rests on.
+-- akn:chp_1א___sec_1_23__ssec_1_23/p18 Source list: Director-General's circulars.
+-- akn:chp_1א___sec_1_23__ssec_1_23/p19 Source list: a circular and a deputy director-general's letter.
+-- akn:chp_1א___sec_1_23__ssec_1_23/p20 Source list: a Director-General's circular.
+-- akn:chp_1א___sec_1_23__ssec_1_23/p21 Source list: a Director-General's circular.
+
+-- Worked examples. The 30-hour base and the salary of 10,000 are placeholders,
+-- not figures of the takanon. Cases are written positionally, in the order of
+-- the record's fields: school year, birth year, base hours, hours worked,
+-- part-time, offered completion and refused, health exception confirmed, no
+-- full position found, section-35 pensioner, mother of a child under 14, salary.
+`a teacher of 52 in a full position` MEANS
+    `age-hours case` 2024 1972 30 28 FALSE FALSE FALSE FALSE FALSE FALSE 10000
+
+#ASSERT `age hours` `a teacher of 52 in a full position` EQUALS 2
+#ASSERT `entitled to the age-hours reduction` `a teacher of 52 in a full position`
+#ASSERT `monthly salary` `a teacher of 52 in a full position` EQUALS 10000
+
+-- Born in 1975, the teacher reaches 50 during 2025: in the school year that
+-- starts in 2024 the birthday falls after 1 January, so the reduction starts in 2025.
+`a teacher who turns 50 in the spring` MEANS
+    `age-hours case` 2024 1975 30 30 FALSE FALSE FALSE FALSE FALSE FALSE 10000
+`the same teacher a year later` MEANS
+    `age-hours case` 2025 1975 30 28 FALSE FALSE FALSE FALSE FALSE FALSE 10000
+#ASSERT `reaches` 50 `on 1 January or later in the school year` `a teacher who turns 50 in the spring`
+#ASSERT `age hours` `a teacher who turns 50 in the spring` EQUALS 0
+#ASSERT `age hours` `the same teacher a year later` EQUALS 2
+
+-- A part-time teacher of 56 who refused completion loses the reduction,
+-- unless the district medical committee confirmed the health ground.
+`a part-timer of 56 who refused completion` MEANS
+    `age-hours case` 2024 1968 30 20 TRUE TRUE FALSE FALSE FALSE FALSE 10000
+`a part-timer of 56 who refused on confirmed health grounds` MEANS
+    `age-hours case` 2024 1968 30 20 TRUE TRUE TRUE FALSE FALSE FALSE 10000
+#ASSERT `age hours` `a part-timer of 56 who refused completion` EQUALS 4
+#ASSERT NOT `entitled to the age-hours reduction` `a part-timer of 56 who refused completion`
+#ASSERT `entitled to the age-hours reduction` `a part-timer of 56 who refused on confirmed health grounds`
+
+-- Section 1.23.6: a mother of a child under 14 who refused completion, at 24 of the 26 hours for her age.
+`a mother of 56 working 24 hours` MEANS
+    `age-hours case` 2024 1968 30 24 TRUE TRUE FALSE FALSE FALSE TRUE 10000
+#ASSERT `entitled to the age-hours reduction` `a mother of 56 working 24 hours`
+
+-- Section 1.23.4: no full position found, 13 hours of the 26-hour base for 56: half a position.
+`a part-timer of 56 with no full position found` MEANS
+    `age-hours case` 2024 1968 30 13 TRUE FALSE FALSE TRUE FALSE FALSE 10000
+#ASSERT `monthly salary` `a part-timer of 56 with no full position found` EQUALS 5000
+
+`a principal of 56 teaching 20 of 30 hours` MEANS
+    `manager's case` WITH
+        `manager's school year`         IS 2024
+        `manager's birth year`          IS 1968
+        `employed in a full position`   IS TRUE
+        `teaching hours in classes`     IS 20
+        `manager's full-position hours` IS 30
+`a principal of 56 teaching 10 of 30 hours` MEANS
+    `manager's case` 2024 1968 TRUE 10 30
+#ASSERT `managers' weekly reduction` `a principal of 56 teaching 20 of 30 hours` EQUALS 4
+#ASSERT `managers' weekly reduction` `a principal of 56 teaching 10 of 30 hours` EQUALS 2
+
+-- An extra hour is paid on the 28-hour age base; a substitution hour before 1.9.80 on the 30-hour base.
+#ASSERT `hours of the base an hour above the position is paid on` `a teacher of 52 in a full position` `an extra hour` 19790101 EQUALS 28
+#ASSERT `hours of the base an hour above the position is paid on` `a teacher of 52 in a full position` `a substitution hour` 19790101 EQUALS 30
+#ASSERT `hours of the base an hour above the position is paid on` `a teacher of 52 in a full position` `a substitution hour` 19810101 EQUALS 28

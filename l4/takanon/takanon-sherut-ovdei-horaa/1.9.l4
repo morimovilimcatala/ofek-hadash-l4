@@ -1,0 +1,642 @@
+-- תקנון שירות עובדי הוראה, פרק 1א', §1.9 נסיעות
+-- Travel: the commuting allowance (with and without a free monthly pass, and
+-- outside the employee's jurisdiction), organised transport in official
+-- education, duty travel, and travel to further studies.
+
+IMPORT prelude
+IMPORT common
+
+§ `1.9 נסיעות`
+
+GIVEN d IS A DATE, e IS A DATE
+GIVETH A BOOLEAN
+DECIDE d `is on or after` e IF
+    DATE_SERIAL d AT LEAST DATE_SERIAL e
+
+-- The actors §1.9 gives duties to that the takanon's shared Party list lacks.
+@desc Actors of section 1.9 that are not in the takanon's shared Party list.
+DECLARE `1.9 party` IS ONE OF
+    `the district transport committee`
+    `the personal-matters committee`
+    `the head of the local education department`
+
+-- akn:chp_1א___sec_1_9/p2 The page's table of contents (heading).
+-- akn:chp_1א___sec_1_9/p3 akn:chp_1א___sec_1_9/p4 akn:chp_1א___sec_1_9/p5 akn:chp_1א___sec_1_9/p6 Entries of the table of contents, naming the four subsections encoded below.
+
+§§ `1.9.1 הוצאות נסיעה`
+
+-- akn:chp_1א___sec_1_9__ssec_1_9_1/p1 A review note: the subsection was checked on 19.11.02.
+
+@desc One month of a teaching employee's commuting, as far as section 1.9.1 asks about it.
+DECLARE `commuting month` HAS
+    `a free monthly pass operates where the employee lives` IS A BOOLEAN
+    `passes the journey needs`                IS A NUMBER  @desc 1, or 2 where the journey needs two passes
+    `price of a monthly pass`                 IS A NUMBER  @desc an input
+    `days employed a week`                    IS A NUMBER
+    `real travel expenses of the month`       IS A NUMBER  @desc an input
+    `needs transport to reach work`           IS A BOOLEAN
+    `published allowance for a full month`    IS A NUMBER  @desc the allowance the Ministry's comptroller publishes from time to time (section 1.9.1.1ב.1); an input
+    `published allowance per journey`         IS A NUMBER  @desc the same, per journey; an input
+    `required to attend only some days`       IS A BOOLEAN @desc on a full or part-time position, required to come only on some of the week's days (1ב.3)
+    `journeys made`                           IS A NUMBER
+    `in a month after the first of a continuous paid absence longer than a month` IS A BOOLEAN @desc 1ב.5: from the start of the second month of such an absence
+    `in a month after the first of reserve duty longer than a month` IS A BOOLEAN
+    `on unpaid leave`                         IS A BOOLEAN
+    `work temporarily stopped`                IS A BOOLEAN
+    `a month of the summer break`             IS A BOOLEAN @desc one of the two summer-break months
+
+§§§ `1.9.1.1א Where a free monthly pass operates`
+
+@ref akn:chp_1א___sec_1_9__ssec_1_9_1__para_1__subpara_a akn:chp_1א___sec_1_9__ssec_1_9_1__para_1__subpara_a/p2 akn:chp_1א___sec_1_9__ssec_1_9_1__para_1__subpara_a/p3 akn:chp_1א___sec_1_9__ssec_1_9_1__para_1__subpara_a/p4
+GIVEN m IS A `commuting month`
+GIVETH A NUMBER
+DECIDE `allowance where a pass operates` m IS
+    IF m's `days employed a week` AT MOST 2
+    THEN m's `real travel expenses of the month`
+    ELSE m's `price of a monthly pass` TIMES min (m's `passes the journey needs`) 2
+
+-- The note to 1א: "סעיפים 2(3), ב2(5) ו-ב2(6) להלן" apply to pass users too.
+-- F-1.9-a: no clause of §1.9.1 bears those numbers; the reading adopted is
+-- 1ב.3, 1ב.5 and 1ב.6 — journeys made, a long absence, and leave, stoppage
+-- or summer.
+@ref akn:chp_1א___sec_1_9__ssec_1_9_1__para_1__subpara_a/p5
+GIVEN m IS A `commuting month`
+GIVETH A NUMBER
+DECIDE `pass user's allowance` m IS
+    BRANCH IF `no allowance this month` m THEN 0
+           IF m's `required to attend only some days`
+              THEN m's `published allowance per journey` TIMES m's `journeys made`
+           OTHERWISE `allowance where a pass operates` m
+
+-- F-1.9-a's evidence: the clauses §1.9.1 numbers, and the three the note cites.
+DECLARE `clause of 1.9.1` HAS
+    `paragraph`  IS A NUMBER
+    `letter`     IS A STRING
+    `item`       IS A NUMBER  @desc 0 where the clause has no numbered items
+
+`the clauses 1.9.1 numbers` MEANS
+    LIST `clause of 1.9.1` 1 "א" 0,
+         `clause of 1.9.1` 1 "ב" 1, `clause of 1.9.1` 1 "ב" 2, `clause of 1.9.1` 1 "ב" 3,
+         `clause of 1.9.1` 1 "ב" 4, `clause of 1.9.1` 1 "ב" 5, `clause of 1.9.1` 1 "ב" 6,
+         `clause of 1.9.1` 2 "א" 0, `clause of 1.9.1` 2 "ב" 0, `clause of 1.9.1` 2 "ג" 0,
+         `clause of 1.9.1` 2 "ד" 1, `clause of 1.9.1` 2 "ד" 2, `clause of 1.9.1` 2 "ד" 3,
+         `clause of 1.9.1` 2 "ה" 0
+
+-- "2(3)" is paragraph 2, item 3; "ב2(5)" and "ב2(6)" are letter ב of
+-- paragraph 2, items 5 and 6.
+`the clauses the note cites` MEANS
+    LIST `clause of 1.9.1` 2 "" 3, `clause of 1.9.1` 2 "ב" 5, `clause of 1.9.1` 2 "ב" 6
+
+`the clauses the reading adopts` MEANS
+    LIST `clause of 1.9.1` 1 "ב" 3, `clause of 1.9.1` 1 "ב" 5, `clause of 1.9.1` 1 "ב" 6
+
+`none of the clauses the note cites exists` MEANS
+    all (GIVEN c YIELD (NOT elem c `the clauses 1.9.1 numbers`)) `the clauses the note cites`
+#ASSERT `none of the clauses the note cites exists`
+#ASSERT all (GIVEN c YIELD elem c `the clauses 1.9.1 numbers`) `the clauses the reading adopts`
+
+§§§ `1.9.1.1ב Where no free monthly pass operates`
+
+-- ב.1: the allowance, at the amount the comptroller publishes, for one who
+-- needs transport; ב.3: by journeys made where attendance is required only
+-- on some days.
+@ref akn:chp_1א___sec_1_9__ssec_1_9_1__para_1__subpara_b akn:chp_1א___sec_1_9__ssec_1_9_1__para_1__subpara_b__cls_1 akn:chp_1א___sec_1_9__ssec_1_9_1__para_1__subpara_b__cls_3
+GIVEN m IS A `commuting month`
+GIVETH A NUMBER
+DECIDE `allowance without a pass` m IS
+    BRANCH IF (NOT m's `needs transport to reach work`) THEN 0
+           IF `no allowance this month` m THEN 0
+           IF m's `required to attend only some days`
+              THEN m's `published allowance per journey` TIMES m's `journeys made`
+           OTHERWISE m's `published allowance for a full month`
+
+@export default The monthly commuting allowance a teaching employee is owed under section 1.9.1.1 of the takanon, with or without a free monthly pass
+GIVEN m IS A `commuting month` @desc the employee's month
+GIVETH A NUMBER
+DECIDE `commuting allowance` m IS
+    IF m's `a free monthly pass operates where the employee lives`
+    THEN `pass user's allowance` m
+    ELSE `allowance without a pass` m
+
+-- ב.2: the second bus is paid for where it rides 3 urban stops or more,
+-- not counting the stop of origin, and no shorter way can be walked.
+@ref akn:chp_1א___sec_1_9__ssec_1_9_1__para_1__subpara_b__cls_2
+GIVEN `buses needed` IS A NUMBER
+      `urban stops on the second bus, not counting the first` IS A NUMBER
+      `a shorter way can be walked` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `may claim for the second bus`
+        `buses needed` `urban stops on the second bus, not counting the first` `a shorter way can be walked` IF
+        `buses needed` GREATER THAN 1
+    AND `urban stops on the second bus, not counting the first` AT LEAST 3
+    AND (NOT `a shorter way can be walked`)
+
+-- ב.4: in official education only, one employed in several schools is
+-- attached to the one where the hours are greatest. F-1.9-b: a tie is not
+-- decided; this returns every school with the greatest hours, so a tie
+-- shows as more than one.
+@ref akn:chp_1א___sec_1_9__ssec_1_9_1__para_1__subpara_b__cls_4
+GIVEN `hours in each school` IS A LIST OF NUMBER
+GIVETH A LIST OF NUMBER
+DECIDE `schools the allowance attaches to` `hours in each school` IS
+    filter (GIVEN h YIELD h EQUALS foldr max 0 `hours in each school`) `hours in each school`
+
+`a teacher with 12 hours in each of two schools is attached to both` MEANS
+    count (`schools the allowance attaches to` (LIST 12, 12)) EQUALS 2
+#ASSERT `a teacher with 12 hours in each of two schools is attached to both`
+
+§§§ `1.9.1.1ב.5–6 When no allowance is paid`
+
+@ref akn:chp_1א___sec_1_9__ssec_1_9_1__para_1__subpara_b__cls_5
+GIVEN m IS A `commuting month`
+GIVETH A BOOLEAN
+DECIDE `barred by a long absence` m IF
+        m's `in a month after the first of a continuous paid absence longer than a month`
+    OR  m's `in a month after the first of reserve duty longer than a month`
+
+@ref akn:chp_1א___sec_1_9__ssec_1_9_1__para_1__subpara_b__cls_6 akn:chp_1א___sec_1_9__ssec_1_9_1__para_1__subpara_b__cls_6__pnt_a akn:chp_1א___sec_1_9__ssec_1_9_1__para_1__subpara_b__cls_6__pnt_b akn:chp_1א___sec_1_9__ssec_1_9_1__para_1__subpara_b__cls_6__pnt_c
+GIVEN m IS A `commuting month`
+GIVETH A BOOLEAN
+DECIDE `barred by leave, stoppage or summer` m IF
+        m's `on unpaid leave`
+    OR  m's `work temporarily stopped`
+    OR  m's `a month of the summer break`
+
+GIVEN m IS A `commuting month`
+GIVETH A BOOLEAN
+DECIDE `no allowance this month` m IF
+    `barred by a long absence` m OR `barred by leave, stoppage or summer` m
+
+§§§ `1.9.1.2 Employed outside the jurisdiction of residence`
+
+@desc A teaching employee who works outside the jurisdiction where she lives, as section 1.9.1.2 asks about it.
+DECLARE `work outside the jurisdiction` HAS
+    `posted there for the system's needs`           IS A BOOLEAN
+    `moved home out of the jurisdiction`            IS A BOOLEAN
+    `moved at the Ministry's demand`                IS A BOOLEAN
+    `moved for personal reasons the committee recognised` IS A BOOLEAN @desc health, marriage, children's education, bad housing and the like (2ב)
+    `in official education`                         IS A BOOLEAN
+    `asked for a transfer and the Ministry agreed`  IS A BOOLEAN
+    `moved to another city and still works in the old one` IS A BOOLEAN
+    `asked for work in the new city and was not placed for two years` IS A BOOLEAN
+    `a realistic placement in the new city was not used` IS A BOOLEAN
+    `real bus fares for the days travelled`         IS A NUMBER
+    `allowance before the move`                     IS A NUMBER
+    `allowance at the previous workplace`           IS A NUMBER
+    `allowance on the present journey`              IS A NUMBER
+
+@ref akn:chp_1א___sec_1_9__ssec_1_9_1__para_2__subpara_a
+GIVEN w IS A `work outside the jurisdiction`
+GIVETH A BOOLEAN
+DECIDE `paid real bus fares as posted` w IF
+    w's `posted there for the system's needs`
+
+-- 2ב: a move out of the jurisdiction keeps the allowance at its rate before
+-- the move, unless it was at the Ministry's demand or for recognised reasons.
+@ref akn:chp_1א___sec_1_9__ssec_1_9_1__para_2__subpara_b
+GIVEN w IS A `work outside the jurisdiction`
+GIVETH A BOOLEAN
+DECIDE `frozen at the rate before the move under 2ב` w IF
+        w's `moved home out of the jurisdiction`
+    AND (NOT w's `moved at the Ministry's demand`)
+    AND (NOT w's `moved for personal reasons the committee recognised`)
+
+@ref akn:chp_1א___sec_1_9__ssec_1_9_1__para_2__subpara_c
+GIVEN w IS A `work outside the jurisdiction`
+GIVETH A BOOLEAN
+DECIDE `held at the previous workplace's rate under 2ג` w IF
+    w's `in official education` AND w's `asked for a transfer and the Ministry agreed`
+
+@ref akn:chp_1א___sec_1_9__ssec_1_9_1__para_2__subpara_d akn:chp_1א___sec_1_9__ssec_1_9_1__para_2__subpara_d__cls_1 akn:chp_1א___sec_1_9__ssec_1_9_1__para_2__subpara_d__cls_2 akn:chp_1א___sec_1_9__ssec_1_9_1__para_2__subpara_d__cls_3
+GIVEN w IS A `work outside the jurisdiction`
+GIVETH A BOOLEAN
+DECIDE `paid travel expenses under 2ד` w IF
+        w's `in official education`
+    AND w's `moved to another city and still works in the old one`
+    AND w's `asked for work in the new city and was not placed for two years`
+    AND w's `a realistic placement in the new city was not used`
+
+-- F-1.9-c: a teacher in official education who moved away meets 2ב (frozen
+-- at the old rate) and, on 2ד's three conditions, 2ד (paid travel
+-- expenses). The reading adopted: 2ד is the exception to 2ב and pays the
+-- present journey.
+@export The commuting allowance under section 1.9.1.2 of a teaching employee who works outside the jurisdiction where she lives
+GIVEN w IS A `work outside the jurisdiction` @desc the employee's situation
+GIVETH A NUMBER
+DECIDE `allowance outside the jurisdiction` w IS
+    BRANCH IF `paid real bus fares as posted` w THEN w's `real bus fares for the days travelled`
+           IF `paid travel expenses under 2ד` w THEN w's `allowance on the present journey`
+           IF `held at the previous workplace's rate under 2ג` w
+              THEN min (w's `allowance on the present journey`) (w's `allowance at the previous workplace`)
+           IF `frozen at the rate before the move under 2ב` w
+              THEN min (w's `allowance on the present journey`) (w's `allowance before the move`)
+           OTHERWISE w's `allowance on the present journey`
+
+DECLARE `committee action` IS ONE OF `decide the case`
+
+-- 2ג ¶2: the personal-matters committee decides the cases of 2ב and any
+-- case brought before it.
+@ref akn:chp_1א___sec_1_9__ssec_1_9_1__para_2__subpara_c/p2
+GIVEN `a case is brought under 2ב or otherwise` IS A BOOLEAN
+GIVETH A DEONTIC `1.9 party` `committee action`
+DECIDE `the personal-matters committee decides` `a case is brought under 2ב or otherwise` IS
+    IF `a case is brought under 2ב or otherwise`
+    THEN PARTY `the personal-matters committee`
+         MUST  `decide the case`
+         WITHIN 1
+    ELSE FULFILLED
+
+-- akn:chp_1א___sec_1_9__ssec_1_9_1__para_2__subpara_e A pointer: travel of northern teachers who teach in Bedouin localities in the south is in section 1.48.
+
+-- akn:chp_1א___sec_1_9__ssec_1_9_1/p2 akn:chp_1א___sec_1_9__ssec_1_9_1/p3 akn:chp_1א___sec_1_9__ssec_1_9_1/p4 akn:chp_1א___sec_1_9__ssec_1_9_1/p5 akn:chp_1א___sec_1_9__ssec_1_9_1/p6 akn:chp_1א___sec_1_9__ssec_1_9_1/p7 The subsection's sources (אסמכתא): circulars and decisions of the parity committee.
+
+§§ `1.9.2 הסעות מורים בחינוך הרשמי`
+
+DECLARE `kind of official institution` IS ONE OF
+    `a mixed kindergarten (ages 3–4 and compulsory)`
+    `a compulsory kindergarten`
+    `a primary school`
+    `a middle school`
+    `another institution`
+
+@ref akn:chp_1א___sec_1_9__ssec_1_9_2__para_1
+GIVEN k IS A `kind of official institution`
+GIVETH A BOOLEAN
+DECIDE `the transport rules of 1.9.2 apply in` k IF
+    (NOT (k EQUALS `another institution`))
+
+-- 2: those who need public transport get the allowance of 1.9.1; the
+-- request goes to the treasury of the Ministry's district office.
+@ref akn:chp_1א___sec_1_9__ssec_1_9_2__para_2
+GIVEN `needs public transport between home and the institution` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `entitled to the allowance of 1.9.1 under 1.9.2` `needs public transport between home and the institution` IF
+    `needs public transport between home and the institution`
+
+@desc A proposed organised transport for teachers, as section 1.9.2.3–4 asks about it.
+DECLARE `transport proposal` HAS
+    `teachers need organised transport`               IS A BOOLEAN
+    `public transport lines can be used`              IS A BOOLEAN
+    `approved beforehand by the district transport committee` IS A BOOLEAN
+    `can be combined with existing pupil transport`   IS A BOOLEAN
+    `pupils walk the way`                             IS A BOOLEAN
+    `within the approved yearly budget`               IS A BOOLEAN
+    `for parents' or staff meetings, home visits and the like` IS A BOOLEAN
+    `the teachers receive the travel allowance`       IS A BOOLEAN
+
+DECLARE `transport action` IS ONE OF
+    `decide on organised transport`
+    `organise the transport and set a pick-up point`
+    `weigh transport in placing teachers`
+    `build the timetable for one pick-up and one drop-off`
+    `submit a request for organised transport`
+    `pass the request to the district committee`
+    `approve organised transport`
+
+-- 3.1: no duty on the Ministry; where teachers need it and public transport
+-- cannot be used, the Ministry MAY decide on organised transport.
+@ref akn:chp_1א___sec_1_9__ssec_1_9_2__para_3 akn:chp_1א___sec_1_9__ssec_1_9_2__para_3__subpara_1
+GIVEN p IS A `transport proposal`
+GIVETH A DEONTIC Party `transport action`
+DECIDE `the Ministry may organise transport` p IS
+    IF p's `teachers need organised transport` AND (NOT p's `public transport lines can be used`)
+    THEN PARTY `the Ministry of Education` MAY `decide on organised transport`
+    ELSE FULFILLED
+
+@ref akn:chp_1א___sec_1_9__ssec_1_9_2__para_3__subpara_2
+GIVETH A DEONTIC Party `transport action`
+DECIDE `district managers weigh transport` IS
+    PARTY `the district manager`
+    MUST  `weigh transport in placing teachers`
+    WITHIN 1
+    LEST BREACH BY `the district manager` BECAUSE "section 1.9.2.3: transport is weighed as a high-priority factor in placing teachers"
+
+GIVEN `recommended by the district manager or his delegate` IS A BOOLEAN
+      `approved by the teaching manpower division` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `a placement is made as 1.9.2.3 asks`
+        `recommended by the district manager or his delegate`
+        `approved by the teaching manpower division` IF
+    `recommended by the district manager or his delegate` AND `approved by the teaching manpower division`
+
+-- 4: the rules for organised transport, as conditions on running it.
+@ref akn:chp_1א___sec_1_9__ssec_1_9_2__para_4 akn:chp_1א___sec_1_9__ssec_1_9_2__para_4__subpara_1 akn:chp_1א___sec_1_9__ssec_1_9_2__para_4__subpara_3 akn:chp_1א___sec_1_9__ssec_1_9_2__para_4__subpara_4 akn:chp_1א___sec_1_9__ssec_1_9_2__para_4__subpara_7 akn:chp_1א___sec_1_9__ssec_1_9_2__para_4__subpara_8 akn:chp_1א___sec_1_9__ssec_1_9_2__para_4__subpara_9
+GIVEN p IS A `transport proposal`
+GIVETH A BOOLEAN
+DECIDE `organised transport may run` p IF
+        p's `approved beforehand by the district transport committee`
+    AND p's `within the approved yearly budget`
+    AND (NOT p's `can be combined with existing pupil transport`)
+    AND (NOT p's `public transport lines can be used`)
+    AND (NOT p's `pupils walk the way`)
+    AND (NOT (p's `for parents' or staff meetings, home visits and the like` AND p's `the teachers receive the travel allowance`))
+
+-- 4.3 also bars the travel ALLOWANCE where pupil transport can carry the
+-- teachers.
+GIVEN p IS A `transport proposal`
+GIVETH A BOOLEAN
+DECIDE `the allowance is barred by pupil transport` p IF
+    p's `can be combined with existing pupil transport`
+
+-- 4.3, second half: the local authority's vehicle where it is cheaper.
+GIVEN `cost in the local authority's vehicle` IS A NUMBER, `cost otherwise` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `use the local authority's vehicle` `cost in the local authority's vehicle` `cost otherwise` IF
+    `cost in the local authority's vehicle` LESS THAN `cost otherwise`
+
+@ref akn:chp_1א___sec_1_9__ssec_1_9_2__para_4__subpara_2
+GIVETH A DEONTIC Party `transport action`
+DECIDE `the local authority organises` IS
+    PARTY `the local authority or owning body`
+    MUST  `organise the transport and set a pick-up point`
+    WITHIN 1
+    LEST BREACH BY `the local authority or owning body` BECAUSE "section 1.9.2.4.2: the local authority the teachers are taken to organises the transport"
+
+-- 4.5: taken from the main road, the public-transport fares to and from it
+-- are paid in full.
+@ref akn:chp_1א___sec_1_9__ssec_1_9_2__para_4__subpara_5
+GIVEN `fare to the main road` IS A NUMBER, `fare from the main road` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `refund for the main-road legs` `fare to the main road` `fare from the main road` IS
+    `fare to the main road` PLUS `fare from the main road`
+
+-- 4.6: once a day each way, and the principals build the timetable for it.
+@ref akn:chp_1א___sec_1_9__ssec_1_9_2__para_4__subpara_6
+`organised journeys a day each way` MEANS 1
+
+GIVETH A DEONTIC Party `transport action`
+DECIDE `principals build the timetable` IS
+    PARTY `the school principal`
+    MUST  `build the timetable for one pick-up and one drop-off`
+    WITHIN 1
+    LEST BREACH BY `the school principal` BECAUSE "section 1.9.2.4.6: the timetable is built so that one pick-up and one drop-off suffice"
+
+-- 4.9 ¶2–4: with a private car, refund at public-transport fares, or at the
+-- Accountant-General's car rates (variable costs only) if the Ministry so
+-- considers; teachers on organised transport claim duty journeys on the
+-- per-diem form, at public-transport fares, up to the comptroller's ceiling.
+@ref akn:chp_1א___sec_1_9__ssec_1_9_2__para_4__subpara_9/p2
+GIVEN `public-transport fare` IS A NUMBER
+      `variable private-car cost at the Accountant-General's rates` IS A NUMBER
+      `the Ministry allows the car rates` IS A BOOLEAN
+GIVETH A NUMBER
+DECIDE `refund to a private-car user`
+        `public-transport fare`
+        `variable private-car cost at the Accountant-General's rates`
+        `the Ministry allows the car rates` IS
+    IF `the Ministry allows the car rates`
+    THEN `variable private-car cost at the Accountant-General's rates`
+    ELSE `public-transport fare`
+
+@ref akn:chp_1א___sec_1_9__ssec_1_9_2__para_4__subpara_9/p3 akn:chp_1א___sec_1_9__ssec_1_9_2__para_4__subpara_9/p4
+GIVEN `on organised transport and without the allowance` IS A BOOLEAN
+      `fares of the duty journeys` IS A NUMBER
+      `the comptroller's ceiling` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `duty-journey refund for an organised-transport teacher`
+        `on organised transport and without the allowance`
+        `fares of the duty journeys`
+        `the comptroller's ceiling` IS
+    IF `on organised transport and without the allowance`
+    THEN min `fares of the duty journeys` `the comptroller's ceiling`
+    ELSE 0
+
+@ref akn:chp_1א___sec_1_9__ssec_1_9_2__para_4__subpara_10
+GIVEN `missed the organised transport` IS A BOOLEAN, `fare of the other transport` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `refund for other transport` `missed the organised transport` `fare of the other transport` IS
+    IF `missed the organised transport` THEN 0 ELSE `fare of the other transport`
+
+-- 4.11: the employee's request reaches the local education department by
+-- 15 June (school month 10); the department passes it to the district
+-- committee, which decides as for pupil transport.
+@ref akn:chp_1א___sec_1_9__ssec_1_9_2__para_4__subpara_11
+GIVETH A DEONTIC Party `transport action`
+DECIDE `requesting organised transport` IS
+    PARTY `the teaching employee`
+    MAY   `submit a request for organised transport`
+    WITHIN `month number` June
+    HENCE (PARTY `the local authority or owning body`
+           MUST  `pass the request to the district committee`
+           WITHIN 1
+           LEST BREACH BY `the local authority or owning body` BECAUSE "section 1.9.2.4.11: the education department passes the request to the district committee")
+
+@ref akn:chp_1א___sec_1_9__ssec_1_9_2__para_4__subpara_11/p2
+GIVETH A DEONTIC `1.9 party` `transport action`
+DECIDE `the district committee decides the request` IS
+    PARTY `the district transport committee`
+    MAY   `approve organised transport`
+    WITHIN 1
+
+-- 4.12: the cost in a local authority's (yellow) vehicle follows the
+-- pupil-transport procedures of the time; an input.
+@ref akn:chp_1א___sec_1_9__ssec_1_9_2__para_4__subpara_12
+GIVEN `cost by the pupil-transport procedures` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `cost of transport in a local authority's vehicle` `cost by the pupil-transport procedures` IS
+    `cost by the pupil-transport procedures`
+
+-- akn:chp_1א___sec_1_9__ssec_1_9_2/p1 The subsection's source (אסמכתא): a director-general's circular.
+
+§§ `1.9.3 הוצאות נסיעה בתפקיד`
+
+DECLARE `duty-travel group` IS ONE OF
+    `works in an educational institution`
+    `role-holder on a global duty-travel rate`
+    `in guidance, supervision or curriculum writing`
+
+-- 1: until 31.3.82, from 1.4.79, duty journeys after hours were refunded
+-- at public-transport fares under the takshir.
+-- 2: from 1.4.82 (in post-primary too), those in institutions get 25% of
+-- their travel allowance instead; role-holders on a global rate and those
+-- in guidance, supervision and curricula keep the existing rules.
+-- 3: from 1.9.90, where the free monthly pass operates, the refund is
+-- abolished.
+@ref akn:chp_1א___sec_1_9__ssec_1_9_3__para_1/p1 akn:chp_1א___sec_1_9__ssec_1_9_3__para_1/p2 akn:chp_1א___sec_1_9__ssec_1_9_3__para_2/p1 akn:chp_1א___sec_1_9__ssec_1_9_3__para_2/p2 akn:chp_1א___sec_1_9__ssec_1_9_3__para_2/p3 akn:chp_1א___sec_1_9__ssec_1_9_3__para_3/p1
+GIVEN d IS A DATE
+      g IS A `duty-travel group`
+      `a free monthly pass operates where the employee lives` IS A BOOLEAN
+      `travel allowance paid` IS A NUMBER
+      `public-transport fares of the duty journeys` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `duty-travel compensation` d g `a free monthly pass operates where the employee lives` `travel allowance paid` `public-transport fares of the duty journeys` IS
+    BRANCH IF (NOT (d `is on or after` (DATE_FROM_DMY 1 4 1979))) THEN 0
+           IF (NOT (g EQUALS `works in an educational institution`))
+              THEN `public-transport fares of the duty journeys`
+           IF (NOT (d `is on or after` (DATE_FROM_DMY 1 4 1982)))
+              THEN `public-transport fares of the duty journeys`
+           IF (d `is on or after` (DATE_FROM_DMY 1 9 1990)) AND `a free monthly pass operates where the employee lives`
+              THEN 0
+           OTHERWISE 25% TIMES `travel allowance paid`
+
+-- akn:chp_1א___sec_1_9__ssec_1_9_3/p1 akn:chp_1א___sec_1_9__ssec_1_9_3/p2 The subsection's source (אסמכתא): a director-general's circular.
+
+§§ `1.9.4 הוצאות נסיעה לעובדי הוראה משתלמים`
+
+DECLARE `study framework` IS ONE OF
+    `academic studies at a higher-education institution or academic college`
+    `retraining or certification at a teacher-training institution`
+    `courses and study days initiated by the Ministry's supervision`
+    `another framework`
+
+@desc A teaching employee's further studies, as section 1.9.4 asks about them.
+DECLARE `further studies` HAS
+    `employed by the Ministry or an owner in its tuition-refund arrangements` IS A BOOLEAN
+    `framework`                                IS A `study framework`
+    `on a full or partial sabbatical`          IS A BOOLEAN
+    `inter-city fares`                         IS A NUMBER
+    `urban fares`                              IS A NUMBER
+    `form approved by the direct manager`      IS A BOOLEAN
+    `confirmation of studies attached`         IS A BOOLEAN
+    `has a study-hours grant or tuition refund` IS A BOOLEAN
+
+@ref akn:chp_1א___sec_1_9__ssec_1_9_4__hc_1__para_1 akn:chp_1א___sec_1_9__ssec_1_9_4__hc_1__para_2 akn:chp_1א___sec_1_9__ssec_1_9_4__hc_1__para_2__subpara_a akn:chp_1א___sec_1_9__ssec_1_9_4__hc_1__para_2__subpara_b akn:chp_1א___sec_1_9__ssec_1_9_4__hc_1__para_2__subpara_c akn:chp_1א___sec_1_9__ssec_1_9_4__hc_1__para_3
+GIVEN s IS A `further studies`
+GIVETH A BOOLEAN
+DECIDE `entitled to study-travel refund` s IF
+        s's `employed by the Ministry or an owner in its tuition-refund arrangements`
+    AND (NOT (s's `framework` EQUALS `another framework`))
+    AND (NOT s's `on a full or partial sabbatical`)
+
+-- 1: the request is on a form the direct manager approves, with a
+-- confirmation of studies unless a study-hours grant or tuition refund was
+-- approved.
+@ref akn:chp_1א___sec_1_9__ssec_1_9_4__hc_2__para_1 akn:chp_1א___sec_1_9__ssec_1_9_4__hc_2__para_1/p2 akn:chp_1א___sec_1_9__ssec_1_9_4__hc_2__para_1/p3
+GIVEN s IS A `further studies`
+GIVETH A BOOLEAN
+DECIDE `the request is complete` s IF
+        s's `form approved by the direct manager`
+    AND (s's `confirmation of studies attached` OR s's `has a study-hours grant or tuition refund`)
+
+@export The travel refund for further studies a teaching employee is owed under section 1.9.4 of the takanon
+GIVEN s IS A `further studies` @desc the employee's studies
+GIVETH A NUMBER
+DECIDE `study-travel refund` s IS
+    IF `entitled to study-travel refund` s AND `the request is complete` s
+    THEN s's `inter-city fares`
+    ELSE 0
+
+-- 4 (eligibility): only inter-city journeys; urban fares are not refunded.
+@ref akn:chp_1א___sec_1_9__ssec_1_9_4__hc_1__para_4
+GIVEN s IS A `further studies`
+GIVETH A BOOLEAN
+DECIDE `urban fares are refunded` s IF
+    FALSE
+
+DECLARE `study-travel action` IS ONE OF
+    `submit the request`
+    `attach the request to the attendance report`
+    `pay the month's part of the refund`
+    `send the half-yearly summary`
+    `transfer the refunds to the owner`
+
+-- Procedures 2–3: one request for all the journeys of a course; for a
+-- supervision guidance or study day, one a month.
+@ref akn:chp_1א___sec_1_9__ssec_1_9_4__hc_2__para_2 akn:chp_1א___sec_1_9__ssec_1_9_4__hc_2__para_3
+GIVEN f IS A `study framework`
+GIVETH A NUMBER
+DECIDE `months between requests` f IS
+    IF f EQUALS `courses and study days initiated by the Ministry's supervision`
+    THEN 1
+    ELSE 12
+
+GIVEN f IS A `study framework`
+GIVETH A DEONTIC Party `study-travel action`
+DECIDE `submitting the study-travel request` f IS
+    PARTY `the teaching employee`
+    MAY   `submit the request`
+    WITHIN `months between requests` f
+
+-- 4: the signed request goes with the monthly attendance report.
+@ref akn:chp_1א___sec_1_9__ssec_1_9_4__hc_2__para_4
+GIVETH A DEONTIC Party `study-travel action`
+DECIDE `the request travels with the attendance report` IS
+    PARTY `the school principal`
+    MUST  `attach the request to the attendance report`
+    WITHIN 1
+    LEST BREACH BY `the school principal` BECAUSE "section 1.9.4: the signed request is attached to the monthly attendance report"
+
+-- akn:chp_1א___sec_1_9__ssec_1_9_4__hc_2__para_5 Where the forms can be had (district offices, training centres, school offices); no rule.
+
+-- akn:chp_1א___sec_1_9__ssec_1_9_4/p1 A heading: "התשלום".
+
+@ref akn:chp_1א___sec_1_9__ssec_1_9_4/p2
+GIVETH A DEONTIC Party `study-travel action`
+DECIDE `the employer's treasury pays monthly` IS
+    PARTY `the employer`
+    MUST  `pay the month's part of the refund`
+    WITHIN 1
+    LEST BREACH BY `the employer` BECAUSE "section 1.9.4: the employer's treasury pays the month's part of the refund each month"
+
+-- akn:chp_1א___sec_1_9__ssec_1_9_4/p3 A heading: "התחשבנויות עם הבעלויות".
+
+-- Owners send a half-yearly summary (6 months), then the Ministry transfers.
+@ref akn:chp_1א___sec_1_9__ssec_1_9_4/p4
+GIVETH A DEONTIC Party `study-travel action`
+DECIDE `owners' half-yearly accounting` IS
+    PARTY `the local authority or owning body`
+    MUST  `send the half-yearly summary`
+    WITHIN 6
+    HENCE (PARTY `the Ministry of Education`
+           MUST  `transfer the refunds to the owner`
+           WITHIN 1
+           LEST BREACH BY `the Ministry of Education` BECAUSE "section 1.9.4: the Ministry transfers the approved refunds to the owners")
+    LEST BREACH BY `the local authority or owning body` BECAUSE "section 1.9.4: owners send a half-yearly summary of refunds"
+
+-- akn:chp_1א___sec_1_9__ssec_1_9_4/p5 akn:chp_1א___sec_1_9__ssec_1_9_4/p6 The title of the request form and the line introducing it; the form is not a rule.
+
+-- Worked examples. Every amount below is a placeholder.
+`a pass user on unpaid leave` MEANS
+    `commuting month` WITH
+        `a free monthly pass operates where the employee lives` IS TRUE
+        `passes the journey needs`                IS 2
+        `price of a monthly pass`                 IS 200
+        `days employed a week`                    IS 5
+        `real travel expenses of the month`       IS 0
+        `needs transport to reach work`           IS TRUE
+        `published allowance for a full month`    IS 0
+        `published allowance per journey`         IS 0
+        `required to attend only some days`       IS FALSE
+        `journeys made`                           IS 0
+        `in a month after the first of a continuous paid absence longer than a month` IS FALSE
+        `in a month after the first of reserve duty longer than a month` IS FALSE
+        `on unpaid leave`                         IS TRUE
+        `work temporarily stopped`                IS FALSE
+        `a month of the summer break`             IS FALSE
+
+#ASSERT `commuting allowance` `a pass user on unpaid leave` EQUALS 0
+#ASSERT `allowance where a pass operates` `a pass user on unpaid leave` EQUALS 400
+#ASSERT `may claim for the second bus` 2 3 FALSE
+#ASSERT `duty-travel compensation` (DATE_FROM_DMY 1 1 1985) `works in an educational institution` FALSE 400 90 EQUALS 100
+#ASSERT `duty-travel compensation` (DATE_FROM_DMY 1 1 1995) `works in an educational institution` TRUE 400 90 EQUALS 0
+
+-- F-1.9-c's evidence: a teacher who meets 2ב and 2ד alike.
+`a teacher who moved away and was not placed` MEANS
+    `work outside the jurisdiction` WITH
+        `posted there for the system's needs`           IS FALSE
+        `moved home out of the jurisdiction`            IS TRUE
+        `moved at the Ministry's demand`                IS FALSE
+        `moved for personal reasons the committee recognised` IS FALSE
+        `in official education`                         IS TRUE
+        `asked for a transfer and the Ministry agreed`  IS FALSE
+        `moved to another city and still works in the old one` IS TRUE
+        `asked for work in the new city and was not placed for two years` IS TRUE
+        `a realistic placement in the new city was not used` IS TRUE
+        `real bus fares for the days travelled`         IS 0
+        `allowance before the move`                     IS 0
+        `allowance at the previous workplace`           IS 0
+        `allowance on the present journey`              IS 300
+
+`2ב and 2ד both reach a teacher who moved away and was not placed` MEANS
+        `frozen at the rate before the move under 2ב` `a teacher who moved away and was not placed`
+    AND `paid travel expenses under 2ד` `a teacher who moved away and was not placed`
+    AND NOT (`a teacher who moved away and was not placed`'s `allowance before the move`
+             EQUALS `a teacher who moved away and was not placed`'s `allowance on the present journey`)
+#ASSERT `2ב and 2ד both reach a teacher who moved away and was not placed`
+#ASSERT `allowance outside the jurisdiction` `a teacher who moved away and was not placed` EQUALS 300
+
+#TRACE `requesting organised transport` AT 0 WITH
+    PARTY `the teaching employee` DOES `submit a request for organised transport` AT 9
+    PARTY `the local authority or owning body` DOES `pass the request to the district committee` AT 10
+#TRACE `owners' half-yearly accounting` AT 0 WITH
+    PARTY `the local authority or owning body` DOES `send the half-yearly summary` AT 6

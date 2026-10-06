@@ -1,0 +1,104 @@
+-- תקנון שירות עובדי הוראה, פרק 6, §6.13 מורה יועץ
+-- The counselling teacher in a post-primary school: who may be appointed,
+-- whose approval the placement needs, and the counselling reward.
+
+IMPORT prelude
+IMPORT common
+
+§ `6.13 מורה יועץ`
+
+DECLARE `counsellor placement action` IS ONE OF
+    `place a counselling teacher` HAS `approved by the district's senior counsellor` IS A BOOLEAN
+
+@desc The counselling reward, whose amount section 1.12 (appointments and rewards of post-holders) sets; an input until 1.12 is encoded.
+ASSUME `the counselling reward set by section 1.12` IS A NUMBER
+
+§§ `6.13.1 יחידת עבודה`
+
+-- akn:chp_6__sec_6_13__ssec_6_13_1/p1 A pointer: the counsellor's work unit is the one section 3.12.1 sets, encoded there.
+
+§§ `6.13.2 מינוי`
+
+@desc A candidate for the post of counselling teacher in a post-primary school, as far as section 6.13.2 asks about them.
+@ref akn:chp_6__sec_6_13__ssec_6_13_2__para_1/p1
+DECLARE `counsellor candidate` HAS
+    `has completed university training in counselling` IS A BOOLEAN
+    `holds an MA`                                      IS A BOOLEAN
+    `is studying towards an MA`                        IS A BOOLEAN
+    `has teaching experience`                          IS A BOOLEAN
+
+@ref akn:chp_6__sec_6_13__ssec_6_13_2__para_1/p1 akn:chp_6__sec_6_13__ssec_6_13_2__para_1__subpara_a akn:chp_6__sec_6_13__ssec_6_13_2__para_1__subpara_b
+GIVEN c IS A `counsellor candidate`
+GIVETH A BOOLEAN
+DECIDE `meets the education requirements for a counselling teacher` c IF
+        c's `has completed university training in counselling`
+    AND c's `has teaching experience`
+
+-- §6.13.2.1א's bracket: among candidates who meet the requirements, an MA
+-- holder or MA student is preferred. A preference, not a condition.
+@ref akn:chp_6__sec_6_13__ssec_6_13_2__para_1__subpara_a
+GIVEN c IS A `counsellor candidate`
+GIVETH A BOOLEAN
+DECIDE `is a preferred candidate` c IF
+        `meets the education requirements for a counselling teacher` c
+    AND (c's `holds an MA` OR c's `is studying towards an MA`)
+
+-- §6.13.2.2: placing a counselling teacher in a counselling post needs the
+-- approval of the district's senior counsellor of שפ"י (see also section
+-- 3.12.2). The text does not say who places; the employer is read as the
+-- one who does.
+@ref akn:chp_6__sec_6_13__ssec_6_13_2__para_2
+GIVEN c IS A `counsellor candidate`
+GIVETH A DEONTIC Party `counsellor placement action`
+DECIDE `placing a counselling teacher` c IS
+    IF `meets the education requirements for a counselling teacher` c
+    THEN PARTY `the employer`
+         MAY   `place a counselling teacher` approved
+               PROVIDED approved
+    ELSE PARTY `the employer`
+         SHANT `place a counselling teacher` approved
+         LEST BREACH BY `the employer` BECAUSE "section 6.13.2.1: only candidates with full counselling training and teaching experience are employed"
+
+GIVETH A DEONTIC Party `counsellor placement action`
+DECIDE `no placement without the senior counsellor's approval` IS
+    PARTY `the employer`
+    SHANT `place a counselling teacher` approved
+          PROVIDED NOT approved
+    LEST BREACH BY `the employer` BECAUSE "section 6.13.2.2: placement needs the approval of the district's senior counsellor"
+
+-- akn:chp_6__sec_6_13__ssec_6_13_2/p1 akn:chp_6__sec_6_13__ssec_6_13_2/p2 The section's sources (אסמכתא): a list of the circulars it rests on.
+
+§§ `6.13.6 גמול יעוץ`
+
+@ref akn:chp_6__sec_6_13__ssec_6_13_6/p1 akn:chp_6__sec_6_13__ssec_6_13_6/p2
+GIVEN `is a counselling teacher` IS A BOOLEAN
+GIVETH A NUMBER
+DECIDE `counselling reward` `is a counselling teacher` IS
+    IF `is a counselling teacher`
+    THEN `the counselling reward set by section 1.12`
+    ELSE 0
+
+-- Examples. Nothing below is from a payslip.
+`a trained counsellor with experience and an MA` MEANS
+    `counsellor candidate` WITH
+        `has completed university training in counselling` IS TRUE
+        `holds an MA`                                      IS TRUE
+        `is studying towards an MA`                        IS FALSE
+        `has teaching experience`                          IS TRUE
+
+`a trained counsellor who never taught` MEANS
+    `counsellor candidate` WITH
+        `has completed university training in counselling` IS TRUE
+        `holds an MA`                                      IS TRUE
+        `is studying towards an MA`                        IS FALSE
+        `has teaching experience`                          IS FALSE
+
+#ASSERT `is a preferred candidate` `a trained counsellor with experience and an MA`
+#ASSERT NOT `meets the education requirements for a counselling teacher` `a trained counsellor who never taught`
+
+-- Placed with the senior counsellor's approval: the permission is used.
+#TRACE `placing a counselling teacher` `a trained counsellor with experience and an MA` AT 0 WITH
+    PARTY `the employer` DOES `place a counselling teacher` TRUE AT 1
+-- Placed without it: the prohibition is breached.
+#TRACE `no placement without the senior counsellor's approval` AT 0 WITH
+    PARTY `the employer` DOES `place a counselling teacher` FALSE AT 1

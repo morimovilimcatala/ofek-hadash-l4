@@ -1,0 +1,165 @@
+-- תקנון שירות עובדי הוראה, פרק 1א', §1.19 תוספת תגבור הוראה
+-- The "teaching reinforcement" supplement: its amount and how it is
+-- updated, the share of the position it is paid on (with the principals'
+-- separate rule), and what it counts for.
+
+IMPORT prelude
+IMPORT common
+
+§ `1.19 תוספת תגבור הוראה`
+
+@desc A teaching employee's month, as far as section 1.19 asks about it.
+DECLARE `reinforcement month` HAS
+    `month as a date`        IS A NUMBER  @desc the salary month as a number YYYYMMDD
+    `position share held`    IS A NUMBER  @desc the share of a full position held (1 = one full position; 1.5 = 150%)
+    `is a principal`         IS A BOOLEAN @desc the employee is a school principal
+    `supplement for a full position` IS A NUMBER @desc the supplement's amount that month for one full position, as updated under paragraph 2 (an input: the update rates are set outside the takanon)
+
+§§ `1.19 ¶2 The amount and its updating`
+
+-- ¶2: the one amount the section prints, from 1.1.01; and how it moves.
+@ref akn:chp_1א___sec_1_19__ssec_1_19/p2
+`the amount from 1.1.01` MEANS 124.2
+`1 January 2001` MEANS 20010101
+
+DECLARE `kind of increase` IS ONE OF
+    `cost-of-living increment`
+    `general wage increase`
+
+DECLARE `increase` HAS
+    `kind of the increase` IS A `kind of increase`
+    `rate of the increase` IS A NUMBER  @desc the rate, e.g. 0.02 for 2%; set by the agreements and the Treasury, never by this file
+
+-- ¶2: while the collective agreement is in force the supplement moves at the
+-- dates and rates of the cost-of-living increments only; after its term it
+-- moves by the general wage increases when given AND by the cost-of-living
+-- increments. Which agreement, and when its term ends, the text does not say
+-- (F-1.19-a), so it is an input here.
+GIVEN `during the agreement's term` IS A BOOLEAN, i IS AN `increase`
+GIVETH A BOOLEAN
+DECIDE `the increase updates the supplement` `during the agreement's term` i IF
+    CONSIDER i's `kind of the increase`
+    WHEN `cost-of-living increment` THEN TRUE
+    WHEN `general wage increase`    THEN NOT `during the agreement's term`
+
+GIVEN amount IS A NUMBER, `during the agreement's term` IS A BOOLEAN, i IS AN `increase`
+GIVETH A NUMBER
+DECIDE `the supplement after one increase` amount `during the agreement's term` i IS
+    IF `the increase updates the supplement` `during the agreement's term` i
+    THEN amount TIMES (1 PLUS i's `rate of the increase`)
+    ELSE amount
+
+-- F-1.19-a: one general wage increase of 2% (a placeholder rate) moves the
+-- 1.1.01 amount after the agreement's term and does not move it during it;
+-- the text never says which agreement, or when its term ends.
+`a 2% general wage increase` MEANS `increase` WITH
+    `kind of the increase` IS `general wage increase`
+    `rate of the increase` IS 0.02
+
+`the updating rule turns on an agreement the section does not identify` MEANS
+    NOT (`the supplement after one increase` `the amount from 1.1.01` TRUE  `a 2% general wage increase`
+         EQUALS `the supplement after one increase` `the amount from 1.1.01` FALSE `a 2% general wage increase`)
+#ASSERT `the updating rule turns on an agreement the section does not identify`
+
+§§ `1.19 ¶3 The share of the position it is paid on`
+
+-- ¶3: from 1.1.97 a teaching employee is paid on the whole position,
+-- beyond one position too. Principals were left out of that decision and
+-- "continued" on their position share up to one position; from 1.9.01 they
+-- too are paid on the whole position, but not beyond 150%. Before 1.1.97
+-- everyone is read as capped at one position: the principals "continued"
+-- that rule, which is the only thing the section says about it.
+@ref akn:chp_1א___sec_1_19__ssec_1_19/p3
+`1 January 1997`   MEANS 19970101
+`1 September 2001` MEANS 20010901
+
+GIVEN m IS A `reinforcement month`
+GIVETH A NUMBER
+DECIDE `the position share the supplement is paid on` m IS
+    IF m's `is a principal`
+    THEN IF m's `month as a date` AT LEAST `1 September 2001`
+         THEN min (m's `position share held`) 1.5
+         ELSE min (m's `position share held`) 1
+    ELSE IF m's `month as a date` AT LEAST `1 January 1997`
+         THEN m's `position share held`
+         ELSE min (m's `position share held`) 1
+
+@export default The monthly teaching-reinforcement supplement (tosefet tigbur hora'a) a teaching employee is owed under section 1.19 of the takanon
+GIVEN m IS A `reinforcement month` @desc the employee's month
+GIVETH A NUMBER
+DECIDE `the reinforcement supplement` m IS
+    m's `supplement for a full position` TIMES `the position share the supplement is paid on` m
+
+§§ `1.19 ¶4–¶5 What the supplement counts for`
+
+-- ¶4: it is the base of the percentage allowances and part of the salary for
+-- the hourly value, social conditions, and the determining salary for
+-- severance and pension. ¶5: it is NOT a component in the erosion check.
+@ref akn:chp_1א___sec_1_19__ssec_1_19/p4 akn:chp_1א___sec_1_19__ssec_1_19/p5
+DECLARE `salary purpose` IS ONE OF
+    `the base of the percentage allowances`
+    `the hourly value`
+    `social conditions`
+    `the determining salary for severance pay`
+    `the determining salary for pension`
+    `the erosion check under section 8 of the agreement`
+
+GIVEN p IS A `salary purpose`
+GIVETH A BOOLEAN
+DECIDE `the supplement counts for` p IF
+    CONSIDER p
+    WHEN `the erosion check under section 8 of the agreement` THEN FALSE
+    OTHERWISE TRUE
+
+-- ¶4, last words: the supplement appears on a separate line of the payslip,
+-- each salary month.
+@ref akn:chp_1א___sec_1_19__ssec_1_19/p4
+DECLARE `payslip action` IS ONE OF
+    `show the supplement on a separate payslip line`
+
+GIVETH A DEONTIC Party `payslip action`
+DECIDE `a separate payslip line` IS
+    PARTY `the employer`
+    MUST  `show the supplement on a separate payslip line`
+    WITHIN 1
+    LEST  BREACH BY `the employer` BECAUSE "section 1.19: the supplement appears on a separate line of the payslip"
+
+-- Worked examples. The full-position amount is the 1.1.01 figure the text
+-- prints; the position shares are placeholders.
+`a teacher at 120% in 2002` MEANS `reinforcement month` WITH
+    `month as a date`                IS 20020301
+    `position share held`            IS 1.2
+    `is a principal`                 IS FALSE
+    `supplement for a full position` IS `the amount from 1.1.01`
+
+`a principal at 180% in 2002` MEANS `reinforcement month` WITH
+    `month as a date`                IS 20020301
+    `position share held`            IS 1.8
+    `is a principal`                 IS TRUE
+    `supplement for a full position` IS `the amount from 1.1.01`
+
+`a principal at 120% in 1999` MEANS `reinforcement month` WITH
+    `month as a date`                IS 19990301
+    `position share held`            IS 1.2
+    `is a principal`                 IS TRUE
+    `supplement for a full position` IS `the amount from 1.1.01`
+
+#ASSERT `the reinforcement supplement` `a teacher at 120% in 2002` EQUALS 124.2 TIMES 1.2
+#ASSERT `the reinforcement supplement` `a principal at 180% in 2002` EQUALS 124.2 TIMES 1.5
+#ASSERT `the reinforcement supplement` `a principal at 120% in 1999` EQUALS 124.2
+#ASSERT NOT `the supplement counts for` `the erosion check under section 8 of the agreement`
+#ASSERT `the supplement counts for` `the determining salary for pension`
+
+`a cost-of-living increment of 1%` MEANS `increase` WITH
+    `kind of the increase` IS `cost-of-living increment`
+    `rate of the increase` IS 0.01
+#EVAL `the supplement after one increase` `the amount from 1.1.01` TRUE `a cost-of-living increment of 1%`
+
+#TRACE `a separate payslip line` AT 0 WITH
+    PARTY `the employer` DOES `show the supplement on a separate payslip line` AT 1
+
+-- akn:chp_1א___sec_1_19__ssec_1_19/p1 An amendment note ("this section was updated on 21.7.02"); it carries no rule.
+-- akn:chp_1א___sec_1_19__ssec_1_19/p6 The heading of the source list (אסמכתא).
+-- akn:chp_1א___sec_1_19__ssec_1_19/p7 Source: the collective agreement of 31.8.94 and the Treasury's wage-agreements circular of 5.12.94.
+-- akn:chp_1א___sec_1_19__ssec_1_19/p8 Source: the Committee of Four's summary of 27.9.95 and a Director-General's special circular.
+-- akn:chp_1א___sec_1_19__ssec_1_19/p9 Source: the Committee of Four's summary of 27.6.02.

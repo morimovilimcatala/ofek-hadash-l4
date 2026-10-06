@@ -1,0 +1,130 @@
+-- תקנון שירות עובדי הוראה, פרק 1ב', §1.47 גמול תואר שני ושלישי
+-- The allowance for a second or third degree: 5% or 10% of the combined
+-- salary for a teaching employee certified to teach, counted as salary,
+-- paid on its own payslip line and pro-rated by position.
+
+IMPORT prelude
+IMPORT common
+
+§ `1.47 גמול תואר שני ושלישי`
+
+-- akn:chp_1ב__sec_1_47__hc_2 The section's title line.
+
+DECLARE `highest degree` IS ONE OF `no higher degree`, `second degree`, `third degree`
+
+DECLARE `kind of certification` IS ONE OF
+    `permanent teaching or guidance licence`
+    `counselling licence`
+    `certification certificate`
+    `teacher, kindergarten-teacher or Shelach-instructor certificate on supplementary exams`
+    `confirmation of completed certification studies from the Mofet Institute`
+    `no certification`
+
+@desc A teaching employee, as far as section 1.47 asks about it.
+DECLARE `degree holder` HAS
+    `degrees held`                   IS A LIST OF `highest degree` @desc every higher degree held
+    `degree an equivalent grade stands for` IS A `highest degree` @desc for an employee on an equivalent (אקוויוולנטי) salary grade, the degree that grade stands for (3); `no higher degree` otherwise
+    `certification`                  IS A `kind of certification`
+    `combined salary`                IS A NUMBER  @desc the combined salary (השכר המשולב) of the employee; an input
+    `position fraction`              IS A NUMBER  @desc share of a full position, above 1 included (4)
+
+§§ `1`
+
+@ref akn:chp_1ב__sec_1_47__hc_2__para_3/p2 akn:chp_1ב__sec_1_47__hc_2__para_3/p3
+GIVEN c IS A `kind of certification`
+GIVETH A BOOLEAN
+DECIDE `certified to teach` c IF
+    NOT c EQUALS `no certification`
+
+GIVEN d IS A `highest degree`
+GIVETH A NUMBER
+DECIDE `rate for the degree` d IS
+    CONSIDER d
+    WHEN `second degree` THEN 0.05
+    WHEN `third degree`  THEN 0.10
+    OTHERWISE 0
+
+-- F-1.47-a: 5% "for a second degree and" 10% "for a third". The text does
+-- not say whether a doctor who also holds a second degree gets 10% or both
+-- rates (15%). The reading adopted: the rate of the highest degree held.
+@ref akn:chp_1ב__sec_1_47__hc_2__para_1
+GIVEN h IS A `degree holder`
+GIVETH A NUMBER
+DECIDE `allowance rate` h IS
+    IF `certified to teach` (h's `certification`)
+    THEN maximum (0 FOLLOWED BY map `rate for the degree` (`degrees the allowance looks at` h))
+    ELSE 0
+
+GIVEN h IS A `degree holder`
+GIVETH A NUMBER
+DECIDE `allowance rate if the rates add up` h IS
+    IF `certified to teach` (h's `certification`)
+    THEN sum (map `rate for the degree` (h's `degrees held`))
+    ELSE 0
+
+-- 2: the allowance is salary for the hour value, social contributions,
+-- severance and pension, and is paid on its own payslip line.
+@ref akn:chp_1ב__sec_1_47__hc_2__para_2
+DECLARE `salary purpose` IS ONE OF
+    `hour value`, `social contributions`, `severance pay`, `pension`, `other purpose`
+
+GIVEN p IS A `salary purpose`
+GIVETH A BOOLEAN
+DECIDE `the allowance counts as salary for` p IF
+    NOT p EQUALS `other purpose`
+
+`paid on a separate payslip line` MEANS TRUE
+
+-- 3: the allowance applies also to holders of equivalent salary grades, by
+-- the parity committee's past decision.
+@ref akn:chp_1ב__sec_1_47__hc_2__para_3
+GIVEN h IS A `degree holder`
+GIVETH A LIST OF `highest degree`
+DECIDE `degrees the allowance looks at` h IS
+    h's `degree an equivalent grade stands for` FOLLOWED BY h's `degrees held`
+
+-- 4: pro-rated by the position fraction, including a fraction above one.
+@ref akn:chp_1ב__sec_1_47__hc_2__para_4
+@export default The second- or third-degree allowance a certified teaching employee is paid each month under section 1.47 of the takanon
+GIVEN h IS A `degree holder` @desc the employee
+GIVETH A NUMBER
+DECIDE `degree allowance` h IS
+    h's `combined salary` TIMES `allowance rate` h TIMES h's `position fraction`
+
+-- akn:chp_1ב__sec_1_47__hc_3 The heading of the source list (אסמכתא).
+-- akn:chp_1ב__sec_1_47__hc_3/p1 A source: collective agreement of 31.8.94; director-general's circular נה/7.
+-- akn:chp_1ב__sec_1_47__hc_3/p2 A source: Treasury wages circular הע94/49 of 14.11.94.
+
+-- Worked examples; the salary of 10,000 is a placeholder.
+`a doctor at 1.1 positions` MEANS
+    `degree holder` WITH
+        `degrees held`                   IS LIST `second degree`, `third degree`
+        `degree an equivalent grade stands for` IS `no higher degree`
+        `certification`                  IS `permanent teaching or guidance licence`
+        `combined salary`                IS 10000
+        `position fraction`              IS 1.1
+
+`an uncertified MA` MEANS
+    `degree holder` WITH
+        `degrees held`                   IS LIST `second degree`
+        `degree an equivalent grade stands for` IS `no higher degree`
+        `certification`                  IS `no certification`
+        `combined salary`                IS 10000
+        `position fraction`              IS 1
+
+#ASSERT `degree allowance` `a doctor at 1.1 positions` EQUALS 1100
+#ASSERT `degree allowance` `an uncertified MA` EQUALS 0
+
+`a certified teacher on an MA-equivalent grade` MEANS
+    `degree holder` WITH
+        `degrees held`                   IS EMPTY
+        `degree an equivalent grade stands for` IS `second degree`
+        `certification`                  IS `counselling licence`
+        `combined salary`                IS 10000
+        `position fraction`              IS 0.5
+#ASSERT `degree allowance` `a certified teacher on an MA-equivalent grade` EQUALS 250
+
+`a doctor who also holds a second degree gets 10% or 15%` MEANS
+        `allowance rate` `a doctor at 1.1 positions` EQUALS 0.10
+    AND `allowance rate if the rates add up` `a doctor at 1.1 positions` EQUALS 0.15
+#ASSERT `a doctor who also holds a second degree gets 10% or 15%`

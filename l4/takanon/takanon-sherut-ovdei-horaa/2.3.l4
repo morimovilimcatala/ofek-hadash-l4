@@ -1,0 +1,94 @@
+-- תקנון שירות עובדי הוראה, פרק 2, §2.3 גננת עצמאית
+-- An independent kindergarten teacher: the kindergarten-coordination
+-- allowance, its growth with seniority in coordination, keeping it after a
+-- forced move, and when that seniority starts to count.
+
+IMPORT prelude
+IMPORT common
+
+§ `2.3 גננת עצמאית`
+
+@desc An independent kindergarten teacher, as far as section 2.3 asks about it.
+DECLARE `independent teacher` HAS
+    `subordinate to a coordinating teacher`          IS A BOOLEAN
+    `consecutive years as an independent teacher`    IS A NUMBER
+    `kept from the post by the system's constraints` IS A BOOLEAN
+    `moved to another teaching post in a kindergarten` IS A BOOLEAN
+    `first school year of entitlement`               IS A NUMBER @desc the Gregorian year in which the school year of first entitlement to the coordination allowance began (5743 = 1982, 5744 = 1983)
+
+§§ `2.3.6 Coordination allowance`
+
+-- 1: an independent teacher not subordinate to a coordinating teacher gets
+-- an allowance equal to the management allowance of an elementary-school
+-- principal with one class (section 7.6.6.1, a named input).
+@ref akn:chp_2__sec_2_3__ssec_2_3_6__para_1
+@desc The management allowance of an elementary-school principal with one class under section 7.6.6.1, given years of seniority in management; an input until that section is imported
+ASSUME `the one-class principal's management allowance of section 7.6.6.1` IS A FUNCTION FROM NUMBER TO NUMBER
+
+GIVEN t IS AN `independent teacher`
+GIVETH A BOOLEAN
+DECIDE `entitled to the coordination allowance` t IF
+    NOT t's `subordinate to a coordinating teacher`
+
+-- 2: the rate grows with the teacher's years in coordination (section
+-- 7.6.10.1): the input above takes those years.
+@ref akn:chp_2__sec_2_3__ssec_2_3_6__para_2
+GIVEN t IS AN `independent teacher`, `years in coordination` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `coordination allowance` t `years in coordination` IS
+    IF `entitled to the coordination allowance` t
+    THEN `the one-class principal's management allowance of section 7.6.6.1` `years in coordination`
+    ELSE 0
+
+-- 3: after 8 consecutive years in the post, a teacher kept from it by the
+-- system's constraints keeps (drags) the allowance into another teaching
+-- post in a kindergarten.
+@ref akn:chp_2__sec_2_3__ssec_2_3_6__para_3
+GIVEN t IS AN `independent teacher`
+GIVETH A BOOLEAN
+DECIDE `keeps the coordination allowance` t IF
+        t's `consecutive years as an independent teacher` AT LEAST 8
+    AND t's `kept from the post by the system's constraints`
+    AND t's `moved to another teaching post in a kindergarten`
+
+-- akn:chp_2__sec_2_3__ssec_2_3_6/p1 The heading of the source list (אסמכתא).
+-- akn:chp_2__sec_2_3__ssec_2_3_6/p2 A source: collective agreement of 27.12.73; special director-general's circular of 5739.
+-- akn:chp_2__sec_2_3__ssec_2_3_6/p3 A source: director-general's circular מד/5, annex ג, to the special collective agreement of 16.11.83.
+-- akn:chp_2__sec_2_3__ssec_2_3_6/p4 A source: parity committee decisions of 18.9.94 and 12.4.95.
+
+§§ `2.3.11 Seniority`
+
+-- 1: entitled in 5743 (1982/83) or before: seniority in coordination, for
+-- the management seniority supplement, counts from 1.9.82. 2: entitlement
+-- that began in 5744 (1983/84): it counts from 1.9.83, the start of that
+-- year — the start of entitlement, which is also when a later starter's
+-- seniority in coordination begins. Dates are year × 12 + month.
+@ref akn:chp_2__sec_2_3__ssec_2_3_11__para_1
+GIVEN t IS AN `independent teacher`
+GIVETH A NUMBER
+DECIDE `month coordination seniority starts` t IS
+    IF t's `first school year of entitlement` AT MOST 1982
+    THEN 1982 TIMES 12 PLUS 9
+    ELSE `month from 2.3.11.2` t
+
+@ref akn:chp_2__sec_2_3__ssec_2_3_11__para_2
+GIVEN t IS AN `independent teacher`
+GIVETH A NUMBER
+DECIDE `month from 2.3.11.2` t IS
+    t's `first school year of entitlement` TIMES 12 PLUS 9
+
+-- akn:chp_2__sec_2_3__ssec_2_3_11/p1 The heading of the source list (אסמכתא).
+-- akn:chp_2__sec_2_3__ssec_2_3_11/p2 A source: parity committee decision of 7.11.84.
+
+-- Worked examples.
+`a teacher entitled since 5740` MEANS
+    `independent teacher` WITH
+        `subordinate to a coordinating teacher`          IS FALSE
+        `consecutive years as an independent teacher`    IS 9
+        `kept from the post by the system's constraints` IS TRUE
+        `moved to another teaching post in a kindergarten` IS TRUE
+        `first school year of entitlement`               IS 1979
+
+#ASSERT `month coordination seniority starts` `a teacher entitled since 5740` EQUALS 1982 TIMES 12 PLUS 9
+#ASSERT `keeps the coordination allowance` `a teacher entitled since 5740`
+#ASSERT `entitled to the coordination allowance` `a teacher entitled since 5740`

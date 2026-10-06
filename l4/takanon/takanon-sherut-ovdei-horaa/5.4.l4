@@ -1,0 +1,234 @@
+-- תקנון שירות עובדי הוראה, פרק 5, §5.4 תקופת ניסיון וקביעות
+-- The middle-school trial period: its length by licence, what counts as a
+-- work year, the yearly reporting timetable, and who may extend the trial
+-- or grant tenure, and how.
+
+IMPORT prelude
+IMPORT daydate
+IMPORT common
+
+§ `5.4 תקופת ניסיון וקביעות`
+
+DECLARE `teaching licence` IS ONE OF
+    `a permanent teaching licence`
+    `a temporary licence, permanent licence due in the 2nd or 3rd year`
+    `a temporary licence that did not become permanent`
+
+@desc A middle-school teacher's trial, as section 5.4 asks about it.
+DECLARE `middle-school trial` HAS
+    `licence`                           IS A `teaching licence`
+    `an extension notice was sent`      IS A BOOLEAN @desc the district manager sent the teacher notice extending the trial period
+    `work years completed`              IS A NUMBER  @desc work years in the middle school, each counted under section 5.4.2
+
+@desc A school year of work, as section 5.4.2 counts it.
+DECLARE `year of middle-school work` HAS
+    `months worked in the school year`  IS A NUMBER
+    `position fraction during them`     IS A NUMBER
+    `days worked in the school year`    IS A NUMBER
+    `position fraction during the days` IS A NUMBER
+
+DECLARE `supervisor's recommendation` IS ONE OF
+    `grant tenure`
+    `extend the trial period`
+    `request a second supervision and dismissal for pedagogical reasons`
+    `request dismissal for administrative reasons`
+
+@desc The file a decision to extend a permanent-licence holder's trial rests on (section 5.4, extension and tenure, 2).
+DECLARE `extension file` HAS
+    `a well-reasoned opinion of the supervision` IS A BOOLEAN
+    `the dates of the lesson visits are detailed` IS A BOOLEAN
+    `the average of the visit evaluations is stated` IS A BOOLEAN
+    `extensions already made`                   IS A NUMBER
+    `the teachers' organisation consented in advance` IS A BOOLEAN
+    `extraordinary reasons`                     IS A BOOLEAN
+
+DECLARE `trial action` IS ONE OF
+    `send the evaluation forms to the principals`
+    `return the completed forms to the district office`
+    `pass the forms to the supervisors with the treatment sheet`
+    `pass the material and opinion to the district manager`
+    `send the extension notice by registered mail`
+    `issue a letter of appointment`
+    `extend the trial period`
+
+-- Time in days from 1 September of the school year (day 0). The school
+-- year starting in `y` runs to 31 August of y+1.
+GIVEN `day` IS A NUMBER, `month` IS A NUMBER, `y` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `days from 1 September to` `day` `month` `y` IS
+    IF `month` AT LEAST 9
+    THEN (Date `day` `month` `y`) MINUS (Date 1 9 `y`)
+    ELSE (Date `day` `month` (`y` PLUS 1)) MINUS (Date 1 9 `y`)
+
+§§ `5.4.1–5.4.5 תקופת ניסיון`
+
+@ref akn:chp_5__sec_5_4__hc_2__para_1 akn:chp_5__sec_5_4__hc_2__para_3 akn:chp_5__sec_5_4__hc_2__para_5
+GIVEN t IS A `middle-school trial`
+GIVETH A NUMBER
+DECIDE `work years of the trial period` t IS
+    CONSIDER t's `licence`
+    WHEN `a permanent teaching licence` THEN 2
+    WHEN `a temporary licence, permanent licence due in the 2nd or 3rd year` THEN 3
+    WHEN `a temporary licence that did not become permanent` THEN 3
+
+-- (1) and (3) end the trial "unless" an extension notice was sent; (5)
+-- says the 3-year trial of a temporary licence that did not become
+-- permanent cannot be extended at all.
+@ref akn:chp_5__sec_5_4__hc_2__para_1 akn:chp_5__sec_5_4__hc_2__para_3 akn:chp_5__sec_5_4__hc_2__para_5
+GIVEN t IS A `middle-school trial`
+GIVETH A BOOLEAN
+DECIDE `the trial may be extended` t IF
+    CONSIDER t's `licence`
+    WHEN `a temporary licence that did not become permanent` THEN FALSE
+    OTHERWISE TRUE
+
+@ref akn:chp_5__sec_5_4__hc_2__para_1 akn:chp_5__sec_5_4__hc_2__para_3
+GIVEN t IS A `middle-school trial`
+GIVETH A BOOLEAN
+DECIDE `reaches tenure` t IF
+        t's `work years completed` AT LEAST `work years of the trial period` t
+    AND NOT (t's `an extension notice was sent` AND `the trial may be extended` t)
+    AND NOT (t's `licence` EQUALS `a temporary licence that did not become permanent`)
+
+@ref akn:chp_5__sec_5_4__hc_2__para_2
+GIVEN y IS A `year of middle-school work`
+GIVETH A BOOLEAN
+DECIDE `counts as a work year` y IF
+       (y's `months worked in the school year` AT LEAST 6 AND y's `position fraction during them` AT LEAST 1/3)
+    OR (y's `days worked in the school year` AT LEAST 150 AND y's `position fraction during the days` AT LEAST 1/2)
+
+@ref akn:chp_5__sec_5_4__hc_2__para_4
+GIVEN `tenured in primary education` IS A BOOLEAN, `meets the training undertakings` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `keeps tenure on moving to the middle school` `tenured in primary education` `meets the training undertakings` IF
+    `tenured in primary education` AND `meets the training undertakings`
+
+§§ `דיווח בתקופת הניסיון`
+
+@ref akn:chp_5__sec_5_4__hc_2__hc_1__para_1/p1 akn:chp_5__sec_5_4__hc_2__hc_1__para_1__subpara_a akn:chp_5__sec_5_4__hc_2__hc_1__para_1__subpara_b akn:chp_5__sec_5_4__hc_2__hc_1__para_1__subpara_c akn:chp_5__sec_5_4__hc_2__hc_1__para_1__subpara_d
+GIVEN `in the last trial year` IS A BOOLEAN,
+      `the supervisor summarised the visits` IS A BOOLEAN,
+      `the opinion ends in an explicit, reasoned recommendation` IS A BOOLEAN,
+      r IS A `supervisor's recommendation` @desc the recommendation, which can only be one of the four the clause lists
+GIVETH A BOOLEAN
+DECIDE `the general supervisor's opinion is in order` `in the last trial year` `the supervisor summarised the visits` `the opinion ends in an explicit, reasoned recommendation` r IF
+    `in the last trial year` IMPLIES (`the supervisor summarised the visits` AND `the opinion ends in an explicit, reasoned recommendation`)
+
+@ref akn:chp_5__sec_5_4__hc_2__hc_1__para_2
+GIVEN `a subject teacher` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `the subject supervisor's opinion is attached` `a subject teacher` IF `a subject teacher`
+
+@ref akn:chp_5__sec_5_4__hc_2__hc_1__para_3
+GIVEN `the list kept by supervision area and workplace` IS A BOOLEAN, `updated through the year` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `the district office keeps the trial lists` `the list kept by supervision area and workplace` `updated through the year` IF
+    `the list kept by supervision area and workplace` AND `updated through the year`
+
+-- (4)-(6) as one timetable, every step owed by its own date of the school
+-- year (counted from 1 September of `y`), in parallel. The district office
+-- (הלשכה המחוזית) acts for the district manager, so it is that party here.
+@ref akn:chp_5__sec_5_4__hc_2__hc_1__para_4 akn:chp_5__sec_5_4__hc_2__hc_1__para_5/p1 akn:chp_5__sec_5_4__hc_2__hc_1__para_5/p2 akn:chp_5__sec_5_4__hc_2__hc_1__para_6
+GIVEN `y` IS A NUMBER @desc the calendar year the school year starts in
+GIVETH A DEONTIC Party `trial action`
+DECIDE `the trial-reporting timetable` `y` IS
+        (PARTY `the district manager`
+         MUST  `send the evaluation forms to the principals`
+         WITHIN `days from 1 September to` 1 1 `y`
+         LEST BREACH BY `the district manager` BECAUSE "section 5.4: the forms reach the principals by 1 January")
+    RAND
+        (PARTY `the school principal`
+         MUST  `return the completed forms to the district office`
+         WITHIN `days from 1 September to` 1 2 `y`
+         LEST BREACH BY `the school principal` BECAUSE "section 5.4: the completed forms are returned by 1 February")
+    RAND
+        (PARTY `the district manager`
+         MUST  `pass the forms to the supervisors with the treatment sheet`
+         WITHIN `days from 1 September to` 1 3 `y`
+         LEST BREACH BY `the district manager` BECAUSE "section 5.4: the district office passes the forms on by 1 March")
+    RAND
+        (PARTY `the supervisor`
+         MUST  `pass the material and opinion to the district manager`
+         WITHIN `days from 1 September to` 15 4 `y`
+         LEST BREACH BY `the supervisor` BECAUSE "section 5.4: the supervisors pass everything to the district manager by 15 April")
+
+§§ `הארכת ניסיון ומתן קביעות`
+
+-- The district manager decides; in state-religious education after
+-- consulting the district's supervisor of religious education.
+@ref akn:chp_5__sec_5_4__hc_2__hc_2__para_1
+GIVEN `state-religious education` IS A BOOLEAN, `the religious-education supervisor was consulted` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `the district manager may decide on extension or tenure` `state-religious education` `the religious-education supervisor was consulted` IF
+    `state-religious education` IMPLIES `the religious-education supervisor was consulted`
+
+@ref akn:chp_5__sec_5_4__hc_2__hc_2__para_2 akn:chp_5__sec_5_4__hc_2__hc_2__para_3
+GIVEN f IS AN `extension file`
+GIVETH A BOOLEAN
+DECIDE `the trial may lawfully be extended` f IF
+        f's `a well-reasoned opinion of the supervision`
+    AND f's `the dates of the lesson visits are detailed`
+    AND f's `the average of the visit evaluations is stated`
+    AND (f's `extensions already made` AT LEAST 1
+         IMPLIES (f's `the teachers' organisation consented in advance` AND f's `extraordinary reasons`))
+
+@ref akn:chp_5__sec_5_4__hc_2__hc_2__para_2 akn:chp_5__sec_5_4__hc_2__hc_2__para_3
+GIVEN f IS AN `extension file`
+GIVETH A DEONTIC Party `trial action`
+DECIDE `extending a permanent-licence holder's trial` f IS
+    IF `the trial may lawfully be extended` f
+    THEN PARTY `the district manager` MAY `extend the trial period`
+    ELSE PARTY `the district manager` SHANT `extend the trial period`
+
+@ref akn:chp_5__sec_5_4__hc_2__hc_2__para_4__subpara_a/p1 akn:chp_5__sec_5_4__hc_2__hc_2__para_4__subpara_a/p2
+GIVEN `y` IS A NUMBER, `the trial is to be extended` IS A BOOLEAN
+GIVETH A DEONTIC Party `trial action`
+DECIDE `notice of an extended trial` `y` `the trial is to be extended` IS
+    IF `the trial is to be extended`
+    THEN PARTY `the district manager`
+         MUST  `send the extension notice by registered mail`
+         WITHIN `days from 1 September to` 20 6 `y`
+         LEST BREACH BY `the district manager` BECAUSE "section 5.4: the last day to post the extension notice is 20 June"
+    ELSE FULFILLED
+
+@ref akn:chp_5__sec_5_4__hc_2__hc_2__para_4__subpara_b
+GIVEN `tenure was decided` IS A BOOLEAN
+GIVETH A DEONTIC Party `trial action`
+DECIDE `the letter of appointment on tenure` `tenure was decided` IS
+    IF `tenure was decided`
+    THEN PARTY `the district manager` MUST `issue a letter of appointment`
+    ELSE FULFILLED
+
+-- (5): no fourth year on a temporary licence without the teaching-personnel
+-- division's special permit, given only for extraordinary reasons — and a
+-- permit is, in effect, tenure in the institution.
+@ref akn:chp_5__sec_5_4__hc_2__hc_2__para_5
+GIVEN `a special permit of the teaching-personnel division` IS A BOOLEAN, `extraordinary reasons` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `a temporary-licence holder may be employed a fourth year` `a special permit of the teaching-personnel division` `extraordinary reasons` IF
+    `a special permit of the teaching-personnel division` AND `extraordinary reasons`
+
+@ref akn:chp_5__sec_5_4__hc_2__hc_2__para_5
+GIVEN `employed a fourth year by permit` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `the permit amounts to tenure in the institution` `employed a fourth year by permit` IF
+    `employed a fourth year by permit`
+
+-- akn:chp_5__sec_5_4__hc_3/p1 Source (אסמכתא): a circular of the division for educational institutions of 8.3.72.
+
+-- Examples.
+#ASSERT `counts as a work year` (`year of middle-school work` WITH `months worked in the school year` IS 4, `position fraction during them` IS 0.6, `days worked in the school year` IS 150, `position fraction during the days` IS 0.5)
+#ASSERT NOT `counts as a work year` (`year of middle-school work` WITH `months worked in the school year` IS 6, `position fraction during them` IS 0.25, `days worked in the school year` IS 140, `position fraction during the days` IS 0.25)
+#ASSERT `reaches tenure` (`middle-school trial` WITH `licence` IS `a permanent teaching licence`, `an extension notice was sent` IS FALSE, `work years completed` IS 2)
+#ASSERT NOT `reaches tenure` (`middle-school trial` WITH `licence` IS `a temporary licence that did not become permanent`, `an extension notice was sent` IS FALSE, `work years completed` IS 3)
+#ASSERT `days from 1 September to` 20 6 2026 EQUALS 292
+
+-- The 2026/27 timetable kept, then the notice posted on 25 June (day 297):
+-- late.
+#TRACE `the trial-reporting timetable` 2026 AT 0 WITH
+    PARTY `the district manager` DOES `send the evaluation forms to the principals` AT 100
+    PARTY `the school principal` DOES `return the completed forms to the district office` AT 140
+    PARTY `the district manager` DOES `pass the forms to the supervisors with the treatment sheet` AT 170
+    PARTY `the supervisor` DOES `pass the material and opinion to the district manager` AT 220
+#TRACE `notice of an extended trial` 2026 TRUE AT 0 WITH
+    PARTY `the district manager` DOES `send the extension notice by registered mail` AT 297

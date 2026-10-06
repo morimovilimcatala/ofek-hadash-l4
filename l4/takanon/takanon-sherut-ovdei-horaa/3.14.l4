@@ -1,0 +1,202 @@
+-- תקנון שירות עובדי הוראה, פרק 3, §3.14 מורה רכז מקצוע
+-- Subject coordinators in primary schools: how many, who may be appointed
+-- and how, the coordination allowance by the school's classes, and the
+-- district manager's 4% coordinators.
+
+IMPORT prelude
+IMPORT common
+
+§ `3.14 מורה רכז מקצוע`
+
+@desc A primary school and a candidate coordinator, as section 3.14 asks about them.
+DECLARE `coordination case` HAS
+    `classes in the school`            IS A NUMBER
+    `the candidate is at least a certified teacher` IS A BOOLEAN
+    `combined salary`                  IS A NUMBER @desc the candidate's combined salary (השכר המשולב) by grade and seniority; an input
+
+DECLARE `allowance band` HAS
+    `from classes` IS A NUMBER
+    `to classes`   IS A NUMBER @desc 9999 stands for "ויותר", with no upper bound
+    `band rate`    IS A NUMBER
+
+DECLARE `coordination action` IS ONE OF
+    `submit the proposal to the supervisor`
+    `approve the proposal`
+    `appoint the coordinator`
+
+@desc A school considered for a coordinator appointed on the district manager's recommendation (section 3.14.3).
+DECLARE `district coordination case` HAS
+    `average parallel classes per grade` IS A NUMBER
+    `entitled to subject coordination under the existing criteria` IS A BOOLEAN
+    `teachers teaching the subject`      IS A NUMBER
+    `positions all those teachers hold in the subject` IS A NUMBER @desc the weekly hours of all teachers of the subject, as a share of one position
+
+§§ `3.14.1 מינוי`
+
+-- akn:chp_3__sec_3_14__ssec_3_14/p1 The paragraph's heading ("מינוי").
+
+-- §3.14.1(a)(1): the number of coordinators follows the school's classes
+-- "as detailed below". The corpus does not carry the table: on the source
+-- page "כמפורט להלן" links to a separate PDF (table_14.pdf) the corpus did
+-- not ingest — a loss in the corpus, not a flaw of the text, so no finding.
+-- The table is an input until the corpus holds it.
+@ref akn:chp_3__sec_3_14__ssec_3_14/p2
+GIVEN c IS A `coordination case`,
+      `the linked table of coordinators by classes` IS A FUNCTION FROM NUMBER TO NUMBER
+GIVETH A NUMBER
+DECIDE `number of subject coordinators` c `the linked table of coordinators by classes` IS
+    `the linked table of coordinators by classes` (c's `classes in the school`)
+
+-- (b): no appointment of one who is not at least a certified teacher; the
+-- principal's proposal goes to the school's supervisor, and only after the
+-- supervisor's approval may the principal appoint.
+@ref akn:chp_3__sec_3_14__ssec_3_14/p3
+GIVEN c IS A `coordination case`
+GIVETH A DEONTIC Party `coordination action`
+DECIDE `appointing a subject coordinator` c IS
+    IF c's `the candidate is at least a certified teacher`
+    THEN PARTY `the school principal`
+         MAY   `submit the proposal to the supervisor`
+         HENCE (PARTY `the supervisor`
+                MAY   `approve the proposal`
+                HENCE (PARTY `the school principal` MAY `appoint the coordinator`)
+                LEST  (PARTY `the school principal` SHANT `appoint the coordinator`))
+         LEST  (PARTY `the school principal` SHANT `appoint the coordinator`)
+    ELSE PARTY `the school principal`
+         SHANT `appoint the coordinator`
+
+-- (c): a computers coordinator, from the school's teachers of the subject,
+-- on the principal's recommendation and the supervisor's approval.
+@ref akn:chp_3__sec_3_14__ssec_3_14/p4
+GIVEN `teaches computers in the school` IS A BOOLEAN,
+      `recommended by the principal` IS A BOOLEAN,
+      `approved by the supervisor` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `may be appointed computers coordinator` `teaches computers in the school` `recommended by the principal` `approved by the supervisor` IF
+    `teaches computers in the school` AND `recommended by the principal` AND `approved by the supervisor`
+
+-- (c), second paragraph: the computers coordinator is one of the four
+-- role-holders a primary school may appoint who receive a role allowance;
+-- the appointment follows circular מד/5 annex ג, outside the takanon.
+@ref akn:chp_3__sec_3_14__ssec_3_14/p5
+GIVETH A NUMBER
+DECIDE `role-holders with a role allowance a primary school may appoint` IS 4
+
+@ref akn:chp_3__sec_3_14__ssec_3_14/p5
+GIVEN `is computers coordinator` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `the computers coordinator receives a role allowance` `is computers coordinator` IF
+    `is computers coordinator`
+
+@ref akn:chp_3__sec_3_14__ssec_3_14/p6
+GIVETH A BOOLEAN
+DECIDE `a coordinator's appointment carries tenure or professional rights` IS FALSE
+
+§§ `3.14.2 הגמול`
+
+-- akn:chp_3__sec_3_14__ssec_3_14/p7 The paragraph's heading ("הגמול").
+
+@ref akn:chp_3__sec_3_14__ssec_3_14/p8
+GIVEN c IS A `coordination case`
+GIVETH A NUMBER
+DECIDE `coordination allowance` c IS
+    `coordination allowance rate` (c's `classes in the school`) TIMES c's `combined salary`
+
+`the coordination allowance bands` MEANS
+    LIST
+-- akn:chp_3__sec_3_14__ssec_3_14/p9 The table's heading ("גובה הגמול").
+-- akn:chp_3__sec_3_14__ssec_3_14/p10 1 to 8 classes: 5%.
+        `allowance band` 1 8 (5%),
+-- akn:chp_3__sec_3_14__ssec_3_14/p11 9 to 12 classes: 6%.
+        `allowance band` 9 12 (6%),
+-- akn:chp_3__sec_3_14__ssec_3_14/p12 13 classes or more: 7%.
+        `allowance band` 13 9999 (7%)
+
+GIVEN n IS A NUMBER
+GIVETH A NUMBER
+DECIDE `coordination allowance rate` n IS
+    sum (map (GIVEN b YIELD b's `band rate`)
+             (filter (GIVEN b YIELD n AT LEAST b's `from classes` AND n AT MOST b's `to classes`)
+                     `the coordination allowance bands`))
+
+-- The bands are a partition of 1 class and up: each number of classes falls
+-- in exactly one band.
+#ASSERT all (GIVEN n YIELD count (filter (GIVEN b YIELD n AT LEAST b's `from classes` AND n AT MOST b's `to classes`) `the coordination allowance bands`) EQUALS 1)
+            (LIST 1, 2, 7, 8, 9, 12, 13, 30)
+
+§§ `3.14.3 מינוי על-ידי מנהל המחוז`
+
+-- akn:chp_3__sec_3_14__ssec_3_14/p13 The paragraph's heading ("מינוי על-ידי מנהל המחוז").
+
+-- ¶15: a small school has no more than two parallel classes on average
+-- and/or is not entitled to subject coordination under the existing criteria.
+@ref akn:chp_3__sec_3_14__ssec_3_14/p15
+GIVEN d IS A `district coordination case`
+GIVETH A BOOLEAN
+DECIDE `a small school` d IF
+    d's `average parallel classes per grade` AT MOST 2 OR NOT d's `entitled to subject coordination under the existing criteria`
+
+-- F-3.14-a: the condition "and the hours of all teachers of the subject are
+-- not less than one position" may govern both kinds of school or only the
+-- second. The reading adopted: it governs both.
+@ref akn:chp_3__sec_3_14__ssec_3_14/p14
+GIVEN d IS A `district coordination case`
+GIVETH A BOOLEAN
+DECIDE `the district manager may recommend a coordinator` d IF
+        (`a small school` d OR d's `teachers teaching the subject` AT LEAST 2)
+    AND d's `positions all those teachers hold in the subject` AT LEAST 1
+
+-- The other reading: the hours condition governs the second kind only.
+GIVEN d IS A `district coordination case`
+GIVETH A BOOLEAN
+DECIDE `the district manager may recommend a coordinator, hours governing the second kind only` d IF
+       `a small school` d
+    OR (d's `teachers teaching the subject` AT LEAST 2 AND d's `positions all those teachers hold in the subject` AT LEAST 1)
+
+@ref akn:chp_3__sec_3_14__ssec_3_14/p14
+GIVETH A NUMBER
+DECIDE `allowance rate of a coordinator appointed on the district manager's recommendation` IS 4%
+
+-- The quota: 250 teachers in תשנ"ד, 500 in all over תשנ"ד and תשנ"ה.
+@ref akn:chp_3__sec_3_14__ssec_3_14/p14
+GIVEN `approved in תשנ"ד` IS A NUMBER, `approved in תשנ"ה` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `within the quota of district coordinators` `approved in תשנ"ד` `approved in תשנ"ה` IF
+    `approved in תשנ"ד` AT MOST 250 AND `approved in תשנ"ד` PLUS `approved in תשנ"ה` AT MOST 500
+
+-- akn:chp_3__sec_3_14__ssec_3_14/p16 Heading of the source list (אסמכתא).
+-- akn:chp_3__sec_3_14__ssec_3_14/p17 Source (אסמכתא): the collective agreement of 24.1.88.
+-- akn:chp_3__sec_3_14__ssec_3_14/p18 Source (אסמכתא): a special Director-General's circular.
+-- akn:chp_3__sec_3_14__ssec_3_14/p19 Source (אסמכתא): a Director-General's circular.
+-- akn:chp_3__sec_3_14__ssec_3_14/p20 Source (אסמכתא): the collective agreement of 24.1.88.
+-- akn:chp_3__sec_3_14__ssec_3_14/p21 Source (אסמכתא): a special Director-General's circular.
+-- akn:chp_3__sec_3_14__ssec_3_14/p22 Source (אסמכתא): the collective agreement of 11.5.93 and a committee's recommendations of 25.10.93.
+
+-- Examples, with a placeholder combined salary of 10000.
+`a certified candidate in a 10-class school` MEANS
+    `coordination case` WITH
+        `classes in the school`                         IS 10
+        `the candidate is at least a certified teacher` IS TRUE
+        `combined salary`                               IS 10000
+
+#ASSERT `coordination allowance` `a certified candidate in a 10-class school` EQUALS 600
+#ASSERT `within the quota of district coordinators` 250 250
+
+#TRACE `appointing a subject coordinator` `a certified candidate in a 10-class school` AT 0 WITH
+    PARTY `the school principal` DOES `submit the proposal to the supervisor` AT 1
+    PARTY `the supervisor` DOES `approve the proposal` AT 2
+    PARTY `the school principal` DOES `appoint the coordinator` AT 3
+
+-- F-3.14-a: a small school whose one teacher of the subject holds half a
+-- position — the two readings answer differently.
+`a small school with half a position in the subject` MEANS
+    `district coordination case` WITH
+        `average parallel classes per grade` IS 1
+        `entitled to subject coordination under the existing criteria` IS FALSE
+        `teachers teaching the subject` IS 1
+        `positions all those teachers hold in the subject` IS 0.5
+
+`the two readings of the hours condition differ for a small school` MEANS
+    NOT (`the district manager may recommend a coordinator` `a small school with half a position in the subject`
+         EQUALS `the district manager may recommend a coordinator, hours governing the second kind only` `a small school with half a position in the subject`)
+#ASSERT `the two readings of the hours condition differ for a small school`

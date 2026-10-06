@@ -1,0 +1,151 @@
+-- תקנון שירות עובדי הוראה, פרק 1א', §1.6 קצובת ביגוד
+-- The clothing allowance: who is entitled, its level by seniority, how it
+-- is pro-rated, when it is paid, and how it sits beside other clothing
+-- arrangements.
+
+IMPORT prelude
+IMPORT common
+
+§ `1.6 קצובת ביגוד`
+
+@desc One school year of a teaching employee's service, as far as section 1.6 asks about it.
+DECLARE `clothing year` HAS
+    `ranked on the teaching employees' scale`  IS A BOOLEAN
+    `employed in a teaching role`              IS A BOOLEAN
+    `year of teaching seniority`               IS A NUMBER  @desc which year of teaching seniority this is, counting the year being served (F-1.6-a), before the compulsory-service years are taken out
+    `years of compulsory army service counted in it` IS A NUMBER @desc years of compulsory IDF service included in that seniority (section 1.6.2, note 3)
+    `position fraction this year`              IS A NUMBER  @desc the share of a full position held (1 = one full position)
+    `share of the year worked`                 IS A NUMBER  @desc the extent of work in the year, as a share of the full year (1 = the whole year)
+    `level 1 amount`                           IS A NUMBER  @desc the yearly amount at level 1, set by the Treasury and published by the conditions-of-service department (section 1.6.2); an input
+    `level 2 amount`                           IS A NUMBER  @desc the yearly amount at level 2, set the same way; an input
+    `clothing allowance under other arrangements` IS A NUMBER @desc any clothing allowance the employee receives under the arrangements section 1.6.4 keeps in force; an input
+
+§§ `1.6.1`
+
+@ref akn:chp_1א___sec_1_6__hc_2__para_1
+GIVEN y IS A `clothing year`
+GIVETH A BOOLEAN
+DECIDE `entitled to the clothing allowance` y IF
+        y's `ranked on the teaching employees' scale`
+    AND y's `employed in a teaching role`
+
+§§ `1.6.2`
+
+-- The note to §1.6.2: compulsory army service carries no right for the
+-- allowance, so its years are taken out of the seniority the levels read.
+@ref akn:chp_1א___sec_1_6__hc_2__para_2/p4
+GIVEN y IS A `clothing year`
+GIVETH A NUMBER
+DECIDE `seniority for the clothing level` y IS
+    y's `year of teaching seniority` MINUS y's `years of compulsory army service counted in it`
+
+-- The levels AS PRINTED, as rows, so the table can be asked directly.
+DECLARE `clothing band` HAS
+    `band level`    IS A NUMBER
+    `band from`     IS A NUMBER
+    `band to`       IS A NUMBER  @desc 999 stands for "+", with no upper bound
+
+@ref akn:chp_1א___sec_1_6__hc_2__para_2 akn:chp_1א___sec_1_6__hc_2__para_2/p2 akn:chp_1א___sec_1_6__hc_2__para_2/p3
+`the clothing levels` MEANS
+    LIST `clothing band` 1 1  25,
+         `clothing band` 2 26 999
+
+GIVEN n IS A NUMBER
+GIVETH A LIST OF NUMBER
+DECIDE `the levels the table gives for seniority` n IS
+    map (GIVEN b YIELD b's `band level`)
+        (filter (GIVEN b YIELD n AT LEAST b's `band from` AND n AT MOST b's `band to`)
+                `the clothing levels`)
+
+-- F-1.6-a: the reading adopted counts the year being served (the first year
+-- is 1), as F-1.7-b does for the same words in §1.7; read as completed
+-- years a teacher in the first year has seniority 0 and no level.
+GIVEN n IS A NUMBER
+GIVETH A NUMBER
+DECIDE `clothing level` n IS
+    IF n AT LEAST 26 THEN 2 ELSE 1
+
+`a first-year teacher has no clothing level if seniority counts completed years` MEANS
+    `the levels the table gives for seniority` 0 EQUALS EMPTY
+#ASSERT `a first-year teacher has no clothing level if seniority counts completed years`
+
+-- The table gives every year from 1 to 40 exactly one level, the one adopted.
+#ASSERT all (GIVEN n YIELD `the levels the table gives for seniority` n EQUALS LIST (`clothing level` n))
+            (LIST 1, 2, 10, 24, 25, 26, 27, 40)
+
+-- §1.6.2 ¶5: the Treasury sets the amounts and the department publishes them
+-- yearly, so the amount of each level is an input of the year.
+@ref akn:chp_1א___sec_1_6__hc_2__para_2/p5
+GIVEN y IS A `clothing year`
+GIVETH A NUMBER
+DECIDE `level amount` y IS
+    IF `clothing level` (`seniority for the clothing level` y) EQUALS 2
+    THEN y's `level 2 amount`
+    ELSE y's `level 1 amount`
+
+§§ `1.6.3`
+
+@ref akn:chp_1א___sec_1_6__hc_2__para_3
+GIVEN y IS A `clothing year`
+GIVETH A NUMBER
+DECIDE `clothing pro-rating` y IS
+    min (y's `position fraction this year`) 1 TIMES y's `share of the year worked`
+
+@export default The clothing allowance a teaching employee is owed for one year under section 1.6 of the takanon, before the allowance under other arrangements that section 1.6.4 adds to it
+GIVEN y IS A `clothing year` @desc the employee's year
+GIVETH A NUMBER
+DECIDE `clothing allowance` y IS
+    IF `entitled to the clothing allowance` y
+    THEN `level amount` y TIMES `clothing pro-rating` y
+    ELSE 0
+
+§§ `1.6.4`
+
+@ref akn:chp_1א___sec_1_6__hc_2__para_4
+GIVEN y IS A `clothing year`
+GIVETH A NUMBER
+DECIDE `clothing allowances in all` y IS
+    `clothing allowance` y PLUS y's `clothing allowance under other arrangements`
+
+§§ `1.6.2 ¶6 Payment`
+
+DECLARE `clothing action` IS ONE OF
+    `pay the clothing allowance` HAS `amount paid out` IS A NUMBER
+
+-- Time in school months (September = 1): July's salary is the eleventh.
+@ref akn:chp_1א___sec_1_6__hc_2__para_2/p6
+GIVEN y IS A `clothing year`
+GIVETH A DEONTIC Party `clothing action`
+DECIDE `payment with July's salary` y IS
+    PARTY `the employer`
+    MUST  `pay the clothing allowance` `amount paid out`
+          PROVIDED `amount paid out` AT LEAST `clothing allowance` y
+    WITHIN `month number` July
+    LEST BREACH BY `the employer` BECAUSE "section 1.6.2: the allowance is paid with July's salary"
+
+§§ `1.6.5–1.6.6`
+
+-- akn:chp_1א___sec_1_6__hc_2__para_5 A pointer: the clothing allowance of physical-education teachers is in section 3.9.4.
+-- akn:chp_1א___sec_1_6__hc_2__para_6 A pointer: the clothing allowance of vocational instructors and של"ח instructors is in section 6.17.7.
+
+-- Worked examples. The level amounts of 1,000 and 1,200 are placeholders:
+-- the takanon leaves the amounts to the Treasury.
+`a part-time teacher in year 28 with 3 army years` MEANS
+    `clothing year` WITH
+        `ranked on the teaching employees' scale`         IS TRUE
+        `employed in a teaching role`                     IS TRUE
+        `year of teaching seniority`                      IS 28
+        `years of compulsory army service counted in it`  IS 3
+        `position fraction this year`                     IS 0.5
+        `share of the year worked`                        IS 1
+        `level 1 amount`                                  IS 1000
+        `level 2 amount`                                  IS 1200
+        `clothing allowance under other arrangements`     IS 0
+
+-- 28 years less 3 army years is 25: level 1, half of 1,000.
+#ASSERT `clothing allowance` `a part-time teacher in year 28 with 3 army years` EQUALS 500
+
+#TRACE `payment with July's salary` `a part-time teacher in year 28 with 3 army years` AT 0 WITH
+    PARTY `the employer` DOES `pay the clothing allowance` 500 AT 11
+
+-- akn:chp_1א___sec_1_6__hc_3 The section's sources (אסמכתא): the circular, agreement and letter it rests on.

@@ -1,0 +1,121 @@
+-- תקנון שירות עובדי הוראה, פרק 4, §4.2 הסמכה
+-- Who is "certified for special education" for the special-education
+-- supplement (section 4.6): eight routes, any one of which is enough.
+
+IMPORT prelude
+IMPORT common
+
+§ `4.2 הסמכה`
+
+@desc A teaching employee's qualifications, as far as section 4.2 asks about them.
+DECLARE `special-education qualifications` HAS
+    `holds a permanent special-education teaching licence`     IS A BOOLEAN @desc a permanent teaching licence for special education (section 1.21.2.3, sub-clause י)
+    `graduate of a teachers' seminary special-education track` IS A BOOLEAN
+    `academic degree with special education as a major`        IS A BOOLEAN @desc an academic degree one of whose courses of study at an institution of higher education is special education
+    `completed the special-education course toward a degree`   IS A BOOLEAN @desc completed one course of study (חוג) toward an academic degree, that course being special education
+    `completed a recognised special-education training course` IS A BOOLEAN
+    `certified to teach`                                       IS A BOOLEAN @desc the employee is a certified (מוסמך) teaching employee
+    `completed the course before being certified`              IS A BOOLEAN @desc the recognised special-education training course was completed before the teaching certification
+    `certified for special education abroad`                   IS A BOOLEAN @desc certified for special education abroad, academic education in special education included
+    `works in special education`                               IS A BOOLEAN
+    `academic degree in education of the hearing-impaired from Tel Aviv University` IS A BOOLEAN
+
+-- The opening paragraph defines the term by the list below: any one
+-- sub-clause makes the employee "certified for special education".
+@ref akn:chp_4__sec_4_2__hc_2/p1
+GIVEN q IS A `special-education qualifications`
+GIVETH A BOOLEAN
+DECIDE `certified for special education` q IF
+       `route (a)` q
+    OR `route (b)` q
+    OR `route (c)` q
+    OR `route (d)` q
+    OR `route (e)` q
+    OR `route (f)` q
+    OR `route (f), second paragraph` q
+    OR `route (g)` q
+    OR `route (h)` q
+
+@ref akn:chp_4__sec_4_2__hc_2__para_a
+GIVEN q IS A `special-education qualifications`
+GIVETH A BOOLEAN
+DECIDE `route (a)` q IF q's `holds a permanent special-education teaching licence`
+
+@ref akn:chp_4__sec_4_2__hc_2__para_b
+GIVEN q IS A `special-education qualifications`
+GIVETH A BOOLEAN
+DECIDE `route (b)` q IF q's `graduate of a teachers' seminary special-education track`
+
+@ref akn:chp_4__sec_4_2__hc_2__para_c
+GIVEN q IS A `special-education qualifications`
+GIVETH A BOOLEAN
+DECIDE `route (c)` q IF q's `academic degree with special education as a major`
+
+@ref akn:chp_4__sec_4_2__hc_2__para_d
+GIVEN q IS A `special-education qualifications`
+GIVETH A BOOLEAN
+DECIDE `route (d)` q IF q's `certified to teach` AND q's `completed the special-education course toward a degree`
+
+@ref akn:chp_4__sec_4_2__hc_2__para_e
+GIVEN q IS A `special-education qualifications`
+GIVETH A BOOLEAN
+DECIDE `route (e)` q IF q's `certified to teach` AND q's `completed a recognised special-education training course`
+
+-- (f): an uncertified employee with the special-education course toward a
+-- degree is certified for special education "after being certified to
+-- teach" — so, in effect, once certified.
+@ref akn:chp_4__sec_4_2__hc_2__para_f/p1
+GIVEN q IS A `special-education qualifications`
+GIVETH A BOOLEAN
+DECIDE `route (f)` q IF q's `completed the special-education course toward a degree` AND q's `certified to teach`
+
+-- F-4.2-a: (f)'s second paragraph names an uncertified teacher who completed
+-- a recognised training course before certification, and says nothing of
+-- WHEN that teacher counts as certified for special education. The reading
+-- adopted carries (f)'s "after being certified to teach" over to it.
+@ref akn:chp_4__sec_4_2__hc_2__para_f/p2
+GIVEN q IS A `special-education qualifications`
+GIVETH A BOOLEAN
+DECIDE `route (f), second paragraph` q IF
+    q's `completed a recognised special-education training course` AND q's `completed the course before being certified` AND q's `certified to teach`
+
+-- The other reading: the paragraph qualifies the uncertified teacher at once.
+GIVEN q IS A `special-education qualifications`
+GIVETH A BOOLEAN
+DECIDE `route (f), second paragraph read as qualifying at once` q IF
+    q's `completed a recognised special-education training course` AND q's `completed the course before being certified`
+
+@ref akn:chp_4__sec_4_2__hc_2__para_g
+GIVEN q IS A `special-education qualifications`
+GIVETH A BOOLEAN
+DECIDE `route (g)` q IF q's `certified for special education abroad` AND q's `works in special education`
+
+@ref akn:chp_4__sec_4_2__hc_2__para_h
+GIVEN q IS A `special-education qualifications`
+GIVETH A BOOLEAN
+DECIDE `route (h)` q IF q's `certified to teach` AND q's `academic degree in education of the hearing-impaired from Tel Aviv University`
+
+-- akn:chp_4__sec_4_2__hc_3/p1 Source (אסמכתא): Director-General's circulars.
+-- akn:chp_4__sec_4_2__hc_3/p2 Source (אסמכתא): a circular of the teaching-personnel division of 1.1.92.
+
+-- An uncertified teacher who took a recognised course before certification.
+`an uncertified teacher with a recognised course` MEANS
+    `special-education qualifications` WITH
+        `holds a permanent special-education teaching licence`     IS FALSE
+        `graduate of a teachers' seminary special-education track` IS FALSE
+        `academic degree with special education as a major`        IS FALSE
+        `completed the special-education course toward a degree`   IS FALSE
+        `completed a recognised special-education training course` IS TRUE
+        `certified to teach`                                       IS FALSE
+        `completed the course before being certified`              IS TRUE
+        `certified for special education abroad`                   IS FALSE
+        `works in special education`                               IS TRUE
+        `academic degree in education of the hearing-impaired from Tel Aviv University` IS FALSE
+
+#ASSERT NOT `certified for special education` `an uncertified teacher with a recognised course`
+
+-- F-4.2-a: the two readings of (f)'s second paragraph differ for this teacher.
+`the two readings of (f)'s second paragraph differ for an uncertified teacher` MEANS
+    NOT (`route (f), second paragraph` `an uncertified teacher with a recognised course`
+         EQUALS `route (f), second paragraph read as qualifying at once` `an uncertified teacher with a recognised course`)
+#ASSERT `the two readings of (f)'s second paragraph differ for an uncertified teacher`

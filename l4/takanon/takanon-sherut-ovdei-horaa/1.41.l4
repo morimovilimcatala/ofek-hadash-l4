@@ -1,0 +1,131 @@
+-- תקנון שירות עובדי הוראה, פרק 1ב, §1.41 הודעה על שינויים אישיים
+-- The teaching employee's duty to report personal changes: which changes,
+-- within how long, with what documents, and through whom.
+
+IMPORT prelude
+IMPORT common
+
+§ `1.41 הודעה על שינויים אישיים`
+
+DECLARE `kind of teaching employee` IS ONE OF
+    `a kindergarten teacher`
+    `a schoolteacher`
+    `another teaching employee` @desc a teaching employee who is neither a kindergarten teacher nor a schoolteacher, a supervisor for example
+
+DECLARE `report handler` IS ONE OF
+    `the district HR section manager`
+    `the school principal`
+    `the treasury of the district`
+    `no handler named`
+
+DECLARE `report action` IS ONE OF
+    `report the change` HAS `documents attached` IS A BOOLEAN
+
+DECLARE `personal change` IS ONE OF
+    -- akn:chp_1ב__sec_1_41__hc_2__para_1 Item 1: change of family status.
+    `a change in family status` @desc marriage, divorce, birth of a son or daughter, death of a son or daughter or of another family member for whom a family supplement is paid
+    -- akn:chp_1ב__sec_1_41__hc_2__para_2 Item 2.
+    `the spouse or a child starts work`
+    -- akn:chp_1ב__sec_1_41__hc_2__para_3 Item 3.
+    `the spouse or a child stops work`
+    -- akn:chp_1ב__sec_1_41__hc_2__para_4 Item 4.
+    `a child is called up for regular military service`
+    -- akn:chp_1ב__sec_1_41__hc_2__para_5 Item 5.
+    `further education acquired`
+    -- akn:chp_1ב__sec_1_41__hc_2__para_6 Item 6.
+    `a change of name`
+    -- akn:chp_1ב__sec_1_41__hc_2__para_7 Item 7.
+    `a change of address`
+    -- akn:chp_1ב__sec_1_41__hc_2__para_8 Item 8.
+    `joining or membership of a health fund`
+    -- akn:chp_1ב__sec_1_41__hc_2__para_9 Item 9.
+    `a change of citizenship`
+    -- akn:chp_1ב__sec_1_41__hc_2__para_10 Item 10.
+    `a family relation arises with another teaching employee in the same school`
+    -- akn:chp_1ב__sec_1_41__hc_2__para_11 Item 11.
+    `a correction of the date of birth`
+    -- akn:chp_1ב__sec_1_41__hc_2__para_12 Item 12.
+    `inclusion in a list of candidates for the Knesset, a municipality or a local council`
+    -- akn:chp_1ב__sec_1_41__hc_2__para_13 Item 13.
+    `an additional workplace, for computing a mother-teacher's position`
+    -- akn:chp_1ב__sec_1_41__hc_2__para_14 Item 14.
+    `a child reaches 18`
+    `a personal change not on the list`
+
+§§ `1.41 the duty to report`
+
+-- ¶4 introduces the list: the changes the employee must report.
+@ref akn:chp_1ב__sec_1_41__hc_2/p4
+GIVEN c IS A `personal change`
+GIVETH A BOOLEAN
+DECIDE `on the list of reportable changes` c IF
+    NOT (c EQUALS `a personal change not on the list`)
+
+-- F-1.41-a: ¶1 says "every personal change" and sends the reader to a
+-- list it calls "סעיף ד", which the text does not label; ¶4 calls the
+-- fourteen items "the changes the employee must report". This file reads
+-- the list as closed.
+@ref akn:chp_1ב__sec_1_41__hc_2/p1
+GIVEN c IS A `personal change`
+GIVETH A BOOLEAN
+DECIDE `must be reported` c IF
+    `on the list of reportable changes` c
+
+GIVEN c IS A `personal change`
+GIVETH A BOOLEAN
+DECIDE `reportable if "every personal change" is read literally` c IF
+    TRUE
+
+`"every personal change" and the closed list differ on an unlisted change` MEANS
+    NOT (`must be reported` `a personal change not on the list`
+         EQUALS `reportable if "every personal change" is read literally` `a personal change not on the list`)
+#ASSERT `"every personal change" and the closed list differ on an unlisted change`
+
+-- Time in days from the day the change occurred.
+@ref akn:chp_1ב__sec_1_41__hc_2/p2
+GIVEN c IS A `personal change`
+GIVETH A DEONTIC Party `report action`
+DECIDE `the report within thirty days` c IS
+    IF `must be reported` c
+    THEN PARTY `the teaching employee`
+         MUST  `report the change` `with documents`
+               PROVIDED `with documents`
+         WITHIN 30
+         LEST  BREACH BY `the teaching employee` BECAUSE "section 1.41: a personal change is reported within thirty days of its occurrence, with the certificates and documents confirming it"
+    ELSE FULFILLED
+
+-- ¶3: the channel. F-1.41-b: it names kindergarten teachers and
+-- schoolteachers only.
+@ref akn:chp_1ב__sec_1_41__hc_2/p3
+GIVEN k IS A `kind of teaching employee`
+GIVETH A `report handler`
+DECIDE `the employee hands the report to` k IS
+    CONSIDER k
+    WHEN `a kindergarten teacher` THEN `the district HR section manager`
+    WHEN `a schoolteacher`        THEN `the school principal`
+    OTHERWISE `no handler named`
+
+GIVEN h IS A `report handler`
+GIVETH A `report handler`
+DECIDE `who passes the report on next` h IS
+    CONSIDER h
+    WHEN `the school principal`             THEN `the district HR section manager`
+    WHEN `the district HR section manager`  THEN `the treasury of the district`
+    OTHERWISE `no handler named`
+
+`the text names no channel for a teaching employee who is neither` MEANS
+    `the employee hands the report to` `another teaching employee` EQUALS `no handler named`
+#ASSERT `the text names no channel for a teaching employee who is neither`
+
+-- akn:chp_1ב__sec_1_41__hc_2/p5 Where the declaration form can be obtained (the employees' department); no rule.
+
+-- akn:chp_1ב__sec_1_41__hc_3/p1 The section's source (אסמכתא): a director-general's circular.
+
+-- Worked examples, in days from the change.
+#ASSERT `must be reported` `a child reaches 18`
+#ASSERT `who passes the report on next` (`the employee hands the report to` `a schoolteacher`) EQUALS `the district HR section manager`
+
+#TRACE `the report within thirty days` `a change of address` AT 0 WITH
+    PARTY `the teaching employee` DOES `report the change` TRUE AT 20
+#TRACE `the report within thirty days` `a change of address` AT 0 WITH
+    PARTY `the teaching employee` DOES `report the change` TRUE AT 45

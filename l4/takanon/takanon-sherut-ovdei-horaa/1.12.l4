@@ -1,0 +1,718 @@
+-- תקנון שירות עובדי הוראה, פרק 1א', §1.12 תפקידים וגמולים
+-- Role-holders and their allowances: the closed list of roles, who appoints
+-- them and on what terms, the base and the scaling of the allowances, and
+-- the rules of each allowance (class education, subject and
+-- qualifications, coordinations, counselling, boarding supervision,
+-- security, technical coordination, training).
+
+IMPORT prelude
+IMPORT common
+
+§ `1.12 תפקידים וגמולים`
+
+GIVEN d IS A DATE, e IS A DATE
+GIVETH A BOOLEAN
+DECIDE d `is on or after` e IF
+    DATE_SERIAL d AT LEAST DATE_SERIAL e
+
+-- akn:chp_1א___sec_1_12__ssec_1_12/p1 An amendment note: the section was updated on 29.1.03.
+
+§§ `כללי`
+
+-- akn:chp_1א___sec_1_12__ssec_1_12/p2 A heading: "כללי".
+
+-- ¶3, ¶5, ¶7: the agreement of 16.11.83 closed the list of roles and their
+-- allowances; road-safety coordination was added to it. (The split-position
+-- allowance is section 1.11.)
+@ref akn:chp_1א___sec_1_12__ssec_1_12/p3 akn:chp_1א___sec_1_12__ssec_1_12/p5 akn:chp_1א___sec_1_12__ssec_1_12/p7
+DECLARE `role allowance` IS ONE OF
+    `class education`
+    `subject and qualifications`
+    `subject coordination`
+    `grade-level, track, stream or class-group coordination`
+    `social coordination`
+    `laboratory coordination`
+    `teacher-counsellor`
+    `boarding-school supervision`
+    `security officer`
+    `technical coordination in vocational centres`
+    `training`
+    `guidance coordination`
+    `road-safety coordination`
+
+-- akn:chp_1א___sec_1_12__ssec_1_12/p6 A pointer: the split-position allowance is section 1.11.
+
+-- ¶4: criteria the agreement did not change stay as they were.
+@ref akn:chp_1א___sec_1_12__ssec_1_12/p4
+GIVEN `the agreement changed the criterion` IS A BOOLEAN
+      `criterion as changed` IS A BOOLEAN
+      `criterion before the agreement` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `the criterion in force` `the agreement changed the criterion` `criterion as changed` `criterion before the agreement` IF
+    IF `the agreement changed the criterion`
+    THEN `criterion as changed`
+    ELSE `criterion before the agreement`
+
+-- ¶8: the school further-training coordinator was abolished with that
+-- training, so it is not on the list. ¶9 "תחולה 1.9.94" follows the
+-- addition and the abolition and is read as their date.
+@ref akn:chp_1א___sec_1_12__ssec_1_12/p8 akn:chp_1א___sec_1_12__ssec_1_12/p9
+GIVEN d IS A DATE
+GIVETH A BOOLEAN
+DECIDE `road-safety coordination is on the list on` d IF
+    d `is on or after` (DATE_FROM_DMY 1 9 1994)
+
+§§ `1. המינוי`
+
+-- akn:chp_1א___sec_1_12__ssec_1_12/p10 A heading: "המינוי".
+
+@desc A proposed appointment of a teaching employee to a role.
+DECLARE `appointment` HAS
+    `role`                                      IS A `role allowance`
+    `made by the principal`                     IS A BOOLEAN
+    `approved by the general supervisor`        IS A BOOLEAN
+    `the subject supervisor was consulted`      IS A BOOLEAN
+    `position fraction of the appointee`        IS A NUMBER
+    `roles the appointee already holds`         IS A LIST OF `role allowance`
+    `the district manager found an essential need` IS A BOOLEAN
+    `the appointee is a principal`              IS A BOOLEAN
+    `classes the principal would educate`       IS A NUMBER
+    `the appointee is a vice-principal`         IS A BOOLEAN
+
+@ref akn:chp_1א___sec_1_12__ssec_1_12/p11
+GIVEN a IS AN `appointment`
+GIVETH A BOOLEAN
+DECIDE `properly made` a IF
+        a's `made by the principal`
+    AND a's `approved by the general supervisor`
+    AND a's `the subject supervisor was consulted`
+
+-- ¶17: subject and qualifications is not a "role" for ¶13–16.
+@ref akn:chp_1א___sec_1_12__ssec_1_12/p17
+GIVEN r IS A `role allowance`
+GIVETH A BOOLEAN
+DECIDE `is a role for the appointment limits` r IF
+    (NOT (r EQUALS `subject and qualifications`))
+
+@ref akn:chp_1א___sec_1_12__ssec_1_12/p13
+GIVEN a IS AN `appointment`
+GIVETH A BOOLEAN
+DECIDE `holds a third of a position` a IF
+    a's `position fraction of the appointee` AT LEAST 1/3
+
+@ref akn:chp_1א___sec_1_12__ssec_1_12/p14
+GIVEN a IS AN `appointment`
+GIVETH A BOOLEAN
+DECIDE `within the limit of two roles` a IF
+        count (filter `is a role for the appointment limits` (a's `roles the appointee already holds`)) LESS THAN 2
+    OR  a's `the district manager found an essential need`
+
+-- ¶15–16: a principal takes no further role but the education of one class;
+-- a vice-principal may add class education or security.
+@ref akn:chp_1א___sec_1_12__ssec_1_12/p15 akn:chp_1א___sec_1_12__ssec_1_12/p16
+GIVEN a IS AN `appointment`
+GIVETH A BOOLEAN
+DECIDE `allowed for a principal` a IF
+        (NOT a's `the appointee is a principal`)
+    OR  (NOT `is a role for the appointment limits` (a's `role`))
+    OR  (a's `role` EQUALS `class education` AND a's `classes the principal would educate` AT MOST 1)
+
+-- ¶18: the same rules govern the road-safety coordinator.
+@ref akn:chp_1א___sec_1_12__ssec_1_12/p18
+GIVEN a IS AN `appointment`
+GIVETH A BOOLEAN
+DECIDE `may be appointed` a IF
+        (NOT `is a role for the appointment limits` (a's `role`))
+    OR  (    `properly made` a
+         AND `holds a third of a position` a
+         AND `within the limit of two roles` a
+         AND `allowed for a principal` a)
+
+-- ¶12: for one school year, and no hold on the role.
+@ref akn:chp_1א___sec_1_12__ssec_1_12/p12
+`months an appointment lasts` MEANS 12
+
+GIVEN `months since the appointment` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `the appointment still runs` `months since the appointment` IF
+    `months since the appointment` LESS THAN `months an appointment lasts`
+
+§§ `2. הגמולים`
+
+-- akn:chp_1א___sec_1_12__ssec_1_12/p19 A heading: "הגמולים".
+
+@desc A teaching employee holding a role, as section 1.12.2 asks about her.
+DECLARE `role-holder` HAS
+    `allowance held`                    IS A `role allowance`
+    `fills the role now`                IS A BOOLEAN
+    `actual position fraction`          IS A NUMBER
+    `full-position base`                IS A NUMBER @desc the combined salary for one full position by grade and seniority, with the 3% (2001), 5% (2008), 4% (2011) and 1994 teaching supplements (section 1.12.2א); an input until section 1.1 is imported
+    `allowance rate`                    IS A NUMBER @desc the allowance's rate, from its own paragraph below
+
+-- ¶20: the base; ¶23: paid on one full position whatever the actual
+-- position, except subject and qualifications and the teacher-counsellor.
+@ref akn:chp_1א___sec_1_12__ssec_1_12/p20 akn:chp_1א___sec_1_12__ssec_1_12/p23
+GIVEN r IS A `role allowance`, fraction IS A NUMBER
+GIVETH A NUMBER
+DECIDE `position factor for` r fraction IS
+    IF r EQUALS `subject and qualifications`
+    THEN fraction
+    ELSE 1
+
+-- ¶21: paid while the role is filled, stopped when it is not.
+@ref akn:chp_1א___sec_1_12__ssec_1_12/p21
+@export default The role allowance (gemul tafkid) a teaching employee is owed for a month under section 1.12 of the takanon, from its rate
+GIVEN h IS A `role-holder` @desc the employee and the allowance
+GIVETH A NUMBER
+DECIDE `role allowance amount` h IS
+    IF h's `fills the role now`
+    THEN h's `allowance rate` TIMES h's `full-position base`
+             TIMES `position factor for` (h's `allowance held`) (h's `actual position fraction`)
+    ELSE 0
+
+DECLARE `purpose` IS ONE OF `pension`, `severance`, `provident funds`, `any purpose`
+
+-- ¶22: none of the allowances is salary for any purpose, but class
+-- education and subject and qualifications; one that was salary for a
+-- purpose before stays salary for it alone. ¶75 (counsellor) below.
+@ref akn:chp_1א___sec_1_12__ssec_1_12/p22
+GIVEN r IS A `role allowance`, `was salary for this purpose before` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `is salary under ¶22` r `was salary for this purpose before` IF
+        r EQUALS `class education`
+    OR  r EQUALS `subject and qualifications`
+    OR  `was salary for this purpose before`
+
+-- ¶24–30: allowances still paid in shekels, updated with the cost-of-living
+-- supplements; the amounts are inputs.
+@ref akn:chp_1א___sec_1_12__ssec_1_12/p24 akn:chp_1א___sec_1_12__ssec_1_12/p25 akn:chp_1א___sec_1_12__ssec_1_12/p28 akn:chp_1א___sec_1_12__ssec_1_12/p30
+DECLARE `shekel allowance` IS ONE OF
+    `security officer, up to 15 classes, not on the teaching scale`
+    `security officer, 15 classes or more, not on the teaching scale`
+    `assistant security officer in a boarding school, not on the teaching scale`
+    `assistant security officer in a boarding school outside a local authority`
+    `guiding a pupil's final project in a post-primary school`
+
+-- The two rows of ¶26–27 AS PRINTED, by the institution's number of
+-- classes. F-1.12-a: both take an institution of exactly 15 classes.
+@ref akn:chp_1א___sec_1_12__ssec_1_12/p26 akn:chp_1א___sec_1_12__ssec_1_12/p27
+GIVEN classes IS A NUMBER
+GIVETH A LIST OF `shekel allowance`
+DECIDE `the security rows that take` classes IS
+    filter (GIVEN s YIELD
+                CONSIDER s
+                WHEN `security officer, up to 15 classes, not on the teaching scale` THEN classes AT MOST 15
+                WHEN `security officer, 15 classes or more, not on the teaching scale` THEN classes AT LEAST 15
+                OTHERWISE FALSE)
+           (LIST `security officer, up to 15 classes, not on the teaching scale`,
+                 `security officer, 15 classes or more, not on the teaching scale`)
+
+`an institution of 15 classes falls in both security rows` MEANS
+    count (`the security rows that take` 15) EQUALS 2
+#ASSERT `an institution of 15 classes falls in both security rows`
+
+-- The reading adopted (F-1.12-a): the row that OPENS at 15 governs it.
+GIVEN classes IS A NUMBER
+GIVETH A `shekel allowance`
+DECIDE `the security shekel row for` classes IS
+    IF classes AT LEAST 15
+    THEN `security officer, 15 classes or more, not on the teaching scale`
+    ELSE `security officer, up to 15 classes, not on the teaching scale`
+
+-- F-1.12-d: ¶29 (assistant in a boarding school outside a local authority,
+-- in SHEKELS, with no "not on the teaching scale" as rows 1–3 have) and ¶98
+-- (the same assistant at 5%, a percentage "from 1.11.1983") both take an
+-- assistant on the teaching scale. The reading adopted gives row 4 the same
+-- limit as rows 1–3: it is for those not on the teaching scale.
+@ref akn:chp_1א___sec_1_12__ssec_1_12/p29
+GIVEN `on the teaching scale` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `paid row 4 in shekels` `on the teaching scale` IF
+    (NOT `on the teaching scale`)
+
+-- The five rows of ¶26–30 as printed: does the row say "not on the teaching scale"?
+GIVEN s IS A `shekel allowance`
+GIVETH A BOOLEAN
+DECIDE `the printed row is limited to those off the teaching scale` s IF
+    CONSIDER s
+    WHEN `assistant security officer in a boarding school outside a local authority` THEN FALSE
+    WHEN `guiding a pupil's final project in a post-primary school` THEN FALSE
+    OTHERWISE TRUE
+
+`row 4 as printed and ¶98 both take a teaching-scale assistant outside a local authority` MEANS
+        (NOT `the printed row is limited to those off the teaching scale` `assistant security officer in a boarding school outside a local authority`)
+    AND `percentage for a security role` `assistant in a boarding school outside a local authority` GREATER THAN 0
+#ASSERT `row 4 as printed and ¶98 both take a teaching-scale assistant outside a local authority`
+
+§§ `3. חינוך כיתה`
+
+-- akn:chp_1א___sec_1_12__ssec_1_12/p31 A heading: "חינוך כיתה".
+
+DECLARE `educator` IS ONE OF
+    `the educator of a class, so determined by the principal`
+    `a kindergarten teacher`
+    `a kindergarten teacher with the kindergarten-coordination allowance`
+    `a teacher of assisted-teaching classes`
+    `an assistant kindergarten teacher`
+    `an inclusion kindergarten teacher`
+    `a rabbi-teacher (ר"מ)`
+    `a school rabbi`
+    `an educator of grades 13–14`
+    `a pedagogic instructor in a teacher-training college`
+    `the teacher in charge of an adult-education class`
+    `someone else`
+
+@ref akn:chp_1א___sec_1_12__ssec_1_12/p32 akn:chp_1א___sec_1_12__ssec_1_12/p33
+GIVEN e IS AN `educator`, d IS A DATE
+GIVETH A BOOLEAN
+DECIDE `entitled to class education` e d IF
+    CONSIDER e
+    WHEN `the educator of a class, so determined by the principal` THEN TRUE
+    WHEN `a kindergarten teacher with the kindergarten-coordination allowance` THEN FALSE
+    WHEN `someone else` THEN FALSE
+    OTHERWISE d `is on or after` (DATE_FROM_DMY 1 11 1983)
+
+-- ¶34: 10% from 1.1.01; ¶36: twice for two classes.
+@ref akn:chp_1א___sec_1_12__ssec_1_12/p34 akn:chp_1א___sec_1_12__ssec_1_12/p36
+GIVEN `classes educated` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `class-education rate` `classes educated` IS
+    10% TIMES min `classes educated` 2
+
+-- ¶35 and ¶42: both are salary for every purpose from 1.11.83.
+@ref akn:chp_1א___sec_1_12__ssec_1_12/p35 akn:chp_1א___sec_1_12__ssec_1_12/p42
+GIVEN r IS A `role allowance`, d IS A DATE
+GIVETH A BOOLEAN
+DECIDE `is salary for every purpose` r d IF
+        (r EQUALS `class education` OR r EQUALS `subject and qualifications`)
+    AND (d `is on or after` (DATE_FROM_DMY 1 11 1983))
+
+-- ¶37 and ¶43 (the same words twice): not both.
+@ref akn:chp_1א___sec_1_12__ssec_1_12/p37 akn:chp_1א___sec_1_12__ssec_1_12/p43
+GIVEN held IS A LIST OF `role allowance`
+GIVETH A BOOLEAN
+DECIDE `class education and subject and qualifications are not held together` held IF
+    (NOT (elem `class education` held AND elem `subject and qualifications` held))
+
+§§ `4. מקצוע והכשרות`
+
+-- akn:chp_1א___sec_1_12__ssec_1_12/p38 A heading: "מקצוע והכשרות".
+
+DECLARE `other allowance held` IS ONE OF
+    `kindergarten coordination`, `class education held`, `management`,
+    `teacher-instructor`, `guidance`, `supervision`, `none of these`
+
+-- ¶39: every teaching employee, but those holding one of six allowances;
+-- instructors in some cases (section 8.1.6.1, an input).
+@ref akn:chp_1א___sec_1_12__ssec_1_12/p39
+GIVEN o IS AN `other allowance held`
+GIVETH A BOOLEAN
+DECIDE `entitled to subject and qualifications` o IF
+    o EQUALS `none of these`
+
+-- ¶40–41: 6% from 1.1.01, on the actual position, below or above one.
+@ref akn:chp_1א___sec_1_12__ssec_1_12/p40 akn:chp_1א___sec_1_12__ssec_1_12/p41
+`subject and qualifications rate` MEANS 6%
+
+§§ `5. ריכוז מקצוע`
+
+-- akn:chp_1א___sec_1_12__ssec_1_12/p44 A heading: "ריכוז מקצוע".
+
+@ref akn:chp_1א___sec_1_12__ssec_1_12/p45
+DECLARE `subject coordinator` IS ONE OF
+    `a subject coordinator`
+    `a domain coordinator (a cluster of subjects, e.g. arts education or KKL heritage)`
+    `a coordinator agreed between the Ministry and the teachers' organisations`
+
+-- akn:chp_1א___sec_1_12__ssec_1_12/p46 A pointer: appointment and allowance in a primary school are in section 3.14.
+-- akn:chp_1א___sec_1_12__ssec_1_12/p47 A pointer: appointment and allowance in a post-primary school are in section 6.10.
+
+-- akn:chp_1א___sec_1_12__ssec_1_12/p48 A heading: "ריכוז בטיחות בדרכים".
+
+DECLARE `appointment duty` IS ONE OF
+    `appoint a road-safety coordinator`
+    `appoint a security officer`
+    `set the division of security tasks`
+    `allot weekly hours to the security officer` HAS `weekly hours allotted` IS A NUMBER
+
+-- ¶49: every school appoints one, at 6%; ¶50: on passing the road-safety
+-- course and with the road-safety supervisor's approval.
+@ref akn:chp_1א___sec_1_12__ssec_1_12/p49
+GIVETH A DEONTIC Party `appointment duty`
+DECIDE `every school appoints a road-safety coordinator` IS
+    PARTY `the school principal`
+    MUST  `appoint a road-safety coordinator`
+    WITHIN 12
+    LEST BREACH BY `the school principal` BECAUSE "section 1.12: in every school a road-safety coordinator is appointed"
+
+`road-safety coordination rate` MEANS 6%
+
+@ref akn:chp_1א___sec_1_12__ssec_1_12/p50
+GIVEN `passed the road-safety course` IS A BOOLEAN, `approved by the road-safety supervisor` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `may fill road-safety coordination` `passed the road-safety course` `approved by the road-safety supervisor` IF
+    `passed the road-safety course` AND `approved by the road-safety supervisor`
+
+-- akn:chp_1א___sec_1_12__ssec_1_12/p51 A heading: "ריכוז שכבה/מסלול/מגמה/חטיבת כיתות".
+
+DECLARE `kind of school` IS ONE OF `primary`, `post-primary`, `other school`
+
+-- ¶52 and ¶55: one coordinator per school, primary and post-primary only.
+@ref akn:chp_1א___sec_1_12__ssec_1_12/p52 akn:chp_1א___sec_1_12__ssec_1_12/p55
+GIVEN k IS A `kind of school`
+GIVETH A NUMBER
+DECIDE `coordinators paid per school` k IS
+    IF k EQUALS `other school` THEN 0 ELSE 1
+
+@ref akn:chp_1א___sec_1_12__ssec_1_12/p53
+`grade-level coordination rate` MEANS 6%
+
+§§ `6. ריכוז חברתי`
+
+-- akn:chp_1א___sec_1_12__ssec_1_12/p54 A heading: "ריכוז חברתי".
+
+@ref akn:chp_1א___sec_1_12__ssec_1_12/p56
+`social coordination rate` MEANS 6%
+
+-- ¶57: in a post-primary school one coordinator takes it all; two or three
+-- share it; beyond that the others take none. F-1.12-c: the share is not
+-- stated; the reading adopted divides the one allowance equally.
+@ref akn:chp_1א___sec_1_12__ssec_1_12/p57
+GIVEN k IS A `kind of school`, coordinators IS A NUMBER
+GIVETH A NUMBER
+DECIDE `social coordination rate of each` k coordinators IS
+    BRANCH IF coordinators LESS THAN 1 THEN 0
+           IF (NOT (k EQUALS `post-primary`)) THEN `social coordination rate`
+           IF coordinators AT MOST 3 THEN `social coordination rate` DIVIDED BY coordinators
+           OTHERWISE `social coordination rate` DIVIDED BY 3
+
+-- What ¶57 states as the share of each of two or three coordinators, as
+-- printed: nothing.
+GIVETH A MAYBE NUMBER
+DECIDE `the share ¶57 states for each of two or three coordinators` IS
+    NOTHING
+`¶57 states no share for two or three social coordinators` MEANS
+    isNothing `the share ¶57 states for each of two or three coordinators`
+#ASSERT `¶57 states no share for two or three social coordinators`
+
+-- akn:chp_1א___sec_1_12__ssec_1_12/p58 A heading: "ריכוז מעבדה/מרכזייה פדגוגית מוסדית/אמצעי הוראה".
+
+-- ¶59: one coordinator only (laboratory, pedagogic centre or teaching aids)
+-- in an institution with any of grades 1–14. ¶62–63: the RATES of ¶60–61
+-- are for institutions outside post-primary education; post-primary ones
+-- appoint by the existing criteria (section 6.9.2) and at least one.
+-- F-1.12-e: for a post-primary institution ¶59 says one only and ¶63 lets
+-- section 6.9.2 give more; the reading adopted is ¶63 for post-primary.
+@ref akn:chp_1א___sec_1_12__ssec_1_12/p59 akn:chp_1א___sec_1_12__ssec_1_12/p62 akn:chp_1א___sec_1_12__ssec_1_12/p63
+GIVEN k IS A `kind of school`, `coordinators the criteria of 6.9.2 allow` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `laboratory coordinators allowed` k `coordinators the criteria of 6.9.2 allow` IS
+    IF k EQUALS `post-primary`
+    THEN max 1 `coordinators the criteria of 6.9.2 allow`
+    ELSE 1
+
+`¶59 and ¶63 part where section 6.9.2 allows two` MEANS
+    (NOT (`laboratory coordinators allowed` `post-primary` 2 EQUALS 1))
+#ASSERT `¶59 and ¶63 part where section 6.9.2 allows two`
+
+@ref akn:chp_1א___sec_1_12__ssec_1_12/p60 akn:chp_1א___sec_1_12__ssec_1_12/p61
+GIVEN classes IS A NUMBER
+GIVETH A NUMBER
+DECIDE `laboratory coordination rate` classes IS
+    IF classes AT LEAST 13 THEN 5% ELSE 3%
+
+§§ `7. מורה-יועץ`
+
+-- akn:chp_1א___sec_1_12__ssec_1_12/p64 A heading: "מורה-יועץ".
+
+@desc A teacher-counsellor, as section 1.12.7 asks about her.
+DECLARE `counsellor` HAS
+    `holds a counselling licence`               IS A BOOLEAN @desc section 3.12.2
+    `weekly counselling hours`                  IS A NUMBER
+    `full rate for the years of counselling`    IS A NUMBER @desc the full counselling rate for her years of counselling seniority; ¶66 says a table gives it, and none follows (F-1.12-b) — an input
+
+@ref akn:chp_1א___sec_1_12__ssec_1_12/p65
+GIVEN c IS A `counsellor`
+GIVETH A BOOLEAN
+DECIDE `entitled to the counselling allowance` c IF
+    c's `holds a counselling licence`
+
+-- F-1.12-b: "הגמול יחושב כמפורט בטבלה להלן" — no table follows, in the
+-- corpus or in the ministry's published page; the full rate by years of
+-- counselling is therefore an input.
+@ref akn:chp_1א___sec_1_12__ssec_1_12/p66
+`the rows of the counselling table the text prints` MEANS
+    EMPTY
+
+`¶66 refers to a table that is not there` MEANS
+    null `the rows of the counselling table the text prints`
+#ASSERT `¶66 refers to a table that is not there`
+
+-- ¶67–71: 12 weekly hours earn the full rate; under 4 nothing; between them
+-- the full rate times hours over 12; above 12 no more. "Allowance" there is
+-- the number of percentage points.
+@ref akn:chp_1א___sec_1_12__ssec_1_12/p67 akn:chp_1א___sec_1_12__ssec_1_12/p68 akn:chp_1א___sec_1_12__ssec_1_12/p69 akn:chp_1א___sec_1_12__ssec_1_12/p70 akn:chp_1א___sec_1_12__ssec_1_12/p71
+GIVEN c IS A `counsellor`
+GIVETH A NUMBER
+DECIDE `counselling rate` c IS
+    BRANCH IF (NOT `entitled to the counselling allowance` c) THEN 0
+           IF c's `weekly counselling hours` LESS THAN 4 THEN 0
+           IF c's `weekly counselling hours` AT LEAST 12 THEN c's `full rate for the years of counselling`
+           OTHERWISE (c's `full rate for the years of counselling` TIMES c's `weekly counselling hours`) DIVIDED BY 12
+
+-- ¶72: on the salary of one full position.
+@ref akn:chp_1א___sec_1_12__ssec_1_12/p72
+GIVEN c IS A `counsellor`, `full-position salary` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `counselling allowance` c `full-position salary` IS
+    `counselling rate` c TIMES `full-position salary`
+
+@ref akn:chp_1א___sec_1_12__ssec_1_12/p73
+GIVEN `receives the counselling allowance` IS A BOOLEAN, `training was for the counselling certificate` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `further-training allowance for that training` `receives the counselling allowance` `training was for the counselling certificate` IF
+    (NOT (`receives the counselling allowance` AND `training was for the counselling certificate`))
+
+-- ¶74: no tenure in the role; counselling hours may be turned into teaching
+-- hours; tenure is on the position only.
+@ref akn:chp_1א___sec_1_12__ssec_1_12/p74
+GIVEN `position before` IS A NUMBER, `counselling hours turned into teaching` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `position kept when counselling ends` `position before` `counselling hours turned into teaching` IS
+    `position before`
+
+-- ¶75: counselling of at least half a position (6 hours) for at least 5
+-- years before retirement, not counted before, is pensionable. F-1.12-f:
+-- ¶22 says no allowance but two is salary for any purpose unless it was
+-- before; ¶75 makes this one pensionable exactly where it was not. The
+-- reading adopted: ¶75, the particular clause, governs the counsellor.
+@ref akn:chp_1א___sec_1_12__ssec_1_12/p75
+GIVEN `weekly counselling hours in the last years` IS A NUMBER
+      `years of such counselling before retirement` IS A NUMBER
+      `counted for pension before` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `the counselling allowance is pensionable`
+        `weekly counselling hours in the last years`
+        `years of such counselling before retirement`
+        `counted for pension before` IF
+        `counted for pension before`
+    OR  (    `weekly counselling hours in the last years` AT LEAST 6
+         AND `years of such counselling before retirement` AT LEAST 5)
+
+`¶22 and ¶75 part on a counsellor's pension` MEANS
+        `the counselling allowance is pensionable` 6 5 FALSE
+    AND (NOT `is salary under ¶22` `teacher-counsellor` FALSE)
+#ASSERT `¶22 and ¶75 part on a counsellor's pension`
+
+DECLARE `move after counselling` IS ONE OF
+    `to teaching`
+    `to principal or vice-principal`
+    `to guidance and supervision`
+    `to teaching in a seminar or college`
+
+-- ¶76–78: eight years of counselling, one of them in the last seven before
+-- the move, carry the allowance into teaching (from 1.1.93); not into
+-- management, supervision or a college; back in teaching after those, the
+-- allowance of the eve of that appointment returns.
+@ref akn:chp_1א___sec_1_12__ssec_1_12/p76 akn:chp_1א___sec_1_12__ssec_1_12/p77 akn:chp_1א___sec_1_12__ssec_1_12/p78
+GIVEN `years of counselling` IS A NUMBER
+      `a counselling year among the last seven` IS A BOOLEAN
+      move IS A `move after counselling`
+      `date of the move` IS A DATE
+GIVETH A BOOLEAN
+DECIDE `carries the counselling allowance`
+        `years of counselling` `a counselling year among the last seven` move `date of the move` IF
+        `years of counselling` AT LEAST 8
+    AND `a counselling year among the last seven`
+    AND move EQUALS `to teaching`
+    AND (`date of the move` `is on or after` (DATE_FROM_DMY 1 1 1993))
+
+-- akn:chp_1א___sec_1_12__ssec_1_12/p79 A heading: "השגחה על פנימייה".
+
+§§ `השגחה על פנימייה`
+
+@ref akn:chp_1א___sec_1_12__ssec_1_12/p80 akn:chp_1א___sec_1_12__ssec_1_12/p81 akn:chp_1א___sec_1_12__ssec_1_12/p82
+GIVEN `post-primary with a boarding school or afternoon studies` IS A BOOLEAN
+      `receives other pay for the afternoon or the boarding school` IS A BOOLEAN
+      `another employee is paid for this role` IS A BOOLEAN
+GIVETH A NUMBER
+DECIDE `boarding-supervision rate`
+        `post-primary with a boarding school or afternoon studies`
+        `receives other pay for the afternoon or the boarding school`
+        `another employee is paid for this role` IS
+    IF      `post-primary with a boarding school or afternoon studies`
+        AND (NOT `receives other pay for the afternoon or the boarding school`)
+        AND (NOT `another employee is paid for this role`)
+    THEN 5%
+    ELSE 0
+
+§§ `אחראי על ביטחון`
+
+-- akn:chp_1א___sec_1_12__ssec_1_12/p83 A heading: "אחראי על ביטחון".
+-- akn:chp_1א___sec_1_12__ssec_1_12/p84 A heading: "מינוי האחראי לביטחון".
+
+-- ¶85, ¶87: the principal appoints one every year before the school year
+-- opens (time in months from 1 August; the year opens at 1); if none is
+-- appointed, the principal fills the role.
+@ref akn:chp_1א___sec_1_12__ssec_1_12/p85 akn:chp_1א___sec_1_12__ssec_1_12/p87
+GIVETH A DEONTIC Party `appointment duty`
+DECIDE `the principal appoints a security officer` IS
+    PARTY `the school principal`
+    MUST  `appoint a security officer`
+    WITHIN 1
+    LEST BREACH BY `the school principal` BECAUSE "section 1.12: a security officer is appointed each year before the school year opens"
+
+-- ¶86: a vice-principal or member of the management, with organising
+-- ability, at the institution most days; military training is desirable,
+-- not required.
+@ref akn:chp_1א___sec_1_12__ssec_1_12/p86
+GIVEN `is a vice-principal or management member` IS A BOOLEAN
+      `has organising ability` IS A BOOLEAN
+      `at the institution most days of the week` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `may be the security officer`
+        `is a vice-principal or management member` `has organising ability` `at the institution most days of the week` IF
+    `is a vice-principal or management member` AND `has organising ability` AND `at the institution most days of the week`
+
+-- akn:chp_1א___sec_1_12__ssec_1_12/p88 A heading: "תנאי שירות".
+
+-- ¶89: the role carries an allowance only; with spare hours in the
+-- management quota, the principal may allot it up to 2 weekly hours.
+@ref akn:chp_1א___sec_1_12__ssec_1_12/p89
+GIVEN `spare hours in the management quota` IS A BOOLEAN
+GIVETH A DEONTIC Party `appointment duty`
+DECIDE `hours for the security officer` `spare hours in the management quota` IS
+    IF `spare hours in the management quota`
+    THEN PARTY `the school principal`
+         MAY   `allot weekly hours to the security officer` n
+               PROVIDED n AT MOST 2
+    ELSE FULFILLED
+
+DECLARE `security role` IS ONE OF
+    `security officer`
+    `assistant in a boarding school`
+    `assistant in a boarding school outside a local authority`
+    `a principal filling the role himself`
+
+-- ¶90: a boarding institution has an assistant too, also paid; ¶91: a
+-- principal who fills the role is not; ¶94–98: the rates, for one duly
+-- appointed.
+@ref akn:chp_1א___sec_1_12__ssec_1_12/p90 akn:chp_1א___sec_1_12__ssec_1_12/p91 akn:chp_1א___sec_1_12__ssec_1_12/p94 akn:chp_1א___sec_1_12__ssec_1_12/p95 akn:chp_1א___sec_1_12__ssec_1_12/p96 akn:chp_1א___sec_1_12__ssec_1_12/p97 akn:chp_1א___sec_1_12__ssec_1_12/p98
+GIVEN r IS A `security role`
+GIVETH A NUMBER
+DECIDE `percentage for a security role` r IS
+    CONSIDER r
+    WHEN `security officer` THEN 6%
+    WHEN `assistant in a boarding school` THEN 4%
+    WHEN `assistant in a boarding school outside a local authority` THEN 5%
+    WHEN `a principal filling the role himself` THEN 0
+
+-- ¶92: the principal bears overall responsibility, and a division of the
+-- daily tasks between him and the officer must be set.
+@ref akn:chp_1א___sec_1_12__ssec_1_12/p92
+GIVETH A DEONTIC Party `appointment duty`
+DECIDE `a division of security tasks is set` IS
+    PARTY `the school principal`
+    MUST  `set the division of security tasks`
+    WITHIN 1
+    LEST BREACH BY `the school principal` BECAUSE "section 1.12: the daily security tasks are divided between the principal and the officer"
+
+-- akn:chp_1א___sec_1_12__ssec_1_12/p93 A heading: "הגמול".
+
+§§ `ריכוז טכני במפת"נים`
+
+-- akn:chp_1א___sec_1_12__ssec_1_12/p99 A heading: "ריכוז טכני במפת\"נים".
+
+DECLARE `vocational trade` IS ONE OF `wood`, `metal`, `shoemaking`, `vehicles`, `another trade`
+
+@ref akn:chp_1א___sec_1_12__ssec_1_12/p100 akn:chp_1א___sec_1_12__ssec_1_12/p101
+GIVEN t IS A `vocational trade`, `another technical coordinator is paid there` IS A BOOLEAN
+GIVETH A NUMBER
+DECIDE `technical coordination rate` t `another technical coordinator is paid there` IS
+    IF (NOT (t EQUALS `another trade`)) AND (NOT `another technical coordinator is paid there`)
+    THEN 1%
+    ELSE 0
+
+§§ `אימון`
+
+-- akn:chp_1א___sec_1_12__ssec_1_12/p102 A heading: "אימון".
+
+DECLARE `trainee` IS ONE OF
+    `a pupil of a carer-educator track`
+    `a first- or second-year college student`
+    `a third-year college student`
+
+@ref akn:chp_1א___sec_1_12__ssec_1_12/p103 akn:chp_1א___sec_1_12__ssec_1_12/p104 akn:chp_1א___sec_1_12__ssec_1_12/p105 akn:chp_1א___sec_1_12__ssec_1_12/p106 akn:chp_1א___sec_1_12__ssec_1_12/p107
+GIVEN t IS A `trainee`
+GIVETH A NUMBER
+DECIDE `rate per trainee` t IS
+    CONSIDER t
+    WHEN `a third-year college student` THEN 2%
+    OTHERWISE 1%
+
+-- ¶108: no more than 3 trainees to one trainer; only three are paid for.
+@ref akn:chp_1א___sec_1_12__ssec_1_12/p108
+GIVEN trainees IS A LIST OF `trainee`
+GIVETH A NUMBER
+DECIDE `training rate` trainees IS
+    sum (map `rate per trainee` (take 3 trainees))
+
+-- ¶109: a shorter training period, negotiated with the college, is paid for
+-- the months trained, with their part of the summer break.
+@ref akn:chp_1א___sec_1_12__ssec_1_12/p109
+GIVEN `months trained` IS A NUMBER, `months of a full training year` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `share of the training allowance` `months trained` `months of a full training year` IS
+    min 1 (`months trained` DIVIDED BY `months of a full training year`)
+
+@ref akn:chp_1א___sec_1_12__ssec_1_12/p110
+GIVEN `trains on a regular basis` IS A BOOLEAN
+GIVETH A NUMBER
+DECIDE `extra pay for concentrated training` `trains on a regular basis` IS
+    0
+
+-- akn:chp_1א___sec_1_12__ssec_1_12/p111 A pointer: seminar guidance coordination is in section 11.6.3.
+
+-- Worked examples. Every salary figure is a placeholder.
+`a class educator of two classes` MEANS
+    `role-holder` WITH
+        `allowance held`            IS `class education`
+        `fills the role now`        IS TRUE
+        `actual position fraction`  IS 0.5
+        `full-position base`        IS 10000
+        `allowance rate`            IS `class-education rate` 2
+
+#ASSERT `role allowance amount` `a class educator of two classes` EQUALS 2000
+
+`a counsellor of 6 hours` MEANS
+    `counsellor` WITH
+        `holds a counselling licence`            IS TRUE
+        `weekly counselling hours`               IS 6
+        `full rate for the years of counselling` IS 10%
+
+#ASSERT `counselling rate` `a counsellor of 6 hours` EQUALS 5%
+#ASSERT `training rate` (LIST `a third-year college student`, `a third-year college student`, `a first- or second-year college student`, `a third-year college student`) EQUALS 5%
+#ASSERT `laboratory coordination rate` 12 EQUALS 3%
+
+`a principal asked to coordinate a subject` MEANS
+    `appointment` WITH
+        `role`                                      IS `subject coordination`
+        `made by the principal`                     IS TRUE
+        `approved by the general supervisor`        IS TRUE
+        `the subject supervisor was consulted`      IS TRUE
+        `position fraction of the appointee`        IS 1
+        `roles the appointee already holds`         IS EMPTY
+        `the district manager found an essential need` IS FALSE
+        `the appointee is a principal`              IS TRUE
+        `classes the principal would educate`       IS 0
+        `the appointee is a vice-principal`         IS FALSE
+#ASSERT (NOT `may be appointed` `a principal asked to coordinate a subject`)
+
+#TRACE `hours for the security officer` TRUE AT 0 WITH
+    PARTY `the school principal` DOES `allot weekly hours to the security officer` 2 AT 1
+#TRACE `the principal appoints a security officer` AT 0 WITH
+    PARTY `the school principal` DOES `appoint a security officer` AT 1
+
+-- akn:chp_1א___sec_1_12__ssec_1_12/p112 The heading of the section's sources (אסמכתא).
+-- akn:chp_1א___sec_1_12__ssec_1_12/p113 akn:chp_1א___sec_1_12__ssec_1_12/p114 akn:chp_1א___sec_1_12__ssec_1_12/p115 akn:chp_1א___sec_1_12__ssec_1_12/p116 akn:chp_1א___sec_1_12__ssec_1_12/p117 akn:chp_1א___sec_1_12__ssec_1_12/p118 akn:chp_1א___sec_1_12__ssec_1_12/p119 akn:chp_1א___sec_1_12__ssec_1_12/p120 akn:chp_1א___sec_1_12__ssec_1_12/p121 akn:chp_1א___sec_1_12__ssec_1_12/p122 akn:chp_1א___sec_1_12__ssec_1_12/p123 The sources themselves (1–11).
+-- akn:chp_1א___sec_1_12__ssec_1_12/p124 akn:chp_1א___sec_1_12__ssec_1_12/p125 akn:chp_1א___sec_1_12__ssec_1_12/p126 akn:chp_1א___sec_1_12__ssec_1_12/p127 akn:chp_1א___sec_1_12__ssec_1_12/p128 akn:chp_1א___sec_1_12__ssec_1_12/p129 akn:chp_1א___sec_1_12__ssec_1_12/p130 akn:chp_1א___sec_1_12__ssec_1_12/p131 akn:chp_1א___sec_1_12__ssec_1_12/p132 akn:chp_1א___sec_1_12__ssec_1_12/p133 The sources themselves (12–21).

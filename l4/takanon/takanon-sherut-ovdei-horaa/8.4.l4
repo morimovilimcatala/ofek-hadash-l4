@@ -1,0 +1,278 @@
+-- תקנון שירות עובדי הוראה, פרק 8, §8.4 מפקח
+-- The supervisor (מפקח): work unit and holidays, the supervision allowance
+-- and the seniority a move into supervision carries, the in-service training
+-- allowance, and additional work with its savings-fund contribution.
+
+IMPORT prelude
+IMPORT common
+IMPORT daydate
+
+§ `8.4 מפקח`
+
+@desc A teaching employee approved for the supervisor grade, as far as section 8.4 asks about it.
+DECLARE `supervisor` HAS
+    `personal combined salary`  IS A NUMBER @desc the personal combined salary (השכר המשולב האישי); an input
+    `position fraction`         IS A NUMBER @desc the share of a full position held in supervision (1 = full)
+    `table rate`                IS A NUMBER @desc the percentage the table of section 8.4.6.1 gives this supervisor (in force from 1.1.01); the table is not part of the text this file encodes, so the rate is an input, as a fraction
+    `civil-service work unit`   IS A NUMBER @desc the weekly work unit customary for state employees, which section 8.4.1.1 adopts; an input
+    `civil-service annual leave` IS A NUMBER @desc the annual rest leave customary for state employees, which section 8.4.1.2(a) adopts; an input
+
+§§ `8.4.1 יחידת עבודה וחופשות`
+
+@ref akn:chp_8__sec_8_4__ssec_8_4_1__para_1
+GIVEN s IS A `supervisor`
+GIVETH A NUMBER
+DECIDE `supervisor's work unit` s IS
+    s's `civil-service work unit`
+
+-- akn:chp_8__sec_8_4__ssec_8_4_1__para_2 Heading of paragraph 2 ("חופשות:"); its two subparagraphs carry the rules.
+
+@ref akn:chp_8__sec_8_4__ssec_8_4_1__para_2__subpara_a
+GIVEN s IS A `supervisor`
+GIVETH A NUMBER
+DECIDE `supervisor's annual rest leave` s IS
+    s's `civil-service annual leave`
+
+@ref akn:chp_8__sec_8_4__ssec_8_4_1__para_2__subpara_b
+DECLARE `fixed holiday` IS ONE OF
+    `Passover eve`, `Shavuot eve`, `Rosh Hashana eve`, `Yom Kippur eve`, `Sukkot eve`,
+    `an intermediate day of Passover`
+
+DECLARE `supervisor action` IS ONE OF
+    `take leave on` HAS `the holiday taken` IS A `fixed holiday`
+    `exchange a fixed holiday for another day` HAS `the holiday exchanged` IS A `fixed holiday`
+    `pay the savings-fund contribution` HAS `the rate paid` IS A NUMBER
+
+-- The fixed holidays are leave days and may not be exchanged for others.
+-- Time is in school months.
+@ref akn:chp_8__sec_8_4__ssec_8_4_1__para_2__subpara_b
+GIVEN h IS A `fixed holiday`
+GIVETH A DEONTIC Party `supervisor action`
+DECIDE `a fixed holiday may not be exchanged` h IS
+    PARTY `the supervisor`
+    SHANT `exchange a fixed holiday for another day` x PROVIDED x EQUALS h
+    WITHIN 12
+    LEST BREACH BY `the supervisor` BECAUSE "section 8.4.1.2(b): the holiday days are fixed and may not be exchanged for other days"
+
+-- akn:chp_8__sec_8_4__ssec_8_4_1/p1 Heading of the source list (אסמכתא).
+-- akn:chp_8__sec_8_4__ssec_8_4_1/p2 Source: collective agreement of 14.12.64.
+-- akn:chp_8__sec_8_4__ssec_8_4_1/p3 Source: a deputy director-general's circular of 22.2.1965.
+
+§§ `8.4.6 גמול פיקוח`
+
+-- §8.4.6.1 says "a percentage of his personal salary by the table below";
+-- §8.4.6.2(a) multiplies the rate by the personal COMBINED salary. Read as
+-- one base: (a) states the multiplication the table is applied by. The
+-- table itself is not in the text as the corpus holds it: `table rate` is an input.
+@ref akn:chp_8__sec_8_4__ssec_8_4_6__para_1 akn:chp_8__sec_8_4__ssec_8_4_6__para_2__subpara_a
+GIVEN s IS A `supervisor`
+GIVETH A NUMBER
+DECIDE `full-position supervision allowance` s IS
+    s's `table rate` TIMES s's `personal combined salary`
+
+-- akn:chp_8__sec_8_4__ssec_8_4_6__para_1/p2 Effective date of the table (from 1.1.01); the file encodes the rate in force and carries no dates.
+
+@ref akn:chp_8__sec_8_4__ssec_8_4_6__para_2__subpara_b
+GIVEN s IS A `supervisor`
+GIVETH A NUMBER
+DECIDE `supervision allowance` s IS
+    `full-position supervision allowance` s TIMES s's `position fraction`
+
+@ref akn:chp_8__sec_8_4__ssec_8_4_6__para_2__subpara_c
+GIVEN s IS A `supervisor`
+      `the other components of the salary the hourly value is computed from` IS A NUMBER
+          @desc the rest of the monthly base from which the overtime hourly value is derived (section 1.24); an input
+GIVETH A NUMBER
+DECIDE `overtime hourly-value base` s `the other components of the salary the hourly value is computed from` IS
+    `the other components of the salary the hourly value is computed from` PLUS `supervision allowance` s
+
+§§§ `8.4.6.3 גרירת ותק במעבר לפיקוח`
+
+@desc The moves section 8.4.6.3 says how much seniority they carry.
+DECLARE `move into supervision` IS ONE OF
+    `teacher in an instruction role to supervision`  @desc subsection (a)
+    `teacher-instructor to instructor`               @desc subsection (b)
+    `instructor to supervisor`                       @desc subsections (b) and (d)
+    `teacher-instructor to supervisor`               @desc subsection (d)
+    `school principal to supervision`                @desc subsections (c) and (d): a principal, not a deputy or other role holder
+    `deputy or other role holder to supervision`     @desc excluded from (c) by its own words
+
+DECLARE `supervision move` HAS
+    `the move`                                  IS A `move into supervision`
+    `years in the previous role`                IS A NUMBER @desc years of seniority in the role being left
+    `years in an instruction role since 1.9.83` IS A NUMBER @desc for subsection (a): seniority as a teacher in an instruction role, counted from 1.9.83
+    `seniority ceiling`                         IS A NUMBER @desc the ceiling subsection (d) makes the count subject to; the text says "today 13 years", so it is an input
+
+@ref akn:chp_8__sec_8_4__ssec_8_4_6__para_3__subpara_a
+GIVEN m IS A `supervision move`
+GIVETH A NUMBER
+DECIDE `seniority carried from an instruction role` m IS
+    min (m's `years in an instruction role since 1.9.83`) 7
+
+@ref akn:chp_8__sec_8_4__ssec_8_4_6__para_3__subpara_b
+GIVEN m IS A `supervision move`
+GIVETH A NUMBER
+DECIDE `seniority carried between supervision roles` m IS
+    m's `years in the previous role`
+
+@ref akn:chp_8__sec_8_4__ssec_8_4_6__para_3__subpara_c
+GIVEN m IS A `supervision move`
+GIVETH A NUMBER
+DECIDE `seniority a principal carries under (c)` m IS
+    0.25 TIMES m's `years in the previous role`
+
+@ref akn:chp_8__sec_8_4__ssec_8_4_6__para_3__subpara_d
+GIVEN m IS A `supervision move`
+GIVETH A NUMBER
+DECIDE `seniority carried in full under (d)` m IS
+    min (m's `years in the previous role`) (m's `seniority ceiling`)
+
+-- F-8.4-a: (c) gives a principal moving into supervision 25%, (d) "from
+-- management to supervision" 100%. Reading adopted: (c) governs a principal.
+GIVEN m IS A `supervision move`
+GIVETH A NUMBER
+DECIDE `seniority carried into supervision` m IS
+    CONSIDER m's `the move`
+    WHEN `teacher in an instruction role to supervision` THEN `seniority carried from an instruction role` m
+    WHEN `teacher-instructor to instructor`              THEN `seniority carried between supervision roles` m
+    WHEN `instructor to supervisor`                      THEN `seniority carried in full under (d)` m
+    WHEN `teacher-instructor to supervisor`              THEN `seniority carried in full under (d)` m
+    WHEN `school principal to supervision`               THEN `seniority a principal carries under (c)` m
+    WHEN `deputy or other role holder to supervision`    THEN 0
+
+`a principal of eight years moves into supervision` MEANS
+    `supervision move` WITH
+        `the move`                                  IS `school principal to supervision`
+        `years in the previous role`                IS 8
+        `years in an instruction role since 1.9.83` IS 0
+        `seniority ceiling`                         IS 13
+
+`(c) and (d) give a principal moving into supervision different seniority` MEANS
+    NOT (`seniority a principal carries under (c)` `a principal of eight years moves into supervision`
+         EQUALS `seniority carried in full under (d)` `a principal of eight years moves into supervision`)
+#ASSERT `(c) and (d) give a principal moving into supervision different seniority`
+
+-- akn:chp_8__sec_8_4__ssec_8_4_6/p1 Heading of the source list (אסמכתא).
+-- akn:chp_8__sec_8_4__ssec_8_4_6/p2 Source: collective agreement of 23.10.90.
+-- akn:chp_8__sec_8_4__ssec_8_4_6/p3 Source: collective agreement of 18.12.01.
+-- akn:chp_8__sec_8_4__ssec_8_4_6/p4 Source: special collective agreement of 10.3.83, annex D.
+-- akn:chp_8__sec_8_4__ssec_8_4_6/p5 Source: a Treasury wage-department clarification of 6.5.91.
+
+§§ `8.4.7 גמול השתלמות`
+
+-- The general rules of the in-service training allowance (section 1.26)
+-- apply to supervisors too: a supervisor's entitlement is whatever that
+-- section gives a teaching employee, an input until section 1.26 is encoded.
+@ref akn:chp_8__sec_8_4__ssec_8_4_7__para_1
+GIVEN `the allowance section 1.26 gives a teaching employee in the same position` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `supervisor's in-service training allowance` `the allowance section 1.26 gives a teaching employee in the same position` IS
+    `the allowance section 1.26 gives a teaching employee in the same position`
+
+@desc A research work a supervision-grade employee submits for the in-service training allowance.
+DECLARE `research work` HAS
+    `approvable under section 1.26's rules` IS A BOOLEAN @desc it meets the rules set for all teaching employees (section 1.26); an input
+    `in the field the employee works in`    IS A BOOLEAN
+    `in the field the employee is certified to teach` IS A BOOLEAN
+
+@ref akn:chp_8__sec_8_4__ssec_8_4_7__para_2
+GIVEN r IS A `research work`
+GIVETH A BOOLEAN
+DECIDE `a supervisor's research is approved for the allowance` r IF
+        r's `approvable under section 1.26's rules`
+    AND (   r's `in the field the employee works in`
+         OR r's `in the field the employee is certified to teach`)
+
+-- akn:chp_8__sec_8_4__ssec_8_4_7/p1 Heading of the source list (אסמכתא).
+-- akn:chp_8__sec_8_4__ssec_8_4_7/p2 Source: a special director-general's circular of 6.7.84.
+-- akn:chp_8__sec_8_4__ssec_8_4_7/p3 Source: a parity committee decision of 1.9.84.
+
+§§ `8.4.11 עבודה נוספת - קופת גמל 18 1/3%`
+
+DECLARE `additional work` HAS
+    `approved under the civil-service regulations` IS A BOOLEAN @desc the additional work is permitted under the תקשי"ר
+    `with the same owners`                       IS A BOOLEAN @desc the additional work is for the same owners (employer) as the supervision
+    `is overtime by virtue of the supervision role` IS A BOOLEAN
+    `supervision position fraction`              IS A NUMBER  @desc the share of a full position held in supervision
+    `total position fraction`                    IS A NUMBER  @desc supervision plus the teaching that completes it at the same owners
+    `was in the 13 1/3% fund before 1.9.84`       IS A BOOLEAN
+    `month worked`                               IS A DATE
+
+@ref akn:chp_8__sec_8_4__ssec_8_4_11__para_1
+GIVEN w IS AN `additional work`
+GIVETH A BOOLEAN
+DECIDE `a supervisor may do additional work` w IF
+    w's `approved under the civil-service regulations`
+
+-- Until 31.8.84: a full-position supervisor in approved additional work at
+-- the same owners (not overtime as a supervisor) earned 13 1/3%.
+@ref akn:chp_8__sec_8_4__ssec_8_4_11__para_2
+GIVEN w IS AN `additional work`
+GIVETH A BOOLEAN
+DECIDE `qualified for the 13 1/3% fund before 1.9.84` w IF
+        w's `supervision position fraction` AT LEAST 1
+    AND w's `approved under the civil-service regulations`
+    AND w's `with the same owners`
+    AND NOT w's `is overtime by virtue of the supervision role`
+
+@ref akn:chp_8__sec_8_4__ssec_8_4_11__para_3
+GIVEN w IS AN `additional work`
+GIVETH A BOOLEAN
+DECIDE `moved to the 18 1/3% fund from 1.9.84` w IF
+    w's `was in the 13 1/3% fund before 1.9.84`
+
+-- From 1.9.84 supervisors in additional work earn 18 1/3% "even if" they
+-- hold less than a full position in supervision and complete it with
+-- teaching at the same owners, the total exceeding one position: "even if"
+-- reads the full-position supervisor of paragraph 2 as included.
+@ref akn:chp_8__sec_8_4__ssec_8_4_11__para_4
+GIVEN w IS AN `additional work`
+GIVETH A BOOLEAN
+DECIDE `qualifies for the 18 1/3% fund from 1.9.84` w IF
+        `qualified for the 13 1/3% fund before 1.9.84` w
+    OR (    w's `supervision position fraction` LESS THAN 1
+        AND w's `with the same owners`
+        AND w's `total position fraction` GREATER THAN 1)
+
+GIVEN w IS AN `additional work`
+GIVETH A NUMBER
+DECIDE `savings-fund contribution rate` w IS
+    IF w's `month worked` LESS THAN Date 1 9 1984
+    THEN IF `qualified for the 13 1/3% fund before 1.9.84` w
+         THEN 40 DIVIDED BY 300
+         ELSE 0
+    ELSE IF    `moved to the 18 1/3% fund from 1.9.84` w
+            OR `qualifies for the 18 1/3% fund from 1.9.84` w
+         THEN 55 DIVIDED BY 300
+         ELSE 0
+
+-- akn:chp_8__sec_8_4__ssec_8_4_11/p1 Heading of the source list (אסמכתא).
+-- akn:chp_8__sec_8_4__ssec_8_4_11/p2 Source: a clarification letter of 21.2.79.
+-- akn:chp_8__sec_8_4__ssec_8_4_11/p3 Source: a deputy director-general's circular of 26.9.84.
+-- akn:chp_8__sec_8_4__ssec_8_4_11/p4 Source: a supreme parity committee decision of 15.1.85.
+
+-- Examples. The salary and table rate are placeholders.
+`a half-position supervisor` MEANS
+    `supervisor` WITH
+        `personal combined salary`   IS 10000
+        `position fraction`          IS 0.5
+        `table rate`                 IS 0.6
+        `civil-service work unit`    IS 42.5
+        `civil-service annual leave` IS 26
+
+#ASSERT `supervision allowance` `a half-position supervisor` EQUALS 3000
+
+`additional teaching in 1990` MEANS
+    `additional work` WITH
+        `approved under the civil-service regulations` IS TRUE
+        `with the same owners`                         IS TRUE
+        `is overtime by virtue of the supervision role` IS FALSE
+        `supervision position fraction`                IS 0.75
+        `total position fraction`                      IS 1.25
+        `was in the 13 1/3% fund before 1.9.84`         IS FALSE
+        `month worked`                                 IS Date 1 10 1990
+
+#ASSERT `savings-fund contribution rate` `additional teaching in 1990` EQUALS 55 DIVIDED BY 300
+
+#TRACE `a fixed holiday may not be exchanged` `Passover eve` AT 0 WITH
+    PARTY `the supervisor` DOES `exchange a fixed holiday for another day` `Passover eve` AT 7

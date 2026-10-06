@@ -1,0 +1,208 @@
+-- תקנון שירות עובדי הוראה, פרק 5, §5.5 הפסקת עבודה
+-- Ending a middle-school teacher's work: on administrative grounds (a
+-- temporary licence not renewed) and on pedagogical grounds, by year of
+-- service, by employer, and for teachers moving between divisions.
+
+IMPORT prelude
+IMPORT daydate
+IMPORT common
+
+§ `5.5 הפסקת עבודה`
+
+DECLARE `kind of employer` IS ONE OF
+    `the State`
+    `another owner`
+
+DECLARE `scope of a dismissal` IS ONE OF
+    `the whole education system`
+    `the institution alone`
+
+DECLARE `dismissal action` IS ONE OF
+    `send notice of non-renewal of the temporary licence`
+    `send the dismissal letter`
+    `request a director-general's warning`
+    `extend the warning by a year`
+    `initiate dismissal at the end of the first year`
+    `return the teacher to the upper division`
+
+@desc A middle-school teacher's case, as section 5.5's pedagogical grounds ask about it.
+DECLARE `pedagogical dismissal case` HAS
+    `year of work in the middle school`              IS A NUMBER
+    `holds a permanent licence or the right to one`   IS A BOOLEAN
+    `tenured with some owner`                         IS A BOOLEAN
+    `moved from a primary or post-primary school`     IS A BOOLEAN
+    `the principal consulted the supervisor`          IS A BOOLEAN
+    `lessons visited by the school's supervisor`      IS A NUMBER
+    `lessons visited by a second supervisor`          IS A NUMBER
+    `discussed by the district supervisors' committee` IS A BOOLEAN
+    `employer`                                        IS A `kind of employer`
+
+-- Time in days from 1 September of the school year (day 0), the year
+-- starting in `y`.
+GIVEN `day` IS A NUMBER, `month` IS A NUMBER, `y` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `days from 1 September to` `day` `month` `y` IS
+    IF `month` AT LEAST 9
+    THEN (Date `day` `month` `y`) MINUS (Date 1 9 `y`)
+    ELSE (Date `day` `month` (`y` PLUS 1)) MINUS (Date 1 9 `y`)
+
+§§ `פיטורין מטעמים מנהליים`
+
+-- (a): one without a permanent licence is as a temporary-licence holder in
+-- post-primary education: at the end of each of the first three years the
+-- work may be ended by not renewing the licence, notice going out from the
+-- district manager by 31 May; the trial may not run into a fourth year.
+@ref akn:chp_5__sec_5_5__hc_2__para_1__subpara_a
+GIVEN `year of work` IS A NUMBER, `y` IS A NUMBER
+GIVETH A DEONTIC Party `dismissal action`
+DECIDE `non-renewal of a temporary licence` `year of work` `y` IS
+    IF `year of work` AT MOST 3
+    THEN PARTY `the district manager`
+         MAY   `send notice of non-renewal of the temporary licence`
+         WITHIN `days from 1 September to` 31 5 `y`
+    ELSE PARTY `the district manager`
+         SHANT `send notice of non-renewal of the temporary licence`
+
+@ref akn:chp_5__sec_5_5__hc_2__para_1__subpara_a
+GIVETH A BOOLEAN
+DECIDE `the trial of a teacher without a permanent licence may run into a fourth year` IS FALSE
+
+-- (b): entering a fourth year in the same institution, professional tenure
+-- there only, and no right to a permanent licence from it.
+@ref akn:chp_5__sec_5_5__hc_2__para_1__subpara_b
+GIVEN `entered a fourth year in the same institution` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `has professional tenure in that institution` `entered a fourth year in the same institution` IF
+    `entered a fourth year in the same institution`
+
+@ref akn:chp_5__sec_5_5__hc_2__para_1__subpara_b
+GIVEN `entered a fourth year in the same institution` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `the fourth year gives a right to a permanent licence` `entered a fourth year in the same institution` IS FALSE
+
+§§ `פיטורין מטעמים פדגוגיים`
+
+-- akn:chp_5__sec_5_5__hc_2__hc_1__para_1 A pure pointer: dismissal of a permanent-licence holder in the trial period follows chapter 3 of the takanon, encoded there.
+
+-- 2(a): a new teacher entitled to a permanent licence, tenured with no
+-- owner and not moved from another school: the principal may initiate the
+-- dismissal at the end of the first year, after consulting the supervisor.
+@ref akn:chp_5__sec_5_5__hc_2__hc_1__para_2__subpara_a
+GIVEN c IS A `pedagogical dismissal case`
+GIVETH A BOOLEAN
+DECIDE `the principal may initiate dismissal at the end of the first year` c IF
+        c's `year of work in the middle school` EQUALS 1
+    AND c's `holds a permanent licence or the right to one`
+    AND NOT c's `tenured with some owner`
+    AND NOT c's `moved from a primary or post-primary school`
+    AND c's `the principal consulted the supervisor`
+
+@ref akn:chp_5__sec_5_5__hc_2__hc_1__para_2__subpara_a
+GIVEN c IS A `pedagogical dismissal case`
+GIVETH A `scope of a dismissal`
+DECIDE `the first-year letter's scope` c IS `the institution alone`
+
+-- 2(b): in the second or third (extended) year, as for a teacher on trial
+-- in post-primary education: the school's supervisor and another, two
+-- lessons each, and the district supervisors' committee.
+@ref akn:chp_5__sec_5_5__hc_2__hc_1__para_2__subpara_b
+GIVEN c IS A `pedagogical dismissal case`
+GIVETH A BOOLEAN
+DECIDE `dismissal in the second or third year may be proposed` c IF
+        (c's `year of work in the middle school` EQUALS 2 OR c's `year of work in the middle school` EQUALS 3)
+    AND c's `lessons visited by the school's supervisor` AT LEAST 2
+    AND c's `lessons visited by a second supervisor` AT LEAST 2
+    AND c's `discussed by the district supervisors' committee`
+
+@ref akn:chp_5__sec_5_5__hc_2__hc_1__para_2__subpara_c/p1
+GIVEN c IS A `pedagogical dismissal case`
+GIVETH A `scope of a dismissal`
+DECIDE `the scope the dismissal proposal asks for` c IS
+    CONSIDER c's `employer`
+    WHEN `the State`     THEN `the whole education system`
+    WHEN `another owner` THEN `the institution alone`
+
+@ref akn:chp_5__sec_5_5__hc_2__hc_1__para_2__subpara_c/p2
+GIVEN c IS A `pedagogical dismissal case`
+GIVETH A BOOLEAN
+DECIDE `a parity committee with the representative organisation decides, and words the letter` c IF
+    `the scope the dismissal proposal asks for` c EQUALS `the whole education system`
+
+-- 3(a): a permanent teacher: the supervision first has a director-general's
+-- warning sent; the request reaches the teaching-personnel division by
+-- 1 April (and goes on under circular no. 9, section 17 — outside the takanon).
+@ref akn:chp_5__sec_5_5__hc_2__hc_1__para_3__subpara_a
+GIVEN `y` IS A NUMBER
+GIVETH A DEONTIC Party `dismissal action`
+DECIDE `the director-general's warning first` `y` IS
+    PARTY `the supervisor`
+    MUST  `request a director-general's warning`
+    WITHIN `days from 1 September to` 1 4 `y`
+    LEST BREACH BY `the supervisor` BECAUSE "section 5.5: the request for a director-general's warning reaches the teaching-personnel division by 1 April"
+
+@ref akn:chp_5__sec_5_5__hc_2__hc_1__para_3__subpara_b
+GIVEN `the teachers' organisation consents` IS A BOOLEAN
+GIVETH A DEONTIC Party `dismissal action`
+DECIDE `extending the warning` `the teachers' organisation consents` IS
+    IF `the teachers' organisation consents`
+    THEN PARTY `the supervisor` MAY   `extend the warning by a year`
+    ELSE PARTY `the supervisor` SHANT `extend the warning by a year`
+
+@ref akn:chp_5__sec_5_5__hc_2__hc_1__para_3__subpara_c
+GIVEN `the work improved in the year after the warning` IS A BOOLEAN, `the supervisor asks for dismissal` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `dismissal proceeds under the procedure` `the work improved in the year after the warning` `the supervisor asks for dismissal` IF
+    NOT `the work improved in the year after the warning` AND `the supervisor asks for dismissal`
+
+-- (4): a teacher tenured in a post-primary school who moved to another
+-- post-primary school with a middle school, found fit for it.
+@ref akn:chp_5__sec_5_5__hc_2__hc_1__para_4/p1 akn:chp_5__sec_5_5__hc_2__hc_1__para_4/p2
+GIVEN `year in the new school` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `dismissal needs a parity committee with the representative organisation` `year in the new school` IF
+    `year in the new school` AT LEAST 2
+
+@ref akn:chp_5__sec_5_5__hc_2__hc_1__para_4/p1
+GIVEN `year in the new school` IS A NUMBER, `reports of two supervisors` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `may be dismissed as a teacher on trial` `year in the new school` `reports of two supervisors` IF
+    `year in the new school` EQUALS 1 AND `reports of two supervisors`
+
+-- (4), third paragraph: a move within the same institution — after a first
+-- year that the supervision wants ended, the teacher goes back to the upper
+-- division, and no dismissal letter is sent.
+@ref akn:chp_5__sec_5_5__hc_2__hc_1__para_4/p3
+GIVEN `moved within the same institution` IS A BOOLEAN, `supervision proposes ending the work after the first year` IS A BOOLEAN
+GIVETH A DEONTIC Party `dismissal action`
+DECIDE `back to the upper division` `moved within the same institution` `supervision proposes ending the work after the first year` IS
+    IF `moved within the same institution` AND `supervision proposes ending the work after the first year`
+    THEN (PARTY `the school principal` MUST  `return the teacher to the upper division`)
+         RAND
+         (PARTY `the local authority or owning body` SHANT `send the dismissal letter`)
+    ELSE FULFILLED
+
+-- akn:chp_5__sec_5_5__hc_3/p1 Source (אסמכתא): a circular of the division for educational institutions and a pedagogical-secretariat circular of 5.4.73.
+
+-- Examples.
+`a first-year teacher with the right to a permanent licence` MEANS
+    `pedagogical dismissal case` WITH
+        `year of work in the middle school`               IS 1
+        `holds a permanent licence or the right to one`   IS TRUE
+        `tenured with some owner`                         IS FALSE
+        `moved from a primary or post-primary school`     IS FALSE
+        `the principal consulted the supervisor`          IS TRUE
+        `lessons visited by the school's supervisor`      IS 0
+        `lessons visited by a second supervisor`          IS 0
+        `discussed by the district supervisors' committee` IS FALSE
+        `employer`                                        IS `the State`
+
+#ASSERT `the principal may initiate dismissal at the end of the first year` `a first-year teacher with the right to a permanent licence`
+#ASSERT `days from 1 September to` 31 5 2026 EQUALS 272
+#ASSERT `the scope the dismissal proposal asks for` `a first-year teacher with the right to a permanent licence` EQUALS `the whole education system`
+
+-- A non-renewal notice sent on 29 May (day 270) of the third year is within
+-- the permission, which runs to 31 May (day 272).
+#TRACE `non-renewal of a temporary licence` 3 2026 AT 0 WITH
+    PARTY `the district manager` DOES `send notice of non-renewal of the temporary licence` AT 270
+#TRACE `the director-general's warning first` 2026 AT 0 WITH
+    PARTY `the supervisor` DOES `request a director-general's warning` AT 200

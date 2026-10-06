@@ -1,0 +1,157 @@
+-- תקנון שירות עובדי הוראה, פרק 8, §8.3 מדריך
+-- The instructor (מדריך, a supervision grade): the work unit, the
+-- instruction allowance by the table, and the seniority a move into
+-- supervision carries with it.
+
+IMPORT prelude
+IMPORT common
+
+§ `8.3 מדריך`
+
+@desc A teaching employee approved for the instructor grade, as far as section 8.3 asks about it.
+DECLARE `instructor` HAS
+    `personal combined salary`       IS A NUMBER @desc the personal combined salary (השכר המשולב האישי); an input
+    `position fraction`              IS A NUMBER @desc the share of a full position held in the instructor grade (1 = full)
+    `table rate`                     IS A NUMBER @desc the percentage the table of section 8.3.6.1 gives this instructor (in force from 1.1.01); the table is not part of the text this file encodes, so the rate is an input, as a fraction (0.5 = 50%)
+    `civil-service work unit`        IS A NUMBER @desc the weekly work unit customary for state employees, which section 8.3.1 adopts; an input
+
+§§ `8.3.1 יחידת עבודה`
+
+@ref akn:chp_8__sec_8_3__ssec_8_3_1__para_1
+GIVEN i IS AN `instructor`
+GIVETH A NUMBER
+DECIDE `instructor's work unit` i IS
+    i's `civil-service work unit`
+
+-- akn:chp_8__sec_8_3__ssec_8_3_1/p1 Heading of the source list (אסמכתא).
+-- akn:chp_8__sec_8_3__ssec_8_3_1/p2 Source: a director-general's circular.
+
+§§ `8.3.6 גמול הדרכה`
+
+-- §8.3.6.1: the allowance is a percentage of the personal combined salary
+-- "by the table below". The table is not in the text as the corpus holds this
+-- section, so the percentage is the input `table rate`.
+@ref akn:chp_8__sec_8_3__ssec_8_3_6__para_1 akn:chp_8__sec_8_3__ssec_8_3_6__para_2__subpara_a
+GIVEN i IS AN `instructor`
+GIVETH A NUMBER
+DECIDE `full-position instructor allowance` i IS
+    i's `table rate` TIMES i's `personal combined salary`
+
+-- akn:chp_8__sec_8_3__ssec_8_3_6__para_1/p2 Effective date of the table (from 1.1.01); the file encodes the rate in force and carries no dates.
+
+@ref akn:chp_8__sec_8_3__ssec_8_3_6__para_2__subpara_b
+GIVEN i IS AN `instructor`
+GIVETH A NUMBER
+DECIDE `instructor allowance` i IS
+    `full-position instructor allowance` i TIMES i's `position fraction`
+
+@ref akn:chp_8__sec_8_3__ssec_8_3_6__para_2__subpara_c
+GIVEN i IS AN `instructor`
+      `the other components of the salary the hourly value is computed from` IS A NUMBER
+          @desc the rest of the monthly base from which the overtime hourly value is derived (section 1.24); an input
+GIVETH A NUMBER
+DECIDE `overtime hourly-value base` i `the other components of the salary the hourly value is computed from` IS
+    `the other components of the salary the hourly value is computed from` PLUS `instructor allowance` i
+
+§§ `8.3.6.3 גרירת ותק במעבר לפיקוח`
+
+@desc The moves section 8.3.6.3 says how much seniority they carry.
+DECLARE `move into supervision` IS ONE OF
+    `teacher in an instruction role to supervision`  @desc subsection (a)
+    `teacher-instructor to instructor`               @desc subsections (b) and (d)
+    `instructor to supervisor`                       @desc subsections (b) and (d)
+    `teacher-instructor to supervisor`               @desc subsection (d)
+    `school principal to supervision`                @desc subsections (c) and (d): a principal, not a deputy or other role holder
+    `deputy or other role holder to supervision`     @desc excluded from (c) by its own words
+
+DECLARE `supervision move` HAS
+    `the move`                                  IS A `move into supervision`
+    `years in the previous role`                IS A NUMBER @desc years of seniority in the role being left
+    `years in an instruction role since 1.9.83` IS A NUMBER @desc for subsection (a): seniority as a teacher in an instruction role, counted from 1.9.83
+    `seniority ceiling`                         IS A NUMBER @desc the ceiling subsection (d) makes the count subject to; the text says "today 13 years", so it is an input
+
+-- (a): counted from 1.9.83; at most 7 years (the span from 1.9.83 to the
+-- agreement's signature on 23.12.90).
+@ref akn:chp_8__sec_8_3__ssec_8_3_6__para_3__subpara_a
+GIVEN m IS A `supervision move`
+GIVETH A NUMBER
+DECIDE `seniority carried from an instruction role` m IS
+    min (m's `years in an instruction role since 1.9.83`) 7
+
+-- (b): from one supervision role to the next, the seniority moves with the employee.
+@ref akn:chp_8__sec_8_3__ssec_8_3_6__para_3__subpara_b
+GIVEN m IS A `supervision move`
+GIVETH A NUMBER
+DECIDE `seniority carried between supervision roles` m IS
+    m's `years in the previous role`
+
+-- (c): a school principal moving into supervision carries 25% of the years as principal.
+@ref akn:chp_8__sec_8_3__ssec_8_3_6__para_3__subpara_c
+GIVEN m IS A `supervision move`
+GIVETH A NUMBER
+DECIDE `seniority a principal carries under (c)` m IS
+    0.25 TIMES m's `years in the previous role`
+
+-- (d): teacher-instructor or instructor to supervisor, OR MANAGEMENT TO
+-- SUPERVISION: no limit, counted in full, subject to the ceiling.
+@ref akn:chp_8__sec_8_3__ssec_8_3_6__para_3__subpara_d
+GIVEN m IS A `supervision move`
+GIVETH A NUMBER
+DECIDE `seniority carried in full under (d)` m IS
+    min (m's `years in the previous role`) (m's `seniority ceiling`)
+
+-- F-8.3-a: (c) and (d) both decide a principal moving into supervision, and
+-- give 25% and 100%. The reading adopted: (c) governs a principal — it is
+-- the clause that names the principal and excludes deputies, and its
+-- footnote is the Treasury's later clarification (6.5.91).
+GIVEN m IS A `supervision move`
+GIVETH A NUMBER
+DECIDE `seniority carried into supervision` m IS
+    CONSIDER m's `the move`
+    WHEN `teacher in an instruction role to supervision` THEN `seniority carried from an instruction role` m
+    WHEN `teacher-instructor to instructor`              THEN `seniority carried between supervision roles` m
+    WHEN `instructor to supervisor`                      THEN `seniority carried in full under (d)` m
+    WHEN `teacher-instructor to supervisor`              THEN `seniority carried in full under (d)` m
+    WHEN `school principal to supervision`               THEN `seniority a principal carries under (c)` m
+    WHEN `deputy or other role holder to supervision`    THEN 0
+
+`a principal of eight years moves into supervision` MEANS
+    `supervision move` WITH
+        `the move`                                  IS `school principal to supervision`
+        `years in the previous role`                IS 8
+        `years in an instruction role since 1.9.83` IS 0
+        `seniority ceiling`                         IS 13
+
+`(c) and (d) give a principal moving into supervision different seniority` MEANS
+    NOT (`seniority a principal carries under (c)` `a principal of eight years moves into supervision`
+         EQUALS `seniority carried in full under (d)` `a principal of eight years moves into supervision`)
+#ASSERT `(c) and (d) give a principal moving into supervision different seniority`
+#ASSERT `seniority carried into supervision` `a principal of eight years moves into supervision` EQUALS 2
+
+-- akn:chp_8__sec_8_3__ssec_8_3_6/p1 Heading of the source list (אסמכתא).
+-- akn:chp_8__sec_8_3__ssec_8_3_6/p2 Source: collective agreement of 23.10.90.
+-- akn:chp_8__sec_8_3__ssec_8_3_6/p3 Source: collective agreement of 18.12.01.
+-- akn:chp_8__sec_8_3__ssec_8_3_6/p4 Source: special collective agreement of 10.3.83, annex D.
+-- akn:chp_8__sec_8_3__ssec_8_3_6/p5 Source: a Treasury wage-department clarification of 6.5.91.
+
+§§ `8.3.7 גמול השתלמות`
+
+-- akn:chp_8__sec_8_3__ssec_8_3_7/p1 A pointer to section 8.4.7 (the in-service training allowance for supervisors), encoded there.
+
+-- Examples. The salary, table rate and work unit are placeholders.
+`a full-position instructor` MEANS
+    `instructor` WITH
+        `personal combined salary` IS 10000
+        `position fraction`        IS 1
+        `table rate`               IS 0.5
+        `civil-service work unit`  IS 42.5
+
+#ASSERT `instructor allowance` `a full-position instructor` EQUALS 5000
+
+`an instructor of fifteen years becomes a supervisor` MEANS
+    `supervision move` WITH
+        `the move`                                  IS `instructor to supervisor`
+        `years in the previous role`                IS 15
+        `years in an instruction role since 1.9.83` IS 0
+        `seniority ceiling`                         IS 13
+#ASSERT `seniority carried into supervision` `an instructor of fifteen years becomes a supervisor` EQUALS 13

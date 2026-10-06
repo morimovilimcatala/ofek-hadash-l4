@@ -1,0 +1,769 @@
+-- תקנון שירות עובדי הוראה, פרק 1א', §1.10 ליווי תלמידים
+-- Accompanying pupils: pay for out-of-school activity in activity units,
+-- the extra pay for a rest day, principals, reporting and payment; pay for
+-- sea voyages; per diem; and the personal-accident cover for teachers on
+-- trips (§1.10.1).
+
+IMPORT prelude
+IMPORT common
+
+§ `1.10 ליווי תלמידים`
+
+-- The actors of the insurance cover, which the takanon's shared Party list lacks.
+@desc Actors of section 1.10.1 (the accident cover) that are not in the takanon's shared Party list.
+DECLARE `1.10 party` IS ONE OF
+    `the insurer`
+    `the insured or his representative`
+    `the exceptional-cases committee`
+
+-- akn:chp_1א___sec_1_10/p2 The page's table of contents (heading).
+-- akn:chp_1א___sec_1_10/p3 akn:chp_1א___sec_1_10/p4 Entries of the table of contents, naming the two subsections encoded below.
+
+§§ `1.10.0.1 ליווי תלמידים בטיולים ובפעילות חוץ בית ספרית`
+
+-- akn:chp_1א___sec_1_10__ssec_1_10_0/p1 A heading: "1. ליווי תלמידים בטיולים ובפעילות חוץ בית ספרית".
+
+@desc One outing with pupils outside the educational institution, as section 1.10.0 asks about it.
+DECLARE `outing` HAS
+    `starts in the morning`     IS A BOOLEAN
+    `start hour`                IS A NUMBER  @desc 24-hour clock
+    `end hour`                  IS A NUMBER  @desc 24-hour clock on the day it starts; past midnight is above 24 (1:00 the next day is 25)
+    `nights`                    IS A NUMBER  @desc nights of lodging the outing includes
+    `end hour of the last day`  IS A NUMBER  @desc for an outing with lodging, the hour it ends on its last day
+
+DECLARE `activity kind` IS ONE OF
+    `ending between 14:00 and 15:00`
+    `ending between 15:00 and 18:00`
+    `ending between 18:00 and 21:00`
+    `ending between 21:00 and 24:00`
+    `detached, between 16:00 and 24:00`
+    `with lodging`
+
+-- א AS PRINTED: an outing is out-of-school activity if it is one of six
+-- kinds, each read with its bounds inclusive, so the table can be asked
+-- directly.
+@ref akn:chp_1א___sec_1_10__ssec_1_10_0/p2 akn:chp_1א___sec_1_10__ssec_1_10_0/p3 akn:chp_1א___sec_1_10__ssec_1_10_0/p4 akn:chp_1א___sec_1_10__ssec_1_10_0/p5 akn:chp_1א___sec_1_10__ssec_1_10_0/p6 akn:chp_1א___sec_1_10__ssec_1_10_0/p7 akn:chp_1א___sec_1_10__ssec_1_10_0/p8
+GIVEN o IS AN `outing`
+GIVETH A LIST OF `activity kind`
+DECIDE `the kinds the outing fits as printed` o IS
+    filter (GIVEN k YIELD
+                CONSIDER k
+                WHEN `ending between 14:00 and 15:00` THEN o's `nights` EQUALS 0 AND o's `starts in the morning` AND o's `end hour` AT LEAST 14 AND o's `end hour` AT MOST 15
+                WHEN `ending between 15:00 and 18:00` THEN o's `nights` EQUALS 0 AND o's `starts in the morning` AND o's `end hour` AT LEAST 15 AND o's `end hour` AT MOST 18
+                WHEN `ending between 18:00 and 21:00` THEN o's `nights` EQUALS 0 AND o's `starts in the morning` AND o's `end hour` AT LEAST 18 AND o's `end hour` AT MOST 21
+                WHEN `ending between 21:00 and 24:00` THEN o's `nights` EQUALS 0 AND o's `starts in the morning` AND o's `end hour` AT LEAST 21 AND o's `end hour` AT MOST 24
+                WHEN `detached, between 16:00 and 24:00` THEN o's `nights` EQUALS 0 AND (NOT o's `starts in the morning`) AND o's `start hour` AT LEAST 16 AND o's `end hour` AT MOST 24
+                WHEN `with lodging` THEN o's `nights` AT LEAST 1 AND o's `starts in the morning`)
+           (LIST `ending between 14:00 and 15:00`, `ending between 15:00 and 18:00`,
+                 `ending between 18:00 and 21:00`, `ending between 21:00 and 24:00`,
+                 `detached, between 16:00 and 24:00`, `with lodging`)
+
+-- ג's units, row by row.
+@ref akn:chp_1א___sec_1_10__ssec_1_10_0/p11 akn:chp_1א___sec_1_10__ssec_1_10_0/p12 akn:chp_1א___sec_1_10__ssec_1_10_0/p13 akn:chp_1א___sec_1_10__ssec_1_10_0/p14 akn:chp_1א___sec_1_10__ssec_1_10_0/p15 akn:chp_1א___sec_1_10__ssec_1_10_0/p16 akn:chp_1א___sec_1_10__ssec_1_10_0/p17 akn:chp_1א___sec_1_10__ssec_1_10_0/p18 akn:chp_1א___sec_1_10__ssec_1_10_0/p19 akn:chp_1א___sec_1_10__ssec_1_10_0/p20 akn:chp_1א___sec_1_10__ssec_1_10_0/p21 akn:chp_1א___sec_1_10__ssec_1_10_0/p22 akn:chp_1א___sec_1_10__ssec_1_10_0/p23
+GIVEN k IS AN `activity kind`
+GIVETH A NUMBER
+DECIDE `units for` k IS
+    CONSIDER k
+    WHEN `ending between 14:00 and 15:00` THEN 0.5
+    WHEN `ending between 15:00 and 18:00` THEN 2
+    WHEN `ending between 18:00 and 21:00` THEN 3.5
+    WHEN `ending between 21:00 and 24:00` THEN 5
+    WHEN `detached, between 16:00 and 24:00` THEN 3
+    WHEN `with lodging` THEN 7
+
+-- F-1.10-a: an outing from the morning that ends at 15:00, 18:00 or 21:00
+-- fits two rows. The reading adopted: the row that OPENS at that hour
+-- governs it, as F-1.7-a reads the same shape of table.
+-- F-1.10-b: "one (only) of these" leaves out an outing that starts after
+-- the morning but before 16:00, and one from the morning that ends after
+-- midnight without lodging; read by the letter, neither earns units.
+GIVEN `starts in the morning` IS A BOOLEAN, `start hour` IS A NUMBER, `end hour` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `units for a day without lodging` `starts in the morning` `start hour` `end hour` IS
+    IF `starts in the morning`
+    THEN BRANCH IF `end hour` GREATER THAN 24 THEN 0
+                IF `end hour` AT LEAST 21 THEN 5
+                IF `end hour` AT LEAST 18 THEN 3.5
+                IF `end hour` AT LEAST 15 THEN 2
+                IF `end hour` AT LEAST 14 THEN 0.5
+                OTHERWISE 0
+    ELSE IF `start hour` AT LEAST 16 AND `end hour` AT MOST 24 THEN 3 ELSE 0
+
+-- ד: only the units of the row of the outing's end; never added up for one
+-- outing, but by nights where there is more than one night; and the last
+-- day, without lodging, by its end hour. F-1.10-d: whether that last-day
+-- sentence reaches a ONE-night outing, which row 6 already describes as
+-- ending the next day, is not said; the reading adopted applies it to every
+-- outing with lodging, as its words name no number of nights.
+@ref akn:chp_1א___sec_1_10__ssec_1_10_0/p24
+GIVEN o IS AN `outing`
+GIVETH A NUMBER
+DECIDE `activity units` o IS
+    IF o's `nights` AT LEAST 1
+    THEN `units for` `with lodging` TIMES o's `nights`
+             PLUS `units for a day without lodging` TRUE 8 (o's `end hour of the last day`)
+    ELSE `units for a day without lodging` (o's `starts in the morning`) (o's `start hour`) (o's `end hour`)
+
+`an outing ending at 15:00 fits two rows` MEANS
+    count (`the kinds the outing fits as printed` (`outing` WITH
+        `starts in the morning` IS TRUE, `start hour` IS 8, `end hour` IS 15, `nights` IS 0, `end hour of the last day` IS 15))
+    EQUALS 2
+#ASSERT `an outing ending at 15:00 fits two rows`
+
+`an outing from 15:00 to 20:00 fits no row` MEANS
+    null (`the kinds the outing fits as printed` (`outing` WITH
+        `starts in the morning` IS FALSE, `start hour` IS 15, `end hour` IS 20, `nights` IS 0, `end hour of the last day` IS 20))
+`an outing from the morning to 1:00 fits no row` MEANS
+    null (`the kinds the outing fits as printed` (`outing` WITH
+        `starts in the morning` IS TRUE, `start hour` IS 8, `end hour` IS 25, `nights` IS 0, `end hour of the last day` IS 25))
+#ASSERT `an outing from 15:00 to 20:00 fits no row` AND `an outing from the morning to 1:00 fits no row`
+
+-- F-1.10-d's evidence: one night, home at 17:00 the next day.
+`one night, home at 17:00` MEANS
+    `outing` WITH `starts in the morning` IS TRUE, `start hour` IS 8, `end hour` IS 17, `nights` IS 1, `end hour of the last day` IS 17
+`the last-day sentence changes the units of a one-night outing` MEANS
+    (NOT (`activity units` `one night, home at 17:00` EQUALS `units for` `with lodging`))
+#ASSERT `the last-day sentence changes the units of a one-night outing`
+
+-- ב: one unit is 0.7% of the monthly combined salary with the 3% (2001),
+-- 2008 and 2011 supplements, by the position and up to one position.
+@desc The salary components a base is made of.
+DECLARE `base component` IS ONE OF
+    `combined salary`, `3% supplement`, `2008 supplement`, `2011 supplement`, `1994 teaching supplement`
+
+@ref akn:chp_1א___sec_1_10__ssec_1_10_0/p9 akn:chp_1א___sec_1_10__ssec_1_10_0/p10
+`the components of a unit as section 1.10.0 lists them` MEANS
+    LIST `combined salary`, `3% supplement`, `2008 supplement`, `2011 supplement`
+
+GIVEN `full-position base` IS A NUMBER, `position fraction` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `value of an activity unit` `full-position base` `position fraction` IS
+    0.7% TIMES `full-position base` TIMES min `position fraction` 1
+
+-- F-1.10-c: section 1.1ו lists this allowance (ו.3) among the percentage
+-- allowances it computes on the combined salary with the 3%, 2008, 2011
+-- AND 1994 supplements. Quoted here for the evidence only; the reading
+-- adopted is section 1.10.0's own list, the particular one.
+`the components section 1.1ו gives the percentage allowances` MEANS
+    LIST `combined salary`, `3% supplement`, `2008 supplement`, `2011 supplement`, `1994 teaching supplement`
+`sections 1.10.0 and 1.1ו give the activity unit different bases` MEANS
+    (NOT (`the components of a unit as section 1.10.0 lists them` EQUALS `the components section 1.1ו gives the percentage allowances`))
+#ASSERT `sections 1.10.0 and 1.1ו give the activity unit different bases`
+
+DECLARE `outing action` IS ONE OF
+    `pay for the outing` HAS `outing pay` IS A NUMBER
+    `submit the list of accompanying teachers`
+
+-- ה: paid with the salary for the month after the activity. Time in
+-- salary months from the activity's month: 1 is the next month's salary.
+@ref akn:chp_1א___sec_1_10__ssec_1_10_0/p25
+GIVEN `pay owed` IS A NUMBER
+GIVETH A DEONTIC Party `outing action`
+DECIDE `payment with the next month's salary` `pay owed` IS
+    PARTY `the employer`
+    MUST  `pay for the outing` paid PROVIDED paid AT LEAST `pay owed`
+    WITHIN 1
+    LEST BREACH BY `the employer` BECAUSE "section 1.10.0: paid with the salary for the month after the activity"
+
+DECLARE `salary use` IS ONE OF
+    `hour value`, `pension`, `further-training fund`, `provident fund`, `severance pay`
+
+@ref akn:chp_1א___sec_1_10__ssec_1_10_0/p26
+GIVEN u IS A `salary use`
+GIVETH A BOOLEAN
+DECIDE `activity pay counts as salary for` u IF
+    FALSE
+
+-- ז: the earlier arrangements are cancelled, but the sums paid before for
+-- lodging and for activity ending after 16:00 are still paid, subject to
+-- the collective agreements. F-1.10-e: whether in ADDITION to the units or
+-- INSTEAD of them is not said; the reading adopted is in addition.
+@ref akn:chp_1א___sec_1_10__ssec_1_10_0/p27 akn:chp_1א___sec_1_10__ssec_1_10_0/p28
+GIVEN o IS AN `outing`, `sum paid before for such outings` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `earlier sum still paid` o `sum paid before for such outings` IS
+    IF o's `nights` AT LEAST 1 OR o's `end hour` GREATER THAN 16
+    THEN `sum paid before for such outings`
+    ELSE 0
+
+GIVEN o IS AN `outing`, `sum paid before for such outings` IS A NUMBER, `unit value` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `outing pay instead of the earlier sum` o `sum paid before for such outings` `unit value` IS
+    IF `earlier sum still paid` o `sum paid before for such outings` GREATER THAN 0
+    THEN `sum paid before for such outings`
+    ELSE `activity units` o TIMES `unit value`
+
+-- ח: not for של"ח teachers, whose earlier arrangement stays (section 6.17).
+@ref akn:chp_1א___sec_1_10__ssec_1_10_0/p29
+GIVEN `is a של"ח teacher` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `the unit arrangement applies` `is a של"ח teacher` IF
+    (NOT `is a של"ח teacher`)
+
+@export default The pay for one outing with pupils under section 1.10.0 of the takanon: its activity units at the unit value, with the earlier sums still paid
+GIVEN o IS AN `outing` @desc the outing
+      `full-position base` IS A NUMBER @desc the monthly combined salary for one full position with the 3%, 2008 and 2011 supplements
+      `position fraction` IS A NUMBER @desc the share of a full position held
+      `sum paid before for such outings` IS A NUMBER @desc what the arrangements before this one paid for such an outing; 0 if none
+      `is a של"ח teacher` IS A BOOLEAN
+GIVETH A NUMBER
+DECIDE `outing pay` o `full-position base` `position fraction` `sum paid before for such outings` `is a של"ח teacher` IS
+    IF `the unit arrangement applies` `is a של"ח teacher`
+    THEN `activity units` o TIMES `value of an activity unit` `full-position base` `position fraction`
+             PLUS `earlier sum still paid` o `sum paid before for such outings`
+    ELSE 0
+
+-- ט: on a rest day or a day he does not teach, 4 hours more; on a day of
+-- some teaching, the table. F-1.10-f: its first row (1 hour taught → 1 hour
+-- paid) breaks the pattern of the others, under which every row and the
+-- day without teaching come to 4 hours in all; the printed value is kept.
+@ref akn:chp_1א___sec_1_10__ssec_1_10_0/p30 akn:chp_1א___sec_1_10__ssec_1_10_0/p31 akn:chp_1א___sec_1_10__ssec_1_10_0/p32 akn:chp_1א___sec_1_10__ssec_1_10_0/p33 akn:chp_1א___sec_1_10__ssec_1_10_0/p34 akn:chp_1א___sec_1_10__ssec_1_10_0/p35 akn:chp_1א___sec_1_10__ssec_1_10_0/p36 akn:chp_1א___sec_1_10__ssec_1_10_0/p37 akn:chp_1א___sec_1_10__ssec_1_10_0/p38 akn:chp_1א___sec_1_10__ssec_1_10_0/p39
+GIVEN `hours taught that day` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `extra hours for accompanying on a rest or non-teaching day` `hours taught that day` IS
+    BRANCH IF `hours taught that day` AT LEAST 4 THEN 0
+           IF `hours taught that day` EQUALS 3 THEN 1
+           IF `hours taught that day` EQUALS 2 THEN 2
+           IF `hours taught that day` EQUALS 1 THEN 1
+           OTHERWISE 4
+
+`the first row of the partial-day table breaks the four-hour pattern` MEANS
+        all (GIVEN h YIELD h PLUS `extra hours for accompanying on a rest or non-teaching day` h EQUALS 4) (LIST 0, 2, 3)
+    AND (NOT (1 PLUS `extra hours for accompanying on a rest or non-teaching day` 1 EQUALS 4))
+#ASSERT `the first row of the partial-day table breaks the four-hour pattern`
+
+-- י: a principal is paid as an accompanying teacher if he coordinates the
+-- trip, or if he educates the class he accompanies; one who only
+-- accompanies is not. F-1.10-g: a principal who educates the class and does
+-- not coordinate meets ¶41 (paid) and ¶42 (not paid); the reading adopted
+-- is ¶41, the particular case.
+@ref akn:chp_1א___sec_1_10__ssec_1_10_0/p40 akn:chp_1א___sec_1_10__ssec_1_10_0/p41 akn:chp_1א___sec_1_10__ssec_1_10_0/p42
+GIVEN `coordinates the trip` IS A BOOLEAN, `educates the class he accompanies` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `a principal is paid for the trip` `coordinates the trip` `educates the class he accompanies` IF
+    `coordinates the trip` OR `educates the class he accompanies`
+
+-- ¶42 as printed: one who accompanies and does not coordinate is not paid.
+GIVEN `coordinates the trip` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `a principal is paid under ¶42 as printed` `coordinates the trip` IF
+    `coordinates the trip`
+
+`¶41 and ¶42 part on a class-educating principal who does not coordinate` MEANS
+        `a principal is paid for the trip` FALSE TRUE
+    AND (NOT `a principal is paid under ¶42 as printed` FALSE)
+#ASSERT `¶41 and ¶42 part on a class-educating principal who does not coordinate`
+
+-- יא: trips to Poland on the same terms.
+@ref akn:chp_1א___sec_1_10__ssec_1_10_0/p43
+GIVEN `trip to Poland` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `the same allowance and criteria apply` `trip to Poland` IF
+    TRUE
+
+-- akn:chp_1א___sec_1_10__ssec_1_10_0/p44 A heading: "הוראת ביצוע".
+
+-- The principals report at the end of each period of trips: name, identity
+-- number, dates, and end hour or kind of activity.
+@ref akn:chp_1א___sec_1_10__ssec_1_10_0/p45 akn:chp_1א___sec_1_10__ssec_1_10_0/p46 akn:chp_1א___sec_1_10__ssec_1_10_0/p47 akn:chp_1א___sec_1_10__ssec_1_10_0/p48 akn:chp_1א___sec_1_10__ssec_1_10_0/p49 akn:chp_1א___sec_1_10__ssec_1_10_0/p50
+DECLARE `report line` HAS
+    `teacher's name`               IS A STRING
+    `identity number`              IS A STRING
+    `dates accompanied`            IS A LIST OF DATE
+    `end hour or kind of activity` IS A STRING
+
+GIVETH A DEONTIC Party `outing action`
+DECIDE `the principal reports the accompanying teachers` IS
+    PARTY `the school principal`
+    MUST  `submit the list of accompanying teachers`
+    WITHIN 1
+    LEST BREACH BY `the school principal` BECAUSE "section 1.10.0: at the end of each trip period the principal sends the list of accompanying teachers"
+
+DECLARE `employment` IS ONE OF `a state employee`, `not a state employee`
+
+@ref akn:chp_1א___sec_1_10__ssec_1_10_0/p51 akn:chp_1א___sec_1_10__ssec_1_10_0/p52
+GIVEN e IS AN `employment`
+GIVETH A Party
+DECIDE `who pays for accompanying` e IS
+    CONSIDER e
+    WHEN `a state employee` THEN `the Ministry of Education`
+    WHEN `not a state employee` THEN `the local authority or owning body`
+
+§§ `1.10.0.2 ליווי תלמידים בהפלגות בים`
+
+-- akn:chp_1א___sec_1_10__ssec_1_10_0/p53 A heading: "2. ליווי תלמידים מבתי-ספר על-יסודיים בהפלגות בים".
+-- akn:chp_1א___sec_1_10__ssec_1_10_0/p54 A heading: "א. הגדרות".
+
+@ref akn:chp_1א___sec_1_10__ssec_1_10_0/p55 akn:chp_1א___sec_1_10__ssec_1_10_0/p59
+GIVEN `a day of the study period` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `is a day of vacation, Sabbath or holiday` `a day of the study period` IF
+    (NOT `a day of the study period`)
+
+-- "A voyage day" is a whole day or part of one: 80 hours is four days.
+@ref akn:chp_1א___sec_1_10__ssec_1_10_0/p56
+GIVEN hours IS A NUMBER
+GIVETH A NUMBER
+DECIDE `voyage days` hours IS
+    CEILING (hours DIVIDED BY 24)
+
+#ASSERT `voyage days` 80 EQUALS 4
+
+-- "Salary of one position": the combined salary for one full position by
+-- grade and recognised seniority; the day's salary is a 26th of it.
+@ref akn:chp_1א___sec_1_10__ssec_1_10_0/p57 akn:chp_1א___sec_1_10__ssec_1_10_0/p58
+GIVEN `combined salary of one full position` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `a sea teacher's salary for a voyage day` `combined salary of one full position` IS
+    `combined salary of one full position` DIVIDED BY 26
+
+DECLARE `craft` IS ONE OF `a boat`, `a ship`, `a navy vessel`, `a large vessel`
+DECLARE `place aboard` IS ONE OF `sole or lead accompanier`, `second or further accompanier`
+
+@desc One voyage of a sea teacher or sea instructor with pupils.
+DECLARE `voyage` HAS
+    `craft sailed`                IS A `craft`
+    `place`                       IS A `place aboard`
+    `accompaniers aboard`         IS A NUMBER
+    `voyage days in study period` IS A NUMBER
+    `voyage days in vacation, Sabbaths and holidays` IS A NUMBER
+    `in charge of 3 craft or more` IS A BOOLEAN
+    `is a class educator`         IS A BOOLEAN
+    `voyage days already sailed this year` IS A NUMBER
+
+-- ב: the rates, in percent of the day's salary, on top of the regular
+-- salary. (3)–(4): a navy vessel is a ship. F-1.10-h: row (1) is the sole
+-- accompanier, or the lead one "in a boat with two accompaniers"; the lead
+-- of a boat with three or more has no row. The reading adopted: row (1).
+@ref akn:chp_1א___sec_1_10__ssec_1_10_0/p60 akn:chp_1א___sec_1_10__ssec_1_10_0/p61 akn:chp_1א___sec_1_10__ssec_1_10_0/p62 akn:chp_1א___sec_1_10__ssec_1_10_0/p63 akn:chp_1א___sec_1_10__ssec_1_10_0/p64 akn:chp_1א___sec_1_10__ssec_1_10_0/p65 akn:chp_1א___sec_1_10__ssec_1_10_0/p66 akn:chp_1א___sec_1_10__ssec_1_10_0/p67 akn:chp_1א___sec_1_10__ssec_1_10_0/p68 akn:chp_1א___sec_1_10__ssec_1_10_0/p69 akn:chp_1א___sec_1_10__ssec_1_10_0/p70 akn:chp_1א___sec_1_10__ssec_1_10_0/p71 akn:chp_1א___sec_1_10__ssec_1_10_0/p72 akn:chp_1א___sec_1_10__ssec_1_10_0/p73 akn:chp_1א___sec_1_10__ssec_1_10_0/p74 akn:chp_1א___sec_1_10__ssec_1_10_0/p75 akn:chp_1א___sec_1_10__ssec_1_10_0/p76 akn:chp_1א___sec_1_10__ssec_1_10_0/p77 akn:chp_1א___sec_1_10__ssec_1_10_0/p78 akn:chp_1א___sec_1_10__ssec_1_10_0/p79 akn:chp_1א___sec_1_10__ssec_1_10_0/p80
+GIVEN c IS A `craft`, p IS A `place aboard`, `in the study period` IS A BOOLEAN
+GIVETH A NUMBER
+DECIDE `voyage rate` c p `in the study period` IS
+    `row` PLUS (IF `in the study period` THEN 0 ELSE 100)
+    WHERE
+        `row` MEANS
+            CONSIDER c
+            WHEN `a boat` THEN IF p EQUALS `sole or lead accompanier` THEN 160 ELSE 100
+            WHEN `a large vessel` THEN IF p EQUALS `sole or lead accompanier` THEN 60 ELSE 40
+            OTHERWISE IF p EQUALS `sole or lead accompanier` THEN 100 ELSE 80
+
+-- The lead of a boat as row (1) prints it: "with two accompaniers".
+GIVEN v IS A `voyage`
+GIVETH A BOOLEAN
+DECIDE `row (1) as printed takes the lead of this boat` v IF
+        v's `craft sailed` EQUALS `a boat`
+    AND v's `place` EQUALS `sole or lead accompanier`
+    AND (v's `accompaniers aboard` EQUALS 1 OR v's `accompaniers aboard` EQUALS 2)
+
+-- ג: in charge of 3 craft or more, 10% more. ד: a sea teacher who is a class
+-- educator sails 3 voyage days a year for no extra pay.
+@ref akn:chp_1א___sec_1_10__ssec_1_10_0/p81 akn:chp_1א___sec_1_10__ssec_1_10_0/p82
+GIVEN v IS A `voyage`, `day's salary` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `voyage pay` v `day's salary` IS
+    (`day's salary` DIVIDED BY 100) TIMES
+        (  `voyage rate` (v's `craft sailed`) (v's `place`) TRUE  TIMES `paid study days`
+         + `voyage rate` (v's `craft sailed`) (v's `place`) FALSE TIMES v's `voyage days in vacation, Sabbaths and holidays`
+         + (IF v's `in charge of 3 craft or more` THEN 10 ELSE 0)
+               TIMES (`paid study days` PLUS v's `voyage days in vacation, Sabbaths and holidays`))
+    WHERE
+        `unpaid days left` MEANS
+            IF v's `is a class educator`
+            THEN max 0 (3 MINUS v's `voyage days already sailed this year`)
+            ELSE 0
+        `paid study days` MEANS
+            max 0 (v's `voyage days in study period` MINUS `unpaid days left`)
+
+§§ `1.10.0.3 אש"ל למורים`
+
+-- akn:chp_1א___sec_1_10__ssec_1_10_0/p83 A heading: "3. אש\"ל למורים".
+
+DECLARE `accompanied setting` IS ONE OF
+    `trips and journeys, including Gadna`
+    `national service`
+    `an army training base`
+    `a trip where the employer provides lodging and food`
+
+-- א–ב and the note: food money as for civil servants (takshir 26.231, the
+-- meals by 26.222 and 26.232), not where meals are had in the kibbutz or
+-- base, or provided by the employer. The takshir amount is an input.
+@ref akn:chp_1א___sec_1_10__ssec_1_10_0/p84 akn:chp_1א___sec_1_10__ssec_1_10_0/p85 akn:chp_1א___sec_1_10__ssec_1_10_0/p86
+GIVEN s IS AN `accompanied setting`, `food money by the takshir` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `food money` s `food money by the takshir` IS
+    IF s EQUALS `trips and journeys, including Gadna`
+    THEN `food money by the takshir`
+    ELSE 0
+
+-- ג: Mediterranean voyages: 20% of the destination's daily rate per day at
+-- sea, 60% of the country's rate per day ashore, by the takshir; hotel and
+-- like costs paid by the school are set off; the supervisor states that sea
+-- days and port days run one to one. In force from 1.3.84.
+@ref akn:chp_1א___sec_1_10__ssec_1_10_0/p87 akn:chp_1א___sec_1_10__ssec_1_10_0/p88 akn:chp_1א___sec_1_10__ssec_1_10_0/p89 akn:chp_1א___sec_1_10__ssec_1_10_0/p90 akn:chp_1א___sec_1_10__ssec_1_10_0/p92
+GIVEN `days at sea` IS A NUMBER
+      `days ashore` IS A NUMBER
+      `daily rate of the destination` IS A NUMBER
+      `daily rate of the country ashore` IS A NUMBER
+      `costs the school paid in full` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `Mediterranean per diem` `days at sea` `days ashore` `daily rate of the destination` `daily rate of the country ashore` `costs the school paid in full` IS
+    max 0 (20% TIMES `daily rate of the destination` TIMES `days at sea`
+           PLUS 60% TIMES `daily rate of the country ashore` TIMES `days ashore`
+           MINUS `costs the school paid in full`)
+
+@ref akn:chp_1א___sec_1_10__ssec_1_10_0/p91
+GIVEN `days of a Mediterranean voyage` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `days at sea of a Mediterranean voyage` `days of a Mediterranean voyage` IS
+    `days of a Mediterranean voyage` DIVIDED BY 2
+
+-- akn:chp_1א___sec_1_10__ssec_1_10_0/p93 akn:chp_1א___sec_1_10__ssec_1_10_0/p94 akn:chp_1א___sec_1_10__ssec_1_10_0/p95 akn:chp_1א___sec_1_10__ssec_1_10_0/p96 akn:chp_1א___sec_1_10__ssec_1_10_0/p97 akn:chp_1א___sec_1_10__ssec_1_10_0/p98 akn:chp_1א___sec_1_10__ssec_1_10_0/p99 akn:chp_1א___sec_1_10__ssec_1_10_0/p100 The subsection's sources (אסמכתא), 1–7.
+-- akn:chp_1א___sec_1_10__ssec_1_10_0/p101 akn:chp_1א___sec_1_10__ssec_1_10_0/p102 akn:chp_1א___sec_1_10__ssec_1_10_0/p103 akn:chp_1א___sec_1_10__ssec_1_10_0/p104 akn:chp_1א___sec_1_10__ssec_1_10_0/p105 akn:chp_1א___sec_1_10__ssec_1_10_0/p106 akn:chp_1א___sec_1_10__ssec_1_10_0/p107 The subsection's sources (אסמכתא), 8–14.
+
+§§ `1.10.1 ביטוח עובדי הוראה המשתתפים במסעות וטיולים`
+
+@desc An accident to a covered teaching employee on a trip, as section 1.10.1 asks about it.
+DECLARE `trip accident` HAS
+    `covered by the Ministry's instructions`   IS A BOOLEAN
+    `on a trip, tour or journey in the course of school work` IS A BOOLEAN
+    `between leaving home and coming straight back` IS A BOOLEAN
+    `covered by the road-accident or hostile-action laws` IS A BOOLEAN
+    `excluded cause`                            IS A BOOLEAN @desc self-harm or suicide, needless danger, an offence other than a traffic offence, insanity, drunkenness or drugs (1.10.1.3)
+    `insured by another insurer`                IS A BOOLEAN
+    `died of it within 12 months`               IS A BOOLEAN
+    `disability percent`                        IS A NUMBER @desc permanent disability, 0–100
+    `weeks unfit for work`                      IS A NUMBER
+    `national-insurance payments stopped at 26 weeks` IS A BOOLEAN
+    `months unfit within the first 26 weeks`    IS A NUMBER
+    `notice reached the insurer within 6 months` IS A BOOLEAN
+
+-- 1א–ב, ו–ז: who is covered and when; death or 100% permanent disability
+-- pays 30,000 dollars in shekels once, partial disability its share.
+@ref akn:chp_1א___sec_1_10__ssec_1_10_1__para_1__subpara_a akn:chp_1א___sec_1_10__ssec_1_10_1__para_1__subpara_f akn:chp_1א___sec_1_10__ssec_1_10_1__para_1__subpara_g
+GIVEN a IS A `trip accident`
+GIVETH A BOOLEAN
+DECIDE `the cover applies` a IF
+        a's `covered by the Ministry's instructions`
+    AND a's `on a trip, tour or journey in the course of school work`
+    AND a's `between leaving home and coming straight back`
+    AND (NOT a's `covered by the road-accident or hostile-action laws`)
+    AND (NOT a's `excluded cause`)
+    AND a's `notice reached the insurer within 6 months`
+
+-- akn:chp_1א___sec_1_10__ssec_1_10_1__para_1__subpara_a/p2 A note: the amounts are those of the 1997 cover terms, in force since.
+
+@ref akn:chp_1א___sec_1_10__ssec_1_10_1__para_1__subpara_b
+`the sum for death or full disability, in dollars` MEANS 30000
+
+-- 1ג: weekly 450 dollars from week 27 to the end of a year from the injury,
+-- where national-insurance payments stopped only by their 26-week limit.
+@ref akn:chp_1א___sec_1_10__ssec_1_10_1__para_1__subpara_c
+GIVEN a IS A `trip accident`
+GIVETH A NUMBER
+DECIDE `weekly compensation in dollars` a IS
+    IF `the cover applies` a AND a's `national-insurance payments stopped at 26 weeks`
+    THEN 450 TIMES max 0 (min (a's `weeks unfit for work`) 52 MINUS 26)
+    ELSE 0
+
+-- 1ד: unfit at least two weeks in a row: 200 dollars a month while unfit,
+-- up to week 26.
+@ref akn:chp_1א___sec_1_10__ssec_1_10_1__para_1__subpara_d
+GIVEN a IS A `trip accident`
+GIVETH A NUMBER
+DECIDE `monthly expenses in dollars` a IS
+    IF `the cover applies` a AND a's `weeks unfit for work` AT LEAST 2
+    THEN 200 TIMES a's `months unfit within the first 26 weeks`
+    ELSE 0
+
+-- 1ה: the committee may, by majority, on a representative organisation's
+-- request, pay from 10 days after the injury; raise the weekly sum or pay
+-- it longer, by no more than 10% of what the injured is owed; and
+-- recommend up to 450 dollars for the family's travel to a far accident.
+@ref akn:chp_1א___sec_1_10__ssec_1_10_1__para_1__subpara_e akn:chp_1א___sec_1_10__ssec_1_10_1__para_1__subpara_e/p2 akn:chp_1א___sec_1_10__ssec_1_10_1__para_1__subpara_e/p3 akn:chp_1א___sec_1_10__ssec_1_10_1__para_1__subpara_e/p4
+GIVEN `owed` IS A NUMBER, `increase the committee decides` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `committee increase allowed` `owed` `increase the committee decides` IS
+    min `increase the committee decides` (10% TIMES `owed`)
+
+@ref akn:chp_1א___sec_1_10__ssec_1_10_1__para_1__subpara_e/p5 akn:chp_1א___sec_1_10__ssec_1_10_1__para_1__subpara_e/p6
+GIVEN `family's travel costs in dollars` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `special compensation for a far accident` `family's travel costs in dollars` IS
+    min `family's travel costs in dollars` 450
+
+DECLARE `cover action` IS ONE OF
+    `report the accident to Inbal`
+    `notify the insurer in writing`
+    `send the accident report and doctor's certificate`
+    `cooperate with the insurer`
+    `decide on an exceptional case`
+
+-- 1א (the accident report): the principal reports within two weeks (time
+-- in days).
+@ref akn:chp_1א___sec_1_10__ssec_1_10_1__para_1__subpara_g/p2 akn:chp_1א___sec_1_10__ssec_1_10_1__para_1__subpara_g/p3
+GIVETH A DEONTIC Party `cover action`
+DECIDE `the principal reports the accident` IS
+    PARTY `the school principal`
+    MUST  `report the accident to Inbal`
+    WITHIN 14
+    LEST BREACH BY `the school principal` BECAUSE "section 1.10.1: a teacher hurt on a trip is reported within two weeks"
+
+-- akn:chp_1א___sec_1_10__ssec_1_10_1__para_1__subpara_g/p4 The line introducing the sample report form; the form is not a rule.
+
+-- 2א–ג: the insurer pays the table's percent of the insured sum for an
+-- immediate disability within 12 months of the accident, or the sum on
+-- death within 12 months.
+DECLARE `listed injury` IS ONE OF
+    `complete paralysis`, `loss of two limbs`, `loss of both hands or all fingers and both thumbs`,
+    `permanent confinement to bed`, `any other total loss of working capacity`, `total loss of sight of both eyes`,
+    `loss of the arm at the shoulder`, `between shoulder and elbow`, `at the elbow`, `between elbow and wrist`,
+    `loss of the hand`, `loss of four fingers and thumb of one hand`, `loss of four fingers`,
+    `thumb, two bones`, `thumb, one bone`,
+    `index finger, three bones`, `index finger, two bones`, `index finger, one bone`,
+    `middle finger, three bones`, `middle finger, two bones`, `middle finger, one bone`,
+    `ring finger, three bones`, `ring finger, two bones`, `ring finger, one bone`,
+    `little finger, three bones`, `little finger, two bones`, `little finger, one bone`,
+    `loss of the leg at the thigh`, `between knee and thigh`, `below the knee`,
+    `all the toes`, `big toe, two bones`, `big toe, one bone`, `another toe, where more than one is lost`,
+    `a whole eye`, `sight, apart from light perception`, `the lens of the eye`,
+    `hearing of both ears`, `hearing of one ear`
+
+-- "אבדן ארבע אצבעות אבדן הבוהן: 35%" is read as two lines run together:
+-- four fingers at 35%, and the thumb's two rows (25%, 10%) under it.
+@ref akn:chp_1א___sec_1_10__ssec_1_10_1__para_2__subpara_c akn:chp_1א___sec_1_10__ssec_1_10_1__para_2__subpara_c/p2 akn:chp_1א___sec_1_10__ssec_1_10_1__para_2__subpara_c/p3 akn:chp_1א___sec_1_10__ssec_1_10_1__para_2__subpara_c/p4 akn:chp_1א___sec_1_10__ssec_1_10_1__para_2__subpara_c/p5 akn:chp_1א___sec_1_10__ssec_1_10_1__para_2__subpara_c/p6 akn:chp_1א___sec_1_10__ssec_1_10_1__para_2__subpara_c/p7 akn:chp_1א___sec_1_10__ssec_1_10_1__para_2__subpara_c/p8 akn:chp_1א___sec_1_10__ssec_1_10_1__para_2__subpara_c/p9 akn:chp_1א___sec_1_10__ssec_1_10_1__para_2__subpara_c/p10 akn:chp_1א___sec_1_10__ssec_1_10_1__para_2__subpara_c/p11 akn:chp_1א___sec_1_10__ssec_1_10_1__para_2__subpara_c/p12 akn:chp_1א___sec_1_10__ssec_1_10_1__para_2__subpara_c/p13 akn:chp_1א___sec_1_10__ssec_1_10_1__para_2__subpara_c/p14 akn:chp_1א___sec_1_10__ssec_1_10_1__para_2__subpara_c/p15 akn:chp_1א___sec_1_10__ssec_1_10_1__para_2__subpara_c/p16 akn:chp_1א___sec_1_10__ssec_1_10_1__para_2__subpara_c/p17 akn:chp_1א___sec_1_10__ssec_1_10_1__para_2__subpara_c/p18 akn:chp_1א___sec_1_10__ssec_1_10_1__para_2__subpara_c/p19 akn:chp_1א___sec_1_10__ssec_1_10_1__para_2__subpara_c/p20
+GIVEN i IS A `listed injury`
+GIVETH A NUMBER
+DECIDE `percent in the table` i IS
+    CONSIDER i
+    WHEN `loss of the arm at the shoulder` THEN 60
+    WHEN `between shoulder and elbow` THEN 50
+    WHEN `at the elbow` THEN 47.5
+    WHEN `between elbow and wrist` THEN 45
+    WHEN `loss of the hand` THEN 42.5
+    WHEN `loss of four fingers and thumb of one hand` THEN 42.5
+    WHEN `loss of four fingers` THEN 35
+    WHEN `thumb, two bones` THEN 25
+    WHEN `thumb, one bone` THEN 10
+    WHEN `index finger, three bones` THEN 10
+    WHEN `index finger, two bones` THEN 8
+    WHEN `index finger, one bone` THEN 4
+    WHEN `middle finger, three bones` THEN 6
+    WHEN `middle finger, two bones` THEN 4
+    WHEN `middle finger, one bone` THEN 2
+    WHEN `ring finger, three bones` THEN 5
+    WHEN `ring finger, two bones` THEN 4
+    WHEN `ring finger, one bone` THEN 2
+    WHEN `little finger, three bones` THEN 4
+    WHEN `little finger, two bones` THEN 3
+    WHEN `little finger, one bone` THEN 2
+    WHEN `loss of the leg at the thigh` THEN 70
+    WHEN `between knee and thigh` THEN 50
+    WHEN `below the knee` THEN 35
+    WHEN `all the toes` THEN 15
+    WHEN `big toe, two bones` THEN 5
+    WHEN `big toe, one bone` THEN 2
+    WHEN `another toe, where more than one is lost` THEN 1
+    WHEN `a whole eye` THEN 30
+    WHEN `sight, apart from light perception` THEN 30
+    WHEN `the lens of the eye` THEN 20
+    WHEN `hearing of both ears` THEN 50
+    WHEN `hearing of one ear` THEN 7
+    OTHERWISE 100
+
+-- The rest of the table's rows (¶21–40) are encoded in the function above.
+@ref akn:chp_1א___sec_1_10__ssec_1_10_1__para_2__subpara_c/p21 akn:chp_1א___sec_1_10__ssec_1_10_1__para_2__subpara_c/p22 akn:chp_1א___sec_1_10__ssec_1_10_1__para_2__subpara_c/p23 akn:chp_1א___sec_1_10__ssec_1_10_1__para_2__subpara_c/p24 akn:chp_1א___sec_1_10__ssec_1_10_1__para_2__subpara_c/p25 akn:chp_1א___sec_1_10__ssec_1_10_1__para_2__subpara_c/p26 akn:chp_1א___sec_1_10__ssec_1_10_1__para_2__subpara_c/p27 akn:chp_1א___sec_1_10__ssec_1_10_1__para_2__subpara_c/p28 akn:chp_1א___sec_1_10__ssec_1_10_1__para_2__subpara_c/p29 akn:chp_1א___sec_1_10__ssec_1_10_1__para_2__subpara_c/p30 akn:chp_1א___sec_1_10__ssec_1_10_1__para_2__subpara_c/p31 akn:chp_1א___sec_1_10__ssec_1_10_1__para_2__subpara_c/p32 akn:chp_1א___sec_1_10__ssec_1_10_1__para_2__subpara_c/p33 akn:chp_1א___sec_1_10__ssec_1_10_1__para_2__subpara_c/p34 akn:chp_1א___sec_1_10__ssec_1_10_1__para_2__subpara_c/p35 akn:chp_1א___sec_1_10__ssec_1_10_1__para_2__subpara_c/p36 akn:chp_1א___sec_1_10__ssec_1_10_1__para_2__subpara_c/p37 akn:chp_1א___sec_1_10__ssec_1_10_1__para_2__subpara_c/p38 akn:chp_1א___sec_1_10__ssec_1_10_1__para_2__subpara_c/p39 akn:chp_1א___sec_1_10__ssec_1_10_1__para_2__subpara_c/p40
+`the table's rows are read` MEANS
+    `percent in the table` `hearing of one ear` EQUALS 7 AND `percent in the table` `complete paralysis` EQUALS 100
+#ASSERT `the table's rows are read`
+
+
+-- 2ד: an injury not in the table, or the table not usable, by the
+-- national-insurance regulations, through a doctor at the insurer's cost.
+-- F-1.10-i: 1ב sends EVERY partial disability to those regulations, so a
+-- listed injury has two measures. The reading adopted: the table for a
+-- listed injury (2ג–ד, the cover's own terms), the regulations otherwise.
+DECLARE `measure of disability` IS ONE OF `the cover's table`, `the national-insurance regulations`
+
+@ref akn:chp_1א___sec_1_10__ssec_1_10_1__para_2__subpara_d
+GIVEN `the injury is listed and the table usable` IS A BOOLEAN
+GIVETH A `measure of disability`
+DECIDE `the measure under 2ד` `the injury is listed and the table usable` IS
+    IF `the injury is listed and the table usable`
+    THEN `the cover's table`
+    ELSE `the national-insurance regulations`
+
+GIVEN `the injury is listed and the table usable` IS A BOOLEAN
+GIVETH A `measure of disability`
+DECIDE `the measure under 1ב` `the injury is listed and the table usable` IS
+    `the national-insurance regulations`
+
+`1ב and 2ד measure a listed injury differently` MEANS
+    (NOT (`the measure under 1ב` TRUE EQUALS `the measure under 2ד` TRUE))
+#ASSERT `1ב and 2ד measure a listed injury differently`
+
+-- 2א ¶2 and 2ב: "the insured sum" is the one in the insurance confirmation;
+-- read with 1ב's 30,000 dollars for death and full disability, that is it.
+@ref akn:chp_1א___sec_1_10__ssec_1_10_1__para_2 akn:chp_1א___sec_1_10__ssec_1_10_1__para_2__subpara_a akn:chp_1א___sec_1_10__ssec_1_10_1__para_2__subpara_a/p2 akn:chp_1א___sec_1_10__ssec_1_10_1__para_2__subpara_b
+GIVEN a IS A `trip accident`, `insured sum` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `lump sum` a `insured sum` IS
+    IF (NOT `the cover applies` a) THEN 0
+    ELSE IF a's `died of it within 12 months`
+         THEN `insured sum`
+         ELSE (`insured sum` TIMES min (a's `disability percent`) 100) DIVIDED BY 100
+
+-- 2ה: compensation for an accident never passes 100% of the insured sum.
+-- F-1.10-j: whether the weekly and monthly sums of 1ג–ד (and the
+-- committee's increase) count toward that cap is not said. The reading
+-- adopted: the cap is on the lump sum of the table, 2א–ד, alone.
+@ref akn:chp_1א___sec_1_10__ssec_1_10_1__para_2__subpara_e
+GIVEN a IS A `trip accident`, `insured sum` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `capped lump sum` a `insured sum` IS
+    min (`lump sum` a `insured sum`) `insured sum`
+
+@export The compensation in dollars (paid in shekels) a teaching employee hurt on a school trip is owed under section 1.10.1 of the takanon, before any offset
+GIVEN a IS A `trip accident` @desc the accident and its outcome
+GIVETH A NUMBER
+DECIDE `trip-accident compensation` a IS
+    IF a's `insured by another insurer`
+    THEN 0
+    ELSE `capped lump sum` a `the sum for death or full disability, in dollars`
+         PLUS `weekly compensation in dollars` a
+         PLUS `monthly expenses in dollars` a
+
+-- 3: the exclusions (with 1ז, carried in `the cover applies`).
+@ref akn:chp_1א___sec_1_10__ssec_1_10_1__para_3/p1 akn:chp_1א___sec_1_10__ssec_1_10_1__para_3__subpara_a akn:chp_1א___sec_1_10__ssec_1_10_1__para_3__subpara_b akn:chp_1א___sec_1_10__ssec_1_10_1__para_3__subpara_c akn:chp_1א___sec_1_10__ssec_1_10_1__para_3__subpara_d
+DECLARE `cause of injury` IS ONE OF
+    `self-inflicted harm, suicide or an attempt`
+    `needless deliberate danger`
+    `an offence other than a traffic offence`
+    `insanity, drunkenness or drugs`
+    `a traffic offence`
+    `another cause`
+
+GIVEN c IS A `cause of injury`
+GIVETH A BOOLEAN
+DECIDE `excluded by 3` c IF
+    (NOT (c EQUALS `a traffic offence` OR c EQUALS `another cause`))
+
+-- 4: the insured's duties. Time in days from the accident.
+@ref akn:chp_1א___sec_1_10__ssec_1_10_1__para_4__subpara_a
+GIVETH A DEONTIC `1.10 party` `cover action`
+DECIDE `the insured cooperates` IS
+    PARTY `the insured or his representative`
+    MUST  `cooperate with the insurer`
+    WITHIN 365
+
+-- 4ב: notice in writing as soon as possible, on death at once; the insurer
+-- is not liable without notice within 6 months (about 182 days).
+@ref akn:chp_1א___sec_1_10__ssec_1_10_1__para_4__subpara_b akn:chp_1א___sec_1_10__ssec_1_10_1__para_4__subpara_b/p2 akn:chp_1א___sec_1_10__ssec_1_10_1__para_4__subpara_b/p3
+GIVETH A DEONTIC `1.10 party` `cover action`
+DECIDE `notice of the accident` IS
+    PARTY `the insured or his representative`
+    MUST  `notify the insurer in writing`
+    WITHIN 182
+    HENCE (PARTY `the insured or his representative`
+           MUST  `send the accident report and doctor's certificate`
+           WITHIN 10
+           LEST BREACH BY `the insured or his representative` BECAUSE "section 1.10.1.4ג: the report and certificate follow within 10 days of the notice")
+    LEST BREACH BY `the insured or his representative` BECAUSE "section 1.10.1.4ב: without written notice within 6 months the insurer is not liable"
+
+-- 4ג: medical care at once; the report within 10 days of the notice
+-- (above); the insurer may ask for more and for an examination; no claim
+-- without a qualified doctor's confirmation.
+@ref akn:chp_1א___sec_1_10__ssec_1_10_1__para_4__subpara_c akn:chp_1א___sec_1_10__ssec_1_10_1__para_4__subpara_c/p2
+GIVEN `confirmed by a qualified doctor` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `the insurer may recognise the claim` `confirmed by a qualified doctor` IF
+    `confirmed by a qualified doctor`
+
+@ref akn:chp_1א___sec_1_10__ssec_1_10_1__para_4__subpara_d
+GIVEN `the insured has disappeared` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `presumed dead by accident` `the insured has disappeared` IF
+    FALSE
+
+-- 5: what the cover pays is set off against anything the government or
+-- employer owes for the same event; nothing is owed where another insurer
+-- covers it (carried in `trip-accident compensation`).
+@ref akn:chp_1א___sec_1_10__ssec_1_10_1__para_5/p1 akn:chp_1א___sec_1_10__ssec_1_10_1__para_5/p2
+GIVEN `owed by the government or employer for the event` IS A NUMBER, `paid under the cover` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `still owed by the government or employer` `owed by the government or employer for the event` `paid under the cover` IS
+    max 0 (`owed by the government or employer for the event` MINUS `paid under the cover`)
+
+-- akn:chp_1א___sec_1_10__ssec_1_10_1/p1 akn:chp_1א___sec_1_10__ssec_1_10_1/p2 akn:chp_1א___sec_1_10__ssec_1_10_1/p3 akn:chp_1א___sec_1_10__ssec_1_10_1/p4 akn:chp_1א___sec_1_10__ssec_1_10_1/p5 akn:chp_1א___sec_1_10__ssec_1_10_1/p6 The subsection's sources (אסמכתא): director-general's circulars.
+
+-- Worked examples. Every salary figure is a placeholder.
+`a day trip home at 19:30` MEANS
+    `outing` WITH `starts in the morning` IS TRUE, `start hour` IS 8, `end hour` IS 19.5, `nights` IS 0, `end hour of the last day` IS 19.5
+
+#ASSERT `activity units` `a day trip home at 19:30` EQUALS 3.5
+#ASSERT `outing pay` `a day trip home at 19:30` 10000 0.5 0 FALSE EQUALS 122.5
+#ASSERT `activity units` (`outing` WITH `starts in the morning` IS TRUE, `start hour` IS 8, `end hour` IS 17, `nights` IS 2, `end hour of the last day` IS 17) EQUALS 16
+
+-- F-1.10-e's evidence: with an earlier sum of 100, a night out pays
+-- differently in addition and instead.
+`an earlier sum in addition and instead differ` MEANS
+    NOT (`outing pay` `one night, home at 17:00` 10000 1 100 FALSE
+         EQUALS `outing pay instead of the earlier sum` `one night, home at 17:00` 100 (`value of an activity unit` 10000 1))
+#ASSERT `an earlier sum in addition and instead differ`
+
+-- F-1.10-h's evidence: the lead of a boat with three accompaniers.
+`the lead of a boat with three` MEANS
+    `voyage` WITH
+        `craft sailed`                IS `a boat`
+        `place`                       IS `sole or lead accompanier`
+        `accompaniers aboard`         IS 3
+        `voyage days in study period` IS 2
+        `voyage days in vacation, Sabbaths and holidays` IS 1
+        `in charge of 3 craft or more` IS FALSE
+        `is a class educator`         IS FALSE
+        `voyage days already sailed this year` IS 0
+`the lead of a boat with three accompaniers has no row` MEANS
+    NOT `row (1) as printed takes the lead of this boat` `the lead of a boat with three`
+#ASSERT `the lead of a boat with three accompaniers has no row`
+#ASSERT `voyage pay` `the lead of a boat with three` 100 EQUALS 580
+
+`a 30% disability` MEANS
+    `trip accident` WITH
+        `covered by the Ministry's instructions`   IS TRUE
+        `on a trip, tour or journey in the course of school work` IS TRUE
+        `between leaving home and coming straight back` IS TRUE
+        `covered by the road-accident or hostile-action laws` IS FALSE
+        `excluded cause`                            IS FALSE
+        `insured by another insurer`                IS FALSE
+        `died of it within 12 months`               IS FALSE
+        `disability percent`                        IS 30
+        `weeks unfit for work`                      IS 0
+        `national-insurance payments stopped at 26 weeks` IS FALSE
+        `months unfit within the first 26 weeks`    IS 0
+        `notice reached the insurer within 6 months` IS TRUE
+#ASSERT `trip-accident compensation` `a 30% disability` EQUALS 9000
+
+-- F-1.10-j's evidence: full disability and a year unfit come to more than
+-- the insured sum if the weekly sums count.
+`a full disability with a year unfit` MEANS
+    `trip accident` WITH
+        `covered by the Ministry's instructions`   IS TRUE
+        `on a trip, tour or journey in the course of school work` IS TRUE
+        `between leaving home and coming straight back` IS TRUE
+        `covered by the road-accident or hostile-action laws` IS FALSE
+        `excluded cause`                            IS FALSE
+        `insured by another insurer`                IS FALSE
+        `died of it within 12 months`               IS FALSE
+        `disability percent`                        IS 100
+        `weeks unfit for work`                      IS 52
+        `national-insurance payments stopped at 26 weeks` IS TRUE
+        `months unfit within the first 26 weeks`    IS 6
+        `notice reached the insurer within 6 months` IS TRUE
+`the weekly and monthly sums take the total past the 100% cap` MEANS
+    `trip-accident compensation` `a full disability with a year unfit` GREATER THAN `the sum for death or full disability, in dollars`
+#ASSERT `the weekly and monthly sums take the total past the 100% cap`
+
+#TRACE `payment with the next month's salary` 122.5 AT 0 WITH
+    PARTY `the employer` DOES `pay for the outing` 122.5 AT 1
+#TRACE `notice of the accident` AT 0 WITH
+    PARTY `the insured or his representative` DOES `notify the insurer in writing` AT 5
+    PARTY `the insured or his representative` DOES `send the accident report and doctor's certificate` AT 12

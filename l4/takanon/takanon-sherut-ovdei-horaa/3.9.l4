@@ -1,0 +1,96 @@
+-- תקנון שירות עובדי הוראה, פרק 3, §3.9 מורה לחינוך גופני
+-- The additional clothing allowance of a physical-education teacher: who
+-- gets it, when it is paid, the one-position cap and its yearly update.
+
+IMPORT prelude
+IMPORT common
+
+§ `3.9 מורה לחינוך גופני`
+
+DECLARE `PE clothing action` IS ONE OF
+    `pay the additional clothing allowance` HAS `amount paid` IS A NUMBER
+
+§§ `3.9.4 קצובת ביגוד`
+
+@desc A physical-education teacher's year, as far as section 3.9.4 asks about it.
+DECLARE `PE clothing year` HAS
+    `teaches physical education`        IS A BOOLEAN
+    `meets the criteria of the table`   IS A BOOLEAN @desc the teacher meets the payment criteria of the table section 3.9.4 refers to; an input (see below)
+    `position fraction`                 IS A NUMBER  @desc the share of a full position the teacher holds (1 = one full position)
+    `allowance for one position`        IS A NUMBER  @desc the additional clothing allowance for one full position this year; an input, updated yearly under section 3.9.4(b)
+
+@ref akn:chp_3__sec_3_9__ssec_3_9_4/p1
+GIVEN y IS A `PE clothing year`
+GIVETH A BOOLEAN
+DECIDE `entitled to the additional clothing allowance` y IF
+    y's `teaches physical education` AND y's `meets the criteria of the table`
+
+-- §3.9.4 ¶3 introduces "a table summarising the payment criteria". The
+-- corpus does not carry it: on the source page the words "להלן טבלה" are a
+-- link to a separate PDF (table_13.pdf) that the corpus did not ingest. A
+-- loss in the corpus, not a flaw of the text, so it is no finding here; the
+-- criteria are an input (`meets the criteria of the table`) until the corpus
+-- holds the table.
+@ref akn:chp_3__sec_3_9__ssec_3_9_4/p3
+GIVEN y IS A `PE clothing year`
+GIVETH A BOOLEAN
+DECIDE `the table's criteria are met` y IF
+    y's `meets the criteria of the table`
+
+-- akn:chp_3__sec_3_9__ssec_3_9_4/p4 A heading ("הערות", notes) over the two notes below.
+
+-- Note (a): paid for one position at most. How a part-time position is paid
+-- is the table's matter; the cap is this note's.
+@ref akn:chp_3__sec_3_9__ssec_3_9_4/p5
+GIVEN y IS A `PE clothing year`
+GIVETH A NUMBER
+DECIDE `additional clothing allowance` y IS
+    IF `entitled to the additional clothing allowance` y
+    THEN y's `allowance for one position` TIMES min (y's `position fraction`) 1
+    ELSE 0
+
+-- Note (b): updated once a year by the same rate as the clothing allowance
+-- paid to all state employees and teachers; the rate is published by the
+-- owners' circulars ("חוזרים לבעלויות"), so it is an input.
+@ref akn:chp_3__sec_3_9__ssec_3_9_4/p6
+GIVEN `last year's allowance` IS A NUMBER, `the general clothing allowance's update rate` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `this year's allowance for one position` `last year's allowance` `the general clothing allowance's update rate` IS
+    `last year's allowance` TIMES (1 PLUS `the general clothing allowance's update rate`)
+
+-- §3.9.4.2: paid once a year with the regular clothing allowance, in June.
+-- Time in school months (September = 1): June is the tenth.
+@ref akn:chp_3__sec_3_9__ssec_3_9_4/p2
+GIVEN y IS A `PE clothing year`
+GIVETH A DEONTIC Party `PE clothing action`
+DECIDE `payment of the additional clothing allowance in June` y IS
+    IF `entitled to the additional clothing allowance` y
+    THEN PARTY `the employer`
+         MUST  `pay the additional clothing allowance` a
+               PROVIDED a AT LEAST `additional clothing allowance` y
+         WITHIN `month number` June
+         LEST BREACH BY `the employer` BECAUSE "section 3.9.4.2: the additional clothing allowance is paid with the regular one, in June"
+    ELSE FULFILLED
+
+-- akn:chp_3__sec_3_9__ssec_3_9_4/p7 Heading of the source list (אסמכתא).
+-- akn:chp_3__sec_3_9__ssec_3_9_4/p8 Source (אסמכתא): Director-General's circulars.
+-- akn:chp_3__sec_3_9__ssec_3_9_4/p9 Source (אסמכתא): a deputy director-general's circular of 25.8.80.
+-- akn:chp_3__sec_3_9__ssec_3_9_4/p10 Source (אסמכתא): a Director-General's circular.
+-- akn:chp_3__sec_3_9__ssec_3_9_4/p11 Source (אסמכתא): the collective agreement of 15.5.89.
+-- akn:chp_3__sec_3_9__ssec_3_9_4/p12 Source (אסמכתא): a Director-General's circular.
+-- akn:chp_3__sec_3_9__ssec_3_9_4/p13 Source (אסמכתא): a circular of the conditions-of-service department.
+
+-- Examples. 1000 is a placeholder for the yearly amount, which the text
+-- leaves to the update rule; nothing here is from a payslip.
+`a PE teacher on one and a half positions` MEANS
+    `PE clothing year` WITH
+        `teaches physical education`      IS TRUE
+        `meets the criteria of the table` IS TRUE
+        `position fraction`               IS 1.5
+        `allowance for one position`      IS 1000
+
+#ASSERT `additional clothing allowance` `a PE teacher on one and a half positions` EQUALS 1000
+#ASSERT `this year's allowance for one position` 1000 0.05 EQUALS 1050
+
+#TRACE `payment of the additional clothing allowance in June` `a PE teacher on one and a half positions` AT 0 WITH
+    PARTY `the employer` DOES `pay the additional clothing allowance` 1000 AT 10

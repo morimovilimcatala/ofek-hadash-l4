@@ -1,0 +1,95 @@
+-- תקנון שירות עובדי הוראה, פרק 1ב, §1.32 סיוע בהגנה משפטית
+-- Legal defence for a teaching employee charged with a criminal offence:
+-- the group insurance with "Inbal", the lawyer it provides, and the
+-- employee's right to turn to the Ministry's legal adviser.
+
+IMPORT prelude
+IMPORT common
+
+§ `1.32 סיוע בהגנה משפטית`
+
+@desc The actors of section 1.32 that the shared Party list lacks: the insurer and the Ministry's legal adviser.
+DECLARE `1.32 party` IS ONE OF
+    `the insurer Inbal`
+    `the Ministry's legal adviser`
+
+@desc A criminal proceeding brought against a teaching employee, as far as section 1.32 asks about it.
+DECLARE `criminal charge` HAS
+    `negligence is an element of the offence`         IS A BOOLEAN @desc one of the elements of the offence charged is an act of negligence
+    `act or omission in the course of the duties`     IS A BOOLEAN @desc the act or omission was done while performing the employee's duties and for the sake of performing them
+    `done inside the institution`                     IS A BOOLEAN @desc the act was done within the institution's walls (the section covers both inside and outside)
+
+DECLARE `legal defence action` IS ONE OF
+    `provide a lawyer` HAS `lawyer is on the insurer's list` IS A BOOLEAN
+    `apply to the Ministry's legal adviser`
+
+§§ `1.32.1`
+
+-- Every teaching employee is insured, whatever else is true of the charge.
+@ref akn:chp_1ב__sec_1_32__hc_2__para_1
+GIVEN c IS A `criminal charge`
+GIVETH A BOOLEAN
+DECIDE `insured against the criminal claim` c IF
+    TRUE
+
+§§ `1.32.2`
+
+@ref akn:chp_1ב__sec_1_32__hc_2__para_2
+GIVEN c IS A `criminal charge`
+GIVETH A BOOLEAN
+DECIDE `the insurer must provide a defence lawyer` c IF
+        c's `negligence is an element of the offence`
+    AND c's `act or omission in the course of the duties`
+    -- "בין כותלי המוסד ומחוצה לו": where the act was done is no condition.
+
+-- The section sets no time for providing the lawyer.
+GIVEN c IS A `criminal charge`
+GIVETH A DEONTIC `1.32 party` `legal defence action`
+DECIDE `the insurer's duty of defence` c IS
+    IF `the insurer must provide a defence lawyer` c
+    THEN PARTY `the insurer Inbal`
+         MUST  `provide a lawyer` `on the list`
+               PROVIDED `on the list`
+         LEST  BREACH BY `the insurer Inbal` BECAUSE "section 1.32.2: Inbal provides a lawyer from its list to defend the charged employee"
+    ELSE FULFILLED
+
+§§ `1.32.3`
+
+-- F-1.32-a: "as aforesaid" is read with section 1.32.2's narrower case
+-- (negligence, in the course of the duties).
+@ref akn:chp_1ב__sec_1_32__hc_2__para_3
+GIVEN c IS A `criminal charge`
+GIVETH A DEONTIC Party `legal defence action`
+DECIDE `turning to the legal adviser` c IS
+    IF `the insurer must provide a defence lawyer` c
+    THEN PARTY `the teaching employee`
+         MAY   `apply to the Ministry's legal adviser`
+    ELSE FULFILLED
+
+-- akn:chp_1ב__sec_1_32__hc_3/p1 The section's source (אסמכתא): a director-general's circular.
+
+-- F-1.32-a: section 1.32.1 insures every teaching employee against criminal
+-- claims; section 1.32.2 gives a lawyer only where negligence is an element.
+-- A charge of an offence of intent is insured under the first and gets no
+-- defence under the second.
+`a charge of an intentional offence in the course of the duties` MEANS
+    `criminal charge` WITH
+        `negligence is an element of the offence`     IS FALSE
+        `act or omission in the course of the duties` IS TRUE
+        `done inside the institution`                 IS TRUE
+
+`section 1.32.1 insures what section 1.32.2 does not defend` MEANS
+        `insured against the criminal claim` `a charge of an intentional offence in the course of the duties`
+    AND NOT `the insurer must provide a defence lawyer` `a charge of an intentional offence in the course of the duties`
+#ASSERT `section 1.32.1 insures what section 1.32.2 does not defend`
+
+`a negligence charge outside the institution` MEANS
+    `criminal charge` WITH
+        `negligence is an element of the offence`     IS TRUE
+        `act or omission in the course of the duties` IS TRUE
+        `done inside the institution`                 IS FALSE
+
+#ASSERT `the insurer must provide a defence lawyer` `a negligence charge outside the institution`
+
+#TRACE `the insurer's duty of defence` `a negligence charge outside the institution` AT 0 WITH
+    PARTY `the insurer Inbal` DOES `provide a lawyer` TRUE AT 1

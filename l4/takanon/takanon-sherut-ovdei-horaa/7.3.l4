@@ -1,0 +1,255 @@
+-- תקנון שירות עובדי הוראה, פרק 7, §7.3 סגן מנהל
+-- The deputy principal: the work unit and its teaching and management
+-- hours, the reform's protection of management hours, how many deputies a
+-- school's classes justify, and what the corpus keeps of the selection rules.
+-- The corpus text of §7.3 stops after §7.3.2(2)'s heading: of the selection
+-- procedure only some numbered lines survive, and §§7.3.3–7.3.10 are
+-- headings without text. Only what the corpus publishes is encoded.
+
+IMPORT prelude
+IMPORT common
+
+§ `7.3 סגן מנהל`
+
+@desc The kinds of institution section 7.3 distinguishes.
+DECLARE `kind of institution` IS ONE OF
+    `primary school`
+    `post-primary school including a middle school`
+    `independent middle school`
+    `special education school`
+    `teacher training institution`
+
+@desc A deputy principal's post, as far as section 7.3.1 asks.
+DECLARE `deputy post` HAS
+    `institution`                       IS A `kind of institution`
+    `teacher's work unit in the institution` IS A NUMBER @desc the weekly hours of a teacher's work unit in that kind of institution, set elsewhere in the takanon
+    `teaching hours`                    IS A NUMBER
+    `management hours`                  IS A NUMBER
+
+@desc A principal or deputy of a primary school whose grades 7–8 moved to a middle school in the reform.
+DECLARE `reform-affected manager` HAS
+    `classes lost to the middle school` IS A BOOLEAN @desc the school's classes were reduced by moving grades 7–8 to the middle school in the reform
+    `age on the day of the reform`      IS A NUMBER
+    `management hours before`           IS A NUMBER
+    `teaching hours before`             IS A NUMBER
+    `management hours the reduced school gives` IS A NUMBER @desc the management hours the school's reduced number of classes would give
+
+@desc Who acts in what survives of section 7.3.2(2)–(3).
+DECLARE `7.3 party` IS ONE OF
+    `the selection committee`
+    `the district manager`
+    `a candidate`
+    `the appointing body`
+
+DECLARE `7.3 action` IS ONE OF
+    `submit recommendations to the district manager`
+    `appoint a selection committee`
+    `apply for the post` HAS `meets the requirements` IS A BOOLEAN
+    `give a reasoned written notice of not being invited to interview`
+
+§§ `7.3.1 יחידת עבודה`
+
+-- akn:chp_7__sec_7_3/p2 The heading of §7.3.1 (work unit).
+-- akn:chp_7__sec_7_3/p3 An amendment note: the section was updated on 30.1.03.
+
+-- §7.3.1(1): a deputy teaches at least 12 hours in grades 1–14, or 10 in an
+-- independent middle school, or 4 in a teacher training institution. An
+-- independent middle school's grades are within 1–14; its own figure (10)
+-- is read as the rule for it.
+@ref akn:chp_7__sec_7_3/p4
+GIVEN k IS A `kind of institution`
+GIVETH A NUMBER
+DECIDE `minimum teaching hours of a deputy` k IS
+    CONSIDER k
+    WHEN `independent middle school`    THEN 10
+    WHEN `teacher training institution` THEN 4
+    OTHERWISE 12
+
+@ref akn:chp_7__sec_7_3/p4
+GIVEN d IS A `deputy post`
+GIVETH A BOOLEAN
+DECIDE `the deputy's work unit is made up as required` d IF
+        d's `teaching hours` PLUS d's `management hours` EQUALS d's `teacher's work unit in the institution`
+    AND d's `teaching hours` AT LEAST `minimum teaching hours of a deputy` (d's `institution`)
+
+@ref akn:chp_7__sec_7_3/p5
+GIVEN d IS A `deputy post`
+GIVETH A NUMBER
+DECIDE `maximum management hours` d IS
+    d's `teacher's work unit in the institution` MINUS `minimum teaching hours of a deputy` (d's `institution`)
+
+-- akn:chp_7__sec_7_3/p6 The heading of §7.3.1(2) (management hours); its paragraphs are encoded below.
+
+-- (2)א: management hours lost with the classes become teaching hours, hour
+-- for hour; (2)ב: not for one aged 50 or more on the day of the reform.
+@ref akn:chp_7__sec_7_3/p7 akn:chp_7__sec_7_3/p8 akn:chp_7__sec_7_3/p9
+GIVEN m IS A `reform-affected manager`
+GIVETH A NUMBER
+DECIDE `management hours after the reform` m IS
+    IF m's `classes lost to the middle school` AND m's `age on the day of the reform` LESS THAN 50
+    THEN min (m's `management hours before`) (m's `management hours the reduced school gives`)
+    ELSE m's `management hours before`
+
+@ref akn:chp_7__sec_7_3/p7 akn:chp_7__sec_7_3/p8 akn:chp_7__sec_7_3/p9
+GIVEN m IS A `reform-affected manager`
+GIVETH A NUMBER
+DECIDE `teaching hours after the reform` m IS
+    m's `teaching hours before` PLUS (m's `management hours before` MINUS `management hours after the reform` m)
+
+@ref akn:chp_7__sec_7_3/p8
+GIVETH A BOOLEAN
+DECIDE `turning management hours into teaching hours is a worsening of conditions` IF FALSE
+
+-- (2)ג, in force from 1.9.92: one aged 50 or more keeps a position base of
+-- 24, in teaching and in management hours as before the move.
+@ref akn:chp_7__sec_7_3/p10 akn:chp_7__sec_7_3/p11
+GIVEN m IS A `reform-affected manager`
+GIVETH A NUMBER
+DECIDE `position base kept` m IS
+    IF m's `classes lost to the middle school` AND m's `age on the day of the reform` AT LEAST 50
+    THEN 24
+    ELSE m's `management hours before` PLUS m's `teaching hours before`
+
+-- akn:chp_7__sec_7_3/p12 akn:chp_7__sec_7_3/p13 akn:chp_7__sec_7_3/p14 The sources (אסמכתא) of section 7.3.1.
+
+§§ `7.3.2 מינוי`
+
+-- akn:chp_7__sec_7_3/p15 The heading of §7.3.2 (appointment).
+-- akn:chp_7__sec_7_3/p16 The heading of §7.3.2(1) (the number of classes that justifies a deputy); its table is encoded below.
+
+-- §7.3.2(1)'s table as printed: the classes at which a first, second and
+-- third deputy may be appointed, "and so on" (וכן הלאה) beyond the third.
+-- A special education school is under (ג) whatever its level.
+@desc One row of section 7.3.2(1): the numbers of classes from which a first, second and third deputy may be appointed.
+DECLARE `deputy thresholds` HAS
+    `classes for a first deputy`  IS A NUMBER
+    `classes for a second deputy` IS A NUMBER
+    `classes for a third deputy`  IS A NUMBER
+
+@ref akn:chp_7__sec_7_3/p17 akn:chp_7__sec_7_3/p18 akn:chp_7__sec_7_3/p19 akn:chp_7__sec_7_3/p20 akn:chp_7__sec_7_3/p22 akn:chp_7__sec_7_3/p23 akn:chp_7__sec_7_3/p24 akn:chp_7__sec_7_3/p25 akn:chp_7__sec_7_3/p26 akn:chp_7__sec_7_3/p27 akn:chp_7__sec_7_3/p28 akn:chp_7__sec_7_3/p29 akn:chp_7__sec_7_3/p30 akn:chp_7__sec_7_3/p31 akn:chp_7__sec_7_3/p32 akn:chp_7__sec_7_3/p33
+GIVEN k IS A `kind of institution`
+GIVETH A `deputy thresholds`
+DECIDE `thresholds for` k IS
+    CONSIDER k
+    WHEN `primary school`               THEN `deputy thresholds` 12 21 30
+    WHEN `teacher training institution` THEN `deputy thresholds` 7 14 21
+    OTHERWISE                                `deputy thresholds` 10 19 28
+
+-- The deputies the printed rows give: none, first, second or third.
+GIVEN k IS A `kind of institution`, `classes` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `deputies the printed rows allow` k `classes` IS
+    BRANCH IF `classes` AT LEAST (`thresholds for` k)'s `classes for a third deputy`  THEN 3
+           IF `classes` AT LEAST (`thresholds for` k)'s `classes for a second deputy` THEN 2
+           IF `classes` AT LEAST (`thresholds for` k)'s `classes for a first deputy`  THEN 1
+           OTHERWISE 0
+
+-- F-7.3-a: beyond the third deputy the table says only "וכן הלאה". The
+-- printed rows give no number of classes for a fourth deputy: a primary
+-- school of 39 or of 60 classes is given the same three.
+`the table gives no fourth deputy's threshold` MEANS
+        `deputies the printed rows allow` `primary school` 39 EQUALS 3
+    AND `deputies the printed rows allow` `primary school` 60 EQUALS 3
+#ASSERT `the table gives no fourth deputy's threshold`
+
+-- The reading adopted (F-7.3-a): "and so on" continues each row's own step
+-- (9 classes for primary, post-primary and special education schools; 7 for
+-- teacher training), so each further step justifies one more deputy.
+GIVEN k IS A `kind of institution`, `classes` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `deputies the institution may have` k `classes` IS
+    IF `classes` LESS THAN (`thresholds for` k)'s `classes for a first deputy`
+    THEN 0
+    ELSE 1 PLUS TRUNC ((`classes` MINUS (`thresholds for` k)'s `classes for a first deputy`)
+                       DIVIDED BY ((`thresholds for` k)'s `classes for a second deputy` MINUS (`thresholds for` k)'s `classes for a first deputy`)) 0
+
+-- The note to (1)א: a primary school's young-division classes are taken
+-- off its classes for appointing deputies and for their reward.
+@ref akn:chp_7__sec_7_3/p21
+GIVEN `all classes` IS A NUMBER, `young division classes` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `classes counted for deputies` `all classes` `young division classes` IS
+    `all classes` MINUS `young division classes`
+
+-- akn:chp_7__sec_7_3/p34 The heading of §7.3.2(2) (threshold qualifications for a deputy and for a Pais cluster manager); the qualifications it introduces are not in the corpus text.
+
+-- What survives of the selection procedure (the numbered lines the corpus
+-- keeps as headings). The committee of 2.2.2 is the internal selection
+-- committee of the paragraph before it, which the corpus does not keep.
+-- Time in days from 1 March: the end of March's third week is day 21.
+@ref akn:chp_7__sec_7_3__ssec_2_2_2
+GIVETH A DEONTIC `7.3 party` `7.3 action`
+DECIDE `the internal committee's recommendations` IS
+    PARTY `the selection committee`
+    MUST  `submit recommendations to the district manager`
+    WITHIN 21
+    LEST  BREACH BY `the selection committee` BECAUSE "section 7.3.2, 2.2.2: recommendations by the third week of March"
+
+@ref akn:chp_7__sec_7_3__ssec_2_3_2
+GIVETH A DEONTIC `7.3 party` `7.3 action`
+DECIDE `the external selection committee` IS
+    PARTY `the district manager`
+    MUST  `appoint a selection committee`
+
+@ref akn:chp_7__sec_7_3__ssec_3_1
+GIVEN `selected and appointed as for deputies in official schools` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `the selection followed the procedure` `selected and appointed as for deputies in official schools` IF
+    `selected and appointed as for deputies in official schools`
+
+@ref akn:chp_7__sec_7_3__ssec_3_3
+GIVETH A DEONTIC `7.3 party` `7.3 action`
+DECIDE `applying for the post` IS
+    PARTY `a candidate`
+    MAY   `apply for the post` meets PROVIDED meets
+
+@ref akn:chp_7__sec_7_3__ssec_3_5
+GIVEN `invited to interview` IS A BOOLEAN
+GIVETH A DEONTIC `7.3 party` `7.3 action`
+DECIDE `notice to a candidate not interviewed` `invited to interview` IS
+    IF `invited to interview`
+    THEN FULFILLED
+    ELSE PARTY `the appointing body`
+         MUST  `give a reasoned written notice of not being invited to interview`
+
+-- Examples (placeholder posts).
+`a deputy in a primary school` MEANS
+    `deputy post` WITH
+        `institution`                            IS `primary school`
+        `teacher's work unit in the institution` IS 30
+        `teaching hours`                         IS 12
+        `management hours`                       IS 18
+
+`a manager aged 52 at the reform` MEANS
+    `reform-affected manager` WITH
+        `classes lost to the middle school`         IS TRUE
+        `age on the day of the reform`              IS 52
+        `management hours before`                   IS 10
+        `teaching hours before`                     IS 14
+        `management hours the reduced school gives` IS 6
+
+`a manager aged 40 at the reform` MEANS
+    `reform-affected manager` WITH
+        `classes lost to the middle school`         IS TRUE
+        `age on the day of the reform`              IS 40
+        `management hours before`                   IS 10
+        `teaching hours before`                     IS 14
+        `management hours the reduced school gives` IS 6
+
+#ASSERT `the deputy's work unit is made up as required` `a deputy in a primary school`
+#ASSERT `maximum management hours` `a deputy in a primary school` EQUALS 18
+#ASSERT `management hours after the reform` `a manager aged 40 at the reform` EQUALS 6
+#ASSERT `teaching hours after the reform` `a manager aged 40 at the reform` EQUALS 18
+#ASSERT `management hours after the reform` `a manager aged 52 at the reform` EQUALS 10
+#ASSERT `deputies the printed rows allow` `post-primary school including a middle school` 19 EQUALS 2
+
+-- The adopted reading agrees with every printed row.
+#ASSERT all (GIVEN n YIELD `deputies the institution may have` `primary school` n EQUALS `deputies the printed rows allow` `primary school` n)
+            (range 0 38)
+#ASSERT all (GIVEN n YIELD `deputies the institution may have` `teacher training institution` n EQUALS `deputies the printed rows allow` `teacher training institution` n)
+            (range 0 27)
+#ASSERT `deputies the institution may have` `primary school` 39 EQUALS 4
+#ASSERT `classes counted for deputies` 24 4 EQUALS 20
+
+#TRACE `the internal committee's recommendations` AT 0 WITH
+    PARTY `the selection committee` DOES `submit recommendations to the district manager` AT 18
