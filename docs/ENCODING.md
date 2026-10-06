@@ -82,7 +82,10 @@ reader can see past, a dated amount.
 
 - `ok` from `l4 run` ignores a FALSE `#ASSERT`; `tools/check.py` and
   `tools/l4run.py` gate on both.
-- `NOT` binds loosest: `NOT a AND b` is `NOT (a AND b)`. Write `(NOT a)`.
+- `NOT` binds loosest: `NOT a AND b` is `NOT (a AND b)`, and `(NOT a OR b)`
+  is `NOT (a OR b)` — not the implication it reads as. Write `(NOT a)`.
+  `tools/layout_lint.py` (and the suite) flags a NOT followed on its own
+  line by AND/OR at the same bracket depth, whichever was meant.
 - `a DIVIDED BY b TIMES c` is `a / (b × c)`. Parenthesise.
 - A mixfix call (``d `is on or after` e``) binds looser than `OR`.
 - No record update (`x WITH f IS v`); a multi-line `WITH` inside `#ASSERT`

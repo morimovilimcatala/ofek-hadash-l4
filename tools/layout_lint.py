@@ -11,6 +11,16 @@ operators bind tighter than its leading one (`PLUS a DIVIDED BY b`). A
 chain of PLUS or TIMES computes the same either way, but `l4 render`
 shows the regrouped rest as one item, so it is flagged too.
 
+NOT binds loosest of all, and on one line it takes everything after it:
+
+    c AND NOT a OR b                is c AND NOT (a OR b)
+    NOT new AND approved            is NOT (new AND approved)
+
+so a NOT followed on its own line by AND or OR at the same bracket depth
+reads one way and computes another. It is flagged ('not') whichever was
+meant: write `(NOT a) AND b` or `NOT (a AND b)`. One operand per line —
+`c` / `AND NOT a` / `OR b` — is unambiguous and not flagged.
+
     python3 tools/layout_lint.py [--fix]     # --fix splits same-operator chains
 """
 from __future__ import annotations
@@ -54,6 +64,38 @@ def scan(path: Path):
         yield n, ("render" if same_assoc else "wrong"), line.strip()
 
 
+BOOL = re.compile(r"(?<![`\w])(NOT|AND|OR|THEN|ELSE|IF|IS|MEANS|PROVIDED)(?![`\w])|[()]")
+
+
+def scan_not(path: Path):
+    """(line, 'not', text): a NOT whose operand runs on into AND/OR."""
+    for n, line in enumerate(path.read_text(encoding="utf-8").split("\n"), 1):
+        stripped = line.strip()
+        if stripped.startswith(("--", "@", "§")):
+            continue
+        code = re.sub(r"`[^`]*`|\"[^\"]*\"", lambda m: "x" * len(m.group()), line).split("--")[0]
+        toks = [m.group(0) for m in BOOL.finditer(code)]
+        hit = False
+        for i, t in enumerate(toks):
+            if t != "NOT" or hit:
+                continue
+            depth = 0
+            for u in toks[i + 1:]:
+                if u == "(":
+                    depth += 1
+                elif u == ")":
+                    depth -= 1
+                    if depth < 0:
+                        break
+                elif depth == 0 and u in ("THEN", "ELSE", "IF", "IS", "MEANS", "PROVIDED"):
+                    break
+                elif depth == 0 and u in ("AND", "OR"):
+                    hit = True
+                    break
+        if hit:
+            yield n, "not", stripped
+
+
 def fix(path: Path) -> int:
     lines = path.read_text(encoding="utf-8").split("\n")
     changed = 0
@@ -88,7 +130,7 @@ def main(argv: list[str]) -> int:
         print(sum(fix(f) for f in files), "line(s) split")
     bad = 0
     for f in files:
-        for n, kind, text in scan(f):
+        for n, kind, text in [*scan(f), *scan_not(f)]:
             print(f"{kind:6} {f.relative_to(ROOT)}:{n}: {text}")
             bad += 1
     return 1 if bad else 0
