@@ -49,6 +49,24 @@ class Segment:
         return " ".join(text.split())
 
 
+def lead_notes(lines: list[str]) -> list[str]:
+    """The reasons of the `-- akn:` notes a segment carries above its code."""
+    out, cur = [], None
+    for line in lines:
+        if NOTE_LINE.match(line):
+            if cur is not None:
+                out.append(cur)
+            cur = KEY.sub("", re.sub(r"^\s*--\s*", "", line)).strip()
+        elif cur is not None and line.strip().startswith("--"):
+            cur += " " + re.sub(r"^\s*--\s*", "", line).strip()
+        elif cur is not None:
+            out.append(cur)
+            cur = None
+    if cur is not None:
+        out.append(cur)
+    return [" ".join(n.split()) for n in out]
+
+
 @dataclass
 class Source:
     path: Path
@@ -153,8 +171,47 @@ def highlight(line: str) -> str:
 
 
 def code_html(lines: list[str], first: int) -> str:
+    return numbered_html(list(enumerate(lines, first)))
+
+
+def numbered_html(numbered: list[tuple[int, str]]) -> str:
+    """One element per line, so a long line wraps under itself (keeping its
+    indent) instead of running off the panel."""
     rows = []
+    prev = None
+    for n, line in numbered:
+        if prev is not None and n != prev + 1:
+            rows.append('<span class="line skip"><span class="ln"></span><span class="lc">⋯</span></span>')
+        indent = len(line) - len(line.lstrip(" "))
+        rows.append(f'<span class="line" style="--i:{indent}"><span class="ln" data-n="{n}"></span>'
+                    f'<span class="lc">{highlight(line) or " "}</span></span>')
+        prev = n
+    return '<pre class="code" dir="ltr"><code>' + "".join(rows) + "</code></pre>"
+
+
+def for_reading(lines: list[str], first: int) -> list[tuple[int, str]]:
+    """A segment as the comparison shows it: without the lines that only
+    serve the alignment (`@ref akn:…`, `§` headings) and without blank runs.
+    The full source is a link away; nothing here changes a rule."""
+    out: list[tuple[int, str]] = []
+    in_note = False
     for n, line in enumerate(lines, first):
-        rows.append(f'<span class="ln" data-n="{n}" id="L{n}"></span>'
-                    f'<span class="lc">{highlight(line) or " "}</span>')
-    return '<pre class="code" dir="ltr"><code>' + "\n".join(rows) + "</code></pre>"
+        t = line.strip()
+        # a "-- akn:<key> <reason>" note and its continuation lines are shown
+        # as the note's label, not as code
+        if NOTE_LINE.match(line):
+            in_note = True
+            continue
+        if in_note and t.startswith("--"):
+            continue
+        in_note = False
+        if REF_LINE.match(line) and KEY.search(line) and not KEY.sub("", REF_LINE.match(line).group(1)).strip():
+            continue
+        if t.startswith("§"):
+            continue
+        if not t and (not out or not out[-1][1].strip()):
+            continue
+        out.append((n, line))
+    while out and not out[-1][1].strip():
+        out.pop()
+    return out

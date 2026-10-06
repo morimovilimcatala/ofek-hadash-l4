@@ -309,9 +309,10 @@ def rel(target: str, here: str) -> str:
     return "../" * here.count("/") + target
 
 
-def page(here: str, title: str, body: str, *, tab: str = "", desc: str = "") -> str:
+def page(here: str, title: str, body: str, *, tab: str = "", desc: str = "",
+         wide: bool = False) -> str:
     nav = [("index.html", "Documents", "docs"),
-           ("findings.html", "L4 findings", "findings"),
+           ("findings.html", "Findings", "findings"),
            ("coverage.html", "Coverage", "coverage"),
            ("diagnostics.html", "Diagnostics", "diagnostics"),
            ("about.html", "About", "about")]
@@ -325,41 +326,52 @@ def page(here: str, title: str, body: str, *, tab: str = "", desc: str = "") -> 
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{esc(title)}</title>
 <meta name="description" content="{esc(desc or title)}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="{rel('assets/site.css', here)}">
 <link rel="stylesheet" href="{rel('assets/l4-render.css', here)}">
 <script defer src="{rel('assets/site.js', here)}"></script>
 </head>
 <body>
 <header class="top">
-  <a class="brand" href="{rel('index.html', here)}">Ofek Hadash · L4</a>
-  <nav class="tabs-top">{links}</nav>
+  <div class="top-in">
+    <a class="brand" href="{rel('index.html', here)}"><span class="mark">L4</span><span>Ofek Hadash</span></a>
+    <nav class="tabs-top">{links}</nav>
+  </div>
 </header>
-<main>
+<main class="{'wide' if wide else ''}">
 {body}
 </main>
 <footer class="foot">
-  Text: the <a href="{CORPUS_SITE}/">Ofek Hadash corpus</a>, as published. Code:
-  <a href="{REPO}">{esc(REPO.split('github.com/')[1])}</a>. The encoding is a reading of
-  the text and does not replace it.
+  <div>Text: the <a href="{CORPUS_SITE}/">Ofek Hadash corpus</a>, as published. Code:
+  <a href="{REPO}">{esc(REPO.split('github.com/')[1])}</a>.</div>
+  <div>The encoding is a reading of the text; it does not replace it.</div>
 </footer>
 </body>
 </html>
 """
 
 
-def chip(status: str) -> str:
-    label = {"done": "encoded", "partial": "partly encoded", "todo": "not yet encoded"}[status]
-    return f'<span class="chip {status}">{label}</span>'
+STATUS = {"done": "encoded", "partial": "partly encoded", "todo": "not encoded yet"}
+
+
+def dot(status: str) -> str:
+    return f'<span class="dot {status}" title="{STATUS[status]}" aria-label="{STATUS[status]}"></span>'
+
+
+def badge(status: str) -> str:
+    return f'<span class="badge {status}">{STATUS[status]}</span>'
 
 
 def text_cell(r: akn.Row) -> str:
-    head = f' <span class="h">{esc(r.heading)}</span>' if r.heading else ""
-    label = f'<span class="num">{esc(r.num)}</span>{head}' if (r.num or r.heading) else ""
+    num = f'<span class="num">{esc(r.num)}</span>' if r.num else ""
+    head = f'<span class="h">{esc(r.heading)}</span>' if r.heading else ""
     if r.kind == "label":
-        return label
+        return num + head
     # a corpus sic mark is the corpus's: its correction is taken as given and
     # the text is shown plain (the client, 2026-10-06: no כך במקור on this site)
-    return label + (" " if label else "") + "".join(esc(run.text) for run in r.runs)
+    return num + head + f'<span class="t">{"".join(esc(run.text) for run in r.runs)}</span>'
 
 
 def results_html(seg: l4src.Segment) -> str:
@@ -370,15 +382,16 @@ def results_html(seg: l4src.Segment) -> str:
         kind = str(res.get("kind", ""))
         val = res.get("value")
         sval = val if isinstance(val, str) else json.dumps(val, ensure_ascii=False)
-        label = {"assertion": "#ASSERT", "value": "#EVAL"}.get(kind, kind)
+        label = {"assertion": "assert", "value": "eval"}.get(kind, kind)
         if kind == "value" and "\n" in str(sval):
-            label = "#TRACE"
+            label = "trace"
         bad = kind == "assertion" and str(sval).strip().lower() != "true"
-        items.append(f'<li class="res{" bad" if bad else ""}"><span class="rk">{esc(label)}</span> '
-                     f'<span class="rl">line {line_of(res.get("range"))}</span> '
-                     f'<code>{esc(str(sval))[:600]}</code></li>')
+        shown = "holds" if kind == "assertion" and not bad else str(sval)
+        items.append(f'<li class="res {label}{" bad" if bad else ""}"><span class="rk">{esc(label)}</span>'
+                     f'<span class="rl">L{line_of(res.get("range"))}</span>'
+                     f'<code>{esc(shown)[:600]}</code></li>')
     for d in seg.diagnostics:
-        items.append(f'<li class="res bad"><span class="rk">{esc(d.get("severity", ""))}</span> '
+        items.append(f'<li class="res bad"><span class="rk">{esc(d.get("severity", ""))}</span>'
                      f'<code>{esc(d.get("message", ""))[:600]}</code></li>')
     return '<ul class="results">' + "".join(items) + "</ul>"
 
@@ -386,53 +399,90 @@ def results_html(seg: l4src.Segment) -> str:
 def segment_html(v: SectionView, s: l4src.Segment, rendered: dict[int, str]) -> str:
     gh = f"{REPO}/blob/main/{v.l4.relative_to(ROOT)}#L{s.start}-L{s.end}"
     if s.note_only:
-        return (f'<div class="seg note"><span class="note-label">No rule here:</span> '
-                f'{esc(s.note)} <a class="gh" href="{gh}">L{s.start}</a></div>')
-    others = "".join(f'<a class="also" href="#{esc(k)}">also {esc(k.split("__")[-1])}</a>'
+        return (f'<div class="seg note"><span class="note-label">no rule</span>'
+                f'<span class="note-text">{esc(s.note)}</span></div>')
+    others = "".join(f'<a class="also" href="#{esc(k)}">also covers <bdi dir="ltr">{esc(citations(v.section).get(k, k))}</bdi></a>'
                      for k in s.keys[1:])
     r = rendered.get(s.start)
     rend = (f'<div class="view rendered l4-doc" hidden>{r}</div>' if r else
-            '<div class="view rendered empty" hidden>l4 render shows nothing of its own '
-            'for this segment (a type, a test, or part of a rule rendered elsewhere).</div>')
-    return (f'<div class="seg">'
-            f'<div class="seg-bar"><a class="gh" href="{gh}">lines {s.start}–{s.end}</a>{others}</div>'
-            f'<div class="view code-view">{l4src.code_html(s.lines, s.start)}</div>'
-            f'{rend}{results_html(s)}</div>')
+            '<div class="view rendered empty" hidden>No rendering of its own: this is a type, '
+            'a test, or part of a rule rendered beside another paragraph.</div>')
+    notes = "".join(f'<div class="seg note"><span class="note-label">no rule</span>'
+                    f'<span class="note-text">{esc(n)}</span></div>' for n in l4src.lead_notes(s.lines))
+    return (f'{notes}<div class="seg">'
+            f'<div class="view code-view">{l4src.numbered_html(l4src.for_reading(s.lines, s.start))}</div>'
+            f'{rend}{results_html(s)}'
+            f'<div class="seg-foot">{others}<a class="gh" href="{gh}">source L{s.start}–{s.end}</a></div>'
+            f'</div>')
+
+
+FINDINGS_BY_KEY: dict[str, list[dict]] = {}
 
 
 def section_page(v: SectionView, prev_next) -> str:
     sec = v.section
     here = v.href
     corpus = f"{CORPUS_SITE}/{v.dir}.html#{sec.eid}"
-    head = (f'<nav class="crumbs"><a href="{rel("index.html", here)}">Documents</a> › '
-            f'<a href="index.html">{he(akn.title(v.doc))}</a> › '
-            f'chapter {esc(sec.chapter_num)} {he(sec.chapter_heading)}</nav>'
-            f'<h1><span class="secnum">§{esc(sec.num)}</span> {he(sec.heading)} {chip(v.status)}</h1>'
-            f'<p class="meta"><a href="{corpus}">this section in the corpus</a>')
+    found = []
+    for r in sec.rows:
+        for f in FINDINGS_BY_KEY.get(r.key, []):
+            if f not in found:
+                found.append(f)
+    links = [f'<a href="{corpus}">In the corpus ↗</a>']
     if v.l4:
-        head += (f' · <a href="{REPO}/blob/main/{v.l4.relative_to(ROOT)}">source ({esc(v.l4.name)})</a>'
-                 f' · <a href="{esc(sec.num)}.render.html">the whole section as l4 render shows it</a>')
-    head += "</p>"
+        links += [f'<a href="{REPO}/blob/main/{v.l4.relative_to(ROOT)}">Source ↗</a>',
+                  f'<a href="{esc(sec.num)}.render.html">Whole section as l4 render</a>']
+    stats = ""
+    if v.src is not None:
+        t = tally(v)
+        checks = sum(len(s.results) for s in v.src.segments)
+        stats = (f'<div class="stats">'
+                 f'<span class="{"okay" if v.ok else "notok"}">{"✓ checks clean" if v.ok else "✗ l4 reports errors"}</span>'
+                 f'<span><b>{t["rule"]}</b> paragraphs with a rule</span>'
+                 f'<span><b>{t["note"]}</b> with none</span>'
+                 + (f'<span class="notok"><b>{t["missing"]}</b> not cited</span>' if t["missing"] else "")
+                 + f'<span><b>{checks}</b> checks run</span>'
+                 + (f'<a class="fcount" href="#findings"><b>{len(found)}</b> finding{"s" * (len(found) != 1)}</a>' if found else "")
+                 + '</div>')
+    head = (f'<header class="sec-head">'
+            f'<nav class="crumbs"><a href="{rel("index.html", here)}">Documents</a><span>/</span>'
+            f'<a href="index.html">{he(akn.title(v.doc))}</a><span>/</span>'
+            f'<span>Chapter {esc(sec.chapter_num)} · {he(sec.chapter_heading)}</span></nav>'
+            f'<div class="title-row"><h1 lang="he" dir="rtl"><span class="secnum" dir="ltr">§{esc(sec.num)}</span>'
+            f'{esc(sec.heading)}</h1>{badge(v.status)}</div>'
+            f'<div class="links">{"".join(links)}</div>{stats}</header>')
+    if found:
+        head += ('<section class="sec-findings" id="findings"><h2>Findings in this section</h2><ul>'
+                 + "".join(f'<li><a href="{rel("findings.html", here)}#{esc(f["id"])}"><span class="kind-tag {f["kind"]}">'
+                           f'{esc(KINDS[f["kind"]][0])}</span>{esc(f["title"])}</a></li>' for f in found)
+                 + "</ul></section>")
     pn = '<nav class="prevnext">' + "".join(
-        f'<a class="{cls}" href="{esc(x.section.num)}.html">{lab} §{esc(x.section.num)} {he(x.section.heading)}</a>'
+        f'<a class="{cls}" href="{esc(x.section.num)}.html"><small>{lab}</small>'
+        f'<span>§{esc(x.section.num)} {he(x.section.heading)}</span></a>'
         for x, cls, lab in prev_next if x) + "</nav>"
+
+    def flags(r):
+        fs = FINDINGS_BY_KEY.get(r.key, [])
+        return "".join(f'<a class="flag {f["kind"]}" href="{rel("findings.html", here)}#{esc(f["id"])}" '
+                       f'title="{esc(f["title"])}">{esc(f["id"])}</a>' for f in fs)
 
     if v.src is None:
         rows = "".join(
             f'<div class="row {r.kind} d{min(r.depth, 6)}" id="{esc(r.key)}">'
             f'<div class="txt" lang="he" dir="rtl">{text_cell(r)}</div></div>'
             for r in sec.rows)
-        body = (head + '<p class="banner">This section is not encoded yet. Its text is shown as the corpus has it.</p>'
+        body = (head + '<p class="banner">Not encoded yet — the text below is the corpus\'s.</p>'
                 + f'<div class="grid only-text">{rows}</div>' + pn)
         return page(here, f"§{sec.num} {sec.heading} — {TITLE}", body, tab="docs")
 
     rendered = rendered_for(v)
     pre_lines = v.src.lines[v.src.preamble[0] - 1:v.src.preamble[1] - 1]
+    pre_read = [(n, l) for n, l in l4src.for_reading(pre_lines, v.src.preamble[0])
+                if not (l.lstrip().startswith("--") and n <= 3)]
     preamble = ""
-    if any(l.strip() for l in pre_lines):
-        preamble = (f'<details class="preamble" open><summary>The section\'s vocabulary '
-                    f'(imports, types and inputs)</summary>'
-                    f'{l4src.code_html(pre_lines, v.src.preamble[0])}</details>')
+    if any(l.strip() for _, l in pre_read):
+        preamble = (f'<details class="preamble"><summary>Imports</summary>'
+                    f'{l4src.numbered_html(pre_read)}</details>')
     out = []
     for r in sec.rows:
         segs = v.anchors.get(r.key, [])
@@ -441,27 +491,28 @@ def section_page(v: SectionView, prev_next) -> str:
             cls.append("gap")
         elif r.key in v.covered and not segs:
             cls.append("covered")
+        if segs and all(s.note_only for s in segs):
+            cls.append("noted")
         code = "".join(segment_html(v, s, rendered) for s in segs)
         if "gap" in cls:
-            code = '<div class="seg missing">Not encoded: no rule cites this paragraph.</div>'
+            code = '<div class="seg missing">Not encoded — no rule cites this paragraph.</div>'
         alias = "".join(f'<span id="{esc(a)}"></span>' for a in r.aliases)
+        fl = flags(r)
         out.append(f'<div class="{" ".join(cls)}" id="{esc(r.key)}">'
-                   f'<div class="txt" lang="he" dir="rtl">{alias}{text_cell(r)}</div>'
+                   f'<div class="txt" lang="he" dir="rtl">{alias}{text_cell(r)}'
+                   f'{f"<div class=flags dir=ltr>{fl}</div>" if fl else ""}</div>'
                    f'<div class="l4">{code}</div></div>')
     unplaced = ""
     if v.unplaced:
         unplaced = ('<div class="banner bad">Code cites keys that are not in this section: ' +
                     ", ".join(esc(" ".join(s.keys)) for s in v.unplaced) + "</div>")
-    ok = ('<span class="okay">l4 checks this file and every #ASSERT holds.</span>' if v.ok else
-          f'<span class="notok">l4 reports an error in this file — see '
-          f'<a href="{rel("diagnostics.html", here)}">Diagnostics</a>.</span>')
-    switch = ('<div class="switch" role="group" aria-label="L4 view">'
-              '<button type="button" data-view="code-view" aria-pressed="true">code</button>'
-              '<button type="button" data-view="rendered" aria-pressed="false">l4 render</button></div>')
-    body = (head + f'<p class="status">{ok}</p>' + unplaced +
-            f'<div class="colheads"><div>The text</div><div>L4 {switch}</div></div>' +
+    switch = ('<div class="switch" role="group" aria-label="How to show the L4">'
+              '<button type="button" data-view="code-view" aria-pressed="true">Code</button>'
+              '<button type="button" data-view="rendered" aria-pressed="false">As prose</button></div>')
+    body = (head + unplaced +
+            f'<div class="colheads"><div class="ch-l4">L4 {switch}</div><div class="ch-text">Text</div></div>' +
             preamble + f'<div class="grid">{"".join(out)}</div>' + pn)
-    return page(here, f"§{sec.num} {sec.heading} — {TITLE}", body, tab="docs",
+    return page(here, f"§{sec.num} {sec.heading} — {TITLE}", body, tab="docs", wide=True,
                 desc=f"Section {sec.num} of the teaching staff service regulations, its text beside its L4")
 
 
@@ -470,11 +521,27 @@ def render_page(v: SectionView) -> str:
     m = re.search(r"<body[^>]*>(.*)</body>", v.render, re.S)
     inner = m.group(1) if m else v.render
     here = v.href.replace(".html", ".render.html")
-    body = (f'<nav class="crumbs"><a href="{esc(v.section.num)}.html">← back to the comparison</a></nav>'
-            f'<h1><span class="secnum">§{esc(v.section.num)}</span> {he(v.section.heading)} — '
-            f'as <code>l4 render</code> shows it</h1>'
+    body = (f'<header class="sec-head"><nav class="crumbs"><a href="{esc(v.section.num)}.html">← §{esc(v.section.num)} side by side</a></nav>'
+            f'<div class="title-row"><h1 lang="he" dir="rtl"><span class="secnum" dir="ltr">§{esc(v.section.num)}</span>'
+            f'{esc(v.section.heading)}</h1></div>'
+            f'<p class="lede">The whole section as <code>l4 render</code> writes the rules back out as prose.</p></header>'
             f'<div class="render-frame">{inner or "<p>l4 render produced nothing for this file.</p>"}</div>')
     return page(here, f"§{v.section.num} — l4 render", body, tab="docs")
+
+
+def progress(vs: list[SectionView]) -> str:
+    """A thin bar: encoded / partly / not yet, by paragraphs."""
+    t = {"rule": 0, "note": 0, "missing": 0, "todo": 0}
+    for v in vs:
+        if v.src is None:
+            t["todo"] += len(v.text_rows)
+        else:
+            for k, n in tally(v).items():
+                t[k] += n
+    total = max(sum(t.values()), 1)
+    return ('<span class="pbar">' + "".join(
+        f'<i class="{k}" style="width:{t[k] * 100 / total:.3f}%"></i>' for k in ("rule", "note", "missing") if t[k])
+        + '</span>')
 
 
 def document_page(doc: str, views: list[SectionView]) -> str:
@@ -484,42 +551,60 @@ def document_page(doc: str, views: list[SectionView]) -> str:
         chapters.setdefault(v.section.chapter_eid, []).append(v)
     done = sum(v.status == "done" for v in views)
     part = sum(v.status == "partial" for v in views)
-    parts = [f'<nav class="crumbs"><a href="{rel("index.html", here)}">Documents</a></nav>',
-             f'<h1>{he(akn.title(doc))}</h1>',
-             f'<p class="meta"><a href="{CORPUS_SITE}/{doc.removesuffix(".xml")}.html">this document in the corpus</a> · '
-             f'{len(views)} sections: {done} encoded, {part} partly, {len(views) - done - part} not yet.</p>']
+    parts = [f'<header class="sec-head"><nav class="crumbs"><a href="{rel("index.html", here)}">Documents</a></nav>'
+             f'<div class="title-row"><h1 lang="he" dir="rtl">{esc(akn.title(doc))}</h1></div>'
+             f'<p class="lede">The teaching staff service regulations of the Ministry of Education — '
+             f'{len(views)} sections in {len(chapters)} chapters.</p>'
+             f'<div class="stats"><span><b>{done}</b> of {len(views)} sections encoded</span>'
+             + (f'<span><b>{part}</b> partly</span>' if part else "")
+             + f'<a href="{CORPUS_SITE}/{doc.removesuffix(".xml")}.html">In the corpus ↗</a></div>'
+             f'{progress(views)}</header>']
     for vs in chapters.values():
         s0 = vs[0].section
+        n_done = sum(v.status == "done" for v in vs)
         lis = "".join(
-            f'<li><a href="{esc(v.section.num)}.html"><span class="secnum">§{esc(v.section.num)}</span> '
-            f'{he(v.section.heading)}</a> {chip(v.status)}</li>' for v in vs)
-        parts.append(f'<section class="chapter"><h2>Chapter {esc(s0.chapter_num)} {he(s0.chapter_heading)}</h2>'
+            f'<li class="{v.status}"><a href="{esc(v.section.num)}.html">{dot(v.status)}'
+            f'<span class="secnum" dir="ltr">{esc(v.section.num)}</span>'
+            f'<span class="sh" lang="he">{esc(v.section.heading)}</span></a></li>' for v in vs)
+        parts.append(f'<section class="chapter" dir="rtl"><div class="chapter-head"><h2>'
+                     f'<span lang="he">פרק {esc(s0.chapter_num)} · {esc(s0.chapter_heading)}</span></h2>'
+                     f'<span class="ccount" dir="ltr">{n_done} of {len(vs)} encoded</span></div>'
                      f'<ul class="secs">{lis}</ul></section>')
     return page(here, f"{akn.title(doc)} — {TITLE}", "".join(parts), tab="docs")
 
 
-def index_page(all_views: dict[str, list[SectionView]]) -> str:
-    rows = []
+def index_page(all_views: dict[str, list[SectionView]], findings: list[dict]) -> str:
+    flat = [v for vs in all_views.values() for v in vs]
+    done = sum(v.status == "done" for v in flat)
+    rules = sum(tally(v)["rule"] for v in flat if v.src is not None)
+    cards = []
     for coll, name in COLLECTIONS:
         docs = [d for d in DOCUMENTS if d.startswith(coll + "/")]
         if not docs:
-            rows.append(f'<li class="coll todo"><span>{esc(name)}</span> {chip("todo")}</li>')
+            cards.append(f'<li class="coll todo"><span class="cname">{esc(name)}</span>'
+                         f'<span class="cstate">not started</span></li>')
             continue
         for d in docs:
             vs = all_views[d]
-            done = sum(v.status == "done" for v in vs)
-            rows.append(f'<li class="coll"><a href="{d.removesuffix(".xml")}/index.html">{he(akn.title(d))}</a> '
-                        f'<span class="count">{esc(name)} · {done} of {len(vs)} sections encoded</span></li>')
-    body = (f'<h1>The Ofek Hadash corpus, encoded in L4</h1>'
-            f'<p class="lede">Every section is shown twice, side by side: its text as the '
-            f'<a href="{CORPUS_SITE}/">corpus</a> holds it, and the rules read from it written in '
-            f'<a href="https://legalese.com/l4/">L4</a>, a language for law whose compiler checks types, '
-            f'runs the examples and renders the rules back as a document. All of a section\'s logic is '
-            f'encoded — who is entitled, how much, who must do what and by when — not only the pay. '
-            f'When the text does not hold together — two rules for one case, a case with no rule, a '
-            f'reference to nothing — the finding goes to <a href="findings.html">L4 findings</a>, with '
-            f'the code that shows it.</p>'
-            f'<ul class="colls">{"".join(rows)}</ul>')
+            n = sum(v.status == "done" for v in vs)
+            cards.append(f'<li class="coll live"><a href="{d.removesuffix(".xml")}/index.html">'
+                         f'<span class="cname">{esc(name)}</span>'
+                         f'<span class="ctitle" lang="he" dir="rtl">{esc(akn.title(d))}</span>'
+                         f'{progress(vs)}<span class="cstate">{n} of {len(vs)} sections encoded</span></a></li>')
+    body = (f'<section class="hero"><h1>The rules of Israeli teachers\' employment, '
+            f'written as code beside the text.</h1>'
+            f'<p class="lede">Each section of the <a href="{CORPUS_SITE}/">Ofek Hadash corpus</a> appears '
+            f'twice, paragraph by paragraph: the Hebrew text, and the rules read from it in '
+            f'<a href="https://legalese.com/l4/">L4</a> — a language for law whose compiler checks every rule, '
+            f'runs every example and can write the rules back out as prose. Everything is encoded, not only pay: '
+            f'who is entitled, under what conditions, who must do what and by when.</p>'
+            f'<p class="lede">Writing law as code exposes where it does not hold together. Those places are the '
+            f'<a href="findings.html">findings</a>: each one shown, in code, to be in the text.</p>'
+            f'<div class="kpis"><div><b>{done}</b><span>sections encoded</span></div>'
+            f'<div><b>{rules}</b><span>paragraphs with a rule</span></div>'
+            f'<div><a href="findings.html"><b>{len(findings)}</b><span>findings in the text</span></a></div></div>'
+            f'</section>'
+            f'<h2 class="sect">Collections</h2><ul class="colls">{"".join(cards)}</ul>')
     return page("index.html", TITLE, body, tab="docs",
                 desc="The teaching staff service regulations beside their L4 encoding, section by section")
 
@@ -578,7 +663,7 @@ def findings_page(findings, views_by_file, key_to_view) -> str:
             for k in f.get("keys", []):
                 v = key_to_view.get(k)
                 if v:
-                    where.append(f'<a href="{v.href}#{esc(k)}">{esc(citations(v.section).get(k, "§" + v.section.num))}</a>')
+                    where.append(f'<a href="{v.href}#{esc(k)}"><bdi dir="ltr">{esc(citations(v.section).get(k, "§" + v.section.num))}</bdi></a>')
             state = ('<span class="okay">the #ASSERT holds: the flaw is still in the text</span>' if ev["held"] else
                      '<span class="notok">the evidence does not hold — see Diagnostics</span>')
             deps = "".join(f'<a href="#{esc(d)}">{esc(d)}</a> ' for d in f.get("depends_on", []) if d in by_id)
@@ -801,6 +886,11 @@ def build() -> int:
     (OUT / "assets").mkdir(parents=True)
     for f in ASSETS.iterdir():
         shutil.copy(f, OUT / "assets" / f.name)
+    findings = load_findings()
+    FINDINGS_BY_KEY.clear()
+    for f in findings:
+        for k in f.get("keys", []):
+            FINDINGS_BY_KEY.setdefault(k, []).append(f)
     all_views: dict[str, list[SectionView]] = {}
     for doc in DOCUMENTS:
         views = [build_view(doc, s) for s in akn.sections(doc)]
@@ -821,8 +911,7 @@ def build() -> int:
     for v in flat:
         for k in v.section.keys():
             key_to_view.setdefault(k, v)
-    findings = load_findings()
-    (OUT / "index.html").write_text(index_page(all_views), encoding="utf-8")
+    (OUT / "index.html").write_text(index_page(all_views, findings), encoding="utf-8")
     (OUT / "findings.html").write_text(findings_page(findings, by_file, key_to_view), encoding="utf-8")
     (OUT / "findings.json").write_text(findings_json(findings, by_file, key_to_view), encoding="utf-8")
     (OUT / "index.json").write_text(index_json(flat), encoding="utf-8")
