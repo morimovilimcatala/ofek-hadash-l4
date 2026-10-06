@@ -255,8 +255,11 @@ def citations(sec: akn.Section) -> dict[str, str]:
         for k in [r.key, *r.aliases]:
             out.setdefault(k, cite)
     for k in list(out):
-        if "/" in k:
-            out[k] = out[k] + " ¶" + k.rsplit("/p", 1)[1]
+        last = k.rsplit("/", 1)[-1] if "/" in k else ""
+        if re.fullmatch(r"p\d+", last):
+            out[k] = out[k] + " ¶" + last[1:]
+        elif re.fullmatch(r"t\d+", last):
+            out[k] = out[k] + " table " + last[1:]
     return out
 
 

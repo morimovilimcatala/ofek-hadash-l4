@@ -178,5 +178,22 @@ class Segmenter(unittest.TestCase):
         self.assertEqual(src.segments[0].keys, ["A", "B__x"])
 
 
+class Citations(unittest.TestCase):
+    def test_every_row_of_every_document_has_a_label(self):
+        # a table row is keyed "<holder>/t<N>"; the label code once assumed
+        # every key with a "/" was a paragraph and crashed the site on it
+        tables = 0
+        for doc in site_mod.DOCUMENTS:
+            for sec in akn.sections(doc):
+                labels = site_mod.citations(sec)
+                for r in sec.rows:
+                    for k in [r.key, *r.aliases]:
+                        self.assertIn(k, labels, f"{doc}: {k}")
+                    if r.cells is not None:
+                        tables += 1
+                        self.assertIn(" table ", labels[r.key])
+        self.assertGreater(tables, 0)
+
+
 if __name__ == "__main__":
     unittest.main()
