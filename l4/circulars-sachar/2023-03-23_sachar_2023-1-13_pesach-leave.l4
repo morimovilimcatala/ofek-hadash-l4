@@ -1,0 +1,249 @@
+-- חוזר הממונה על השכר 2023-1-13 (23.3.2023) — הארכת החופשה המרוכזת של פסח גם
+-- ליום 13.4.2023 למעסיקים שמנהיגים חופשה כאמור
+-- A one-time extension of the concentrated Pesach leave of 5783 to
+-- 13.4.2023, agreed for the coming framework agreement: where it applies,
+-- how the day is charged to the leave balance, the notices due by 28.3.2023,
+-- the exception for workplaces that must serve the public, and the
+-- approvals for other public bodies.
+
+IMPORT prelude
+IMPORT daydate
+IMPORT common
+
+§ `הארכת החופשה המרוכזת של פסח גם ליום 13.4.2023 למעסיקים שמנהיגים חופשה כאמור`
+
+-- akn:hc_1/p1 akn:hc_1/p2 akn:hc_1/p3 akn:hc_1/p4 The date (23.3.2023), the circular's number, the addressees (the public-sector employers) and the subject line; no rule.
+
+DECLARE `Pesach leave party` IS ONE OF
+    `the public-sector employer`
+    `the employer's director-general`
+    `the follow-up committee`
+
+DECLARE `Pesach leave action` IS ONE OF
+    `notify the employees of the additional leave day`
+    `notify the Wage Controller that the leave cannot be extended`
+    `discuss an alternative for the employees`
+
+-- Time in the regulative rules is counted in days from the circular's
+-- date, 23.3.2023; 28.3.2023 is day 5.
+`the circular's date` MEANS Date 23 3 2023
+`the notice deadline` MEANS Date 28 3 2023
+
+GIVEN d IS A DATE
+GIVETH A NUMBER
+DECIDE `days from the circular to` d IS
+    Day d MINUS Day `the circular's date`
+
+-- §1: the agreement to be signed extends the concentrated Pesach leave to
+-- 13.4.2023 for employers that have such a leave; until it is signed, the
+-- circular sets out the agreements to act on.
+@ref akn:hc_1__para_1
+`the additional leave day` MEANS Date 13 4 2023
+
+@desc A workplace, as far as the Pesach 5783 extension asks about it.
+DECLARE `workplace` HAS
+    `has a concentrated Pesach leave in 5783`              IS A BOOLEAN @desc a concentrated leave over Pesach is customary there in 5783
+    `management holds the leave cannot be extended`        IS A BOOLEAN @desc the management holds that the leave cannot be extended because the service to the public must be given
+    `the director-general notified the Wage Controller`    IS A BOOLEAN @desc the director-general notified the Wage Controller of it, so that an alternative for the employees can be discussed
+    `an approved arrangement makes 13.4.2023 a leave day`  IS A BOOLEAN @desc an arrangement approved according to law already made 13.4.2023 a leave day
+    `that arrangement's charge to the employee`            IS A NUMBER  @desc the part of the day that arrangement charges to the employee's leave balance (1 = a whole day)
+
+-- §1(ה): the extension does not apply where the management holds that the
+-- leave cannot be extended because the public must be served AND the
+-- director-general has notified the Wage Controller.
+@ref akn:hc_1__para_1__subpara_e
+GIVEN w IS A `workplace`
+GIVETH A BOOLEAN
+DECIDE `excepted under §1(ה)` w IF
+        w's `management holds the leave cannot be extended`
+    AND w's `the director-general notified the Wage Controller`
+
+-- §1(א): where a concentrated Pesach leave is customary in 5783, it is
+-- extended, once, to include 13.4.2023 ("the additional leave day"),
+-- unless §1(ה) excepts the workplace.
+@export default Whether the concentrated Pesach leave of 5783 at a public-sector workplace includes 13.4.2023 under Wage Controller circular 2023-1-13
+@ref akn:hc_1__para_1__subpara_a
+GIVEN w IS A `workplace` @desc the workplace
+GIVETH A BOOLEAN
+DECIDE `the leave includes the additional day` w IF
+        w's `has a concentrated Pesach leave in 5783`
+    AND NOT `excepted under §1(ה)` w
+
+-- §1(ב): the additional day is charged 50% to the employee's leave balance
+-- and 50% to the employer, unless an approved arrangement already made
+-- 13.4.2023 a leave day and charges the employee less, in which case that
+-- arrangement's charge applies. Result: the part of a day taken from the
+-- employee's balance.
+@ref akn:hc_1__para_1__subpara_b
+`the employee's half` MEANS 50%
+
+@ref akn:hc_1__para_1__subpara_b
+GIVEN w IS A `workplace`
+GIVETH A NUMBER
+DECIDE `the charge to the employee's leave balance` w IS
+    IF      `the leave includes the additional day` w
+        AND w's `an approved arrangement makes 13.4.2023 a leave day`
+        AND w's `that arrangement's charge to the employee` LESS THAN `the employee's half`
+    THEN w's `that arrangement's charge to the employee`
+    ELSE IF `the leave includes the additional day` w
+         THEN `the employee's half`
+         ELSE 0
+
+-- §1(ג): the circular changes none of the approved rules and practices of
+-- the employer's concentrated leave; the additional day is treated like
+-- the other intermediate days of Pesach in the leave, except for §1(ב)'s
+-- charge.
+DECLARE `day treatment` IS ONE OF
+    `as the other intermediate days of the concentrated leave`
+    `as §1(ב) charges it`
+    `as the workplace's own rules for an ordinary day`
+
+DECLARE `question about the day` IS ONE OF
+    `the charge to the leave balance`
+    `any other question`
+
+@ref akn:hc_1__para_1__subpara_c
+GIVEN w IS A `workplace`, q IS A `question about the day`
+GIVETH A `day treatment`
+DECIDE `how the additional day is treated` w q IS
+    IF (NOT `the leave includes the additional day` w)
+    THEN `as the workplace's own rules for an ordinary day`
+    ELSE CONSIDER q
+         WHEN `the charge to the leave balance` THEN `as §1(ב) charges it`
+         WHEN `any other question` THEN `as the other intermediate days of the concentrated leave`
+
+-- §1(ד): the employees are told of the additional day by 28.3.2023.
+@ref akn:hc_1__para_1__subpara_d
+GIVEN w IS A `workplace`
+GIVETH A DEONTIC `Pesach leave party` `Pesach leave action`
+DECIDE `telling the employees` w IS
+    IF `the leave includes the additional day` w
+    THEN PARTY `the public-sector employer`
+         MUST  `notify the employees of the additional leave day`
+         WITHIN `days from the circular to` `the notice deadline`
+         LEST  BREACH BY `the public-sector employer` BECAUSE "§1(ד): the employees are told of the additional leave day by 28.3.2023"
+    ELSE FULFILLED
+
+-- §1(ה), second sentence: the director-general's notice is given as soon as
+-- possible and by 28.3.2023 at the latest. Without it the exception does
+-- not arise. Modelled as what a management that holds the leave cannot be
+-- extended may do to take the workplace out of §1(א).
+@ref akn:hc_1__para_1__subpara_e
+GIVEN w IS A `workplace`
+GIVETH A DEONTIC `Pesach leave party` `Pesach leave action`
+DECIDE `the director-general's notice` w IS
+    IF w's `management holds the leave cannot be extended`
+    THEN PARTY `the employer's director-general`
+         MAY   `notify the Wage Controller that the leave cannot be extended`
+         WITHIN `days from the circular to` `the notice deadline`
+    ELSE FULFILLED
+
+-- §1(ו): a follow-up committee of the Wage Controller and the Histadrut's
+-- chairman discusses an alternative for the employees of the workplaces
+-- §1(ה) excepts. No date is set; the time is an input.
+@ref akn:hc_1__para_1__subpara_f
+GIVEN w IS A `workplace`, `the time allowed` IS A NUMBER @desc days for the discussion; the circular sets none
+GIVETH A DEONTIC `Pesach leave party` `Pesach leave action`
+DECIDE `discussing an alternative` w `the time allowed` IS
+    IF `excepted under §1(ה)` w
+    THEN PARTY `the follow-up committee`
+         MUST  `discuss an alternative for the employees`
+         WITHIN `the time allowed`
+    ELSE FULFILLED
+
+-- akn:hc_1__para_2 The circular was coordinated with the Histadrut, and the parties' agreements on the additional day will form part of the framework agreement to be signed; statements, no rule of their own.
+
+§§ `3 Other public-sector bodies`
+
+DECLARE `other pay agreement` IS ONE OF
+    `no other agreement settling pay for 2020-2027`
+    `another agreement for part of 1.1.2020-31.12.2027`
+    `another agreement for the whole of 1.1.2020-31.12.2027`
+
+@desc A public-sector body other than the State, as far as section 3 asks about it.
+DECLARE `public-sector body` HAS
+    `will sign or join the framework agreement` IS A BOOLEAN
+    `its other pay agreement`                   IS AN `other pay agreement` @desc another collective agreement settling pay rises or financial benefits for 1.1.2020-31.12.2027
+
+DECLARE `approval for the extra day` IS ONE OF
+    `the Wage Controller's general approval`
+    `a specific approval in advance`
+    `no approval under this circular`
+
+-- §3(א): a body that is to sign or will join the framework agreement has
+-- the Wage Controller's approval to grant the additional day under this
+-- circular. §3(ב): that approval is for a body with no other agreement
+-- settling pay for 1.1.2020-31.12.2027; one with another agreement for
+-- part of the period needs a specific approval in advance. A body with
+-- another agreement for the whole period has neither route, so no approval
+-- under this circular.
+@ref akn:hc_1__para_3__subpara_a akn:hc_1__para_3__subpara_b akn:hc_1__para_3__subpara_b/p2
+GIVEN b IS A `public-sector body`
+GIVETH AN `approval for the extra day`
+DECIDE `the approval a body has for the extra day` b IS
+    BRANCH IF (NOT b's `will sign or join the framework agreement`) THEN `no approval under this circular`
+           IF b's `its other pay agreement` EQUALS `no other agreement settling pay for 2020-2027` THEN `the Wage Controller's general approval`
+           IF b's `its other pay agreement` EQUALS `another agreement for part of 1.1.2020-31.12.2027` THEN `a specific approval in advance`
+           OTHERWISE `no approval under this circular`
+
+-- akn:conclusions The sign-off (Efi Malkin, acting Wage Controller) and the copies (the Civil Service Commissioner, the Histadrut's chairman, the local-government and regional-council centres, the religious councils, the universities, the Treasury's officials); no rule.
+
+§§ `Examples`
+
+-- 13.4.2023 is the Thursday after the seventh day of Pesach 5783.
+#ASSERT `Weekday of` `the additional leave day` EQUALS Thursday
+#ASSERT `days from the circular to` `the notice deadline` EQUALS 5
+
+`a ministry with a concentrated leave` MEANS
+    `workplace` WITH
+        `has a concentrated Pesach leave in 5783`             IS TRUE
+        `management holds the leave cannot be extended`       IS FALSE
+        `the director-general notified the Wage Controller`   IS FALSE
+        `an approved arrangement makes 13.4.2023 a leave day` IS FALSE
+        `that arrangement's charge to the employee`           IS 0
+
+`a workplace whose arrangement charges nothing` MEANS
+    `workplace` WITH
+        `has a concentrated Pesach leave in 5783`             IS TRUE
+        `management holds the leave cannot be extended`       IS FALSE
+        `the director-general notified the Wage Controller`   IS FALSE
+        `an approved arrangement makes 13.4.2023 a leave day` IS TRUE
+        `that arrangement's charge to the employee`           IS 0
+
+`a hospital that must serve the public` MEANS
+    `workplace` WITH
+        `has a concentrated Pesach leave in 5783`             IS TRUE
+        `management holds the leave cannot be extended`       IS TRUE
+        `the director-general notified the Wage Controller`   IS TRUE
+        `an approved arrangement makes 13.4.2023 a leave day` IS FALSE
+        `that arrangement's charge to the employee`           IS 0
+
+`a service that did not notify` MEANS
+    `workplace` WITH
+        `has a concentrated Pesach leave in 5783`             IS TRUE
+        `management holds the leave cannot be extended`       IS TRUE
+        `the director-general notified the Wage Controller`   IS FALSE
+        `an approved arrangement makes 13.4.2023 a leave day` IS FALSE
+        `that arrangement's charge to the employee`           IS 0
+
+#ASSERT `the leave includes the additional day` `a ministry with a concentrated leave`
+#ASSERT `the charge to the employee's leave balance` `a ministry with a concentrated leave` EQUALS 0.5
+#ASSERT `the charge to the employee's leave balance` `a workplace whose arrangement charges nothing` EQUALS 0
+#ASSERT NOT `the leave includes the additional day` `a hospital that must serve the public`
+#ASSERT `the leave includes the additional day` `a service that did not notify`
+#ASSERT `how the additional day is treated` `a ministry with a concentrated leave` `any other question` EQUALS `as the other intermediate days of the concentrated leave`
+
+`a regional council signing the agreement` MEANS
+    `public-sector body` WITH
+        `will sign or join the framework agreement` IS TRUE
+        `its other pay agreement`                   IS `no other agreement settling pay for 2020-2027`
+#ASSERT `the approval a body has for the extra day` `a regional council signing the agreement` EQUALS `the Wage Controller's general approval`
+
+-- The employees told on 27.3.2023 (day 4): fulfilled; told on 30.3.2023
+-- (day 7): breached.
+#TRACE `telling the employees` `a ministry with a concentrated leave` AT 0 WITH
+    PARTY `the public-sector employer` DOES `notify the employees of the additional leave day` AT 4
+#TRACE `telling the employees` `a ministry with a concentrated leave` AT 0 WITH
+    PARTY `the public-sector employer` DOES `notify the employees of the additional leave day` AT 7
+#TRACE `the director-general's notice` `a hospital that must serve the public` AT 0 WITH
+    PARTY `the employer's director-general` DOES `notify the Wage Controller that the leave cannot be extended` AT 2

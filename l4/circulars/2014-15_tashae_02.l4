@@ -1,0 +1,363 @@
+-- חוזר לבעלויות תשע"ה/2 — תוכנית היבחנות חדשה בבחינות הבגרות בחטיבה העליונה (11.3.2015)
+-- The matriculation preparation allowance under the new examination
+-- programme (from תשע"ה): the split between the external examination and
+-- the school assessment (generally 70%-30%), the year each part is paid in,
+-- the definitions, the share by class size, and the subject-by-subject
+-- table of the allowance before and after the reform.
+
+IMPORT prelude
+IMPORT common
+
+§ `חוזר לבעלויות תשע"ה/2 — גמול הבגרות בתוכנית ההיבחנות החדשה`
+
+-- akn:preamble The letterhead, date (11.3.2015), reference, number, addressee, greeting and subject line; no rule.
+
+DECLARE `allowance cell` HAS
+    `cell weekly hours` IS A NUMBER @desc the allowance in weekly hours (ש"ש)
+    `cell percent`      IS A NUMBER @desc the allowance as a percentage; 0 where the table prints none
+
+DECLARE `exam action` IS ONE OF
+    `pay the external part` HAS `external part paid` IS A `allowance cell`
+    `pay the school part`   HAS `school part paid` IS A `allowance cell`
+
+§§ `מבוא: התוכנית החדשה`
+
+-- ¶13: from תשע"ה the new examination programme applies in the upper
+-- division. ¶14: every external examination in a subject has a school
+-- assessment beside it, except mathematics at 4 and 5 units (and ¶45 of
+-- the table: there it is external only, as before the reform).
+DECLARE `subject` IS ONE OF
+    `mathematics`
+    `English`
+    `Bible, state schools`
+    `Bible, religious schools`
+    `Oral Law, religious schools`
+    `Judaism, Haredi schools`
+    `Druze, Islamic or Christian culture and heritage`
+    `history`
+    `civics`
+    `literature`
+    `literature, religious schools`
+    `Jewish thought, religious schools`
+    `Hebrew language and expression`
+    `Arabic language and literature`
+    `Hebrew language and literature, non-Jewish sector`
+    `biology`
+    `life sciences and agriculture`
+    `environmental sciences`
+    `geography`
+    `Land of Israel studies`
+    `another elective subject`
+
+@ref akn:preamble/p13 akn:preamble/p14 akn:art_2__para_b/p45
+GIVEN s IS A `subject`, `units` IS A NUMBER, `school year` IS A NUMBER @desc the year, as the year its September falls in (תשע"ה = 2014)
+GIVETH A BOOLEAN
+DECIDE `the examination has a school assessment` s `units` `school year` IF
+    `school year` AT LEAST 2014
+    AND NOT (s EQUALS `mathematics` AND `units` AT LEAST 4)
+
+§§ `1. חלוקת הגמול 70%-30%`
+
+-- 1 ¶1: as a rule, in most subjects the external and school parts are
+-- 70% and 30%, as in DG circular תשע"ד/7(ד) (¶2-¶3: its address). ¶4: the
+-- preparation allowance is divided the same way: where the external
+-- examination and the school assessment fall in different years, 70% of the
+-- allowance (in hours and in percent) is paid in the year of the external
+-- examination and 30% in the year of the school assessment.
+`the external share` MEANS 70%
+`the school share`   MEANS 30%
+
+DECLARE `exam part` IS ONE OF
+    `the external examination`
+    `the school assessment`
+
+@ref akn:art_1 akn:art_1/p4
+GIVEN full IS AN `allowance cell`, p IS AN `exam part`
+GIVETH AN `allowance cell`
+DECIDE `the part of the allowance` full p IS
+    CONSIDER p
+    WHEN `the external examination` THEN
+        `allowance cell` WITH
+            `cell weekly hours` IS full's `cell weekly hours` TIMES `the external share`
+            `cell percent`      IS full's `cell percent` TIMES `the external share`
+    WHEN `the school assessment` THEN
+        `allowance cell` WITH
+            `cell weekly hours` IS full's `cell weekly hours` TIMES `the school share`
+            `cell percent`      IS full's `cell percent` TIMES `the school share`
+
+-- akn:art_1/p2 akn:art_1/p3 The web address of the circular named in 1 ¶1, broken over two lines; no rule.
+
+-- 1 ¶5 and the table's last note (¶99): where a subject already had an
+-- alternative assessment before the reform, that assessment, its weight
+-- and the teachers' tasks stay, and the allowance divides by that
+-- subject's own split (Chinese, German, the Arab world and Islam, social
+-- sciences, for example) — an input.
+@ref akn:art_1/p5 akn:art_2__para_b/p99
+GIVEN full IS AN `allowance cell`
+      `the subject's external share` IS A NUMBER @desc the external examination's weight in a subject whose split differs from 70%-30% (an input)
+GIVETH AN `allowance cell`
+DECIDE `the external part by the subject's own split` full `the subject's external share` IS
+    `allowance cell` WITH
+        `cell weekly hours` IS full's `cell weekly hours` TIMES `the subject's external share`
+        `cell percent`      IS full's `cell percent` TIMES `the subject's external share`
+
+§§ `2. רקע, הגדרות והוראות כלליות`
+
+-- akn:art_2 Background: the agreement of 15.7.2014 (circular תשע"ד/9) anchored the meaningful-learning reform and the preparation-allowance rules of section 1; no rule beyond section 1.
+-- akn:art_2/p2 States the circular's purpose (to help apply the split); no rule.
+-- akn:art_2/p3 Says the table of the allowance by subject is attached; the table is encoded below.
+-- akn:art_2/p4 The heading "הגדרות"; no rule.
+-- akn:art_2/p9 The heading "הוראות כלליות"; no rule.
+
+-- ¶5-¶8, the definitions: the external examination (the State's, about
+-- 70% of the material); the school matriculation (only in a subject that
+-- also has an external examination; about 30%); the final grade weighs
+-- the two (¶7); and the internal assessment — a grade in a subject with no
+-- external examination — which does NOT entitle the teacher to the
+-- preparation allowance.
+DECLARE `assessment` IS ONE OF
+    `an external matriculation examination`
+    `a school matriculation assessment`
+    `an internal assessment`
+
+@ref akn:art_2/p5 akn:art_2/p6 akn:art_2/p7 akn:art_2/p8
+GIVEN a IS AN `assessment`, `the subject has an external examination` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `the assessment earns a preparation allowance` a `the subject has an external examination` IF
+    CONSIDER a
+    WHEN `an external matriculation examination` THEN TRUE
+    WHEN `a school matriculation assessment`     THEN `the subject has an external examination`
+    WHEN `an internal assessment`                THEN FALSE
+
+-- 2(א): the external part's allowance is given in the year the class sits
+-- the external examination, the school part's in the year it sits the
+-- school assessment. Time in school months from the start of that year.
+@ref akn:art_2__para_a
+GIVEN full IS AN `allowance cell`
+GIVETH A DEONTIC Party `exam action`
+DECIDE `the external part paid in its year` full IS
+    PARTY `the employer`
+    MUST  `pay the external part` c
+          PROVIDED c's `cell weekly hours` AT LEAST (`the part of the allowance` full `the external examination`)'s `cell weekly hours`
+    WITHIN 12
+    LEST  BREACH BY `the employer` BECAUSE "circular תשע\"ה/2, 2(א): the external part is given in the year the class sits the external examination"
+
+GIVEN full IS AN `allowance cell`
+GIVETH A DEONTIC Party `exam action`
+DECIDE `the school part paid in its year` full IS
+    PARTY `the employer`
+    MUST  `pay the school part` c
+          PROVIDED c's `cell weekly hours` AT LEAST (`the part of the allowance` full `the school assessment`)'s `cell weekly hours`
+    WITHIN 12
+    LEST  BREACH BY `the employer` BECAUSE "circular תשע\"ה/2, 2(א): the school part is given in the year the class sits the school assessment"
+
+-- 2(ב): the table's amount is the full allowance for a class of 10 pupils
+-- or more; 1-5 pupils, 25% of it; ¶2: 6-9 pupils, 50%.
+@ref akn:art_2__para_b akn:art_2__para_b/p2
+GIVEN `pupils` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the share for the class size` `pupils` IS
+    BRANCH IF `pupils` AT LEAST 10 THEN 1
+           IF `pupils` AT LEAST 6  THEN 50%
+           IF `pupils` AT LEAST 1  THEN 25%
+           OTHERWISE 0
+
+-- akn:art_2__para_b/p3 akn:art_2__para_b/p4 akn:art_2__para_b/p5 akn:art_2__para_b/p6 The contact line, the greeting and the signature (Sonia Peretz), which the corpus prints inside 2(ב); no rule.
+-- akn:art_2__para_b/p7 akn:art_2__para_b/p8 akn:art_2__para_b/p9 akn:art_2__para_b/p10 akn:art_2__para_b/p11 akn:art_2__para_b/p12 akn:art_2__para_b/p13 akn:art_2__para_b/p14 akn:art_2__para_b/p15 The list of copies; no rule.
+-- akn:art_2__para_b/p16 akn:art_2__para_b/p17 akn:art_2__para_b/p18 akn:art_2__para_b/p19 akn:art_2__para_b/p20 akn:art_2__para_b/p21 akn:art_2__para_b/p22 akn:art_2__para_b/p23 akn:art_2__para_b/p24 The list of copies, continued; no rule.
+-- akn:art_2__para_b/p25 akn:art_2__para_b/p26 akn:art_2__para_b/p27 akn:art_2__para_b/p28 akn:art_2__para_b/p29 akn:art_2__para_b/p30 The list of copies, ended; no rule.
+
+§§ `הטבלה: גמול הבגרות לפי מקצוע`
+
+-- The attached table, as the corpus gives it: the headers and most rows
+-- as lines of text with the columns in reverse order (¶31-¶98), and one
+-- page as a table (t1). Each printed row is a record, in the printed
+-- order. Columns, right to left: subject, units, the pre-reform allowance
+-- (hours, percent), the reform's external part (70%) and its school part
+-- (30%), and a note. Where a row prints ONE reform cell, its note says
+-- which part it is (the school assessment "in place of" a questionnaire),
+-- and the biotope, ecotope, geotope and civics-task rows are the school
+-- part as before the reform.
+DECLARE `table row` HAS
+    `row subject`   IS A `subject`
+    `row units`     IS A NUMBER
+    `row component` IS A STRING @desc the questionnaire or task, where the row prints one
+    `pre-reform`    IS AN `allowance cell`
+    `external part` IS A MAYBE `allowance cell`
+    `school part`   IS A MAYBE `allowance cell`
+
+GIVEN h IS A NUMBER, p IS A NUMBER
+GIVETH AN `allowance cell`
+DECIDE `cell` h p IS
+    `allowance cell` WITH
+        `cell weekly hours` IS h
+        `cell percent`      IS p
+
+-- akn:art_2__para_b/p31 The heading "מקצועות החובה"; the rows follow.
+-- akn:art_2__para_b/p32 akn:art_2__para_b/p33 akn:art_2__para_b/p34 akn:art_2__para_b/p35 akn:art_2__para_b/p36 The column headers of the compulsory subjects' table; encoded as the record `table row`.
+-- akn:art_2__para_b/p46 akn:art_2__para_b/p47 akn:art_2__para_b/p48 akn:art_2__para_b/p49 akn:art_2__para_b/p50 The column headers repeated on the next page; encoded as the record `table row`.
+-- akn:art_2__para_b/p70 The heading "מקצועות הבחירה שיש לגביהם הוראות מיוחדות"; the rows follow.
+-- akn:art_2__para_b/p71 akn:art_2__para_b/p72 akn:art_2__para_b/p73 akn:art_2__para_b/p74 akn:art_2__para_b/p75 The column headers repeated; encoded as the record `table row`.
+-- akn:art_2__para_b/p91 The heading "כל יתר מקצועות הבחירה"; the row follows.
+-- akn:art_2__para_b/p92 akn:art_2__para_b/p93 akn:art_2__para_b/p94 akn:art_2__para_b/p95 akn:art_2__para_b/p96 The column headers repeated; encoded as the record `table row`.
+
+@ref akn:art_2__para_b/p37 akn:art_2__para_b/p38 akn:art_2__para_b/p39 akn:art_2__para_b/p40 akn:art_2__para_b/p41 akn:art_2__para_b/p42 akn:art_2__para_b/p43 akn:art_2__para_b/p44 akn:art_2__para_b/t1
+`the compulsory subjects, first page` MEANS
+    LIST `table row` `mathematics` 3 "801" (`cell` 0.5 (2%)) NOTHING (JUST (`cell` 0.5 (2%))),
+         `table row` `mathematics` 3 "802" (`cell` 0.5 (2%)) (JUST (`cell` 0.5 (2%))) NOTHING,
+         `table row` `mathematics` 3 "803" (`cell` 1 (2%)) (JUST (`cell` 1 (2%))) NOTHING,
+         `table row` `English` 3 "A" (`cell` 0.5 (2%)) (JUST (`cell` 0.5 (2%))) NOTHING,
+         `table row` `English` 3 "B" (`cell` 0.5 (2%)) NOTHING (JUST (`cell` 0.5 (2%))),
+         `table row` `English` 3 "C" (`cell` 1 (2%)) (JUST (`cell` 1 (2%))) NOTHING,
+         `table row` `English` 4 "C" (`cell` 1 (2%)) (JUST (`cell` 1 (2%))) NOTHING,
+         `table row` `English` 4 "D" (`cell` 1 (2%)) NOTHING (JUST (`cell` 1 (2%))),
+         `table row` `English` 5 "E" (`cell` 1 (2%)) (JUST (`cell` 1 (2%))) NOTHING,
+         `table row` `English` 5 "F" (`cell` 1.25 (2%)) NOTHING (JUST (`cell` 1.25 (2%))),
+         `table row` `English` 5 "G" (`cell` 1.25 (2%)) (JUST (`cell` 1.25 (2%))) NOTHING,
+         `table row` `Bible, state schools` 2 "" (`cell` 1.5 (2%)) (JUST (`cell` 1.05 (1.4%))) (JUST (`cell` 0.45 (0.6%)))
+
+@ref akn:art_2__para_b/p51 akn:art_2__para_b/p52 akn:art_2__para_b/p53 akn:art_2__para_b/p54 akn:art_2__para_b/p55 akn:art_2__para_b/p56 akn:art_2__para_b/p57 akn:art_2__para_b/p58 akn:art_2__para_b/p59 akn:art_2__para_b/p60 akn:art_2__para_b/p61 akn:art_2__para_b/p62 akn:art_2__para_b/p63 akn:art_2__para_b/p64 akn:art_2__para_b/p65 akn:art_2__para_b/p67 akn:art_2__para_b/p68 akn:art_2__para_b/p69
+`the compulsory subjects, second page` MEANS
+    LIST `table row` `Bible, religious schools` 3 "" (`cell` 2 (2%)) (JUST (`cell` 1.4 (1.4%))) (JUST (`cell` 0.6 (0.6%))),
+         `table row` `Oral Law, religious schools` 3 "" (`cell` 2 (2%)) (JUST (`cell` 1.4 (1.4%))) (JUST (`cell` 0.6 (0.6%))),
+         `table row` `Judaism, Haredi schools` 3 "" (`cell` 2 (2%)) (JUST (`cell` 1.4 (1.4%))) (JUST (`cell` 0.6 (0.6%))),
+         `table row` `Druze, Islamic or Christian culture and heritage` 1 "" (`cell` 1 (2%)) (JUST (`cell` 0.7 (1.4%))) (JUST (`cell` 0.3 (0.6%))),
+         `table row` `history` 2 "" (`cell` 1.5 (2%)) (JUST (`cell` 1.05 (1.4%))) (JUST (`cell` 0.45 (0.6%))),
+         `table row` `civics` 2 "questionnaire" (`cell` 1.5 (2%)) (JUST (`cell` 1.5 (2%))) NOTHING,
+         `table row` `civics` 2 "performance task" (`cell` 0.4 0) NOTHING (JUST (`cell` 0.4 0)),
+         `table row` `literature` 2 "" (`cell` 1.5 (2%)) (JUST (`cell` 1.05 (1.4%))) (JUST (`cell` 0.45 (0.6%))),
+         `table row` `literature, religious schools` 1 "" (`cell` 1 (2%)) (JUST (`cell` 0.7 (1.4%))) (JUST (`cell` 0.3 (0.6%))),
+         `table row` `Jewish thought, religious schools` 1 "" (`cell` 1 (2%)) (JUST (`cell` 0.7 (1.4%))) (JUST (`cell` 0.3 (0.6%))),
+         `table row` `Hebrew language and expression` 2 "" (`cell` 2 (4%)) (JUST (`cell` 1.4 (2.8%))) (JUST (`cell` 0.6 (1.2%))),
+         `table row` `Arabic language and literature` 3 "" (`cell` 2 (2%)) (JUST (`cell` 1.4 (1.4%))) (JUST (`cell` 0.6 (0.6%))),
+         `table row` `Hebrew language and literature, non-Jewish sector` 3 "" (`cell` 2 (2%)) (JUST (`cell` 1.4 (1.4%))) (JUST (`cell` 0.6 (0.6%)))
+
+-- The note on Hebrew language and expression (¶65-¶66): for teachers in
+-- the project with a 50% external examination and a 50% school assessment,
+-- 1 hour + 2% to each part.
+@ref akn:art_2__para_b/p66
+GIVEN `in the 50-50 project` IS A BOOLEAN, p IS AN `exam part`
+GIVETH AN `allowance cell`
+DECIDE `the Hebrew-expression part` `in the 50-50 project` p IS
+    IF `in the 50-50 project`
+    THEN `cell` 1 (2%)
+    ELSE `the part of the allowance` (`cell` 2 (4%)) p
+
+@ref akn:art_2__para_b/p76 akn:art_2__para_b/p77 akn:art_2__para_b/p78 akn:art_2__para_b/p79 akn:art_2__para_b/p80 akn:art_2__para_b/p81 akn:art_2__para_b/p82 akn:art_2__para_b/p83 akn:art_2__para_b/p84 akn:art_2__para_b/p85 akn:art_2__para_b/p86 akn:art_2__para_b/p87 akn:art_2__para_b/p88 akn:art_2__para_b/p89 akn:art_2__para_b/p90
+`the electives with special rules` MEANS
+    LIST `table row` `biology` 5 "questionnaire and laboratory" (`cell` 3.5 (2%)) (JUST (`cell` 3.5 (2%))) NOTHING,
+         `table row` `biology` 5 "biotope or bio-research" (`cell` 1.5 0) NOTHING (JUST (`cell` 1.5 0)),
+         `table row` `life sciences and agriculture` 5 "questionnaire" (`cell` 3.5 (2%)) (JUST (`cell` 3.5 (2%))) NOTHING,
+         `table row` `life sciences and agriculture` 5 "biotope or bio-research" (`cell` 1.5 0) NOTHING (JUST (`cell` 1.5 0)),
+         `table row` `environmental sciences` 5 "questionnaire" (`cell` 3.5 (2%)) (JUST (`cell` 3.5 (2%))) NOTHING,
+         `table row` `environmental sciences` 5 "ecotope" (`cell` 1.5 0) NOTHING (JUST (`cell` 1.5 0)),
+         `table row` `geography` 5 "questionnaire" (`cell` 3.5 (2%)) (JUST (`cell` 3.5 (2%))) NOTHING,
+         `table row` `geography` 5 "geotope" (`cell` 1 0) NOTHING (JUST (`cell` 1 0)),
+         `table row` `Land of Israel studies` 5 "questionnaire" (`cell` 3.5 (2%)) (JUST (`cell` 3.5 (2%))) NOTHING,
+         `table row` `Land of Israel studies` 5 "geotope" (`cell` 1 0) NOTHING (JUST (`cell` 1 0))
+
+@ref akn:art_2__para_b/p97 akn:art_2__para_b/p98
+`the other electives` MEANS
+    LIST `table row` `another elective subject` 5 "" (`cell` 3.5 (2%)) (JUST (`cell` 2.45 (1.4%))) (JUST (`cell` 1.05 (0.6%)))
+
+`the table` MEANS
+    concat (LIST `the compulsory subjects, first page`, `the compulsory subjects, second page`, `the electives with special rules`, `the other electives`)
+
+-- Checks the table against section 1. A row that prints BOTH parts splits
+-- its pre-reform allowance 70%-30%, in hours and in percent; a row that
+-- prints ONE part carries the pre-reform allowance unchanged into it.
+GIVEN a IS AN `allowance cell`, b IS AN `allowance cell`
+GIVETH A BOOLEAN
+DECIDE `the same cell` a b IF
+    a's `cell weekly hours` EQUALS b's `cell weekly hours` AND a's `cell percent` EQUALS b's `cell percent`
+
+GIVEN r IS A `table row`
+GIVETH A BOOLEAN
+DECIDE `the row agrees with section 1` r IF
+    CONSIDER r's `external part`
+    WHEN JUST e THEN
+        CONSIDER r's `school part`
+        WHEN JUST s THEN     `the same cell` e (`the part of the allowance` (r's `pre-reform`) `the external examination`)
+                         AND `the same cell` s (`the part of the allowance` (r's `pre-reform`) `the school assessment`)
+        WHEN NOTHING THEN `the same cell` e (r's `pre-reform`)
+    WHEN NOTHING THEN
+        CONSIDER r's `school part`
+        WHEN JUST s THEN `the same cell` s (r's `pre-reform`)
+        WHEN NOTHING THEN FALSE
+
+#ASSERT all `the row agrees with section 1` `the table`
+#ASSERT count `the table` EQUALS 36
+
+-- F-2014-15_tashae_02-a: mathematics (3 units) and English print the
+-- allowance per questionnaire, the school assessment taking the whole
+-- allowance of the questionnaire it replaces. Summed over a subject-level,
+-- the school part is then not 30%: English at 4 units has C (1 hour + 2%,
+-- external) and D (1 hour + 2%, school), so half the allowance goes to the
+-- school assessment where 1 ¶4 gives it 30%.
+-- The reading adopted: the table's own rows govern the subjects it prints
+-- per questionnaire, and `the allowance for the part` pays them as printed.
+GIVEN s IS A `subject`, `units` IS A NUMBER
+GIVETH A LIST OF `table row`
+DECIDE `the rows for` s `units` IS
+    filter (GIVEN r YIELD r's `row subject` EQUALS s AND r's `row units` EQUALS `units`) `the table`
+
+GIVEN rs IS A LIST OF `table row`
+GIVETH A NUMBER
+DECIDE `pre-reform hours of` rs IS
+    sum (map (GIVEN r YIELD r's `pre-reform`'s `cell weekly hours`) rs)
+
+GIVEN r IS A `table row`
+GIVETH A NUMBER
+DECIDE `the row's school-part hours` r IS
+    CONSIDER r's `school part`
+    WHEN JUST c  THEN c's `cell weekly hours`
+    WHEN NOTHING THEN 0
+
+GIVEN rs IS A LIST OF `table row`
+GIVETH A NUMBER
+DECIDE `school-part hours of` rs IS
+    sum (map `the row's school-part hours` rs)
+
+`English at 4 units` MEANS `the rows for` `English` 4
+
+`the table gives English at 4 units half, not 30%, to the school part` MEANS
+        `school-part hours of` `English at 4 units` EQUALS 1
+    AND `pre-reform hours of` `English at 4 units` EQUALS 2
+    AND NOT (`school-part hours of` `English at 4 units` EQUALS `the school share` TIMES `pre-reform hours of` `English at 4 units`)
+#ASSERT `the table gives English at 4 units half, not 30%, to the school part`
+
+-- Mathematics at 3 units: 0.5 of 2 hours (25%) and 2% of 6% (a third).
+#ASSERT `school-part hours of` (`the rows for` `mathematics` 3) EQUALS 0.5
+#ASSERT `pre-reform hours of` (`the rows for` `mathematics` 3) EQUALS 2
+
+-- The allowance the table gives a teacher for one row and one part, by
+-- the class size.
+@export default The matriculation preparation allowance a teacher is paid for one row of the table of owners' circular 2014-15/2, for one part of the examination and a class of a given size
+GIVEN r IS A `table row` @desc the row of the table (subject, units, component)
+      p IS AN `exam part` @desc the external examination or the school assessment
+      `pupils` IS A NUMBER @desc the number of pupils the teacher presents
+GIVETH AN `allowance cell`
+DECIDE `the allowance for the part` r p `pupils` IS
+    LET `printed` MEANS
+            CONSIDER p
+            WHEN `the external examination` THEN r's `external part`
+            WHEN `the school assessment`    THEN r's `school part`
+    IN CONSIDER `printed`
+       WHEN JUST c  THEN `cell` (c's `cell weekly hours` TIMES `the share for the class size` `pupils`) (c's `cell percent` TIMES `the share for the class size` `pupils`)
+       WHEN NOTHING THEN `cell` 0 0
+
+-- Examples: history, 2 units, a class of 8 (50%).
+`the history row` MEANS `table row` `history` 2 "" (`cell` 1.5 (2%)) (JUST (`cell` 1.05 (1.4%))) (JUST (`cell` 0.45 (0.6%)))
+
+#ASSERT `the same cell` (`the allowance for the part` `the history row` `the external examination` 8) (`cell` 0.525 (0.7%))
+#ASSERT `the same cell` (`the allowance for the part` `the history row` `the school assessment` 30) (`cell` 0.45 (0.6%))
+#ASSERT `the share for the class size` 5 EQUALS 25%
+#ASSERT `the share for the class size` 9 EQUALS 50%
+#ASSERT NOT `the examination has a school assessment` `mathematics` 5 2014
+#ASSERT `the examination has a school assessment` `history` 2 2014
+#ASSERT NOT `the assessment earns a preparation allowance` `an internal assessment` FALSE
+#ASSERT `the same cell` (`the Hebrew-expression part` TRUE `the school assessment`) (`cell` 1 (2%))
+#ASSERT `the same cell` (`the Hebrew-expression part` FALSE `the school assessment`) (`cell` 0.6 (1.2%))
+
+#TRACE `the external part paid in its year` (`cell` 1.5 (2%)) AT 0 WITH
+    PARTY `the employer` DOES `pay the external part` (`cell` 1.05 (1.4%)) AT 10

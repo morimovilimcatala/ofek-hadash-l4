@@ -1,0 +1,259 @@
+-- חוזר לבעלויות תשס"ט/6: הבהרות בנוגע לחוזרנו תשס"ט/4
+-- Clarifications of circular תשס"ט/4 (the agreement with the secondary
+-- teachers' organisation on new bagrut bonuses in mathematics and English,
+-- the telephone-expense refund, and pay for work with pupils with learning
+-- disabilities): whom it covers, that the 2% per questionnaire replaces the
+-- old addition from 1.9.2008, that the added weekly hours start only on
+-- 1.9.2009, the maximum position, and the scope of the learning-disabilities
+-- arrangement.
+
+IMPORT prelude
+IMPORT common
+IMPORT daydate
+
+§ `תשס"ט/6 הבהרות בנוגע לחוזרנו תשס"ט/4`
+
+-- akn:preamble The letterhead, title, date (29.3.2009), addressee, greeting, subject line and the lead-in: following circular תשס"ט/4 on the collective agreement for pay for work with pupils with learning disabilities, and the many questions it raised, the clarifications below; no rule of its own.
+
+-- Circular תשס"ט/4, which this one clarifies, is not imported (each circular
+-- is encoded on its own words); what this circular takes from it is named as
+-- an input below.
+
+@desc The teachers' organisations a teaching employee may belong to, or none.
+DECLARE `union affiliation` IS ONE OF
+    `the Teachers' Union (Histadrut HaMorim)`
+    `the Secondary Teachers' Organisation (Irgun HaMorim)`
+    `unaffiliated`
+
+@desc The two posts section 3's maximum position distinguishes.
+DECLARE `post` IS ONE OF
+    `a teacher`
+    `a principal`
+
+@desc A teaching employee, as far as this circular asks about him.
+DECLARE `teaching employee` HAS
+    `employed in post-primary education`       IS A BOOLEAN @desc employed in post-primary (על-יסודי) education, middle schools included where section 4 says so
+    `paid by an owner`                         IS A BOOLEAN @desc receives the salary from an owner of educational institutions (הבעלויות)
+    `paid by the Ministry of Education`        IS A BOOLEAN @desc receives the salary from the Ministry of Education
+    `works at an owner with salary merged in the civil service` IS A BOOLEAN @desc works at an owner but the salary is merged in the civil service under a loan agreement (איחוד משכורות)
+    `affiliation`                              IS A `union affiliation`
+    `post held`                                IS A `post`
+
+DECLARE `clarification action` IS ONE OF
+    `change the scope of the hours of a bagrut-preparation teacher`
+    `employ beyond the maximum position` HAS `position employed` IS A NUMBER
+
+§§ `1 סעיף 1ב – תחולת ההסכם`
+
+-- Section 1, first paragraph: the agreement on new bagrut bonuses in
+-- mathematics and English and the telephone-expense refund apply to every
+-- teaching employee in post-primary education paid by an owner, whatever
+-- the organisation he belongs to. The affiliation is not read at all.
+@ref akn:art_1/p1
+GIVEN e IS A `teaching employee`
+GIVETH A BOOLEAN
+DECIDE `the bagrut and telephone agreement applies to` e IF
+        e's `employed in post-primary education`
+    AND e's `paid by an owner`
+
+-- Section 1, second paragraph: the new bagrut bonuses (only they, not the
+-- telephone refund) apply also where the employee works at an owner and the
+-- salary is merged in the civil service under a loan agreement.
+@ref akn:art_1/p2
+GIVEN e IS A `teaching employee`
+GIVETH A BOOLEAN
+DECIDE `the new bagrut bonuses apply to` e IF
+        `the bagrut and telephone agreement applies to` e
+    OR (    e's `employed in post-primary education`
+        AND e's `works at an owner with salary merged in the civil service`)
+
+GIVEN e IS A `teaching employee`
+GIVETH A BOOLEAN
+DECIDE `the telephone refund applies to` e IF
+    `the bagrut and telephone agreement applies to` e
+
+§§ `2 סעיף ג(1א) – תוספת 2% לשאלון`
+
+-- "The pay addition customary until the agreement was signed" and the 2%
+-- addition itself are defined in circular תשס"ט/4 section ג(1)(א); here they
+-- are inputs, per questionnaire.
+@desc The additions a bagrut questionnaire may carry, as circular תשס"ט/4 section ג(1)(א) sets them.
+DECLARE `questionnaire additions` HAS
+    `the 2% addition`                    IS A NUMBER @desc the "2% per questionnaire" addition of circular תשס"ט/4 section ג(1)(א), shekels; an input of that circular
+    `the addition customary before`      IS A NUMBER @desc the pay addition customary for the questionnaire until the agreement was signed, shekels; an input
+
+`the 2% addition starts` MEANS Date 1 9 2008
+
+-- Section 2: the 2% addition comes INSTEAD of the old addition, not on top
+-- of it, and is computed from the start of school year תשס"ט, 1.9.2008.
+@ref akn:art_2/p1 akn:art_2/p2
+GIVEN q IS A `questionnaire additions`, `day` IS A DATE
+GIVETH A NUMBER
+DECIDE `the questionnaire addition on` q `day` IS
+    IF `day` AT LEAST `the 2% addition starts`
+    THEN q's `the 2% addition`
+    ELSE q's `the addition customary before`
+
+§§ `3 סעיף ג(1ב) – תוספת שעות שבועיות`
+
+`the added weekly hours start` MEANS Date 1 9 2009
+
+-- Section 3, first paragraph: the added weekly hours for a teacher preparing
+-- for the bagrut take effect only from 1.9.2009.
+@ref akn:art_3/p1
+GIVEN `day` IS A DATE
+GIVETH A BOOLEAN
+DECIDE `the added weekly hours are in force on` `day` IF
+    `day` AT LEAST `the added weekly hours start`
+
+-- Section 3, second paragraph: in תשס"ט the teachers entitled to
+-- bagrut-preparation bonuses in hours go on being employed as now, and the
+-- scope of their hours is not changed. Time is counted in school months of
+-- 2008/09 (common.l4: September = 1); the prohibition runs to the year's end.
+@ref akn:art_3/p2
+GIVETH A DEONTIC Party `clarification action`
+DECIDE `no change to bagrut-preparation hours in תשס"ט` IS
+    PARTY `the local authority or owning body`
+    SHANT `change the scope of the hours of a bagrut-preparation teacher`
+    WITHIN `month number` August
+    LEST BREACH BY `the local authority or owning body` BECAUSE "section 3: in 2008/09 the hours of teachers entitled to bagrut-preparation bonuses are not changed"
+
+-- Section 3, third paragraph: under the new agreement the added preparation
+-- hours are an integral part of the employee's position in the year he
+-- presents his pupils for the bagrut in those subjects.
+@ref akn:art_3/p3
+GIVEN `position without the added hours` IS A NUMBER,
+      `added preparation hours as a share of a position` IS A NUMBER,
+      `presents pupils for the bagrut this year` IS A BOOLEAN
+GIVETH A NUMBER
+DECIDE `the position with the added hours` `position without the added hours` `added preparation hours as a share of a position` `presents pupils for the bagrut this year` IS
+    IF `presents pupils for the bagrut this year`
+    THEN `position without the added hours` PLUS `added preparation hours as a share of a position`
+    ELSE `position without the added hours`
+
+-- Section 3, fourth paragraph: no teaching employee is employed beyond the
+-- maximum position, printed "(150%/140% מורה/מנהל)". Which figure belongs to
+-- which post the text does not settle (F-2008-09_tashsat_06-a): the corpus
+-- text, in reading order, puts 150% first; the page, read right to left,
+-- shows 140% first.
+`the figures in the order the corpus text carries them` MEANS LIST 1.5, 1.4
+`the figures in the order the page shows them, right to left` MEANS LIST 1.4, 1.5
+`the posts in the order printed` MEANS LIST `a teacher`, `a principal`
+
+GIVEN p IS A `post`
+GIVETH A NUMBER
+DECIDE `the maximum position paired by the corpus text's order` p IS
+    CONSIDER p
+    WHEN `a teacher`   THEN 1.5
+    WHEN `a principal` THEN 1.4
+
+GIVEN p IS A `post`
+GIVETH A NUMBER
+DECIDE `the maximum position paired by the page's order` p IS
+    CONSIDER p
+    WHEN `a teacher`   THEN 1.4
+    WHEN `a principal` THEN 1.5
+
+`the two orders pair the figures with the posts differently` MEANS
+        (NOT (`the figures in the order the corpus text carries them`
+              EQUALS `the figures in the order the page shows them, right to left`))
+    AND (NOT (`the maximum position paired by the corpus text's order` `a teacher`
+              EQUALS `the maximum position paired by the page's order` `a teacher`))
+#ASSERT `the two orders pair the figures with the posts differently`
+
+-- The reading adopted (F-2008-09_tashsat_06-a): the page as printed, read in
+-- its own direction: a teacher 140%, a principal 150%.
+@ref akn:art_3/p4
+GIVEN p IS A `post`
+GIVETH A NUMBER
+DECIDE `the maximum position` p IS
+    `the maximum position paired by the page's order` p
+
+GIVEN e IS A `teaching employee`
+GIVETH A DEONTIC Party `clarification action`
+DECIDE `no employment beyond the maximum position` e IS
+    PARTY `the local authority or owning body`
+    SHANT `employ beyond the maximum position` `position employed`
+          PROVIDED `position employed` GREATER THAN `the maximum position` (e's `post held`)
+    WITHIN `month number` August
+    LEST BREACH BY `the local authority or owning body` BECAUSE "section 3: no teaching employee is employed beyond the maximum position allowed"
+
+§§ `4 סעיף 2 – הסדר לתגמול עובדי הוראה עבור עבודה עם תלמידים לקויי למידה`
+
+
+-- Section 4, first paragraph: the arrangement covers every teaching employee
+-- in post-primary education, middle schools included, paid by the Ministry
+-- of Education and/or by an owner.
+@ref akn:art_4/p1
+GIVEN e IS A `teaching employee`
+GIVETH A BOOLEAN
+DECIDE `the learning-disabilities arrangement applies to` e IF
+        e's `employed in post-primary education`
+    AND (e's `paid by the Ministry of Education` OR e's `paid by an owner`)
+
+-- Section 4, second paragraph: how the pay is carried out in schools that
+-- moved to Ofek Hadash will be published separately. Nothing is decided for
+-- them here, so for such a school the amount is an input.
+@ref akn:art_4/p2
+GIVEN `the school moved to Ofek Hadash` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `this circular decides the implementation for` `the school moved to Ofek Hadash` IF
+    NOT `the school moved to Ofek Hadash`
+
+-- akn:conclusions The sign-off and signature; no rule.
+
+-- Worked examples. The shekel figures are round placeholders: the amounts
+-- are circular תשס"ט/4's.
+`a teacher at an owner, unaffiliated` MEANS
+    `teaching employee` WITH
+        `employed in post-primary education`  IS TRUE
+        `paid by an owner`                    IS TRUE
+        `paid by the Ministry of Education`   IS FALSE
+        `works at an owner with salary merged in the civil service` IS FALSE
+        `affiliation`                         IS `unaffiliated`
+        `post held`                           IS `a teacher`
+
+`a teacher at an owner with salary merged in the civil service` MEANS
+    `teaching employee` WITH
+        `employed in post-primary education`  IS TRUE
+        `paid by an owner`                    IS FALSE
+        `paid by the Ministry of Education`   IS FALSE
+        `works at an owner with salary merged in the civil service` IS TRUE
+        `affiliation`                         IS `the Teachers' Union (Histadrut HaMorim)`
+        `post held`                           IS `a teacher`
+
+`a middle-school teacher paid by the Ministry` MEANS
+    `teaching employee` WITH
+        `employed in post-primary education`  IS TRUE
+        `paid by an owner`                    IS FALSE
+        `paid by the Ministry of Education`   IS TRUE
+        `works at an owner with salary merged in the civil service` IS FALSE
+        `affiliation`                         IS `the Secondary Teachers' Organisation (Irgun HaMorim)`
+        `post held`                           IS `a teacher`
+
+#ASSERT `the bagrut and telephone agreement applies to` `a teacher at an owner, unaffiliated`
+#ASSERT `the new bagrut bonuses apply to` `a teacher at an owner with salary merged in the civil service`
+#ASSERT NOT `the telephone refund applies to` `a teacher at an owner with salary merged in the civil service`
+#ASSERT NOT `the bagrut and telephone agreement applies to` `a middle-school teacher paid by the Ministry`
+#ASSERT `the learning-disabilities arrangement applies to` `a middle-school teacher paid by the Ministry`
+
+`a questionnaire` MEANS
+    `questionnaire additions` WITH
+        `the 2% addition`               IS 200
+        `the addition customary before` IS 150
+
+#ASSERT `the questionnaire addition on` `a questionnaire` (Date 1 9 2008) EQUALS 200
+#ASSERT `the questionnaire addition on` `a questionnaire` (Date 31 8 2008) EQUALS 150
+#ASSERT NOT `the added weekly hours are in force on` (Date 1 6 2009)
+#ASSERT `the added weekly hours are in force on` (Date 1 9 2009)
+#ASSERT `the position with the added hours` 1 0.1 TRUE EQUALS 1.1
+#ASSERT `the maximum position` `a teacher` EQUALS 1.4
+
+-- The maximum position, run on a timeline: employing the teacher at 120% is
+-- no breach; employing him at 145% is.
+#TRACE `no employment beyond the maximum position` `a teacher at an owner, unaffiliated` AT 0 WITH
+    PARTY `the local authority or owning body` DOES `employ beyond the maximum position` 1.2 AT 1
+#TRACE `no employment beyond the maximum position` `a teacher at an owner, unaffiliated` AT 0 WITH
+    PARTY `the local authority or owning body` DOES `employ beyond the maximum position` 1.45 AT 1
+#TRACE `no change to bagrut-preparation hours in תשס"ט` AT 0 WITH
+    PARTY `the local authority or owning body` DOES `change the scope of the hours of a bagrut-preparation teacher` AT 3

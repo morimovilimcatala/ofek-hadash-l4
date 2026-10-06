@@ -1,0 +1,578 @@
+-- חוזר לבעלויות תשס"ט/9: תשלום דמי הבראה ומענק יובל לשנת הלימודים תשס"ט
+-- Two payments for school year 2008/09 (תשס"ט). The recuperation pay, cut
+-- under the 2009 temporary law on partial payment of recuperation pay in the
+-- public service and the Wage Commissioner's circular 2009-1-26: the halved
+-- day price, the teachers paid early, substitutes paid monthly, retirees and
+-- the dead, budget pensioners, the days table, part-time and above-full
+-- positions, what the cut does not touch, and who is outside the circular.
+-- And the jubilee grant: who is entitled, how much, when it is paid.
+
+IMPORT prelude
+IMPORT common
+IMPORT daydate
+
+§ `תשס"ט/9 תשלום דמי הבראה ומענק יובל לשנת הלימודים תשס"ט`
+
+-- akn:preamble The letterhead, title, date (18.6.2009), addressee and subject line; no rule.
+
+-- Time, where a rule has a deadline, is counted in school months from
+-- September 2008 (common.l4: September = 1, so June 2009 is 10); 2010's
+-- months follow on (June 2010 is 22).
+
+§§ `1 תשלום דמי הבראה`
+
+-- akn:art_1/p1 The lead-in: the Knesset passed on 16.6.2009 the law on partial payment of recuperation pay in the public service in 2009 and 2010; its rules for teachers are the paragraphs below.
+-- akn:art_1/p2 The tail of the law's title ("(הוראת שעה), התשס"ט-2009"); no rule.
+-- akn:art_1/p3 The lead-in: under that law and the Wage Commissioner's circular 2009-1-26 of 17.6.2009, adapted to teachers, recuperation pay is paid as set out below; the rules are the subparagraphs.
+
+@desc How a teaching employee's recuperation pay reaches him, as sections 1ד, 1ה and 1ו tell them apart.
+DECLARE `recuperation payment form` IS ONE OF
+    @desc paid once a year, as a teacher's is, with June's salary
+    `an annual payment`
+    @desc a separate salary component not paid annually, e.g. a substitute teacher employed above 51 days
+    `a separate component paid other than annually`
+    @desc included in the regular salary, not a separate component
+    `included in the regular salary`
+
+@desc The populations of teaching employees section 1יד puts outside the circular's cut, and the rest.
+DECLARE `teaching population` IS ONE OF
+    @desc employed in the State service in official education (kindergartens, primary, middle, special-education schools, adult education)
+    `State service in official education`
+    @desc recognised unofficial education, in kindergartens, primary schools (networks included) and middle schools
+    `recognised unofficial kindergartens, primary or middle schools`
+    `colleges of teacher training`
+    `government post-primary schools`
+    @desc every other teaching employee of an owner
+    `any other teaching employee of an owner`
+
+@desc A teaching employee's recuperation pay for the determining period, as far as this circular asks.
+DECLARE `recuperation case` HAS
+    `teaching seniority in years`           IS A NUMBER  @desc seniority in teaching (ותק בהוראה); the first year of teaching is year 1
+    `position fraction`                     IS A NUMBER  @desc the share of a full position held that year (1 = 100%), at the same employer
+    `months of work in the year`            IS A NUMBER  @desc months of work that year, as section 1ט's "(1/10 לכל חודש עבודה)" counts them
+    `daily price without the cut`           IS A NUMBER  @desc the price of one recuperation day that applies to this employee before any cut, shekels
+    `civil-service daily price without the cut` IS A NUMBER @desc the same price for a teaching employee employed in the State service, shekels
+    `form of payment`                       IS A `recuperation payment form`
+    `paid in 2009 before June's salary`     IS A BOOLEAN @desc was paid recuperation pay, all or part, in 2009 before the June 2009 salary
+    `budget-pension retiree entitled from the former employer` IS A BOOLEAN @desc a pensioner on a budget pension entitled to recuperation pay from the former employer, for a whole year as a pensioner
+    `population`                            IS A `teaching population`
+
+DECLARE `recuperation action` IS ONE OF
+    `pay recuperation pay` HAS `recuperation paid` IS A NUMBER
+    `pay the withheld part after the determining period`
+    `pay the cut part for the period after retirement` HAS `refund paid` IS A NUMBER
+    `pay the jubilee grant` HAS `grant paid` IS A NUMBER
+
+§§§ `1א התקופה הקובעת`
+
+@ref akn:art_1__para_a
+GIVEN `year` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `in the determining period` `year` IF
+    `year` EQUALS 2009 OR `year` EQUALS 2010
+
+§§§ `1ב מחיר יום הבראה`
+
+-- Section 1ב: the price of a recuperation day is cut by 50%, so the
+-- recuperation pay is cut by that rate; and "in any case" the cut of the
+-- day price is no more than 191.5 ₪. The 2009 prices are printed: 383 ₪ a
+-- day before the cut, 191.5 ₪ after.
+`the cut rate` MEANS 0.5
+`the 2009 day price before the cut` MEANS 383
+`the 2009 day price after the cut` MEANS 191.5
+`the most the 2009 cut takes from a day` MEANS 191.5
+
+@ref akn:art_1__para_b akn:art_1__para_b/p2
+GIVEN `price` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the cut of a day price` `price` IS
+    min (`price` TIMES `the cut rate`) `the most the 2009 cut takes from a day`
+
+GIVEN `price` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the day price after the cut` `price` IS
+    `price` MINUS `the cut of a day price` `price`
+
+#ASSERT `the day price after the cut` `the 2009 day price before the cut` EQUALS `the 2009 day price after the cut`
+-- A higher day price loses no more than 191.5 ₪ a day.
+#ASSERT `the day price after the cut` 500 EQUALS 308.5
+
+§§§ `1ח טבלת ימי ההבראה`
+
+-- Section 1ח's table AS PRINTED, in the printed order. "3 שנים ראשונות" is
+-- years 1 to 3; "25 ומעלה" has no upper bound (999).
+@ref akn:art_1__para_h akn:art_1__para_h/p2 akn:art_1__para_h/p3 akn:art_1__para_h/p4 akn:art_1__para_h/p5 akn:art_1__para_h/p6 akn:art_1__para_h/p7 akn:art_1__para_h/p8
+DECLARE `seniority band` HAS
+    `from seniority`  IS A NUMBER
+    `to seniority`    IS A NUMBER
+    `days of the band` IS A NUMBER
+
+`the table of recuperation days` MEANS
+    LIST `seniority band` 1  3   7,
+         `seniority band` 4  10  9,
+         `seniority band` 11 15  10,
+         `seniority band` 16 19  11,
+         `seniority band` 20 24  12,
+         `seniority band` 25 999 13
+
+GIVEN n IS A NUMBER
+GIVETH A LIST OF NUMBER
+DECIDE `the days the table gives for year` n IS
+    map (GIVEN b YIELD b's `days of the band`)
+        (filter (GIVEN b YIELD n AT LEAST b's `from seniority` AND n AT MOST b's `to seniority`)
+                `the table of recuperation days`)
+
+GIVEN n IS A NUMBER
+GIVETH A NUMBER
+DECIDE `recuperation days` n IS
+    BRANCH IF n AT LEAST 25 THEN 13
+           IF n AT LEAST 20 THEN 12
+           IF n AT LEAST 16 THEN 11
+           IF n AT LEAST 11 THEN 10
+           IF n AT LEAST 4  THEN 9
+           IF n AT LEAST 1  THEN 7
+           OTHERWISE 0
+
+-- The printed table is a function on years 1 to 40, and the BRANCH agrees with it.
+#ASSERT all (GIVEN n YIELD `the days the table gives for year` n EQUALS LIST (`recuperation days` n))
+            (LIST 1, 2, 3, 4, 10, 11, 15, 16, 19, 20, 24, 25, 26, 30, 40)
+
+§§§ `1ט–1י משרה חלקית ומשרה מעל שלמה`
+
+-- Section 1ט: a part-time employee is entitled "in proportion to the part
+-- of his position that year (1/10 for each month of work)". The sentence
+-- pro-rates by position, its parenthesis by months (F-2008-09_tashsat_09-a).
+GIVEN c IS A `recuperation case`
+GIVETH A NUMBER
+DECIDE `share by the position, as the sentence says` c IS
+    min (c's `position fraction`) 1
+
+GIVEN c IS A `recuperation case`
+GIVETH A NUMBER
+DECIDE `share by the months, as the parenthesis says` c IS
+    c's `months of work in the year` TIMES 0.1
+
+-- Section 1י: above a full position at one employer, the allowance of one
+-- full position only.
+@ref akn:art_1__para_j
+GIVEN c IS A `recuperation case`
+GIVETH A NUMBER
+DECIDE `the position counted` c IS
+    min (c's `position fraction`) 1
+
+-- The reading adopted (F-2008-09_tashsat_09-a): both — the position share
+-- (capped by section 1י) times the months share, the months share no more
+-- than a whole year.
+@ref akn:art_1__para_i
+GIVEN c IS A `recuperation case`
+GIVETH A NUMBER
+DECIDE `the share of the allowance` c IS
+    `the position counted` c
+    TIMES min (`share by the months, as the parenthesis says` c) 1
+
+§§§ `1ג–1ה מי משלם מה ומתי`
+
+GIVEN c IS A `recuperation case`
+GIVETH A BOOLEAN
+DECIDE `the cut applies to` c IF
+        c's `population` EQUALS `any other teaching employee of an owner`
+    AND NOT c's `budget-pension retiree entitled from the former employer`
+
+-- The full-year recuperation pay before any cut, at a given day price.
+GIVEN `price` IS A NUMBER, c IS A `recuperation case`
+GIVETH A NUMBER
+DECIDE `recuperation pay at` `price` `for` c IS
+    `recuperation days` (c's `teaching seniority in years`)
+    TIMES `price`
+    TIMES `the share of the allowance` c
+
+-- The 2009 annual payment (sections 1ב, 1ג first sentence, 1ז, 1יג, 1יד):
+-- cut at the payment date, June, unless the employee was paid before June,
+-- or is outside the cut.
+@export default The recuperation pay an owner pays a teaching employee in 2009 under circular תשס"ט/9, after the cut of the 2009 temporary law
+GIVEN c IS A `recuperation case` @desc the employee's recuperation case
+GIVETH A NUMBER
+DECIDE `recuperation pay in 2009` c IS
+    IF `the cut applies to` c AND NOT c's `paid in 2009 before June's salary`
+    THEN `recuperation pay at` (`the day price after the cut` (c's `daily price without the cut`)) `for` c
+    ELSE `recuperation pay at` (c's `daily price without the cut`) `for` c
+
+-- Section 1ג: an employee paid recuperation pay, all or part, in 2009 before
+-- June's salary is paid none in 2010, and the 2009 payment is not cut;
+-- except that one whose day price is above the civil service's is paid in
+-- 2010 at a day price equal to the difference between the two uncut prices.
+@ref akn:art_1__para_c
+GIVEN c IS A `recuperation case`
+GIVETH A NUMBER
+DECIDE `the 2010 day price for one paid early in 2009` c IS
+    max (c's `daily price without the cut` MINUS c's `civil-service daily price without the cut`) 0
+
+-- Section 1ג's own example: 500 ₪ for the teacher and 400 ₪ in the civil
+-- service give a 2010 day price of 100 ₪.
+@ref akn:art_1__para_c/p2
+`the section 1ג example` MEANS
+    `recuperation case` WITH
+        `teaching seniority in years`           IS 12
+        `position fraction`                     IS 1
+        `months of work in the year`            IS 10
+        `daily price without the cut`           IS 500
+        `civil-service daily price without the cut` IS 400
+        `form of payment`                       IS `an annual payment`
+        `paid in 2009 before June's salary`     IS TRUE
+        `budget-pension retiree entitled from the former employer` IS FALSE
+        `population`                            IS `any other teaching employee of an owner`
+
+#ASSERT `the 2010 day price for one paid early in 2009` `the section 1ג example` EQUALS 100
+
+-- Section 1ד: an employee whose recuperation pay is a separate component not
+-- paid annually (e.g. a substitute above 51 days) is treated ONLY as follows,
+-- for the 2010 payments, month by month of calendar 2010:
+-- (1) employed by the employer all of 2009: none in 2010;
+-- (2) employed part of 2009: none in a first stretch of 2010 as long as the
+--     time employed in 2009, then cut by half to the end of 2010;
+-- (3) not employed by the employer in 2009: cut by half in 2010.
+@ref akn:art_1__para_d akn:art_1__para_d__subpara_1 akn:art_1__para_d__subpara_2 akn:art_1__para_d__subpara_3
+GIVEN `months employed in 2009` IS A NUMBER, `month of 2010` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `share of the 2010 component paid` `months employed in 2009` `month of 2010` IS
+    BRANCH IF `months employed in 2009` AT LEAST 12 THEN 0
+           IF `month of 2010` AT MOST `months employed in 2009` THEN 0
+           OTHERWISE 1 MINUS `the cut rate`
+
+-- Section 1ד(2)'s own example: five months in 2009 — nothing in 2010's first
+-- five months, half thereafter.
+@ref akn:art_1__para_d__subpara_2/p2
+`the section 1ד example holds` MEANS
+        all (GIVEN k YIELD `share of the 2010 component paid` 5 k EQUALS 0) (LIST 1, 2, 3, 4, 5)
+    AND all (GIVEN k YIELD `share of the 2010 component paid` 5 k EQUALS 0.5) (LIST 6, 7, 8, 9, 10, 11, 12)
+#ASSERT `the section 1ד example holds`
+#ASSERT `share of the 2010 component paid` 12 3 EQUALS 0
+#ASSERT `share of the 2010 component paid` 0 1 EQUALS 0.5
+
+-- Section 1ה: where recuperation pay is included in the regular salary, the
+-- 2010 salary is cut by instructions to be published separately. The cut
+-- for them is not set here; it is an input of those instructions.
+@ref akn:art_1__para_e
+GIVEN c IS A `recuperation case`
+GIVETH A BOOLEAN
+DECIDE `the cut is set by separate instructions for` c IF
+    c's `form of payment` EQUALS `included in the regular salary`
+
+§§§ `1ו עובד הוראה שפרש או נפטר במהלך שנת הבראה`
+
+-- Section 1ו(1), second paragraph: "שנת הבראה" is a year — "meaning the
+-- school year from 1.9.08 to 31.8.09" — for all or part of which recuperation
+-- pay is paid whose payment date falls in the determining period. The
+-- parenthesis names 2008/09 alone, while the determining period runs into
+-- 2010, whose June payment is for 2009/10 (F-2008-09_tashsat_09-b).
+`the recuperation year's first day` MEANS Date 1 9 2008
+`the recuperation year's last day` MEANS Date 31 8 2009
+
+GIVEN `day` IS A DATE
+GIVETH A BOOLEAN
+DECIDE `in the recuperation year as defined` `day` IF
+    `day` AT LEAST `the recuperation year's first day` AND `day` AT MOST `the recuperation year's last day`
+
+`the June 2010 payment is in the determining period but its school year is outside the definition` MEANS
+        `in the determining period` 2010
+    AND (NOT (`in the recuperation year as defined` (Date 1 3 2010)))
+#ASSERT `the June 2010 payment is in the determining period but its school year is outside the definition`
+
+-- The reading adopted (F-2008-09_tashsat_09-b): the definition's general
+-- words govern — a recuperation year is the school year a payment in the
+-- determining period is for, 2009/10 included — and the parenthesis names
+-- the one this circular pays.
+@ref akn:art_1__para_f__subpara_1/p2
+GIVEN `school year ends in` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `a recuperation year` `school year ends in` IF
+    `in the determining period` `school year ends in`
+
+-- Section 1ו(1): a retiree or one who died, paid annually and entitled
+-- (himself or his survivors) to recuperation pay from the former employer
+-- also for the time after the retirement or death, has the cut applied only
+-- to the part of the recuperation year BEFORE that date.
+@ref akn:art_1__para_f akn:art_1__para_f__subpara_1
+GIVEN c IS A `recuperation case`, `share of the year before the retirement or death` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `recuperation pay for a retiree's year` c `share of the year before the retirement or death` IS
+    `recuperation pay at` (`the day price after the cut` (c's `daily price without the cut`)) `for` c
+        TIMES `share of the year before the retirement or death`
+    PLUS (`recuperation pay at` (c's `daily price without the cut`) `for` c
+          TIMES (1 MINUS `share of the year before the retirement or death`))
+
+-- Section 1ו(2): where the retirement or death comes after the year's
+-- payment date, the employer pays the entitled person the part cut for the
+-- period after it, within 60 days. This rule runs on its own timeline, in
+-- days from the retirement or death.
+@ref akn:art_1__para_f__subpara_2
+GIVEN c IS A `recuperation case`, `share of the year after the retirement or death` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the cut part for the period after retirement` c `share of the year after the retirement or death` IS
+    (`recuperation pay at` (c's `daily price without the cut`) `for` c
+     MINUS `recuperation pay at` (`the day price after the cut` (c's `daily price without the cut`)) `for` c)
+    TIMES `share of the year after the retirement or death`
+
+GIVEN c IS A `recuperation case`, `share of the year after the retirement or death` IS A NUMBER
+GIVETH A DEONTIC Party `recuperation action`
+DECIDE `refund within 60 days` c `share of the year after the retirement or death` IS
+    PARTY `the local authority or owning body`
+    MUST  `pay the cut part for the period after retirement` `refund`
+          PROVIDED `refund` AT LEAST `the cut part for the period after retirement` c `share of the year after the retirement or death`
+    WITHIN 60
+    LEST BREACH BY `the local authority or owning body` BECAUSE "section 1ו(2): the part cut for the period after retirement or death is paid within 60 days of it"
+
+§§§ `1ז גמלאים בפנסיה תקציבית`
+
+-- Section 1ז: the cut does not apply to budget pensioners entitled to
+-- recuperation pay from their former employer (the `the cut applies to`
+-- rule above); for a year partly active and partly pensioner, section 1ו
+-- governs, i.e. the cut falls on the active part.
+@ref akn:art_1__para_g
+GIVEN c IS A `recuperation case`, `share of the year active` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `recuperation pay for a year partly as a budget pensioner` c `share of the year active` IS
+    `recuperation pay for a retiree's year` c `share of the year active`
+
+§§§ `1יא–1יד`
+
+@desc The matters section 1יא computes as if the recuperation pay had been paid in full.
+DECLARE `computation` IS ONE OF
+    `the sum paid to a provident fund, pension fund and study fund included`
+    `income and tax on provident-fund payments in the determining period`
+    `budget-pension payments`
+    `one-off payments on the end of employment`
+    `the determining salary for the 2% budget-pension deduction`
+    `any other computation`
+
+-- Section 1יא: for the five matters it lists, the recuperation pay is
+-- reckoned as paid in full, without the cut. Its first item stands in the
+-- corpus as the paragraph's second line (akn:art_1__para_ja/p2).
+@ref akn:art_1__para_ja akn:art_1__para_ja/p2 akn:art_1__para_ja__subpara_2 akn:art_1__para_ja__subpara_2/p2 akn:art_1__para_ja__subpara_3 akn:art_1__para_ja__subpara_4 akn:art_1__para_ja__subpara_5 akn:art_1__para_ja__subpara_5/p2 akn:art_1__para_ja__subpara_5/p3
+GIVEN c IS A `recuperation case`, `for` IS A `computation`
+GIVETH A NUMBER
+DECIDE `recuperation pay reckoned` c `for` IS
+    IF `for` EQUALS `any other computation`
+    THEN `recuperation pay in 2009` c
+    ELSE `recuperation pay at` (c's `daily price without the cut`) `for` c
+
+-- Section 1יב: the part of the recuperation pay or salary not paid under
+-- this circular is not paid even after the determining period. The
+-- prohibition has no end; the timeline runs to June 2012 (month 46) to
+-- stand for "ever" in a trace.
+@ref akn:art_1__para_jb
+GIVETH A DEONTIC Party `recuperation action`
+DECIDE `the withheld part is never paid` IS
+    PARTY `the local authority or owning body`
+    SHANT `pay the withheld part after the determining period`
+    WITHIN 46
+    LEST BREACH BY `the local authority or owning body` BECAUSE "section 1יב: the part not paid under this circular is not paid even after the determining period"
+
+-- Section 1יג: the cut is made on the date recuperation pay is paid, for
+-- teachers the June salary.
+@ref akn:art_1__para_jc
+GIVEN c IS A `recuperation case`
+GIVETH A DEONTIC Party `recuperation action`
+DECIDE `recuperation pay with June 2009's salary` c IS
+    PARTY `the local authority or owning body`
+    MUST  `pay recuperation pay` `amount paid`
+          PROVIDED `amount paid` AT LEAST `recuperation pay in 2009` c
+    WITHIN `month number` June
+    LEST BREACH BY `the local authority or owning body` BECAUSE "section 1יג: recuperation pay, cut, is paid with June's salary"
+
+-- Section 1יד: the circular's cut does not apply to the four populations it
+-- lists (the `the cut applies to` rule above reads them off `population`).
+@ref akn:art_1__para_jd akn:art_1__para_jd__subpara_1 akn:art_1__para_jd__subpara_2 akn:art_1__para_jd__subpara_3 akn:art_1__para_jd__subpara_4
+`the populations outside the circular` MEANS
+    LIST `State service in official education`,
+         `recognised unofficial kindergartens, primary or middle schools`,
+         `colleges of teacher training`,
+         `government post-primary schools`
+
+§§ `2 תשלום מענק יובל`
+
+@desc A teaching employee's case for the jubilee grant paid in June 2009.
+DECLARE `jubilee case` HAS
+    `teaching seniority set in September 2008`       IS A NUMBER @desc accumulated teaching seniority, military service included, as set for the employee in September 2008
+    `teaching seniority completed by 1 June 2009`    IS A NUMBER @desc the same seniority, as completed by 1 June 2009
+    `years of work in Israel completed by 1 June 2009` IS A NUMBER @desc years of work in Israel, compulsory IDF service included, completed by 1 June 2009
+    `unpaid-leave years with pension rights bought`  IS A NUMBER @desc years of unpaid leave for which pension rights were bought from the State or the teachers' pension funds
+    `determining salary for pension and severance`   IS A NUMBER @desc the monthly determining salary for pension and severance pay, once-a-year payments such as clothing and recuperation excluded, shekels
+    `jubilee position fraction`                      IS A NUMBER @desc the share of a full position held that year
+    `share of the year employed`                     IS A NUMBER @desc the share of the year the employee was employed (1 = all of it)
+
+`the jubilee threshold` MEANS 30
+
+-- Sections 2 ¶4 and 2ב name two different measures of the 30 years at two
+-- different dates (F-2008-09_tashsat_09-c, F-2008-09_tashsat_09-d).
+@ref akn:art_2/p4
+GIVEN j IS A `jubilee case`
+GIVETH A BOOLEAN
+DECIDE `entitled by the seniority set in September 2008` j IF
+    j's `teaching seniority set in September 2008` PLUS j's `unpaid-leave years with pension rights bought`
+    AT LEAST `the jubilee threshold`
+
+@ref akn:art_2__para_b
+GIVEN j IS A `jubilee case`
+GIVETH A BOOLEAN
+DECIDE `entitled by work in Israel completed by 1 June` j IF
+    j's `years of work in Israel completed by 1 June 2009` PLUS j's `unpaid-leave years with pension rights bought`
+    AT LEAST `the jubilee threshold`
+
+-- The reading adopted: section 2's own measure (teaching seniority with
+-- military service), completed by section 2ב's day, 1 June of the year; and
+-- section 2א's bought unpaid-leave years count toward it.
+@ref akn:art_2/p2 akn:art_2__para_a
+GIVEN j IS A `jubilee case`
+GIVETH A BOOLEAN
+DECIDE `entitled to the jubilee grant` j IF
+    j's `teaching seniority completed by 1 June 2009` PLUS j's `unpaid-leave years with pension rights bought`
+    AT LEAST `the jubilee threshold`
+
+`the jubilee rate` MEANS 0.6
+
+-- Section 2 ¶3 and 2ג: 60% of the determining salary for pension and
+-- severance, pro-rated to the position that year up to one position, and to
+-- the share of the period employed.
+@ref akn:art_2/p3 akn:art_2__para_c
+@export The jubilee grant an owner pays a teaching employee with the June 2009 salary under circular תשס"ט/9
+GIVEN j IS A `jubilee case` @desc the employee's jubilee case
+GIVETH A NUMBER
+DECIDE `the jubilee grant` j IS
+    IF `entitled to the jubilee grant` j
+    THEN `the jubilee rate`
+         TIMES j's `determining salary for pension and severance`
+         TIMES min (j's `jubilee position fraction`) 1
+         TIMES j's `share of the year employed`
+    ELSE 0
+
+-- Section 2 ¶1: the grant is paid with the June 2009 salary.
+@ref akn:art_2/p1
+GIVEN j IS A `jubilee case`
+GIVETH A DEONTIC Party `recuperation action`
+DECIDE `the jubilee grant with June's salary` j IS
+    PARTY `the local authority or owning body`
+    MUST  `pay the jubilee grant` `grant`
+          PROVIDED `grant` AT LEAST `the jubilee grant` j
+    WITHIN `month number` June
+    LEST BREACH BY `the local authority or owning body` BECAUSE "section 2: the jubilee grant is paid with the June 2009 salary"
+
+-- akn:art_2/p5 The heading "הבהרות" over sections 2א–2ג; no rule.
+
+-- akn:art_3 The contact line for questions (the conditions-of-service unit's telephones); no rule.
+
+-- akn:conclusions The sign-off and signature; no rule.
+
+-- F-2008-09_tashsat_09-a: the sentence and its parenthesis pro-rate by
+-- different measures: a half-position teacher who worked all ten months
+-- gets half under the one and the whole under the other, and twelve months
+-- of work make more than a whole year at 1/10 a month.
+`a half-position teacher for ten months` MEANS
+    `recuperation case` WITH
+        `teaching seniority in years`           IS 12
+        `position fraction`                     IS 0.5
+        `months of work in the year`            IS 10
+        `daily price without the cut`           IS 383
+        `civil-service daily price without the cut` IS 383
+        `form of payment`                       IS `an annual payment`
+        `paid in 2009 before June's salary`     IS FALSE
+        `budget-pension retiree entitled from the former employer` IS FALSE
+        `population`                            IS `any other teaching employee of an owner`
+
+`a full-position teacher for twelve months` MEANS
+    `recuperation case` WITH
+        `teaching seniority in years`           IS 12
+        `position fraction`                     IS 1
+        `months of work in the year`            IS 12
+        `daily price without the cut`           IS 383
+        `civil-service daily price without the cut` IS 383
+        `form of payment`                       IS `an annual payment`
+        `paid in 2009 before June's salary`     IS FALSE
+        `budget-pension retiree entitled from the former employer` IS FALSE
+        `population`                            IS `any other teaching employee of an owner`
+
+`the position and the months give different shares` MEANS
+        (NOT (`share by the position, as the sentence says` `a half-position teacher for ten months`
+              EQUALS `share by the months, as the parenthesis says` `a half-position teacher for ten months`))
+    AND `share by the months, as the parenthesis says` `a full-position teacher for twelve months` GREATER THAN 1
+#ASSERT `the position and the months give different shares`
+
+-- F-2008-09_tashsat_09-c: two dates for the 30 years.
+`a teacher who reaches 30 years in March 2009` MEANS
+    `jubilee case` WITH
+        `teaching seniority set in September 2008`       IS 29
+        `teaching seniority completed by 1 June 2009`    IS 30
+        `years of work in Israel completed by 1 June 2009` IS 30
+        `unpaid-leave years with pension rights bought`  IS 0
+        `determining salary for pension and severance`   IS 10000
+        `jubilee position fraction`                      IS 1
+        `share of the year employed`                     IS 1
+
+`the September and the June dates give different answers` MEANS
+        `entitled by work in Israel completed by 1 June` `a teacher who reaches 30 years in March 2009`
+    AND (NOT (`entitled by the seniority set in September 2008` `a teacher who reaches 30 years in March 2009`))
+#ASSERT `the September and the June dates give different answers`
+
+-- F-2008-09_tashsat_09-d: two measures for the 30 years.
+`a teacher with 25 years of teaching and 31 of work in Israel` MEANS
+    `jubilee case` WITH
+        `teaching seniority set in September 2008`       IS 25
+        `teaching seniority completed by 1 June 2009`    IS 25
+        `years of work in Israel completed by 1 June 2009` IS 31
+        `unpaid-leave years with pension rights bought`  IS 0
+        `determining salary for pension and severance`   IS 10000
+        `jubilee position fraction`                      IS 1
+        `share of the year employed`                     IS 1
+
+`teaching seniority and work in Israel give different answers` MEANS
+        `entitled by work in Israel completed by 1 June` `a teacher with 25 years of teaching and 31 of work in Israel`
+    AND (NOT (`entitled to the jubilee grant` `a teacher with 25 years of teaching and 31 of work in Israel`))
+#ASSERT `teaching seniority and work in Israel give different answers`
+
+-- Worked examples, on the circular's own 2009 prices; the salary figures
+-- are round placeholders.
+`a full-position teacher in year 22` MEANS
+    `recuperation case` WITH
+        `teaching seniority in years`           IS 22
+        `position fraction`                     IS 1
+        `months of work in the year`            IS 10
+        `daily price without the cut`           IS 383
+        `civil-service daily price without the cut` IS 383
+        `form of payment`                       IS `an annual payment`
+        `paid in 2009 before June's salary`     IS FALSE
+        `budget-pension retiree entitled from the former employer` IS FALSE
+        `population`                            IS `any other teaching employee of an owner`
+
+`a teacher in a government post-primary school` MEANS
+    `recuperation case` WITH
+        `teaching seniority in years`           IS 22
+        `position fraction`                     IS 1
+        `months of work in the year`            IS 10
+        `daily price without the cut`           IS 383
+        `civil-service daily price without the cut` IS 383
+        `form of payment`                       IS `an annual payment`
+        `paid in 2009 before June's salary`     IS FALSE
+        `budget-pension retiree entitled from the former employer` IS FALSE
+        `population`                            IS `government post-primary schools`
+
+-- 12 days at 191.5 ₪.
+#ASSERT `recuperation pay in 2009` `a full-position teacher in year 22` EQUALS 2298
+#ASSERT `recuperation pay in 2009` `a teacher in a government post-primary school` EQUALS 4596
+#ASSERT `recuperation pay reckoned` `a full-position teacher in year 22` `budget-pension payments` EQUALS 4596
+#ASSERT `recuperation pay in 2009` `a half-position teacher for ten months` EQUALS 957.5
+#ASSERT `recuperation pay for a retiree's year` `a full-position teacher in year 22` 0.5 EQUALS 3447
+#ASSERT `the cut part for the period after retirement` `a full-position teacher in year 22` 0.25 EQUALS 574.5
+#ASSERT all (GIVEN p YIELD NOT (p EQUALS `any other teaching employee of an owner`)) `the populations outside the circular`
+#ASSERT `the jubilee grant` `a teacher who reaches 30 years in March 2009` EQUALS 6000
+#ASSERT `the jubilee grant` `a teacher with 25 years of teaching and 31 of work in Israel` EQUALS 0
+
+#TRACE `recuperation pay with June 2009's salary` `a full-position teacher in year 22` AT 0 WITH
+    PARTY `the local authority or owning body` DOES `pay recuperation pay` 2298 AT 10
+#TRACE `recuperation pay with June 2009's salary` `a full-position teacher in year 22` AT 0 WITH
+    PARTY `the local authority or owning body` DOES `pay recuperation pay` 2298 AT 11
+#TRACE `refund within 60 days` `a full-position teacher in year 22` 0.25 AT 0 WITH
+    PARTY `the local authority or owning body` DOES `pay the cut part for the period after retirement` 574.5 AT 45
+#TRACE `the withheld part is never paid` AT 0 WITH
+    PARTY `the local authority or owning body` DOES `pay the withheld part after the determining period` AT 30
+#TRACE `the jubilee grant with June's salary` `a teacher who reaches 30 years in March 2009` AT 0 WITH
+    PARTY `the local authority or owning body` DOES `pay the jubilee grant` 6000 AT 10

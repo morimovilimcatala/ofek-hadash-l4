@@ -1,0 +1,231 @@
+-- חוזר לבעלויות תשס"ח/6 — קצובת ביגוד לשנת הלימודים תשס"ח
+-- The clothing allowance for 2007-08 on the Treasury's instructions: the
+-- general allowance by seniority (1,328 / 1,851), the additional allowance
+-- for physical-education teachers by position (229 / 454), and the
+-- allowance for teachers of listed technological subjects (484 / 300), all
+-- pro-rated to at most one full position and paid with July 2008's salary.
+
+IMPORT prelude
+IMPORT common
+
+§ `קצובת ביגוד לשנת הלימודים תשס"ח`
+
+-- akn:preamble The letterhead, title, subject line and the recital that these are the Treasury's instructions; no rule.
+
+-- Time in this file is counted in school months from September 2007 (1), so
+-- July 2008's salary is month 11 (`month number` July).
+
+DECLARE `technological subject list` IS ONE OF
+    `not a listed technological subject`
+    `a shoes-and-two-robes subject`
+    `a two-robes subject`
+
+@desc A teaching employee's 2007-08 year, as far as the clothing allowance asks about it.
+DECLARE `clothing year` HAS
+    `on the teaching grading`         IS A BOOLEAN
+    `years of teaching seniority`     IS A NUMBER  @desc seniority in teaching, in years
+    `position fraction`               IS A NUMBER  @desc share of a full position (1 = 100%)
+    `teaches physical education`      IS A BOOLEAN
+    `physical-education position`     IS A NUMBER  @desc the share of a full position employed as a physical-education teacher
+    `technological subject`           IS A `technological subject list` @desc the list of section ג.1 the teacher's or vocational instructor's subject is on, if any
+
+§§ `א קצובת ביגוד – כללי`
+
+-- §א.2: an employee on the teaching grading is entitled to the clothing
+-- allowance usual for civil servants who receive the public, for the school
+-- year 09/07–08/08.
+@ref akn:art_a akn:art_a__para_2
+GIVEN y IS A `clothing year`
+GIVETH A BOOLEAN
+DECIDE `entitled to the clothing allowance` y IF
+    y's `on the teaching grading`
+
+-- §א.3–4 and the table (¶2–4 under §א.5): by seniority.
+@desc A row of the summary table: a band of seniority years and its amount.
+DECLARE `seniority row` HAS
+    `from seniority`   IS A NUMBER
+    `to seniority`     IS A NUMBER  @desc 999 stands for "ומעלה", with no upper bound
+    `row amount`       IS A NUMBER
+
+@ref akn:art_a__para_3 akn:art_a__para_4 akn:art_a__para_5/p2 akn:art_a__para_5/p3 akn:art_a__para_5/p4
+`the summary table` MEANS
+    LIST `seniority row` 1  25  1328,
+         `seniority row` 26 999 1851
+
+GIVEN n IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the full-position amount for seniority` n IS
+    sum (map (GIVEN r YIELD r's `row amount`)
+             (filter (GIVEN r YIELD n AT LEAST r's `from seniority` AND n AT MOST r's `to seniority`)
+                     `the summary table`))
+
+-- §א.5 and §ג.3: pro-rated to the position, up to one full position (100%).
+@ref akn:art_a__para_5 akn:art_c__para_3
+GIVEN y IS A `clothing year`
+GIVETH A NUMBER
+DECIDE `the position share` y IS
+    min 1 (y's `position fraction`)
+
+@export The general clothing allowance a teaching employee is paid with July 2008's salary for the 2007-08 school year
+GIVEN y IS A `clothing year` @desc the employee's 2007-08 year
+GIVETH A NUMBER
+DECIDE `the general clothing allowance` y IS
+    IF `entitled to the clothing allowance` y
+    THEN `the full-position amount for seniority` (y's `years of teaching seniority`) TIMES `the position share` y
+    ELSE 0
+
+§§ `ב קצובת ביגוד נוספת למורה לחינוך גופני`
+
+-- §ב's table AS PRINTED ("amount as at 1/8/08"). The first row prints no
+-- amount and is read as nothing; the bands meet at 0.3 and at 0.5, which
+-- each falls in two rows (F-2007-08_tashsach_06-a).
+@desc A row of §ב's table: a band of position share and its amount.
+DECLARE `position row` HAS
+    `from position` IS A NUMBER
+    `to position`   IS A NUMBER  @desc 99 stands for "ומעלה", with no upper bound
+    `pe amount`     IS A NUMBER
+
+@ref akn:art_b akn:art_b/p1 akn:art_b/p2 akn:art_b/p3 akn:art_b/p4
+`the physical-education table` MEANS
+    LIST `position row` 0   0.3 0,
+         `position row` 0.3 0.5 229,
+         `position row` 0.5 99  454
+
+GIVEN share IS A NUMBER
+GIVETH A LIST OF NUMBER
+DECIDE `the amounts the table gives for` share IS
+    map (GIVEN r YIELD r's `pe amount`)
+        (filter (GIVEN r YIELD share AT LEAST r's `from position` AND share AT MOST r's `to position`)
+                `the physical-education table`)
+
+-- The reading adopted (F-2007-08_tashsach_06-a): a boundary belongs to the
+-- row that opens at it ("מ-0.3", "מ-0.5"), so 0.3 earns 229 and 0.5 earns 454.
+GIVEN share IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the physical-education amount for` share IS
+    BRANCH IF share AT LEAST 0.5 THEN 454
+           IF share AT LEAST 0.3 THEN 229
+           OTHERWISE 0
+
+GIVEN y IS A `clothing year`
+GIVETH A NUMBER
+DECIDE `the physical-education allowance` y IS
+    IF y's `teaches physical education`
+    THEN `the physical-education amount for` (y's `physical-education position`)
+    ELSE 0
+
+§§ `ג קצובת ביגוד בחינוך הטכנולוגי`
+
+-- §ג.1א: teachers or vocational instructors of these thirteen subjects get
+-- a pair of shoes and two robes a year, valued at 484.
+@ref akn:art_c__para_1__subpara_a akn:art_c__para_1__subpara_a/p2 akn:art_c__para_1__subpara_a/p3 akn:art_c__para_1__subpara_a/p4 akn:art_c__para_1__subpara_a/p5 akn:art_c__para_1__subpara_a/p6 akn:art_c__para_1__subpara_a/p7 akn:art_c__para_1__subpara_a/p8 akn:art_c__para_1__subpara_a/p9
+`the shoes-and-robes subjects` MEANS
+    LIST "מערכות תעופה", "מכטרוניקה", "טרמודינמיקה טכנית ימית", "מערכות סיב\"מ ותיב\"מ",
+         "תחזוקת מערכות מכניות", "מערכות מכונאות רכב", "מערכות ממוחשבות ברכב",
+         "מערכות הספק, פיקוד ובקרה", "מערכות בקרת אקלים", "אומנות הבישול והאפיה המלונאית",
+         "ימאות – ספינות", "מערכות טלוויזיה וקולנוע", "מערכות צילום"
+
+@ref akn:art_c__para_1__subpara_a/p10
+`the value of shoes and two robes` MEANS 484
+
+-- §ג.1ב: teachers or instructors of these twelve subjects get two robes a
+-- year, valued at 300.
+@ref akn:art_c__para_1__subpara_b akn:art_c__para_1__subpara_b/p2 akn:art_c__para_1__subpara_b/p3 akn:art_c__para_1__subpara_b/p4 akn:art_c__para_1__subpara_b/p5 akn:art_c__para_1__subpara_b/p6 akn:art_c__para_1__subpara_b/p7
+`the two-robes subjects` MEANS
+    LIST "מערכות אלקטרוניות", "מערכות מחשוב ובקרה", "מערכות מחשבים", "תכנון ותכנות מערכות",
+         "מערכות ביוטכנולוגיה", "ניהול תיירותי", "ניהול מלונאי", "חינוך לגיל הרך",
+         "עיצוב", "אופנה ותלבושות", "עיצוב שיער, קוסמטיקה ואיפור", "סיעוד"
+
+@ref akn:art_c__para_1__subpara_b/p8
+`the value of two robes` MEANS 300
+
+GIVEN subject IS A STRING
+GIVETH A `technological subject list`
+DECIDE `the list a subject is on` subject IS
+    IF elem subject `the shoes-and-robes subjects`
+    THEN `a shoes-and-two-robes subject`
+    ELSE IF elem subject `the two-robes subjects`
+         THEN `a two-robes subject`
+         ELSE `not a listed technological subject`
+
+#ASSERT count `the shoes-and-robes subjects` EQUALS 13
+#ASSERT count `the two-robes subjects` EQUALS 12
+-- No subject is on both lists.
+#ASSERT all (GIVEN s YIELD NOT elem s `the two-robes subjects`) `the shoes-and-robes subjects`
+
+-- §ג ¶1–2 and §ג.3: paid for 2007-08 by the subject list, pro-rated to at
+-- most one full position.
+@ref akn:art_c/p1 akn:art_c/p2
+GIVEN y IS A `clothing year`
+GIVETH A NUMBER
+DECIDE `the technological allowance` y IS
+    CONSIDER y's `technological subject`
+    WHEN `a shoes-and-two-robes subject` THEN `the value of shoes and two robes` TIMES `the position share` y
+    WHEN `a two-robes subject` THEN `the value of two robes` TIMES `the position share` y
+    OTHERWISE 0
+
+-- §ג.2: in addition to the general allowance (as is §ב's, "additional").
+@ref akn:art_c__para_2
+GIVEN y IS A `clothing year`
+GIVETH A NUMBER
+DECIDE `the whole clothing allowance` y IS
+    `the general clothing allowance` y
+    PLUS `the physical-education allowance` y
+    PLUS `the technological allowance` y
+
+DECLARE `clothing action` IS ONE OF
+    `pay the clothing allowance` HAS `clothing paid` IS A NUMBER
+
+-- §א.1: in full with July 2008's salary. §ב and §ג name no date of their
+-- own and are read as paid with it.
+@ref akn:art_a__para_1
+GIVEN y IS A `clothing year`
+GIVETH A DEONTIC Party `clothing action`
+DECIDE `the allowance is paid with July's salary` y IS
+    PARTY `the employer`
+    MUST  `pay the clothing allowance` x
+          PROVIDED x AT LEAST `the whole clothing allowance` y
+    WITHIN `month number` July
+    LEST  BREACH BY `the employer` BECAUSE "section א.1: the clothing allowance is paid in full with July 2008's salary"
+
+-- akn:conclusions The sign-off and signature; no rule.
+
+§§ `Findings and examples`
+
+-- F-2007-08_tashsach_06-a: a physical-education teacher on 0.3 or 0.5 of a
+-- position falls in two rows of §ב's table.
+`the physical-education table gives 0.3 and 0.5 two amounts` MEANS
+        `the amounts the table gives for` 0.3 EQUALS LIST 0, 229
+    AND `the amounts the table gives for` 0.5 EQUALS LIST 229, 454
+#ASSERT `the physical-education table gives 0.3 and 0.5 two amounts`
+
+-- Every other share has one row, and the reading agrees with it.
+#ASSERT all (GIVEN s YIELD `the amounts the table gives for` s EQUALS LIST (`the physical-education amount for` s))
+            (LIST 0, 0.1, 0.29, 0.31, 0.4, 0.49, 0.51, 0.8, 1)
+
+`a PE teacher, year 30, three quarters of a position` MEANS
+    `clothing year` WITH
+        `on the teaching grading`     IS TRUE
+        `years of teaching seniority` IS 30
+        `position fraction`           IS 0.75
+        `teaches physical education`  IS TRUE
+        `physical-education position` IS 0.75
+        `technological subject`       IS `not a listed technological subject`
+
+`a full-time mechatronics instructor, year 10` MEANS
+    `clothing year` WITH
+        `on the teaching grading`     IS TRUE
+        `years of teaching seniority` IS 10
+        `position fraction`           IS 1.2
+        `teaches physical education`  IS FALSE
+        `physical-education position` IS 0
+        `technological subject`       IS `the list a subject is on` "מכטרוניקה"
+
+-- 1,851 × 0.75 = 1,388.25, plus 454.
+#ASSERT `the whole clothing allowance` `a PE teacher, year 30, three quarters of a position` EQUALS 1842.25
+-- 1,328 (capped at one position) plus 484.
+#ASSERT `the whole clothing allowance` `a full-time mechatronics instructor, year 10` EQUALS 1812
+#ASSERT `the list a subject is on` "סיעוד" EQUALS `a two-robes subject`
+
+#TRACE `the allowance is paid with July's salary` `a full-time mechatronics instructor, year 10` AT 0 WITH
+    PARTY `the employer` DOES `pay the clothing allowance` 1812 AT 11

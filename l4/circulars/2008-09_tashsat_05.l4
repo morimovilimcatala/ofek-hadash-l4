@@ -1,0 +1,188 @@
+-- חוזר לבעלויות תשס"ט/5 — בקשה לשיפוי עבור עובדי הוראה שזכאים להפרשי פיצויים עפ"י פסק הבוררות (פברואר 2009)
+-- Chapter ה of the 14.4.2008 erosion award, quoted: teachers who left in
+-- 2000–2007 on severance (not on pension) have it recomputed on a raised
+-- determining salary. The owning bodies pay the differences and ask the
+-- Ministry's indemnity committee for indemnity, one form per teacher, for
+-- statutory severance (up to 100%) only.
+
+IMPORT prelude
+IMPORT common
+
+§ `בקשה לשיפוי עבור עובדי הוראה שזכאים להפרשי פיצויים`
+
+-- akn:hc_1/p1 akn:hc_1/p2 akn:hc_1/p3 akn:hc_1/p4 akn:hc_1/p5 akn:hc_1/p6 akn:hc_1/p7 akn:hc_1/p8 akn:hc_1/p9 akn:hc_1/p10 The letterhead, title, date (February 2009), addressee, greeting and subject line; no rule.
+
+-- akn:hc_1/p11 The recital: further to the award of 14.4.2008 on erosion for teachers active in 2000–2007 (chapter ה) and to circular תשס"ח/8 §4, chapter ה is quoted; the quotation's rules are encoded below.
+
+@desc A teacher who ended work with the employers, as chapter ה asks about them.
+DECLARE `leaver` HAS
+    `year the work ended`                  IS A NUMBER
+    `left on pension`                      IS A BOOLEAN
+    `paid severance`                       IS A BOOLEAN
+    `years active in 2000-2002`            IS A NUMBER  @desc the length of the teacher's work in 2000–2002, in years (parts of a year as fractions)
+    `years active in 2003-2006`            IS A NUMBER  @desc the length of the teacher's work in 2003–2006, in years (parts of a year as fractions)
+    `statutory severance paid`             IS A NUMBER  @desc the severance paid under the law (up to 100%); an input
+    `severance paid beyond the statute`    IS A NUMBER  @desc any severance paid beyond 100% of the statutory amount
+
+-- ¶12–13: chapter ה covers teachers who ended work with the employers in the
+-- years examined other than on pension, on severance pay.
+@ref akn:hc_1/p12 akn:hc_1/p13
+GIVEN l IS A `leaver`
+GIVETH A BOOLEAN
+DECIDE `is covered by chapter ה` l IF
+    l's `paid severance` AND (NOT l's `left on pension`)
+
+-- ¶14: those active in 2000–2002 get part of the 4.75% addition, by the
+-- length of their work: 1.8% a year.
+@ref akn:hc_1/p14
+`the full 2000-2002 addition` MEANS 4.75%
+`the 2000-2002 addition a year` MEANS 1.8%
+
+GIVEN l IS A `leaver`
+GIVETH A NUMBER
+DECIDE `the 2000-2002 part by the rule` l IS
+    min `the full 2000-2002 addition` (`the 2000-2002 addition a year` TIMES l's `years active in 2000-2002`)
+
+-- ¶15: those active in 2003–2006 get the addition "of 4.74%" and 0.8% for
+-- each year, or the proportional part for part of a year, they were active
+-- in 2003–2006. (The award names the base addition 4.75% in ¶14 and ¶23;
+-- F-2008-09_tashsat_05-a.)
+@ref akn:hc_1/p15
+`the base addition as ¶15 prints it` MEANS 4.74%
+`the 2003-2006 addition a year` MEANS 0.8%
+
+GIVEN base IS A NUMBER, l IS A `leaver`
+GIVETH A NUMBER
+DECIDE `the rule's addition on base` base l IS
+    IF l's `years active in 2003-2006` GREATER THAN 0
+    THEN base PLUS `the 2003-2006 addition a year` TIMES l's `years active in 2003-2006`
+    ELSE `the 2000-2002 part by the rule` l
+
+-- ¶16–22, "the computation": the addition by the year the work ended.
+-- ¶23: those who ended in 2007 get 4% only, the 4.75% being assumed already
+-- in their severance.
+@desc A row of the award's computation.
+DECLARE `ending-year row` HAS
+    `year ended`  IS A NUMBER
+    `addition`    IS A NUMBER
+
+@ref akn:hc_1/p16 akn:hc_1/p17 akn:hc_1/p18 akn:hc_1/p19 akn:hc_1/p20 akn:hc_1/p21 akn:hc_1/p22 akn:hc_1/p23
+`the computation` MEANS
+    LIST `ending-year row` 2000 (1.8%),
+         `ending-year row` 2001 (3.6%),
+         `ending-year row` 2002 (4.75%),
+         `ending-year row` 2003 (5.55%),
+         `ending-year row` 2004 (6.35%),
+         `ending-year row` 2005 (7.15%),
+         `ending-year row` 2006 (8.95%),
+         `ending-year row` 2007 (4%)
+
+GIVEN y IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the computation's addition for` y IS
+    sum (map (GIVEN r YIELD r's `addition`)
+             (filter (GIVEN r YIELD r's `year ended` EQUALS y) `the computation`))
+
+-- The reading adopted (F-2008-09_tashsat_05-a, -b): the computation's row
+-- for the year the work ended governs, whatever part of that year was worked.
+GIVEN l IS A `leaver`
+GIVETH A NUMBER
+DECIDE `the addition` l IS
+    IF `is covered by chapter ה` l
+    THEN `the computation's addition for` (l's `year the work ended`)
+    ELSE 0
+
+-- ¶26: the indemnity is for statutory severance (up to 100%) only. Severance
+-- being proportional to the determining salary, the difference is the
+-- severance paid times the addition.
+@ref akn:hc_1/p26
+@export The severance differences the Ministry indemnifies an owning body for, for one teacher under chapter ה of the 14.4.2008 erosion award
+GIVEN l IS A `leaver` @desc the teacher who left and the severance paid
+GIVETH A NUMBER
+DECIDE `the indemnified differences` l IS
+    l's `statutory severance paid` TIMES `the addition` l
+
+DECLARE `indemnity action` IS ONE OF
+    `locate the severance recipients`
+    `pay the severance differences` HAS `differences paid` IS A NUMBER
+    `send an indemnity request on the form` HAS `request for` IS A `leaver`
+
+-- ¶24: the owning bodies find everyone paid severance and pay the
+-- differences. ¶25, ¶27–28: to be indemnified, they send a request for
+-- each teacher on the attached form, filled in carefully, to the
+-- coordinator of the indemnities committee in the Ministry, Jerusalem. No
+-- date is printed.
+@ref akn:hc_1/p24 akn:hc_1/p25 akn:hc_1/p27 akn:hc_1/p28
+GIVEN l IS A `leaver`
+GIVETH A DEONTIC Party `indemnity action`
+DECIDE `the owning body pays and asks for indemnity` l IS
+    PARTY `the local authority or owning body`
+    MUST  `locate the severance recipients`
+    HENCE PARTY `the local authority or owning body`
+          MUST  `pay the severance differences` x
+                PROVIDED x AT LEAST l's `statutory severance paid` TIMES `the addition` l
+          HENCE PARTY `the local authority or owning body`
+                MAY `send an indemnity request on the form` r
+                    PROVIDED `is covered by chapter ה` r
+
+-- akn:conclusions The sign-off, signature and the link to download the form, which the corpus does not carry; no rule.
+
+§§ `Findings and examples`
+
+-- F-2008-09_tashsat_05-a: the rule of ¶15, on the 4.75% the award names
+-- elsewhere, gives 5.55%, 6.35% and 7.15% for those who worked through 2003,
+-- 2004 and 2005 — the printed rows — and 7.95% for 2006, where the
+-- computation prints 8.95%. On ¶15's own 4.74% no 2003–2006 row is matched.
+GIVEN y IS A NUMBER
+GIVETH A `leaver`
+DECIDE `a teacher active from 2000 to the end of` y IS
+    `leaver` WITH
+        `year the work ended`               IS y
+        `left on pension`                   IS FALSE
+        `paid severance`                    IS TRUE
+        `years active in 2000-2002`         IS min 3 (y MINUS 1999)
+        `years active in 2003-2006`         IS max 0 (min 4 (y MINUS 2002))
+        `statutory severance paid`          IS 100000
+        `severance paid beyond the statute` IS 0
+
+GIVEN y IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the rule on 4.75% for a full final year` y IS
+    `the rule's addition on base` `the full 2000-2002 addition` (`a teacher active from 2000 to the end of` y)
+
+`2006's row is not the rule's` MEANS
+        all (GIVEN y YIELD `the rule on 4.75% for a full final year` y EQUALS `the computation's addition for` y)
+            (LIST 2000, 2001, 2002, 2003, 2004, 2005)
+    AND `the rule on 4.75% for a full final year` 2006 EQUALS 7.95%
+    AND NOT (`the computation's addition for` 2006 EQUALS 7.95%)
+    AND all (GIVEN y YIELD NOT (`the rule's addition on base` `the base addition as ¶15 prints it` (`a teacher active from 2000 to the end of` y)
+                                EQUALS `the computation's addition for` y))
+            (LIST 2003, 2004, 2005, 2006)
+#ASSERT `2006's row is not the rule's`
+
+-- F-2008-09_tashsat_05-b: a teacher who left in March 2004 has 1 2/12
+-- years in 2003–2006; the rule gives 4.75% + 0.8% × 14/12, the computation
+-- 6.35%.
+`left in March 2004` MEANS
+    `leaver` WITH
+        `year the work ended`               IS 2004
+        `left on pension`                   IS FALSE
+        `paid severance`                    IS TRUE
+        `years active in 2000-2002`         IS 3
+        `years active in 2003-2006`         IS 14/12
+        `statutory severance paid`          IS 100000
+        `severance paid beyond the statute` IS 0
+
+`the rule pro-rates a part year and the computation does not` MEANS
+    NOT (`the rule's addition on base` `the full 2000-2002 addition` `left in March 2004`
+         EQUALS `the computation's addition for` 2004)
+#ASSERT `the rule pro-rates a part year and the computation does not`
+
+-- Examples. Severance of 100,000 is a placeholder.
+#ASSERT `the indemnified differences` `left in March 2004` EQUALS 6350
+#ASSERT `the indemnified differences` (`a teacher active from 2000 to the end of` 2007) EQUALS 4000
+
+#TRACE `the owning body pays and asks for indemnity` `left in March 2004` AT 0 WITH
+    PARTY `the local authority or owning body` DOES `locate the severance recipients` AT 1
+    PARTY `the local authority or owning body` DOES `pay the severance differences` 6350 AT 2
+    PARTY `the local authority or owning body` DOES `send an indemnity request on the form` `left in March 2004` AT 3

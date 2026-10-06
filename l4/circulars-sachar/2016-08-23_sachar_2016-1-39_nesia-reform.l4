@@ -1,0 +1,516 @@
+-- חוזר הממונה על השכר 2016-1-39 (23.8.2016) — קצובת נסיעה: החזר הוצאות נסיעה
+-- בתחבורה ציבורית בעקבות הרפורמה בתחבורה הציבורית
+-- How the public-sector employers pay the travel allowance after the
+-- public-transport reform of 2016: who is paid under the reform's rules in
+-- full, how existing employees who travel between cities are paid, the
+-- Modiin / Beit Shemesh exception, the advances, moves of workplace or
+-- home, the periodic declaration, and official travel at single-trip
+-- tariffs.
+
+IMPORT prelude
+IMPORT daydate
+IMPORT common
+
+§ `קצובת נסיעה - החזר הוצאות נסיעה בתחבורה ציבורית בעקבות הרפורמה בתחבורה הציבורית`
+
+-- akn:preamble/p1 akn:preamble/p2 akn:preamble/p3 akn:preamble/p4 akn:preamble/p5 akn:preamble/p6 akn:preamble/p7 akn:preamble/p8 akn:preamble/p9 The letterhead (State of Israel, Ministry of Finance, Wage and Labour Agreements, its address), the date (23.8.2016), the circular's number, the addressees (the public-sector employers) and the subject line; no rule.
+
+-- akn:preamble/p10 The reference line: the Ministry of Finance Director-General's letter of 10.7.2016 to the Histadrut, the outline this circular carries out; no rule of its own.
+
+-- The reform as the circular recites it (the Accountant-General's takam
+-- notice 13.4.2.1, editions 8 and 9): changes from 1.1.2016, a 14.5% cut in
+-- the tariffs from 1.2.2016, and a further phase covering every locality
+-- from 1.4.2016. Facts the rules below rest on, kept as data.
+@ref akn:preamble/p11
+`the reform's changes take effect` MEANS Date 1 1 2016
+
+@ref akn:preamble/p11
+`the reform's tariff cut` MEANS 14.5%
+
+@ref akn:preamble/p11
+`the tariff cut takes effect` MEANS Date 1 2 2016
+
+@ref akn:preamble/p11
+`the reform's further phase takes effect` MEANS Date 1 4 2016
+
+-- akn:preamble/p12 The purpose: after talks between the Ministry of Finance and the Histadrut an outline was decided to limit the harm to the allowance of employees who travel between cities; no rule of its own.
+
+-- akn:preamble/p13 "The instructions passed to the government ministries follow": an introduction to sections 1-3; no rule.
+
+DECLARE `travel-allowance party` IS ONE OF
+    `the public-sector employer`
+    `the travelling employee`
+    `the Accountant-General`
+
+@desc An employee who claims the travel allowance, as far as this circular asks about it.
+DECLARE `traveller` HAS
+    `day hired by the current employer`                         IS A DATE    @desc the day the employee was taken on by the employer they work for now
+    `received the urban monthly free pass up to 31.12.2015`     IS A BOOLEAN @desc received an urban "חודשי חופשי" (code 614 in the State service) up to 31.12.2015
+    `received an individual intercity allowance up to 31.12.2015` IS A BOOLEAN @desc received a travel allowance for intercity travel (codes 604 or 960 in the State service) up to 31.12.2015, on an individual basis for the days they actually came to work
+    `lives in Modiin or Beit Shemesh and works in Jerusalem`    IS A BOOLEAN
+    `moved workplace within the employer or moved home`         IS A BOOLEAN @desc moved to another workplace of the same employer (another city or another government ministry) or changed residence, after the reform
+    `travels between cities to work`                            IS A BOOLEAN @desc travels to work by intercity lines now
+    `moved from another employer`                               IS A BOOLEAN @desc came to the current employer from another employer
+    `days actually worked in the month`                         IS A NUMBER  @desc the days the employee came to work in the month (reported as code 4820 in the State service)
+
+-- An existing employee is one taken on by the current employer before
+-- 1.1.2016 (§1א's own definition, repeated in §2's heading).
+@ref akn:art_1__para_a akn:art_2
+GIVEN t IS A `traveller`
+GIVETH A BOOLEAN
+DECIDE `an existing employee` t IF
+    t's `day hired by the current employer` LESS THAN Date 1 1 2016
+
+§§ `1 מקבלי קצובת נסיעה עליהם יחולו כללי הרפורמה במלואה`
+
+DECLARE `travel-allowance rule` IS ONE OF
+    `the urban monthly free pass at the reform's updated tariffs`
+    `the reform's rules and tariffs`
+    `a single-trip intercity tariff for each day actually worked`
+    `a daily free pass for each day actually worked`
+    `no intercity travel paid`
+    `a rule the circular does not give`
+
+-- §1 heading: the two groups to whom the reform's rules apply in full.
+-- §1א: existing employees who had an urban monthly pass up to 31.12.2015
+-- get it at the reform's updated tariffs, paid automatically by postcode.
+@ref akn:art_1 akn:art_1__para_a
+GIVEN t IS A `traveller`
+GIVETH A BOOLEAN
+DECIDE `paid the updated urban monthly pass under §1א` t IF
+        `an existing employee` t
+    AND t's `received the urban monthly free pass up to 31.12.2015`
+
+-- §1ב: an employee taken on from 1.1.2016 is paid under the reform's rules
+-- and tariffs, automatically by postcode.
+@ref akn:art_1__para_b
+GIVEN t IS A `traveller`
+GIVETH A BOOLEAN
+DECIDE `paid under the reform's rules as a new employee under §1ב` t IF
+    NOT `an existing employee` t
+
+-- §§1א-1ב: both are paid automatically, by postcode, without a claim.
+@ref akn:art_1__para_a akn:art_1__para_b
+GIVEN r IS A `travel-allowance rule`
+GIVETH A BOOLEAN
+DECIDE `paid automatically by postcode` r IF
+    CONSIDER r
+    WHEN `the urban monthly free pass at the reform's updated tariffs` THEN TRUE
+    WHEN `the reform's rules and tariffs` THEN TRUE
+    OTHERWISE FALSE
+
+§§ `2 עובדים קיימים הנוסעים בנסיעות בינעירוניות`
+
+-- §2א: an existing employee paid individually for intercity days up to
+-- 31.12.2015 gets the single-trip tariff (at the reform's tariffs) times the
+-- days actually worked.
+@ref akn:art_2__para_a
+GIVEN t IS A `traveller`
+GIVETH A BOOLEAN
+DECIDE `paid single intercity trips under §2א` t IF
+        `an existing employee` t
+    AND t's `received an individual intercity allowance up to 31.12.2015`
+    AND t's `travels between cities to work`
+
+-- F-2016-08-23_sachar_2016-1-39_nesia-reform-a: "תעריף נסיעה בודדת כפול ימי
+-- עבודה בפועל" pays, as written, ONE single-trip fare for each day; the
+-- Director-General's letter it carries out pays single trips "(הלוך ושוב)",
+-- there and back. The reading adopted is the letter's: two fares a day.
+@ref akn:art_2__para_a
+`single-trip fares for each day worked as the circular writes it` MEANS 1
+
+@ref akn:art_2__para_a
+`single-trip fares for each day worked as read` MEANS 2
+
+@desc The tariffs §2א's monthly amount is built from, all at the reform's tariffs and set outside this circular.
+DECLARE `intercity tariffs` HAS
+    `monthly free pass where the employee lives` IS A NUMBER @desc the urban monthly pass in the city of residence
+    `monthly free pass where the employee works` IS A NUMBER @desc the urban monthly pass in the city of work
+    `single intercity trip fare`                 IS A NUMBER @desc one single-trip fare between the two cities
+
+-- §2א's own example: an employee from Tel Aviv working in Jerusalem gets the
+-- Tel Aviv monthly pass, plus the Jerusalem-Tel Aviv intercity trips times
+-- the days actually worked, plus the Jerusalem monthly pass.
+@ref akn:art_2__para_a
+GIVEN t IS A `traveller`, p IS A `intercity tariffs`, `fares a day` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the monthly allowance under §2א` t p `fares a day` IS
+    p's `monthly free pass where the employee lives`
+    PLUS (p's `single intercity trip fare` TIMES `fares a day` TIMES t's `days actually worked in the month`)
+    PLUS p's `monthly free pass where the employee works`
+
+-- §2ב: existing employees living in Modiin or Beit Shemesh and working in
+-- Jerusalem get, "as an exception", a daily free pass for each day actually
+-- worked. The exception takes them out of §2א.
+@ref akn:art_2__para_b
+GIVEN t IS A `traveller`
+GIVETH A BOOLEAN
+DECIDE `paid a daily free pass under §2ב` t IF
+        `an existing employee` t
+    AND t's `lives in Modiin or Beit Shemesh and works in Jerusalem`
+
+-- §2ב's cost of a daily free pass, by the day it is for. The "(בקוד להשלים)"
+-- after the first amount is a drafting note the published circular left
+-- in ("code to be completed"): the payroll code was never filled in. It
+-- names no rule and changes no amount.
+@ref akn:art_2__para_b
+GIVEN `the day` IS A DATE
+GIVETH A NUMBER
+DECIDE `the cost of a daily free pass` `the day` IS
+    BRANCH IF `the day` AT LEAST Date 1 2 2016 THEN 26.5
+           IF `the day` AT LEAST Date 1 1 2016 THEN 31
+           OTHERWISE 0
+
+@ref akn:art_2__para_b
+GIVEN t IS A `traveller`, `the day` IS A DATE
+GIVETH A NUMBER
+DECIDE `the monthly allowance under §2ב` t `the day` IS
+    `the cost of a daily free pass` `the day` TIMES t's `days actually worked in the month`
+
+-- §2ג: the advances paid to intercity travellers are cancelled
+-- retroactively, from January 2016, for anyone whose allowance report is
+-- corrected. (§2ד's deduction runs "from April 2016": the circular does not
+-- say from when the advances were paid, so the two months are kept as
+-- printed.)
+@ref akn:art_2__para_c
+`the advances are cancelled from` MEANS Date 1 1 2016
+
+@ref akn:art_2__para_c
+GIVEN `the allowance report was corrected` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `the advances are cancelled` `the allowance report was corrected` IF
+    `the allowance report was corrected`
+
+@ref akn:art_2__para_d
+`the retroactive deduction runs from` MEANS Date 1 4 2016
+
+DECLARE `travel-allowance action` IS ONE OF
+    `deduct the advances in the payslip`
+    `sign the periodic declaration that the refund reflects the expense`
+    `update the takam instruction`
+
+-- §2ד: the retroactive deduction of the advances is made in the payslip
+-- only where there is a report for paying the corrected allowance,
+-- differences included. Time in months.
+@ref akn:art_2__para_d
+GIVEN `a corrected report with differences exists` IS A BOOLEAN
+GIVETH A DEONTIC `travel-allowance party` `travel-allowance action`
+DECIDE `deducting the advances` `a corrected report with differences exists` IS
+    IF `a corrected report with differences exists`
+    THEN PARTY `the public-sector employer`
+         MAY   `deduct the advances in the payslip`
+         WITHIN 12
+    ELSE PARTY `the public-sector employer`
+         SHANT `deduct the advances in the payslip`
+         WITHIN 12
+         LEST  BREACH BY `the public-sector employer` BECAUSE "§2ד: the advances may be deducted only where the corrected allowance, differences included, is reported for payment"
+
+-- §2ה: an existing employee who moves workplace within the same employer
+-- (another city, another ministry) or moves home keeps the rules that
+-- applied on the eve of the reform, at updated tariffs, intercity travel
+-- included at single-trip tariffs times days actually worked.
+@ref akn:art_2__para_e
+GIVEN t IS A `traveller`
+GIVETH A BOOLEAN
+DECIDE `keeps the pre-reform rules after a move under §2ה` t IF
+        `an existing employee` t
+    AND t's `moved workplace within the employer or moved home`
+
+-- §2ו: such an employee who moved far and began travelling between cities
+-- begins to be paid single-trip tariffs times days actually worked.
+@ref akn:art_2__para_f
+GIVEN t IS A `traveller`
+GIVETH A BOOLEAN
+DECIDE `begins single intercity trips after a move under §2ו` t IF
+        `keeps the pre-reform rules after a move under §2ה` t
+    AND t's `travels between cities to work`
+
+-- §2ז: one who moved near and stopped travelling between cities is paid no
+-- intercity travel; everything follows the new address or workplace.
+@ref akn:art_2__para_g
+GIVEN t IS A `traveller`
+GIVETH A BOOLEAN
+DECIDE `stops intercity travel after a move under §2ז` t IF
+        `keeps the pre-reform rules after a move under §2ה` t
+    AND NOT t's `travels between cities to work`
+
+-- §2ח: one who moved from employer to employer is treated as a new
+-- employee, under the reform's rules. F-2016-08-23_sachar_2016-1-39_nesia-reform-c: the words take in a move made
+-- at any time, including before 1.1.2016, which §1א's definition makes an
+-- existing employee; the reading adopted is a move on or after 1.1.2016 (the
+-- letter's "שיעבור", "who will move"), where §2ח and the definition agree.
+@ref akn:art_2__para_h
+GIVEN t IS A `traveller`
+GIVETH A BOOLEAN
+DECIDE `treated as new after moving employer under §2ח as written` t IF
+    t's `moved from another employer`
+
+@ref akn:art_2__para_h
+GIVEN t IS A `traveller`
+GIVETH A BOOLEAN
+DECIDE `treated as new after moving employer under §2ח as read` t IF
+        t's `moved from another employer`
+    AND t's `day hired by the current employer` AT LEAST `the reform's changes take effect`
+
+-- The rule that applies, as the circular writes it. The order is the
+-- circular's priorities: a new employee (§1ב, §2ח) first; §2ב's exception
+-- before §2א; a move (§§2ה-2ז) before the pre-reform position; then §2א and
+-- §1א. An existing employee in none of them is a case the circular does not
+-- decide (F-2016-08-23_sachar_2016-1-39_nesia-reform-b).
+@ref akn:art_2__para_b akn:art_2__para_e
+GIVEN t IS A `traveller`
+GIVETH A `travel-allowance rule`
+DECIDE `the rule the circular writes` t IS
+    BRANCH IF `paid under the reform's rules as a new employee under §1ב` t          THEN `the reform's rules and tariffs`
+           IF `treated as new after moving employer under §2ח as written` t           THEN `the reform's rules and tariffs`
+           IF `paid a daily free pass under §2ב` t                                   THEN `a daily free pass for each day actually worked`
+           IF `begins single intercity trips after a move under §2ו` t               THEN `a single-trip intercity tariff for each day actually worked`
+           IF `stops intercity travel after a move under §2ז` t AND t's `received an individual intercity allowance up to 31.12.2015`
+                                                                                        THEN `no intercity travel paid`
+           IF `paid single intercity trips under §2א` t                              THEN `a single-trip intercity tariff for each day actually worked`
+           IF `paid the updated urban monthly pass under §1א` t                      THEN `the urban monthly free pass at the reform's updated tariffs`
+           OTHERWISE `a rule the circular does not give`
+
+-- The rule under the readings adopted (F-2016-08-23_sachar_2016-1-39_nesia-reform-b, F-2016-08-23_sachar_2016-1-39_nesia-reform-c): §2ח only for a move on
+-- or after 1.1.2016; an existing employee the circular leaves out gets the
+-- urban monthly pass at updated tariffs, as the letter's §1א gives every
+-- existing employee by the accepted rules.
+@export default The travel-allowance rule that applies to a public-sector employee under Wage Controller circular 2016-1-39 (the 2016 public-transport reform)
+@ref akn:art_1 akn:art_2
+GIVEN t IS A `traveller` @desc the employee
+GIVETH A `travel-allowance rule`
+DECIDE `the travel-allowance rule` t IS
+    IF `treated as new after moving employer under §2ח as written` t
+       AND NOT `treated as new after moving employer under §2ח as read` t
+    THEN `the rule the circular writes` (`as not having moved employer` t)
+    ELSE CONSIDER `the rule the circular writes` t
+         WHEN `a rule the circular does not give` THEN `the urban monthly free pass at the reform's updated tariffs`
+         OTHERWISE `the rule the circular writes` t
+
+GIVEN t IS A `traveller`
+GIVETH A `traveller`
+DECIDE `as not having moved employer` t IS
+    `traveller` WITH
+        `day hired by the current employer`                         IS t's `day hired by the current employer`
+        `received the urban monthly free pass up to 31.12.2015`     IS t's `received the urban monthly free pass up to 31.12.2015`
+        `received an individual intercity allowance up to 31.12.2015` IS t's `received an individual intercity allowance up to 31.12.2015`
+        `lives in Modiin or Beit Shemesh and works in Jerusalem`    IS t's `lives in Modiin or Beit Shemesh and works in Jerusalem`
+        `moved workplace within the employer or moved home`         IS t's `moved workplace within the employer or moved home`
+        `travels between cities to work`                            IS t's `travels between cities to work`
+        `moved from another employer`                               IS FALSE
+        `days actually worked in the month`                         IS t's `days actually worked in the month`
+
+-- §2ט: existing employees who travel between cities and are paid under the
+-- above must sign a periodic declaration that the refund reflects the
+-- expense. The circular sets no period; time is in months, and the period
+-- is an input. F-2016-08-23_sachar_2016-1-39_nesia-reform-d: the letter conditions EVERY existing employee's
+-- payment on the declaration, not only the intercity travellers'.
+@ref akn:art_2__para_i
+GIVEN t IS A `traveller`
+GIVETH A BOOLEAN
+DECIDE `must sign the periodic declaration under §2ט` t IF
+        `an existing employee` t
+    AND t's `travels between cities to work`
+    AND (   `the travel-allowance rule` t EQUALS `a single-trip intercity tariff for each day actually worked`
+         OR `the travel-allowance rule` t EQUALS `a daily free pass for each day actually worked`)
+
+@ref akn:art_2__para_i
+GIVEN `the declaration period` IS A NUMBER @desc the period, in months, for which one declaration is given; the circular says only "periodic"
+GIVETH A DEONTIC `travel-allowance party` `travel-allowance action`
+DECIDE `the periodic declaration` `the declaration period` IS
+    PARTY `the travelling employee`
+    MUST  `sign the periodic declaration that the refund reflects the expense`
+    WITHIN `the declaration period`
+    LEST  BREACH BY `the travelling employee` BECAUSE "§2ט: an existing intercity traveller must sign a periodic declaration that the refund reflects the expense"
+
+-- §2י: the Accountant-General's takam instruction will be updated
+-- accordingly. No date is given; the time is an input.
+@ref akn:art_2__para_j
+GIVEN `the time allowed` IS A NUMBER @desc months until the update; the circular sets none
+GIVETH A DEONTIC `travel-allowance party` `travel-allowance action`
+DECIDE `updating the takam instruction` `the time allowed` IS
+    PARTY `the Accountant-General`
+    MUST  `update the takam instruction`
+    WITHIN `the time allowed`
+
+§§ `3 נסיעות בתפקיד בתעריפי תחבורה ציבורית`
+
+@desc An official trip by public transport, as far as section 3 asks about it.
+DECLARE `official trip` HAS
+    `the employee has a service car and is past the kilometre quota` IS A BOOLEAN
+    `the employee has no car entitlement`                            IS A BOOLEAN @desc no "תקן רכב"
+    `outside the city`                                               IS A BOOLEAN @desc the trip leaves the city, including a trip inside the regional monthly free-pass zone that is not inside the city
+
+-- §3, for existing and new employees alike: an employee with a service car
+-- travelling beyond the kilometre quota, or with no car entitlement, is
+-- paid for official public-transport trips outside the city, including
+-- inside the regional monthly free-pass zone (not within the city), at
+-- single-trip tariffs.
+@ref akn:art_3/p1
+GIVEN o IS AN `official trip`
+GIVETH A BOOLEAN
+DECIDE `an official trip paid at single-trip tariffs` o IF
+        (o's `the employee has a service car and is past the kilometre quota` OR o's `the employee has no car entitlement`)
+    AND o's `outside the city`
+
+-- akn:art_3/p2 A link to the Ministry of Transport's site, which shows the metropolitan maps and computes a fare by rings from origin to destination; a tool, no rule.
+
+-- akn:conclusions The sign-off (Yossi Cohen, acting Wage Controller), the copy to the Civil Service Commissioner, the circular's serial (2016-106) and the distributor's address; no rule.
+
+§§ `Findings`
+
+-- F-2016-08-23_sachar_2016-1-39_nesia-reform-a: one fare a day as written, two (there and back) as read: the
+-- monthly allowance differs.
+`a Tel Aviv commuter to Jerusalem` MEANS
+    `traveller` WITH
+        `day hired by the current employer`                         IS Date 1 9 2010
+        `received the urban monthly free pass up to 31.12.2015`     IS TRUE
+        `received an individual intercity allowance up to 31.12.2015` IS TRUE
+        `lives in Modiin or Beit Shemesh and works in Jerusalem`    IS FALSE
+        `moved workplace within the employer or moved home`         IS FALSE
+        `travels between cities to work`                            IS TRUE
+        `moved from another employer`                               IS FALSE
+        `days actually worked in the month`                         IS 20
+
+-- Placeholder tariffs, round figures; the reform's tariffs are not in this circular.
+`placeholder tariffs` MEANS
+    `intercity tariffs` WITH
+        `monthly free pass where the employee lives` IS 200
+        `monthly free pass where the employee works` IS 200
+        `single intercity trip fare`                 IS 20
+
+`one fare a day as written and a return as read give different allowances` MEANS
+    NOT (`the monthly allowance under §2א` `a Tel Aviv commuter to Jerusalem` `placeholder tariffs` `single-trip fares for each day worked as the circular writes it`
+         EQUALS `the monthly allowance under §2א` `a Tel Aviv commuter to Jerusalem` `placeholder tariffs` `single-trip fares for each day worked as read`)
+#ASSERT `one fare a day as written and a return as read give different allowances`
+
+-- F-2016-08-23_sachar_2016-1-39_nesia-reform-b: an existing employee who had neither an urban monthly pass nor an
+-- individual intercity allowance up to 31.12.2015, lives outside Modiin and
+-- Beit Shemesh and has not moved, is in no clause.
+`an existing employee with no pre-reform allowance` MEANS
+    `traveller` WITH
+        `day hired by the current employer`                         IS Date 1 3 2014
+        `received the urban monthly free pass up to 31.12.2015`     IS FALSE
+        `received an individual intercity allowance up to 31.12.2015` IS FALSE
+        `lives in Modiin or Beit Shemesh and works in Jerusalem`    IS FALSE
+        `moved workplace within the employer or moved home`         IS FALSE
+        `travels between cities to work`                            IS FALSE
+        `moved from another employer`                               IS FALSE
+        `days actually worked in the month`                         IS 21
+
+`an existing employee without a pre-reform allowance is in no clause` MEANS
+    `the rule the circular writes` `an existing employee with no pre-reform allowance` EQUALS `a rule the circular does not give`
+#ASSERT `an existing employee without a pre-reform allowance is in no clause`
+
+-- F-2016-08-23_sachar_2016-1-39_nesia-reform-c: an employee who came from another employer in 2014 is an existing
+-- employee by §1א's definition and a new one by §2ח's words.
+`an employee who changed employer in 2014` MEANS
+    `traveller` WITH
+        `day hired by the current employer`                         IS Date 1 6 2014
+        `received the urban monthly free pass up to 31.12.2015`     IS TRUE
+        `received an individual intercity allowance up to 31.12.2015` IS TRUE
+        `lives in Modiin or Beit Shemesh and works in Jerusalem`    IS FALSE
+        `moved workplace within the employer or moved home`         IS FALSE
+        `travels between cities to work`                            IS TRUE
+        `moved from another employer`                               IS TRUE
+        `days actually worked in the month`                         IS 20
+
+`a pre-reform change of employer is both existing and new` MEANS
+        `an existing employee` `an employee who changed employer in 2014`
+    AND `treated as new after moving employer under §2ח as written` `an employee who changed employer in 2014`
+    AND NOT (`the rule the circular writes` `an employee who changed employer in 2014`
+             EQUALS `the rule the circular writes` (`as not having moved employer` `an employee who changed employer in 2014`))
+#ASSERT `a pre-reform change of employer is both existing and new`
+
+-- F-2016-08-23_sachar_2016-1-39_nesia-reform-d: an existing employee on the urban pass alone signs nothing under
+-- §2ט; the letter conditions that employee's payment on the declaration too.
+`an existing employee on the urban pass alone` MEANS
+    `traveller` WITH
+        `day hired by the current employer`                         IS Date 1 9 2012
+        `received the urban monthly free pass up to 31.12.2015`     IS TRUE
+        `received an individual intercity allowance up to 31.12.2015` IS FALSE
+        `lives in Modiin or Beit Shemesh and works in Jerusalem`    IS FALSE
+        `moved workplace within the employer or moved home`         IS FALSE
+        `travels between cities to work`                            IS FALSE
+        `moved from another employer`                               IS FALSE
+        `days actually worked in the month`                         IS 21
+
+`an existing urban-pass employee is not required to declare` MEANS
+        `an existing employee` `an existing employee on the urban pass alone`
+    AND NOT `must sign the periodic declaration under §2ט` `an existing employee on the urban pass alone`
+#ASSERT `an existing urban-pass employee is not required to declare`
+
+§§ `Examples`
+
+#ASSERT `the travel-allowance rule` `a Tel Aviv commuter to Jerusalem` EQUALS `a single-trip intercity tariff for each day actually worked`
+#ASSERT `must sign the periodic declaration under §2ט` `a Tel Aviv commuter to Jerusalem`
+
+-- §2א's example with placeholder tariffs, a return each day as read:
+-- 200 + 20 × 2 × 20 + 200.
+#ASSERT `the monthly allowance under §2א` `a Tel Aviv commuter to Jerusalem` `placeholder tariffs` `single-trip fares for each day worked as read` EQUALS 1200
+
+#ASSERT `the travel-allowance rule` `an existing employee with no pre-reform allowance` EQUALS `the urban monthly free pass at the reform's updated tariffs`
+#ASSERT `the travel-allowance rule` `an employee who changed employer in 2014` EQUALS `a single-trip intercity tariff for each day actually worked`
+#ASSERT `paid automatically by postcode` (`the travel-allowance rule` `an existing employee on the urban pass alone`)
+
+`a new employee hired in March 2016` MEANS
+    `traveller` WITH
+        `day hired by the current employer`                         IS Date 1 3 2016
+        `received the urban monthly free pass up to 31.12.2015`     IS FALSE
+        `received an individual intercity allowance up to 31.12.2015` IS FALSE
+        `lives in Modiin or Beit Shemesh and works in Jerusalem`    IS TRUE
+        `moved workplace within the employer or moved home`         IS FALSE
+        `travels between cities to work`                            IS TRUE
+        `moved from another employer`                               IS FALSE
+        `days actually worked in the month`                         IS 20
+
+-- §2ב is for EXISTING employees: a new Modiin resident is under the reform.
+#ASSERT `the travel-allowance rule` `a new employee hired in March 2016` EQUALS `the reform's rules and tariffs`
+
+`a Modiin resident working in Jerusalem` MEANS
+    `traveller` WITH
+        `day hired by the current employer`                         IS Date 1 9 2008
+        `received the urban monthly free pass up to 31.12.2015`     IS TRUE
+        `received an individual intercity allowance up to 31.12.2015` IS TRUE
+        `lives in Modiin or Beit Shemesh and works in Jerusalem`    IS TRUE
+        `moved workplace within the employer or moved home`         IS FALSE
+        `travels between cities to work`                            IS TRUE
+        `moved from another employer`                               IS FALSE
+        `days actually worked in the month`                         IS 20
+
+#ASSERT `the travel-allowance rule` `a Modiin resident working in Jerusalem` EQUALS `a daily free pass for each day actually worked`
+#ASSERT `the monthly allowance under §2ב` `a Modiin resident working in Jerusalem` (Date 15 1 2016) EQUALS 620
+#ASSERT `the monthly allowance under §2ב` `a Modiin resident working in Jerusalem` (Date 15 3 2016) EQUALS 530
+
+-- The daily pass's two costs agree with the reform's 14.5% cut (31 less
+-- 14.5% is 26.505), to the half-shekel the circular prints.
+#ASSERT (`the cost of a daily free pass` (Date 1 1 2016) TIMES (1 MINUS `the reform's tariff cut`)) MINUS `the cost of a daily free pass` `the tariff cut takes effect` LESS THAN 0.01
+
+`a Tel Aviv commuter who moved home near Jerusalem` MEANS
+    `traveller` WITH
+        `day hired by the current employer`                         IS Date 1 9 2010
+        `received the urban monthly free pass up to 31.12.2015`     IS TRUE
+        `received an individual intercity allowance up to 31.12.2015` IS TRUE
+        `lives in Modiin or Beit Shemesh and works in Jerusalem`    IS FALSE
+        `moved workplace within the employer or moved home`         IS TRUE
+        `travels between cities to work`                            IS FALSE
+        `moved from another employer`                               IS FALSE
+        `days actually worked in the month`                         IS 20
+
+#ASSERT `the travel-allowance rule` `a Tel Aviv commuter who moved home near Jerusalem` EQUALS `no intercity travel paid`
+
+`an official trip outside the city without a car entitlement` MEANS
+    `official trip` WITH
+        `the employee has a service car and is past the kilometre quota` IS FALSE
+        `the employee has no car entitlement`                            IS TRUE
+        `outside the city`                                               IS TRUE
+#ASSERT `an official trip paid at single-trip tariffs` `an official trip outside the city without a car entitlement`
+
+-- §2ד on a timeline in months: deducting without a corrected report is a
+-- breach; with one, the deduction is permitted.
+#TRACE `deducting the advances` FALSE AT 0 WITH
+    PARTY `the public-sector employer` DOES `deduct the advances in the payslip` AT 1
+#TRACE `deducting the advances` TRUE AT 0 WITH
+    PARTY `the public-sector employer` DOES `deduct the advances in the payslip` AT 1
+#TRACE `the periodic declaration` 12 AT 0 WITH
+    PARTY `the travelling employee` DOES `sign the periodic declaration that the refund reflects the expense` AT 2

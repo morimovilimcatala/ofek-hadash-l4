@@ -1,0 +1,193 @@
+-- חוזר לבעלויות תשס"ט/8: הסכם קיבוצי בנושא גמול הכנה לבגרות במקצוע האזרחות
+-- The collective agreement of 22.4.2009 on bagrut preparation in civics:
+-- whom it covers and from when, that the existing bagrut-preparation rules
+-- apply, the added weekly hours for guiding pupils through the performance
+-- task by the number of pupils in the class, and when the owners pay.
+
+IMPORT prelude
+IMPORT common
+IMPORT daydate
+
+§ `תשס"ט/8 הסכם קיבוצי בנושא גמול הכנה לבגרות במקצוע האזרחות`
+
+-- akn:preamble The letterhead, title, date (11.6.2009), addressee, greeting, subject line, and the lead-in: following the agreement signed 22.4.2009 between the employers' representatives and the secondary teachers' organisation, approved by the Wage Commissioner on 7.6.2009, the new instructions below; no rule of its own.
+
+@desc The teachers' organisations a teaching employee may belong to, or none.
+DECLARE `union affiliation` IS ONE OF
+    `the Teachers' Union (Histadrut HaMorim)`
+    `the Secondary Teachers' Organisation (Irgun HaMorim)`
+    `unaffiliated`
+
+@desc A teaching employee, as far as this circular asks about him.
+DECLARE `civics teacher` HAS
+    `in the teaching-staff grade`              IS A BOOLEAN
+    `employed in post-primary education`       IS A BOOLEAN
+    `paid by an owner`                         IS A BOOLEAN
+    `works at an owner with salary merged in the civil service` IS A BOOLEAN @desc works at an owner but the salary is merged in the civil service under a loan agreement (איחוד משכורות)
+    `affiliation`                              IS A `union affiliation`
+    `prepares pupils for the civics bagrut`    IS A BOOLEAN
+    `classes guided through the performance task` IS A LIST OF `guided class`
+
+@desc One class whose pupils the teacher guides through the civics performance task (מטלת ביצוע) in a school year.
+DECLARE `guided class` HAS
+    `pupils guided in the class`               IS A NUMBER @desc all the pupils of this one class the teacher guides through the task
+    `the task is submitted for a grade this year` IS A BOOLEAN @desc the year of the guidance is the year the task is submitted for the external bagrut grade
+
+DECLARE `civics action` IS ONE OF
+    `pay under the civics agreement` HAS `amount paid under the agreement` IS A NUMBER
+
+§§ `1 תחולה ותחילה`
+
+-- Section 1א, first paragraph: the agreement covers every employee graded in
+-- the teaching-staff grade, employed in post-primary education and paid by
+-- an owner, whatever his organisation. The affiliation is not read at all.
+@ref akn:art_1__para_a/p1
+GIVEN t IS A `civics teacher`
+GIVETH A BOOLEAN
+DECIDE `the agreement covers` t IF
+        t's `in the teaching-staff grade`
+    AND t's `employed in post-primary education`
+    AND t's `paid by an owner`
+
+-- Section 1א, second paragraph: also a teacher who works at an owner with
+-- the salary merged in the civil service under a loan agreement.
+@ref akn:art_1__para_a/p2
+GIVEN t IS A `civics teacher`
+GIVETH A BOOLEAN
+DECIDE `the civics bagrut bonus applies to` t IF
+        `the agreement covers` t
+    OR (    t's `in the teaching-staff grade`
+        AND t's `employed in post-primary education`
+        AND t's `works at an owner with salary merged in the civil service`)
+
+`the agreement starts` MEANS Date 1 9 2008
+
+@ref akn:art_1__para_b
+GIVEN `day` IS A DATE
+GIVETH A BOOLEAN
+DECIDE `the agreement is in force on` `day` IF
+    `day` AT LEAST `the agreement starts`
+
+
+§§ `2 גמול עבור הכנה לבגרות באזרחות`
+
+-- Section 2א: a teacher preparing pupils for the civics bagrut is under the
+-- rules of the existing collective agreements on the bagrut-preparation
+-- bonus (in percent and in hours). Those rules are the agreements'; what
+-- they give is an input here.
+@ref akn:art_2__para_a
+GIVEN t IS A `civics teacher`
+GIVETH A BOOLEAN
+DECIDE `the existing bagrut-preparation rules apply to` t IF
+        `the civics bagrut bonus applies to` t
+    AND t's `prepares pupils for the civics bagrut`
+
+-- Section 2ב's table AS PRINTED, in the printed order: "10 ומעלה" 0.4, "6 עד
+-- 9" 0.2, "1 עד 5" 0.1 weekly hours.
+@ref akn:art_2__para_b/t1
+DECLARE `pupils band` HAS
+    `from pupils`  IS A NUMBER
+    `to pupils`    IS A NUMBER  @desc 999 stands for "ומעלה", with no upper bound
+    `added weekly hours` IS A NUMBER
+
+`the table of added hours` MEANS
+    LIST `pupils band` 10 999 0.4,
+         `pupils band` 6  9   0.2,
+         `pupils band` 1  5   0.1
+
+GIVEN n IS A NUMBER
+GIVETH A LIST OF NUMBER
+DECIDE `the hours the table gives for` n IS
+    map (GIVEN b YIELD b's `added weekly hours`)
+        (filter (GIVEN b YIELD n AT LEAST b's `from pupils` AND n AT MOST b's `to pupils`)
+                `the table of added hours`)
+
+-- The table is a function on whole numbers of pupils: every count from 1
+-- has exactly one row, and none has two.
+#ASSERT all (GIVEN n YIELD count (`the hours the table gives for` n) EQUALS 1)
+            (LIST 1, 2, 5, 6, 7, 9, 10, 11, 20, 40)
+
+-- Section 2ב and its footnote: the count is all the pupils of ONE class the
+-- teacher guides and accompanies, and one class earns no more than 0.4
+-- weekly hours. A class earns hours only in the school year the guidance is
+-- given AND the task is submitted for the external grade.
+@ref akn:art_2__para_b akn:art_2__para_b/p2
+GIVEN c IS A `guided class`
+GIVETH A NUMBER
+DECIDE `added weekly hours for the class` c IS
+    IF c's `the task is submitted for a grade this year`
+    THEN min (BRANCH IF c's `pupils guided in the class` AT LEAST 10 THEN 0.4
+                     IF c's `pupils guided in the class` AT LEAST 6  THEN 0.2
+                     IF c's `pupils guided in the class` AT LEAST 1  THEN 0.1
+                     OTHERWISE 0)
+             0.4
+    ELSE 0
+
+-- The adopted function agrees with the printed table on every count.
+#ASSERT all (GIVEN n YIELD `the hours the table gives for` n
+                           EQUALS LIST (`added weekly hours for the class` (`guided class` n TRUE)))
+            (LIST 1, 5, 6, 9, 10, 30)
+
+-- Section 2ב: the hours are IN ADDITION to section 2א, added to the
+-- teacher's position, class by class.
+@export default The weekly hours added to a teaching employee's position under circular תשס"ט/8 for guiding pupils through the civics bagrut performance task
+GIVEN t IS A `civics teacher` @desc the teacher and the classes guided this school year
+GIVETH A NUMBER
+DECIDE `added weekly hours for the civics performance task` t IS
+    IF `the civics bagrut bonus applies to` t
+    THEN sum (map `added weekly hours for the class` (t's `classes guided through the performance task`))
+    ELSE 0
+
+§§ `3 ביצוע ותשלומים`
+
+-- Section 3: the payments under the agreement are made from the May 2009
+-- salary, and at the latest from the June 2009 salary; the arrears with the
+-- May 2009 salary, and at the latest with the June 2009 salary. Time is
+-- counted in school months of 2008/09 (common.l4: September = 1), so June's
+-- salary is the tenth month.
+@ref akn:art_3/p1 akn:art_3/p2
+GIVEN `amount due` IS A NUMBER
+GIVETH A DEONTIC Party `civics action`
+DECIDE `payment by June's salary` `amount due` IS
+    PARTY `the local authority or owning body`
+    MUST  `pay under the civics agreement` `amount paid`
+          PROVIDED `amount paid` AT LEAST `amount due`
+    WITHIN `month number` June
+    LEST BREACH BY `the local authority or owning body` BECAUSE "section 3: the payments and arrears under the agreement are paid with the May 2009 salary, at the latest with June's"
+
+
+-- akn:conclusions The sign-off and signature; no rule.
+
+-- Worked examples, on the circular's own table.
+`a teacher guiding two classes` MEANS
+    `civics teacher` WITH
+        `in the teaching-staff grade`              IS TRUE
+        `employed in post-primary education`       IS TRUE
+        `paid by an owner`                         IS TRUE
+        `works at an owner with salary merged in the civil service` IS FALSE
+        `affiliation`                              IS `unaffiliated`
+        `prepares pupils for the civics bagrut`    IS TRUE
+        `classes guided through the performance task` IS
+            LIST `guided class` 32 TRUE, `guided class` 7 TRUE
+
+`a teacher whose class submits next year` MEANS
+    `civics teacher` WITH
+        `in the teaching-staff grade`              IS TRUE
+        `employed in post-primary education`       IS TRUE
+        `paid by an owner`                         IS FALSE
+        `works at an owner with salary merged in the civil service` IS TRUE
+        `affiliation`                              IS `the Teachers' Union (Histadrut HaMorim)`
+        `prepares pupils for the civics bagrut`    IS TRUE
+        `classes guided through the performance task` IS
+            LIST `guided class` 25 FALSE
+
+#ASSERT `added weekly hours for the civics performance task` `a teacher guiding two classes` EQUALS 0.6
+#ASSERT `added weekly hours for the civics performance task` `a teacher whose class submits next year` EQUALS 0
+#ASSERT `the civics bagrut bonus applies to` `a teacher whose class submits next year`
+#ASSERT `the agreement is in force on` (Date 1 9 2008)
+#ASSERT NOT `the agreement is in force on` (Date 31 8 2008)
+
+#TRACE `payment by June's salary` 500 AT 0 WITH
+    PARTY `the local authority or owning body` DOES `pay under the civics agreement` 500 AT 9
+#TRACE `payment by June's salary` 500 AT 0 WITH
+    PARTY `the local authority or owning body` DOES `pay under the civics agreement` 500 AT 11

@@ -1,0 +1,582 @@
+-- חוזר הממונה על השכר 2023-1-12 (20.3.2023) — תשלום מקדמה לעובדים במגזר
+-- הציבורי בשל ההבנות על הסכם המסגרת
+-- An advance on the one-time grant the coming framework agreement is to
+-- pay: who is an "employee" for it, the amount M = A × B × C, its
+-- clarifications (unpaid leave, the coronavirus exception, hourly and daily
+-- pay), its gross treatment, its deduction, the employee on leave when it
+-- is paid, the approvals for other public bodies, and the annex of
+-- qualifying grades.
+
+IMPORT prelude
+IMPORT daydate
+IMPORT common
+
+§ `תשלום מקדמה לעובדים במגזר הציבורי בשל ההבנות על הסכם המסגרת`
+
+-- akn:hc_1/p1 akn:hc_1/p2 akn:hc_1/p3 akn:hc_1/p4 The date (20.3.2023), the circular's number, the addressee (the Deputy Accountant-General) and the subject line; no rule.
+
+-- akn:hc_1/p5 The recital: on 27.2.2023 the State and the Histadrut reached understandings on the principles of a framework collective agreement to be signed with the State and other public employers; no rule of its own.
+
+-- akn:hc_1/p6 The recital: the coming agreement is expected to pay a one-time grant, and since it is not yet signed, the circular gives instructions for an advance on the rules understood for that grant; the advance's rules follow in sections 1-6.
+
+DECLARE `advance party` IS ONE OF
+    `the State as employer`
+    `a public-sector body`
+    `the Wage Controller`
+
+DECLARE `advance action` IS ONE OF
+    `pay the advance` HAS `advance amount paid` IS A NUMBER
+    `make provident-fund contributions on the advance`
+    `deduct the advance from the salary`
+    `notify the Wage Controller in writing of the payment`
+
+-- Time in the regulative rules below is counted in months from 1.3.2023:
+-- the March 2023 salary is paid in April (month 1), the June 2023 salary in
+-- July (month 4).
+`the month the March 2023 salary is paid` MEANS 1
+`the month the June 2023 salary is paid`  MEANS 4
+
+§§ `1(א) "עובד"`
+
+@desc A State employee, as far as the advance asks about them.
+DECLARE `advance employee` HAS
+    `employed in the State service on 1.3.2023`                IS A BOOLEAN
+    `paid under the agreements of a qualifying grade`          IS A BOOLEAN @desc salary computed under the collective agreements of a grade the Histadrut represents and annex A lists (the "qualifying grades")
+    `employed in the State service on 1.6.2022`                IS A BOOLEAN
+    `left the service between 1.6.2022 and 28.2.2023`          IS A BOOLEAN @desc employment ended at any point of the qualifying period
+    `in qualifying grades throughout 1.6.2022 to 28.2.2023`    IS A BOOLEAN @desc graded in one or more qualifying grades for the whole qualifying period
+    `on unpaid leave in the qualifying period`                 IS A BOOLEAN @desc spent part of 1.6.2022-28.2.2023 on unpaid leave, or leave treated as unpaid leave, for any reason
+    `the grade sent employees on unpaid leave for the coronavirus` IS A BOOLEAN @desc the employee's grade is one whose employees were sent on unpaid leave because of the coronavirus (section 1(ב)(2))
+    `months of the calculation period`                         IS A LIST OF `calculation month`
+
+-- §1(א)(1): employed on 1.3.2023, paid under a qualifying grade's agreements.
+@ref akn:hc_1__para_1__subpara_a akn:hc_1__para_1__subpara_a__cls_1
+GIVEN e IS AN `advance employee`
+GIVETH A BOOLEAN
+DECIDE `meets §1(א)(1)` e IF
+        e's `employed in the State service on 1.3.2023`
+    AND e's `paid under the agreements of a qualifying grade`
+
+-- §1(א)(2) with its continuity rules. (ב): reserve duty, birth and
+-- parenthood under the Women's Employment Law, and sick leave under
+-- takshir 33.210 (full, half or no pay) count towards continuity; ¶2: an
+-- absence approved by the employer and paid (rest leave, paid study) does
+-- not break it. These are employment, so only leaving the service, a
+-- non-qualifying grade, or (on one reading) unpaid leave can break it.
+-- (א): unpaid leave periods "are not taken into account" in computing the
+-- continuity. F-2023-03-20_sachar_2023-1-12_mikdama-misgeret-c: that reads
+-- two ways — the period is skipped and the continuity runs across it, or
+-- it is not employment and so breaks the continuity.
+@ref akn:hc_1__para_1__subpara_a__cls_2 akn:hc_1__para_1__subpara_a__cls_2/p2 akn:hc_1__para_1__subpara_a__cls_2__pnt_b akn:hc_1__para_1__subpara_a__cls_2__pnt_b/p2
+GIVEN e IS AN `advance employee`
+GIVETH A BOOLEAN
+DECIDE `employed continuously, unpaid leave skipped` e IF
+        e's `employed in the State service on 1.6.2022`
+    AND NOT e's `left the service between 1.6.2022 and 28.2.2023`
+    AND e's `in qualifying grades throughout 1.6.2022 to 28.2.2023`
+
+@ref akn:hc_1__para_1__subpara_a__cls_2__pnt_a
+GIVEN e IS AN `advance employee`
+GIVETH A BOOLEAN
+DECIDE `employed continuously, unpaid leave breaking it` e IF
+        `employed continuously, unpaid leave skipped` e
+    AND NOT e's `on unpaid leave in the qualifying period`
+
+-- The reading adopted (F-2023-03-20_sachar_2023-1-12_mikdama-misgeret-c): unpaid leave breaks the continuity. It is
+-- the literal one: (א) and (ב) are a pair, and what (ב) "takes into
+-- account" — periods counted as employment — (א) does not; ¶2 says that a
+-- PAID absence does not break the continuity, which says something only if
+-- an unpaid one does.
+@export The test of section 1(א) of Wage Controller circular 2023-1-12: is a State employee an "employee" entitled to the March 2023 advance on the framework agreement's one-time grant
+GIVEN e IS AN `advance employee` @desc the State employee
+GIVETH A BOOLEAN
+DECIDE `an employee for the advance` e IF
+        `meets §1(א)(1)` e
+    AND `employed continuously, unpaid leave breaking it` e
+
+§§ `1(ב) The amount: M = A × B × C`
+
+@ref akn:hc_1__para_1__subpara_b/p4
+`A` MEANS 6000
+
+-- B: the months employed in the calculation period, 1.10.2020-31.3.2023,
+-- divided by 30.
+@ref akn:hc_1__para_1__subpara_b/p5
+`the calculation period begins` MEANS Date 1 10 2020
+
+@ref akn:hc_1__para_1__subpara_b/p5
+`the calculation period ends` MEANS Date 31 3 2023
+
+@ref akn:hc_1__para_1__subpara_b/p5
+`the months of the calculation period` MEANS 30
+
+DECLARE `kind of month` IS ONE OF
+    `month worked`
+    `month of paid absence`                                    @desc an absence approved by the employer and paid, such as rest leave or paid study
+    `month of reserve duty, birth and parenthood or sick leave` @desc reserve duty; birth and parenthood under the Women's Employment Law 1954; sick leave under takshir 33.210, with full, half or no pay
+    `month as an employee in arrangement`                      @desc defined as "עובד בהסדר" under the collective agreement of 16.9.2020
+    `month of unpaid leave`                                    @desc unpaid leave, or leave treated as unpaid leave, for any reason
+
+@desc One calendar month of the calculation period in which the employee was employed or on leave.
+DECLARE `calculation month` HAS
+    `month begins`                IS A DATE
+    `share of the month`          IS A NUMBER @desc 1 for a whole month; for part of a month, the days employed divided by the work days of that month (section 1(ב), the paragraph after B)
+    `month kind`                  IS A `kind of month`
+    `position fraction that month` IS A NUMBER @desc the share of a full position held that month; for an employee in arrangement, as the agreement of 16.9.2020 computes it for its special payment; for hourly or daily pay, the auxiliary fraction of section 1(ב)(3)
+
+-- ¶6 of 1(ב): a month employed in part counts as the days employed divided
+-- by the work days of that month.
+@ref akn:hc_1__para_1__subpara_b/p6
+GIVEN `days employed` IS A NUMBER, `work days of the month` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the share of a partly employed month` `days employed` `work days of the month` IS
+    `days employed` DIVIDED BY `work days of the month`
+
+-- The work days in a stretch of days, for a workplace whose week ends on a
+-- given weekday (Sunday = 0): Thursday (4) for five days a week, Friday (5)
+-- for six. The circular names no holidays; none falls in the month used below.
+GIVEN d IS A NUMBER, `last day` IS A NUMBER, `last weekday` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `work days from` d `last day` `last weekday` IS
+    IF d GREATER THAN `last day`
+    THEN 0
+    ELSE (IF `Weekday of` d AT MOST `last weekday` THEN 1 ELSE 0)
+         PLUS `work days from` (d PLUS 1) `last day` `last weekday`
+
+-- §1(ב)(1)(א)-(ב) and its ¶¶2-3: for B and C unpaid leave is left out;
+-- reserve duty, birth and parenthood, sick leave, a period as an employee in
+-- arrangement, and a paid approved absence are counted. (¶3 says the paid
+-- absence is counted "in the qualifying period"; outside it, it is still a
+-- month in which the employee was employed in the State service, which is
+-- what B and C count.)
+@ref akn:hc_1__para_1__subpara_b/p14 akn:hc_1__para_1__subpara_b__cls_1 akn:hc_1__para_1__subpara_b__cls_1__pnt_a akn:hc_1__para_1__subpara_b__cls_1__pnt_b akn:hc_1__para_1__subpara_b__cls_1__pnt_b/p3
+GIVEN m IS A `calculation month`
+GIVETH A BOOLEAN
+DECIDE `counted for B and C` m IF
+    CONSIDER m's `month kind`
+    WHEN `month of unpaid leave` THEN FALSE
+    OTHERWISE TRUE
+
+-- §1(ב)(2): for the number of months in B, and for that only, unpaid leave
+-- from 1.10.2020 to 30.6.2021 is counted too — only for a grade whose
+-- employees were sent on unpaid leave for the coronavirus; agreed with the
+-- Histadrut as an exception that sets no precedent.
+@ref akn:hc_1__para_1__subpara_b__cls_2
+`the coronavirus window ends` MEANS Date 30 6 2021
+
+@ref akn:hc_1__para_1__subpara_b__cls_2
+GIVEN e IS AN `advance employee`, m IS A `calculation month`
+GIVETH A BOOLEAN
+DECIDE `counted for B` e m IF
+        `counted for B and C` m
+    OR  (    e's `the grade sent employees on unpaid leave for the coronavirus`
+         AND m's `month begins` AT LEAST `the calculation period begins`
+         AND m's `month begins` AT MOST `the coronavirus window ends`)
+
+@ref akn:hc_1__para_1__subpara_b/p5
+GIVEN e IS AN `advance employee`
+GIVETH A NUMBER
+DECIDE `B` e IS
+    sum (map (GIVEN m YIELD m's `share of the month`)
+             (filter (GIVEN m YIELD `counted for B` e m) (e's `months of the calculation period`)))
+    DIVIDED BY `the months of the calculation period`
+
+-- C: the average position fraction over the months counted for it, each
+-- month weighted by the share of it employed (a whole month weighs 1).
+@ref akn:hc_1__para_1__subpara_b/p7 akn:hc_1__para_1__subpara_b__cls_1__pnt_b/p2
+GIVEN e IS AN `advance employee`
+GIVETH A NUMBER
+DECIDE `C` e IS
+    IF `months weighed` EQUALS 0
+    THEN 0
+    ELSE sum (map (GIVEN m YIELD m's `share of the month` TIMES m's `position fraction that month`) `the months for C`)
+         DIVIDED BY `months weighed`
+    WHERE
+        `the months for C` MEANS filter (GIVEN m YIELD `counted for B and C` m) (e's `months of the calculation period`)
+        `months weighed`   MEANS sum (map (GIVEN m YIELD m's `share of the month`) `the months for C`)
+
+-- §1(ב)(3)(א): an hourly-paid employee (students, for instance): the
+-- average monthly hours in the months counted for C, divided by 182.
+@ref akn:hc_1__para_1__subpara_b__cls_3 akn:hc_1__para_1__subpara_b__cls_3__pnt_a
+GIVEN `average hours a month` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the auxiliary position fraction for hourly pay` `average hours a month` IS
+    `average hours a month` DIVIDED BY 182
+
+-- §1(ב)(3)(ב): a daily-paid employee: the average monthly days worked,
+-- divided by 20.83 in a five-day workplace or by 25 in a six-day one.
+@ref akn:hc_1__para_1__subpara_b__cls_3__pnt_b
+GIVEN `average days a month` IS A NUMBER, `days in the working week` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the auxiliary position fraction for daily pay` `average days a month` `days in the working week` IS
+    IF `days in the working week` EQUALS 6
+    THEN `average days a month` DIVIDED BY 25
+    ELSE `average days a month` DIVIDED BY 20.83
+
+-- "סכום M יעוגל לשקל החדש השלם הקרוב": to the nearest whole shekel. The
+-- circular names no rule for an exact half; it is rounded up here.
+@ref akn:hc_1__para_1__subpara_b/p13
+GIVEN x IS A NUMBER
+GIVETH A NUMBER
+DECIDE `to the nearest shekel` x IS
+    FLOOR (x PLUS 0.5)
+
+@ref akn:hc_1__para_1__subpara_b akn:hc_1__para_1__subpara_b/p2 akn:hc_1__para_1__subpara_b/p3
+GIVEN b IS A NUMBER, c IS A NUMBER
+GIVETH A NUMBER
+DECIDE `M for` b c IS
+    `to the nearest shekel` (`A` TIMES b TIMES c)
+
+@export default The advance (in shekels, gross) a State employee is paid with the March 2023 salary under Wage Controller circular 2023-1-12, on the framework agreement's coming one-time grant; 0 if not an "employee" under its section 1(א)
+GIVEN e IS AN `advance employee` @desc the State employee, with every month of 1.10.2020-31.3.2023 in which they were employed or on leave
+GIVETH A NUMBER
+DECIDE `the advance` e IS
+    IF `an employee for the advance` e
+    THEN `M for` (`B` e) (`C` e)
+    ELSE 0
+
+§§ `1 Payment, 2 gross, 3 deduction, 4 leave at payment`
+
+-- §1: paid with the March 2023 salary, which is paid in April 2023.
+@ref akn:hc_1__para_1
+GIVEN e IS AN `advance employee`
+GIVETH A DEONTIC `advance party` `advance action`
+DECIDE `paying the advance` e IS
+    IF `an employee for the advance` e
+    THEN PARTY `the State as employer`
+         MUST  `pay the advance` paid
+               PROVIDED paid AT LEAST `the advance` e
+         WITHIN `the month the March 2023 salary is paid`
+         LEST  BREACH BY `the State as employer` BECAUSE "§1: the advance is paid with the March 2023 salary"
+    ELSE FULFILLED
+
+-- §2: the advance is paid gross, and no provident-fund contributions
+-- (training fund, pension fund, managers' insurance) are made on it.
+@ref akn:hc_1__para_2
+GIVETH A DEONTIC `advance party` `advance action`
+DECIDE `no contributions on the advance` IS
+    PARTY `the State as employer`
+    SHANT `make provident-fund contributions on the advance`
+    WITHIN `the month the June 2023 salary is paid`
+    LEST  BREACH BY `the State as employer` BECAUSE "§2: no provident-fund contributions are made on the advance"
+
+-- §3: deducted when the June 2023 salary is paid or when the one-time grant
+-- of the coming agreement is paid, whichever is earlier, subject to the
+-- Wage Protection Law 1958.
+@ref akn:hc_1__para_3
+GIVEN `the month the grant is paid` IS A NUMBER @desc months from 1.3.2023 to the payment of the one-time grant; not known when the circular was written
+GIVETH A NUMBER
+DECIDE `the deduction month` `the month the grant is paid` IS
+    min `the month the June 2023 salary is paid` `the month the grant is paid`
+
+@ref akn:hc_1__para_3
+GIVEN `the month the grant is paid` IS A NUMBER
+GIVETH A DEONTIC `advance party` `advance action`
+DECIDE `deducting the advance` `the month the grant is paid` IS
+    PARTY `the State as employer`
+    MUST  `deduct the advance from the salary`
+    WITHIN `the deduction month` `the month the grant is paid`
+
+-- §4: an employee on birth and parenthood, or on sick leave without pay,
+-- when the advance is paid, is paid it with the first salary after
+-- returning to work, and no later than the next one — provided that date
+-- comes before the deduction of §3.
+@ref akn:hc_1__para_4
+GIVEN e IS AN `advance employee`, `the first salary after return` IS A NUMBER, `the month the grant is paid` IS A NUMBER
+GIVETH A DEONTIC `advance party` `advance action`
+DECIDE `paying the advance after leave` e `the first salary after return` `the month the grant is paid` IS
+    IF      `an employee for the advance` e
+        AND `the first salary after return` LESS THAN `the deduction month` `the month the grant is paid`
+    THEN PARTY `the State as employer`
+         MUST  `pay the advance` paid
+               PROVIDED paid AT LEAST `the advance` e
+         WITHIN `the first salary after return` PLUS 1
+         LEST  BREACH BY `the State as employer` BECAUSE "§4: the advance is paid with the first salary after the return, or the next one at the latest"
+    ELSE FULFILLED
+
+-- akn:hc_1__para_5 The circular was coordinated with the Histadrut, which accepts it; a statement of agreement, no rule.
+
+§§ `6 Other public-sector bodies`
+
+DECLARE `other agreement` IS ONE OF
+    `no other agreement settling pay rises for 2020-2027`
+    `another agreement for part of 1.1.2020-31.12.2027`
+    `another agreement for the whole of 1.1.2020-31.12.2027`
+
+@desc A public-sector body other than the State, as far as section 6 asks about it.
+DECLARE `public body` HAS
+    `will sign or join the framework agreement`  IS A BOOLEAN
+    `pays grades the Histadrut represents that are not qualifying` IS A BOOLEAN @desc wants to pay the advance to employees paid under Histadrut-represented grades not listed in annex A
+    `its other agreement`                        IS AN `other agreement` @desc another collective agreement settling pay rises or financial benefits for 1.1.2020-31.12.2027
+
+DECLARE `approval for a body` IS ONE OF
+    `the general approval, with written notice on payment`
+    `a specific approval in advance and in writing`
+    `no approval under this circular`
+
+-- §6(א): a body that is to sign the framework agreement or will join it,
+-- and wants to pay its qualifying-grade employees an advance, has the Wage
+-- Controller's approval to pay it under this circular. §6(ב) ¶2: to pay it
+-- to non-qualifying Histadrut grades needs a specific approval in advance
+-- and in writing. §6(ג): the general approval is for a body with no other
+-- agreement settling pay for 1.1.2020-31.12.2027; one with another
+-- agreement for part of that period needs a specific approval in advance.
+-- A body with another agreement for the WHOLE period has neither route
+-- (the general approval is for bodies with no such agreement, and §6(ג) ¶2
+-- opens the specific route only for part of the period), so it has no
+-- approval under this circular.
+@ref akn:hc_1__para_6__subpara_a akn:hc_1__para_6__subpara_b/p2 akn:hc_1__para_6__subpara_c akn:hc_1__para_6__subpara_c/p2
+GIVEN p IS A `public body`
+GIVETH AN `approval for a body`
+DECIDE `the approval a body has` p IS
+    BRANCH IF (NOT p's `will sign or join the framework agreement`) THEN `no approval under this circular`
+           IF p's `its other agreement` EQUALS `another agreement for the whole of 1.1.2020-31.12.2027` THEN `no approval under this circular`
+           IF p's `pays grades the Histadrut represents that are not qualifying` THEN `a specific approval in advance and in writing`
+           IF p's `its other agreement` EQUALS `another agreement for part of 1.1.2020-31.12.2027` THEN `a specific approval in advance and in writing`
+           OTHERWISE `the general approval, with written notice on payment`
+
+-- §6(ב): a body paying under the general approval notifies the Wage
+-- Controller in writing when it makes the payment (time in months from the
+-- payment).
+@ref akn:hc_1__para_6__subpara_b
+GIVEN p IS A `public body`
+GIVETH A DEONTIC `advance party` `advance action`
+DECIDE `notifying the Wage Controller` p IS
+    IF `the approval a body has` p EQUALS `the general approval, with written notice on payment`
+    THEN PARTY `a public-sector body`
+         MUST  `notify the Wage Controller in writing of the payment`
+         WITHIN 1
+         LEST  BREACH BY `a public-sector body` BECAUSE "§6(ב): a body paying the advance under the general approval notifies the Wage Controller in writing with the payment"
+    ELSE FULFILLED
+
+-- akn:conclusions The sign-off (Efi Malkin, acting Wage Controller) and the copies (the Civil Service Commissioner, the chairman of the Histadrut, the public-sector employers); no rule.
+
+§§ `נספח א' — the qualifying grades`
+
+-- Annex A as printed: the grade and its State-service code, in the printed
+-- order. The printed table has a serial-number column that the corpus
+-- publishes empty (the source numbers it automatically), and its header is
+-- repeated at each page break; neither carries a rule. For the jurists,
+-- public defenders and state attorneys the annex excludes anyone whose
+-- salary is linked to a judicial office-holder's.
+@ref akn:att_1__hc_1/p1 akn:att_1__hc_1/t1
+DECLARE `qualifying grade` HAS
+    `grade name`  IS A STRING
+    `grade codes` IS A STRING @desc the State-service code(s), "--" where the annex prints none
+
+`the qualifying grades` MEANS
+    LIST `qualifying grade` "מינהלי" "1",
+         `qualifying grade` "אחיד" "2",
+         `qualifying grade` "טכנאי רנטגן" "8",
+         `qualifying grade` "מח\"ר, לרבות פסיכולוגים" "11, 16",
+         `qualifying grade` "מהנדסים" "12",
+         `qualifying grade` "טכנאים והנדסאים" "13",
+         `qualifying grade` "פיזיוטרפיסטים" "20",
+         `qualifying grade` "משפטנים (מובהר כי האמור לא יחול לגבי מי ששכרו צמוד לשכר נושא משרה שיפוטית)" "21",
+         `qualifying grade` "סנגורים ציבוריים (מובהר כי האמור לא יחול לגבי מי ששכרו צמוד לשכר נושא משרה שיפוטית)" "25",
+         `qualifying grade` "פרקליטים (מובהר כי האמור לא יחול לגבי מי ששכרו צמוד לשכר נושא משרה שיפוטית)" "22",
+         `qualifying grade` "עיתונאים" "27",
+         `qualifying grade` "עובדי מעבדה, ביוכימאים ומיקרוביולוגים" "33",
+         `qualifying grade` "רוקחים" "34",
+         `qualifying grade` "סטודנטים לרפואה ולסיעוד" "36",
+         `qualifying grade` "אחים ואחיות (לרבות אחים ואחיות בריאות הציבור)" "38, 39",
+         `qualifying grade` "פארה רפואיים (לרבות קלינאי תקשורת וטכנולוגים רפואיים)" "47",
+         `qualifying grade` "מרפאים בעיסוק" "49",
+         `qualifying grade` "מפקחים ימיים" "61",
+         `qualifying grade` "מקצ\"ט" "62",
+         `qualifying grade` "סטודנטים" "71",
+         `qualifying grade` "מתמחים במשפטים" "81",
+         `qualifying grade` "נערים עובדים וחניכים" "--",
+         `qualifying grade` "קלדניות שופטים" "526",
+         `qualifying grade` "מעברי הגבול" "519",
+         `qualifying grade` "רשות מקרקעי ישראל" "565",
+         `qualifying grade` "כבאים" "202",
+         `qualifying grade` "עובדים סוציאליים" "24, 124",
+         `qualifying grade` "שירות החוץ" "9",
+         `qualifying grade` "יהלום" "547",
+         `qualifying grade` "עוזרים משפטיים" "562",
+         `qualifying grade` "יחידת הפיצו\"ח (ויחידת הפיצו\"ח 90)" "567"
+
+GIVEN `name` IS A STRING
+GIVETH A BOOLEAN
+DECIDE `a qualifying grade by name` `name` IF
+    any (GIVEN g YIELD g's `grade name` EQUALS `name`) `the qualifying grades`
+
+-- The annex's closing note: the veterinarians' and the civil-research
+-- grades are still under discussion with the Histadrut, are not listed, and
+-- are paid no advance under this circular.
+@ref akn:att_1__hc_1/p2
+`grades excluded pending talks` MEANS LIST "הוטרינרים", "מחקר אזרחי"
+
+#ASSERT count `the qualifying grades` EQUALS 31
+#ASSERT `a qualifying grade by name` "מהנדסים"
+#ASSERT all (GIVEN n YIELD NOT `a qualifying grade by name` n) `grades excluded pending talks`
+
+§§ `Findings`
+
+-- F-2023-03-20_sachar_2023-1-12_mikdama-misgeret-a: §1(ב)(2)'s illustration
+-- prints B = 21.5/30 = 0.716, which is 21.5/30 cut at three decimals
+-- (0.71666…). With B as printed, M is 4,296; with B exact, 4,300.
+@ref akn:hc_1__para_1__subpara_b__cls_2__pnt_4/p5
+`B as the illustration prints it` MEANS 0.716
+
+`B as printed and B exact give different advances` MEANS
+        `B as the illustration prints it` EQUALS TRUNC (21.5 DIVIDED BY 30) 3
+    AND `M for` `B as the illustration prints it` 1 EQUALS 4296
+    AND `M for` (21.5 DIVIDED BY 30) 1 EQUALS 4300
+#ASSERT `B as printed and B exact give different advances`
+
+-- F-2023-03-20_sachar_2023-1-12_mikdama-misgeret-b: the illustration counts
+-- 15.1.2021-31.1.2021 as half a month; ¶6's rule (days employed over the
+-- month's work days) gives 11/21 in a five-day workplace and 14/26 in a
+-- six-day one — neither a half.
+@ref akn:hc_1__para_1__subpara_b__cls_2/p2 akn:hc_1__para_1__subpara_b__cls_2/p3 akn:hc_1__para_1__subpara_b__cls_2__pnt_1 akn:hc_1__para_1__subpara_b__cls_2__pnt_2 akn:hc_1__para_1__subpara_b__cls_2__pnt_3 akn:hc_1__para_1__subpara_b__cls_2__pnt_4
+`the share of January 2021 as the illustration counts it` MEANS 0.5
+
+`January 2021 under ¶6, five days a week` MEANS
+    `the share of a partly employed month`
+        (`work days from` (Day (Date 15 1 2021)) (Day (Date 31 1 2021)) Thursday)
+        (`work days from` (Day (Date 1 1 2021)) (Day (Date 31 1 2021)) Thursday)
+
+`January 2021 under ¶6, six days a week` MEANS
+    `the share of a partly employed month`
+        (`work days from` (Day (Date 15 1 2021)) (Day (Date 31 1 2021)) Friday)
+        (`work days from` (Day (Date 1 1 2021)) (Day (Date 31 1 2021)) Friday)
+
+-- The illustration's employee, January's share given: started 15.1.2021,
+-- in a grade sent on coronavirus unpaid leave, on unpaid leave in March and
+-- April 2021 and from August to December 2021, otherwise at 100%.
+GIVEN `January's share` IS A NUMBER
+GIVETH AN `advance employee`
+DECIDE `the illustrated employee` `January's share` IS
+    `advance employee` WITH
+        `employed in the State service on 1.3.2023`                IS TRUE
+        `paid under the agreements of a qualifying grade`          IS TRUE
+        `employed in the State service on 1.6.2022`                IS TRUE
+        `left the service between 1.6.2022 and 28.2.2023`          IS FALSE
+        `in qualifying grades throughout 1.6.2022 to 28.2.2023`    IS TRUE
+        `on unpaid leave in the qualifying period`                 IS FALSE
+        `the grade sent employees on unpaid leave for the coronavirus` IS TRUE
+        `months of the calculation period`                         IS `the illustrated months` `January's share`
+
+GIVEN `January's share` IS A NUMBER
+GIVETH A LIST OF `calculation month`
+DECIDE `the illustrated months` `January's share` IS
+    LIST `calculation month` (Date 1 1 2021) `January's share` `month worked` 1,
+         `calculation month` (Date 1 2 2021) 1 `month worked` 1,
+         `calculation month` (Date 1 3 2021) 1 `month of unpaid leave` 1,
+         `calculation month` (Date 1 4 2021) 1 `month of unpaid leave` 1,
+         `calculation month` (Date 1 5 2021) 1 `month worked` 1,
+         `calculation month` (Date 1 6 2021) 1 `month worked` 1,
+         `calculation month` (Date 1 7 2021) 1 `month worked` 1,
+         `calculation month` (Date 1 8 2021) 1 `month of unpaid leave` 1,
+         `calculation month` (Date 1 9 2021) 1 `month of unpaid leave` 1,
+         `calculation month` (Date 1 10 2021) 1 `month of unpaid leave` 1,
+         `calculation month` (Date 1 11 2021) 1 `month of unpaid leave` 1,
+         `calculation month` (Date 1 12 2021) 1 `month of unpaid leave` 1,
+         `calculation month` (Date 1 1 2022) 1 `month worked` 1,
+         `calculation month` (Date 1 2 2022) 1 `month worked` 1,
+         `calculation month` (Date 1 3 2022) 1 `month worked` 1,
+         `calculation month` (Date 1 4 2022) 1 `month worked` 1,
+         `calculation month` (Date 1 5 2022) 1 `month worked` 1,
+         `calculation month` (Date 1 6 2022) 1 `month worked` 1,
+         `calculation month` (Date 1 7 2022) 1 `month worked` 1,
+         `calculation month` (Date 1 8 2022) 1 `month worked` 1,
+         `calculation month` (Date 1 9 2022) 1 `month worked` 1,
+         `calculation month` (Date 1 10 2022) 1 `month worked` 1,
+         `calculation month` (Date 1 11 2022) 1 `month worked` 1,
+         `calculation month` (Date 1 12 2022) 1 `month worked` 1,
+         `calculation month` (Date 1 1 2023) 1 `month worked` 1,
+         `calculation month` (Date 1 2 2023) 1 `month worked` 1,
+         `calculation month` (Date 1 3 2023) 1 `month worked` 1
+
+`the illustration's half month is not ¶6's share` MEANS
+        `January 2021 under ¶6, five days a week` EQUALS 11 DIVIDED BY 21
+    AND `January 2021 under ¶6, six days a week` EQUALS 14 DIVIDED BY 26
+    AND NOT (`January 2021 under ¶6, five days a week` EQUALS `the share of January 2021 as the illustration counts it`)
+    AND NOT (`January 2021 under ¶6, six days a week` EQUALS `the share of January 2021 as the illustration counts it`)
+    AND NOT (`the advance` (`the illustrated employee` `January 2021 under ¶6, five days a week`)
+             EQUALS `the advance` (`the illustrated employee` `the share of January 2021 as the illustration counts it`))
+#ASSERT `the illustration's half month is not ¶6's share`
+
+-- The encoding reproduces the illustration's own figures with its half
+-- month: 21.5 months counted for B, so B = 21.5/30, and C = 1.
+@ref akn:hc_1__para_1__subpara_b__cls_2__pnt_4/p2 akn:hc_1__para_1__subpara_b__cls_2__pnt_4/p3 akn:hc_1__para_1__subpara_b__cls_2__pnt_4/p4 akn:hc_1__para_1__subpara_b__cls_2__pnt_4/p6 akn:hc_1__para_1__subpara_b__cls_2__pnt_4/p7
+`the illustration's B and C` MEANS
+        `B` (`the illustrated employee` `the share of January 2021 as the illustration counts it`) EQUALS 21.5 DIVIDED BY 30
+    AND `C` (`the illustrated employee` `the share of January 2021 as the illustration counts it`) EQUALS 1
+#ASSERT `the illustration's B and C`
+
+-- The reading adopted for F-2023-03-20_sachar_2023-1-12_mikdama-misgeret-a and F-2023-03-20_sachar_2023-1-12_mikdama-misgeret-b: B is used exact, not cut, and a
+-- part month is ¶6's share; the illustration's figures are approximations.
+#ASSERT `the advance` (`the illustrated employee` `the share of January 2021 as the illustration counts it`) EQUALS 4300
+#ASSERT `the advance` (`the illustrated employee` `January 2021 under ¶6, five days a week`) EQUALS 4305
+#ASSERT `the advance` (`the illustrated employee` `January 2021 under ¶6, six days a week`) EQUALS 4308
+
+-- F-2023-03-20_sachar_2023-1-12_mikdama-misgeret-c: a month of unpaid leave
+-- in the qualifying period decides the whole advance, one way or the other.
+`an employee with a month of unpaid leave in December 2022` MEANS
+    `advance employee` WITH
+        `employed in the State service on 1.3.2023`                IS TRUE
+        `paid under the agreements of a qualifying grade`          IS TRUE
+        `employed in the State service on 1.6.2022`                IS TRUE
+        `left the service between 1.6.2022 and 28.2.2023`          IS FALSE
+        `in qualifying grades throughout 1.6.2022 to 28.2.2023`    IS TRUE
+        `on unpaid leave in the qualifying period`                 IS TRUE
+        `the grade sent employees on unpaid leave for the coronavirus` IS FALSE
+        `months of the calculation period`                         IS `the illustrated months` 1
+
+`unpaid leave in the qualifying period reads two ways` MEANS
+        `employed continuously, unpaid leave skipped` `an employee with a month of unpaid leave in December 2022`
+    AND NOT `employed continuously, unpaid leave breaking it` `an employee with a month of unpaid leave in December 2022`
+#ASSERT `unpaid leave in the qualifying period reads two ways`
+
+§§ `Examples`
+
+-- §1(ב)'s own example: 24 of the 30 months at 75%: 6,000 × 24/30 × 3/4 = 3,600.
+@ref akn:hc_1__para_1__subpara_b/p8 akn:hc_1__para_1__subpara_b/p9 akn:hc_1__para_1__subpara_b/p10 akn:hc_1__para_1__subpara_b/p11 akn:hc_1__para_1__subpara_b/p12
+`the example's advance` MEANS `M for` (24 DIVIDED BY 30) (3 DIVIDED BY 4)
+#ASSERT `the example's advance` EQUALS 3600
+
+#ASSERT `an employee for the advance` (`the illustrated employee` 0.5)
+#ASSERT NOT `an employee for the advance` `an employee with a month of unpaid leave in December 2022`
+#ASSERT `the advance` `an employee with a month of unpaid leave in December 2022` EQUALS 0
+
+-- §1(ב)(3): 91 hours a month on average is half a position; 15 days a
+-- month in a six-day workplace is 0.6.
+#ASSERT `the auxiliary position fraction for hourly pay` 91 EQUALS 0.5
+#ASSERT `the auxiliary position fraction for daily pay` 15 6 EQUALS 0.6
+
+#ASSERT `the deduction month` 3 EQUALS 3
+#ASSERT `the deduction month` 6 EQUALS 4
+
+`a local authority signing the agreement` MEANS
+    `public body` WITH
+        `will sign or join the framework agreement`  IS TRUE
+        `pays grades the Histadrut represents that are not qualifying` IS FALSE
+        `its other agreement`                        IS `no other agreement settling pay rises for 2020-2027`
+#ASSERT `the approval a body has` `a local authority signing the agreement` EQUALS `the general approval, with written notice on payment`
+
+`a body with an agreement to 2024` MEANS
+    `public body` WITH
+        `will sign or join the framework agreement`  IS TRUE
+        `pays grades the Histadrut represents that are not qualifying` IS FALSE
+        `its other agreement`                        IS `another agreement for part of 1.1.2020-31.12.2027`
+#ASSERT `the approval a body has` `a body with an agreement to 2024` EQUALS `a specific approval in advance and in writing`
+
+-- Paid with the March salary (in April), the obligation is fulfilled; not
+-- paid by then, it is breached. Deducted in July (June's salary) with the
+-- grant still unpaid, fulfilled. On leave until May (first salary in June,
+-- month 4) with the grant in month 6: the advance is due by month 5.
+#TRACE `paying the advance` (`the illustrated employee` 0.5) AT 0 WITH
+    PARTY `the State as employer` DOES `pay the advance` 4300 AT 1
+#TRACE `paying the advance` (`the illustrated employee` 0.5) AT 0 WITH
+    PARTY `the State as employer` DOES `pay the advance` 4300 AT 3
+#TRACE `deducting the advance` 6 AT 0 WITH
+    PARTY `the State as employer` DOES `deduct the advance from the salary` AT 4
+#TRACE `paying the advance after leave` (`the illustrated employee` 0.5) 3 6 AT 0 WITH
+    PARTY `the State as employer` DOES `pay the advance` 4300 AT 4
+#TRACE `no contributions on the advance` AT 0 WITH
+    PARTY `the State as employer` DOES `make provident-fund contributions on the advance` AT 1
+#TRACE `notifying the Wage Controller` `a local authority signing the agreement` AT 0 WITH
+    PARTY `a public-sector body` DOES `notify the Wage Controller in writing of the payment` AT 0

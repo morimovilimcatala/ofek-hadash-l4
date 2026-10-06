@@ -1,0 +1,183 @@
+-- חוזר לבעלויות תשע"ט/10 (22.8.2019): תגמול עובדי הוראה בגין הישגי בית הספר
+-- לשנת הלימודים תשע"ט.
+-- The one-off grant to upper-secondary teachers of the schools ranked
+-- highest for achievement in תשע"ט (§36 of the agreement of 14.8.2011):
+-- amounts by the school's rank, pro-rating, payment and its treatment.
+
+IMPORT prelude
+IMPORT common
+
+§ `תשע"ט/10 תגמול עובדי הוראה בגין הישגי בית הספר לשנת הלימודים תשע"ט`
+
+-- akn:preamble The letterhead, date, reference number, addressee, greeting and subject line; no rule.
+-- akn:preamble/p13 akn:preamble/p14 The recital of the general collective agreement of 14.8.2011 with the Secondary School Teachers' Association and what it covers; no rule of its own.
+
+-- ¶15: the circular publishes the instructions on the achievement grant for
+-- תשע"ט to teachers employed that year by the owners of post-primary
+-- education in the upper-secondary divisions, under §36 of the agreement.
+@ref akn:preamble/p15
+`the school year of the grant` MEANS "תשע\"ט"
+
+DECLARE `achievement action` IS ONE OF
+    `pay the achievement grant` HAS `amount paid` IS A NUMBER
+    `reimburse the owner under payments topic 583`
+
+@desc An upper-secondary teacher's year, as far as the achievement grant asks.
+DECLARE `achievement teacher` HAS
+    `graded on the teaching-employee scale`                     IS A BOOLEAN
+    `employed in upper secondary by a supervised owner`         IS A BOOLEAN
+    `rank of the school`                                        IS A NUMBER  @desc 1 to 4 for the four deciles the Ministry found highest (section 2(ב)); 0 for any other school
+    `upper-secondary position fraction`                         IS A NUMBER  @desc the share of a full position held in the upper-secondary division of the winning school
+    `share of the year employed at the school`                  IS A NUMBER  @desc the part of תשע"ט employed at the winning school, maternity leave under the Women's Employment Law counted as employed
+    `on full sabbatical or unpaid leave all year`               IS A BOOLEAN
+
+§§ `1 Applicability`
+
+-- §1: every employee on the teaching scale in the upper-secondary division
+-- employed by a supervised post-primary owner, by the share of employment in
+-- that division, whether or not under Oz LeTmura.
+@ref akn:art_1/p1
+GIVEN t IS AN `achievement teacher`
+GIVETH A BOOLEAN
+DECIDE `the circular applies to` t IF
+        t's `graded on the teaching-employee scale`
+    AND t's `employed in upper secondary by a supervised owner`
+
+§§ `2 The achievement grant`
+
+-- §2(א): the programme, in grades 9–12/14 (four-year school) or 10–12/14
+-- (three- or six-year school), runs since תשע"ג by the format and rules of the
+-- pedagogical administration's letter of 21.10.2012 — an input here.
+@ref akn:art_2__para_a/p1
+@desc Whether the Ministry ranked the school under the rules of the letter of 21.10.2012; not printed in this circular.
+ASSUME `ranked under the letter of 21.10.2012` IS A BOOLEAN
+
+-- §2(ב)'s table AS PRINTED: the school's rank (each a further 10%) and the
+-- grant for a full position, updated to May 2019 by the consumer price index
+-- (May 2019 against May 2018).
+@ref akn:art_2__para_b/p1 akn:art_2__para_b/p2 akn:art_2__para_b/p3 akn:art_2__para_b/p4 akn:art_2__para_b/p5 akn:art_2__para_b/p6 akn:art_2__para_b/p7 akn:art_2__para_b/p8 akn:art_2__para_b/p9 akn:art_2__para_b/p10 akn:art_2__para_b/p11 akn:art_2__para_b/p12
+GIVEN rank IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the grant for a full position` rank IS
+    CONSIDER rank
+    WHEN 1 THEN 8451.18
+    WHEN 2 THEN 6338.38
+    WHEN 3 THEN 4225.59
+    WHEN 4 THEN 3169.19
+    OTHERWISE 0
+
+-- §2(ג): a part position and/or part of the year gets the proportional part —
+-- by the upper-secondary position AND by the part of the year — unpaid
+-- leave and sabbatical reducing it, maternity leave not (unpaid leave after
+-- it does). A full year of sabbatical or unpaid leave earns nothing.
+-- §2(ד): employment beyond 100% is not counted.
+@ref akn:art_2__para_c/p1 akn:art_2__para_c/p2 akn:art_2__para_d/p1
+@export The one-off achievement grant for תשע"ט an upper-secondary teacher is paid under circular תשע"ט/10
+GIVEN t IS AN `achievement teacher` @desc the teacher's year
+GIVETH A NUMBER
+DECIDE `the achievement grant` t IS
+    IF `the circular applies to` t AND (NOT t's `on full sabbatical or unpaid leave all year`)
+    THEN `the grant for a full position` (t's `rank of the school`)
+         TIMES min (t's `upper-secondary position fraction`) 1
+         TIMES t's `share of the year employed at the school`
+    ELSE 0
+
+-- §2(ו): the grants are not part of the base for the hour value, severance
+-- or percentage supplements, and no study-fund contribution is made on them.
+@ref akn:art_2__para_f/p1
+DECLARE `pay base` IS ONE OF
+    `the hour value`
+    `severance pay`
+    `percentage supplements`
+    `study-fund contributions`
+    `pension-fund contributions`
+
+GIVEN b IS A `pay base`
+GIVETH A BOOLEAN
+DECIDE `the grant enters` b IF
+    b EQUALS `pension-fund contributions`
+
+-- §2(ז): pension contributions of 5% from the employer and 5% deducted from
+-- the teacher.
+@ref akn:art_2__para_g/p1
+GIVEN grant IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the employer's pension contribution on the grant` grant IS grant TIMES 0.05
+
+GIVEN grant IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the teacher's pension deduction on the grant` grant IS grant TIMES 0.05
+
+-- §2(ה): paid with August 2019's salary and no later than September 2019's.
+-- Time in months from August 2019's salary (August = 0).
+@ref akn:art_2__para_e/p1
+GIVEN t IS AN `achievement teacher`
+GIVETH A DEONTIC Party `achievement action`
+DECIDE `paying the achievement grant` t IS
+    IF `the achievement grant` t GREATER THAN 0
+    THEN PARTY `the employer`
+         MUST  `pay the achievement grant` `amount paid`
+               PROVIDED `amount paid` AT LEAST `the achievement grant` t
+         WITHIN 1
+         LEST BREACH BY `the employer` BECAUSE "תשע\"ט/10 §2(ה): the grant is paid with August's salary and no later than September 2019's"
+    ELSE FULFILLED
+
+§§ `3–4 The list of schools and the reimbursement`
+
+-- §3: the list of winning schools is given by a link, not printed; whether a
+-- school is on it is the rank input.
+@ref akn:art_3/p1
+GIVEN t IS AN `achievement teacher`
+GIVETH A BOOLEAN
+DECIDE `the school is on the list of winners` t IF
+    t's `rank of the school` AT LEAST 1 AND t's `rank of the school` AT MOST 4
+
+-- §4: the owners are reimbursed under payments topic 583, in the August 2019
+-- payments transferred at the start of September 2019 (month 1 here).
+@ref akn:art_4/p1
+GIVETH A DEONTIC Party `achievement action`
+DECIDE `reimbursing the owners` IS
+    PARTY `the Ministry of Education`
+    MUST  `reimburse the owner under payments topic 583`
+    WITHIN 1
+    LEST BREACH BY `the Ministry of Education` BECAUSE "תשע\"ט/10 §4: reimbursement under topic 583 in the payments transferred at the start of 9/2019"
+
+-- akn:conclusions The contact line for questions, the sign-off, signatures and copies; no rule.
+
+-- Examples. Ranks, positions and shares of the year are placeholders.
+GIVEN rank IS A NUMBER, f IS A NUMBER, share IS A NUMBER
+GIVETH AN `achievement teacher`
+DECIDE `a teacher` rank f share IS
+    `achievement teacher` WITH
+        `graded on the teaching-employee scale`             IS TRUE
+        `employed in upper secondary by a supervised owner` IS TRUE
+        `rank of the school`                                IS rank
+        `upper-secondary position fraction`                 IS f
+        `share of the year employed at the school`          IS share
+        `on full sabbatical or unpaid leave all year`       IS FALSE
+
+#ASSERT `the achievement grant` (`a teacher` 1 1 1) EQUALS 8451.18
+#ASSERT `the achievement grant` (`a teacher` 3 0.5 1) EQUALS 2112.795
+#ASSERT `the achievement grant` (`a teacher` 2 1.3 0.5) EQUALS 3169.19
+#ASSERT `the achievement grant` (`a teacher` 0 1 1) EQUALS 0
+#ASSERT `the employer's pension contribution on the grant` 8451.18 EQUALS 422.559
+#ASSERT NOT `the grant enters` `severance pay`
+#ASSERT `the school is on the list of winners` (`a teacher` 4 1 1)
+
+-- The four amounts stand at 1 : 0.75 : 0.5 : 0.375 of the top rank's, each
+-- printed at or under one agora below the exact product (6,338.385 is
+-- printed 6,338.38, 3,169.1925 as 3,169.19).
+GIVEN rank IS A NUMBER, ratio IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `printed within an agora below` rank ratio IF
+        `the grant for a full position` rank AT MOST `the grant for a full position` 1 TIMES ratio
+    AND `the grant for a full position` rank GREATER THAN `the grant for a full position` 1 TIMES ratio MINUS 0.01
+
+#ASSERT `printed within an agora below` 2 0.75
+#ASSERT `printed within an agora below` 3 0.5
+#ASSERT `printed within an agora below` 4 0.375
+
+#TRACE `paying the achievement grant` (`a teacher` 1 1 1) AT 0 WITH
+    PARTY `the employer` DOES `pay the achievement grant` 8451.18 AT 1
+#TRACE `paying the achievement grant` (`a teacher` 1 1 1) AT 0 WITH
+    PARTY `the employer` DOES `pay the achievement grant` 8451.18 AT 2

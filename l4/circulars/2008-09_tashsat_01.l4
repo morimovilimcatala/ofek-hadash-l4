@@ -1,0 +1,118 @@
+-- חוזר לבעלויות תשס"ט/1 — תשלום תוספת השכר בגין השעה הפרטנית בשיעור 4.5% בחודשי הקיץ (25.9.2008)
+-- On the Treasury's letter of 10.9.2008, the 4.5% individual-hour
+-- supplement is paid after all for July–August 2008, pro-rated by the part
+-- of the school year's employment in which the hour was done; it is not paid
+-- from 1.9.2008, and the State indemnifies the owning bodies.
+
+IMPORT prelude
+IMPORT common
+
+§ `תשלום תוספת השעה הפרטנית בחודשי הקיץ`
+
+-- akn:preamble The letterhead, title, date (25.9.2008), and the recital: further to circular תשס"ח/7 of 16.7.2008, it has now been decided, on the deputy wage commissioner's letter of 10.9.2008, to pay the supplement for July–August 2008; no rule beyond what §§1–4 set.
+
+`the individual-hour supplement rate` MEANS 4.5%
+
+@desc A teaching employee of an owning body, as far as the summer supplement asks about them.
+DECLARE `summer case` HAS
+    `did the individual hour under the 24.1.2008 agreement` IS A BOOLEAN
+    `months employed in the school year`        IS A NUMBER  @desc months employed in the 2007-08 school year (September 2007 to August 2008), 12 for the whole year
+    `months in which the hour was done`         IS A NUMBER  @desc months of that employment in which the employee did the individual hour (the hour ran from January 2008)
+    `the month's supplement base`               IS A NUMBER  @desc the salary components the 4.5% is computed on under the 24.1.2008 agreement, for one month, already by the position fraction; an input
+
+-- §2: the supplement for these months is multiplied by the share of the
+-- school year's employment in which the hour was done. The reading adopted
+-- (F-2008-09_tashsat_01-a): months in which the hour was actually done over
+-- all the months employed in the school year.
+@ref akn:art_2
+GIVEN c IS A `summer case`
+GIVETH A NUMBER
+DECIDE `the share of the year the hour was done` c IS
+    IF c's `months employed in the school year` GREATER THAN 0
+    THEN min 1 (c's `months in which the hour was done` DIVIDED BY c's `months employed in the school year`)
+    ELSE 0
+
+-- §1: paid for July and August 2008 to teaching employees of the owning
+-- bodies who did the individual hour under the 24.1.2008 agreement.
+@ref akn:art_1
+GIVEN c IS A `summer case`
+GIVETH A NUMBER
+DECIDE `the supplement for one summer month` c IS
+    IF c's `did the individual hour under the 24.1.2008 agreement`
+    THEN `the individual-hour supplement rate` TIMES c's `the month's supplement base`
+         TIMES `the share of the year the hour was done` c
+    ELSE 0
+
+@export The 4.5% individual-hour supplement owed for July and August 2008 together under circular 2008-09/1
+GIVEN c IS A `summer case` @desc the teaching employee's 2007-08 year
+GIVETH A NUMBER
+DECIDE `the summer supplement` c IS
+    2 TIMES `the supplement for one summer month` c
+
+-- §3: the agreement on the individual hour has expired; nothing is paid for
+-- it from 1.9.2008. Time in months of 2008: September is 9.
+@ref akn:art_3
+GIVEN month IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `the supplement is payable for 2008 month` month IF
+    month AT MOST 8
+
+DECLARE `summer action` IS ONE OF
+    `pay the summer supplement` HAS `summer amount` IS A NUMBER
+    `pay the supplement for a month from September 2008`
+    `indemnify the owning bodies`
+
+DECLARE `summer party` IS ONE OF
+    `the owning body`
+    `the State`
+
+GIVETH A DEONTIC `summer party` `summer action`
+DECIDE `no supplement from 1.9.2008` IS
+    PARTY `the owning body`
+    SHANT `pay the supplement for a month from September 2008`
+    WITHIN 12
+    LEST  BREACH BY `the owning body` BECAUSE "section 3: the individual-hour supplement is not paid from 1.9.2008"
+
+-- §1 and §4: the owning body pays; the State indemnifies it for these
+-- payments. Neither has a date printed.
+@ref akn:art_4
+GIVEN c IS A `summer case`
+GIVETH A DEONTIC `summer party` `summer action`
+DECIDE `the summer supplement is paid and indemnified` c IS
+    PARTY `the owning body`
+    MUST  `pay the summer supplement` x
+          PROVIDED x AT LEAST `the summer supplement` c
+    HENCE PARTY `the State`
+          MUST `indemnify the owning bodies`
+
+-- akn:conclusions The sign-off, New Year greeting and signature; no rule.
+
+§§ `Findings and examples`
+
+-- F-2008-09_tashsat_01-a: a full-year teacher who did the hour every month
+-- it ran (January–June 2008) has 6 of 12 months on the reading adopted, 6
+-- of 10 if the school year is its teaching months, and 8 of 12 if July–August
+-- count as months in which the hour was done.
+`a full-year teacher who did the hour from January` MEANS
+    `summer case` WITH
+        `did the individual hour under the 24.1.2008 agreement` IS TRUE
+        `months employed in the school year`        IS 12
+        `months in which the hour was done`         IS 6
+        `the month's supplement base`               IS 10000
+
+`§2's share reads three ways` MEANS
+        `the share of the year the hour was done` `a full-year teacher who did the hour from January` EQUALS 1/2
+    AND NOT (6 DIVIDED BY 10 EQUALS 1/2)
+    AND NOT (8 DIVIDED BY 12 EQUALS 1/2)
+#ASSERT `§2's share reads three ways`
+
+-- Example: a base of 10,000 is a placeholder. 4.5% × 10,000 × 1/2 = 225 a
+-- month, 450 for July–August.
+#ASSERT `the summer supplement` `a full-year teacher who did the hour from January` EQUALS 450
+#ASSERT NOT `the supplement is payable for 2008 month` 9
+
+#TRACE `the summer supplement is paid and indemnified` `a full-year teacher who did the hour from January` AT 0 WITH
+    PARTY `the owning body` DOES `pay the summer supplement` 450 AT 1
+    PARTY `the State` DOES `indemnify the owning bodies` AT 2
+#TRACE `no supplement from 1.9.2008` AT 0 WITH
+    PARTY `the owning body` DOES `pay the supplement for a month from September 2008` AT 1

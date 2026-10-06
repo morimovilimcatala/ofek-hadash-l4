@@ -1,0 +1,313 @@
+-- חוזר לבעלויות תשע"ג/1: היערכות לפתיחת שנת הלימודים תשע"ג בתאריך 27/8/2012 (11.9.2012)
+-- Salary in the transition month after school year 2012/13 opened early on
+-- 27.8.2012: the five days of August paid as the new year's, for teachers
+-- who continue with the employer, new teachers and teachers who left; the
+-- days offset for the extra vacation of 2011/12 by the date of leaving; and
+-- the September adjustment by the difference in the day rate.
+
+IMPORT prelude
+IMPORT daydate
+IMPORT common
+
+§ `תשע"ג/1 היערכות לפתיחת שנת הלימודים תשע"ג בתאריך 27/8/2012`
+
+-- akn:preamble The letterhead, title, date (11.9.2012), addressee and subject line; no rule of its own. Its background paragraphs are encoded below.
+
+-- Time on the timeline of the regulative rules is counted in school months
+-- of 2011/12 (September 2011 = 1, August 2012 = 12, September 2012 = 13,
+-- October 2012 = 14).
+
+@desc A teaching employee at the turn of school years 2011/12 and 2012/13, as far as this circular asks about it.
+DECLARE `transition teacher` HAS
+    `situation`                          IS A `transition situation`
+    `August salary on the 2011/12 basis` IS A NUMBER @desc the monthly salary for 8/2012 computed on the salary paid in 2011/12, shekels
+    `day rate in August 2012`            IS A NUMBER @desc the rate of one working day in August 2012, shekels
+    `day rate in September 2012`         IS A NUMBER @desc the rate of one working day in September 2012, by the employment data of that month, shekels
+    `position, grade, seniority or allowances changed` IS A BOOLEAN @desc between the two school years
+    `on maternity leave from 27.8.2012`  IS A BOOLEAN @desc on maternity leave in the five August days of the new year
+    `hired from the August 2012 salary`  IS A BOOLEAN @desc a new teacher taken on from the August 2012 salary
+    `date of leaving`                    IS A DATE @desc for a teacher who left or retired: the date of leaving or retirement
+
+@desc The three cases section א divides teachers into.
+DECLARE `transition situation` IS ONE OF
+    `continuing with the same employer`
+    `new with the employer in 2012/13`
+    `left or retired from 2011/12`
+
+DECLARE `transition action` IS ONE OF
+    `pay the August salary` HAS `August paid` IS A NUMBER
+    `pay or offset the September difference` HAS `difference settled` IS A NUMBER
+    `pay the five extra days` HAS `extra days paid` IS A NUMBER
+    `offset the extra vacation days` HAS `vacation offset` IS A NUMBER
+
+§§ `רקע`
+
+-- ¶10: by the Minister's decision, 2012/13 opens on 27.8.2012: the salary
+-- for 2011/12 ends on 26.8.2012 and the salary for 2012/13 begins on
+-- 27.8.2012.
+@desc The school year a working day's salary belongs to.
+DECLARE `salary year` IS ONE OF
+    `2011/12`
+    `2012/13`
+
+`the day 2012/13 opens` MEANS Date 27 8 2012
+
+@ref akn:preamble/p10
+GIVEN d IS A DATE
+GIVETH A `salary year`
+DECIDE `the salary year of the day` d IS
+    IF d AT LEAST `the day 2012/13 opens`
+    THEN `2012/13`
+    ELSE `2011/12`
+
+#ASSERT `the salary year of the day` (Date 26 8 2012) EQUALS `2011/12`
+#ASSERT `the salary year of the day` (Date 27 8 2012) EQUALS `2012/13`
+
+-- ¶11-¶13: teachers employed in 2011/12 received 5 extra vacation days on
+-- various dates; it was agreed they are returned by opening 2012/13 early.
+-- ¶14-¶15: being a transition year, the instructions for August's salary
+-- follow; ¶15 is the heading of section א.
+@ref akn:preamble/p11 akn:preamble/p12 akn:preamble/p13
+`extra vacation days in 2011/12` MEANS 5
+
+-- The five working days of August 2012 that belong to 2012/13 (27-31.8.2012).
+`the August days of the new year` MEANS 5
+
+-- akn:preamble/p14 akn:preamble/p15 The lead-in to the instructions and the heading "א. salary for working days in August 2012"; the rules follow.
+
+§§ `1 מורים ממשיכים אצל המעסיק`
+
+-- Section 1: a teacher employed in 2011/12 (all or part of it) who
+-- continues with the same employer in 2012/13 is paid the 8/2012 salary in
+-- full, without change, on the 2011/12 basis.
+@ref akn:art_1
+GIVEN t IS A `transition teacher`
+GIVETH A NUMBER
+DECIDE `the August salary` t IS
+    CONSIDER t's `situation`
+    WHEN `continuing with the same employer` THEN t's `August salary on the 2011/12 basis`
+    WHEN `left or retired from 2011/12`      THEN t's `August salary on the 2011/12 basis`
+    OTHERWISE 0
+
+GIVEN t IS A `transition teacher`
+GIVETH A DEONTIC Party `transition action`
+DECIDE `paying August in full` t IS
+    PARTY `the employer`
+    MUST  `pay the August salary` `amount`
+          PROVIDED `amount` AT LEAST `the August salary` t
+    WITHIN 12
+    LEST BREACH BY `the employer` BECAUSE "sections 1 and 3: the August 2012 salary is paid in full, without change"
+
+-- Section 1 ¶2 and section 4: with the 9/2012 salary, differences for the
+-- five working days of 8/2012 are paid or offset (an update of seniority,
+-- grade, allowances and so on). 4(1): a day rate is computed in both months;
+-- 4(2): the August rate is carried to the September salary, and an employee
+-- whose position (or grade, seniority, allowances) changed is paid or
+-- offset the difference between the two rates for five days. 4(3): the
+-- five August days are offset for a teacher on maternity leave in them.
+@ref akn:art_1/p2 akn:art_4 akn:art_4__para_1 akn:art_4__para_2 akn:art_4__para_2/p2
+GIVEN t IS A `transition teacher`
+GIVETH A NUMBER
+DECIDE `the rate difference for the five days` t IS
+    IF t's `position, grade, seniority or allowances changed`
+    THEN (t's `day rate in September 2012` MINUS t's `day rate in August 2012`)
+         TIMES `the August days of the new year`
+    ELSE 0
+
+@ref akn:art_4__para_3
+GIVEN t IS A `transition teacher`
+GIVETH A NUMBER
+DECIDE `the maternity offset` t IS
+    IF t's `on maternity leave from 27.8.2012`
+    THEN t's `day rate in August 2012` TIMES `the August days of the new year`
+    ELSE 0
+
+GIVEN t IS A `transition teacher`
+GIVETH A NUMBER
+DECIDE `the September difference` t IS
+    IF t's `situation` EQUALS `continuing with the same employer`
+    THEN `the rate difference for the five days` t MINUS `the maternity offset` t
+    ELSE 0
+
+GIVEN t IS A `transition teacher`
+GIVETH A DEONTIC Party `transition action`
+DECIDE `settling the difference with September's salary` t IS
+    PARTY `the employer`
+    MUST  `pay or offset the September difference` `amount`
+          PROVIDED `amount` EQUALS `the September difference` t
+    WITHIN 13
+    LEST BREACH BY `the employer` BECAUSE "sections 1 and 4: the differences for the five August days are settled in the September 2012 salary"
+
+§§ `2 מורים חדשים אצל המעסיק`
+
+-- Section 2: it is preferable to take new teachers of 2012/13 on from the
+-- 8/2012 salary. Where that is not possible, they are paid five more days at
+-- the 9/2012 day rate, by their employment data in 9/2012, with the 9/2012
+-- salary paid at the start of 10/2012.
+@ref akn:art_2
+GIVEN t IS A `transition teacher`
+GIVETH A BOOLEAN
+DECIDE `owed the five extra days` t IF
+        t's `situation` EQUALS `new with the employer in 2012/13`
+    AND NOT t's `hired from the August 2012 salary`
+
+GIVEN t IS A `transition teacher`
+GIVETH A NUMBER
+DECIDE `the five extra days` t IS
+    IF `owed the five extra days` t
+    THEN t's `day rate in September 2012` TIMES `the August days of the new year`
+    ELSE 0
+
+GIVEN t IS A `transition teacher`
+GIVETH A DEONTIC Party `transition action`
+DECIDE `paying the five extra days` t IS
+    IF `owed the five extra days` t
+    THEN PARTY `the employer`
+         MUST  `pay the five extra days` `amount`
+               PROVIDED `amount` AT LEAST `the five extra days` t
+         WITHIN 14
+         LEST BREACH BY `the employer` BECAUSE "section 2: a new teacher not taken on from August is paid five more days with the 9/2012 salary, paid at the start of 10/2012"
+    ELSE FULFILLED
+
+§§ `3 מורים שעזבו/פרשו בסוף שנה"ל תשע"ב`
+
+-- Section 3: for these teachers the Ministry pays August in full, and
+-- offsets the extra vacation days received in 2011/12 at the August rate
+-- (shown on the slip as "הפרשי הקדמת שנה"ל"), counted by the 2011/12
+-- vacation calendar. The table of days by the date of leaving, as printed.
+@ref akn:art_3 akn:art_3/p2 akn:art_3/p3 akn:art_3/p4 akn:art_3/p5 akn:art_3/p6 akn:art_3/p7 akn:art_3/p8
+DECLARE `leaving row` HAS
+    `left from` IS A DATE
+    `left until` IS A DATE
+    `days offset` IS A NUMBER
+
+`the table of days offset` MEANS
+    LIST `leaving row` (Date 1 9 2011)   (Date 9 10 2011)  0,
+         `leaving row` (Date 10 10 2011) (Date 20 12 2011) 3,
+         `leaving row` (Date 20 12 2011) (Date 29 3 2012)  4,
+         `leaving row` (Date 30 3 2012)  (Date 31 8 2012)  5
+
+GIVEN d IS A DATE
+GIVETH A LIST OF NUMBER
+DECIDE `the days the table offsets for leaving on` d IS
+    map (GIVEN r YIELD r's `days offset`)
+        (filter (GIVEN r YIELD d AT LEAST r's `left from` AND d AT MOST r's `left until`)
+                `the table of days offset`)
+
+-- F-2012-13_tashag_01-a: 20.12.2011 closes the second row and opens the
+-- third: 3 days and 4.
+`leaving on 20.12.2011 is given 3 days and 4` MEANS
+    `the days the table offsets for leaving on` (Date 20 12 2011) EQUALS LIST 3, 4
+#ASSERT `leaving on 20.12.2011 is given 3 days and 4`
+
+-- Every other day of the year has exactly one row.
+#ASSERT all (GIVEN d YIELD count (`the days the table offsets for leaving on` d) EQUALS 1)
+            (LIST Date 1 9 2011, Date 9 10 2011, Date 10 10 2011, Date 19 12 2011, Date 21 12 2011,
+                  Date 29 3 2012, Date 30 3 2012, Date 30 6 2012, Date 31 8 2012)
+
+-- The reading adopted (F-2012-13_tashag_01-a): the row that opens on a day
+-- governs it, so a teacher leaving on 20.12.2011 is offset 4 days.
+GIVEN d IS A DATE
+GIVETH A NUMBER
+DECIDE `the vacation days offset for leaving on` d IS
+    BRANCH IF d AT LEAST (Date 30 3 2012)  THEN 5
+           IF d AT LEAST (Date 20 12 2011) THEN 4
+           IF d AT LEAST (Date 10 10 2011) THEN 3
+           OTHERWISE 0
+
+#ASSERT all (GIVEN d YIELD `the days the table offsets for leaving on` d EQUALS LIST (`the vacation days offset for leaving on` d))
+            (LIST Date 1 9 2011, Date 9 10 2011, Date 10 10 2011, Date 19 12 2011, Date 21 12 2011,
+                  Date 29 3 2012, Date 30 3 2012, Date 31 8 2012)
+
+-- F-2012-13_tashag_01-b: the section is headed for teachers who left "at
+-- the end of 2011/12", but three of its four rows end months before the
+-- year does (its salary runs to 26.8.2012), so they can only meet a teacher
+-- who left during the year. The reading adopted: the offset applies to every
+-- teacher who left or retired from 2011/12, by the date of leaving. The
+-- section states what the Ministry does for its own teachers; the owners,
+-- to whom the circular is addressed, are read as doing the same.
+`three of the four rows end before the year does` MEANS
+    count (filter (GIVEN r YIELD r's `left until` LESS THAN (Date 26 8 2012)) `the table of days offset`)
+    EQUALS 3
+#ASSERT `three of the four rows end before the year does`
+
+GIVEN t IS A `transition teacher`
+GIVETH A NUMBER
+DECIDE `the vacation offset` t IS
+    IF t's `situation` EQUALS `left or retired from 2011/12`
+    THEN `the vacation days offset for leaving on` (t's `date of leaving`)
+         TIMES t's `day rate in August 2012`
+    ELSE 0
+
+@export default The settlement circular תשע"ג/1 makes for one teaching employee across the early opening of 2012/13 — the August salary, plus the September difference or the five extra days, less the offset of the extra vacation days
+GIVEN t IS A `transition teacher` @desc the employee
+GIVETH A NUMBER
+DECIDE `the transition settlement` t IS
+    `the August salary` t
+    PLUS `the September difference` t
+    PLUS `the five extra days` t
+    MINUS `the vacation offset` t
+
+GIVEN t IS A `transition teacher`
+GIVETH A DEONTIC Party `transition action`
+DECIDE `offsetting the extra vacation` t IS
+    IF t's `situation` EQUALS `left or retired from 2011/12`
+    THEN PARTY `the employer`
+         MUST  `offset the extra vacation days` `amount`
+               PROVIDED `amount` EQUALS `the vacation offset` t
+         WITHIN 12
+         LEST BREACH BY `the employer` BECAUSE "section 3: the extra vacation days are offset at the August rate"
+    ELSE FULFILLED
+
+-- akn:conclusions The sign-off and signature; no rule.
+
+-- Worked examples; the rates are round placeholders.
+`a continuing teacher whose seniority rose` MEANS
+    `transition teacher` WITH
+        `situation`                          IS `continuing with the same employer`
+        `August salary on the 2011/12 basis` IS 8000
+        `day rate in August 2012`            IS 300
+        `day rate in September 2012`         IS 320
+        `position, grade, seniority or allowances changed` IS TRUE
+        `on maternity leave from 27.8.2012`  IS FALSE
+        `hired from the August 2012 salary`  IS FALSE
+        `date of leaving`                    IS Date 1 9 2012
+
+#ASSERT `the September difference` `a continuing teacher whose seniority rose` EQUALS 100
+#ASSERT `the transition settlement` `a continuing teacher whose seniority rose` EQUALS 8100
+
+`a new teacher taken on in September` MEANS
+    `transition teacher` WITH
+        `situation`                          IS `new with the employer in 2012/13`
+        `August salary on the 2011/12 basis` IS 0
+        `day rate in August 2012`            IS 0
+        `day rate in September 2012`         IS 250
+        `position, grade, seniority or allowances changed` IS FALSE
+        `on maternity leave from 27.8.2012`  IS FALSE
+        `hired from the August 2012 salary`  IS FALSE
+        `date of leaving`                    IS Date 1 9 2012
+
+#ASSERT `the five extra days` `a new teacher taken on in September` EQUALS 1250
+
+`a teacher who retired in June` MEANS
+    `transition teacher` WITH
+        `situation`                          IS `left or retired from 2011/12`
+        `August salary on the 2011/12 basis` IS 9000
+        `day rate in August 2012`            IS 400
+        `day rate in September 2012`         IS 0
+        `position, grade, seniority or allowances changed` IS FALSE
+        `on maternity leave from 27.8.2012`  IS FALSE
+        `hired from the August 2012 salary`  IS FALSE
+        `date of leaving`                    IS Date 30 6 2012
+
+#ASSERT `the vacation offset` `a teacher who retired in June` EQUALS 2000
+#ASSERT `the transition settlement` `a teacher who retired in June` EQUALS 7000
+
+#TRACE `paying August in full` `a continuing teacher whose seniority rose` AT 0 WITH
+    PARTY `the employer` DOES `pay the August salary` 8000 AT 12
+#TRACE `settling the difference with September's salary` `a continuing teacher whose seniority rose` AT 0 WITH
+    PARTY `the employer` DOES `pay or offset the September difference` 100 AT 13
+#TRACE `paying the five extra days` `a new teacher taken on in September` AT 0 WITH
+    PARTY `the employer` DOES `pay the five extra days` 1250 AT 14
+#TRACE `offsetting the extra vacation` `a teacher who retired in June` AT 0 WITH
+    PARTY `the employer` DOES `offset the extra vacation days` 2000 AT 12

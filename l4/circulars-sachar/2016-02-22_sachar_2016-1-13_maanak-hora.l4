@@ -1,0 +1,395 @@
+-- חוזר הממונה על השכר 2016-1-13 — תשלום מענק חד פעמי לעובדי ההוראה בשירות המדינה (22.2.2016)
+-- A one-time grant of 1,000 shekels to teaching employees in the state
+-- service: who qualifies (continuous employment 1.9.2015–1.1.2016, and the
+-- absences that do not break it), the part-time computation, its nature,
+-- when it is paid, and the route for those on unpaid leave.
+--
+-- Corpus note: the source letters section 13's two items (א, ב); the corpus
+-- publishes them as 13.1 and 13.2.
+
+IMPORT prelude
+IMPORT common
+
+§ `מענק חד פעמי לעובדי ההוראה בשירות המדינה 2016-1-13`
+
+-- akn:hc_1/p1 The letterhead; no rule.
+-- akn:hc_1/p2 The letterhead's address line; no rule.
+-- akn:hc_1/p3 The Hebrew date; no rule.
+-- akn:hc_1/p4 The date, 22.2.2016; no rule.
+-- akn:hc_1/p5 The circular's number, הע-2016-1-13; no rule.
+-- akn:hc_1/p6 The addressee (the Senior Deputy Accountant-General); no rule.
+-- akn:hc_1/p7 The subject line; no rule.
+-- akn:hc_1/p8 Background: the understandings of 23.12.2015 on the principles of a framework agreement still to be signed; no rule.
+
+DECLARE `grant action` IS ONE OF
+    `pay the grant` HAS `grant paid` IS A NUMBER
+
+@desc A kind of absence during the qualifying period, as sections 6-13 name them.
+DECLARE `absence kind` IS ONE OF
+    `maternity leave`                           @desc under section 6 of the Women's Employment Law, 1954, for a woman or (section 9) a man
+    `reserve duty`
+    `sick leave under 1.25.3`                   @desc sick leave as in paragraph 1.25.3 of the teachers' service regulations, with salary
+    `sick leave without salary`
+    `paid absence with the employer's approval` @desc for example rest leave or paid training
+    `unpaid leave or an absence treated as one` @desc including unpaid leave after the end of maternity leave (section 7)
+
+@desc A teaching employee in the state service, as far as the grant asks about them.
+DECLARE `teaching employee for the grant` HAS
+    `a teaching employee in the state service`        IS A BOOLEAN
+    `employed throughout 1.9.2015 to 1.1.2016 but for absences` IS A BOOLEAN @desc employed as a teaching employee in the state service through the qualifying period, the absences below aside
+    `absences in the qualifying period`               IS A LIST OF `absence kind`
+    `full salaried months in a row, 1.9.2015 to 30.6.2016` IS A NUMBER @desc the longest run of whole months, from 1.9.2015 to 30.6.2016, for which salary was due (section 13א(1))
+    `and at least one salaried day more`              IS A BOOLEAN
+    `any salary due from 1.12.2014 to 30.11.2015`     IS A BOOLEAN
+    `months employed from 1.12.2014 to 30.11.2015`    IS A NUMBER
+    `average position over the months employed, 1.12.2014 to 30.11.2015` IS A NUMBER @desc the representative monthly average share of a full position over the months actually employed in that period (1 = full)
+    `average position from 1.12.2015 to 30.11.2016`   IS A NUMBER
+
+§§ `Preamble — the grant`
+
+-- Under the collective agreement of 17.9.2013 on negotiating the
+-- framework agreement's cost for teaching employees, a one-time grant of
+-- "1,000 shekels only" is agreed for teaching employees in the state
+-- service.
+@ref akn:hc_1/p9
+`the grant for a full position` MEANS 1000
+
+§§ `1 The qualifying period`
+
+-- 1: a teaching employee in the state service employed continuously from
+-- 1.9.2015 to 1.1.2016 ("the qualifying period") gets the grant.
+-- 6, 9: maternity leave does not break the continuity (a woman's, or a
+-- man's under the Women's Employment Law). 8: the circular's other
+-- conditions apply to them too. 10: reserve duty does not break it.
+-- 11: sick leave as in 1.25.3 does not break it. 12: paid absence with
+-- the employer's approval does not break it.
+-- F-2016-02-22_sachar_2016-1-13_maanak-hora-d: section 11 also speaks of
+-- "sick leave without salary", which section 13 takes as unpaid leave. The
+-- reading adopted sends it to section 13.
+@ref akn:hc_1__para_1 akn:hc_1__para_6 akn:hc_1__para_8 akn:hc_1__para_9 akn:hc_1__para_10 akn:hc_1__para_11 akn:hc_1__para_12
+GIVEN k IS AN `absence kind`
+GIVETH A BOOLEAN
+DECIDE `leaves the continuity unbroken` k IF
+    CONSIDER k
+    WHEN `maternity leave` THEN TRUE
+    WHEN `reserve duty` THEN TRUE
+    WHEN `sick leave under 1.25.3` THEN TRUE
+    WHEN `paid absence with the employer's approval` THEN TRUE
+    WHEN `sick leave without salary` THEN FALSE
+    WHEN `unpaid leave or an absence treated as one` THEN FALSE
+
+-- 6 ¶2: the length of maternity leave under the Women's Employment Law is,
+-- as a rule, 26 weeks, unless extended as its section 6 details.
+@ref akn:hc_1__para_6/p2
+`maternity leave in weeks, as a rule` MEANS 26
+
+-- 13 (heading) and 13א: unpaid leave, or an absence treated as unpaid
+-- leave, including sick leave without pay, in all or part of the
+-- qualifying period, takes the route of 13א. 7: the maternity rule does
+-- not cover unpaid leave after maternity leave; it takes "the stated in
+-- sub-section – below" (F-2016-02-22_sachar_2016-1-13_maanak-hora-a: the
+-- number is blank; read as section 13).
+@ref akn:hc_1__para_7 akn:hc_1__para_13 akn:hc_1__para_13__subpara_1
+GIVEN t IS A `teaching employee for the grant`
+GIVETH A BOOLEAN
+DECIDE `takes the unpaid-leave route` t IF
+    any (GIVEN k YIELD NOT `leaves the continuity unbroken` k) (t's `absences in the qualifying period`)
+
+`the sub-section section 7 names` MEANS ""
+
+GIVEN t IS A `teaching employee for the grant`
+GIVETH A BOOLEAN
+DECIDE `qualifies under section 1` t IF
+        t's `a teaching employee in the state service`
+    AND t's `employed throughout 1.9.2015 to 1.1.2016 but for absences`
+    AND all (GIVEN k YIELD `leaves the continuity unbroken` k) (t's `absences in the qualifying period`)
+
+-- 13א(1): on the unpaid-leave route, the teacher qualifies if, from
+-- 1.9.2015 to 30.6.2016, salary was due for 4 full months of work and at
+-- least one more day, in a row, full-time or part-time.
+@ref akn:hc_1__para_13__subpara_1__cls_1
+GIVEN t IS A `teaching employee for the grant`
+GIVETH A BOOLEAN
+DECIDE `qualifies under section 13` t IF
+        t's `a teaching employee in the state service`
+    AND (    t's `full salaried months in a row, 1.9.2015 to 30.6.2016` AT LEAST 5
+          OR (t's `full salaried months in a row, 1.9.2015 to 30.6.2016` AT LEAST 4 AND t's `and at least one salaried day more`))
+
+GIVEN t IS A `teaching employee for the grant`
+GIVETH A BOOLEAN
+DECIDE `qualifies for the grant` t IF
+    IF `takes the unpaid-leave route` t
+    THEN `qualifies under section 13` t
+    ELSE `qualifies under section 1` t
+
+§§ `2 The part-time computation`
+
+-- 2: the 1,000 is for a full position; the grant is proportional to the
+-- teacher's position (a representative monthly average) relative to a full
+-- position, over 1.12.2014–30.11.2015. 2 ¶2: a part-timer employed in only
+-- part of that period, but continuously in the qualifying period, is
+-- averaged over the period actually employed. 13א(2): on the unpaid-leave
+-- route, the period of 1.12.2014–30.11.2015 actually employed; 13א(3): if
+-- no salary at all was due in it, 1.12.2015–30.11.2016.
+-- F-2016-02-22_sachar_2016-1-13_maanak-hora-b: a FULL-time teacher employed
+-- in only part of 1.12.2014–30.11.2015 is not in 2 ¶2; the reading adopted
+-- averages over the months employed for every teacher.
+-- F-2016-02-22_sachar_2016-1-13_maanak-hora-e: a position above full; the
+-- reading adopted caps the grant at 1,000.
+@ref akn:hc_1__para_2 akn:hc_1__para_2/p2 akn:hc_1__para_13__subpara_1__cls_2 akn:hc_1__para_13__subpara_1__cls_3
+GIVEN t IS A `teaching employee for the grant`
+GIVETH A NUMBER
+DECIDE `the position the grant is computed on` t IS
+    IF `takes the unpaid-leave route` t AND NOT t's `any salary due from 1.12.2014 to 30.11.2015`
+    THEN t's `average position from 1.12.2015 to 30.11.2016`
+    ELSE t's `average position over the months employed, 1.12.2014 to 30.11.2015`
+
+@export default The one-time grant (in shekels) the circular gives a teaching employee
+GIVEN t IS A `teaching employee for the grant` @desc the teacher
+GIVETH A NUMBER
+DECIDE `the one-time grant` t IS
+    IF `qualifies for the grant` t
+    THEN `the grant for a full position` TIMES min (`the position the grant is computed on` t) 1
+    ELSE 0
+
+-- The other reading of section 2 for a full-timer employed in only part of
+-- the period: the monthly average taken over all twelve months of it.
+GIVEN t IS A `teaching employee for the grant`
+GIVETH A NUMBER
+DECIDE `the grant averaged over the whole twelve months` t IS
+    `the grant for a full position`
+    TIMES min ((t's `average position over the months employed, 1.12.2014 to 30.11.2015`
+                TIMES t's `months employed from 1.12.2014 to 30.11.2015`)
+               DIVIDED BY 12) 1
+
+-- The other reading of section 2 for a position above full: proportional,
+-- uncapped.
+GIVEN t IS A `teaching employee for the grant`
+GIVETH A NUMBER
+DECIDE `the grant uncapped` t IS
+    `the grant for a full position` TIMES `the position the grant is computed on` t
+
+§§ `3-5 The grant's nature`
+
+-- 3: not salary for any purpose; not counted for severance pay or for the
+-- hourly value of extra work (overtime, substitute hours, school activity
+-- hours); no provident-fund contributions (study fund, pension fund,
+-- managers' insurance). 4: not counted when topping up to the minimum wage
+-- under the Minimum Wage Law, 1987. 5: it does not change the salary base
+-- of the integrated salary tables.
+DECLARE `use of the grant` IS ONE OF
+    `salary for any purpose`
+    `severance pay`
+    `the hourly value of extra work`
+    `provident-fund contributions`
+    `topping up to the minimum wage`
+    `the salary base of the integrated tables`
+
+@ref akn:hc_1__para_3 akn:hc_1__para_4 akn:hc_1__para_5
+GIVEN u IS A `use of the grant`
+GIVETH A BOOLEAN
+DECIDE `the grant counts for` u IF
+    FALSE
+
+§§ `1, 6, 11, 13 When it is paid`
+
+-- Time is counted in salary months from February 2016 (0): March 2016 is 1,
+-- June 2016 is 4, July 2016 is 5.
+-- 1: in the February 2016 salary (paid in March) and no later than the
+-- March 2016 salary (paid in April). 6: a teacher on maternity leave: in
+-- the first salary after her return and no later than the next. 13א(4): on
+-- the unpaid-leave route, in the June 2016 salary (paid in July) and no
+-- later than the July 2016 salary (printed "paid in August 2017"; the
+-- July salary is paid in August 2016).
+-- F-2016-02-22_sachar_2016-1-13_maanak-hora-c: 13א(3)'s period runs to
+-- 30.11.2016, after this deadline.
+@ref akn:hc_1__para_1 akn:hc_1__para_6 akn:hc_1__para_13__subpara_1__cls_4
+GIVEN t IS A `teaching employee for the grant`, `salary month of return from leave` IS A NUMBER @desc for a teacher away on maternity leave at February 2016: the first salary month after the return, counted from February 2016; 0 for any other teacher
+GIVETH A NUMBER
+DECIDE `the last salary month for the grant` t `salary month of return from leave` IS
+    IF `takes the unpaid-leave route` t THEN 5
+    ELSE max 1 (`salary month of return from leave` PLUS 1)
+
+@ref akn:hc_1__para_1 akn:hc_1__para_6 akn:hc_1__para_13__subpara_1__cls_4
+GIVEN t IS A `teaching employee for the grant`, `salary month of return from leave` IS A NUMBER
+GIVETH A DEONTIC Party `grant action`
+DECIDE `the employer pays the grant` t `salary month of return from leave` IS
+    IF `the one-time grant` t GREATER THAN 0
+    THEN PARTY `the employer`
+         MUST  `pay the grant` paid
+               PROVIDED paid AT LEAST `the one-time grant` t
+         WITHIN `the last salary month for the grant` t `salary month of return from leave`
+         LEST  BREACH BY `the employer` BECAUSE "2016-1-13: the one-time grant was not paid by the last salary month the circular allows"
+    ELSE FULFILLED
+
+-- 13ב: the circular is coordinated with the Teachers' Union, which accepts
+-- it; the grant will form part of the collective agreement with the union,
+-- if a framework agreement with the New General Histadrut is signed.
+@ref akn:hc_1__para_13__subpara_2
+GIVEN `a framework agreement with the Histadrut is signed` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `the grant forms part of the union's collective agreement` `a framework agreement with the Histadrut is signed` IF
+    `a framework agreement with the Histadrut is signed`
+
+-- akn:conclusions The sign-off (the Wage Controller), the copy to the Civil Service Commissioner, the internal number and the letterhead's footer; no rule.
+
+§§ `Examples`
+
+`a full-time teacher all year` MEANS
+    `teaching employee for the grant` WITH
+        `a teaching employee in the state service`        IS TRUE
+        `employed throughout 1.9.2015 to 1.1.2016 but for absences` IS TRUE
+        `absences in the qualifying period`               IS LIST `reserve duty`
+        `full salaried months in a row, 1.9.2015 to 30.6.2016` IS 10
+        `and at least one salaried day more`              IS FALSE
+        `any salary due from 1.12.2014 to 30.11.2015`     IS TRUE
+        `months employed from 1.12.2014 to 30.11.2015`    IS 12
+        `average position over the months employed, 1.12.2014 to 30.11.2015` IS 1
+        `average position from 1.12.2015 to 30.11.2016`   IS 1
+
+`a teacher at 75% on maternity leave` MEANS
+    `teaching employee for the grant` WITH
+        `a teaching employee in the state service`        IS TRUE
+        `employed throughout 1.9.2015 to 1.1.2016 but for absences` IS TRUE
+        `absences in the qualifying period`               IS LIST `maternity leave`
+        `full salaried months in a row, 1.9.2015 to 30.6.2016` IS 2
+        `and at least one salaried day more`              IS TRUE
+        `any salary due from 1.12.2014 to 30.11.2015`     IS TRUE
+        `months employed from 1.12.2014 to 30.11.2015`    IS 12
+        `average position over the months employed, 1.12.2014 to 30.11.2015` IS 0.75
+        `average position from 1.12.2015 to 30.11.2016`   IS 0.75
+
+`a teacher on unpaid leave after four months and a day` MEANS
+    `teaching employee for the grant` WITH
+        `a teaching employee in the state service`        IS TRUE
+        `employed throughout 1.9.2015 to 1.1.2016 but for absences` IS TRUE
+        `absences in the qualifying period`               IS LIST `unpaid leave or an absence treated as one`
+        `full salaried months in a row, 1.9.2015 to 30.6.2016` IS 4
+        `and at least one salaried day more`              IS TRUE
+        `any salary due from 1.12.2014 to 30.11.2015`     IS TRUE
+        `months employed from 1.12.2014 to 30.11.2015`    IS 12
+        `average position over the months employed, 1.12.2014 to 30.11.2015` IS 0.5
+        `average position from 1.12.2015 to 30.11.2016`   IS 0.5
+
+`a teacher on unpaid leave after four months` MEANS
+    `teaching employee for the grant` WITH
+        `a teaching employee in the state service`        IS TRUE
+        `employed throughout 1.9.2015 to 1.1.2016 but for absences` IS TRUE
+        `absences in the qualifying period`               IS LIST `unpaid leave or an absence treated as one`
+        `full salaried months in a row, 1.9.2015 to 30.6.2016` IS 4
+        `and at least one salaried day more`              IS FALSE
+        `any salary due from 1.12.2014 to 30.11.2015`     IS TRUE
+        `months employed from 1.12.2014 to 30.11.2015`    IS 12
+        `average position over the months employed, 1.12.2014 to 30.11.2015` IS 1
+        `average position from 1.12.2015 to 30.11.2016`   IS 1
+
+`a teacher who left in December 2015` MEANS
+    `teaching employee for the grant` WITH
+        `a teaching employee in the state service`        IS TRUE
+        `employed throughout 1.9.2015 to 1.1.2016 but for absences` IS FALSE
+        `absences in the qualifying period`               IS LIST `reserve duty`
+        `full salaried months in a row, 1.9.2015 to 30.6.2016` IS 3
+        `and at least one salaried day more`              IS TRUE
+        `any salary due from 1.12.2014 to 30.11.2015`     IS TRUE
+        `months employed from 1.12.2014 to 30.11.2015`    IS 12
+        `average position over the months employed, 1.12.2014 to 30.11.2015` IS 1
+        `average position from 1.12.2015 to 30.11.2016`   IS 0
+
+#ASSERT `the one-time grant` `a full-time teacher all year` EQUALS 1000
+#ASSERT `the one-time grant` `a teacher at 75% on maternity leave` EQUALS 750
+#ASSERT `the one-time grant` `a teacher on unpaid leave after four months and a day` EQUALS 500
+#ASSERT `the one-time grant` `a teacher on unpaid leave after four months` EQUALS 0
+#ASSERT `the one-time grant` `a teacher who left in December 2015` EQUALS 0
+#ASSERT `the last salary month for the grant` `a full-time teacher all year` 0 EQUALS 1
+#ASSERT `the last salary month for the grant` `a teacher at 75% on maternity leave` 3 EQUALS 4
+#ASSERT `the last salary month for the grant` `a teacher on unpaid leave after four months and a day` 0 EQUALS 5
+#ASSERT NOT `the grant counts for` `severance pay`
+-- The qualifying period, 1.9.2015 to 1.1.2016, is itself four months and
+-- one day: 13א(1)'s threshold is the length of section 1's period.
+#ASSERT `qualifies under section 13` `a teacher on unpaid leave after four months and a day`
+
+#TRACE `the employer pays the grant` `a full-time teacher all year` 0 AT 0 WITH
+    PARTY `the employer` DOES `pay the grant` 1000 AT 1
+#TRACE `the employer pays the grant` `a teacher on unpaid leave after four months and a day` 0 AT 0 WITH
+    PARTY `the employer` DOES `pay the grant` 500 AT 6
+
+§§ `Findings`
+
+-- F-2016-02-22_sachar_2016-1-13_maanak-hora-a.
+`section 7 sends to a sub-section it does not number` MEANS
+    `the sub-section section 7 names` EQUALS ""
+#ASSERT `section 7 sends to a sub-section it does not number`
+
+-- F-2016-02-22_sachar_2016-1-13_maanak-hora-b: a full-time teacher who
+-- joined on 1.9.2015 was employed three months of 1.12.2014–30.11.2015.
+`a full-time teacher who joined on 1.9.2015` MEANS
+    `teaching employee for the grant` WITH
+        `a teaching employee in the state service`        IS TRUE
+        `employed throughout 1.9.2015 to 1.1.2016 but for absences` IS TRUE
+        `absences in the qualifying period`               IS LIST `reserve duty`
+        `full salaried months in a row, 1.9.2015 to 30.6.2016` IS 10
+        `and at least one salaried day more`              IS FALSE
+        `any salary due from 1.12.2014 to 30.11.2015`     IS TRUE
+        `months employed from 1.12.2014 to 30.11.2015`    IS 3
+        `average position over the months employed, 1.12.2014 to 30.11.2015` IS 1
+        `average position from 1.12.2015 to 30.11.2016`   IS 1
+
+`the two readings of section 2 differ for a full-timer employed part of the period` MEANS
+        `the one-time grant` `a full-time teacher who joined on 1.9.2015` EQUALS 1000
+    AND `the grant averaged over the whole twelve months` `a full-time teacher who joined on 1.9.2015` EQUALS 250
+#ASSERT `the two readings of section 2 differ for a full-timer employed part of the period`
+
+-- F-2016-02-22_sachar_2016-1-13_maanak-hora-c: the latest payment is the
+-- July 2016 salary, paid in August 2016; 13א(3)'s period ends on
+-- 30.11.2016, three months later. Months counted from February 2016.
+`the end of 13א(3)'s period, in months from February 2016` MEANS 9
+`the end of 13א(4)'s deadline, in months from February 2016` MEANS 5
+
+`13א(3) measures the grant over a period that ends after 13א(4) pays it` MEANS
+    `the end of 13א(3)'s period, in months from February 2016` GREATER THAN `the end of 13א(4)'s deadline, in months from February 2016`
+#ASSERT `13א(3) measures the grant over a period that ends after 13א(4) pays it`
+
+-- F-2016-02-22_sachar_2016-1-13_maanak-hora-d: a teacher salaried in
+-- September 2015 and then on sick leave without salary to 30.6.2016.
+`a teacher on unpaid sick leave from October 2015` MEANS
+    `teaching employee for the grant` WITH
+        `a teaching employee in the state service`        IS TRUE
+        `employed throughout 1.9.2015 to 1.1.2016 but for absences` IS TRUE
+        `absences in the qualifying period`               IS LIST `sick leave without salary`
+        `full salaried months in a row, 1.9.2015 to 30.6.2016` IS 1
+        `and at least one salaried day more`              IS FALSE
+        `any salary due from 1.12.2014 to 30.11.2015`     IS TRUE
+        `months employed from 1.12.2014 to 30.11.2015`    IS 12
+        `average position over the months employed, 1.12.2014 to 30.11.2015` IS 1
+        `average position from 1.12.2015 to 30.11.2016`   IS 0
+
+-- Section 11 alone: sick leave does not break the continuity, and a teacher
+-- on sick leave without salary is paid on return.
+GIVEN t IS A `teaching employee for the grant`
+GIVETH A BOOLEAN
+DECIDE `qualifies by section 11's words` t IF
+        t's `a teaching employee in the state service`
+    AND t's `employed throughout 1.9.2015 to 1.1.2016 but for absences`
+
+`sections 11 and 13 disagree on unpaid sick leave` MEANS
+        `qualifies by section 11's words` `a teacher on unpaid sick leave from October 2015`
+    AND NOT `qualifies for the grant` `a teacher on unpaid sick leave from October 2015`
+#ASSERT `sections 11 and 13 disagree on unpaid sick leave`
+
+-- F-2016-02-22_sachar_2016-1-13_maanak-hora-e: a teacher at 120%.
+`a teacher at 120%` MEANS
+    `teaching employee for the grant` WITH
+        `a teaching employee in the state service`        IS TRUE
+        `employed throughout 1.9.2015 to 1.1.2016 but for absences` IS TRUE
+        `absences in the qualifying period`               IS LIST `reserve duty`
+        `full salaried months in a row, 1.9.2015 to 30.6.2016` IS 10
+        `and at least one salaried day more`              IS FALSE
+        `any salary due from 1.12.2014 to 30.11.2015`     IS TRUE
+        `months employed from 1.12.2014 to 30.11.2015`    IS 12
+        `average position over the months employed, 1.12.2014 to 30.11.2015` IS 1.2
+        `average position from 1.12.2015 to 30.11.2016`   IS 1.2
+
+`the two readings of section 2 differ above a full position` MEANS
+        `the one-time grant` `a teacher at 120%` EQUALS 1000
+    AND `the grant uncapped` `a teacher at 120%` EQUALS 1200
+#ASSERT `the two readings of section 2 differ above a full position`

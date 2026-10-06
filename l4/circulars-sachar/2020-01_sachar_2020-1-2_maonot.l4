@@ -1,0 +1,154 @@
+-- חוזר הממונה על השכר 2020-1-2 — תוספת מעונות (זכויות הוריות), עדכון התוספת (16.1.2020)
+-- The Wage Controller updates the monthly childcare supplement (parental
+-- rights) for a child up to age 5, under clause 11 of the framework
+-- agreement of 12.1.2011, by the change in the index (0.6%), from
+-- 1.1.2020, and prints the new amounts.
+
+IMPORT prelude
+IMPORT daydate
+IMPORT common
+
+§ `תוספת מעונות (זכויות הוריות), עדכון התוספת`
+
+-- akn:hc_1/p1 akn:hc_1/p2 akn:hc_1/p3 akn:hc_1/p4 akn:hc_1/p5 akn:hc_1/p6 akn:hc_1/p7 The letterhead (Wage and Labour Agreements, the Ministry of Finance's address), the date (16.1.2020), the circular's number, the addressee (the senior deputy to the Accountant-General) and the subject line; no rule.
+
+-- akn:hc_1/p8 The reference line "חוזרנו - הע-2019-1-6": the previous update, whose amounts this one replaces from 1.1.2020; no rule of its own.
+
+@desc A child for whom the childcare supplement is claimed, as far as this circular asks about it.
+DECLARE `child for the childcare supplement` HAS
+    `up to age 5`                   IS A BOOLEAN @desc the child is "עד גיל 5", the age the circular names; who that is, and who may claim, is clause 11 of the framework agreement of 12.1.2011, which this circular does not restate
+    `place among the children`      IS A NUMBER  @desc 1 for "ילד אחד / ילד ראשון" (an only or first child), 2 for "ילד שני" (a second child), counted as clause 11 of the framework agreement counts them
+
+§§ `The update`
+
+-- The date the update takes effect, as printed ("החל מיום"). The amounts
+-- below run from it until the next update replaces them, which this
+-- circular does not date.
+@ref akn:hc_1/p9
+`the update takes effect` MEANS Date 1 1 2020
+
+-- The index change as printed, with its sign.
+@ref akn:hc_1/p9
+`the change in the index` MEANS 0.6%
+
+-- "בהתאם לשיעור השינוי במדד": the supplement moves by the index change. The
+-- circular names neither the amount before the update nor a rounding; it
+-- prints the result, in whole shekels, below, and the printed amounts are
+-- what it sets.
+@ref akn:hc_1/p9
+GIVEN `the amount before the update` IS A NUMBER @desc the supplement's amount in force before this update, set by the previous year's circular; not printed here
+GIVETH A NUMBER
+DECIDE `the amount moved by the index` `the amount before the update` IS
+    `the amount before the update` TIMES (1 PLUS `the change in the index`)
+
+§§ `1–2 The amounts`
+
+@ref akn:hc_1__para_1
+GIVETH A NUMBER
+DECIDE `the monthly amount for an only or first child` IS 317
+
+@ref akn:hc_1__para_2
+GIVETH A NUMBER
+DECIDE `the monthly amount for a second child` IS 214
+
+-- The circular prints amounts for an only or first child and for a second
+-- child, and nothing for any other: whether a third child is paid for is
+-- the framework agreement's question, not this circular's, so this circular
+-- gives NOTHING there rather than a zero it does not print.
+@export default The monthly childcare supplement (in shekels) this update sets for a child, from the date it takes effect
+@ref akn:hc_1/p9
+GIVEN c       IS A `child for the childcare supplement` @desc the child
+      `month` IS A DATE                                @desc a day in the month the supplement is for
+GIVETH A MAYBE NUMBER
+DECIDE `the monthly childcare supplement under this update` c `month` IS
+    BRANCH IF `month` LESS THAN `the update takes effect` THEN NOTHING
+           IF (NOT c's `up to age 5`)                    THEN NOTHING
+           IF c's `place among the children` EQUALS 1   THEN JUST `the monthly amount for an only or first child`
+           IF c's `place among the children` EQUALS 2   THEN JUST `the monthly amount for a second child`
+           OTHERWISE NOTHING
+
+§§ `Payment`
+
+DECLARE `childcare supplement action` IS ONE OF
+    `pay the childcare supplement` HAS `childcare amount paid` IS A NUMBER
+
+-- The update is for the employers that pay the supplement: from the date it
+-- takes effect they pay it at the updated amount. The circular sets a
+-- monthly amount ("לחודש") and no payment date; time here is counted in
+-- months from the start of the month the supplement is for, and the
+-- supplement is read as due within that month.
+@ref akn:hc_1/p9 akn:hc_1__para_1 akn:hc_1__para_2
+GIVEN c       IS A `child for the childcare supplement`
+      `month` IS A DATE
+GIVETH A DEONTIC Party `childcare supplement action`
+DECIDE `the employer pays the updated supplement` c `month` IS
+    CONSIDER `the monthly childcare supplement under this update` c `month`
+    WHEN JUST due THEN
+        PARTY `the employer`
+        MUST  `pay the childcare supplement` paid
+              PROVIDED paid AT LEAST due
+        WITHIN 1
+        LEST  BREACH BY `the employer` BECAUSE "the childcare supplement was not paid at the updated amount for the month"
+    WHEN NOTHING THEN FULFILLED
+
+-- akn:conclusions The sign-off (Kobi Bar-Natan, Wage Controller), the copy to the Civil Service Commissioner, the circular's serial (2020-4) and the department's address; no rule.
+
+§§ `The printed amounts against the printed index change`
+
+-- The amounts in force before this update, as circular 2019-1-6 (corpus circulars-sachar/2019-01_sachar_2019-1-6_maonot, ¶¶1–2), which this circular cites as "חוזרנו".
+-- They are used here only to check the printed amounts, never as a rule
+-- of this circular.
+`the amount in force for an only or first child` MEANS 315
+`the amount in force for a second child`         MEANS 213
+
+-- The index change is printed to one decimal of a percent, so the change itself
+-- lies within 0.05% of the printed figure.
+`the precision of the printed change` MEANS 0.05%
+
+-- A printed amount agrees with the update when some change within the
+-- printed precision, applied to the amount in force, rounds to it at the
+-- nearest shekel.
+GIVEN `before` IS A NUMBER, `after` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `the printed amount is the update of` `before` `after` IF
+        (`before` TIMES (1 PLUS `the change in the index` MINUS `the precision of the printed change`)) AT MOST (`after` PLUS 0.5)
+    AND (`before` TIMES (1 PLUS `the change in the index` PLUS `the precision of the printed change`)) AT LEAST (`after` MINUS 0.5)
+
+#ASSERT `the printed amount is the update of` `the amount in force for an only or first child` `the monthly amount for an only or first child`
+#ASSERT `the printed amount is the update of` `the amount in force for a second child` `the monthly amount for a second child`
+
+§§ `Examples`
+
+`an only child of three` MEANS
+    `child for the childcare supplement` WITH
+        `up to age 5`              IS TRUE
+        `place among the children` IS 1
+
+`a second child of two` MEANS
+    `child for the childcare supplement` WITH
+        `up to age 5`              IS TRUE
+        `place among the children` IS 2
+
+`a third child of one` MEANS
+    `child for the childcare supplement` WITH
+        `up to age 5`              IS TRUE
+        `place among the children` IS 3
+
+`a first child of seven` MEANS
+    `child for the childcare supplement` WITH
+        `up to age 5`              IS FALSE
+        `place among the children` IS 1
+
+#ASSERT `the monthly childcare supplement under this update` `an only child of three` (Date 1 1 2020) EQUALS JUST 317
+#ASSERT `the monthly childcare supplement under this update` `a second child of two` (Date 15 3 2020) EQUALS JUST 214
+#ASSERT `the monthly childcare supplement under this update` `an only child of three` (Date 31 12 2019) EQUALS NOTHING
+#ASSERT `the monthly childcare supplement under this update` `a third child of one` (Date 1 2 2020) EQUALS NOTHING
+#ASSERT `the monthly childcare supplement under this update` `a first child of seven` (Date 1 2 2020) EQUALS NOTHING
+#EVAL   `the amount moved by the index` 100
+
+-- Paid in full within the month, the obligation is fulfilled; paid short,
+-- it is still owed.
+#TRACE `the employer pays the updated supplement` `an only child of three` (Date 1 2 2020) AT 0 WITH
+    PARTY `the employer` DOES `pay the childcare supplement` 317 AT 0
+#TRACE `the employer pays the updated supplement` `an only child of three` (Date 1 2 2020) AT 0 WITH
+    PARTY `the employer` DOES `pay the childcare supplement` 267 AT 0

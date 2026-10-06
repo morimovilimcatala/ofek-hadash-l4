@@ -1,0 +1,209 @@
+-- חוזר תנאי שירות תשס"א/1 — שיחות טלפון (אוקטובר 2000)
+-- The director of conditions of service of teaching employees quotes the
+-- monthly telephone-call quotas the annex to the February 1970 wage
+-- agreement gave principals, deputy principals and teachers, and the
+-- Accountant-General's circular converting such quotas into money amounts
+-- from 1.4.2000.
+
+IMPORT prelude
+IMPORT daydate
+IMPORT common
+
+§ `שיחות טלפון`
+
+-- akn:preamble/p1 akn:preamble/p2 akn:preamble/p3 akn:preamble/p4 The circular's number, its title, its date and the subject line; no rule.
+
+@desc The posts the 1970 annex gives a call quota to.
+DECLARE `teaching post` IS ONE OF
+    `school principal`                 @desc "מנהל בי\"ס לכל רמותיו": a principal of a school of any level
+    `deputy principal`                 @desc "סגן מנהל בי\"ס לכל רמותיו"
+    `rank-and-file teaching employee`  @desc "עובד הוראה מן השורה למעט מנהל וסגן מנהל"
+
+@desc A teaching employee, as far as this circular asks about them.
+DECLARE `telephone case` HAS
+    `post`                          IS A `teaching post`
+    `share of a full position`      IS A NUMBER  @desc the share of one full position the employee holds (1 = one full position)
+    `has a private telephone`       IS A BOOLEAN @desc the employee has a private telephone, the condition the quoted Accountant-General circular names
+
+§§ `1–3 The quotas of the 1970 annex`
+
+-- ¶¶1–3 as quoted from the annex to the wage agreement of February 1970
+-- (preamble ¶5 introduces them): a quota of calls reimbursed each month,
+-- "for one full position".
+@ref akn:preamble/p5 akn:art_1 akn:art_2 akn:art_3
+GIVEN p IS A `teaching post`
+GIVETH A NUMBER
+DECIDE `the monthly call quota for one full position` p IS
+    CONSIDER p
+    WHEN `school principal`                THEN 150
+    WHEN `deputy principal`                THEN 125
+    WHEN `rank-and-file teaching employee` THEN 50
+
+§§ `4 The conversion into amounts`
+
+@ref akn:art_4
+`the conversion takes effect` MEANS Date 1 4 2000
+
+-- The table AS PRINTED, in its order: the amount, and the quota it replaces.
+-- The table names no currency or period; it replaces a monthly quota, so its
+-- amounts are read as monthly amounts in shekels.
+@ref akn:art_4/t1
+DECLARE `conversion row` HAS
+    `amount instead of the quota`  IS A NUMBER
+    `quota the amount replaces`    IS A NUMBER
+
+@ref akn:art_4/t1
+`the conversion table` MEANS
+    LIST `conversion row` 12.15 50,
+         `conversion row` 29.13 125,
+         `conversion row` 36.45 150,
+         `conversion row` 42.53 175,
+         `conversion row` 48.60 200
+
+-- ¶4: from 1.4.2000 the payment no longer rests on a quota of calls; each
+-- quota is converted to the amount the table sets beside it. A quota the
+-- table does not print has no amount here.
+@ref akn:art_4
+GIVEN quota IS A NUMBER
+GIVETH A MAYBE NUMBER
+DECIDE `the amount the table gives instead of a quota of` quota IS
+    CONSIDER filter (GIVEN r YIELD r's `quota the amount replaces` EQUALS quota) `the conversion table`
+    WHEN EMPTY                THEN NOTHING
+    WHEN r FOLLOWED BY others THEN JUST (r's `amount instead of the quota`)
+
+-- F-2000-10_tnai-sherut_tashsa_01_sichot-telefon-b: the circular quotes and
+-- never says the conversion applies to teaching employees; the conversion
+-- it quotes is stated for state employees with private telephones. The
+-- reading adopted: from 1.4.2000 a teaching employee with a private
+-- telephone is paid the amount the table sets beside the quota of their
+-- post, and the condition of a private telephone carries over.
+-- F-2000-10_tnai-sherut_tashsa_01_sichot-telefon-c: the quotas are "for one
+-- full position" and the circular does not say what another share gets.
+-- The reading adopted: the amount for one full position, pro-rated to the
+-- share held, never above one position.
+-- F-2000-10_tnai-sherut_tashsa_01_sichot-telefon-a: the amount for a
+-- deputy principal is the printed 29.13.
+@export default The monthly telephone amount (in shekels) a teaching employee is paid in place of a call quota, on the readings this file adopts
+@ref akn:art_4
+GIVEN c     IS A `telephone case` @desc the teaching employee
+      `day` IS A DATE             @desc a day in the month the amount is for
+GIVETH A MAYBE NUMBER
+DECIDE `the monthly telephone amount` c `day` IS
+    IF `day` LESS THAN `the conversion takes effect` OR (NOT c's `has a private telephone`)
+    THEN NOTHING
+    ELSE CONSIDER `the amount the table gives instead of a quota of` (`the monthly call quota for one full position` (c's `post`))
+         WHEN JUST full THEN JUST (full TIMES min (c's `share of a full position`) 1)
+         WHEN NOTHING   THEN NOTHING
+
+DECLARE `telephone action` IS ONE OF
+    `pay the telephone amount` HAS `telephone amount paid` IS A NUMBER
+
+-- On F-…-b's reading, the employer pays the converted amount for each
+-- month from 1.4.2000. The circular sets no payment date; time is counted in
+-- months from the start of the month the amount is for.
+@ref akn:art_4
+GIVEN c     IS A `telephone case`
+      `day` IS A DATE
+GIVETH A DEONTIC Party `telephone action`
+DECIDE `the employer pays the telephone amount` c `day` IS
+    CONSIDER `the monthly telephone amount` c `day`
+    WHEN JUST due THEN
+        PARTY `the employer`
+        MUST  `pay the telephone amount` paid
+              PROVIDED paid AT LEAST due
+        WITHIN 1
+        LEST  BREACH BY `the employer` BECAUSE "the telephone amount that replaced the call quota was not paid for the month"
+    WHEN NOTHING THEN FULFILLED
+
+-- akn:conclusions The sign-off of the director of conditions of service of teaching employees; no rule.
+
+§§ `Findings`
+
+-- F-2000-10_tnai-sherut_tashsa_01_sichot-telefon-a: four of the table's
+-- five rows convert at one rate, the 50-call row's 12.15 / 50 = 0.243 a
+-- call, to the agora (150 → 36.45, 175 → 42.525 ≈ 42.53, 200 → 48.60); the
+-- 125-call row prints 29.13 where that rate gives 30.375.
+`the rate a call the 50-call row sets` MEANS 12.15 DIVIDED BY 50
+
+GIVEN r IS A `conversion row`
+GIVETH A BOOLEAN
+DECIDE `the row converts at that rate to the agora` r IF
+        r's `amount instead of the quota` AT LEAST (r's `quota the amount replaces` TIMES `the rate a call the 50-call row sets`) MINUS 0.005
+    AND r's `amount instead of the quota` AT MOST (r's `quota the amount replaces` TIMES `the rate a call the 50-call row sets`) PLUS 0.005
+
+`the 125-call row alone departs from the rate the other rows share` MEANS
+        all (GIVEN r YIELD r's `quota the amount replaces` EQUALS 125 OR `the row converts at that rate to the agora` r)
+            `the conversion table`
+    AND (NOT any (GIVEN r YIELD r's `quota the amount replaces` EQUALS 125 AND `the row converts at that rate to the agora` r)
+                 `the conversion table`)
+    AND `the amount the table gives instead of a quota of` 125 EQUALS JUST 29.13
+    AND (125 TIMES `the rate a call the 50-call row sets`) MINUS 29.13 GREATER THAN 1
+#ASSERT `the 125-call row alone departs from the rate the other rows share`
+
+-- F-2000-10_tnai-sherut_tashsa_01_sichot-telefon-b: every numbered
+-- paragraph is a quotation — ¶¶1–3 from the 1970 annex, ¶4 from the
+-- Accountant-General's circular — and the circular adds no sentence of its
+-- own; the conversion is stated for "עובדי מדינה בעלי טלפוניים פרטיים".
+DECLARE `paragraph source` IS ONE OF
+    `the annex to the February 1970 wage agreement`
+    `the senior deputy Accountant-General's circular`
+    `the circular itself`
+
+`the source of each numbered paragraph` MEANS
+    LIST `the annex to the February 1970 wage agreement`,
+         `the annex to the February 1970 wage agreement`,
+         `the annex to the February 1970 wage agreement`,
+         `the senior deputy Accountant-General's circular`
+
+`the circular quotes and never applies the conversion to teaching employees` MEANS
+    all (GIVEN s YIELD NOT s EQUALS `the circular itself`) `the source of each numbered paragraph`
+#ASSERT `the circular quotes and never applies the conversion to teaching employees`
+
+-- F-2000-10_tnai-sherut_tashsa_01_sichot-telefon-c: a teacher on half a
+-- position, pro-rated, has a quota of 25 calls, which no row converts; and
+-- a principal above one position has a quota the words "למשרה מלאה אחת" do
+-- not size.
+`the table has no row for a half-position teacher's quota` MEANS
+    `the amount the table gives instead of a quota of` (`the monthly call quota for one full position` `rank-and-file teaching employee` TIMES 0.5)
+    EQUALS NOTHING
+#ASSERT `the table has no row for a half-position teacher's quota`
+
+§§ `Examples`
+
+`a principal on a full position` MEANS
+    `telephone case` WITH
+        `post`                     IS `school principal`
+        `share of a full position` IS 1
+        `has a private telephone`  IS TRUE
+
+`a deputy principal on a full position` MEANS
+    `telephone case` WITH
+        `post`                     IS `deputy principal`
+        `share of a full position` IS 1
+        `has a private telephone`  IS TRUE
+
+`a teacher on half a position` MEANS
+    `telephone case` WITH
+        `post`                     IS `rank-and-file teaching employee`
+        `share of a full position` IS 0.5
+        `has a private telephone`  IS TRUE
+
+`a teacher without a private telephone` MEANS
+    `telephone case` WITH
+        `post`                     IS `rank-and-file teaching employee`
+        `share of a full position` IS 1
+        `has a private telephone`  IS FALSE
+
+-- The table reproduced for each post's quota.
+#ASSERT `the monthly telephone amount` `a principal on a full position` (Date 1 5 2000) EQUALS JUST 36.45
+#ASSERT `the monthly telephone amount` `a deputy principal on a full position` (Date 1 5 2000) EQUALS JUST 29.13
+#ASSERT `the monthly telephone amount` `a teacher on half a position` (Date 1 5 2000) EQUALS JUST 6.075
+#ASSERT `the monthly telephone amount` `a principal on a full position` (Date 31 3 2000) EQUALS NOTHING
+#ASSERT `the monthly telephone amount` `a teacher without a private telephone` (Date 1 5 2000) EQUALS NOTHING
+#ASSERT `the amount the table gives instead of a quota of` 175 EQUALS JUST 42.53
+#ASSERT `the amount the table gives instead of a quota of` 100 EQUALS NOTHING
+
+#TRACE `the employer pays the telephone amount` `a principal on a full position` (Date 1 5 2000) AT 0 WITH
+    PARTY `the employer` DOES `pay the telephone amount` 36.45 AT 0
+#TRACE `the employer pays the telephone amount` `a principal on a full position` (Date 1 5 2000) AT 0 WITH
+    PARTY `the employer` DOES `pay the telephone amount` 12.15 AT 0

@@ -1,0 +1,189 @@
+-- חוזר לבעלויות תשס"ט/7: עדכונים בנושא פדיון עבור ימי מחלה בלתי מנוצלים
+-- Changes, under the Treasury's instructions of 4.11.2008, 21.12.2008 and
+-- 21.1.2009, to the compensation for unused sick days: an early retiree who
+-- goes on to teach for another employer in the education system is
+-- compensated for the sick days accrued there; and the continuity of
+-- section 13 of the agreements of 11.5.1993 extends to an employee who moved
+-- employer and received only a severance-pay top-up.
+
+IMPORT prelude
+IMPORT common
+
+§ `תשס"ט/7 עדכונים בנושא פדיון עבור ימי מחלה בלתי מנוצלים`
+
+-- akn:preamble The letterhead, title, date (30.4.2009), addressee, greeting, subject line, and the lead-in: under the Treasury's instructions of 4.11.08, 21.12.08 and 21.1.09, the changes below; remarks in square brackets are the Ministry of Education's. No rule of its own.
+
+-- Time: a school year is named by the calendar year it ends in, so תשס"ח
+-- (September 2007 to August 2008) is 2008.
+
+@desc The employers the section 1 examples move between.
+DECLARE `employer kind` IS ONE OF
+    `the State`
+    `an owner`
+
+@desc A teaching employee's retirement and later employment, as far as this circular asks about them.
+DECLARE `retiree` HAS
+    `school year of retirement`              IS A NUMBER  @desc the school year in which the employee retired, named by the calendar year it ends in (תשס"ח = 2008)
+    `retired at the end of the school year`  IS A BOOLEAN @desc the retirement took effect at the end of that school year
+    `retired on early pension`               IS A BOOLEAN
+    `was compensated for unused sick days on retiring` IS A BOOLEAN @desc whether or not, it does not matter to section 1
+    `former employer`                        IS AN `employer kind`
+    `now teaches for another employer in the education system` IS A BOOLEAN
+    `new employer`                           IS AN `employer kind`
+    `meets the owner agreement's conditions for compensation` IS A BOOLEAN @desc meets the conditions of entitlement to compensation at an owner under the collective agreement on the subject; an input of that agreement
+    `sick days accrued at the new employer`  IS A NUMBER
+    `sick days accrued at the former employer` IS A NUMBER
+
+@desc A teaching employee who moved from employer to employer, as section 2 asks.
+DECLARE `employee who moved` HAS
+    `school year of the move`                IS A NUMBER  @desc named by the calendar year it ends in
+    `moved at the end of the school year`    IS A BOOLEAN
+    `received only a severance-pay top-up`   IS A BOOLEAN @desc on moving, received only a top-up of severance pay
+    `severance received as a share of statutory severance` IS A NUMBER @desc the severance received, as a share of severance pay under the Severance Pay Law 1963 (1 = 100%)
+
+`the first school year of the change` MEANS 2008
+
+§§ `1 פיצוי בגין ימי מחלה לפורש לפנסיה מוקדמת שעבר למעסיק אחר`
+
+-- The start of the change, as section 1 and section 2א print it twice:
+-- the rule ("החל משנת הלימודים תשס"ח", from school year 2007/08) and the
+-- Ministry's bracketed gloss ("כלומר: ... שפרש בסוף שנת הלימודים תשס"ח
+-- ואילך", who retired at the end of 2007/08 or later). They differ for a
+-- retirement during 2007/08 before its end (F-2008-09_tashsat_07-a).
+GIVEN `school year` IS A NUMBER, `at the end of the year` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `within the change by the rule's words` `school year` `at the end of the year` IF
+    `school year` AT LEAST `the first school year of the change`
+
+GIVEN `school year` IS A NUMBER, `at the end of the year` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `within the change by the Ministry's gloss` `school year` `at the end of the year` IF
+        `school year` GREATER THAN `the first school year of the change`
+    OR (`school year` EQUALS `the first school year of the change` AND `at the end of the year`)
+
+`the rule and its gloss differ for a retirement during 2007/08` MEANS
+        `within the change by the rule's words` 2008 FALSE
+    AND (NOT (`within the change by the Ministry's gloss` 2008 FALSE))
+#ASSERT `the rule and its gloss differ for a retirement during 2007/08`
+
+-- The reading adopted (F-2008-09_tashsat_07-a): the Ministry's gloss, which
+-- says what the owners are to apply — the change starts with retirements at
+-- the end of 2007/08.
+GIVEN `school year` IS A NUMBER, `at the end of the year` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `within the change` `school year` `at the end of the year` IF
+    `within the change by the Ministry's gloss` `school year` `at the end of the year`
+
+-- Section 1: an employee who retired on early pension (compensated for
+-- unused sick days on retiring or not) and went on to be employed as a
+-- teaching employee by another employer in the education system is entitled
+-- to compensation for unused sick days — provided, the Ministry adds, he
+-- meets the conditions at an owner under the collective agreement — for the
+-- sick days accrued at that other employer alone, subject to every condition
+-- of the compensation (an input of those rules).
+@ref akn:art_1/p1
+GIVEN r IS A `retiree`
+GIVETH A BOOLEAN
+DECIDE `entitled to compensation for sick days at the new employer` r IF
+        `within the change` (r's `school year of retirement`) (r's `retired at the end of the school year`)
+    AND r's `retired on early pension`
+    AND r's `now teaches for another employer in the education system`
+    AND r's `meets the owner agreement's conditions for compensation`
+
+GIVEN r IS A `retiree`
+GIVETH A NUMBER
+DECIDE `sick days the compensation is for` r IS
+    IF `entitled to compensation for sick days at the new employer` r
+    THEN r's `sick days accrued at the new employer`
+    ELSE 0
+
+-- The Ministry's examples (section 1, in brackets): a State employee who
+-- went to an owner, an owner's employee who went to the State, and an
+-- employee who went from one owner to another — compensated or not on
+-- retiring. Each is a move between two employers of the education system.
+DECLARE `move between employers` HAS
+    `moved from` IS AN `employer kind`
+    `moved to`   IS AN `employer kind`
+
+@ref akn:art_1/p2 akn:art_1__para_a akn:art_1__para_b akn:art_1__para_c
+`the examples' moves` MEANS
+    LIST `move between employers` `the State` `an owner`,
+         `move between employers` `an owner` `the State`,
+         `move between employers` `an owner` `an owner`
+
+-- Section 1, closing bracket: in the examples the employee is entitled to
+-- compensation for the unused sick days he accrues with the second employer
+-- alone, subject to every condition on the subject.
+@ref akn:art_1__para_c/p2
+GIVEN r IS A `retiree`
+GIVETH A BOOLEAN
+DECIDE `the days at the former employer are not counted` r IF
+    `sick days the compensation is for` r AT MOST r's `sick days accrued at the new employer`
+
+§§ `2 רציפות בגין ימי מחלה בלתי מנוצלים`
+
+-- Section 2א: from 2007/08 (the same rule and gloss as section 1), section
+-- 13 of the collective agreements of 11.5.1993 — continuity of unused sick
+-- days — applies also to an employee who moved from employer to employer and
+-- received only a severance-pay top-up, up to 100% of severance pay under the
+-- Severance Pay Law 1963. What section 13 then gives is that agreement's.
+@ref akn:art_2__para_a
+GIVEN m IS AN `employee who moved`
+GIVETH A BOOLEAN
+DECIDE `section 13's continuity extends to` m IF
+        `within the change` (m's `school year of the move`) (m's `moved at the end of the school year`)
+    AND m's `received only a severance-pay top-up`
+    AND m's `severance received as a share of statutory severance` AT MOST 1
+
+-- Section 2ב: nothing in the section changes the other rules on
+-- compensation for unused sick days. The rule above is the only thing it
+-- adds; the rest is those rules', an input here.
+@ref akn:art_2__para_b
+`section 2 changes no other rule on unused sick days` MEANS TRUE
+
+
+-- akn:art_3 The indemnity procedure for the subject will be updated and sent separately; nothing is decided here.
+
+-- akn:conclusions The sign-off and signature; no rule.
+
+-- Worked examples.
+`an early retiree from the State teaching at an owner since 2008` MEANS
+    `retiree` WITH
+        `school year of retirement`              IS 2008
+        `retired at the end of the school year`  IS TRUE
+        `retired on early pension`               IS TRUE
+        `was compensated for unused sick days on retiring` IS TRUE
+        `former employer`                        IS `the State`
+        `now teaches for another employer in the education system` IS TRUE
+        `new employer`                           IS `an owner`
+        `meets the owner agreement's conditions for compensation` IS TRUE
+        `sick days accrued at the new employer`  IS 40
+        `sick days accrued at the former employer` IS 200
+
+`an early retiree who left in the middle of 2007/08` MEANS
+    `retiree` WITH
+        `school year of retirement`              IS 2008
+        `retired at the end of the school year`  IS FALSE
+        `retired on early pension`               IS TRUE
+        `was compensated for unused sick days on retiring` IS FALSE
+        `former employer`                        IS `an owner`
+        `now teaches for another employer in the education system` IS TRUE
+        `new employer`                           IS `an owner`
+        `meets the owner agreement's conditions for compensation` IS TRUE
+        `sick days accrued at the new employer`  IS 40
+        `sick days accrued at the former employer` IS 200
+
+#ASSERT `sick days the compensation is for` `an early retiree from the State teaching at an owner since 2008` EQUALS 40
+#ASSERT `the days at the former employer are not counted` `an early retiree from the State teaching at an owner since 2008`
+#ASSERT `sick days the compensation is for` `an early retiree who left in the middle of 2007/08` EQUALS 0
+#ASSERT count `the examples' moves` EQUALS 3
+
+`a teacher who moved with a severance top-up` MEANS
+    `employee who moved` WITH
+        `school year of the move`                IS 2009
+        `moved at the end of the school year`    IS TRUE
+        `received only a severance-pay top-up`   IS TRUE
+        `severance received as a share of statutory severance` IS 1
+
+#ASSERT `section 13's continuity extends to` `a teacher who moved with a severance top-up`
+#ASSERT `section 2 changes no other rule on unused sick days`

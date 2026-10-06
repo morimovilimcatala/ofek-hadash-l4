@@ -1,0 +1,355 @@
+-- חוזר לבעלויות תשע"ב/13: קצובת ביגוד לשנת הלימודים תשע"ב (15.7.2012)
+-- The clothing allowance for school year 2011/12 (09/11-08/12): the general
+-- allowance at level 4 (2,076 ₪), pro-rated by position and capped at one
+-- position, the multi-employer rule and the 140% limit; the extra allowance
+-- for physical-education teachers by employment rate; and the allowance in
+-- technological education, by the subject taught (two lists).
+
+IMPORT prelude
+IMPORT common
+
+§ `תשע"ב/13 קצובת ביגוד לשנת הלימודים תשע"ב`
+
+-- akn:preamble The letterhead, title, date (15.7.2012), addressee, greeting, subject line and the lead-in ("by the Treasury's instructions on the clothing allowance, act as below"); no rule of its own.
+
+-- Time is counted in school months of 2011/12 (common.l4: September 2011 =
+-- 1, July 2012 = 11).
+
+@desc The subjects of technological education the circular lists in section ג.1(א) and (ב).
+DECLARE `technology subject` IS ONE OF
+    `aviation systems`
+    `mechatronics`
+    `technical marine thermodynamics`
+    `CAD and CAM systems`
+    `maintenance of mechanical systems`
+    `automotive mechanics systems`
+    `computerised automotive systems`
+    `power, command and control systems`
+    `climate-control systems`
+    `the art of hotel cooking and baking`
+    `seamanship - ships`
+    `television and film systems`
+    `photography systems`
+    `electronic systems`
+    `computing and control systems`
+    `computer systems`
+    `systems design and programming`
+    `biotechnology systems`
+    `tourism management`
+    `hotel management`
+    `early-childhood education`
+    `design`
+    `fashion and costume`
+    `hair design and beauty care`
+    `nursing`
+    `applied art`
+    `a subject on neither list`
+
+@desc A teaching employee's school year 2011/12 at one employer, as far as this circular asks about it.
+DECLARE `clothing year at an employer` HAS
+    `in the teaching-staff grade`        IS A BOOLEAN
+    `position at this employer`          IS A NUMBER @desc the share of a full position held at this employer (1 = 100%)
+    `position at all employers`          IS A NUMBER @desc the share of a full position held at all employers together
+    `entitled to the extra PE allowance` IS A BOOLEAN @desc a physical-education teacher entitled to the extra allowance under the existing rules (circular תשע"ב/8)
+    `PE employment rate`                 IS A NUMBER @desc the employment rate the PE table is read by
+    `in technological education`         IS A BOOLEAN @desc a teaching employee in technological education or a vocational instructor
+    `subjects taught`                    IS A LIST OF `technology subject`
+
+DECLARE `clothing action` IS ONE OF
+    `pay the clothing allowance` HAS `clothing paid` IS A NUMBER
+    `work beyond 140% of a position`
+
+§§ `א קצובת ביגוד – כללי`
+
+-- א.2: an employee in the teaching-staff grade is entitled to a clothing
+-- allowance as is customary for civil servants who receive the public, for
+-- school year 2011/12 (09/11-08/12).
+@ref akn:art_a__para_2
+GIVEN e IS A `clothing year at an employer`
+GIVETH A BOOLEAN
+DECIDE `entitled to the clothing allowance` e IF
+    e's `in the teaching-staff grade`
+
+-- א.3: every teaching employee is paid at level 4, that is 2,076 ₪.
+@ref akn:art_a__para_3
+`the level-4 clothing allowance` MEANS 2076
+
+-- א.4: pro-rated to the position, and for no more than one full position
+-- (100%). א.5: a teaching employee at more than one employer, with a total
+-- position above 100% at both, takes at each employer separately the
+-- allowance proportional to the position held there.
+-- F-2011-12_tashab_13-b: the two sentences give a teacher at two employers
+-- different totals. The reading adopted: א.5 is the rule for several
+-- employers, and א.4's cap is read per employer.
+@ref akn:art_a__para_4 akn:art_a__para_5
+GIVEN e IS A `clothing year at an employer`
+GIVETH A NUMBER
+DECIDE `the clothing share at this employer` e IS
+    min (e's `position at this employer`) 1
+
+GIVEN e IS A `clothing year at an employer`
+GIVETH A NUMBER
+DECIDE `the general clothing allowance` e IS
+    IF `entitled to the clothing allowance` e
+    THEN `the level-4 clothing allowance` TIMES `the clothing share at this employer` e
+    ELSE 0
+
+-- א.6: a teaching employee may not work beyond 140% of a position at all
+-- employers together; nothing above is a permission to employ beyond it.
+-- Time in school months.
+@ref akn:art_a__para_6
+`the position limit at all employers` MEANS 1.4
+
+GIVEN e IS A `clothing year at an employer`
+GIVETH A BOOLEAN
+DECIDE `within the 140% limit` e IF
+    e's `position at all employers` AT MOST `the position limit at all employers`
+
+GIVETH A DEONTIC Party `clothing action`
+DECIDE `the 140% limit` IS
+    PARTY `the teaching employee`
+    SHANT `work beyond 140% of a position`
+    WITHIN 12
+    LEST BREACH BY `the teaching employee` BECAUSE "section א.6: no teaching employee works beyond 140% of a position at all employers together"
+
+§§ `ב קצובת ביגוד נוספת למורה לחינוך גופני`
+
+-- Section ב: following circular תשע"ב/8, from 2010/11, the extra
+-- allowance for physical-education teachers by employment rate, "correct
+-- for 1/9/11". The table as printed; its bounds meet at 0.3 and 0.5
+-- (F-2011-12_tashab_13-a).
+@ref akn:art_b/p1 akn:art_b/t1
+DECLARE `PE row` HAS
+    `PE row from` IS A NUMBER
+    `PE row to`   IS A NUMBER @desc 999 stands for "ומעלה"
+    `PE row amount` IS A NUMBER
+
+`the PE table for 2011/12` MEANS
+    LIST `PE row` 0   0.3 0,
+         `PE row` 0.3 0.5 663,
+         `PE row` 0.5 999 1322
+
+GIVEN r IS A NUMBER
+GIVETH A LIST OF NUMBER
+DECIDE `the amounts the PE table gives for` r IS
+    map (GIVEN b YIELD b's `PE row amount`)
+        (filter (GIVEN b YIELD r AT LEAST b's `PE row from` AND r AT MOST b's `PE row to`)
+                `the PE table for 2011/12`)
+
+-- F-2011-12_tashab_13-a: 0.3 is both "עד 0.3" and "מ-0.3", and 0.5 both
+-- "עד 0.5" and "מ-0.5".
+`the PE table gives 0.3 and 0.5 two amounts each` MEANS
+        `the amounts the PE table gives for` 0.3 EQUALS LIST 0, 663
+    AND `the amounts the PE table gives for` 0.5 EQUALS LIST 663, 1322
+#ASSERT `the PE table gives 0.3 and 0.5 two amounts each`
+
+-- Every other rate has exactly one row.
+#ASSERT all (GIVEN r YIELD count (`the amounts the PE table gives for` r) EQUALS 1)
+            (LIST 0, 0.1, 0.29, 0.31, 0.4, 0.49, 0.51, 0.75, 1, 1.25)
+
+-- The reading adopted (F-2011-12_tashab_13-a): the row that opens at a bound
+-- ("מ-") governs it.
+GIVEN e IS A `clothing year at an employer`
+GIVETH A NUMBER
+DECIDE `the extra PE clothing allowance` e IS
+    IF e's `entitled to the extra PE allowance`
+    THEN BRANCH IF e's `PE employment rate` AT LEAST 0.5 THEN 1322
+                IF e's `PE employment rate` AT LEAST 0.3 THEN 663
+                OTHERWISE 0
+    ELSE 0
+
+#ASSERT all (GIVEN r YIELD elem (`the extra PE clothing allowance` (`clothing year at an employer` WITH `in the teaching-staff grade` IS TRUE, `position at this employer` IS 1, `position at all employers` IS 1, `entitled to the extra PE allowance` IS TRUE, `PE employment rate` IS r, `in technological education` IS FALSE, `subjects taught` IS EMPTY))
+                                  (`the amounts the PE table gives for` r))
+            (LIST 0, 0.1, 0.3, 0.4, 0.5, 0.75, 1)
+
+§§ `ג קצובת ביגוד בחינוך הטכנולוגי`
+
+-- akn:art_c__para_1 The number of section ג.1; its rules are (א) and (ב).
+
+-- Section ג: a teaching employee in technological education or a vocational
+-- instructor is paid a clothing allowance for 2011/12 by the subject lists.
+-- ג.1(א): in one of these subjects, a pair of shoes and two coats a year,
+-- worth 545 ₪.
+@ref akn:art_c/p1 akn:art_c__para_1__subpara_a akn:art_c__para_1__subpara_a/p2 akn:art_c__para_1__subpara_a/t1
+`the shoes-and-coats subjects` MEANS
+    LIST `aviation systems`,
+         `mechatronics`,
+         `technical marine thermodynamics`,
+         `CAD and CAM systems`,
+         `maintenance of mechanical systems`,
+         `automotive mechanics systems`,
+         `computerised automotive systems`,
+         `power, command and control systems`,
+         `climate-control systems`,
+         `the art of hotel cooking and baking`,
+         `seamanship - ships`,
+         `television and film systems`,
+         `photography systems`
+
+`the value of a pair of shoes and two coats` MEANS 545
+
+-- ג.1(ב): in one of these subjects, two coats a year, worth 338 ₪.
+@ref akn:art_c__para_1__subpara_b akn:art_c__para_1__subpara_b/p2 akn:art_c__para_1__subpara_b/t1
+`the two-coats subjects` MEANS
+    LIST `electronic systems`,
+         `computing and control systems`,
+         `computer systems`,
+         `systems design and programming`,
+         `biotechnology systems`,
+         `tourism management`,
+         `hotel management`,
+         `early-childhood education`,
+         `design`,
+         `fashion and costume`,
+         `hair design and beauty care`,
+         `nursing`,
+         `applied art`
+
+`the value of two coats` MEANS 338
+
+-- The two lists share no subject.
+#ASSERT all (GIVEN s YIELD NOT elem s `the two-coats subjects`) `the shoes-and-coats subjects`
+
+GIVEN e IS A `clothing year at an employer`
+GIVETH A BOOLEAN
+DECIDE `teaches a shoes-and-coats subject` e IF
+    e's `in technological education`
+    AND any (GIVEN s YIELD elem s `the shoes-and-coats subjects`) (e's `subjects taught`)
+
+GIVEN e IS A `clothing year at an employer`
+GIVETH A BOOLEAN
+DECIDE `teaches a two-coats subject` e IF
+    e's `in technological education`
+    AND any (GIVEN s YIELD elem s `the two-coats subjects`) (e's `subjects taught`)
+
+-- F-2011-12_tashab_13-c: a teacher of subjects on both lists meets both
+-- clauses; the text does not say whether the two entitlements add up. The
+-- reading adopted: one allowance, the list-(א) one, whose pair of shoes and
+-- two coats already includes the two coats of list (ב).
+GIVEN e IS A `clothing year at an employer`
+GIVETH A NUMBER
+DECIDE `the full-position technology allowance` e IS
+    BRANCH IF `teaches a shoes-and-coats subject` e THEN `the value of a pair of shoes and two coats`
+           IF `teaches a two-coats subject` e THEN `the value of two coats`
+           OTHERWISE 0
+
+GIVEN e IS A `clothing year at an employer`
+GIVETH A NUMBER
+DECIDE `the two entitlements added` e IS
+    (IF `teaches a shoes-and-coats subject` e THEN `the value of a pair of shoes and two coats` ELSE 0)
+    PLUS (IF `teaches a two-coats subject` e THEN `the value of two coats` ELSE 0)
+
+-- ג.2: the technology allowance is in addition to the general one. ג.3: it
+-- is pro-rated to the position, for no more than one full position.
+@ref akn:art_c__para_2 akn:art_c__para_3
+GIVEN e IS A `clothing year at an employer`
+GIVETH A NUMBER
+DECIDE `the technology clothing allowance` e IS
+    `the full-position technology allowance` e TIMES min (e's `position at this employer`) 1
+
+@export default The clothing allowances for school year 2011/12 one employer pays a teaching employee with the July 2012 salary under circular תשע"ב/13 — the general allowance, the extra physical-education allowance and the technological-education allowance
+GIVEN e IS A `clothing year at an employer` @desc the employee's school year at this employer
+GIVETH A NUMBER
+DECIDE `the clothing allowances` e IS
+    `the general clothing allowance` e
+    PLUS `the extra PE clothing allowance` e
+    PLUS `the technology clothing allowance` e
+
+-- א.1: the allowance is paid in full with the July 2012 salary. It sits
+-- under "כללי", the general heading, and sections ב and ג name no other
+-- date, so it is read as the date of all three.
+@ref akn:art_a__para_1
+GIVEN e IS A `clothing year at an employer`
+GIVETH A DEONTIC Party `clothing action`
+DECIDE `paying the allowance with July's salary` e IS
+    PARTY `the employer`
+    MUST  `pay the clothing allowance` `amount`
+          PROVIDED `amount` AT LEAST `the clothing allowances` e
+    WITHIN `month number` July
+    LEST BREACH BY `the employer` BECAUSE "section א.1: the clothing allowance is paid in full with the July 2012 salary"
+
+-- akn:art_d The contact line for questions; no rule.
+-- akn:conclusions The sign-off and signature; no rule.
+
+-- Worked examples.
+`a full-position teacher` MEANS
+    `clothing year at an employer` WITH
+        `in the teaching-staff grade`        IS TRUE
+        `position at this employer`          IS 1
+        `position at all employers`          IS 1
+        `entitled to the extra PE allowance` IS FALSE
+        `PE employment rate`                 IS 0
+        `in technological education`         IS FALSE
+        `subjects taught`                    IS EMPTY
+
+#ASSERT `the clothing allowances` `a full-position teacher` EQUALS 2076
+
+`a PE teacher at 0.6 of a position` MEANS
+    `clothing year at an employer` WITH
+        `in the teaching-staff grade`        IS TRUE
+        `position at this employer`          IS 0.6
+        `position at all employers`          IS 0.6
+        `entitled to the extra PE allowance` IS TRUE
+        `PE employment rate`                 IS 0.6
+        `in technological education`         IS FALSE
+        `subjects taught`                    IS EMPTY
+
+#ASSERT `the clothing allowances` `a PE teacher at 0.6 of a position` EQUALS 2567.6
+
+`a mechatronics and electronics teacher at half a position` MEANS
+    `clothing year at an employer` WITH
+        `in the teaching-staff grade`        IS TRUE
+        `position at this employer`          IS 0.5
+        `position at all employers`          IS 0.5
+        `entitled to the extra PE allowance` IS FALSE
+        `PE employment rate`                 IS 0
+        `in technological education`         IS TRUE
+        `subjects taught`                    IS LIST `mechatronics`, `electronic systems`
+
+-- F-2011-12_tashab_13-c: such a teacher meets both clauses, and the two
+-- readings give 545 ₪ and 883 ₪ for a full position.
+`a teacher of both lists is entitled under both clauses` MEANS
+        `teaches a shoes-and-coats subject` `a mechatronics and electronics teacher at half a position`
+    AND `teaches a two-coats subject` `a mechatronics and electronics teacher at half a position`
+    AND NOT (`the two entitlements added` `a mechatronics and electronics teacher at half a position`
+             EQUALS `the full-position technology allowance` `a mechatronics and electronics teacher at half a position`)
+#ASSERT `a teacher of both lists is entitled under both clauses`
+
+#ASSERT `the clothing allowances` `a mechatronics and electronics teacher at half a position` EQUALS 1310.5
+
+-- F-2011-12_tashab_13-b: by א.5 a teacher at 0.8 with one employer and 0.6
+-- with another is paid 0.8 and 0.6 of the allowance — 1.4 positions in all;
+-- by א.4 no more than one full position.
+`a teacher at 0.8 here` MEANS
+    `clothing year at an employer` WITH
+        `in the teaching-staff grade`        IS TRUE
+        `position at this employer`          IS 0.8
+        `position at all employers`          IS 1.4
+        `entitled to the extra PE allowance` IS FALSE
+        `PE employment rate`                 IS 0
+        `in technological education`         IS FALSE
+        `subjects taught`                    IS EMPTY
+
+`the same teacher at 0.6 with the other employer` MEANS
+    `clothing year at an employer` WITH
+        `in the teaching-staff grade`        IS TRUE
+        `position at this employer`          IS 0.6
+        `position at all employers`          IS 1.4
+        `entitled to the extra PE allowance` IS FALSE
+        `PE employment rate`                 IS 0
+        `in technological education`         IS FALSE
+        `subjects taught`                    IS EMPTY
+
+`the two employers together pay more than one full position's allowance` MEANS
+    (`the clothing share at this employer` `a teacher at 0.8 here`
+     PLUS `the clothing share at this employer` `the same teacher at 0.6 with the other employer`)
+    GREATER THAN 1
+#ASSERT `the two employers together pay more than one full position's allowance`
+#ASSERT `within the 140% limit` `a teacher at 0.8 here`
+
+#TRACE `paying the allowance with July's salary` `a full-position teacher` AT 0 WITH
+    PARTY `the employer` DOES `pay the clothing allowance` 2076 AT 11
+#TRACE `paying the allowance with July's salary` `a full-position teacher` AT 0 WITH
+    PARTY `the employer` DOES `pay the clothing allowance` 2076 AT 12
+#TRACE `the 140% limit` AT 0 WITH
+    PARTY `the teaching employee` DOES `work beyond 140% of a position` AT 3

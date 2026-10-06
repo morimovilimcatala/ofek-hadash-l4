@@ -1,0 +1,225 @@
+-- חוזר לבעלויות תשס"ח/8 — תשלום חד פעמי לעובדי הוראה בגין שחיקה לשנים 2000–2007 (7.8.2008)
+-- The instructions for the second erosion award (14.4.2008, the period
+-- 1.1.2002–31.12.2007): compensation in pension salaries to accrued-pension
+-- retirees by year of retirement, 3% of the pension to budget-pension
+-- retirees who left before 2003, and recomputed severance pay for those who
+-- left in 2000–2007 other than on pension.
+
+IMPORT prelude
+IMPORT common
+
+§ `תשלום חד פעמי לעובדי הוראה בגין שחיקה לשנים 2000–2007`
+
+-- akn:preamble/p1 akn:preamble/p2 akn:preamble/p3 akn:preamble/p4 akn:preamble/p5 akn:preamble/p6 akn:preamble/p7 akn:preamble/p8 akn:preamble/p9 akn:preamble/p10 The letterhead, title, date (7.8.2008), addressee, greeting, and the recital of the 1.2.2007 arbitration agreement on erosion from 1.1.1999; no rule.
+
+-- ¶11, the rest of the recital: the award for the first period (1.1.1999–
+-- 31.12.2001, given 22.5.2007) and for the second (1.1.2002–31.12.2007,
+-- given 14.4.2008), and the circulars that published them.
+-- F-2007-08_tashsach_08-c: the second period's award is said to be published
+-- in circular "תשס"ו/7", a circular of 2005-06 — two years before the
+-- agreement of 24.1.2008 and the award of 14.4.2008 it would publish.
+@ref akn:preamble/p11
+`the first period starts`  MEANS 1999
+`the second period starts` MEANS 2002
+`the second period ends`   MEANS 2007
+`the year the second award was given` MEANS 2008
+`the school year that ends in the year of circular תשס"ו/7` MEANS 2006
+
+-- akn:preamble/p12 Item 1: the salary table rose 4% from 1.1.2008 under the award, as published in circular תשס"ח/4; a pointer to that circular, no rule of this one.
+
+-- Time in this file is counted in salary months from August 2008 (0), the
+-- circular's month; August's salary is paid on 1.9.2008 (1).
+`August 2008 salary, paid 1.9.2008` MEANS 1
+
+§§ `2 גמלאי הפנסיה הצוברת`
+
+@desc A row of item 2's list: a year of retirement and the compensation, in pension salaries, as printed with its breakdown.
+DECLARE `retirement-year row` HAS
+    `year retired`              IS A NUMBER
+    `pension salaries`          IS A NUMBER
+    `printed breakdown base`    IS A NUMBER  @desc the 3.2 the printed breakdown starts from (0 where none is printed)
+    `printed breakdown addition` IS A NUMBER
+
+-- Item 2 (¶13–14) and its list (§§1–5 as the corpus numbers them).
+@ref akn:preamble/p13 akn:preamble/p14 akn:art_1 akn:art_2 akn:art_3 akn:art_4 akn:art_5
+`the accrued-pension list` MEANS
+    LIST `retirement-year row` 2003 3.7 3.2 0.5,
+         `retirement-year row` 2004 4.2 3.2 1,
+         `retirement-year row` 2005 4.7 3.2 1.5,
+         `retirement-year row` 2006 5.2 3.2 2,
+         `retirement-year row` 2007 2.7 0   0
+
+-- Every printed breakdown adds up to its total.
+#ASSERT all (GIVEN r YIELD r's `printed breakdown base` EQUALS 0
+                        OR r's `printed breakdown base` PLUS r's `printed breakdown addition` EQUALS r's `pension salaries`)
+            `the accrued-pension list`
+
+GIVEN y IS A NUMBER
+GIVETH A LIST OF NUMBER
+DECIDE `the pension salaries the list gives for` y IS
+    map (GIVEN r YIELD r's `pension salaries`)
+        (filter (GIVEN r YIELD r's `year retired` EQUALS y) `the accrued-pension list`)
+
+@export The erosion compensation an accrued-pension retiree of the teaching staff gets under the second award, in pension salaries times the monthly pension salary
+GIVEN `year retired` IS A NUMBER @desc the calendar year the retiree retired
+      `pension salary` IS A NUMBER @desc the retiree's monthly pension salary; an input
+GIVETH A NUMBER
+DECIDE `the accrued-pension compensation` `year retired` `pension salary` IS
+    sum (`the pension salaries the list gives for` `year retired`) TIMES `pension salary`
+
+-- ¶2 under §5: the 2007 retirees' lower compensation rests on their having
+-- had the 4.75% table rise from 1.1.2007, so the arbitrators gave them 84%
+-- of the 3.2 salaries given to those who retired in 2002.
+@ref akn:art_5/p2
+`the share given to 2007 retirees` MEANS 84%
+`the compensation given to 2002 retirees` MEANS 3.2
+
+-- ¶3 under §5: paid by the old funds Mivtachim and KGM with July 2008's
+-- pension (paid 1.8.2008) — done; by Gilad and Makefet with August's,
+-- paid on 1.9.2008.
+DECLARE `payer` IS ONE OF
+    `the old funds Mivtachim and KGM`
+    `the old funds Gilad and Makefet`
+    `the owning body`
+
+DECLARE `compensation action` IS ONE OF
+    `pay the retirees' compensation`
+    `locate those paid severance`
+    `pay the severance differences` HAS `differences paid` IS A NUMBER
+    `pay the budget-pension compensation` HAS `budget compensation paid` IS A NUMBER
+
+@ref akn:art_5/p3
+GIVETH A DEONTIC `payer` `compensation action`
+DECIDE `Gilad and Makefet pay with August's pension` IS
+    PARTY `the old funds Gilad and Makefet`
+    MUST  `pay the retirees' compensation`
+    WITHIN `August 2008 salary, paid 1.9.2008`
+    LEST  BREACH BY `the old funds Gilad and Makefet` BECAUSE "the compensation is paid with August 2008's pension, paid on 1.9.2008"
+
+§§ `3 פיצוי חד-פעמי לגמלאים תקציביים שפרשו לפני 2003`
+
+-- §3א: under chapter ג of the award, budget-pension retirees who retired
+-- before 1.1.2003 get 3% of the pension paid to them for each month in
+-- 1.1.2000–31.12.2002 they received it. No date of payment is printed.
+@ref akn:art_5__para_3 akn:art_5__para_3__subpara_a
+`the budget-pension rate` MEANS 3%
+
+@desc One month of pension a budget-pension retiree received.
+DECLARE `pension month` HAS
+    `pension year`  IS A NUMBER
+    `pension paid`  IS A NUMBER
+
+GIVEN `retired before 1.1.2003` IS A BOOLEAN, months IS A LIST OF `pension month`
+GIVETH A NUMBER
+DECIDE `the budget-pension compensation` `retired before 1.1.2003` months IS
+    IF `retired before 1.1.2003`
+    THEN `the budget-pension rate`
+         TIMES sum (map (GIVEN m YIELD m's `pension paid`)
+                        (filter (GIVEN m YIELD m's `pension year` AT LEAST 2000 AND m's `pension year` AT MOST 2002) months))
+    ELSE 0
+
+§§ `4 פיצוי חד-פעמי למי שסיים את עבודתו בשנים 2000–2007 שלא בפרישה`
+
+-- §4: those who ended their work in 1.1.2000–31.12.2007 other than on
+-- pension, and were entitled to severance, have it recomputed on a
+-- determining salary raised by the rate of their year, and are paid the
+-- differences.
+@desc A row of §4's list: the year the work ended and the rise in the determining salary for severance.
+DECLARE `severance row` HAS
+    `year work ended` IS A NUMBER
+    `salary rise`     IS A NUMBER
+
+@ref akn:art_5__para_4 akn:art_5__para_4/p2 akn:art_5__para_4/p3 akn:art_5__para_4/p4 akn:art_5__para_4/p5 akn:art_5__para_4/p6 akn:art_5__para_4/p7 akn:art_5__para_4/p8 akn:art_5__para_4/p9 akn:art_5__para_4/p10
+`the severance list` MEANS
+    LIST `severance row` 2000 (1.8%),
+         `severance row` 2001 (3.6%),
+         `severance row` 2002 (4.75%),
+         `severance row` 2003 (5.55%),
+         `severance row` 2004 (6.35%),
+         `severance row` 2005 (7.15%),
+         `severance row` 2006 (8.95%),
+         `severance row` 2007 (4%)
+
+@desc A teaching employee who ended work other than on pension.
+DECLARE `leaver` HAS
+    `year the work ended`          IS A NUMBER
+    `left on pension`              IS A BOOLEAN
+    `was entitled to severance`    IS A BOOLEAN
+    `severance paid`               IS A NUMBER  @desc the severance pay paid on leaving
+    `determining salary for severance` IS A NUMBER @desc the determining salary the severance was computed on
+
+GIVEN l IS A `leaver`
+GIVETH A NUMBER
+DECIDE `the rise for` l IS
+    sum (map (GIVEN r YIELD r's `salary rise`)
+             (filter (GIVEN r YIELD r's `year work ended` EQUALS l's `year the work ended`) `the severance list`))
+
+-- Severance is proportional to the determining salary, so recomputing it on
+-- a salary raised by the rate raises it by the same rate; the difference is
+-- the severance paid times the rate.
+GIVEN l IS A `leaver`
+GIVETH A NUMBER
+DECIDE `the severance differences` l IS
+    IF l's `was entitled to severance` AND (NOT l's `left on pension`)
+    THEN l's `severance paid` TIMES `the rise for` l
+    ELSE 0
+
+-- ¶11: the owning bodies must find everyone paid severance on leaving and
+-- pay the differences. No date is printed.
+@ref akn:art_5__para_4/p11
+GIVEN l IS A `leaver`
+GIVETH A DEONTIC `payer` `compensation action`
+DECIDE `the owning body finds and pays` l IS
+    PARTY `the owning body`
+    MUST  `locate those paid severance`
+    HENCE PARTY `the owning body`
+          MUST  `pay the severance differences` x
+                PROVIDED x AT LEAST `the severance differences` l
+
+-- akn:conclusions The sign-off and signature; no rule.
+
+§§ `Findings and examples`
+
+-- F-2007-08_tashsach_08-a: the list has no row for 2002, the first year of
+-- the second period — the year whose 3.2 salaries ¶2 measures 2007 against
+-- and every other row is built on.
+`the list has no row for 2002` MEANS
+        null (`the pension salaries the list gives for` 2002)
+    AND `the second period starts` EQUALS 2002
+#ASSERT `the list has no row for 2002`
+
+-- F-2007-08_tashsach_08-b: 84% of 3.2 is 2.688; the list prints 2.7.
+`84% of 3.2 is not the 2.7 printed for 2007` MEANS
+    NOT (`the share given to 2007 retirees` TIMES `the compensation given to 2002 retirees`
+         EQUALS sum (`the pension salaries the list gives for` 2007))
+#ASSERT `84% of 3.2 is not the 2.7 printed for 2007`
+#ASSERT `the share given to 2007 retirees` TIMES `the compensation given to 2002 retirees` EQUALS 2.688
+
+-- F-2007-08_tashsach_08-c.
+`the second award is said to be published in a circular two years older` MEANS
+    `the school year that ends in the year of circular תשס"ו/7` LESS THAN `the year the second award was given`
+#ASSERT `the second award is said to be published in a circular two years older`
+
+-- Examples. Every amount is a placeholder.
+#ASSERT `the accrued-pension compensation` 2005 10000 EQUALS 47000
+#ASSERT `the accrued-pension compensation` 2007 10000 EQUALS 27000
+
+`left in 2004 with 100,000 severance` MEANS
+    `leaver` WITH
+        `year the work ended`              IS 2004
+        `left on pension`                  IS FALSE
+        `was entitled to severance`        IS TRUE
+        `severance paid`                   IS 100000
+        `determining salary for severance` IS 10000
+
+#ASSERT `the severance differences` `left in 2004 with 100,000 severance` EQUALS 6350
+`two pension months, one in the period` MEANS
+    LIST (`pension month` WITH `pension year` IS 2000, `pension paid` IS 5000),
+         (`pension month` WITH `pension year` IS 2003, `pension paid` IS 5000)
+#ASSERT `the budget-pension compensation` TRUE `two pension months, one in the period` EQUALS 150
+
+#TRACE `Gilad and Makefet pay with August's pension` AT 0 WITH
+    PARTY `the old funds Gilad and Makefet` DOES `pay the retirees' compensation` AT 1
+#TRACE `the owning body finds and pays` `left in 2004 with 100,000 severance` AT 0 WITH
+    PARTY `the owning body` DOES `locate those paid severance` AT 1
+    PARTY `the owning body` DOES `pay the severance differences` 6350 AT 2
