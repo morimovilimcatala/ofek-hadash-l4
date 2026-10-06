@@ -1,0 +1,663 @@
+-- תקנון שירות עובדי הוראה, פרק 6, §6.6 גמולים
+-- Rewards in post-primary schools: for guiding and checking a final
+-- project (6.6.1), for assessing grade-12 practical work in the
+-- technological track (6.6.2), and for matriculation and final exams
+-- (6.6.4) — preparing pupils, writing questionnaires, invigilating,
+-- assessing, follow-up exams and the ethics committee.
+-- Two reward tables these clauses cite ("הטבלה דלהלן" in 6.6.2.2, "הטבלה
+-- המצ"ב" in 6.6.4) are not in the corpus text; the ministry's page links
+-- them as separate documents. What they give is an input here.
+
+IMPORT prelude
+IMPORT daydate
+IMPORT common
+
+§ `6.6 גמולים`
+
+@desc The salary every rate of section 6.6.1.2 and 6.6.4 is computed from: the combined salary (שכר משולב) of an MA teacher at the top of the seniority scale, as in force (section 6.6.4's general note: the rates follow the agreements that update it).
+DECLARE `rates basis` HAS
+    `MA teacher's combined salary at top seniority` IS A NUMBER
+
+@desc A preparation reward under section 6.6.4: weekly hours, and a percentage of the full-position combined salary by grade and seniority, whatever the position fraction. Section 6.6.4's clarification: "reward" means both.
+DECLARE `preparation reward` HAS
+    `reward hours`   IS A NUMBER
+    `reward percent` IS A NUMBER
+
+`no preparation reward` MEANS `preparation reward` WITH `reward hours` IS 0, `reward percent` IS 0
+
+GIVEN r IS A `preparation reward`, share IS A NUMBER
+GIVETH A `preparation reward`
+DECIDE `share of` r share IS
+    `preparation reward` WITH
+        `reward hours`   IS r's `reward hours` TIMES share
+        `reward percent` IS r's `reward percent` TIMES share
+
+DECLARE `6.6 action` IS ONE OF
+    `pay the final project reward` HAS `amount paid` IS A NUMBER
+    `contact the pupil directly about the project`
+    `contribute to the Dafna fund for the hours above a full position`
+
+§§ `6.6.1 גמולים לעבודת סיום`
+
+-- akn:chp_6__sec_6_6__ssec_6_6_1__para_1/p1 The heading of item 1 (a reward for guiding a pupil's final project); its paragraphs are encoded below.
+
+@desc A teacher guiding a pupil's final project, as far as section 6.6.1 asks.
+@ref akn:chp_6__sec_6_6__ssec_6_6_1__para_1__subpara_a
+DECLARE `project guidance` HAS
+    `teacher is an academic with full pedagogical education` IS A BOOLEAN
+    `teacher holds a permanent teaching licence`               IS A BOOLEAN
+    `supervisor approved the teacher to guide the project`     IS A BOOLEAN @desc approval from the institution's supervisor
+    `pupil is in grade 11 or 12`                               IS A BOOLEAN
+    `guided from 1 Shvat of grade 11 to 1 Shvat of the next year` IS A BOOLEAN @desc a whole school year at least
+    `submitted for the Ministry's approval to exempt one matriculation exam` IS A BOOLEAN
+
+-- §6.6.1.1א: "an academic teacher with full pedagogical education, or a
+-- teacher with a permanent licence who received approval to guide from the
+-- supervisor". The approval is read as a condition of the second
+-- alternative only (F-6.6-a).
+@ref akn:chp_6__sec_6_6__ssec_6_6_1__para_1__subpara_a
+GIVEN g IS A `project guidance`
+GIVETH A BOOLEAN
+DECIDE `the teacher may guide for the reward` g IF
+       g's `teacher is an academic with full pedagogical education`
+    OR (g's `teacher holds a permanent teaching licence` AND g's `supervisor approved the teacher to guide the project`)
+
+GIVEN g IS A `project guidance`
+GIVETH A BOOLEAN
+DECIDE `the teacher may guide, approval read as governing both` g IF
+        (g's `teacher is an academic with full pedagogical education` OR g's `teacher holds a permanent teaching licence`)
+    AND g's `supervisor approved the teacher to guide the project`
+
+@ref akn:chp_6__sec_6_6__ssec_6_6_1__para_1__subpara_a akn:chp_6__sec_6_6__ssec_6_6_1__para_1__subpara_a__cls_1 akn:chp_6__sec_6_6__ssec_6_6_1__para_1__subpara_a__cls_2
+GIVEN g IS A `project guidance`
+GIVETH A BOOLEAN
+DECIDE `entitled to the final project reward` g IF
+        `the teacher may guide for the reward` g
+    AND g's `pupil is in grade 11 or 12`
+    AND g's `guided from 1 Shvat of grade 11 to 1 Shvat of the next year`
+    AND g's `submitted for the Ministry's approval to exempt one matriculation exam`
+
+-- F-6.6-a: an academic teacher with full pedagogical education whom the
+-- supervisor did not approve qualifies on one reading and not the other.
+`an academic teacher without the supervisor's approval` MEANS
+    `project guidance` WITH
+        `teacher is an academic with full pedagogical education` IS TRUE
+        `teacher holds a permanent teaching licence`               IS FALSE
+        `supervisor approved the teacher to guide the project`     IS FALSE
+        `pupil is in grade 11 or 12`                               IS TRUE
+        `guided from 1 Shvat of grade 11 to 1 Shvat of the next year` IS TRUE
+        `submitted for the Ministry's approval to exempt one matriculation exam` IS TRUE
+
+`the two readings of the approval decide differently` MEANS
+    NOT (`the teacher may guide for the reward` `an academic teacher without the supervisor's approval`
+         EQUALS `the teacher may guide, approval read as governing both` `an academic teacher without the supervisor's approval`)
+#ASSERT `the two readings of the approval decide differently`
+
+-- §6.6.1.1ב: the amount is what the conditions-of-service department
+-- publishes from time to time; ג: the owner pays it once the Ministry
+-- approves the submission. Time in school months from that approval.
+@ref akn:chp_6__sec_6_6__ssec_6_6_1__para_1__subpara_b akn:chp_6__sec_6_6__ssec_6_6_1__para_1__subpara_c
+GIVEN g IS A `project guidance`
+      `the published reward` IS A NUMBER @desc the amount the conditions-of-service department publishes from time to time
+      `the Ministry approved the submission` IS A BOOLEAN
+GIVETH A DEONTIC Party `6.6 action`
+DECIDE `paying the final project reward` g `the published reward` `the Ministry approved the submission` IS
+    IF `entitled to the final project reward` g AND `the Ministry approved the submission`
+    THEN PARTY `the local authority or owning body`
+         MUST  `pay the final project reward` paid PROVIDED paid AT LEAST `the published reward`
+         WITHIN 1
+         LEST  BREACH BY `the local authority or owning body` BECAUSE "section 6.6.1.1ג: the owner pays the reward on the Ministry's approval of the submission"
+    ELSE FULFILLED
+
+@ref akn:chp_6__sec_6_6__ssec_6_6_1__para_1__subpara_d
+GIVETH A DEONTIC Party `6.6 action`
+DECIDE `no direct contact with the pupil` IS
+    PARTY `the teaching employee`
+    SHANT `contact the pupil directly about the project`
+    LEST  BREACH BY `the teaching employee` BECAUSE "section 6.6.1.1ד: contact goes through the principal"
+
+-- akn:chp_6__sec_6_6__ssec_6_6_1__para_2/p1 The heading of item 2 (payment for checking a final project).
+
+@ref akn:chp_6__sec_6_6__ssec_6_6_1__para_2/p2 akn:chp_6__sec_6_6__ssec_6_6_1__para_2/p3 akn:chp_6__sec_6_6__ssec_6_6_1__para_2/p4 akn:chp_6__sec_6_6__ssec_6_6_1__para_2/p5
+GIVEN b IS A `rates basis`
+GIVETH A NUMBER
+DECIDE `checking hour value` b IS
+    b's `MA teacher's combined salary at top seniority` DIVIDED BY 96
+
+-- §6.6.1.2's rows: 5, 4, 3 and 2 study units. No row is printed for a
+-- project of 1 unit, or of more than 5 (F-6.6-b).
+@ref akn:chp_6__sec_6_6__ssec_6_6_1__para_2/p6 akn:chp_6__sec_6_6__ssec_6_6_1__para_2/p7 akn:chp_6__sec_6_6__ssec_6_6_1__para_2/p8 akn:chp_6__sec_6_6__ssec_6_6_1__para_2/p9 akn:chp_6__sec_6_6__ssec_6_6_1__para_2/p10
+GIVEN `study units` IS A NUMBER
+GIVETH A MAYBE NUMBER
+DECIDE `checking hours for` `study units` IS
+    BRANCH IF `study units` EQUALS 5 THEN JUST 10
+           IF `study units` EQUALS 4 THEN JUST 8
+           IF `study units` EQUALS 3 THEN JUST 6
+           IF `study units` EQUALS 2 THEN JUST 4
+           OTHERWISE NOTHING
+
+@ref akn:chp_6__sec_6_6__ssec_6_6_1__para_2/p6
+GIVEN b IS A `rates basis`, `study units` IS A NUMBER
+GIVETH A MAYBE NUMBER
+DECIDE `pay for checking a final project` b `study units` IS
+    CONSIDER `checking hours for` `study units`
+    WHEN JUST h THEN JUST (`checking hour value` b TIMES h)
+    WHEN NOTHING THEN NOTHING
+
+`a 1-unit project has no row` MEANS
+    `checking hours for` 1 EQUALS NOTHING AND `checking hours for` 6 EQUALS NOTHING
+#ASSERT `a 1-unit project has no row`
+
+@ref akn:chp_6__sec_6_6__ssec_6_6_1__para_2/p11
+GIVEN `read the project` IS A BOOLEAN, `talked with the writer so he could defend it` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `the project was checked` `read the project` `talked with the writer so he could defend it` IF
+    `read the project` AND `talked with the writer so he could defend it`
+
+-- akn:chp_6__sec_6_6__ssec_6_6_1/p1 akn:chp_6__sec_6_6__ssec_6_6_1/p2 akn:chp_6__sec_6_6__ssec_6_6_1/p3 akn:chp_6__sec_6_6__ssec_6_6_1/p4 The sources (אסמכתא) of section 6.6.1.
+
+§§ `6.6.2 גמול על הערכת עבודה מעשית`
+
+-- School years are numbered by the Hebrew year in which they begin to be
+-- named: 5735 is תשל"ה.
+@ref akn:chp_6__sec_6_6__ssec_6_6_2__para_1 akn:chp_6__sec_6_6__ssec_6_6_2__para_5
+GIVEN `school year` IS A NUMBER, `the new method operates at the school` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `the new assessment provisions apply` `school year` `the new method operates at the school` IF
+    `school year` AT LEAST 5735 AND `the new method operates at the school`
+
+@ref akn:chp_6__sec_6_6__ssec_6_6_2__para_1
+GIVEN `school year` IS A NUMBER, `the new method operates at the school` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `the old end-of-year exams, their instructors' payments and materials are due` `school year` `the new method operates at the school` IF
+    NOT `the new assessment provisions apply` `school year` `the new method operates at the school`
+
+-- §6.6.2.4: the subjects that qualify are those the binder lists under
+-- "practical studies".
+@ref akn:chp_6__sec_6_6__ssec_6_6_2__para_4
+GIVEN `listed under practical studies in the binder` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `the subject qualifies for the assessment reward` `listed under practical studies in the binder` IF
+    `listed under practical studies in the binder`
+
+@ref akn:chp_6__sec_6_6__ssec_6_6_2__para_3 akn:chp_6__sec_6_6__ssec_6_6_2__para_3/p2
+GIVEN `pupils in the group` IS A NUMBER, `standard group size` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `share of the assessment reward` `pupils in the group` `standard group size` IS
+    IF `pupils in the group` AT LEAST 60% TIMES `standard group size`
+    THEN 1
+    ELSE 50%
+
+@ref akn:chp_6__sec_6_6__ssec_6_6_2__para_2
+GIVEN `the table's reward for the hours` IS A NUMBER @desc the reward 6.6.2.2's table gives for the weekly hours the instructor guides the groups; the table is not in the corpus text
+      `pupils in the group` IS A NUMBER
+      `standard group size` IS A NUMBER @desc set by the Ministry
+      `listed under practical studies in the binder` IS A BOOLEAN
+      `school year` IS A NUMBER
+      `the new method operates at the school` IS A BOOLEAN
+GIVETH A NUMBER
+DECIDE `practical work assessment reward` `the table's reward for the hours` `pupils in the group` `standard group size` `listed under practical studies in the binder` `school year` `the new method operates at the school` IS
+    IF `the new assessment provisions apply` `school year` `the new method operates at the school`
+       AND `the subject qualifies for the assessment reward` `listed under practical studies in the binder`
+    THEN `the table's reward for the hours` TIMES `share of the assessment reward` `pupils in the group` `standard group size`
+    ELSE 0
+
+-- akn:chp_6__sec_6_6__ssec_6_6_2/p1 akn:chp_6__sec_6_6__ssec_6_6_2/p2 The source (אסמכתא) of section 6.6.2.
+
+§§ `6.6.4 גמולים לבחינות בגרות ולבחינות גמר`
+
+-- akn:chp_6__sec_6_6__ssec_6_6_4/p1 An amendment note: the section was updated on 4.7.03.
+
+@desc An examination, as far as section 6.6.4's definition asks.
+@ref akn:chp_6__sec_6_6__ssec_6_6_4/p2
+DECLARE `examination` HAS
+    `on special numbered questionnaires`               IS A BOOLEAN
+    `held on a special date`                           IS A BOOLEAN
+    `held or recognised by the Ministry's examinations department` IS A BOOLEAN
+    `a unique questionnaire approved in advance`       IS A BOOLEAN
+
+@ref akn:chp_6__sec_6_6__ssec_6_6_4/p2
+GIVEN e IS A `examination`
+GIVETH A BOOLEAN
+DECIDE `is a matriculation or final exam` e IF
+        e's `on special numbered questionnaires`
+    AND e's `held on a special date`
+    AND e's `held or recognised by the Ministry's examinations department`
+
+-- The note: a pre-approved unique questionnaire is paid for checking the
+-- notebooks only — it carries no preparation reward.
+@ref akn:chp_6__sec_6_6__ssec_6_6_4/p3
+GIVEN e IS A `examination`
+GIVETH A BOOLEAN
+DECIDE `carries a preparation reward` e IF
+    `is a matriculation or final exam` e AND NOT e's `a unique questionnaire approved in advance`
+
+@ref akn:chp_6__sec_6_6__ssec_6_6_4/p3
+GIVEN e IS A `examination`
+GIVETH A BOOLEAN
+DECIDE `carries payment for checking notebooks` e IF
+    `is a matriculation or final exam` e OR e's `a unique questionnaire approved in advance`
+
+-- akn:chp_6__sec_6_6__ssec_6_6_4/p4 akn:chp_6__sec_6_6__ssec_6_6_4/p5 The headings "1 גמול הכנה" and "א. כללי".
+
+-- §6.6.4 1א(1) and the clarification below it; (3): also where the exams
+-- are taken in grades 10 and 11.
+@ref akn:chp_6__sec_6_6__ssec_6_6_4/p6 akn:chp_6__sec_6_6__ssec_6_6_4/p7 akn:chp_6__sec_6_6__ssec_6_6_4/p11 akn:chp_6__sec_6_6__ssec_6_6_4/p17
+GIVEN r IS A `preparation reward`
+      `full-position combined salary by grade and seniority` IS A NUMBER
+      `weekly hour's value` IS A NUMBER @desc the value of a weekly hour by the teacher's grade and seniority
+GIVETH A NUMBER
+DECIDE `monthly value of a preparation reward` r `full-position combined salary by grade and seniority` `weekly hour's value` IS
+    r's `reward hours` TIMES `weekly hour's value` PLUS r's `reward percent` TIMES `full-position combined salary by grade and seniority`
+
+-- 1א(2): preparation hours inside the position, up to a full one, are part
+-- of it with all social rights; those above a full position are not.
+@ref akn:chp_6__sec_6_6__ssec_6_6_4/p8 akn:chp_6__sec_6_6__ssec_6_6_4/p9
+GIVEN `position hours without the preparation hours` IS A NUMBER, `preparation hours` IS A NUMBER, `full position hours` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `preparation hours that are part of the position` `position hours without the preparation hours` `preparation hours` `full position hours` IS
+    max 0 (min `preparation hours` (`full position hours` MINUS `position hours without the preparation hours`))
+
+@ref akn:chp_6__sec_6_6__ssec_6_6_4/p9 akn:chp_6__sec_6_6__ssec_6_6_4/p10
+GIVEN `position hours without the preparation hours` IS A NUMBER, `preparation hours` IS A NUMBER, `full position hours` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `preparation hours above a full position` `position hours without the preparation hours` `preparation hours` `full position hours` IS
+    `preparation hours` MINUS `preparation hours that are part of the position` `position hours without the preparation hours` `preparation hours` `full position hours`
+
+-- The note: matriculation hours above a full position are surplus hours,
+-- and the employer contributes to the Dafna fund for them. Time in school
+-- months: with the month's salary.
+@ref akn:chp_6__sec_6_6__ssec_6_6_4/p10
+GIVEN `hours above a full position` IS A NUMBER
+GIVETH A DEONTIC Party `6.6 action`
+DECIDE `Dafna for matriculation hours above a full position` `hours above a full position` IS
+    IF `hours above a full position` GREATER THAN 0
+    THEN PARTY `the employer`
+         MUST  `contribute to the Dafna fund for the hours above a full position`
+         WITHIN 1
+    ELSE FULFILLED
+
+-- akn:chp_6__sec_6_6__ssec_6_6_4/p12 akn:chp_6__sec_6_6__ssec_6_6_4/p15 The headings of paragraph ב (subjects studied by study units) and of its (2) (rates).
+
+-- ב(1) and the clarification: the study unit is the basis, taught by one
+-- teacher; teachers who share a subject share the reward by the units each
+-- teaches.
+@ref akn:chp_6__sec_6_6__ssec_6_6_4/p13 akn:chp_6__sec_6_6__ssec_6_6_4/p14
+GIVEN r IS A `preparation reward`, `units this teacher teaches` IS A NUMBER, `units of the subject` IS A NUMBER
+GIVETH A `preparation reward`
+DECIDE `a sharing teacher's part` r `units this teacher teaches` `units of the subject` IS
+    `share of` r (`units this teacher teaches` DIVIDED BY `units of the subject`)
+
+-- ב(2)(א): the reward for the units prepared is the attached table's,
+-- which is not in the corpus text; it is an input function here.
+-- ב(2)(ב): preparing a class for qualifying exams over 6 weekly hours or
+-- more, the reward is at least 2 hours + 2%.
+@ref akn:chp_6__sec_6_6__ssec_6_6_4/p16 akn:chp_6__sec_6_6__ssec_6_6_4/p18
+GIVEN `the table's reward for` IS A FUNCTION FROM NUMBER TO `preparation reward` @desc the reward the table of 6.6.4 ב(2)(א) gives for a number of study units
+      `study units` IS A NUMBER
+      `weekly preparation hours of the class` IS A NUMBER
+GIVETH A `preparation reward`
+DECIDE `a class's unit-based reward` `the table's reward for` `study units` `weekly preparation hours of the class` IS
+    IF `weekly preparation hours of the class` AT LEAST 6
+    THEN `preparation reward` WITH
+             `reward hours`   IS max ((`the table's reward for` `study units`)'s `reward hours`) 2
+             `reward percent` IS max ((`the table's reward for` `study units`)'s `reward percent`) (2%)
+    ELSE `the table's reward for` `study units`
+
+@ref akn:chp_6__sec_6_6__ssec_6_6_4/p18
+GIVETH A BOOLEAN
+DECIDE `a 6-hour preparation scope is tenured` IF FALSE
+
+-- ב(2)(ג) as printed: 1–5 pupils 25%; "6–9 pupils or more" 50%; "10 pupils
+-- or more" 100%. A group of 10 or more falls in two rows (F-6.6-c).
+@desc A row of the group-size key of section 6.6.4 ב(2)(ג).
+DECLARE `group band` HAS
+    `from pupils`     IS A NUMBER
+    `to pupils`       IS A NUMBER @desc 999 stands for "או יותר", with no upper bound
+    `share of reward` IS A NUMBER
+
+@ref akn:chp_6__sec_6_6__ssec_6_6_4/p19 akn:chp_6__sec_6_6__ssec_6_6_4/p20 akn:chp_6__sec_6_6__ssec_6_6_4/p21 akn:chp_6__sec_6_6__ssec_6_6_4/p22
+`the group-size key as printed` MEANS
+    LIST `group band` 1  5   (25%),
+         `group band` 6  999 (50%),
+         `group band` 10 999 (100%)
+
+GIVEN n IS A NUMBER
+GIVETH A LIST OF NUMBER
+DECIDE `the shares the key gives a group of` n IS
+    map (GIVEN b YIELD b's `share of reward`)
+        (filter (GIVEN b YIELD n AT LEAST b's `from pupils` AND n AT MOST b's `to pupils`) `the group-size key as printed`)
+
+`a group of 12 gets 50% and 100%` MEANS
+    `the shares the key gives a group of` 12 EQUALS LIST (50%), (100%)
+#ASSERT `a group of 12 gets 50% and 100%`
+
+-- The reading adopted (F-6.6-c): "or more" in the 6–9 row adds nothing;
+-- 6 to 9 pupils get 50% and 10 or more the whole reward. "The reward
+-- detailed in ב above" is read as the reward under paragraph ב as a whole.
+GIVEN `pupils in the group` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `share of the reward for a group of` `pupils in the group` IS
+    BRANCH IF `pupils in the group` AT LEAST 10 THEN 1
+           IF `pupils in the group` AT LEAST 6  THEN 50%
+           IF `pupils in the group` AT LEAST 1  THEN 25%
+           OTHERWISE 0
+
+#ASSERT all (GIVEN n YIELD `the shares the key gives a group of` n EQUALS LIST (`share of the reward for a group of` n))
+            (range 1 9)
+
+-- ב(2)(ד): pupils prepared for different numbers of units: the reward is
+-- for the largest number, and it does not exceed 3 hours + 2%. "גמול זה"
+-- is read as the cap of this case only.
+@ref akn:chp_6__sec_6_6__ssec_6_6_4/p23 akn:chp_6__sec_6_6__ssec_6_6_4/p24
+GIVEN `the table's reward for` IS A FUNCTION FROM NUMBER TO `preparation reward` @desc the reward the table of 6.6.4 ב(2)(א) gives for a number of study units
+      `units the pupils were prepared for` IS A LIST OF NUMBER
+GIVETH A `preparation reward`
+DECIDE `reward for pupils at different numbers of units` `the table's reward for` `units the pupils were prepared for` IS
+    CONSIDER `units the pupils were prepared for`
+    WHEN EMPTY THEN `no preparation reward`
+    WHEN u FOLLOWED BY rest THEN
+        `preparation reward` WITH
+            `reward hours`   IS min ((`the table's reward for` (maximum1 u rest))'s `reward hours`) 3
+            `reward percent` IS min ((`the table's reward for` (maximum1 u rest))'s `reward percent`) (2%)
+
+-- akn:chp_6__sec_6_6__ssec_6_6_4/p25 The heading of (3) (special provisions).
+
+@desc The subjects with special provisions under section 6.6.4 ב(3).
+DECLARE `special subject` IS ONE OF
+    @ref akn:chp_6__sec_6_6__ssec_6_6_4/p26 akn:chp_6__sec_6_6__ssec_6_6_4/p27
+    `Hebrew language knowledge`
+    @ref akn:chp_6__sec_6_6__ssec_6_6_4/p28
+    `Hebrew composition`
+    @ref akn:chp_6__sec_6_6__ssec_6_6_4/p29
+    `Hebrew literature`
+    `biology oral (biotope)`
+    `geography oral (geotope)`
+    `environmental science ecotope or life sciences personal project`
+    `Land of Israel studies oral (geotope)`
+
+-- (3)(א): from 1.9.87 the three parts of Hebrew are each a subject of its own.
+@ref akn:chp_6__sec_6_6__ssec_6_6_4/p26 akn:chp_6__sec_6_6__ssec_6_6_4/p30
+GIVEN s IS A `special subject`, `the year begins on` IS A DATE
+GIVETH A BOOLEAN
+DECIDE `is a subject of its own` s `the year begins on` IF
+    CONSIDER s
+    WHEN `Hebrew language knowledge` THEN `the year begins on` AT LEAST Date 1 9 1987
+    WHEN `Hebrew composition`        THEN `the year begins on` AT LEAST Date 1 9 1987
+    WHEN `Hebrew literature`         THEN `the year begins on` AT LEAST Date 1 9 1987
+    OTHERWISE TRUE
+
+@desc A row of an oral-exam key (sections 6.6.4 ב(3)(ב)–(ה)): pupils in the group and the weekly hours of preparation reward.
+DECLARE `oral key` HAS
+    `hours for 1 to 5 pupils`     IS A NUMBER
+    `hours for 6 to 9 pupils`     IS A NUMBER
+    `hours for 10 pupils or more` IS A NUMBER
+
+@ref akn:chp_6__sec_6_6__ssec_6_6_4/p31 akn:chp_6__sec_6_6__ssec_6_6_4/p32 akn:chp_6__sec_6_6__ssec_6_6_4/p33 akn:chp_6__sec_6_6__ssec_6_6_4/p34 akn:chp_6__sec_6_6__ssec_6_6_4/p35 akn:chp_6__sec_6_6__ssec_6_6_4/p36 akn:chp_6__sec_6_6__ssec_6_6_4/p37 akn:chp_6__sec_6_6__ssec_6_6_4/p38 akn:chp_6__sec_6_6__ssec_6_6_4/p39
+`the biotope key` MEANS `oral key` 0.33 0.75 1.50
+
+@ref akn:chp_6__sec_6_6__ssec_6_6_4/p42 akn:chp_6__sec_6_6__ssec_6_6_4/p43 akn:chp_6__sec_6_6__ssec_6_6_4/p44 akn:chp_6__sec_6_6__ssec_6_6_4/p45 akn:chp_6__sec_6_6__ssec_6_6_4/p46 akn:chp_6__sec_6_6__ssec_6_6_4/p47 akn:chp_6__sec_6_6__ssec_6_6_4/p48
+`the geotope key` MEANS `oral key` 0.25 0.50 1
+
+@ref akn:chp_6__sec_6_6__ssec_6_6_4/p51 akn:chp_6__sec_6_6__ssec_6_6_4/p52 akn:chp_6__sec_6_6__ssec_6_6_4/p53 akn:chp_6__sec_6_6__ssec_6_6_4/p54 akn:chp_6__sec_6_6__ssec_6_6_4/p55 akn:chp_6__sec_6_6__ssec_6_6_4/p56 akn:chp_6__sec_6_6__ssec_6_6_4/p57 akn:chp_6__sec_6_6__ssec_6_6_4/p58
+`the ecotope key` MEANS `oral key` 0.33 0.75 1.50
+
+@ref akn:chp_6__sec_6_6__ssec_6_6_4/p60 akn:chp_6__sec_6_6__ssec_6_6_4/p61 akn:chp_6__sec_6_6__ssec_6_6_4/p62 akn:chp_6__sec_6_6__ssec_6_6_4/p63 akn:chp_6__sec_6_6__ssec_6_6_4/p64 akn:chp_6__sec_6_6__ssec_6_6_4/p65 akn:chp_6__sec_6_6__ssec_6_6_4/p66
+`the Land of Israel geotope key` MEANS `oral key` 0.25 0.50 1
+
+-- (ד) says its teacher gets "the same reward" as biology's and (ה) "the
+-- same" as geography's; their own printed keys agree.
+#ASSERT `the ecotope key` EQUALS `the biotope key`
+#ASSERT `the Land of Israel geotope key` EQUALS `the geotope key`
+
+-- The start dates: biology 1.9.87, geography 1.9.88, the ecotope
+-- 11.10.2000 (printed "11.10.200"), Land of Israel 1.5.2003.
+@ref akn:chp_6__sec_6_6__ssec_6_6_4/p40 akn:chp_6__sec_6_6__ssec_6_6_4/p49 akn:chp_6__sec_6_6__ssec_6_6_4/p59 akn:chp_6__sec_6_6__ssec_6_6_4/p67
+GIVEN s IS A `special subject`
+GIVETH A MAYBE `oral key`
+DECIDE `oral key of` s IS
+    CONSIDER s
+    WHEN `biology oral (biotope)`                                        THEN JUST `the biotope key`
+    WHEN `geography oral (geotope)`                                      THEN JUST `the geotope key`
+    WHEN `environmental science ecotope or life sciences personal project` THEN JUST `the ecotope key`
+    WHEN `Land of Israel studies oral (geotope)`                         THEN JUST `the Land of Israel geotope key`
+    OTHERWISE NOTHING
+
+@ref akn:chp_6__sec_6_6__ssec_6_6_4/p40 akn:chp_6__sec_6_6__ssec_6_6_4/p49 akn:chp_6__sec_6_6__ssec_6_6_4/p59 akn:chp_6__sec_6_6__ssec_6_6_4/p67
+GIVEN s IS A `special subject`
+GIVETH A DATE
+DECIDE `oral key in force from` s IS
+    CONSIDER s
+    WHEN `biology oral (biotope)`                                        THEN Date 1 9 1987
+    WHEN `geography oral (geotope)`                                      THEN Date 1 9 1988
+    WHEN `environmental science ecotope or life sciences personal project` THEN Date 11 10 2000
+    WHEN `Land of Israel studies oral (geotope)`                         THEN Date 1 5 2003
+    OTHERWISE Date 1 9 1987
+
+-- The notes to (ב) and (ג): the oral reward comes on top of the written
+-- exam's preparation reward.
+@ref akn:chp_6__sec_6_6__ssec_6_6_4/p41 akn:chp_6__sec_6_6__ssec_6_6_4/p50
+GIVEN s IS A `special subject`, `pupils in the group` IS A NUMBER, `the day` IS A DATE, `written exam's reward hours` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `weekly preparation hours with the oral exam` s `pupils in the group` `the day` `written exam's reward hours` IS
+    CONSIDER `oral key of` s
+    WHEN NOTHING THEN `written exam's reward hours`
+    WHEN JUST k THEN
+        IF `the day` AT LEAST `oral key in force from` s
+        THEN `written exam's reward hours` PLUS
+             (BRANCH IF `pupils in the group` AT LEAST 10 THEN k's `hours for 10 pupils or more`
+                     IF `pupils in the group` AT LEAST 6  THEN k's `hours for 6 to 9 pupils`
+                     IF `pupils in the group` AT LEAST 1  THEN k's `hours for 1 to 5 pupils`
+                     OTHERWISE 0)
+        ELSE `written exam's reward hours`
+
+-- akn:chp_6__sec_6_6__ssec_6_6_4/p68 The heading of paragraph ג (subjects not studied by study units).
+
+-- ג1–3: final exams in vocational schools whose questionnaires state no
+-- units, and grades 13–14 government final exams, are rewarded as before
+-- the reform: a subject taught 1–5 weekly hours, 1 hour + 2%; 6 or more,
+-- 2 hours + 2%.
+@ref akn:chp_6__sec_6_6__ssec_6_6_4/p69 akn:chp_6__sec_6_6__ssec_6_6_4/p70 akn:chp_6__sec_6_6__ssec_6_6_4/p73
+GIVEN `weekly hours the subject is taught` IS A NUMBER
+GIVETH A `preparation reward`
+DECIDE `reward for a subject without study units` `weekly hours the subject is taught` IS
+    BRANCH IF `weekly hours the subject is taught` AT LEAST 6
+           THEN `preparation reward` WITH `reward hours` IS 2, `reward percent` IS 2%
+           IF `weekly hours the subject is taught` AT LEAST 1
+           THEN `preparation reward` WITH `reward hours` IS 1, `reward percent` IS 2%
+           OTHERWISE `no preparation reward`
+
+@ref akn:chp_6__sec_6_6__ssec_6_6_4/p71
+GIVEN `pupils in the group` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `share for a group without study units` `pupils in the group` IS
+    IF `pupils in the group` AT LEAST 10 THEN 1 ELSE 25%
+
+@ref akn:chp_6__sec_6_6__ssec_6_6_4/p72
+GIVEN r IS A `preparation reward`, `weekly hours this teacher teaches` IS A NUMBER, `weekly hours of the subject` IS A NUMBER
+GIVETH A `preparation reward`
+DECIDE `a sharing teacher's part by hours` r `weekly hours this teacher teaches` `weekly hours of the subject` IS
+    `share of` r (`weekly hours this teacher teaches` DIVIDED BY `weekly hours of the subject`)
+
+-- akn:chp_6__sec_6_6__ssec_6_6_4/p74 The heading of item 2 (pay for writing and proofing a questionnaire).
+
+@ref akn:chp_6__sec_6_6__ssec_6_6_4/p75 akn:chp_6__sec_6_6__ssec_6_6_4/p76 akn:chp_6__sec_6_6__ssec_6_6_4/p77 akn:chp_6__sec_6_6__ssec_6_6_4/p78 akn:chp_6__sec_6_6__ssec_6_6_4/p79
+GIVEN b IS A `rates basis`
+GIVETH A NUMBER
+DECIDE `exam hour value` b IS
+    b's `MA teacher's combined salary at top seniority` DIVIDED BY 96
+
+-- ב(3): the exam's duration counts up to 8 hours.
+@ref akn:chp_6__sec_6_6__ssec_6_6_4/p87
+GIVEN `exam duration in hours` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `duration counted` `exam duration in hours` IS
+    min `exam duration in hours` 8
+
+@ref akn:chp_6__sec_6_6__ssec_6_6_4/p80 akn:chp_6__sec_6_6__ssec_6_6_4/p81
+GIVEN b IS A `rates basis`, `exam duration in hours` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `a committee member's pay` b `exam duration in hours` IS
+    `exam hour value` b TIMES 25 TIMES `duration counted` `exam duration in hours`
+
+@ref akn:chp_6__sec_6_6__ssec_6_6_4/p82 akn:chp_6__sec_6_6__ssec_6_6_4/p83
+GIVEN b IS A `rates basis`, `exam duration in hours` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the committee chair's pay` b `exam duration in hours` IS
+    `exam hour value` b TIMES 5 TIMES `duration counted` `exam duration in hours`
+
+-- akn:chp_6__sec_6_6__ssec_6_6_4/p84 The heading "ב. הערות" of the notes that follow.
+
+-- ב(1): a member with a doctorate is computed as the chair is.
+@ref akn:chp_6__sec_6_6__ssec_6_6_4/p85
+GIVEN b IS A `rates basis`, `exam duration in hours` IS A NUMBER, `has a doctorate` IS A BOOLEAN
+GIVETH A NUMBER
+DECIDE `a member's pay` b `exam duration in hours` `has a doctorate` IS
+    IF `has a doctorate`
+    THEN `the committee chair's pay` b `exam duration in hours`
+    ELSE `a committee member's pay` b `exam duration in hours`
+
+-- ב(2): all the members' pay together does not exceed twice the chair's,
+-- unless a member has a doctorate. Applied as printed (F-6.6-d).
+@ref akn:chp_6__sec_6_6__ssec_6_6_4/p86
+GIVEN b IS A `rates basis`, `exam duration in hours` IS A NUMBER, `members with a doctorate` IS A LIST OF BOOLEAN
+GIVETH A NUMBER
+DECIDE `the members' pay together` b `exam duration in hours` `members with a doctorate` IS
+    IF any (GIVEN d YIELD d) `members with a doctorate`
+    THEN sum (map (GIVEN d YIELD `a member's pay` b `exam duration in hours` d) `members with a doctorate`)
+    ELSE min (sum (map (GIVEN d YIELD `a member's pay` b `exam duration in hours` d) `members with a doctorate`))
+             (2 TIMES `the committee chair's pay` b `exam duration in hours`)
+
+-- F-6.6-d: a single ordinary member's printed pay (25 hour-values an exam
+-- hour) is more than twice the chair's (5), so the cap of ב(2) binds every
+-- committee without a doctor; and a member with a doctorate, "computed as
+-- the chair", is paid a fifth of an ordinary member.
+`a placeholder basis` MEANS `rates basis` WITH `MA teacher's combined salary at top seniority` IS 9600
+
+`one member alone exceeds twice the chair` MEANS
+        `a committee member's pay` `a placeholder basis` 3 GREATER THAN 2 TIMES `the committee chair's pay` `a placeholder basis` 3
+    AND `a member's pay` `a placeholder basis` 3 TRUE LESS THAN `a member's pay` `a placeholder basis` 3 FALSE
+#ASSERT `one member alone exceeds twice the chair`
+
+-- ב(4): the authoring rates are those in force on the last day the author
+-- was asked to submit the questionnaire.
+@ref akn:chp_6__sec_6_6__ssec_6_6_4/p88
+GIVEN `last day asked to submit` IS A DATE, `day actually submitted` IS A DATE
+GIVETH A DATE
+DECIDE `the day whose rates apply to authoring` `last day asked to submit` `day actually submitted` IS
+    `last day asked to submit`
+
+-- akn:chp_6__sec_6_6__ssec_6_6_4/p89 The heading of item 3 (pay for invigilation).
+
+@ref akn:chp_6__sec_6_6__ssec_6_6_4/p90
+GIVEN `hours invigilated` IS A NUMBER, `the examinations department's hourly rate` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `pay for invigilation` `hours invigilated` `the examinations department's hourly rate` IS
+    `hours invigilated` TIMES `the examinations department's hourly rate`
+
+-- akn:chp_6__sec_6_6__ssec_6_6_4/p91 The heading of item 4 (pay for assessment).
+
+@ref akn:chp_6__sec_6_6__ssec_6_6_4/p92 akn:chp_6__sec_6_6__ssec_6_6_4/p93 akn:chp_6__sec_6_6__ssec_6_6_4/p94 akn:chp_6__sec_6_6__ssec_6_6_4/p95
+GIVEN b IS A `rates basis`
+GIVETH A NUMBER
+DECIDE `assessment hour value` b IS
+    1.65 TIMES b's `MA teacher's combined salary at top seniority` DIVIDED BY 96
+
+-- The rate per notebook (or oral examinee) is the assessment hour value
+-- over the quota of notebooks (or examinees), which the subject's
+-- coordinating supervisor in the examinations department sets.
+@ref akn:chp_6__sec_6_6__ssec_6_6_4/p96 akn:chp_6__sec_6_6__ssec_6_6_4/p97 akn:chp_6__sec_6_6__ssec_6_6_4/p98 akn:chp_6__sec_6_6__ssec_6_6_4/p102
+GIVEN b IS A `rates basis`, `quota per hour` IS A NUMBER @desc notebooks (or oral examinees) per assessment hour, set by the subject's coordinating supervisor
+GIVETH A NUMBER
+DECIDE `rate per notebook or examinee` b `quota per hour` IS
+    `assessment hour value` b DIVIDED BY `quota per hour`
+
+-- akn:chp_6__sec_6_6__ssec_6_6_4/p99 The heading "הערות" of the notes that follow.
+
+@ref akn:chp_6__sec_6_6__ssec_6_6_4/p100
+GIVEN b IS A `rates basis`, `quota per hour` IS A NUMBER, `oral examinees` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `pay for an oral exam` b `quota per hour` `oral examinees` IS
+    max `oral examinees` 5 TIMES `rate per notebook or examinee` b `quota per hour`
+
+@ref akn:chp_6__sec_6_6__ssec_6_6_4/p101 akn:chp_6__sec_6_6__ssec_6_6_4/p110
+GIVEN b IS A `rates basis`, `outside the home city` IS A BOOLEAN, `hours of lost time` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `pay for lost time` b `outside the home city` `hours of lost time` IS
+    IF `outside the home city`
+    THEN 25% TIMES `assessment hour value` b TIMES `hours of lost time`
+    ELSE 0
+
+-- akn:chp_6__sec_6_6__ssec_6_6_4/p103 The heading of item 5 (examiners in technological-track follow-up exams).
+
+@ref akn:chp_6__sec_6_6__ssec_6_6_4/p104 akn:chp_6__sec_6_6__ssec_6_6_4/p105 akn:chp_6__sec_6_6__ssec_6_6_4/p106 akn:chp_6__sec_6_6__ssec_6_6_4/p107
+GIVEN b IS A `rates basis`
+GIVETH A NUMBER
+DECIDE `follow-up hour value` b IS
+    1.65 TIMES b's `MA teacher's combined salary at top seniority` DIVIDED BY 96
+
+-- akn:chp_6__sec_6_6__ssec_6_6_4/p108 The heading "הערות" of the notes that follow.
+
+-- א: at most 16 hours are paid for one group's follow-up exams; ג: at the
+-- rate in force on the last follow-up day.
+@ref akn:chp_6__sec_6_6__ssec_6_6_4/p109 akn:chp_6__sec_6_6__ssec_6_6_4/p111
+GIVEN `basis on the last follow-up day` IS A `rates basis`, `hours with the group` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `pay for a group's follow-up exams` `basis on the last follow-up day` `hours with the group` IS
+    `follow-up hour value` `basis on the last follow-up day` TIMES min `hours with the group` 16
+
+-- akn:chp_6__sec_6_6__ssec_6_6_4/p112 The heading of item 6 (payment to ethics committee members).
+
+@ref akn:chp_6__sec_6_6__ssec_6_6_4/p113
+GIVEN b IS A `rates basis`
+GIVETH A NUMBER
+DECIDE `ethics committee hour value` b IS
+    1.5 TIMES `assessment hour value` b
+
+-- akn:chp_6__sec_6_6__ssec_6_6_4/p114 The heading "הערה כללית".
+
+-- The general note: the rates are updated with the agreements that update
+-- the combined salary. Every rate above is computed from the `rates basis`
+-- in force, so a new combined salary is a new rate.
+@ref akn:chp_6__sec_6_6__ssec_6_6_4/p115
+GIVEN `combined salary in force` IS A NUMBER
+GIVETH A `rates basis`
+DECIDE `the rates basis in force` `combined salary in force` IS
+    `rates basis` WITH `MA teacher's combined salary at top seniority` IS `combined salary in force`
+
+-- Examples. The basis of 9600 and every other figure are placeholders.
+`a placeholder table` MEANS
+    GIVEN u YIELD `preparation reward` WITH `reward hours` IS u DIVIDED BY 2, `reward percent` IS 2%
+
+#ASSERT `checking hour value` `a placeholder basis` EQUALS 100
+#ASSERT `pay for checking a final project` `a placeholder basis` 5 EQUALS JUST 1000
+#ASSERT `a committee member's pay` `a placeholder basis` 10 EQUALS 20000
+#ASSERT `the members' pay together` `a placeholder basis` 3 (LIST FALSE, FALSE) EQUALS 3000
+#ASSERT `assessment hour value` `a placeholder basis` EQUALS 165
+#ASSERT `pay for an oral exam` `a placeholder basis` 3 2 EQUALS 275
+#ASSERT `pay for a group's follow-up exams` `a placeholder basis` 20 EQUALS 2640
+#ASSERT `ethics committee hour value` `a placeholder basis` EQUALS 247.5
+#ASSERT `a class's unit-based reward` `a placeholder table` 2 8 EQUALS `preparation reward` WITH `reward hours` IS 2, `reward percent` IS 2%
+#ASSERT `reward for pupils at different numbers of units` `a placeholder table` (LIST 3, 5, 4) EQUALS `preparation reward` WITH `reward hours` IS 2.5, `reward percent` IS 2%
+#ASSERT `weekly preparation hours with the oral exam` `biology oral (biotope)` 7 (Date 1 9 1990) 3 EQUALS 3.75
+#ASSERT `share of the assessment reward` 5 10 EQUALS 50%
+#ASSERT `preparation hours above a full position` 22 4 24 EQUALS 2
+
+-- The owner pays the published reward a month after the Ministry's
+-- approval: fulfilled. A teacher who deals with the pupil directly:
+-- the prohibition is breached.
+`a qualifying guidance` MEANS
+    `project guidance` WITH
+        `teacher is an academic with full pedagogical education` IS TRUE
+        `teacher holds a permanent teaching licence`               IS TRUE
+        `supervisor approved the teacher to guide the project`     IS TRUE
+        `pupil is in grade 11 or 12`                               IS TRUE
+        `guided from 1 Shvat of grade 11 to 1 Shvat of the next year` IS TRUE
+        `submitted for the Ministry's approval to exempt one matriculation exam` IS TRUE
+
+#TRACE `paying the final project reward` `a qualifying guidance` 500 TRUE AT 0 WITH
+    PARTY `the local authority or owning body` DOES `pay the final project reward` 500 AT 1
+#TRACE `no direct contact with the pupil` AT 0 WITH
+    PARTY `the teaching employee` DOES `contact the pupil directly about the project` AT 2
+
+-- akn:chp_6__sec_6_6__ssec_6_6_4/p116 akn:chp_6__sec_6_6__ssec_6_6_4/p117 akn:chp_6__sec_6_6__ssec_6_6_4/p118 akn:chp_6__sec_6_6__ssec_6_6_4/p119 akn:chp_6__sec_6_6__ssec_6_6_4/p120 akn:chp_6__sec_6_6__ssec_6_6_4/p121 akn:chp_6__sec_6_6__ssec_6_6_4/p122 akn:chp_6__sec_6_6__ssec_6_6_4/p123 akn:chp_6__sec_6_6__ssec_6_6_4/p124 akn:chp_6__sec_6_6__ssec_6_6_4/p125 akn:chp_6__sec_6_6__ssec_6_6_4/p126 akn:chp_6__sec_6_6__ssec_6_6_4/p127 The sources (אסמכתא) of section 6.6.4.
