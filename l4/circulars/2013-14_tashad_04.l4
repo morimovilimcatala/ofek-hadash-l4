@@ -1,0 +1,307 @@
+-- חוזר לבעלויות תשע"ד/4 — הבהרות בנושא העסקה במספר רפורמות במקביל (8.1.2014)
+-- A teacher employed under several reforms at once (Ofek Hadash in the
+-- junior high, Oz LeTmura or pre-reform terms in the upper division): the
+-- six-year subject coordinator (appointment, hours, allowance, two owners),
+-- the split-day allowance in a six-year school, and the mother's supplement
+-- across schools and kinds of employment.
+
+IMPORT prelude
+IMPORT common
+
+§ `חוזר תשע"ד/4 העסקה במספר רפורמות במקביל`
+
+-- akn:preamble The letterhead, date, reference, addressee, greeting and subject line; no rule.
+-- akn:preamble/p15 Background: a teacher may be employed under different reforms at once, in different schools or stages; the rules for that case follow.
+-- akn:preamble/p16 Says the clarifications cover the coordinator's allowance, the split-day allowance and the mother's position; no rule.
+
+DECLARE `terms in a division` IS ONE OF
+    `Ofek Hadash`
+    `Oz LeTmura`
+    `pre-reform terms`
+
+§§ `א. רכז מקצוע שש-שנתי`
+
+-- א.1 ¶1-¶3: in a six-year school where each division's hours and
+-- teachers allow a coordinator for the subject separately, a coordinator
+-- per division is preferred; they coordinate (¶2); each gets the full
+-- allowance under the agreement of the division where they coordinate (¶3).
+-- ¶4 (א)-(ב): one six-year coordinator may be appointed instead where the
+-- school meets the rules in each division but prefers one, or meets them
+-- only for the two divisions together.
+DECLARE `six-year school's subject` HAS
+    `junior high alone meets the rules`   IS A BOOLEAN @desc the junior high's hours and teachers in the subject allow a coordinator by the rules
+    `upper division alone meets the rules` IS A BOOLEAN
+    `together meet the rules`             IS A BOOLEAN @desc the two divisions' hours and teachers together allow a coordinator
+    `school prefers one coordinator`      IS A BOOLEAN
+
+@ref akn:art_a__para_1 akn:art_a__para_1/p2 akn:art_a__para_1/p3
+GIVEN s IS A `six-year school's subject`
+GIVETH A BOOLEAN
+DECIDE `a coordinator per division is preferred` s IF
+    s's `junior high alone meets the rules` AND s's `upper division alone meets the rules`
+
+@ref akn:art_a__para_1/p4 akn:art_a__para_1__subpara_a akn:art_a__para_1__subpara_b
+GIVEN s IS A `six-year school's subject`
+GIVETH A BOOLEAN
+DECIDE `a six-year coordinator may be appointed` s IF
+       (`a coordinator per division is preferred` s AND s's `school prefers one coordinator`)
+    OR (NOT (s's `junior high alone meets the rules` AND s's `upper division alone meets the rules`)
+        AND s's `together meet the rules`)
+
+-- א.2: the coordinator teaches frontal hours in the subject in both
+-- divisions, and in class at least 50% of the frontal hours of the
+-- position, and at least 8 hours, both divisions together.
+@ref akn:art_a__para_2 akn:art_a__para_2__subpara_a akn:art_a__para_2__subpara_b
+GIVEN `frontal in the junior high` IS A NUMBER, `frontal in the upper division` IS A NUMBER, `frontal hours of the position` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `the coordinator's hours meet א.2` `frontal in the junior high` `frontal in the upper division` `frontal hours of the position` IF
+        `frontal in the junior high` GREATER THAN 0
+    AND `frontal in the upper division` GREATER THAN 0
+    AND `frontal in the junior high` PLUS `frontal in the upper division` AT LEAST 50% TIMES `frontal hours of the position`
+    AND `frontal in the junior high` PLUS `frontal in the upper division` AT LEAST 8
+
+-- א.3: the allowance is 9% for mathematics and English, 5%-7% in the other
+-- subjects by the number of teachers and hours under the coordinator; the
+-- base is the sum of the two divisions' bases for percentage allowances,
+-- weighted to 100% of a position; up to one frontal hour in the upper
+-- division from the coordinators' basket, as the principal divides it.
+DECLARE `coordinated subject` IS ONE OF
+    `mathematics`
+    `English`
+    `another subject`
+
+@ref akn:art_a__para_3 akn:art_a__para_3__subpara_a akn:art_a__para_3__subpara_b
+GIVEN s IS A `coordinated subject`, `rate set for another subject` IS A NUMBER @desc 5% to 7%, set by the number of teachers and hours under the coordinator
+GIVETH A NUMBER
+DECIDE `the coordinator's rate` s `rate set for another subject` IS
+    CONSIDER s
+    WHEN `mathematics` THEN 9%
+    WHEN `English`     THEN 9%
+    OTHERWISE max (5%) (min (7%) `rate set for another subject`)
+
+@ref akn:art_a__para_3__subpara_c
+GIVEN `base in the junior high` IS A NUMBER @desc the base for percentage allowances in the junior high (the Ofek Hadash table salary)
+      `base in the upper division` IS A NUMBER @desc the base for percentage allowances in the upper division (combined salary and the supplements of the agreement)
+      `position in both` IS A NUMBER @desc the position held in both divisions together
+GIVETH A NUMBER
+DECIDE `the allowance base weighted to a full position` `base in the junior high` `base in the upper division` `position in both` IS
+    (`base in the junior high` PLUS `base in the upper division`) DIVIDED BY `position in both`
+
+@ref akn:art_a__para_3__subpara_d
+`frontal hours from the coordinators' basket at most` MEANS 1
+
+-- The worked example (¶2-¶8): 7%; Ofek Hadash in the junior high and Oz
+-- LeTmura in the upper division, 90% in all; bases 9,000 together; the
+-- allowance 9,000 × 7% / 90% = 700.
+@ref akn:art_a__para_3/p2 akn:art_a__para_3/p3 akn:art_a__para_3/p4 akn:art_a__para_3/p5 akn:art_a__para_3/p6 akn:art_a__para_3/p7 akn:art_a__para_3/p8
+GIVEN `rate` IS A NUMBER, `bases together` IS A NUMBER, `position in both` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the six-year coordinator's allowance` `rate` `bases together` `position in both` IS
+    `rate` TIMES `the allowance base weighted to a full position` `bases together` 0 `position in both`
+
+#ASSERT `the six-year coordinator's allowance` (7%) 9000 (90%) EQUALS 700
+
+-- א.4: exceptionally, a six-year coordinator whose whole position is in the
+-- junior high is paid in full under Ofek Hadash (or pre-reform terms if not
+-- in the reform); one wholly in the upper division under Oz LeTmura (or
+-- pre-reform terms).
+@ref akn:art_a__para_4 akn:art_a__para_4/p2
+GIVEN `whole position in the junior high` IS A BOOLEAN, `in the reform` IS A BOOLEAN
+GIVETH A `terms in a division`
+DECIDE `the agreement the allowance follows` `whole position in the junior high` `in the reform` IS
+    IF NOT `in the reform` THEN `pre-reform terms`
+    ELSE IF `whole position in the junior high` THEN `Ofek Hadash` ELSE `Oz LeTmura`
+
+-- א.5: with two owners, entitlement is by the two divisions together and
+-- each owner pays by its share of the whole employment. Example (¶2-¶4):
+-- 40% and 50% → 44.4% and 55.6%.
+@ref akn:art_a__para_5 akn:art_a__para_5/p2 akn:art_a__para_5/p3 akn:art_a__para_5/p4
+GIVEN `position with this owner` IS A NUMBER, `position with all owners` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `this owner's share of the allowance` `position with this owner` `position with all owners` IS
+    `position with this owner` DIVIDED BY `position with all owners`
+
+-- א.5 as the owners' duty: each owner pays the allowance itself, on its
+-- own salary components, for its share. Time in months; the circular sets
+-- no month, so the month the allowance is due.
+DECLARE `coordinator action` IS ONE OF
+    `pay its share of the coordinator's allowance` HAS `share paid` IS A NUMBER
+
+@ref akn:art_a__para_5
+GIVEN `the allowance at a full position` IS A NUMBER, `position with this owner` IS A NUMBER, `position with all owners` IS A NUMBER
+GIVETH A DEONTIC Party `coordinator action`
+DECIDE `each owner pays its share` `the allowance at a full position` `position with this owner` `position with all owners` IS
+    PARTY `the local authority or owning body`
+    MUST  `pay its share of the coordinator's allowance` x
+          PROVIDED x AT LEAST `the allowance at a full position` TIMES `this owner's share of the allowance` `position with this owner` `position with all owners`
+    WITHIN 1
+    LEST  BREACH BY `the local authority or owning body` BECAUSE "circular תשע\"ד/4 section א.5: each owner pays the allowance separately, by its share of the whole employment"
+
+#ASSERT TRUNC (`this owner's share of the allowance` (40%) (90%) TIMES 1000) 0 EQUALS 444
+#ASSERT TRUNC (`this owner's share of the allowance` (50%) (90%) TIMES 1000 PLUS 0.5) 0 EQUALS 556
+
+§§ `ב. גמול פיצול בבי"ס שש-שנתי`
+
+-- ב.1: the split-day rules for the upper division of a six-year school are
+-- unchanged; they are in the takanon (¶2 the link).
+@ref akn:art_b__para_1
+`the split-day eligibility rules are the takanon's` MEANS TRUE
+
+-- akn:art_b__para_1/p2 The link to the takanon's split-day page; no rule.
+
+-- ב.2: a teacher entitled in the upper division only by the classes of both
+-- divisions together, and in the junior high under Ofek Hadash, has the
+-- rate by all classes, paid on the upper-division fraction relative to the
+-- whole employment (¶3: the split-day allowance does not survive in Ofek
+-- Hadash, being priced into its tables). Example (¶4-¶9): 7 classes, 5%;
+-- 40% junior high, 50% upper division → 5% on the salary of 55.6%.
+@ref akn:art_b__para_2 akn:art_b__para_2/p2 akn:art_b__para_2/p3
+GIVEN `rate by all classes` IS A NUMBER, `upper-division salary for a full position` IS A NUMBER, `upper-division position` IS A NUMBER, `position in both` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the split-day allowance by all classes` `rate by all classes` `upper-division salary for a full position` `upper-division position` `position in both` IS
+    `rate by all classes`
+    TIMES `upper-division salary for a full position`
+    TIMES (`upper-division position` DIVIDED BY `position in both`)
+
+@ref akn:art_b__para_2/p4 akn:art_b__para_2/p5 akn:art_b__para_2/p6 akn:art_b__para_2/p7 akn:art_b__para_2/p8 akn:art_b__para_2/p9
+`the example's allowance` MEANS
+    `the split-day allowance by all classes` (5%) 10000 (50%) (90%)
+
+#ASSERT TRUNC `the example's allowance` 2 EQUALS 277.77
+
+-- ב.3: a teacher entitled also by the upper-division classes alone gets the
+-- higher amount of (א) the rate by the upper division's classes, computed
+-- on the full upper-division employment, or (ב) the rate by all classes on
+-- the upper-division fraction relative to the whole.
+@ref akn:art_b__para_3 akn:art_b__para_3__subpara_a akn:art_b__para_3__subpara_a/p2 akn:art_b__para_3__subpara_b
+GIVEN `rate by upper-division classes` IS A NUMBER, `rate by all classes` IS A NUMBER, `upper-division salary for a full position` IS A NUMBER, `upper-division position` IS A NUMBER, `position in both` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the split-day allowance under ב.3` `rate by upper-division classes` `rate by all classes` `upper-division salary for a full position` `upper-division position` `position in both` IS
+    max (`rate by upper-division classes` TIMES `upper-division salary for a full position` TIMES `upper-division position`)
+        (`the split-day allowance by all classes` `rate by all classes` `upper-division salary for a full position` `upper-division position` `position in both`)
+
+§§ `ג. תוספת אם`
+
+-- ג.א: the mother's supplement: 7% in full implementation of Oz LeTmura,
+-- 7.6% in partial implementation in תשע"ד.
+DECLARE `upper-division terms` IS ONE OF
+    `Oz LeTmura, full implementation`
+    `Oz LeTmura, partial implementation, תשע"ד`
+
+@ref akn:art_c__para_a akn:art_c__para_a/p2 akn:art_c__para_a/p3
+GIVEN t IS AN `upper-division terms`
+GIVETH A NUMBER
+DECIDE `the mother's supplement rate` t IS
+    CONSIDER t
+    WHEN `Oz LeTmura, full implementation`            THEN 7%
+    WHEN `Oz LeTmura, partial implementation, תשע"ד` THEN 7.6%
+
+-- ג.ב: a six-year or upper-division principal who is a mother gets no
+-- percentage supplement but up to 2.4 management hours off, with the
+-- position unchanged and never above 100%. Examples (¶3-¶5) in full
+-- implementation (40 hours): 37.6 hours is 100%, not 94%; 39 hours is 100%,
+-- not 97.5% nor 103.5%.
+@ref akn:art_c__para_b akn:art_c__para_b/p2
+`a principal mother's management hours off at most` MEANS 2.4
+
+GIVEN `hours worked` IS A NUMBER, `full-position hours` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `a principal mother's position` `hours worked` `full-position hours` IS
+    min 1 ((`hours worked` PLUS `a principal mother's management hours off at most`) DIVIDED BY `full-position hours`)
+
+@ref akn:art_c__para_b/p3 akn:art_c__para_b/p4 akn:art_c__para_b/p5
+`the principal examples hold` MEANS
+        `a principal mother's position` 37.6 40 EQUALS 1
+    AND `a principal mother's position` 39 40 EQUALS 1
+    AND 37.6 DIVIDED BY 40 EQUALS 94%
+    AND 39 DIVIDED BY 40 EQUALS 97.5%
+    AND (39 PLUS 2.4) DIVIDED BY 40 EQUALS 103.5%
+#ASSERT `the principal examples hold`
+
+-- ג.ג ¶2: employed in several schools (or stages), with a qualifying
+-- position in one of them: the supplement follows that school's (stage's)
+-- rules. ¶3-¶17: qualifying only all together: in each school (stage) the
+-- supplement is the employment there times that school's rate, over the
+-- whole employment: A·a/G, B·b/G, …
+DECLARE `employment in a school` HAS
+    `employment share`   IS A NUMBER @desc the position held in this school or stage (A, B, C …)
+    `mother's rate here` IS A NUMBER @desc the mother's coefficient under the agreements that apply here (a, b, c …)
+    `qualifying here`    IS A BOOLEAN @desc the position here is itself a qualifying position
+
+@ref akn:art_c__para_c akn:art_c__para_c/p2
+GIVEN es IS A LIST OF `employment in a school`
+GIVETH A BOOLEAN
+DECIDE `one school's position qualifies` es IF
+    any (GIVEN e YIELD e's `qualifying here`) es
+
+@ref akn:art_c__para_c/p3 akn:art_c__para_c/p4 akn:art_c__para_c/p5 akn:art_c__para_c/p6 akn:art_c__para_c/p7 akn:art_c__para_c/p8 akn:art_c__para_c/p9 akn:art_c__para_c/p10 akn:art_c__para_c/p11 akn:art_c__para_c/p12 akn:art_c__para_c/p13 akn:art_c__para_c/p14 akn:art_c__para_c/p15 akn:art_c__para_c/p16 akn:art_c__para_c/p17
+GIVEN e IS AN `employment in a school`, es IS A LIST OF `employment in a school`
+GIVETH A NUMBER
+DECIDE `the proportional mother's supplement` e es IS
+    (e's `employment share` TIMES e's `mother's rate here`)
+    DIVIDED BY sum (map (GIVEN x YIELD x's `employment share`) es)
+
+-- The worked example (¶18-¶27): Oz LeTmura full 30% at 7%, partial 60% at
+-- 7.6% (תשע"ד), 90% in all: 2.333% and 5.067%.
+@ref akn:art_c__para_c/p18 akn:art_c__para_c/p19 akn:art_c__para_c/p20 akn:art_c__para_c/p21 akn:art_c__para_c/p22 akn:art_c__para_c/p23 akn:art_c__para_c/p24 akn:art_c__para_c/p25 akn:art_c__para_c/p26 akn:art_c__para_c/p27
+`school A` MEANS `employment in a school` (30%) (7%) FALSE
+`school B` MEANS `employment in a school` (60%) (`the mother's supplement rate` `Oz LeTmura, partial implementation, תשע"ד`) FALSE
+
+#ASSERT TRUNC (`the proportional mother's supplement` `school A` (LIST `school A`, `school B`) TIMES 100 PLUS 0.0005) 3 EQUALS 2.333
+#ASSERT TRUNC (`the proportional mother's supplement` `school B` (LIST `school A`, `school B`) TIMES 100 PLUS 0.0005) 3 EQUALS 5.067
+
+-- ¶28-¶33 (below) and ¶3 (above) both reach a mother in ONE school whose
+-- junior-high part is under Ofek Hadash and upper-division part under Oz
+-- LeTmura or pre-reform terms, where neither part alone is a qualifying
+-- position and the two together are. The reading adopted
+-- (F-2013-14_tashad_04-a): ¶28-¶29, the clause written for the Ofek Hadash
+-- junior high, governs that case.
+-- ¶28-¶33: Ofek Hadash in the junior high and pre-reform or Oz LeTmura in
+-- the upper division: the junior high follows the mother's work week for
+-- its fraction; in the upper division the percentage supplement is computed
+-- on the upper-division position. Example: 60% upper division, 40% junior
+-- high: 7% × 0.6 = 4.2%.
+@ref akn:art_c__para_c/p28 akn:art_c__para_c/p29 akn:art_c__para_c/p30 akn:art_c__para_c/p31 akn:art_c__para_c/p32 akn:art_c__para_c/p33
+GIVEN `upper-division rate` IS A NUMBER, `upper-division position` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the upper-division mother's supplement` `upper-division rate` `upper-division position` IS
+    `upper-division rate` TIMES `upper-division position`
+
+#ASSERT `the upper-division mother's supplement` (7%) 0.6 EQUALS (4.2%)
+
+-- F-2013-14_tashad_04-a: the circular's own figures for ¶3 (30% and 60%,
+-- neither qualifying alone, 90% qualifying together) with the 30% in an
+-- Ofek Hadash junior high and the 60% in a full Oz LeTmura upper division of
+-- the same school. ¶3 gives the upper division 60% × 7% / 90%; ¶29 gives it
+-- 7% × 60%; and ¶3 gives the junior high a percentage share where ¶28 gives
+-- it the mother's work week instead.
+-- (Its rate is written 0%: Ofek Hadash gives a mother a work week, not a
+-- percentage coefficient; the figure does not enter the evidence.)
+`the Ofek junior-high part` MEANS `employment in a school` (30%) (0%) FALSE
+`the Oz upper-division part` MEANS `employment in a school` (60%) (7%) FALSE
+`the upper-division share under ¶3` MEANS
+    `the proportional mother's supplement` `the Oz upper-division part` (LIST `the Ofek junior-high part`, `the Oz upper-division part`)
+`¶3 and ¶29 price the same upper division differently` MEANS
+        NOT (`one school's position qualifies` (LIST `the Ofek junior-high part`, `the Oz upper-division part`))
+    AND NOT (`the upper-division share under ¶3` EQUALS `the upper-division mother's supplement` (7%) 0.6)
+#ASSERT `¶3 and ¶29 price the same upper division differently`
+#ASSERT TRUNC (`the upper-division share under ¶3` TIMES 100 PLUS 0.0005) 3 EQUALS 4.667
+
+-- akn:conclusions The contact line, the signature and the list of copies; no rule.
+
+-- Examples.
+`a subject in two small divisions` MEANS
+    `six-year school's subject` WITH
+        `junior high alone meets the rules`    IS FALSE
+        `upper division alone meets the rules` IS FALSE
+        `together meet the rules`              IS TRUE
+        `school prefers one coordinator`       IS FALSE
+
+#ASSERT `a six-year coordinator may be appointed` `a subject in two small divisions`
+#ASSERT `the coordinator's hours meet א.2` 4 6 20
+#ASSERT NOT `the coordinator's hours meet א.2` 3 4 20
+#ASSERT `the coordinator's rate` `English` 0 EQUALS (9%)
+
+#TRACE `each owner pays its share` 700 (40%) (90%) AT 0 WITH
+    PARTY `the local authority or owning body` DOES `pay its share of the coordinator's allowance` 311.12 AT 1
+#EVAL   `the split-day allowance under ב.3` (3%) (5%) 10000 (50%) (90%)

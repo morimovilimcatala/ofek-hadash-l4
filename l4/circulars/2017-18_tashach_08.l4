@@ -1,0 +1,153 @@
+-- חוזר לבעלויות תשע"ח/8: תגמול עובדי הוראה בגין הישגי בית הספר לשנת הלימודים תשע"ח
+-- The one-time grant to upper-division teachers of the schools whose
+-- achievements the Ministry ranked highest in תשע"ח (section 36 of the
+-- agreement of 14.8.2011): the amounts by rank, the pro-rating, what the
+-- grant is not counted for, and the August payment and indemnity.
+
+IMPORT prelude
+IMPORT common
+
+-- Time in the regulative rules is counted in school months of תשע"ח
+-- (common.l4: September 2017 = 1, August 2018 = 12).
+
+§ `חוזר תשע"ח/8 תגמול בגין הישגי בית הספר`
+
+-- akn:preamble The letterhead, date, reference, addressee, subject, the recital of the agreement of 14.8.2011 and the circular's purpose; no rule of their own.
+
+DECLARE `school rank` IS ONE OF
+    `rank 1, the top 10%`
+    `rank 2, the next 10%`
+    `rank 3, the next 10%`
+    `rank 4, the next 10%`
+    `not ranked`
+
+@desc A teacher's school year תשע"ח at a school, as far as this circular asks.
+DECLARE `achievement year` HAS
+    `rated in the teaching employees' grading` IS A BOOLEAN
+    `employed by an owner of a ministry-supervised post-primary institution` IS A BOOLEAN
+    `rank of the school` IS A `school rank` @desc as the Ministry found it (the list of winning schools)
+    `upper-division position fraction` IS A NUMBER @desc the position in the upper division (grades 9 or 10 to 12/14)
+    `share of the year employed at the school` IS A NUMBER @desc 1 = all of תשע"ח; maternity leave under the Women's Employment Law counts as employed
+    `on full sabbatical or full unpaid leave` IS A BOOLEAN
+
+-- §1: upper-division teachers, by their upper-division position, in the
+-- reform or not yet in it.
+@ref akn:art_1/p1
+GIVEN a IS AN `achievement year`
+GIVETH A BOOLEAN
+DECIDE `the circular applies to` a IF
+        a's `rated in the teaching employees' grading`
+    AND a's `employed by an owner of a ministry-supervised post-primary institution`
+    AND a's `upper-division position fraction` GREATER THAN 0
+
+-- akn:art_2__para_a The programme's history: applied since תשע"ג under the pedagogical administration's letter of 21.10.2012; no rule here.
+
+-- §2b: the grant for a full position, updated to the May 2018 index
+-- (against May 2017).
+@ref akn:art_2__para_b akn:art_2__para_b/p2 akn:art_2__para_b/p3 akn:art_2__para_b/p4 akn:art_2__para_b/p5 akn:art_2__para_b/p6 akn:art_2__para_b/p7 akn:art_2__para_b/p8 akn:art_2__para_b/p9 akn:art_2__para_b/p10 akn:art_2__para_b/p11 akn:art_2__para_b/p12
+GIVEN r IS A `school rank`
+GIVETH A NUMBER
+DECIDE `the grant for a full position` r IS
+    CONSIDER r
+    WHEN `rank 1, the top 10%`  THEN 8326.37
+    WHEN `rank 2, the next 10%` THEN 6244.77
+    WHEN `rank 3, the next 10%` THEN 4163.18
+    WHEN `rank 4, the next 10%` THEN 3122.39
+    WHEN `not ranked`           THEN 0
+
+-- §2c-§2d: in proportion to the upper-division position (never above
+-- 100%) and to the share of the year employed at the school; none on a
+-- full sabbatical or full unpaid leave.
+@export default The one-time school-achievement grant an upper-division teacher is owed for school year 5778 (2017-18) under the owners' circular 5778/8
+@ref akn:art_2__para_c akn:art_2__para_c/p2 akn:art_2__para_d
+GIVEN a IS AN `achievement year` @desc the teacher's year at the school
+GIVETH A NUMBER
+DECIDE `the achievement grant` a IS
+    IF `the circular applies to` a AND NOT a's `on full sabbatical or full unpaid leave`
+    THEN `the grant for a full position` (a's `rank of the school`)
+         TIMES min (a's `upper-division position fraction`) 1
+         TIMES a's `share of the year employed at the school`
+    ELSE 0
+
+-- §2f-§2g: not in the base of the hourly value, severance pay or
+-- percentage supplements, no study-fund deposits; pension deposits at 5%
+-- employer and 5% employee.
+DECLARE `purpose` IS ONE OF
+    `the hourly value`
+    `severance pay`
+    `percentage supplements`
+    `study-fund deposits`
+    `pension provident deposits`
+
+@ref akn:art_2__para_f akn:art_2__para_g
+GIVEN u IS A `purpose`
+GIVETH A BOOLEAN
+DECIDE `the grant counts for` u IF
+    u EQUALS `pension provident deposits`
+
+@ref akn:art_2__para_g
+GIVEN g IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the employer's pension deposit on` g IS g TIMES 0.05
+
+@ref akn:art_2__para_g
+GIVEN g IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the teacher's pension deduction on` g IS g TIMES 0.05
+
+-- akn:art_3 A link to the list of winning schools, which is not in the corpus; the rank is an input.
+
+DECLARE `grant action` IS ONE OF
+    `pay the achievement grant` HAS `grant paid` IS A NUMBER
+    `indemnify the owner under payments topic 583` HAS `indemnity paid` IS A NUMBER
+
+-- §2e: with the August 2018 salary.
+@ref akn:art_2__para_e
+GIVEN a IS AN `achievement year`
+GIVETH A DEONTIC Party `grant action`
+DECIDE `paying the achievement grant` a IS
+    PARTY `the employer`
+    MUST  `pay the achievement grant` `amount`
+          PROVIDED `amount` AT LEAST `the achievement grant` a
+    WITHIN `month number` August
+    LEST BREACH BY `the employer` BECAUSE "section 2e: the grants are paid with the August 2018 salary"
+
+-- §4: indemnity in the payments system, topic 583, in the August 2018
+-- payments transferred at the start of 9/2018 (school month 13).
+@ref akn:art_4
+GIVEN `indemnity due` IS A NUMBER
+GIVETH A DEONTIC Party `grant action`
+DECIDE `indemnifying the owners` `indemnity due` IS
+    PARTY `the Ministry of Education`
+    MUST  `indemnify the owner under payments topic 583` `amount`
+          PROVIDED `amount` AT LEAST `indemnity due`
+    WITHIN 13
+    LEST BREACH BY `the Ministry of Education` BECAUSE "section 4: indemnity in the August 2018 payments"
+
+-- akn:conclusions The contact line, the sign-off and the copies list; no rule.
+
+-- Examples.
+`a rank-2 teacher on 80% for half the year` MEANS `achievement year` WITH
+    `rated in the teaching employees' grading` IS TRUE
+    `employed by an owner of a ministry-supervised post-primary institution` IS TRUE
+    `rank of the school` IS `rank 2, the next 10%`
+    `upper-division position fraction` IS 0.8
+    `share of the year employed at the school` IS 0.5
+    `on full sabbatical or full unpaid leave` IS FALSE
+
+#ASSERT `the achievement grant` `a rank-2 teacher on 80% for half the year` EQUALS 2497.908
+
+`a rank-1 teacher on full sabbatical` MEANS `achievement year` WITH
+    `rated in the teaching employees' grading` IS TRUE
+    `employed by an owner of a ministry-supervised post-primary institution` IS TRUE
+    `rank of the school` IS `rank 1, the top 10%`
+    `upper-division position fraction` IS 1
+    `share of the year employed at the school` IS 1
+    `on full sabbatical or full unpaid leave` IS TRUE
+
+#ASSERT `the achievement grant` `a rank-1 teacher on full sabbatical` EQUALS 0
+#ASSERT `the employer's pension deposit on` 8326.37 EQUALS 416.3185
+#ASSERT NOT `the grant counts for` `severance pay`
+
+#TRACE `paying the achievement grant` `a rank-2 teacher on 80% for half the year` AT 0 WITH
+    PARTY `the employer` DOES `pay the achievement grant` 2497.91 AT 12

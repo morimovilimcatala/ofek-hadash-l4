@@ -1,0 +1,323 @@
+-- חוזר לבעלויות תשע"ו/6 (3.4.2016): מינוי מנהלים בחטיבה העליונה
+-- The appointment of principals at post-primary schools run by owners: the
+-- ministry's standing (the Supervision of Schools Law and the recognized-
+-- institutions regulations), the threshold conditions of the Director-
+-- General's circular 2014-15/5(ב) (teaching experience, a master's degree, a
+-- teaching licence, principals' training, with its alternatives and
+-- exemptions), the desired qualifications, and the selection procedure — the
+-- owner's checks, the candidate file and the ministry's representatives.
+
+IMPORT prelude
+IMPORT common
+
+§ `חוזר לבעלויות תשע"ו/6 — מינוי מנהלים בחטיבה העליונה`
+
+-- akn:preamble The letterhead, the date (3.4.2016), the reference number, the addressee, the subject, and the introduction: the ministry's responsibility for education, its standing as employer at official schools and regulator of the supervised ones, the owner as employer of the staff and the principal, and the normative sources (section 9 and section 28 of the Supervision of Schools Law 1969, section 3 of the State Education (Recognized Institutions) Regulations, the Director-General's circular on appointing principals and its introduction, the owner's undertaking in its licence application). The duties the introduction concludes with are encoded below.
+
+DECLARE `appointment action` IS ONE OF
+    `appoint a principal`
+    `check the candidate against the threshold conditions`
+    `prepare a candidate file`
+    `review the candidate file in the full committee`
+    `interview the candidate`
+    `select a candidate the ministry's representatives found unsuitable`
+    `complete the principals' training programme`
+
+§§ `Introduction — the owner's duty and the ministry's consent`
+
+-- ¶28: the circular is addressed to every owner of post-primary schools —
+-- upper divisions (10-12 or 9-12) — supervised and funded by the ministry
+-- and licensed under the Supervision of Schools Law 1969.
+@ref akn:preamble/p28
+GIVEN `owns a supervised, funded, licensed post-primary school` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `an owner the circular addresses` `owns a supervised, funded, licensed post-primary school` IF
+    `owns a supervised, funded, licensed post-primary school`
+
+-- ¶25: by its licence, every owner must appoint teaching staff, and above
+-- all the principal, by the ministry's conditions of competence and in full
+-- coordination with the ministry. ¶26: no principal may be appointed without
+-- the ministry's consent, and certainly not against its position.
+@ref akn:preamble/p25 akn:preamble/p26
+GIVEN `meets the threshold conditions` IS A BOOLEAN
+      `the ministry consents` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `the introduction allows the appointment` `meets the threshold conditions` `the ministry consents` IF
+    `meets the threshold conditions` AND `the ministry consents`
+
+§§ `Threshold conditions for a post-primary principal`
+
+-- akn:preamble/p29 akn:preamble/p30 akn:preamble/p31 akn:preamble/p32 The headings: the threshold conditions for a post-primary principal (six-, four- or three-year school with an independent upper division) are set by the Director-General's circular updated from time to time, the latest (2014-15/5(ב), 6.1.2015) setting those below.
+
+DECLARE `teaching qualification` IS ONE OF
+    `a permanent teaching licence`
+    `a licence to practise teaching in the post-primary track`
+    `a Mandel school for educational leadership graduate certificate`
+    `a teaching certificate without the licence process completed`
+    `a licence in educational counselling`
+    `no teaching qualification`
+
+DECLARE `master's degree` IS ONE OF
+    `no master's degree`
+    `a recognized master's degree in another field`
+    `a recognized master's degree in education administration`
+
+@desc A candidate for principal at a post-primary school, as far as the threshold conditions ask.
+DECLARE `principal candidate` HAS
+    `years of actual teaching in grades 1-12 in Israel`        IS A NUMBER @desc at a volume that earns teaching seniority; not lecturing at a university or college, coordinating Perach and the like
+    `full school years of actual teaching`                     IS A NUMBER
+    `years of proven full-time managerial experience`          IS A NUMBER
+    `managed in education or a staff of at least 30`           IS A BOOLEAN
+    `guided, instructed or taught workers as a manager`        IS A BOOLEAN
+    `presented the HR manager's approval of the experience`    IS A BOOLEAN
+    `degree`                                                   IS A `master's degree` @desc recognized, from an Israeli institution of higher education or a foreign one with an equivalence approval
+    `started the master's degree by 2010-11`                   IS A BOOLEAN @desc for a master's degree in education administration (or a named equivalent programme)
+    `qualification`                                            IS A `teaching qualification`
+    `licence eligibility approved by the application deadline` IS A BOOLEAN @desc the licence process completed, or eligibility for it approved, by the last day for applying
+    `Avney Rosha certificate or eligibility`                   IS A BOOLEAN @desc of the new principals' training programme of the Avney Rosha institute and the academic institutions
+    `started Avney Rosha in July of the year before the posts are published` IS A BOOLEAN
+    `graduate of an earlier ministry principals' programme`    IS A BOOLEAN
+    `graduate of the 2008-09 pilot master's in school leadership` IS A BOOLEAN
+    `serving principal for 3 years in a row, 3 years approved, no negative opinion` IS A BOOLEAN
+    `principal for 4 of the last 10 years, 4 years approved, no negative opinion`   IS A BOOLEAN
+
+-- §1: five years of actual teaching in grades 1-12 in Israel at a volume
+-- that earns seniority (university or college lecturing, Perach and the like
+-- not counted). Note: or three full school years of teaching and five years
+-- of proven full-time managerial experience in education or at the head of
+-- a staff of at least 30, with guidance or teaching of workers, proven by
+-- the HR manager's approval.
+@ref akn:art_1 akn:art_1/p2 akn:art_1/p3
+GIVEN c IS A `principal candidate`
+GIVETH A BOOLEAN
+DECIDE `meets the teaching-experience condition` c IF
+    c's `years of actual teaching in grades 1-12 in Israel` AT LEAST 5
+    OR (    c's `full school years of actual teaching` AT LEAST 3
+        AND c's `years of proven full-time managerial experience` AT LEAST 5
+        AND c's `managed in education or a staff of at least 30`
+        AND c's `guided, instructed or taught workers as a manager`
+        AND c's `presented the HR manager's approval of the experience`)
+
+-- §2: a recognized master's degree (Torah education desirable at a
+-- religious school, not a condition).
+@ref akn:art_2
+GIVEN c IS A `principal candidate`
+GIVETH A BOOLEAN
+DECIDE `meets the academic condition` c IF
+    NOT c's `degree` EQUALS `no master's degree`
+
+-- §3: a permanent teaching licence or a licence to practise teaching in the
+-- post-primary track; note א: the Mandel certificate counts as the teaching
+-- certificate; note ב: a teaching certificate without the licence process
+-- completed (or eligibility approved) by the application deadline is not
+-- enough, nor is a counselling licence.
+@ref akn:art_3 akn:art_3/p2 akn:art_3/p3 akn:art_3__para_a akn:art_3__para_b
+GIVEN c IS A `principal candidate`
+GIVETH A BOOLEAN
+DECIDE `meets the pedagogical condition` c IF
+    CONSIDER c's `qualification`
+    WHEN `a permanent teaching licence` THEN TRUE
+    WHEN `a licence to practise teaching in the post-primary track` THEN TRUE
+    WHEN `a Mandel school for educational leadership graduate certificate` THEN TRUE
+    WHEN `a teaching certificate without the licence process completed` THEN c's `licence eligibility approved by the application deadline`
+    OTHERWISE FALSE
+
+-- §4: for posts staffed from 2014-15 on, a certificate (or eligibility) of
+-- the Avney Rosha programme; ¶2: one who began it in July of the school year
+-- before the posts are published counts as meeting it; ¶5: a master's in
+-- education administration begun from 2011-12 on does not replace it. The
+-- alternatives 4.1–4.3 (4.3 for a master's begun by 2010-11, the
+-- programmes' names listed) and the two exemptions.
+@ref akn:art_4 akn:art_4/p2 akn:art_4/p5 akn:art_4/p6 akn:art_4__para_4-1 akn:art_4__para_4-2 akn:art_4__para_4-3 akn:art_4__para_4-3__subpara_1 akn:art_4__para_4-3__subpara_2
+GIVEN c IS A `principal candidate`
+GIVETH A BOOLEAN
+DECIDE `meets the training condition` c IF
+    c's `Avney Rosha certificate or eligibility`
+    OR c's `started Avney Rosha in July of the year before the posts are published`
+    OR c's `graduate of an earlier ministry principals' programme`
+    OR c's `graduate of the 2008-09 pilot master's in school leadership`
+    OR (    c's `degree` EQUALS `a recognized master's degree in education administration`
+        AND c's `started the master's degree by 2010-11`)
+    OR c's `serving principal for 3 years in a row, 3 years approved, no negative opinion`
+    OR c's `principal for 4 of the last 10 years, 4 years approved, no negative opinion`
+
+@export default Whether a candidate meets the threshold conditions for principal of a post-primary school under owners' circular 2015-16/6
+GIVEN c IS A `principal candidate` @desc the candidate
+GIVETH A BOOLEAN
+DECIDE `meets the threshold conditions` c IF
+        `meets the teaching-experience condition` c
+    AND `meets the academic condition` c
+    AND `meets the pedagogical condition` c
+    AND `meets the training condition` c
+
+-- §4 ¶3–¶4: one selected before completing the programme must complete it
+-- by its end, or the selection is cancelled; this holds only for tenders
+-- whose last day for applying fell before the programme ended. Time in days
+-- to the programme's end (an input).
+@ref akn:art_4/p3 akn:art_4/p4
+GIVEN `days to the end of the programme` IS A NUMBER
+      `the tender closed before the programme ended` IS A BOOLEAN
+GIVETH A DEONTIC Party `appointment action`
+DECIDE `completing the programme after selection` `days to the end of the programme` `the tender closed before the programme ended` IS
+    IF `the tender closed before the programme ended`
+    THEN PARTY `the teaching employee`
+         MUST  `complete the principals' training programme`
+         WITHIN `days to the end of the programme`
+         LEST BREACH BY `the teaching employee` BECAUSE "circular 2015-16/6 section 4: a principal selected before completing the programme who does not complete it by its end has the selection cancelled"
+    ELSE FULFILLED
+
+§§ `Desired qualifications`
+
+-- The twelve desired qualifications the advisory committee weighs in its
+-- recommendation; they are not conditions. The corpus prints 1-4 inside
+-- §4.3.2 and 5-12 as articles 5-12 (see the hand-off). Item 1 carries the
+-- asterisk "* בסעיף זה חל שינוי בתאריך 4.3.2015".
+@ref akn:art_4__para_4-3__subpara_2/p2 akn:art_4__para_4-3__subpara_2/p3 akn:art_4__para_4-3__subpara_2/p4 akn:art_4__para_4-3__subpara_2/p5 akn:art_4__para_4-3__subpara_2/p6 akn:art_4__para_4-3__subpara_2/p7 akn:art_4__para_4-3__subpara_2/p8 akn:art_4__para_4-3__subpara_2/p9 akn:art_5 akn:art_6 akn:art_7 akn:art_8 akn:art_9 akn:art_10 akn:art_11 akn:art_12 akn:art_12/p2
+`the desired qualifications` MEANS
+    LIST "knowing the school's particular character",
+         "leading, steering and guiding education, teaching and learning",
+         "planning a picture of the school's future in an applied work plan",
+         "leading a staff and working in a team",
+         "attending to each person and a safe, pleasant environment, committed to equality",
+         "experience teaching pupils with special needs",
+         "knowing the law and the ministry's instructions",
+         "positive relations with the community and public bodies",
+         "expression in Hebrew, and in the language of instruction",
+         "administrative ability: office, accounts and finances",
+         "building a budgeted pedagogical and organizational plan from data",
+         "building a school curriculum on the official curriculum"
+
+#ASSERT count `the desired qualifications` EQUALS 12
+
+GIVEN `qualifications shown` IS A LIST OF STRING
+GIVETH A NUMBER
+DECIDE `desired qualifications shown` `qualifications shown` IS
+    count (filter (GIVEN q YIELD elem q `the desired qualifications`) `qualifications shown`)
+
+§§ `The selection procedure`
+
+-- akn:art_12/p3 The heading "הליך הבחירה (הכנת תיק מועמד)"; no rule.
+-- akn:art_12/p7 The heading on the role of the ministry's representative in the tenders committee; no rule.
+
+-- ¶4–¶5: each owner runs the selection by the rules that bind it (local and
+-- regional councils: the 1977 order; municipalities: the 1979 regulations —
+-- a tender and an examiners' committee); but every owner must check each
+-- candidate against the ministry's threshold conditions, and the
+-- responsibility is the owner's alone. Time in days, an input horizon.
+@ref akn:art_12/p4 akn:art_12/p5
+GIVEN `days to the interviews` IS A NUMBER
+GIVETH A DEONTIC Party `appointment action`
+DECIDE `checking each candidate` `days to the interviews` IS
+    PARTY `the employer`
+    MUST  `check the candidate against the threshold conditions`
+    WITHIN `days to the interviews`
+    LEST BREACH BY `the employer` BECAUSE "circular 2015-16/6: the owner alone must check every candidate against the threshold conditions"
+
+-- ¶6: for each candidate who meets them, the owner prepares a file (the CV
+-- and every document showing the conditions are met); before the interview
+-- the full committee checks it.
+@ref akn:art_12/p6
+GIVEN `days to the interviews` IS A NUMBER
+GIVETH A DEONTIC Party `appointment action`
+DECIDE `preparing and reviewing the candidate file` `days to the interviews` IS
+    PARTY `the employer`
+    MUST  `prepare a candidate file`
+    WITHIN `days to the interviews`
+    HENCE PARTY `the employer`
+          MUST  `review the candidate file in the full committee`
+          WITHIN `days to the interviews`
+          LEST BREACH BY `the employer` BECAUSE "circular 2015-16/6: the candidate file is reviewed in the full committee before the interview"
+    LEST BREACH BY `the employer` BECAUSE "circular 2015-16/6: the owner prepares a file for every candidate who meets the threshold conditions"
+
+-- ¶8–¶9: the ministry's representatives take part in interviewing the
+-- candidates shown to meet the threshold conditions, and their task is to
+-- examine each one's suitability.
+@ref akn:art_12/p8 akn:art_12/p9
+GIVEN c IS A `principal candidate`
+GIVETH A BOOLEAN
+DECIDE `the ministry's representatives interview` c IF
+    `meets the threshold conditions` c
+
+-- ¶10: the most suitable candidate is chosen by the representatives of the
+-- bodies on the committee under the owner's selection rules; but a
+-- candidate the ministry's representatives found unsuitable may not be
+-- chosen.
+@ref akn:art_12/p10
+GIVEN `the committee chose the candidate` IS A BOOLEAN
+      `the ministry's representatives found the candidate unsuitable` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `¶10 allows the choice` `the committee chose the candidate` `the ministry's representatives found the candidate unsuitable` IF
+    `the committee chose the candidate` AND NOT `the ministry's representatives found the candidate unsuitable`
+
+GIVEN `days to the appointment` IS A NUMBER
+GIVETH A DEONTIC Party `appointment action`
+DECIDE `not choosing an unsuitable candidate` `days to the appointment` IS
+    PARTY `the employer`
+    SHANT `select a candidate the ministry's representatives found unsuitable`
+    WITHIN `days to the appointment`
+    LEST BREACH BY `the employer` BECAUSE "circular 2015-16/6: a candidate the ministry's representatives found unsuitable may not be chosen"
+
+-- F-2015-16_tashav_06-a: ¶26 of the introduction requires the ministry's
+-- consent to the appointment; ¶10 lets the committee's majority choose among
+-- the candidates the ministry's representatives did not find unsuitable. For
+-- a suitable candidate the committee chose over the ministry's preference,
+-- ¶10 allows the appointment and ¶26 does not. The reading adopted: ¶10, the
+-- procedure's own rule, governs; ¶26 is read as the veto ¶10 spells out.
+`¶26 and ¶10 part on a suitable candidate the ministry does not prefer` MEANS
+        `¶10 allows the choice` TRUE FALSE
+    AND NOT `the introduction allows the appointment` TRUE FALSE
+#ASSERT `¶26 and ¶10 part on a suitable candidate the ministry does not prefer`
+
+-- akn:conclusions The signature (Sonia Peretz) and the list of copies; no rule.
+
+-- Worked examples.
+`a candidate with six years' teaching and a licence` MEANS
+    `principal candidate` WITH
+        `years of actual teaching in grades 1-12 in Israel`        IS 6
+        `full school years of actual teaching`                     IS 6
+        `years of proven full-time managerial experience`          IS 0
+        `managed in education or a staff of at least 30`           IS FALSE
+        `guided, instructed or taught workers as a manager`        IS FALSE
+        `presented the HR manager's approval of the experience`    IS FALSE
+        `degree`                                                   IS `a recognized master's degree in another field`
+        `started the master's degree by 2010-11`                   IS FALSE
+        `qualification`                                            IS `a permanent teaching licence`
+        `licence eligibility approved by the application deadline` IS TRUE
+        `Avney Rosha certificate or eligibility`                   IS TRUE
+        `started Avney Rosha in July of the year before the posts are published` IS FALSE
+        `graduate of an earlier ministry principals' programme`    IS FALSE
+        `graduate of the 2008-09 pilot master's in school leadership` IS FALSE
+        `serving principal for 3 years in a row, 3 years approved, no negative opinion` IS FALSE
+        `principal for 4 of the last 10 years, 4 years approved, no negative opinion`   IS FALSE
+
+`a manager from outside education with three years' teaching and a counselling licence` MEANS
+    `principal candidate` WITH
+        `years of actual teaching in grades 1-12 in Israel`        IS 3
+        `full school years of actual teaching`                     IS 3
+        `years of proven full-time managerial experience`          IS 6
+        `managed in education or a staff of at least 30`           IS TRUE
+        `guided, instructed or taught workers as a manager`        IS TRUE
+        `presented the HR manager's approval of the experience`    IS TRUE
+        `degree`                                                   IS `a recognized master's degree in education administration`
+        `started the master's degree by 2010-11`                   IS TRUE
+        `qualification`                                            IS `a licence in educational counselling`
+        `licence eligibility approved by the application deadline` IS FALSE
+        `Avney Rosha certificate or eligibility`                   IS FALSE
+        `started Avney Rosha in July of the year before the posts are published` IS FALSE
+        `graduate of an earlier ministry principals' programme`    IS FALSE
+        `graduate of the 2008-09 pilot master's in school leadership` IS FALSE
+        `serving principal for 3 years in a row, 3 years approved, no negative opinion` IS FALSE
+        `principal for 4 of the last 10 years, 4 years approved, no negative opinion`   IS FALSE
+
+#ASSERT `meets the threshold conditions` `a candidate with six years' teaching and a licence`
+#ASSERT `meets the teaching-experience condition` `a manager from outside education with three years' teaching and a counselling licence`
+#ASSERT `meets the training condition` `a manager from outside education with three years' teaching and a counselling licence`
+#ASSERT NOT `meets the threshold conditions` `a manager from outside education with three years' teaching and a counselling licence`
+
+#TRACE `preparing and reviewing the candidate file` 30 AT 0 WITH
+    PARTY `the employer` DOES `prepare a candidate file` AT 5
+    PARTY `the employer` DOES `review the candidate file in the full committee` AT 20
+#TRACE `completing the programme after selection` 180 TRUE AT 0 WITH
+    PARTY `the teaching employee` DOES `complete the principals' training programme` AT 150
+#TRACE `not choosing an unsuitable candidate` 60 AT 0 WITH
+    PARTY `the employer` DOES `select a candidate the ministry's representatives found unsuitable` AT 40

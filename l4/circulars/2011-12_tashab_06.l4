@@ -1,0 +1,306 @@
+-- חוזר לבעלויות תשע"ב/6: הפרשות לקופת גמל לקצבה לעובדי הוראה
+-- Contributions to pension provident funds for teaching staff of the owners
+-- of secondary education insured in an accrual pension arrangement: which
+-- salary components carry pension contributions from 1.9.2011, the rises in
+-- the benefits rates from 1.1.2011 and 1.1.2013, the special rule for
+-- managers' insurance, the severance rate of 8 1/3%, the veteran funds, pay
+-- above a full position, and the deadline for making the changes.
+
+IMPORT prelude
+IMPORT common
+
+§ `תשע"ב/6 הפרשות לקופת גמל לקצבה לעובדי הוראה`
+
+-- akn:preamble The letterhead, date (3.11.2011), addressee and the circular's purpose (instructions on contributions to pension provident funds for teaching staff of the owners insured in an accrual pension); no rule of its own.
+
+-- Time in this file is counted in MONTHS from 1 January 2011 (month 0).
+`1 January 2011`   MEANS 0
+`1 September 2011` MEANS 8
+`1 January 2012`   MEANS 12
+`1 January 2013`   MEANS 24
+
+@desc The kind of pension provident fund a teaching employee is insured in.
+DECLARE `provident fund kind` IS ONE OF
+    `a veteran pension fund`
+    @desc a provident fund for annuity that is not a veteran fund and not managers' insurance
+    `a new pension fund or other provident fund`
+    @desc managers' insurance (a provident fund that is an insurance fund) in which the employee was actively insured on 31.8.2011
+    `managers' insurance, active on 31.8.2011`
+    @desc managers' insurance joined after 31.8.2011
+    `managers' insurance, joined later`
+
+@desc A salary component, as section 2 sorts them.
+DECLARE `salary component` IS ONE OF
+    `a component of the combined salary or another pay component`
+    @desc the grant for evaluation results, section 35 of the Oz LaTmura agreement
+    `the evaluation-results grant`
+    @desc the grant for school achievements, section 36 of the Oz LaTmura agreement
+    `the school-achievement grant`
+    @desc the personal contract (incentives), section 53 and annex ו of the Oz LaTmura agreement
+    `the personal contract (incentives)`
+    `expense reimbursement`
+    `the clothing allowance`
+    `tax gross-up`
+    `imputation of a benefit for tax`
+
+DECLARE `pension contribution rates` HAS
+    `employer benefits rate`             IS A NUMBER @desc the employer's contribution to benefits (תגמולים); for managers' insurance with disability cover, benefits and disability together
+    `employee deduction rate`            IS A NUMBER
+
+DECLARE `contribution action` IS ONE OF
+    `apply the new rates retroactively`
+    `comply with paragraph (2) of the general approval`
+
+§§ `1 תחולה`
+
+@desc A teaching employee of an owner, as far as this circular asks about it.
+DECLARE `provident employee` HAS
+    `in the teaching-staff grade`        IS A BOOLEAN
+    `employed by an owner of secondary education supervised by the Ministry` IS A BOOLEAN
+    `insured in an accrual pension arrangement` IS A BOOLEAN
+    `fund kind`                          IS A `provident fund kind`
+    `rates before 1.1.2011`              IS A `pension contribution rates`
+    `month full Oz LaTmura terms began`  IS A NUMBER @desc months from 1 January 2011; 999 if never
+    `deduction of 7% at the employee's request` IS A BOOLEAN
+
+@ref akn:art_1
+GIVEN e IS A `provident employee`
+GIVETH A BOOLEAN
+DECIDE `this circular applies to` e IF
+        e's `in the teaching-staff grade`
+    AND e's `employed by an owner of secondary education supervised by the Ministry`
+    AND e's `insured in an accrual pension arrangement`
+
+§§ `2 הכללת רכיבים להפרשות לקופת גמל לקצבה`
+
+-- Section 2(א): from 1.9.2011, contributions at the "pension component"
+-- rates on every salary component paid for employment up to a full
+-- position, except the eight it names. Section 5(ב): the same for teachers
+-- in veteran funds, at the rates of the fund the components go to.
+@ref akn:art_2__para_a akn:art_5__para_b
+GIVEN c IS A `salary component`
+GIVETH A BOOLEAN
+DECIDE `a pension component from 1.9.2011` c IF
+    c EQUALS `a component of the combined salary or another pay component`
+
+-- Section 2(ג): the personal contract, expense reimbursement and the clothing
+-- allowance go on carrying the agreement of 17.12.98's contribution, 5%
+-- employer and 5% employee.
+@ref akn:art_2__para_c
+GIVEN c IS A `salary component`
+GIVETH A BOOLEAN
+DECIDE `keeps the 17.12.98 contribution` c IF
+    CONSIDER c
+    WHEN `the personal contract (incentives)` THEN TRUE
+    WHEN `expense reimbursement` THEN TRUE
+    WHEN `the clothing allowance` THEN TRUE
+    OTHERWISE FALSE
+
+`the 17.12.98 rates` MEANS `pension contribution rates` 0.05 0.05
+
+-- Section 2(ב): a component that section 2(א) now covers and that carried
+-- a 17.12.98 (non-paying) provident contribution stops carrying it from
+-- 1.9.2011.
+@ref akn:art_2__para_b
+GIVEN c IS A `salary component`, `month` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `carries the 17.12.98 contribution` c `month` IF
+    IF `month` AT LEAST `1 September 2011`
+    THEN `keeps the 17.12.98 contribution` c
+    ELSE TRUE
+
+-- No component is both: the 17.12.98 contribution continues only on what
+-- section 2(א) leaves out.
+#ASSERT all (GIVEN c YIELD NOT (`a pension component from 1.9.2011` c AND `keeps the 17.12.98 contribution` c))
+            (LIST `a component of the combined salary or another pay component`, `the evaluation-results grant`,
+                  `the school-achievement grant`, `the personal contract (incentives)`, `expense reimbursement`,
+                  `the clothing allowance`, `tax gross-up`, `imputation of a benefit for tax`)
+
+§§ `3 הגדלת שיעורי הפרשות לקופת גמל לקצבה לרכיב תגמולים`
+
+-- Section 3(א)(3) and 3(ב)(2): an employee under full Oz LaTmura terms
+-- before 1.1.2013 takes the second step from the month those terms began.
+@ref akn:art_3__para_a__subpara_3 akn:art_3__para_b__subpara_2
+GIVEN e IS A `provident employee`
+GIVETH A NUMBER
+DECIDE `the month of the second step for` e IS
+    min (e's `month full Oz LaTmura terms began`) `1 January 2013`
+
+-- Section 3(א)(1)–(2): the employer's benefits rate "rises by 0.5% and will
+-- stand at 6.5%" (then "by a further 0.5% and will stand at 7%"); the
+-- employee's deduction rises by 0.5% or by what completes it to 5.5% (then
+-- 6%), whichever is lower. F-2011-12_tashab_06-a: the employer's two figures
+-- agree only where the rate was 6%. The reading adopted: the stated rate,
+-- 6.5% and then 7% — the employer half, unlike the employee half, has no
+-- "whichever is lower".
+GIVEN `ceiling` IS A NUMBER, rate IS A NUMBER
+GIVETH A NUMBER
+DECIDE `a deduction raised by 0.5% or to` `ceiling` `from` rate IS
+    rate PLUS min 0.005 (max 0 (`ceiling` MINUS rate))
+
+@ref akn:art_3__para_a akn:art_3__para_a__subpara_1 akn:art_3__para_a__subpara_2
+GIVEN e IS A `provident employee`, `month` IS A NUMBER
+GIVETH A `pension contribution rates`
+DECIDE `the rates under section 3(א)` e `month` IS
+    BRANCH IF `month` AT LEAST `the month of the second step for` e
+           THEN `pension contribution rates` 0.07
+                    (`a deduction raised by 0.5% or to` 0.06 `from`
+                        (`a deduction raised by 0.5% or to` 0.055 `from` (e's `rates before 1.1.2011`'s `employee deduction rate`)))
+           IF `month` AT LEAST `1 January 2011`
+           THEN `pension contribution rates` 0.065
+                    (`a deduction raised by 0.5% or to` 0.055 `from` (e's `rates before 1.1.2011`'s `employee deduction rate`))
+           OTHERWISE e's `rates before 1.1.2011`
+
+`an employer rate of 5% before 1.1.2011` MEANS 0.05
+
+`the employer's 3(א)(1) rise and its stated rate disagree from 5%` MEANS
+    NOT (`an employer rate of 5% before 1.1.2011` PLUS 0.005 EQUALS 0.065)
+#ASSERT `the employer's 3(א)(1) rise and its stated rate disagree from 5%`
+#ASSERT 0.06 PLUS 0.005 EQUALS 0.065
+
+-- Section 3(ב): managers' insurance with active insurance on 31.8.2011,
+-- instead of 3(א): where the employer's benefits-and-disability rate is
+-- under 7.5% and the deduction under 7% (or at 7% at the employee's
+-- request, for the employer's half), each rises 0.5% from 1.1.2011 and 0.5%
+-- more from 1.1.2013, never beyond 7.5% and 7%.
+@ref akn:art_3__para_b akn:art_3__para_b__subpara_1 akn:art_3__para_b__subpara_1__cls_a akn:art_3__para_b__subpara_1__cls_b
+GIVEN e IS A `provident employee`, `month` IS A NUMBER
+GIVETH A `pension contribution rates`
+DECIDE `the rates under section 3(ב)` e `month` IS
+    LET before MEANS e's `rates before 1.1.2011`
+        steps MEANS BRANCH IF `month` AT LEAST `the month of the second step for` e THEN 2
+                           IF `month` AT LEAST `1 January 2011` THEN 1
+                           OTHERWISE 0
+        `employer rises` MEANS
+                before's `employer benefits rate` LESS THAN 0.075
+            AND (   before's `employee deduction rate` LESS THAN 0.07
+                 OR e's `deduction of 7% at the employee's request`)
+        `employee rises` MEANS
+                before's `employer benefits rate` LESS THAN 0.075
+            AND before's `employee deduction rate` LESS THAN 0.07
+    IN `pension contribution rates`
+           (IF `employer rises`
+            THEN min 0.075 (before's `employer benefits rate` PLUS 0.005 TIMES steps)
+            ELSE before's `employer benefits rate`)
+           (IF `employee rises`
+            THEN min 0.07 (before's `employee deduction rate` PLUS 0.005 TIMES steps)
+            ELSE before's `employee deduction rate`)
+
+§§ `4 הגדלת שיעורי הפרשות לקופת גמל לקצבה לרכיב פיצויים`
+
+-- Section 4(א): from 1.9.2011, 8 1/3% to a provident fund that is not a
+-- veteran fund, in place of the whole of severance pay under section 14 of
+-- the Severance Pay Law.
+@ref akn:art_4__para_a
+GIVEN e IS A `provident employee`, `month` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `the severance contribution is 8 1/3%` e `month` IF
+        `month` AT LEAST `1 September 2011`
+    AND NOT (e's `fund kind` EQUALS `a veteran pension fund`)
+
+`the severance rate` MEANS 1 DIVIDED BY 12
+#ASSERT `the severance rate` EQUALS 0.08 PLUS 1 DIVIDED BY 300
+
+`the share of severance pay it replaces` MEANS 1
+
+-- Section 4(ב): an owner not party to a collective agreement on pension
+-- rates (not a member of the Centre of Local Government or the three big
+-- cities) must comply with paragraph (2) of the Minister's general approval
+-- under section 14, which the circular says is attached. The approval's
+-- text is not in the corpus (a corpus defect: only its title is printed),
+-- so the duty is encoded without its content. Time in months from the
+-- circular.
+@ref akn:art_4__para_b
+GIVEN `the owner is party to the pension-rates agreement` IS A BOOLEAN
+GIVETH A DEONTIC Party `contribution action`
+DECIDE `complying with the general approval` `the owner is party to the pension-rates agreement` IS
+    IF `the owner is party to the pension-rates agreement`
+    THEN FULFILLED
+    ELSE PARTY `the local authority or owning body`
+         MUST  `comply with paragraph (2) of the general approval`
+         WITHIN 1
+         LEST BREACH BY `the local authority or owning body` BECAUSE "section 4(ב): an owner not party to the agreement complies with paragraph (2) of the general approval under section 14"
+
+§§ `5 הפרשות לקרנות הפנסיה הוותיקות`
+
+-- Section 5(א): no change for veteran funds; circular תשע"א/1 stands. Its
+-- rates are restated "for convenience": 15% employer (7.5% severance, 7.5%
+-- benefits) and 5.5% employee.
+@ref akn:art_5__para_a
+`the veteran-fund rates` MEANS `pension contribution rates` 0.15 0.055
+`the veteran-fund severance part` MEANS 0.075
+
+-- Section 5(ג): at a veteran-fund member's request, contributions on any
+-- component may go to another provident fund instead, subject to law.
+@ref akn:art_5__para_c
+GIVEN `the employee asks` IS A BOOLEAN, `the law permits it` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `contributions may go to another fund` `the employee asks` `the law permits it` IF
+    `the employee asks` AND `the law permits it`
+
+@export default The pension provident-fund rates a teaching employee of an owner, insured in an accrual pension, has in a given month under circular תשע"ב/6
+GIVEN e IS A `provident employee` @desc the employee
+      `month` IS A NUMBER @desc months from 1 January 2011 (September 2011 = 8, January 2013 = 24)
+GIVETH A `pension contribution rates`
+DECIDE `the benefits rates` e `month` IS
+    IF `this circular applies to` e
+    THEN CONSIDER e's `fund kind`
+         WHEN `a veteran pension fund` THEN `the veteran-fund rates`
+         WHEN `managers' insurance, active on 31.8.2011` THEN `the rates under section 3(ב)` e `month`
+         OTHERWISE `the rates under section 3(א)` e `month`
+    ELSE e's `rates before 1.1.2011`
+
+§§ `6 הפרשות בגין חלק המשכורת המשולם בגין העסקה מעבר ל-100% משרה`
+
+-- Section 6: on pay for employment beyond a full position, the rules in
+-- force before this circular go on; the employee may choose the fund.
+@ref akn:art_6__para_a akn:art_6__para_b
+GIVEN `share of pay above a full position` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `this circular's rates apply to` `share of pay above a full position` IF
+    NOT `share of pay above a full position`
+
+§§ `7 ביצוע הפרשות וניכויים לפי חוזר זה`
+
+-- Section 7: the changes are made retroactively from 1.1.2011 or 1.9.2011,
+-- before the end of fiscal year 2011.
+@ref akn:art_7
+GIVETH A DEONTIC Party `contribution action`
+DECIDE `making the changes before the end of 2011` IS
+    PARTY `the local authority or owning body`
+    MUST  `apply the new rates retroactively`
+    WITHIN `1 January 2012`
+    LEST BREACH BY `the local authority or owning body` BECAUSE "section 7: the changes are made retroactively before the end of fiscal year 2011"
+
+-- akn:conclusions The contact line for questions, the sign-off and signature, and the title of the attached section 14 approval ("סעיף 14 לחוק פיצויי פיטורין"), whose text the document does not carry; no rule.
+
+-- Worked examples.
+`a new-fund teacher at 6% and 5%` MEANS
+    `provident employee` WITH
+        `in the teaching-staff grade`        IS TRUE
+        `employed by an owner of secondary education supervised by the Ministry` IS TRUE
+        `insured in an accrual pension arrangement` IS TRUE
+        `fund kind`                          IS `a new pension fund or other provident fund`
+        `rates before 1.1.2011`              IS `pension contribution rates` 0.06 0.05
+        `month full Oz LaTmura terms began`  IS 999
+        `deduction of 7% at the employee's request` IS FALSE
+
+`a managers'-insurance teacher at 5% and 5%` MEANS
+    `provident employee` WITH
+        `in the teaching-staff grade`        IS TRUE
+        `employed by an owner of secondary education supervised by the Ministry` IS TRUE
+        `insured in an accrual pension arrangement` IS TRUE
+        `fund kind`                          IS `managers' insurance, active on 31.8.2011`
+        `rates before 1.1.2011`              IS `pension contribution rates` 0.05 0.05
+        `month full Oz LaTmura terms began`  IS 20
+        `deduction of 7% at the employee's request` IS FALSE
+
+#ASSERT `the benefits rates` `a new-fund teacher at 6% and 5%` 8 EQUALS `pension contribution rates` 0.065 0.055
+#ASSERT `the benefits rates` `a new-fund teacher at 6% and 5%` 24 EQUALS `pension contribution rates` 0.07 0.06
+#ASSERT `the benefits rates` `a managers'-insurance teacher at 5% and 5%` 10 EQUALS `pension contribution rates` 0.055 0.055
+#ASSERT `the benefits rates` `a managers'-insurance teacher at 5% and 5%` 20 EQUALS `pension contribution rates` 0.06 0.06
+
+#TRACE `making the changes before the end of 2011` AT 10 WITH
+    PARTY `the local authority or owning body` DOES `apply the new rates retroactively` AT 11
+#TRACE `making the changes before the end of 2011` AT 10 WITH
+    PARTY `the local authority or owning body` DOES `apply the new rates retroactively` AT 23

@@ -1,0 +1,209 @@
+-- חוזר לבעלויות תשע"ב/9: תשלום פעימה שנייה של תוספת השכר במגזר הציבורי
+-- לעובדי הוראה המועסקים בבעלויות
+-- The second tranche of the public-sector raise from 1.1.2012 for teaching
+-- staff of the owners: tosefet 2011 completed to 4%, the shekel additions by
+-- reform status, the Ofek Hadash middle-school tables and personal shekel
+-- additions completed to 4%, and payment and reimbursement.
+
+IMPORT prelude
+IMPORT common
+
+§ `תשע"ב/9 תשלום פעימה שנייה של תוספת השכר במגזר הציבורי`
+
+-- akn:preamble The letterhead, title, date (28.3.2012) and the lead-in following circular תשע"ב/2 of 18.9.2011: the second tranche is to be paid under the collective agreements, as below; no rule of its own.
+
+-- The corpus nests the page's section ג (ביצוע תשלומים ושיפויים) under
+-- section ב.2(ג), and gives its two paragraphs to section ב. The comments
+-- use the page's letters.
+
+-- Time is counted in school months of 2011/12 (common.l4: January 2012 = 5,
+-- February 2012 = 6).
+
+@desc A teaching employee's status under the Oz LaTmura reform, as section ב.1(ב) divides it.
+DECLARE `reform status` IS ONE OF
+    `not employed under reform terms`
+    `a principal under Oz LaTmura`
+    `a non-principal in partial Oz LaTmura`
+    `a non-principal in full Oz LaTmura`
+
+@desc One portion of a teaching employee's employment by an owner, as far as this circular asks about it.
+DECLARE `second-tranche portion` HAS
+    `in the teaching-staff grade`        IS A BOOLEAN
+    `employed by an owner supervised by the Ministry` IS A BOOLEAN
+    `entitled to tosefet 2011 under circular תשע"ב/2` IS A BOOLEAN @desc whether the portion earns tosefet 2011 under that circular (the upper division, and middle schools not under Ofek Hadash)
+    `status`                             IS A `reform status`
+    `in an Ofek Hadash middle school`    IS A BOOLEAN @desc a middle-school portion of an employee moved to Ofek Hadash terms under the agreement of 25.12.2008
+    `tosefet 2011 base under circular תשע"ב/2` IS A NUMBER @desc the monthly base on which circular תשע"ב/2 computes tosefet 2011, shekels; this circular raises the rate and leaves the base to that circular
+    `Ofek Hadash table salary before 1.1.2011` IS A NUMBER @desc the table salary before the update of 1.1.2011 (circular תשע"ב/2), shekels a month
+    `entitled to a personal shekel addition in December 2011` IS A BOOLEAN @desc under the collective agreement of 25.12.2008
+    `still entitled to it in January 2012` IS A BOOLEAN
+    `personal shekel addition before 1.1.2011` IS A NUMBER @desc the personal shekel addition's value before the update of 1.1.2011, shekels a month; 0 if none
+
+DECLARE `second-tranche action` IS ONE OF
+    `pay the second tranche` HAS `tranche paid` IS A NUMBER
+    `reimburse the owner`
+
+§§ `א תחולה`
+
+@ref akn:art_a
+GIVEN p IS A `second-tranche portion`
+GIVETH A BOOLEAN
+DECIDE `this circular applies to` p IF
+        p's `in the teaching-staff grade`
+    AND p's `employed by an owner supervised by the Ministry`
+
+§§ `ב יישום תוספת שכר בהשלמה ל-4%`
+
+`the completed rate` MEANS 0.04
+
+-- Section ב.1(א): from 1.1.2012 tosefet 2011 rises to a uniform 4%. The
+-- base the rate is applied to is circular תשע"ב/2's, which this circular
+-- does not restate: an input.
+@ref akn:art_b__para_1 akn:art_b__para_1__subpara_a
+GIVEN p IS A `second-tranche portion`
+GIVETH A NUMBER
+DECIDE `tosefet 2011 from 1.1.2012` p IS
+    IF `this circular applies to` p AND p's `entitled to tosefet 2011 under circular תשע"ב/2`
+    THEN `the completed rate` TIMES p's `tosefet 2011 base under circular תשע"ב/2`
+    ELSE 0
+
+-- Section ב.1(ב): the two shekel additions from 1.1.2012, by reform status.
+@desc A row of section ב.1(ב): the shekel additions for one group.
+DECLARE `shekel row` HAS
+    `for status`                         IS A `reform status`
+    `tosefet '94 (teaching reinforcement)` IS A NUMBER
+    `tosefet '87`                        IS A NUMBER
+
+@ref akn:art_b__para_1__subpara_b
+`the shekel additions from 1.1.2012` MEANS
+    LIST `shekel row` `not employed under reform terms`        153.43 170.62,
+         `shekel row` `a principal under Oz LaTmura`           153.43 170.62,
+         `shekel row` `a non-principal in partial Oz LaTmura`  176.67 196.46,
+         `shekel row` `a non-principal in full Oz LaTmura`     215.40 239.53
+
+GIVEN s IS A `reform status`
+GIVETH A LIST OF `shekel row`
+DECIDE `the shekel rows for` s IS
+    filter (GIVEN r YIELD r's `for status` EQUALS s) `the shekel additions from 1.1.2012`
+
+-- Every status has exactly one row.
+#ASSERT all (GIVEN s YIELD count (`the shekel rows for` s) EQUALS 1)
+            (LIST `not employed under reform terms`, `a principal under Oz LaTmura`,
+                  `a non-principal in partial Oz LaTmura`, `a non-principal in full Oz LaTmura`)
+
+GIVEN p IS A `second-tranche portion`
+GIVETH A NUMBER
+DECIDE `the shekel additions of` p IS
+    IF `this circular applies to` p AND p's `entitled to tosefet 2011 under circular תשע"ב/2`
+    THEN sum (map (GIVEN r YIELD r's `tosefet '94 (teaching reinforcement)` PLUS r's `tosefet '87`)
+                  (`the shekel rows for` (p's `status`)))
+    ELSE 0
+
+-- Section ב.2(א)-(ב): for the Ofek Hadash middle-school portion, the tables
+-- from 1.1.2012 stand 4% above their level before the update of 1.1.2011;
+-- the tables are the agreement's.
+@ref akn:art_b__para_2 akn:art_b__para_2__subpara_a akn:art_b__para_2__subpara_b
+GIVEN p IS A `second-tranche portion`
+GIVETH A NUMBER
+DECIDE `the Ofek Hadash table salary from 1.1.2012` p IS
+    IF `this circular applies to` p AND p's `in an Ofek Hadash middle school`
+    THEN p's `Ofek Hadash table salary before 1.1.2011` TIMES (1 PLUS `the completed rate`)
+    ELSE 0
+
+-- Section ב.2(ג): a personal shekel addition paid in December 2011 and still
+-- paid (at least) in January 2012 stands, from 1.1.2012, 4% above its value
+-- before the update of 1.1.2011.
+@ref akn:art_b__para_2__subpara_c
+GIVEN p IS A `second-tranche portion`
+GIVETH A BOOLEAN
+DECIDE `the personal shekel addition is updated` p IF
+        `this circular applies to` p
+    AND p's `in an Ofek Hadash middle school`
+    AND p's `entitled to a personal shekel addition in December 2011`
+    AND p's `still entitled to it in January 2012`
+
+GIVEN p IS A `second-tranche portion`
+GIVETH A NUMBER
+DECIDE `the personal shekel addition from 1.1.2012` p IS
+    IF `the personal shekel addition is updated` p
+    THEN p's `personal shekel addition before 1.1.2011` TIMES (1 PLUS `the completed rate`)
+    ELSE 0
+
+GIVEN p IS A `second-tranche portion`
+GIVETH A NUMBER
+DECIDE `the Ofek Hadash salary from 1.1.2012` p IS
+    `the Ofek Hadash table salary from 1.1.2012` p
+    PLUS `the personal shekel addition from 1.1.2012` p
+
+@export default The monthly amounts from 1.1.2012 that the second tranche sets for one portion of a teaching employee's employment by an owner under circular תשע"ב/9 — tosefet 2011, the two shekel additions, and the Ofek Hadash table and personal addition
+GIVEN p IS A `second-tranche portion` @desc the portion of employment
+GIVETH A NUMBER
+DECIDE `the second-tranche amounts` p IS
+    `tosefet 2011 from 1.1.2012` p
+    PLUS `the shekel additions of` p
+    PLUS `the Ofek Hadash salary from 1.1.2012` p
+
+§§ `ג ביצוע תשלומים ושיפויים`
+
+-- akn:art_b__para_2__subpara_c__cls_c The heading of the page's section ג; the rules are its two paragraphs.
+
+@ref akn:art_b/p1
+GIVEN p IS A `second-tranche portion`
+GIVETH A DEONTIC Party `second-tranche action`
+DECIDE `paying from January's salary` p IS
+    PARTY `the local authority or owning body`
+    MUST  `pay the second tranche` `amount`
+          PROVIDED `amount` AT LEAST `the second-tranche amounts` p
+    WITHIN `month number` January
+    HENCE `the Ministry's reimbursement`
+    LEST BREACH BY `the local authority or owning body` BECAUSE "section ג: the owners carry this out from the January 2012 salary"
+
+-- "משרד החינוך שיפה את הבעלויות … החל משכר לימוד חודש ינואר, אשר שולם
+-- בראשית חודש פברואר": the Ministry reimburses from the January tuition
+-- payment, paid early in February — one month after the January salary.
+@ref akn:art_b/p2
+GIVETH A DEONTIC Party `second-tranche action`
+DECIDE `the Ministry's reimbursement` IS
+    PARTY `the Ministry of Education`
+    MUST  `reimburse the owner`
+    WITHIN `month number` February MINUS `month number` January
+    LEST BREACH BY `the Ministry of Education` BECAUSE "section ג: the Ministry reimburses the owners from the January tuition payment, paid early in February"
+
+-- akn:conclusions The contact line for questions, the sign-off and signature; no rule.
+
+-- Worked examples; the salary figures are round placeholders.
+`a partial-Oz upper-division teacher` MEANS
+    `second-tranche portion` WITH
+        `in the teaching-staff grade`        IS TRUE
+        `employed by an owner supervised by the Ministry` IS TRUE
+        `entitled to tosefet 2011 under circular תשע"ב/2` IS TRUE
+        `status`                             IS `a non-principal in partial Oz LaTmura`
+        `in an Ofek Hadash middle school`    IS FALSE
+        `tosefet 2011 base under circular תשע"ב/2` IS 10000
+        `Ofek Hadash table salary before 1.1.2011` IS 0
+        `entitled to a personal shekel addition in December 2011` IS FALSE
+        `still entitled to it in January 2012` IS FALSE
+        `personal shekel addition before 1.1.2011` IS 0
+
+#ASSERT `the second-tranche amounts` `a partial-Oz upper-division teacher` EQUALS 773.13
+
+`an Ofek Hadash middle-school teacher with a personal addition` MEANS
+    `second-tranche portion` WITH
+        `in the teaching-staff grade`        IS TRUE
+        `employed by an owner supervised by the Ministry` IS TRUE
+        `entitled to tosefet 2011 under circular תשע"ב/2` IS FALSE
+        `status`                             IS `not employed under reform terms`
+        `in an Ofek Hadash middle school`    IS TRUE
+        `tosefet 2011 base under circular תשע"ב/2` IS 0
+        `Ofek Hadash table salary before 1.1.2011` IS 10000
+        `entitled to a personal shekel addition in December 2011` IS TRUE
+        `still entitled to it in January 2012` IS TRUE
+        `personal shekel addition before 1.1.2011` IS 500
+
+#ASSERT `the second-tranche amounts` `an Ofek Hadash middle-school teacher with a personal addition` EQUALS 10920
+
+#TRACE `paying from January's salary` `a partial-Oz upper-division teacher` AT 0 WITH
+    PARTY `the local authority or owning body` DOES `pay the second tranche` 773.13 AT 5
+    PARTY `the Ministry of Education` DOES `reimburse the owner` AT 6
+#TRACE `paying from January's salary` `a partial-Oz upper-division teacher` AT 0 WITH
+    PARTY `the local authority or owning body` DOES `pay the second tranche` 773.13 AT 5

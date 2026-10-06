@@ -1,0 +1,1639 @@
+-- חוזר לבעלויות תשפ"ה/1 (4.8.2024): העסקת עו"ה, עובדי בעלות, בבתי ספר
+-- לחינוך מיוחד מוכרים שאינם רשמיים, בהתאם לרפורמת אופק חדש בשנה"ל תשפ"ה
+-- How recognised unofficial special-education schools join Ofek Hadash in
+-- התשפ"ה: the owner's undertaking and duties, the principal's and the
+-- Ministry's; who joins; the work week of teachers, health-professions
+-- staff, principals, deputies and counsellors; part-time and over-time;
+-- parents and age hours; school activities; leaving the reform; seniority
+-- and promotion; the grade and its conversion; the role allowances; the
+-- trip allowance; the advances until the grade is set; the attendance
+-- clock; and the annexes: the undertaking, the forms, the conversion and
+-- the contacts.
+--
+-- Corpus notes: the corpus nests the sign-off under §18.4; and annex ד's
+-- table of conversion coefficients for teachers (מקדמי המרה למורים
+-- אקדמאיים) and the salary grid below it are printed on the page as images
+-- and are not in the corpus text — the coefficient is an input here.
+
+IMPORT prelude
+IMPORT daydate
+IMPORT time
+IMPORT common
+
+-- Time for the deadlines is counted in DAYS from the circular's date,
+-- 4.8.2024 (0).
+`the circular's date` MEANS Date 4 8 2024
+
+GIVEN d IS A DATE
+GIVETH A NUMBER
+DECIDE `days from the circular to` d IS
+    Day d MINUS Day `the circular's date`
+
+`30 August 2024` MEANS `days from the circular to` (Date 30 8 2024)
+#ASSERT `30 August 2024` EQUALS 26
+
+§ `חוזר לבעלויות תשפ"ה/1 — בתי ספר לחינוך מיוחד מוכרים שאינם רשמיים באופק חדש`
+
+-- akn:preamble The letterhead, date, reference number, addressees (owners of recognised unofficial special-education schools not yet in Ofek Hadash), greeting and subject line; no rule.
+
+@desc The posts the circular distinguishes in a special-education school.
+DECLARE `school post` IS ONE OF
+    `teacher`
+    `health-professions employee` @desc occupational therapy, physiotherapy, speech therapy
+    `arts therapist`              @desc visual art, movement, drama, music, bibliotherapy, psychodrama
+    `principal`
+    `first deputy principal`
+    `second or later deputy`
+    `educational counsellor`
+
+DECLARE `school stage` IS ONE OF
+    `primary special-education school`     @desc a primary school of grades 1–6, 1–8 or 1–9
+    `post-primary special-education school`
+    `multi-stage special-education school` @desc several stages in one school, not a primary school of 4.2
+
+@desc A teaching employee of the owner in a recognised unofficial special-education school, as far as this circular asks.
+DECLARE `school employee` HAS
+    `post`                                  IS A `school post`
+    `stage`                                 IS A `school stage`
+    `teaches grades 1 to 6`                 IS A BOOLEAN @desc in a multi-stage school, teaches in grades 1–6 (otherwise in grades 7–12)
+    `has recognised years of actual teaching` IS A BOOLEAN @desc section 3.1.1
+    `is academic`                           IS A BOOLEAN
+    `holds a teaching certification`        IS A BOOLEAN
+    `seniority in teaching`                 IS A NUMBER
+    `age`                                   IS A NUMBER  @desc the age that counts for age hours (8.1: as before the reform)
+    `position fraction`                     IS A NUMBER  @desc the share of a full position (1 = full)
+    `is an intern`                          IS A BOOLEAN
+
+§§ `1 מבוא`
+
+-- akn:art_1/p1 History: the State's undertaking in HCJ 148/18 to equalise teaching resources from התש"ף; no rule.
+-- akn:art_1/p2 History: the inter-ministerial team and its adoption; no rule.
+-- akn:art_1/p3 Pointer to the team's report; no rule.
+-- akn:art_1/p4 The report's link; no rule.
+-- akn:art_1/p5 The link's continuation; no rule.
+-- akn:art_1/p6 History: Ofek Hadash's terms applied to these schools from התש"ף; no rule.
+
+-- The State Education (Recognised Institutions) Regulations as amended in
+-- התשפ"ב (reg. 3(6)): in a special-education institution, salaries by the
+-- rules of official special-education institutions in the new programme —
+-- so every special-education institution not yet joined joins from התשפ"ה.
+@ref akn:art_1/p7 akn:art_1/p8 akn:art_1/p9
+GIVEN `school year` IS A NUMBER @desc the school year by its first calendar year (2024 = התשפ"ה)
+GIVETH A BOOLEAN
+DECIDE `the school is in Ofek Hadash` `school year` IF
+    `school year` AT LEAST 2024
+
+-- The Ministry alone approves joining, sets the grade and converts the
+-- salary; it also sets the education degree and the seniority.
+@ref akn:art_1/p10
+GIVEN p IS A Party
+GIVETH A BOOLEAN
+DECIDE `may approve joining and set the grade` p IF
+    p EQUALS `the Ministry of Education`
+
+-- akn:art_1/p11 The circular's purpose (instructions for owner-employed teaching staff of these schools for התשפ"ה); no rule of its own.
+
+§§ `2 תחומי אחריות ביישום הרפורמה`
+
+DECLARE `circular 1 action` IS ONE OF
+    `sign and send the undertaking`
+    `check the employees' data`
+    `instruct unreported employees to open files`
+    `report the positions in the placement system`
+    `set the timetable by the Ofek Hadash week`
+    `transfer the salary interface`
+    `pay by the grade` HAS `months of arrears` IS A NUMBER
+    `deduct the advances` HAS `deducted` IS A NUMBER
+    `join the school to Ofek Hadash`
+    `reimburse the owner`
+    `pay the Ofek Hadash advance` HAS `advance` IS A NUMBER
+    `submit a request` HAS `kind of request` IS A STRING
+    `install an attendance clock`
+    `pay and deduct by the attendance data`
+
+-- akn:art_2__para_2-1 The heading "שלב ראשון".
+-- akn:art_2__para_2-1/p2 The lead-in "פעולות המתבצעות ע"י הבעלות".
+
+-- 2.1(1): the owner signs the undertaking (annex א'), e-mails it to the
+-- Ministry by 30.8.2024; after that day the institution cannot join for
+-- התשפ"ה.
+@ref akn:art_2__para_2-1__subpara_1 akn:art_2__para_2-1__subpara_1/p2 akn:art_2__para_2-1__subpara_1/p3 akn:art_2__para_2-1__subpara_1/p4 akn:art_2__para_2-1__subpara_1/p5
+GIVETH A DEONTIC Party `circular 1 action`
+DECIDE `the owner signs the undertaking by 30.8.2024` IS
+    PARTY `the employer`
+    MUST  `sign and send the undertaking`
+    WITHIN `30 August 2024`
+    LEST BREACH BY `the employer` BECAUSE "2.1(1): the last day to send the undertaking is 30.8.2024"
+
+@ref akn:art_2__para_2-1__subpara_1/p6
+GIVEN `undertaking sent on day` IS A NUMBER @desc days from 4.8.2024
+GIVETH A BOOLEAN
+DECIDE `may join for התשפ"ה` `undertaking sent on day` IF
+    `undertaking sent on day` AT MOST `30 August 2024`
+
+-- 2.1(2): with the "teaching staff data" report in עוש"ר: (א) the owner
+-- makes sure the data are current, and if not, a contact person gathers the
+-- documents and turns to the district HR manager (a suggestion); (ב)
+-- employees not yet reported — health and arts staff included — are told to
+-- open an online file urgently, by the circular on employment approval for
+-- התשפ"ה (an input); (ג) then the employees meeting the joining conditions
+-- are located (section 3).
+@ref akn:art_2__para_2-1__subpara_2 akn:art_2__para_2-1__subpara_2__cls_a akn:art_2__para_2-1__subpara_2__cls_a/p2
+GIVETH A DEONTIC Party `circular 1 action`
+DECIDE `the owner checks the employees' data` IS
+    PARTY `the employer`
+    MUST  `check the employees' data`
+    WITHIN `30 August 2024`
+    LEST BREACH BY `the employer` BECAUSE "2.1(2)(א): the owner makes sure the employees' data are current"
+
+@ref akn:art_2__para_2-1__subpara_2__cls_b akn:art_2__para_2-1__subpara_2__cls_b/p2 akn:art_2__para_2-1__subpara_2__cls_b/p3 akn:art_2__para_2-1__subpara_2__cls_b/p4 akn:art_2__para_2-1__subpara_2__cls_b/p5
+GIVETH A DEONTIC Party `circular 1 action`
+DECIDE `the owner has unreported employees open files` IS
+    PARTY `the employer`
+    MUST  `instruct unreported employees to open files`
+    WITHIN 7
+    LEST BREACH BY `the employer` BECAUSE "2.1(2)(ב): employees not yet reported are told to open a file urgently"
+
+-- akn:art_2__para_2-1__subpara_2__cls_c Locating the employees who meet the joining conditions after stage א; the conditions are encoded in section 3.
+
+-- 2.1(3): those who meet the conditions are employed by Ofek Hadash's pay
+-- and work week (the 2022 agreement and earlier updates; section 4).
+@ref akn:art_2__para_2-1__subpara_3
+GIVEN e IS A `school employee`
+GIVETH A BOOLEAN
+DECIDE `is employed by Ofek Hadash's terms` e IF
+    `joins Ofek Hadash` e
+
+-- akn:art_2__para_2-1__subpara_3/p2 The lead-in "פעולות המתבצעות ע"י המנהל".
+
+-- The principal's actions: (1) guide teachers without a file — health and
+-- arts staff too — in opening one, and do the principal's part; (2) set the
+-- timetable by the Ofek Hadash week (section 4); (3) place every teaching
+-- employee in the placement system (משכית), in the reform or pre-reform.
+@ref akn:art_2__para_2-1__subpara_3__cls_1 akn:art_2__para_2-1__subpara_3__cls_2 akn:art_2__para_2-1__subpara_3__cls_3
+GIVETH A DEONTIC Party `circular 1 action`
+DECIDE `the principal's actions` IS
+    (PARTY `the school principal`
+     MUST  `set the timetable by the Ofek Hadash week`
+     WITHIN `30 August 2024`)
+    RAND
+    (PARTY `the school principal`
+     MUST  `report the positions in the placement system`
+     WITHIN `30 August 2024`)
+
+-- akn:art_2__para_2-2 The heading "שלב שני".
+-- akn:art_2__para_2-2/p2 The lead-in to the owner's actions for the initial grade.
+
+-- 2.2(1): once the data are updated, the owner transfers to Unique (the
+-- Ministry's supplier) the interface of the salary paid for the month asked,
+-- by the Ministry's rules and the booklet on grades; the Ministry sets the
+-- grade and converts.
+@ref akn:art_2__para_2-2__subpara_1
+GIVETH A DEONTIC Party `circular 1 action`
+DECIDE `the owner transfers the salary interface` IS
+    PARTY `the employer`
+    MUST  `transfer the salary interface`
+    WITHIN 30
+    LEST BREACH BY `the employer` BECAUSE "2.2(1): the salary interface goes to the Ministry's supplier for the month asked"
+
+-- 2.2(2): once the grade is set, the owner pays by it from the joining and
+-- deducts the advances "as stated in section 15 below".
+-- F-2024-25_tashpah_01-b: section 15 is the setting of the grade (and the
+-- role allowances); the advances are section 17. The reading adopted: 17.
+@ref akn:art_2__para_2-2__subpara_2 akn:art_17__para_17-1/p3
+GIVEN `months since joining` IS A NUMBER, `advances paid` IS A NUMBER
+GIVETH A DEONTIC Party `circular 1 action`
+DECIDE `the owner pays by the grade and deducts the advances` `months since joining` `advances paid` IS
+    PARTY `the employer`
+    MUST  `pay by the grade` m PROVIDED m EQUALS `months since joining`
+    WITHIN 1
+    HENCE (PARTY `the employer`
+           MUST  `deduct the advances` d PROVIDED d EQUALS `advances paid`
+           WITHIN 1)
+    LEST BREACH BY `the employer` BECAUSE "2.2(2): pay by the grade from the joining, and deduct the advances"
+
+@ref akn:art_2__para_2-2__subpara_2
+`the section 2.2(2) cites for the advances` MEANS 15
+`the section that sets the advances` MEANS 17
+`the advances are cited as section 15 but are section 17` MEANS
+    NOT (`the section 2.2(2) cites for the advances` EQUALS `the section that sets the advances`)
+#ASSERT `the advances are cited as section 15 but are section 17`
+
+-- akn:art_2__para_2-2__subpara_2/p2 The lead-in "משרד החינוך יבצע את הפעולות הבאות".
+
+-- The Ministry's actions: (1) on the undertaking, join the schools and mark
+-- them; (2) check each employee's conditions after the התשפ"ה position
+-- report; (3) set the grades; (4) compute the profile; (5) reimburse the
+-- owner — not without the placement system updated to the Ofek Hadash week
+-- and the salary interface transferred.
+@ref akn:art_2__para_2-2__subpara_2/p3 akn:art_2__para_2-2__subpara_2/p4
+GIVEN `undertaking received` IS A BOOLEAN
+GIVETH A DEONTIC Party `circular 1 action`
+DECIDE `the Ministry joins the school` `undertaking received` IS
+    IF `undertaking received`
+    THEN PARTY `the Ministry of Education`
+         MUST  `join the school to Ofek Hadash`
+         WITHIN 30
+    ELSE FULFILLED
+
+@ref akn:art_2__para_2-2__subpara_2/p5 akn:art_2__para_2-2__subpara_2/p6 akn:art_2__para_2-2__subpara_2/p7 akn:art_2__para_2-2__subpara_2/p8 akn:art_2__para_2-2__subpara_2/p9
+GIVEN p IS A Party
+GIVETH A BOOLEAN
+DECIDE `decides joining, grade and profile` p IF
+    p EQUALS `the Ministry of Education`
+
+@ref akn:art_2__para_2-2__subpara_2/p10 akn:art_2__para_2-2__subpara_2/p11
+GIVEN `placement updated to the Ofek Hadash week` IS A BOOLEAN, `salary interface transferred` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `the Ministry can reimburse the owner` `placement updated to the Ofek Hadash week` `salary interface transferred` IF
+    `placement updated to the Ofek Hadash week` AND `salary interface transferred`
+
+§§ `3 תנאי ההצטרפות`
+
+-- akn:art_3__para_3-1 The heading "הגדרות".
+
+@ref akn:art_3__para_3-1__subpara_3-1-1 akn:art_3__para_3-1__subpara_3-1-2
+GIVEN e IS A `school employee`
+GIVETH A BOOLEAN
+DECIDE `is a new teaching employee` e IF
+    NOT e's `has recognised years of actual teaching`
+
+-- akn:art_3__para_3-2 The heading of 3.2.
+-- akn:art_3__para_3-2/p2 The heading "existing academic employees".
+
+-- 3.2: an existing academic (or equivalent grade) in a joined institution
+-- joins when certified (a teaching certificate) and employed at a third or
+-- more. 3.3.1: an existing non-academic with 28 years or more joins "in any
+-- case"; 3.3.2: with less than 28, does not. 3.4: new employees join
+-- (academic, or non-academic not on intern's pay). 3.5.1: interns only by
+-- the reform.
+@ref akn:art_3__para_3-2/p3 akn:art_3__para_3-2/p4 akn:art_3__para_3-2/p5 akn:art_3__para_3-2/p6 akn:art_3__para_3-2/p7 akn:art_3__para_3-3 akn:art_3__para_3-3__subpara_3-3-1 akn:art_3__para_3-3__subpara_3-3-2 akn:art_3__para_3-4
+GIVEN e IS A `school employee`
+GIVETH A BOOLEAN
+DECIDE `meets the joining conditions` e IF
+    BRANCH IF e's `is an intern` THEN TRUE
+           IF `is a new teaching employee` e THEN TRUE
+           IF e's `is academic` THEN e's `holds a teaching certification` AND e's `position fraction` AT LEAST 1 DIVIDED BY 3
+           OTHERWISE e's `seniority in teaching` AT LEAST 28
+
+GIVEN e IS A `school employee`
+GIVETH A BOOLEAN
+DECIDE `joins Ofek Hadash` e IF
+    `meets the joining conditions` e
+
+-- 3.2: an uncertified academic may ask to join by exception, on annex ב'
+-- by e-mail (the circular names no last day).
+@ref akn:art_3__para_3-2/p8 akn:art_3__para_3-2/p9
+GIVEN e IS A `school employee`, `approved by the exceptions committee` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `joins Ofek Hadash with` e `approved by the exceptions committee` IF
+        `meets the joining conditions` e
+    OR (    e's `is academic`
+        AND (NOT e's `holds a teaching certification`)
+        AND `approved by the exceptions committee`)
+
+-- 3.2, last paragraph: a teacher without a certificate or certification
+-- and with less than 25 years cannot advance until certified; the work and
+-- part of the studies count "כמפורט בסעיף 12.2.2". F-2024-25_tashpah_01-a:
+-- there is no 12.2.2 (section 12 is seniority, 12.1–12.2); the rule is
+-- 13.2.2. The reading adopted: 13.2.2.
+@ref akn:art_3__para_3-2/p10 akn:art_3__para_3-2/p11
+GIVEN e IS A `school employee`
+GIVETH A BOOLEAN
+DECIDE `cannot advance until certified` e IF
+        (NOT e's `holds a teaching certification`)
+    AND e's `seniority in teaching` LESS THAN 25
+
+`the sections the circular numbers under 12` MEANS LIST "12.1", "12.2"
+`3.2 cites 12.2.2, which is not there` MEANS
+    NOT elem "12.2.2" `the sections the circular numbers under 12`
+#ASSERT `3.2 cites 12.2.2, which is not there`
+
+-- 3.4.1: a new academic (or equivalent grade) in a joined institution at
+-- grade 1, seniority 1 — bachelor's table, master's table, a doctorate in
+-- the master's table with 5% of the integrated salary. 3.4.2: a new
+-- non-academic not on intern's pay (§§145–148) by education.
+DECLARE `degree` IS ONE OF
+    `no degree`
+    `bachelor's degree`
+    `master's degree`
+    `doctorate`
+
+DECLARE `placement` HAS
+    `salary table` IS A STRING
+    `grade on placement` IS A NUMBER
+    `seniority on placement` IS A NUMBER
+    `doctorate supplement rate` IS A NUMBER
+
+@ref akn:art_3__para_3-4__subpara_3-4-1 akn:art_3__para_3-4__subpara_3-4-1/p2 akn:art_3__para_3-4__subpara_3-4-1/p3 akn:art_3__para_3-4__subpara_3-4-1/p4 akn:art_3__para_3-4__subpara_3-4-1/p5 akn:art_3__para_3-4__subpara_3-4-1/p6 akn:art_3__para_3-4__subpara_3-4-2
+GIVEN d IS A `degree`, `non-academic education` IS A STRING @desc for a non-academic: "senior", "certified" or "uncertified"
+GIVETH A `placement`
+DECIDE `the placement of a new employee` d `non-academic education` IS
+    CONSIDER d
+    WHEN `bachelor's degree` THEN `placement` "bachelor's degree" 1 1 0
+    WHEN `master's degree`   THEN `placement` "master's degree" 1 1 0
+    WHEN `doctorate`         THEN `placement` "master's degree" 1 1 0.05
+    WHEN `no degree`         THEN `placement` `non-academic education` 1 1 0
+
+-- akn:art_3__para_3-5 The heading "מורים מתמחים".
+
+-- 3.5.1: the internship counts only at a third of a position or more.
+-- 3.5.2: at most two years, in which a degree and a teaching certificate
+-- must be completed, or no further employment under the reform. 3.5.3: it
+-- counts for tenure, jubilee and recuperation, not for salary seniority or
+-- the time required for promotion.
+@ref akn:art_3__para_3-5__subpara_3-5-1
+GIVEN `position fraction` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `the internship year is recognised` `position fraction` IF
+    `position fraction` AT LEAST 1 DIVIDED BY 3
+
+@ref akn:art_3__para_3-5__subpara_3-5-2
+GIVEN `years of internship` IS A NUMBER, `completed degree and certificate` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `may go on under the reform after the internship` `years of internship` `completed degree and certificate` IF
+    `years of internship` AT MOST 2 AND `completed degree and certificate`
+
+DECLARE `seniority purpose` IS ONE OF
+    `salary seniority`
+    `time required for promotion`
+    `tenure`
+    `jubilee grant`
+    `recuperation`
+
+@ref akn:art_3__para_3-5__subpara_3-5-3
+GIVEN p IS A `seniority purpose`
+GIVETH A BOOLEAN
+DECIDE `the internship counts for` p IF
+    CONSIDER p
+    WHEN `tenure` THEN TRUE
+    WHEN `jubilee grant` THEN TRUE
+    WHEN `recuperation` THEN TRUE
+    OTHERWISE FALSE
+
+-- akn:art_3__para_3-5__subpara_3-5-4 Pointer to the interns' evaluation; no rule here.
+-- akn:art_3__para_3-5__subpara_3-5-4/p2 Its link; no rule.
+-- akn:art_3__para_3-5__subpara_3-5-4/p3 The link's continuation; no rule.
+-- akn:art_3__para_3-5__subpara_3-5-5 Pointer to the interns' map of dimensions; no rule here.
+-- akn:art_3__para_3-5__subpara_3-5-5/p2 Its link; no rule.
+-- akn:art_3__para_3-5__subpara_3-5-5/p3 The link's continuation; no rule.
+-- akn:art_3__para_3-6 The heading "מורים ממלאי מקום".
+
+-- 3.6: a substitute in weekly hours (not single hours) is employed on the
+-- characteristics of the teacher replaced.
+@ref akn:art_3__para_3-6/p2
+GIVEN `in weekly hours` IS A BOOLEAN, `post replaced` IS A `school post`, `post otherwise` IS A `school post`
+GIVETH A `school post`
+DECIDE `the substitute's post` `in weekly hours` `post replaced` `post otherwise` IS
+    IF `in weekly hours` THEN `post replaced` ELSE `post otherwise`
+
+§§ `4 מבנה שבוע העבודה למורים ברפורמה`
+
+-- 4.1: a full-time employee works five days a week, also where the school
+-- works six.
+@ref akn:art_4__para_4-1
+`the working days of a full position` MEANS 5
+
+DECLARE `work week` HAS
+    `week hours`       IS A NUMBER
+    `frontal`          IS A NUMBER
+    `individual`       IS A NUMBER
+    `presence`         IS A NUMBER
+
+-- 4.4: in a primary special-education school, 36 hours: 26 frontal, 5
+-- individual (a group of up to 3, or one pupil; content by the principal
+-- under the Ministry's instruction), 5 presence — up to 2 of them work
+-- meetings, the rest on the activities listed.
+@ref akn:art_4__para_4-4 akn:art_4__para_4-4__subpara_4-4-1 akn:art_4__para_4-4__subpara_4-4-2 akn:art_4__para_4-4__subpara_4-4-3 akn:art_4__para_4-4__subpara_4-4-4
+`the primary teacher's week` MEANS `work week` 36 26 5 5
+
+@ref akn:art_4__para_4-4__subpara_4-4-4__cls_1
+`the primary meeting hours at most` MEANS 2
+
+-- 4.5: health and arts staff in a primary special-education school: as a
+-- teacher, but 3 individual hours and 7 presence, two of which may serve
+-- for moving between institutions.
+@ref akn:art_4__para_4-5 akn:art_4__para_4-5/p2
+`the primary health and arts week` MEANS `work week` 36 26 3 7
+
+-- 4.6: in a post-primary school, 36 hours: 23 frontal, 4 individual, 9
+-- presence — up to 4 of them work meetings.
+@ref akn:art_4__para_4-6 akn:art_4__para_4-6__subpara_4-6-1 akn:art_4__para_4-6__subpara_4-6-2 akn:art_4__para_4-6__subpara_4-6-3 akn:art_4__para_4-6__subpara_4-6-4
+`the post-primary teacher's week` MEANS `work week` 36 23 4 9
+
+@ref akn:art_4__para_4-6__subpara_4-6-4__cls_1
+`the post-primary meeting hours at most` MEANS 4
+
+-- 4.7: health and arts staff in a post-primary school: 2 individual and 11
+-- presence, two of which may serve for moving between institutions.
+@ref akn:art_4__para_4-7 akn:art_4__para_4-7/p2
+`the post-primary health and arts week` MEANS `work week` 36 23 2 11
+
+#ASSERT all (GIVEN w YIELD w's `frontal` PLUS w's `individual` PLUS w's `presence` EQUALS w's `week hours`)
+            (LIST `the primary teacher's week`, `the primary health and arts week`,
+                  `the post-primary teacher's week`, `the post-primary health and arts week`)
+
+DECLARE `presence activity` IS ONE OF
+    `work meetings`
+    `adapting the curriculum and environment to the pupil`
+    `individual meetings with parents`
+    `checking work and tests`
+    `preparing for and taking part in committees`
+    `planning and guiding the assistants' work`
+    `coordinating with bodies outside the school`
+    `coordinating for educational continuity`
+    `another activity`
+
+@ref akn:art_4__para_4-4__subpara_4-4-4__cls_2 akn:art_4__para_4-4__subpara_4-4-4__cls_2/p2 akn:art_4__para_4-4__subpara_4-4-4__cls_2/p3 akn:art_4__para_4-4__subpara_4-4-4__cls_2/p4 akn:art_4__para_4-4__subpara_4-4-4__cls_2/p5 akn:art_4__para_4-4__subpara_4-4-4__cls_2/p6 akn:art_4__para_4-4__subpara_4-4-4__cls_2/p7 akn:art_4__para_4-4__subpara_4-4-4__cls_2/p8 akn:art_4__para_4-6__subpara_4-6-4__cls_2 akn:art_4__para_4-6__subpara_4-6-4__cls_2/p2 akn:art_4__para_4-6__subpara_4-6-4__cls_2/p3 akn:art_4__para_4-6__subpara_4-6-4__cls_2/p4 akn:art_4__para_4-6__subpara_4-6-4__cls_2/p5 akn:art_4__para_4-6__subpara_4-6-4__cls_2/p6 akn:art_4__para_4-6__subpara_4-6-4__cls_2/p7 akn:art_4__para_4-6__subpara_4-6-4__cls_2/p8 akn:art_4__para_4-6__subpara_4-6-4__cls_2/p9 akn:art_4__para_4-6__subpara_4-6-4__cls_2/p10
+GIVEN a IS A `presence activity`
+GIVETH A BOOLEAN
+DECIDE `is a presence-hours activity` a IF
+    NOT a EQUALS `another activity`
+
+-- akn:art_4__para_4-4__subpara_4-4-4__cls_2/p9 Pointer to the detailed primary work-week table; no rule here.
+-- akn:art_4__para_4-4__subpara_4-4-4__cls_2/p10 Its link; no rule.
+-- akn:art_4__para_4-4__subpara_4-4-4__cls_2/p11 The link's continuation; no rule.
+-- akn:art_4__para_4-5/p3 Pointer to the health-professions primary table; no rule here.
+-- akn:art_4__para_4-5/p4 Its link; no rule.
+-- akn:art_4__para_4-5/p5 The link's continuation; no rule.
+-- akn:art_4__para_4-6__subpara_4-6-4__cls_2/p11 Pointer to the post-primary table; no rule here.
+-- akn:art_4__para_4-6__subpara_4-6-4__cls_2/p12 Its link; no rule.
+-- akn:art_4__para_4-6__subpara_4-6-4__cls_2/p13 The link's continuation; no rule.
+-- akn:art_4__para_4-7/p3 Pointer to the health-professions post-primary table; no rule here.
+-- akn:art_4__para_4-7/p4 Its link; no rule.
+-- akn:art_4__para_4-7/p5 The link's continuation; no rule.
+
+-- 4.2–4.3: which week a teacher works. In a primary special-education
+-- school (grades 1–6, 1–8, 1–9) — existing teachers on a 30- or 24-hour base
+-- included — the primary week; in a multi-stage school, grades 1–6 the
+-- primary week, grades 7–12 the post-primary (middle-school) week.
+@ref akn:art_4__para_4-2 akn:art_4__para_4-2/p2 akn:art_4__para_4-3 akn:art_4__para_4-3/p2 akn:art_4__para_4-3/p3 akn:art_4__para_4-3/p4
+GIVEN e IS A `school employee`
+GIVETH A `work week`
+DECIDE `the work week of` e IS
+    IF e's `post` EQUALS `health-professions employee` OR e's `post` EQUALS `arts therapist`
+    THEN IF `works the primary week` e
+         THEN `the primary health and arts week`
+         ELSE `the post-primary health and arts week`
+    ELSE IF `works the primary week` e
+         THEN `the primary teacher's week`
+         ELSE `the post-primary teacher's week`
+
+GIVEN e IS A `school employee`
+GIVETH A BOOLEAN
+DECIDE `works the primary week` e IF
+    CONSIDER e's `stage`
+    WHEN `primary special-education school` THEN TRUE
+    WHEN `multi-stage special-education school` THEN e's `teaches grades 1 to 6`
+    OTHERWISE FALSE
+
+§§ `5 העסקה בחלקיות משרה ברפורמה`
+
+-- 5.1: a teacher in a special-education school, at least a third in the
+-- reform. 5.2: a new teacher (not an intern) at least 70%, and from
+-- התשפ"ה (1.9.2024) at least 80%; an intern and an existing teacher at
+-- least a third, so as to earn a year of seniority. 5.3: a
+-- health-professions employee may be below a third.
+@ref akn:art_5__para_5-1 akn:art_5__para_5-2 akn:art_5__para_5-2/p2 akn:art_5__para_5-3
+GIVEN e IS A `school employee`, `school year` IS A NUMBER @desc by its first calendar year (2024 = התשפ"ה)
+GIVETH A NUMBER
+DECIDE `the least position in the reform` e `school year` IS
+    BRANCH IF e's `post` EQUALS `health-professions employee` THEN 0
+           IF e's `is an intern` THEN 1 DIVIDED BY 3
+           IF `is a new teaching employee` e THEN (IF `school year` AT LEAST 2024 THEN 0.8 ELSE 0.7)
+           OTHERWISE 1 DIVIDED BY 3
+
+-- 5.4: a part-time position is cut from each kind of hours in proportion;
+-- a health employee below a third, or one teaching a required subject below
+-- a third by the HR division's special approval, in three frontal hours or
+-- fewer ("single frontal hours"), teaches those only, and the position is
+-- those hours over the base.
+DECLARE `hours split` HAS
+    `frontal part` IS A NUMBER
+    `individual part` IS A NUMBER
+    `presence part` IS A NUMBER
+
+@ref akn:art_5__para_5-4
+GIVEN w IS A `work week`, f IS A NUMBER
+GIVETH AN `hours split`
+DECIDE `the part-time hours` w f IS
+    `hours split` WITH `frontal part` IS f TIMES w's `frontal`, `individual part` IS f TIMES w's `individual`, `presence part` IS f TIMES w's `presence`
+
+@ref akn:art_5__para_5-4/p2
+GIVEN `single frontal hours` IS A NUMBER, `position base` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the position of single frontal hours` `single frontal hours` `position base` IS
+    IF `single frontal hours` AT MOST 3
+    THEN `single frontal hours` DIVIDED BY `position base`
+    ELSE 0
+
+-- 5.5: at most two schools (reform or not), the cumulative position not
+-- above 100% in all — except health staff and a subject the HR division
+-- allows in more than two schools.
+@ref akn:art_5__para_5-5
+GIVEN `schools` IS A NUMBER, `total position` IS A NUMBER, `excepted` IS A BOOLEAN @desc a health-professions employee, or a subject the HR division allowed in more than two schools
+GIVETH A BOOLEAN
+DECIDE `5.5 allows the employment` `schools` `total position` `excepted` IF
+    `excepted` OR (`schools` AT MOST 2 AND `total position` AT MOST 1)
+
+-- 5.6: below a third in the reform, the period does not count for the time
+-- required for promotion.
+@ref akn:art_5__para_5-6
+GIVEN f IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `the period counts for promotion time` f IF
+    f AT LEAST 1 DIVIDED BY 3
+
+§§ `6 העסקה מעל 100% משרה ברפורמה`
+
+-- 6.1: as a rule up to 100%; above it by exception, for teaching employees
+-- (not principals or first deputies), for the system's needs; the hours
+-- above 100% frontal only; at most 8.5 hours a day and 42 a week. 6.2: in
+-- one institution the principal may approve up to 42 weekly hours without a
+-- request. 6.3: in two institutions, up to 106% without approval; 6.4:
+-- above 106%, a request in the entitlements system (procedure linked).
+@ref akn:art_6__para_6-1 akn:art_6__para_6-1/p2 akn:art_6__para_6-1/p3 akn:art_6__para_6-1/p4
+`the daily hours cap` MEANS 8.5
+@ref akn:art_6__para_6-1/p4
+`the weekly hours cap` MEANS 42
+
+DECLARE `over-time approval` IS ONE OF
+    `none needed`
+    `the principal's approval`
+    `a request in the entitlements system`
+    `not allowed`
+
+@ref akn:art_6__para_6-1/p2 akn:art_6__para_6-2 akn:art_6__para_6-3 akn:art_6__para_6-4 akn:art_6__para_6-4/p2 akn:art_6__para_6-4/p3
+GIVEN e IS A `school employee`, `institutions` IS A NUMBER, `total position` IS A NUMBER, `weekly hours` IS A NUMBER
+GIVETH AN `over-time approval`
+DECIDE `what over-time needs` e `institutions` `total position` `weekly hours` IS
+    BRANCH IF `total position` AT MOST 1 THEN `none needed`
+           IF e's `post` EQUALS `principal` OR e's `post` EQUALS `first deputy principal` THEN `not allowed`
+           IF `weekly hours` GREATER THAN `the weekly hours cap` THEN `not allowed`
+           IF `institutions` EQUALS 1 THEN `the principal's approval`
+           IF `total position` AT MOST 1.06 THEN `none needed`
+           OTHERWISE `a request in the entitlements system`
+
+-- F-2024-25_tashpah_01-c: 5.5 allows two schools "provided the cumulative
+-- position does not exceed 100% in all the employments, in one school or
+-- two"; 6.3 lets an employee in two institutions be placed up to 106%
+-- without any approval, and 6.4 above that on request. The reading
+-- adopted: section 6, the clause written for employment above 100%, governs
+-- it; 5.5 is read as the general rule section 6 excepts.
+`a teacher in two schools at 104%` MEANS
+    `school employee` WITH
+        `post`                                  IS `teacher`
+        `stage`                                 IS `primary special-education school`
+        `teaches grades 1 to 6`                 IS TRUE
+        `has recognised years of actual teaching` IS TRUE
+        `is academic`                           IS TRUE
+        `holds a teaching certification`        IS TRUE
+        `seniority in teaching`                 IS 12
+        `age`                                   IS 40
+        `position fraction`                     IS 1.04
+        `is an intern`                          IS FALSE
+
+`5.5 and 6.3 disagree on two schools at 104%` MEANS
+        (NOT `5.5 allows the employment` 2 1.04 FALSE)
+    AND `what over-time needs` `a teacher in two schools at 104%` 2 1.04 37 EQUALS `none needed`
+#ASSERT `5.5 and 6.3 disagree on two schools at 104%`
+
+-- Over 100%, the extra hours are frontal only.
+@ref akn:art_6__para_6-1/p3
+GIVEN `extra frontal hours` IS A NUMBER, `extra other hours` IS A NUMBER, `daily hours` IS A NUMBER, `weekly hours` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `the over-time is well formed` `extra frontal hours` `extra other hours` `daily hours` `weekly hours` IF
+        `extra other hours` EQUALS 0
+    AND `daily hours` AT MOST `the daily hours cap`
+    AND `weekly hours` AT MOST `the weekly hours cap`
+
+§§ `7 משרת הורה`
+
+-- 7.1: a mother's position per the takanon — employed at 79% or more in
+-- all her position. 7.2: one frontal hour and one presence hour off the
+-- ordinary week (the tables above).
+@ref akn:art_7__para_7-1 akn:art_7__para_7-1/p2
+GIVEN `position fraction` IS A NUMBER, `is a mother entitled under the takanon` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `entitled to a mother's position` `position fraction` `is a mother entitled under the takanon` IF
+    `is a mother entitled under the takanon` AND `position fraction` AT LEAST 0.79
+
+@ref akn:art_7__para_7-2 akn:art_7__para_7-2/p2
+`the mother's frontal hours off` MEANS 1
+@ref akn:art_7__para_7-2
+`the mother's presence hours off` MEANS 1
+
+-- 7.3: after maternity leave, at 90% or more, for four months: one hour a
+-- day (five a week) off the presence hours, pay and position untouched; 7.2
+-- does not apply then. 7.4: at 79% to 90%, the mother's reduction of 7.2.
+-- 7.5: never both at once.
+-- F-2024-25_tashpah_01-f: 7.3 takes "90% ומעלה" and 7.4 "79% עד 90%";
+-- at exactly 90% both apply — five nursing hours or the mother's two — and
+-- 7.5 forbids both. The reading adopted: 7.3 governs at 90%, the band that
+-- opens there; 7.4 is read as below 90%.
+@ref akn:art_7__para_7-3 akn:art_7__para_7-4 akn:art_7__para_7-5
+DECLARE `reduction after maternity leave` IS ONE OF
+    `the nursing hour`
+    `the mother's reduction`
+    `no reduction`
+
+GIVEN f IS A NUMBER
+GIVETH A LIST OF `reduction after maternity leave`
+DECIDE `the reductions the text gives at position` f IS
+    filter (GIVEN r YIELD
+                CONSIDER r
+                WHEN `the nursing hour` THEN f AT LEAST 0.9
+                WHEN `the mother's reduction` THEN f AT LEAST 0.79 AND f AT MOST 0.9
+                OTHERWISE f LESS THAN 0.79)
+           (LIST `the nursing hour`, `the mother's reduction`, `no reduction`)
+
+`at 90% the text gives both reductions` MEANS
+    `the reductions the text gives at position` 0.9 EQUALS LIST `the nursing hour`, `the mother's reduction`
+#ASSERT `at 90% the text gives both reductions`
+
+GIVEN f IS A NUMBER
+GIVETH A `reduction after maternity leave`
+DECIDE `the reduction within four months of maternity leave` f IS
+    BRANCH IF f AT LEAST 0.9 THEN `the nursing hour`
+           IF f AT LEAST 0.79 THEN `the mother's reduction`
+           OTHERWISE `no reduction`
+
+@ref akn:art_7__para_7-3
+`the nursing hours a week` MEANS 5
+
+§§ `8 מורים הזכאים לשעות גיל`
+
+-- 8.1: the age that counts is as before the reform. 8.2: existing and new
+-- teachers aged 50–55, two frontal hours off a full position (in proportion
+-- for a part-time one), base 34. 8.3: existing teachers aged 55 and above,
+-- three frontal and one individual hour off, base 32. 8.4: new teachers aged
+-- 55 and above, two frontal hours only, base 34, no more after 50.
+-- F-2024-25_tashpah_01-d: 8.2's "50–55" and 8.3's "55 ומעלה" both take an
+-- existing teacher of 55, with bases of 34 and 32. The reading adopted:
+-- the band that opens at 55 (8.3) governs.
+DECLARE `age-hours rule` HAS
+    `rule age from` IS A NUMBER
+    `rule age to` IS A NUMBER
+    `for existing teachers` IS A BOOLEAN
+    `for new teachers` IS A BOOLEAN
+    `base after the reduction` IS A NUMBER
+
+@ref akn:art_8__para_8-1 akn:art_8__para_8-2 akn:art_8__para_8-3 akn:art_8__para_8-4 akn:art_8__para_8-4/p2
+`the age-hours rules as printed` MEANS
+    LIST `age-hours rule` 50 55  TRUE  TRUE  34,
+         `age-hours rule` 55 999 TRUE  FALSE 32,
+         `age-hours rule` 55 999 FALSE TRUE  34
+
+GIVEN a IS A NUMBER, `is new` IS A BOOLEAN
+GIVETH A LIST OF NUMBER
+DECIDE `the bases the text gives at age` a `is new` IS
+    map (GIVEN r YIELD r's `base after the reduction`)
+        (filter (GIVEN r YIELD a AT LEAST r's `rule age from` AND a AT MOST r's `rule age to`
+                               AND (IF `is new` THEN r's `for new teachers` ELSE r's `for existing teachers`))
+                `the age-hours rules as printed`)
+
+`an existing teacher of 55 has two bases` MEANS
+    `the bases the text gives at age` 55 FALSE EQUALS LIST 34, 32
+#ASSERT `an existing teacher of 55 has two bases`
+
+GIVEN e IS A `school employee`
+GIVETH A NUMBER
+DECIDE `the age hours` e IS
+    IF e's `age` LESS THAN 50 THEN 0
+    ELSE IF `is a new teaching employee` e THEN 2
+         ELSE IF e's `age` LESS THAN 55 THEN 2
+              ELSE 4
+
+GIVEN e IS A `school employee`
+GIVETH A NUMBER
+DECIDE `the age hours for the position` e IS
+    `the age hours` e TIMES min 1 (e's `position fraction`)
+
+§§ `9 מבנה שבוע העבודה למנהלים וסגנים ראשונים`
+
+-- 9.1: the principal and first deputy are employed at exactly 100%, five
+-- days a week. 9.2: the principal's week is 40 hours, with 6–9 frontal by
+-- the school's complexity level. 9.3–9.4: the complexity level (8 levels,
+-- by the school-management index: classes, kinds of disability, stages)
+-- sets their hours and pay; in special education the least level is 3.
+-- 9.5: computed at the start of May of the year before; 9.6: for a new or
+-- growing school, in December of the year, the least level until then,
+-- then retroactive to the year's start.
+@ref akn:art_9__para_9-1
+`the managers' position` MEANS 1
+
+@ref akn:art_9__para_9-2 akn:art_9__para_9-7
+`the managers' week` MEANS 40
+
+@ref akn:art_9__para_9-3 akn:art_9__para_9-4
+`the least complexity level in special education` MEANS 3
+
+@ref akn:art_9__para_9-5 akn:art_9__para_9-6
+GIVEN `new or growing school` IS A BOOLEAN, `level computed in December` IS A NUMBER, `level computed in May` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the complexity level for the year` `new or growing school` `level computed in December` `level computed in May` IS
+    max `the least complexity level in special education`
+        (IF `new or growing school` THEN `level computed in December` ELSE `level computed in May`)
+
+DECLARE `frontal by level` HAS
+    `level` IS A NUMBER
+    `frontal hours at the level` IS A NUMBER
+
+-- The principal's frontal hours by level (printed as lines).
+@ref akn:art_9__para_9-6/p2 akn:art_9__para_9-6/p3 akn:art_9__para_9-6/p4 akn:art_9__para_9-6/p5 akn:art_9__para_9-6/p6 akn:art_9__para_9-6/p7 akn:art_9__para_9-6/p8 akn:art_9__para_9-6/p9 akn:art_9__para_9-6/p10 akn:art_9__para_9-6/p11 akn:art_9__para_9-6/p12
+`the principal's frontal hours` MEANS
+    LIST `frontal by level` 3 9, `frontal by level` 4 8, `frontal by level` 5 8,
+         `frontal by level` 6 7, `frontal by level` 7 7, `frontal by level` 8 6
+
+-- akn:art_9__para_9-6/p13 Pointer to the computation of the complexity level; no rule here.
+-- akn:art_9__para_9-6/p14 Its link; no rule.
+
+-- 9.7.1–9.7.3: the first deputy's frontal hours — primary 18–21,
+-- post-primary 9–11, multi-stage 13–15 — by level.
+@ref akn:art_9__para_9-7__subpara_9-7-1 akn:art_9__para_9-7__subpara_9-7-1/t1
+`the primary deputy's frontal hours` MEANS
+    LIST `frontal by level` 3 21, `frontal by level` 4 21, `frontal by level` 5 20,
+         `frontal by level` 6 20, `frontal by level` 7 19, `frontal by level` 8 18
+
+@ref akn:art_9__para_9-7__subpara_9-7-2 akn:art_9__para_9-7__subpara_9-7-2/t1
+`the post-primary deputy's frontal hours` MEANS
+    LIST `frontal by level` 3 11, `frontal by level` 4 11, `frontal by level` 5 11,
+         `frontal by level` 6 11, `frontal by level` 7 9, `frontal by level` 8 9
+
+@ref akn:art_9__para_9-7__subpara_9-7-3 akn:art_9__para_9-7__subpara_9-7-3/t1
+`the multi-stage deputy's frontal hours` MEANS
+    LIST `frontal by level` 3 15, `frontal by level` 4 15, `frontal by level` 5 14,
+         `frontal by level` 6 14, `frontal by level` 7 13, `frontal by level` 8 13
+
+GIVEN t IS A LIST OF `frontal by level`
+      l IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the frontal hours in` t `at level` l IS
+    CONSIDER filter (GIVEN r YIELD r's `level` EQUALS l) t
+    WHEN r FOLLOWED BY rest THEN r's `frontal hours at the level`
+    OTHERWISE 0
+
+-- Every table covers levels 3 to 8 once, inside the range its clause states.
+GIVEN t IS A LIST OF `frontal by level`
+      lo IS A NUMBER
+      hi IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `covers levels 3 to 8 within` t lo hi IF
+    all (GIVEN l YIELD count (filter (GIVEN r YIELD r's `level` EQUALS l) t) EQUALS 1
+                       AND `the frontal hours in` t `at level` l AT LEAST lo
+                       AND `the frontal hours in` t `at level` l AT MOST hi)
+        (LIST 3, 4, 5, 6, 7, 8)
+
+#ASSERT `covers levels 3 to 8 within` `the principal's frontal hours` 6 9
+#ASSERT `covers levels 3 to 8 within` `the primary deputy's frontal hours` 18 21
+#ASSERT `covers levels 3 to 8 within` `the post-primary deputy's frontal hours` 9 11
+#ASSERT `covers levels 3 to 8 within` `the multi-stage deputy's frontal hours` 13 15
+
+-- 9.8: a second or later deputy works a teacher's week, using the
+-- individual hours for the deputy's work. 9.9: a principal or first deputy
+-- entitled to a mother's position has two weekly non-frontal hours off;
+-- 9.10: so does one aged 50 or more, for age — pay and position untouched.
+@ref akn:art_9__para_9-8
+GIVEN e IS A `school employee`
+GIVETH A BOOLEAN
+DECIDE `works a teacher's week` e IF
+    NOT (e's `post` EQUALS `principal` OR e's `post` EQUALS `first deputy principal`)
+
+@ref akn:art_9__para_9-9 akn:art_9__para_9-10
+GIVEN `entitled to a mother's position` IS A BOOLEAN, `age` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the manager's non-frontal hours off` `entitled to a mother's position` `age` IS
+    (IF `entitled to a mother's position` THEN 2 ELSE 0)
+    PLUS (IF `age` AT LEAST 50 THEN 2 ELSE 0)
+
+-- 9.11: an existing non-academic principal with 1–27 years of salary
+-- seniority must complete an academic education within 4 years of the
+-- school's joining to keep the post, employed meanwhile on the terms for
+-- non-academic principals; 9.12: with 28 or more, on those terms.
+@ref akn:art_9__para_9-11 akn:art_9__para_9-12
+GIVEN `salary seniority` IS A NUMBER, `years since joining` IS A NUMBER, `completed a degree` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `a non-academic principal may keep the post` `salary seniority` `years since joining` `completed a degree` IF
+    `salary seniority` AT LEAST 28 OR `completed a degree` OR `years since joining` AT MOST 4
+
+-- 9.13: the managers' salary is global — it rewards all the work of the
+-- managerial role whenever done (agreement of 19.10.2022, §31.1).
+@ref akn:art_9__para_9-13 akn:art_9__para_9-13/p2
+GIVEN e IS A `school employee`
+GIVETH A BOOLEAN
+DECIDE `is paid a global salary` e IF
+    e's `post` EQUALS `principal` OR e's `post` EQUALS `first deputy principal`
+
+§§ `10 שעות פעילות בית ספרית`
+
+-- 10.1–10.2: an employee in the reform is paid 125% of the hourly value for
+-- school activities, beyond the position; at most 40 hours a year. 10.3:
+-- including a pre-opening meeting (up to 3 hours). 10.4: what they are; the
+-- principal divides them. 10.5: on the employee's day off, 125%. 10.6:
+-- instead of a presence hour that day, 125% and not the presence hour's
+-- 100%; 10.7: if the presence hour is done another day, both.
+@ref akn:art_10__para_10-1 akn:art_10__para_10-5
+`the activity rate` MEANS 1.25
+
+@ref akn:art_10__para_10-2 akn:art_10__para_10-3 akn:art_10__para_10-4
+`the yearly cap on activity hours` MEANS 40
+
+DECLARE `activity day` IS ONE OF
+    `on the employee's day off`
+    `instead of a presence hour that day`
+    `instead of a presence hour done on another day`
+    `beyond the timetable`
+
+@ref akn:art_10__para_10-1 akn:art_10__para_10-5 akn:art_10__para_10-6 akn:art_10__para_10-7
+GIVEN `hourly value` IS A NUMBER, d IS AN `activity day`
+GIVETH A NUMBER
+DECIDE `the pay for one activity hour` `hourly value` d IS
+    CONSIDER d
+    WHEN `instead of a presence hour that day` THEN `the activity rate` TIMES `hourly value` MINUS `hourly value`
+    OTHERWISE `the activity rate` TIMES `hourly value`
+
+GIVEN `hours allotted` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the activity hours paid` `hours allotted` IS
+    min `hours allotted` `the yearly cap on activity hours`
+
+§§ `11 יציאה מאופק חדש`
+
+-- 11.1: everyone meeting the conditions must join. 11.2–11.4: by
+-- exception, a request to leave for health (the employee's or a
+-- first-degree relative's, with current certificates) or a change for the
+-- worse in personal or family circumstances ("humanitarian"), on annex ג'
+-- to the Ministry by e-mail.
+@ref akn:art_11__para_11-1
+GIVEN e IS A `school employee`, `request to leave granted` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `must be in Ofek Hadash` e `request to leave granted` IF
+    `meets the joining conditions` e AND NOT `request to leave granted`
+
+DECLARE `reason to leave` IS ONE OF
+    `physical or mental health of the employee or a first-degree relative`
+    `a change for the worse in personal or family circumstances`
+    `another reason`
+
+@ref akn:art_11__para_11-2 akn:art_11__para_11-2/p2 akn:art_11__para_11-2/p3 akn:art_11__para_11-2/p4
+GIVEN r IS A `reason to leave`
+GIVETH A BOOLEAN
+DECIDE `a request to leave may be heard for` r IF
+    NOT r EQUALS `another reason`
+
+@ref akn:art_11__para_11-3 akn:art_11__para_11-4
+GIVETH A DEONTIC Party `circular 1 action`
+DECIDE `a request to leave` IS
+    PARTY `the teaching employee`
+    MAY   `submit a request` k PROVIDED k EQUALS "to leave Ofek Hadash"
+    WITHIN 365
+
+§§ `12 ותק בהוראה`
+
+-- 12.1: recognised seniority is the takanon's, without the internship or
+-- compulsory IDF service, with IDF or national service in teaching. 12.2:
+-- an existing employee keeps every year recognised for salary before joining.
+@ref akn:art_12__para_12-1 akn:art_12__para_12-2
+GIVEN `takanon seniority` IS A NUMBER, `internship years` IS A NUMBER, `compulsory IDF years` IS A NUMBER, `years recognised before joining` IS A NUMBER, `is existing` IS A BOOLEAN
+GIVETH A NUMBER
+DECIDE `the recognised seniority` `takanon seniority` `internship years` `compulsory IDF years` `years recognised before joining` `is existing` IS
+    IF `is existing`
+    THEN max (`takanon seniority` MINUS `internship years` MINUS `compulsory IDF years`) `years recognised before joining`
+    ELSE `takanon seniority` MINUS `internship years` MINUS `compulsory IDF years`
+
+§§ `13 קידום בדרגות, הערכה ופיתוח מקצועי`
+
+-- 13.1: promotion needs the required time (פז"נ), development hours (שפ"מ)
+-- and an evaluation, by the Ministry's instructions (linked).
+@ref akn:art_13__para_13-1 akn:art_13__para_13-1/p2 akn:art_13__para_13-1/p3 akn:art_13__para_13-1/p4
+GIVEN `months in the grade` IS A NUMBER, `development hours` IS A NUMBER, `evaluation passed` IS A BOOLEAN, `months required` IS A NUMBER, `hours required` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `may be promoted` `months in the grade` `development hours` `evaluation passed` `months required` `hours required` IF
+        `months in the grade` AT LEAST `months required`
+    AND `development hours` AT LEAST `hours required`
+    AND `evaluation passed`
+
+-- akn:art_13__para_13-1/p5 Pointer to the evaluation details; no rule here.
+-- akn:art_13__para_13-1/p6 Its link; no rule.
+-- akn:art_13__para_13-1/p7 Pointer to the map of indicators; no rule here.
+-- akn:art_13__para_13-1/p8 Its link; no rule.
+-- akn:art_13__para_13-1/p9 The link's continuation; no rule.
+-- akn:art_13__para_13-2 The heading of 13.2.
+
+DECLARE `promotion row` HAS
+    `from grade` IS A STRING
+    `months required for the step` IS A NUMBER
+    `hours required for the step` IS A NUMBER
+
+@ref akn:art_13__para_13-2__subpara_13-2-1 akn:art_13__para_13-2__subpara_13-2-1/p2 akn:art_13__para_13-2__subpara_13-2-1/p3 akn:art_13__para_13-2__subpara_13-2-1/t1
+`the promotion table for certified academic teachers` MEANS
+    LIST `promotion row` "1" 30 120, `promotion row` "2" 30 120,
+         `promotion row` "3" 36 180, `promotion row` "4" 36 180, `promotion row` "5" 36 180,
+         `promotion row` "6" 48 210, `promotion row` "7" 48 210, `promotion row` "8" 48 210
+
+-- 13.2.2: uncertified academics joined by exception — with up to 25 years,
+-- no promotion until certified; then the time and hours count from joining,
+-- for one promotion, with up to 60 study hours; with 25 or more, no
+-- certification needed. A new one joined by exception has none of these
+-- and counts from certification.
+-- F-2024-25_tashpah_01-l: "עד 25 שנה" and "25 שנה ומעלה" both name 25, so
+-- a veteran with exactly 25 years is barred and freed at once. The reading
+-- adopted: 3.2's "below 25" — 25 years is "25 and more".
+@ref akn:art_13__para_13-2__subpara_13-2-2 akn:art_13__para_13-2__subpara_13-2-2/p2 akn:art_13__para_13-2__subpara_13-2-2/p3 akn:art_13__para_13-2__subpara_13-2-2/p4 akn:art_13__para_13-2__subpara_13-2-2/p5 akn:art_13__para_13-2__subpara_13-2-2/p6 akn:art_13__para_13-2__subpara_13-2-2/p7
+GIVEN `certification study hours` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the study hours counted as development hours` `certification study hours` IS
+    min `certification study hours` 60
+
+GIVEN `seniority in years` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `13.2.2's first paragraph bars a veteran with` `seniority in years` IF
+    `seniority in years` AT MOST 25
+
+GIVEN `seniority in years` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `13.2.2's sixth paragraph frees a veteran with` `seniority in years` IF
+    `seniority in years` AT LEAST 25
+
+`13.2.2 both bars and frees a veteran of exactly 25 years` MEANS
+        `13.2.2's first paragraph bars a veteran with` 25
+    AND `13.2.2's sixth paragraph frees a veteran with` 25
+#ASSERT `13.2.2 both bars and frees a veteran of exactly 25 years`
+#ASSERT (NOT `13.2.2's first paragraph bars a veteran with` 26) AND `13.2.2's sixth paragraph frees a veteran with` 26
+#ASSERT `13.2.2's first paragraph bars a veteran with` 24 AND (NOT `13.2.2's sixth paragraph frees a veteran with` 24)
+
+-- 13.2.3: from 1.9.2023, §§51, 59, 60 and 61 of the Ofek Hadash agreement
+-- are cancelled, except for those who signed before 30.6.2023 an undertaking
+-- to complete an academic education within four years; a certified
+-- non-academic with 28 years or more need not complete it, and advances by
+-- the table.
+@ref akn:art_13__para_13-2__subpara_13-2-3 akn:art_13__para_13-2__subpara_13-2-3/p2
+GIVEN `signed the undertaking on` IS A DATE
+GIVETH A BOOLEAN
+DECIDE `§§51, 59–61 still apply to one who signed on` `signed the undertaking on` IF
+    `signed the undertaking on` LESS THAN Date 30 6 2023
+
+@ref akn:art_13__para_13-2__subpara_13-2-3/p3 akn:art_13__para_13-2__subpara_13-2-3/p4 akn:art_13__para_13-2__subpara_13-2-3/p5 akn:art_13__para_13-2__subpara_13-2-3/t1
+`the promotion table for certified non-academic teachers` MEANS
+    LIST `promotion row` "1" 48 480, `promotion row` "2" 48 480,
+         `promotion row` "3" 48 480, `promotion row` "4" 48 480, `promotion row` "5" 48 480,
+         `promotion row` "6" 48 480, `promotion row` "7" 48 480, `promotion row` "8" 48 480
+
+-- akn:art_13__para_13-3 The heading of 13.3.
+
+@ref akn:art_13__para_13-3__subpara_13-3-1 akn:art_13__para_13-3__subpara_13-3-1/p2 akn:art_13__para_13-3__subpara_13-3-1/p3 akn:art_13__para_13-3__subpara_13-3-1/t1
+`the promotion table for certified academic managers` MEANS
+    LIST `promotion row` "א" 36 210, `promotion row` "ב" 36 210, `promotion row` "ג" 36 210
+
+@ref akn:art_13__para_13-3__subpara_13-3-2 akn:art_13__para_13-3__subpara_13-3-2/p2 akn:art_13__para_13-3__subpara_13-3-2/p3 akn:art_13__para_13-3__subpara_13-3-2/t1
+`the promotion table for certified non-academic managers` MEANS
+    LIST `promotion row` "א" 48 480, `promotion row` "ב" 48 480, `promotion row` "ג" 48 480
+
+§§ `14 יועצים חינוכיים`
+
+-- 14.1: a counsellor works an academic teacher's week: the frontal hours
+-- split between teaching and counselling by the principal; individual hours
+-- are counselling; presence hours as a teacher's, also for counselling; at
+-- least 1/6 of the position in frontal teaching (6 of 36) in primary and
+-- middle schools, and at least 4 frontal hours per position. 14.2: new
+-- counsellors on the new academic integrated tables. 14.3: with at least 7
+-- counselling hours, a counselling allowance — 12% on a temporary licence,
+-- 18% on a permanent one.
+@ref akn:art_14__para_14-1 akn:art_14__para_14-1/p2 akn:art_14__para_14-1/p3 akn:art_14__para_14-1/p4 akn:art_14__para_14-1/p5 akn:art_14__para_14-1/p6 akn:art_14__para_14-1/p7
+GIVEN `frontal teaching hours` IS A NUMBER, `position fraction` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `the counsellor teaches enough` `frontal teaching hours` `position fraction` IF
+        `frontal teaching hours` AT LEAST 36 TIMES `position fraction` DIVIDED BY 6
+    AND `frontal teaching hours` AT LEAST 4
+
+@ref akn:art_14__para_14-2
+`the new counsellor's tables` MEANS "the new integrated-salary tables for academic teachers"
+
+@ref akn:art_14__para_14-3 akn:art_14__para_14-3/p2 akn:art_14__para_14-3/p3
+GIVEN `counselling hours` IS A NUMBER, `permanent licence` IS A BOOLEAN
+GIVETH A NUMBER
+DECIDE `the counselling allowance rate` `counselling hours` `permanent licence` IS
+    IF `counselling hours` LESS THAN 7 THEN 0
+    ELSE IF `permanent licence` THEN 0.18 ELSE 0.12
+
+§§ `15 קביעת הדרגה באופק חדש`
+
+-- 15.1–15.5: the Ministry alone sets the grade, from the employment,
+-- education and pay; the conversion uses March's pay of the year before
+-- joining (seniority, grade, in-service allowances, roles, the conversion
+-- coefficient by status); the pay converted is that of a 100% position by
+-- the roles; half grades are possible. 15.6: more in the booklet and in
+-- annex ד'; links.
+@ref akn:art_15__para_15-1 akn:art_15__para_15-2 akn:art_15__para_15-3 akn:art_15__para_15-4
+GIVEN `year of joining` IS A NUMBER
+GIVETH A DATE
+DECIDE `the conversion month` `year of joining` IS
+    Date 1 3 (`year of joining` MINUS 1)
+
+@ref akn:art_15__para_15-5
+GIVEN g IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `is a grade a conversion may give` g IF
+    g AT LEAST 1 AND g AT MOST 9 AND (g TIMES 2) EQUALS TRUNC (g TIMES 2) 0
+
+-- akn:art_15__para_15-6 Pointer to the booklet on grades and to annex ד', encoded there.
+-- akn:art_15__para_15-6/p2 The booklet's link; no rule.
+-- akn:art_15__para_15-6/p3 Pointer to the salary tables; no rule here.
+-- akn:art_15__para_15-6/p4 Its link; no rule.
+-- akn:art_15__para_15-6/p5 Pointer to the 2016 shekel-supplement circular; no rule here.
+-- akn:art_15__para_15-6/p6 Its link; no rule.
+-- akn:art_15__para_15-6/p7 Pointer to the 2022 Ofek supplement circular; no rule here.
+-- akn:art_15__para_15-6/p8 Its link; no rule.
+
+-- 15.7: the role allowances in Ofek Hadash, and at most two of them.
+DECLARE `role allowance` HAS
+    `role` IS A STRING
+    `primary rate` IS A NUMBER
+    `middle-school rate` IS A NUMBER
+
+@ref akn:art_15__para_15-7 akn:art_15__para_15-7/p2 akn:art_15__para_15-7/p3 akn:art_15__para_15-7/p4 akn:art_15__para_15-7/p5 akn:art_15__para_15-7/p6 akn:art_15__para_15-7/p7 akn:art_15__para_15-7/p8 akn:art_15__para_15-7/p9 akn:art_15__para_15-7/p10 akn:art_15__para_15-7/p11 akn:art_15__para_15-7/p12 akn:art_15__para_15-7/p13 akn:art_15__para_15-7/p14 akn:art_15__para_15-7/p15
+`the role allowances` MEANS
+    LIST `role allowance` "second deputy" 0.20 0.20,
+         `role allowance` "homeroom teacher" 0.10 0.10,
+         `role allowance` "first-grade homeroom teacher" 0.115 0.115,
+         `role allowance` "subject coordinator" 0.06 0.08,
+         `role allowance` "road-safety coordinator" 0.06 0.06,
+         `role allowance` "security coordinator" 0.06 0.06,
+         `role allowance` "social education" 0.08 0.10,
+         `role allowance` "laboratory coordinator" 0.03 0.03,
+         `role allowance` "measurement and evaluation coordinator" 0.06 0.06,
+         `role allowance` "trips coordinator" 0.06 0.06,
+         `role allowance` "inclusion coordinator" 0.06 0.06,
+         `role allowance` "pedagogical coordinator" 0.06 0.06
+
+-- The grade coordinator (6%/7%, by 15.8.2) and the mentor (2.4% an intern,
+-- up to three) are priced below.
+@ref akn:art_15__para_15-7/p15
+GIVEN `interns mentored` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the mentor's rate` `interns mentored` IS
+    0.024 TIMES min `interns mentored` 3
+
+@ref akn:art_15__para_15-7/p16
+`the most role allowances` MEANS 2
+
+GIVEN `allowances held` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the role allowances paid` `allowances held` IS
+    min `allowances held` `the most role allowances`
+
+-- 15.7, the special-education allowance (agreement of 19.10.2022, §39א(3)),
+-- from 1.9.2023: certified in special education, 9% becomes 10%, 14% becomes
+-- 15%, and 17% in an autism or severe-mental-disorders class; NOT certified,
+-- (א) 5.5% and (ב) "in special education" 8.5%.
+@ref akn:art_15__para_15-7/p17 akn:art_15__para_15-7/p18 akn:art_15__para_15-7/p19 akn:art_15__para_15-7__subpara_a akn:art_15__para_15-7__subpara_b akn:art_15__para_15-7__subpara_c
+GIVEN `rate before` IS A NUMBER, `autism or severe mental disorders class` IS A BOOLEAN
+GIVETH A NUMBER
+DECIDE `the special-education rate if certified` `rate before` `autism or severe mental disorders class` IS
+    IF `rate before` EQUALS 0.14 AND `autism or severe mental disorders class`
+    THEN 0.17
+    ELSE IF `rate before` EQUALS 0.09 THEN 0.10
+         ELSE IF `rate before` EQUALS 0.14 THEN 0.15
+              ELSE `rate before`
+
+-- F-2024-25_tashpah_01-g: (א) gives 5.5% to "teaching employees not
+-- certified in special education" and (ב) 8.5% to "teaching employees in
+-- special education not certified in special education"; every employee
+-- here teaches in a special-education school, so both rows take her. The
+-- reading adopted: (ב), the more specific row.
+@ref akn:art_15__para_15-7__subpara_c/p2 akn:art_15__para_15-7__subpara_c__cls_a akn:art_15__para_15-7__subpara_c__cls_b
+GIVEN `teaches in special education` IS A BOOLEAN
+GIVETH A LIST OF NUMBER
+DECIDE `the uncertified rows that apply` `teaches in special education` IS
+    IF `teaches in special education`
+    THEN LIST 0.055, 0.085
+    ELSE LIST 0.055
+
+`an uncertified special-education teacher has two rates` MEANS
+    `the uncertified rows that apply` TRUE EQUALS LIST 0.055, 0.085
+#ASSERT `an uncertified special-education teacher has two rates`
+
+GIVEN `teaches in special education` IS A BOOLEAN
+GIVETH A NUMBER
+DECIDE `the special-education rate if not certified` `teaches in special education` IS
+    IF `teaches in special education` THEN 0.085 ELSE 0.055
+
+-- 15.8: shekel minimums — the higher of the rate and the sum: homeroom
+-- 10% (11.5% in first grade) or ₪1,000; grade coordinator and junior-division
+-- management 7% up to 4 classes in the grade, 6% above, or ₪1,100; deputy
+-- 20% or "₪1.100" (read as ₪1,100, the figure beside it twice).
+@ref akn:art_15__para_15-8 akn:art_15__para_15-8__subpara_15-8-1 akn:art_15__para_15-8__subpara_15-8-1/p2 akn:art_15__para_15-8__subpara_15-8-1/p3
+GIVEN `integrated salary` IS A NUMBER, `first grade` IS A BOOLEAN
+GIVETH A NUMBER
+DECIDE `the homeroom allowance` `integrated salary` `first grade` IS
+    max (`integrated salary` TIMES (IF `first grade` THEN 0.115 ELSE 0.1)) 1000
+
+@ref akn:art_15__para_15-8__subpara_15-8-2 akn:art_15__para_15-8__subpara_15-8-2/p2 akn:art_15__para_15-8__subpara_15-8-2/p3 akn:art_15__para_15-8__subpara_15-8-3 akn:art_15__para_15-8__subpara_15-8-3/p2 akn:art_15__para_15-8__subpara_15-8-3/p3
+GIVEN `integrated salary` IS A NUMBER, `classes in the grade` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the grade coordinator's allowance` `integrated salary` `classes in the grade` IS
+    max (`integrated salary` TIMES (IF `classes in the grade` AT MOST 4 THEN 0.07 ELSE 0.06)) 1100
+
+@ref akn:art_15__para_15-8__subpara_15-8-4 akn:art_15__para_15-8__subpara_15-8-4/p2
+GIVEN `integrated salary` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the deputy's allowance` `integrated salary` IS
+    max (`integrated salary` TIMES 0.2) 1100
+
+§§ `16 גמול ליווי טיולים`
+
+-- 16.1: under the agreement of 8.9.98, but only for hours beyond the work
+-- hours of section 4. 16.2: units by the end of the activity; 16.3: a unit
+-- is 0.7% of the full-position integrated salary (not by the position).
+-- F-2024-25_tashpah_01-e: the bands "עד 15:00", "בין 15:00 ל-16:00",
+-- "בין 16:00 ל-18:00", "בין 18:00 ל-21:00", "בין 21:00 ל-24:00" share their
+-- ends: an activity ending at 16:00 is in the second and third (0.5 or 1.5
+-- units), and so at 15:00, 18:00 and 21:00. The reading adopted: an end
+-- time belongs to the band it closes, as "עד 15:00" includes 15:00.
+DECLARE `trip band` HAS
+    `ends after`  IS A NUMBER @desc hour, 24-hour clock
+    `ends by`     IS A NUMBER
+    `trip units`  IS A NUMBER
+
+@ref akn:art_16__para_16-1 akn:art_16__para_16-2 akn:art_16__para_16-2/p2 akn:art_16__para_16-2__subpara_a akn:art_16__para_16-2__subpara_a/p2 akn:art_16__para_16-2__subpara_a/p3 akn:art_16__para_16-2__subpara_a/p4 akn:art_16__para_16-2__subpara_a/p5 akn:art_16__para_16-2__subpara_a/p6
+`the trip bands as printed` MEANS
+    LIST `trip band` 0  15 0,
+         `trip band` 15 16 0.5,
+         `trip band` 16 18 1.5,
+         `trip band` 18 21 3,
+         `trip band` 21 24 4.5
+
+GIVEN h IS A NUMBER
+GIVETH A LIST OF NUMBER
+DECIDE `the units the bands give for an end at` h IS
+    map (GIVEN b YIELD b's `trip units`)
+        (filter (GIVEN b YIELD h AT LEAST b's `ends after` AND h AT MOST b's `ends by`) `the trip bands as printed`)
+
+`an activity ending at 16:00 is in two bands` MEANS
+    `the units the bands give for an end at` 16 EQUALS LIST 0.5, 1.5
+#ASSERT `an activity ending at 16:00 is in two bands`
+
+GIVEN h IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the units for an activity ending at` h IS
+    BRANCH IF h AT MOST 15 THEN 0
+           IF h AT MOST 16 THEN 0.5
+           IF h AT MOST 18 THEN 1.5
+           IF h AT MOST 21 THEN 3
+           OTHERWISE 4.5
+
+@ref akn:art_16__para_16-2__subpara_b akn:art_16__para_16-2__subpara_b/p2
+`the units for a detached activity from 16:00 to 24:00` MEANS 3
+@ref akn:art_16__para_16-2__subpara_c
+`the units for an activity with an overnight stay` MEANS 6.5
+
+@ref akn:art_16__para_16-3
+GIVEN `units` IS A NUMBER, `full-position integrated salary` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the trip allowance` `units` `full-position integrated salary` IS
+    `units` TIMES 0.007 TIMES `full-position integrated salary`
+
+-- 16.4: paid on the substitution-hour value under the reform's terms, for
+-- one escorting on a day off or a day of less than 7 hours: the lower of
+-- 7 less the hours scheduled that day, and the activity's hours.
+-- F-2024-25_tashpah_01-m: neither 16.2 nor 16.4 says whether such a teacher
+-- also receives 16.2's units. The reading adopted: on a day off or a day of
+-- fewer than 7 hours, 16.4 governs and the units are not paid as well.
+@ref akn:art_16__para_16-4 akn:art_16__para_16-4/p2 akn:art_16__para_16-4/p3 akn:art_16__para_16-4/p4 akn:art_16__para_16-4/p5 akn:art_16__para_16-4/p6 akn:art_16__para_16-4/p7 akn:art_16__para_16-4/p8 akn:art_16__para_16-4/p9 akn:art_16__para_16-4/p10
+GIVEN `hours scheduled that day` IS A NUMBER, `activity hours` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the substitution hours paid for a trip` `hours scheduled that day` `activity hours` IS
+    min (max 0 (7 MINUS `hours scheduled that day`)) `activity hours`
+
+`a short-day escort ending at 20:00 is named both units and hours` MEANS
+        `the units for an activity ending at` 20 EQUALS 3
+    AND `the substitution hours paid for a trip` 3 9 EQUALS 4
+#ASSERT `a short-day escort ending at 20:00 is named both units and hours`
+
+§§ `17 מקדמות שכר באופק חדש עד לקביעת הדרגה`
+
+-- 17.1: until the grade is set, advances to employees working on Ofek
+-- Hadash's terms whom the Ministry joined, on top of the current pay,
+-- computed on its listed components; only for the part of the employment in
+-- a joined school, from the joining; the owner computes and pays it as
+-- "מקדמת אופק חדש"; after the grade, retroactive pay, the pay paid and the
+-- advance set off. 17.2: the rates; the reimbursement for it comes in a
+-- separate circular.
+DECLARE `advance class` IS ONE OF
+    `primary teacher or intern`
+    `post-primary teacher or intern`
+    `academic first deputy`
+    `academic principal`
+    `non-academic manager`
+
+@ref akn:art_17__para_17-2 akn:art_17__para_17-2/p2 akn:art_17__para_17-2/p3 akn:art_17__para_17-2/p4 akn:art_17__para_17-2/p5 akn:art_17__para_17-2/p6 akn:art_17__para_17-2/p7 akn:art_17__para_17-2/p8 akn:art_17__para_17-2/p9 akn:art_17__para_17-2/p10
+GIVEN c IS AN `advance class`
+GIVETH A MAYBE NUMBER
+DECIDE `the advance rate` c IS
+    CONSIDER c
+    WHEN `primary teacher or intern` THEN JUST 0.14
+    WHEN `post-primary teacher or intern` THEN JUST 0.20
+    WHEN `academic first deputy` THEN JUST 0.17
+    WHEN `academic principal` THEN JUST 0.12
+    OTHERWISE NOTHING
+
+GIVEN e IS A `school employee`
+GIVETH AN `advance class`
+DECIDE `the advance class of` e IS
+    BRANCH IF e's `post` EQUALS `principal` THEN (IF e's `is academic` THEN `academic principal` ELSE `non-academic manager`)
+           IF e's `post` EQUALS `first deputy principal` THEN (IF e's `is academic` THEN `academic first deputy` ELSE `non-academic manager`)
+           IF `works the primary week` e THEN `primary teacher or intern`
+           OTHERWISE `post-primary teacher or intern`
+
+-- F-2024-25_tashpah_01-h: 9.11–9.12 employ an existing NON-academic
+-- principal under the reform's terms; 17.2 gives managers a rate only "for
+-- academic principals and first deputies". Such a principal is in the
+-- reform and has no advance rate. The reading adopted: no advance.
+`an existing non-academic principal` MEANS
+    `school employee` WITH
+        `post`                                  IS `principal`
+        `stage`                                 IS `primary special-education school`
+        `teaches grades 1 to 6`                 IS TRUE
+        `has recognised years of actual teaching` IS TRUE
+        `is academic`                           IS FALSE
+        `holds a teaching certification`        IS TRUE
+        `seniority in teaching`                 IS 30
+        `age`                                   IS 58
+        `position fraction`                     IS 1
+        `is an intern`                          IS FALSE
+
+`a non-academic principal in the reform has no advance rate` MEANS
+        `meets the joining conditions` `an existing non-academic principal`
+    AND `the advance rate` (`the advance class of` `an existing non-academic principal`) EQUALS NOTHING
+#ASSERT `a non-academic principal in the reform has no advance rate`
+
+@desc The components of the current pay the advance is computed on (17.1).
+DECLARE `current pay` HAS
+    `components for the advance` IS A NUMBER @desc the sum of: integrated salary, the '87 and '94 supplements, the 2001, 2008 and 2011 supplements, the split allowance, in-service allowances and the double-degree allowance
+    `share in joined schools` IS A NUMBER @desc the part of the employment in a joined recognised unofficial special-education school
+
+@ref akn:art_17__para_17-1 akn:art_17__para_17-1/p2
+GIVEN e IS A `school employee`, p IS A `current pay`, `grade set` IS A BOOLEAN
+GIVETH A NUMBER
+DECIDE `the Ofek Hadash advance` e p `grade set` IS
+    IF `joins Ofek Hadash` e AND NOT `grade set`
+    THEN CONSIDER `the advance rate` (`the advance class of` e)
+         WHEN JUST r THEN r TIMES p's `components for the advance` TIMES p's `share in joined schools`
+         WHEN NOTHING THEN 0
+    ELSE 0
+
+@ref akn:art_17__para_17-1/p2
+GIVEN e IS A `school employee`, p IS A `current pay`
+GIVETH A DEONTIC Party `circular 1 action`
+DECIDE `the owner pays the Ofek Hadash advance` e p IS
+    PARTY `the employer`
+    MUST  `pay the Ofek Hadash advance` a PROVIDED a EQUALS `the Ofek Hadash advance` e p FALSE
+    WITHIN 1
+    LEST BREACH BY `the employer` BECAUSE "17.1: the owner computes the advance and pays it to each employee"
+
+@ref akn:art_17__para_17-1/p3
+GIVEN `Ofek Hadash pay for the period` IS A NUMBER, `pre-reform pay paid` IS A NUMBER, `advances paid` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the retroactive difference` `Ofek Hadash pay for the period` `pre-reform pay paid` `advances paid` IS
+    `Ofek Hadash pay for the period` MINUS `pre-reform pay paid` MINUS `advances paid`
+
+-- akn:art_17__para_17-2/p11 The reimbursement for the advance is left to a separate circular; no rule here.
+
+§§ `18 שעון הנוכחות בביה"ס`
+
+-- 18.1–18.3: an attendance clock is installed and employees report their
+-- hours on it; the hours count from the clock-in and not before 7:45;
+-- until installed, by hand. 18.4: the owner pays and deducts by the clock's
+-- data, after checking justified absences (illness, mourning…), by the rules.
+@ref akn:art_18__para_18-1 akn:art_18__para_18-3
+GIVETH A DEONTIC Party `circular 1 action`
+DECIDE `an attendance clock is installed` IS
+    PARTY `the employer`
+    MUST  `install an attendance clock`
+    WITHIN 365
+
+@ref akn:art_18__para_18-2
+GIVEN `clock-in` IS A TIME
+GIVETH A TIME
+DECIDE `work hours count from` `clock-in` IS
+    IF `clock-in` LESS THAN Time 7 45 0 THEN Time 7 45 0 ELSE `clock-in`
+
+@ref akn:art_18__para_18-4
+GIVEN `hours by the clock` IS A NUMBER, `hours of justified absence` IS A NUMBER, `hours owed` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the hours to deduct` `hours by the clock` `hours of justified absence` `hours owed` IS
+    max 0 (`hours owed` MINUS `hours by the clock` MINUS `hours of justified absence`)
+
+-- akn:art_18__para_18-4/p2 Pointer to the contacts in annex ה'; no rule.
+
+-- The closing paragraph: the circular gathers the collective agreements'
+-- rules; where it contradicts them, for or against the employee, the
+-- agreements prevail.
+@ref akn:art_18__para_18-4/p3 akn:art_18__para_18-4/p4
+GIVEN `the circular's answer` IS A NUMBER, `the agreements' answer` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `what applies` `the circular's answer` `the agreements' answer` IS
+    `the agreements' answer`
+
+-- akn:art_18__para_18-4/p5 The sign-off (nested here by the corpus): greeting; no rule.
+-- akn:art_18__para_18-4/p6 The signatories' names; no rule.
+-- akn:art_18__para_18-4/p7 The signatories' posts; no rule.
+-- akn:art_18__para_18-4/p8 The signatories' units; no rule.
+-- akn:art_18__para_18-4/p9 The heading of the copies list; no rule.
+-- akn:art_18__para_18-4/p10 Copies list; no rule.
+-- akn:art_18__para_18-4/p11 Copies list; no rule.
+-- akn:art_18__para_18-4/p12 Copies list; no rule.
+-- akn:art_18__para_18-4/p13 Copies list; no rule.
+-- akn:art_18__para_18-4/p14 Copies list; no rule.
+-- akn:art_18__para_18-4/p15 Copies list; no rule.
+-- akn:art_18__para_18-4/p16 Copies list; no rule.
+-- akn:art_18__para_18-4/p17 Copies list; no rule.
+-- akn:art_18__para_18-4/p18 Copies list; no rule.
+-- akn:art_18__para_18-4/p19 Copies list; no rule.
+-- akn:art_18__para_18-4/p20 Copies list; no rule.
+-- akn:art_18__para_18-4/p21 Copies list; no rule.
+-- akn:art_18__para_18-4/p22 Copies list; no rule.
+-- akn:art_18__para_18-4/p23 Copies list; no rule.
+-- akn:art_18__para_18-4/p24 Copies list; no rule.
+-- akn:art_18__para_18-4/p25 Copies list; no rule.
+-- akn:art_18__para_18-4/p26 Copies list; no rule.
+-- akn:art_18__para_18-4/p27 Copies list; no rule.
+-- akn:art_18__para_18-4/p28 Copies list; no rule.
+-- akn:art_18__para_18-4/p29 Copies list; no rule.
+-- akn:art_18__para_18-4/p30 Copies list; no rule.
+-- akn:art_18__para_18-4/p31 Copies list; no rule.
+-- akn:art_18__para_18-4/p32 Copies list; no rule.
+
+§§ `נספחים`
+
+-- Annex א': the owner's undertaking — apply from התשפ"ה every Ofek Hadash
+-- provision on special-education schools (work week, pay, pedagogical
+-- instructions), listing the schools; breach may bring sanctions up to
+-- revocation of the licence.
+DECLARE `undertaking action` IS ONE OF
+    `apply Ofek Hadash in the listed schools`
+
+@ref akn:att_1__hc_1/p4 akn:att_1__hc_1/p5 akn:att_1__hc_1/p7
+GIVETH A DEONTIC Party `undertaking action`
+DECIDE `the owner applies Ofek Hadash on pain of sanctions` IS
+    PARTY `the employer`
+    MUST  `apply Ofek Hadash in the listed schools`
+    WITHIN 365
+    LEST BREACH BY `the employer` BECAUSE "the undertaking: breach may bring sanctions up to revocation of the licence"
+
+-- akn:att_1__hc_1/p1 The undertaking's title; no rule of its own.
+-- akn:att_1__hc_1/p2 The signatory's identification blanks; no rule.
+-- akn:att_1__hc_1/p3 The amended regulation it quotes, encoded at `the school is in Ofek Hadash`.
+-- akn:att_1__hc_1/p6 The signatory's confirmation; no rule.
+-- akn:att_1__hc_1/p8 Blank columns for the schools; no rule.
+-- akn:att_1__hc_1/p9 Signature block; no rule.
+-- akn:att_1__hc_1/p10 Signature blanks; no rule.
+-- akn:att_1__hc_1/p11 Signature blanks; no rule.
+-- akn:att_1__hc_1/p12 Date blank; no rule.
+-- akn:att_1__hc_1/p13 Letterhead; no rule.
+-- akn:att_1__hc_1/p14 Letterhead; no rule.
+-- akn:att_1__hc_1/p15 Letterhead; no rule.
+-- akn:att_1__hc_1/p16 Letterhead; no rule.
+-- akn:att_2__hc_1 Annex ב': the form for an academic to join by exception without a teaching certificate (no promotion until certified) — the content of 3.2 and 13.2.2, encoded there.
+-- akn:att_3__hc_1 Annex ג': the form for a request to the exceptions committee to leave Ofek Hadash, with the principal's view — the content of section 11, encoded there.
+-- akn:att_5__hc_1 Annex ה': the addresses for inquiries; no rule.
+
+-- Annex ד': setting the grade and converting the pay. An existing employee
+-- is converted; a new one is placed at grade 1 by education and role, with
+-- no conversion; the Ministry alone sets grades.
+@ref akn:att_4__hc_1/p1 akn:att_4__hc_1/p2 akn:att_4__hc_1/p3 akn:att_4__hc_1/p4 akn:att_4__hc_1/p5 akn:att_4__hc_1__para_1__subpara_b__cls_1 akn:att_4__hc_1__para_1__subpara_b__cls_3
+GIVEN e IS A `school employee`
+GIVETH A BOOLEAN
+DECIDE `is converted rather than placed` e IF
+    NOT `is a new teaching employee` e
+
+-- The conversion formula: A = X × (Y + 100%) / 100 — X the pay for
+-- conversion, Y the coefficient, A the pay after it.
+@ref akn:att_4__hc_1__para_1 akn:att_4__hc_1__para_1__subpara_a akn:att_4__hc_1__para_1__subpara_a/p2 akn:att_4__hc_1__para_1__subpara_a/p3 akn:att_4__hc_1__para_1__subpara_a/p4 akn:att_4__hc_1__para_1__subpara_a/p5 akn:att_4__hc_1__para_1__subpara_a/p6 akn:att_4__hc_1__para_1__subpara_b/p15 akn:att_4__hc_1__para_1__subpara_b/p16 akn:att_4__hc_1__para_1__subpara_b/p17 akn:att_4__hc_1__para_2__subpara_a akn:att_4__hc_1__para_2__subpara_a/p2 akn:att_4__hc_1__para_2__subpara_a/p3 akn:att_4__hc_1__para_2__subpara_a/p4 akn:att_4__hc_1__para_3__subpara_a akn:att_4__hc_1__para_3__subpara_a/p2 akn:att_4__hc_1__para_3__subpara_a/p3 akn:att_4__hc_1__para_3__subpara_a/p4 akn:att_4__hc_1__para_3__subpara_a/p5
+GIVEN x IS A NUMBER, y IS A NUMBER @desc the conversion coefficient, as a share (0.15 for 15%)
+GIVETH A NUMBER
+DECIDE `the pay after conversion` x y IS
+    x TIMES (1 PLUS y)
+
+-- X for a teacher: March's pay, at 100% by the roles, of the year before
+-- joining — integrated salary, the '87, '94, 2001, 2008 and 2011
+-- supplements, and the role allowances that do not continue (split,
+-- training, in-service, double degree); with no employment in March, the
+-- joining month; on leave the year before, September of the joining year.
+@ref akn:att_4__hc_1__para_1__subpara_b akn:att_4__hc_1__para_1__subpara_b/p2 akn:att_4__hc_1__para_1__subpara_b/p3 akn:att_4__hc_1__para_1__subpara_b/p4 akn:att_4__hc_1__para_1__subpara_b/p5 akn:att_4__hc_1__para_1__subpara_b/p6 akn:att_4__hc_1__para_1__subpara_b__cls_2 akn:att_4__hc_1__para_1__subpara_b__cls_4
+DECLARE `month for conversion` IS ONE OF
+    `March of the year before joining`
+    `the joining month`
+    `September of the joining year`
+
+GIVEN `employed in March` IS A BOOLEAN, `on leave the year before` IS A BOOLEAN
+GIVETH A `month for conversion`
+DECIDE `the teacher's month for conversion` `employed in March` `on leave the year before` IS
+    IF `on leave the year before` THEN `September of the joining year`
+    ELSE IF `employed in March` THEN `March of the year before joining`
+         ELSE `the joining month`
+
+-- Y for an academic teacher is the table printed as an image on the page
+-- and absent from the corpus (a corpus defect): an input. A non-academic
+-- with 28 years or more takes it times 0.8; a primary-school teacher in
+-- grades 7–9 on a 24-hour base, 12.5% more for that part, and then works the
+-- primary week.
+-- F-2024-25_tashpah_01-k: the coefficient is itself a percentage, so "will
+-- grow by 12.5%" reads as 12.5% of it or as 12.5 points. The reading
+-- adopted: 12.5% of the coefficient (Y × 1.125), as written below.
+@ref akn:att_4__hc_1__para_1__subpara_b/p11
+ASSUME `the academic teacher's conversion coefficient` IS A NUMBER
+@desc Y for an academic teacher, by status (annex ד's table, printed as an image the corpus does not carry).
+
+@ref akn:att_4__hc_1__para_1__subpara_b/p12 akn:att_4__hc_1__para_1__subpara_b/p13 akn:att_4__hc_1__para_1__subpara_b/p14
+GIVEN `academic Y` IS A NUMBER, `is academic` IS A BOOLEAN, `share in grades 7 to 9 on a 24-hour base` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the teacher's conversion coefficient` `academic Y` `is academic` `share in grades 7 to 9 on a 24-hour base` IS
+    (IF `is academic` THEN `academic Y` ELSE `academic Y` TIMES 0.8)
+    TIMES (1 PLUS 0.125 TIMES `share in grades 7 to 9 on a 24-hour base`)
+
+GIVEN y IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the coefficient grown by 12.5 points` y IS
+    y PLUS 0.125
+
+`the two readings of 12.5% differ` MEANS
+        `the teacher's conversion coefficient` 0.24 TRUE 1 EQUALS 0.27
+    AND `the coefficient grown by 12.5 points` 0.24 EQUALS 0.365
+#ASSERT `the two readings of 12.5% differ`
+
+-- A is placed by education and seniority at the grade whose pay is the
+-- closest equal or higher; and the 2016 shekel supplement and the 2022 Ofek
+-- supplement are added by the grade.
+@ref akn:att_4__hc_1__para_1__subpara_b/p18 akn:att_4__hc_1__para_1__subpara_b/p19 akn:att_4__hc_1__para_1__subpara_b__cls_2/p2 akn:att_4__hc_1__para_1__subpara_b__cls_5 akn:att_4__hc_1__para_2__subpara_e akn:att_4__hc_1__para_2__subpara_e/p2 akn:att_4__hc_1__para_3__subpara_e akn:att_4__hc_1__para_3__subpara_e/p2
+GIVEN a IS A NUMBER, `grid` IS A LIST OF NUMBER @desc the salaries of the grades, for the employee's education and seniority, in rising order
+GIVETH A MAYBE NUMBER
+DECIDE `the salary of the grade placed at` a `grid` IS
+    CONSIDER filter (GIVEN s YIELD s AT LEAST a) `grid`
+    WHEN s FOLLOWED BY rest THEN JUST s
+    OTHERWISE NOTHING
+
+-- akn:att_4__hc_1__para_1__subpara_b/p7 Letterhead; no rule.
+-- akn:att_4__hc_1__para_1__subpara_b/p8 Letterhead; no rule.
+-- akn:att_4__hc_1__para_1__subpara_b/p9 Letterhead; no rule.
+-- akn:att_4__hc_1__para_1__subpara_b/p10 Letterhead; no rule.
+-- akn:att_4__hc_1__para_1__subpara_b__cls_3 A repeat of point 1 above (new academic teachers at grade 1, seniority 1), encoded there.
+-- akn:att_4__hc_1__para_1__subpara_b__cls_4 A repeat of point 2 above (leave the year before), encoded there.
+
+-- Deputies: Y = 20%; X is the pay of a 100% position in March of the year
+-- before, without the education allowance, expense refunds, sundry payments,
+-- tax gross-up and imputed benefit; on leave at the joining, September.
+-- Principals: Y = 15%; X likewise, without expense refunds, yearly
+-- payments, gross-up and imputed benefit.
+@ref akn:att_4__hc_1__para_2 akn:att_4__hc_1__para_2__subpara_b akn:att_4__hc_1__para_2__subpara_b/p2 akn:att_4__hc_1__para_2__subpara_c akn:att_4__hc_1__para_2__subpara_c/p2 akn:att_4__hc_1__para_2__subpara_c/p3
+`the first deputy's conversion coefficient` MEANS 0.2
+
+@ref akn:att_4__hc_1__para_3 akn:att_4__hc_1__para_3__subpara_b akn:att_4__hc_1__para_3__subpara_b/p2 akn:att_4__hc_1__para_3__subpara_c akn:att_4__hc_1__para_3__subpara_c/p2 akn:att_4__hc_1__para_3__subpara_c/p3
+`the principal's conversion coefficient` MEANS 0.15
+
+-- The worked examples. The deputy: components paid by the position
+-- (89.167%) summing to 5,948.93, management allowance 2,143.92 paid at
+-- 100%; at a full position 8,815.59. The principal: by the position (140%)
+-- 14,630.99, management 6,104.14; at a full position 16,554.84.
+@ref akn:att_4__hc_1__para_2__subpara_c/p4 akn:att_4__hc_1__para_2__subpara_c/p5 akn:att_4__hc_1__para_2__subpara_c/p6 akn:att_4__hc_1__para_2__subpara_c/p7 akn:att_4__hc_1__para_2__subpara_c/p8 akn:att_4__hc_1__para_2__subpara_c/p9 akn:att_4__hc_1__para_2__subpara_c/p10 akn:att_4__hc_1__para_2__subpara_c/p11 akn:att_4__hc_1__para_2__subpara_c/p12 akn:att_4__hc_1__para_2__subpara_c/p13 akn:att_4__hc_1__para_2__subpara_c/p14 akn:att_4__hc_1__para_2__subpara_c/p15 akn:att_4__hc_1__para_2__subpara_c/p16 akn:att_4__hc_1__para_2__subpara_c/p17 akn:att_4__hc_1__para_2__subpara_c/p18 akn:att_4__hc_1__para_2__subpara_c/p19 akn:att_4__hc_1__para_2__subpara_c/p20 akn:att_4__hc_1__para_2__subpara_c/p21 akn:att_4__hc_1__para_2__subpara_c/p22 akn:att_4__hc_1__para_2__subpara_c/p23 akn:att_4__hc_1__para_2__subpara_c/p24
+`the deputy's components by the position` MEANS
+    LIST 4194.9, 139.91, 125.85, 207.83, 287.56, 155.58, 270.10, 567.2
+`the deputy's management allowance` MEANS 2143.92
+`the deputy's position coefficient` MEANS 0.89167
+
+#ASSERT sum `the deputy's components by the position` EQUALS 5948.93
+#ASSERT sum `the deputy's components by the position` PLUS `the deputy's management allowance` EQUALS 8092.85
+#ASSERT TRUNC (sum `the deputy's components by the position` DIVIDED BY `the deputy's position coefficient` PLUS `the deputy's management allowance` PLUS 0.005) 2 EQUALS 8815.59
+
+@ref akn:att_4__hc_1__para_3__subpara_c/p4 akn:att_4__hc_1__para_3__subpara_c/p5 akn:att_4__hc_1__para_3__subpara_c/p6 akn:att_4__hc_1__para_3__subpara_c/p7 akn:att_4__hc_1__para_3__subpara_c/p8 akn:att_4__hc_1__para_3__subpara_c/p9 akn:att_4__hc_1__para_3__subpara_c/p10 akn:att_4__hc_1__para_3__subpara_c/p11 akn:att_4__hc_1__para_3__subpara_c/p12 akn:att_4__hc_1__para_3__subpara_c/p13 akn:att_4__hc_1__para_3__subpara_c/p14 akn:att_4__hc_1__para_3__subpara_c/p15 akn:att_4__hc_1__para_3__subpara_c/p16 akn:att_4__hc_1__para_3__subpara_c/p17 akn:att_4__hc_1__para_3__subpara_c/p18 akn:att_4__hc_1__para_3__subpara_c/p19 akn:att_4__hc_1__para_3__subpara_c/p20 akn:att_4__hc_1__para_3__subpara_c/p21 akn:att_4__hc_1__para_3__subpara_c/p22 akn:att_4__hc_1__para_3__subpara_c/p23
+`the principal's components by the position` MEANS
+    LIST 8954.48, 219.66, 268.63, 443.63, 613.84, 244.27, 560.01, 3326.47
+`the principal's management allowance` MEANS 6104.14
+
+#ASSERT sum `the principal's components by the position` EQUALS 14630.99
+#ASSERT sum `the principal's components by the position` PLUS `the principal's management allowance` EQUALS 20735.13
+
+-- F-2024-25_tashpah_01-j: the annex states no rounding. The principal's
+-- full-position X, 14,630.99 / 1.4 + 6,104.14 = 16,554.847…, is printed
+-- truncated, 16,554.84; but the next line's 17,117.71 is 1.034 times the
+-- UNROUNDED X (16,554.84 × 1.034 is 17,117.70). The reading adopted: no
+-- rule for the agora; the conversion is computed exactly.
+`the principal's full-position X computed` MEANS
+    (sum `the principal's components by the position` DIVIDED BY 1.4)
+    PLUS `the principal's management allowance`
+
+`the principal example truncates X and carries it unrounded` MEANS
+        TRUNC `the principal's full-position X computed` 2 EQUALS 16554.84
+    AND TRUNC (`the principal's full-position X computed` PLUS 0.005) 2 EQUALS 16554.85
+    AND TRUNC (16554.84 TIMES 1.034 PLUS 0.005) 2 EQUALS 17117.70
+    AND TRUNC (`the principal's full-position X computed` TIMES 1.034 PLUS 0.005) 2 EQUALS 17117.71
+#ASSERT `the principal example truncates X and carries it unrounded`
+
+-- F-2024-25_tashpah_01-i: both examples then multiply the full-position
+-- pay by 1.034, an "erosion supplement" (תוספת שחיקה) — 8,815.59 × 1.034 =
+-- 9,115.32 and 16,554.84 × 1.034 = 17,117.71 — before applying the formula,
+-- giving A = 10,938.38 and 19,685.37. The formula the annex states (A = X ×
+-- (Y+100%)/100), and its definition of X, have no such factor: on them the
+-- deputy's A is 10,578.71 and the principal's 19,038.07. The reading
+-- adopted: the formula as stated; the 1.034 is read as a factor the annex
+-- does not ground.
+@ref akn:att_4__hc_1__para_2__subpara_c/p25 akn:att_4__hc_1__para_2__subpara_c/p26 akn:att_4__hc_1__para_2__subpara_d akn:att_4__hc_1__para_2__subpara_d/p2
+`the deputy's A as printed` MEANS 10938.38
+
+@ref akn:att_4__hc_1__para_3__subpara_c/p24 akn:att_4__hc_1__para_3__subpara_c/p25 akn:att_4__hc_1__para_3__subpara_d akn:att_4__hc_1__para_3__subpara_d/p2
+`the principal's A as printed` MEANS 19685.37
+
+`the examples apply an erosion factor the formula does not have` MEANS
+        NOT (TRUNC (`the pay after conversion` 8815.59 `the first deputy's conversion coefficient` PLUS 0.005) 2 EQUALS `the deputy's A as printed`)
+    AND TRUNC (`the pay after conversion` 9115.32 `the first deputy's conversion coefficient` PLUS 0.005) 2 EQUALS `the deputy's A as printed`
+    AND TRUNC (`the pay after conversion` 17117.71 `the principal's conversion coefficient` PLUS 0.005) 2 EQUALS `the principal's A as printed`
+#ASSERT `the examples apply an erosion factor the formula does not have`
+
+-- Placement in the examples: the deputy at level 8, grade א, 17,716.63;
+-- the principal at level 3, grade א+, 20,086.68.
+@ref akn:att_4__hc_1__para_2__subpara_e/p3
+`the deputy's new integrated salary` MEANS 17716.63
+@ref akn:att_4__hc_1__para_3__subpara_e/p3
+`the principal's new integrated salary` MEANS 20086.68
+
+#ASSERT `the deputy's new integrated salary` AT LEAST `the deputy's A as printed`
+#ASSERT `the principal's new integrated salary` AT LEAST `the principal's A as printed`
+
+-- The principal's personal supplement for the scope above 100% (to
+-- 140%): T the full pay by the actual scope in March before; B = T × (100+Y)
+-- /100; C = B less the new table salary, turned into a percentage of the
+-- integrated salary. In the example: 20,735.13 × 1.15 = 23,845.40, less
+-- 20,086.68 = 3,758.72, 18.712%.
+@ref akn:att_4__hc_1__para_3__subpara_e/p4 akn:att_4__hc_1__para_3__subpara_e/p5 akn:att_4__hc_1__para_3__subpara_e/p6 akn:att_4__hc_1__para_3__subpara_e/p7 akn:att_4__hc_1__para_3__subpara_e/p8 akn:att_4__hc_1__para_3__subpara_e/p9 akn:att_4__hc_1__para_3__subpara_e/p10 akn:att_4__hc_1__para_3__subpara_e/p11 akn:att_4__hc_1__para_3__subpara_e/p12 akn:att_4__hc_1__para_3__subpara_e/p13 akn:att_4__hc_1__para_3__subpara_e/p14 akn:att_4__hc_1__para_3__subpara_e/p15 akn:att_4__hc_1__para_3__subpara_e/p16
+GIVEN t IS A NUMBER, y IS A NUMBER, `new table salary` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the personal supplement rate` t y `new table salary` IS
+    (t TIMES (1 PLUS y) MINUS `new table salary`) DIVIDED BY `new table salary`
+
+@ref akn:att_4__hc_1__para_3__subpara_e__cls_1 akn:att_4__hc_1__para_3__subpara_e__cls_1/p2 akn:att_4__hc_1__para_3__subpara_e__cls_2 akn:att_4__hc_1__para_3__subpara_e__cls_2/p2 akn:att_4__hc_1__para_3__subpara_e__cls_3 akn:att_4__hc_1__para_3__subpara_e__cls_3/p2 akn:att_4__hc_1__para_3__subpara_e__cls_4 akn:att_4__hc_1__para_3__subpara_e__cls_4/p2
+`the principal's T` MEANS 20735.13
+
+#ASSERT TRUNC (`the principal's T` TIMES 1.15 PLUS 0.005) 2 EQUALS 23845.4
+#ASSERT TRUNC (`the personal supplement rate` `the principal's T` 0.15 `the principal's new integrated salary` TIMES 100 PLUS 0.0005) 3 EQUALS 18.712
+
+-- Examples on the encoding.
+`a primary teacher aged 55` MEANS
+    `school employee` WITH
+        `post`                                  IS `teacher`
+        `stage`                                 IS `primary special-education school`
+        `teaches grades 1 to 6`                 IS TRUE
+        `has recognised years of actual teaching` IS TRUE
+        `is academic`                           IS TRUE
+        `holds a teaching certification`        IS TRUE
+        `seniority in teaching`                 IS 30
+        `age`                                   IS 55
+        `position fraction`                     IS 0.5
+        `is an intern`                          IS FALSE
+
+`a post-primary health therapist in a multi-stage school` MEANS
+    `school employee` WITH
+        `post`                                  IS `health-professions employee`
+        `stage`                                 IS `multi-stage special-education school`
+        `teaches grades 1 to 6`                 IS FALSE
+        `has recognised years of actual teaching` IS FALSE
+        `is academic`                           IS TRUE
+        `holds a teaching certification`        IS FALSE
+        `seniority in teaching`                 IS 0
+        `age`                                   IS 28
+        `position fraction`                     IS 0.25
+        `is an intern`                          IS FALSE
+
+#ASSERT `the work week of` `a primary teacher aged 55` EQUALS `the primary teacher's week`
+#ASSERT `the work week of` `a post-primary health therapist in a multi-stage school` EQUALS `the post-primary health and arts week`
+#ASSERT `the age hours` `a primary teacher aged 55` EQUALS 4
+#ASSERT `the age hours for the position` `a primary teacher aged 55` EQUALS 2
+#ASSERT `the least position in the reform` `a post-primary health therapist in a multi-stage school` 2024 EQUALS 0
+#ASSERT `the frontal hours in` `the multi-stage deputy's frontal hours` `at level` 5 EQUALS 14
+#ASSERT `the units for an activity ending at` 16 EQUALS 0.5
+#ASSERT `the units for an activity ending at` 17 EQUALS 1.5
+#ASSERT `the trip allowance` 3 10000 EQUALS 210
+#ASSERT `the substitution hours paid for a trip` 2 8 EQUALS 5
+#ASSERT `the substitution hours paid for a trip` 0 4 EQUALS 4
+#ASSERT `the homeroom allowance` 8000 FALSE EQUALS 1000
+#ASSERT `the homeroom allowance` 12000 TRUE EQUALS 1380
+#ASSERT `the grade coordinator's allowance` 20000 3 EQUALS 1400
+#ASSERT `the counselling allowance rate` 8 TRUE EQUALS 0.18
+#ASSERT `the counselling allowance rate` 6 TRUE EQUALS 0
+#ASSERT `the counsellor teaches enough` 6 1 AND NOT `the counsellor teaches enough` 3 0.5
+#ASSERT `the reduction within four months of maternity leave` 0.85 EQUALS `the mother's reduction`
+#ASSERT `the pay for one activity hour` 100 `instead of a presence hour that day` EQUALS 25
+#ASSERT `the pay for one activity hour` 100 `on the employee's day off` EQUALS 125
+#ASSERT `the advance rate` `post-primary teacher or intern` EQUALS JUST 0.2
+#ASSERT `work hours count from` (Time 7 30 0) EQUALS Time 7 45 0
+#ASSERT `the role allowances paid` 3 EQUALS 2
+#ASSERT `the salary of the grade placed at` 19685.37 (LIST 18000, 20086.68, 21000) EQUALS JUST 20086.68
+
+#TRACE `the owner signs the undertaking by 30.8.2024` AT 0 WITH
+    PARTY `the employer` DOES `sign and send the undertaking` AT 20
+#TRACE `the owner signs the undertaking by 30.8.2024` AT 0 WITH
+    PARTY `the employer` DOES `sign and send the undertaking` AT 30
+#TRACE `the owner pays by the grade and deducts the advances` 4 2000 AT 0 WITH
+    PARTY `the employer` DOES `pay by the grade` 4 AT 1
+    PARTY `the employer` DOES `deduct the advances` 2000 AT 2
+#TRACE `the Ministry joins the school` TRUE AT 0 WITH
+    PARTY `the Ministry of Education` DOES `join the school to Ofek Hadash` AT 10

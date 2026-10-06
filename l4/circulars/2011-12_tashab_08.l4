@@ -1,0 +1,143 @@
+-- חוזר לבעלויות תשע"ב/8: העלאת תעריף הקצובה הביגוד הנוספת למורה לחינוך גופני
+-- The rise in the extra clothing allowance for physical-education teachers of
+-- the owners of secondary education, from school year 2010/11 (the allowance
+-- paid with the July 2011 salary): the rise, the new amounts by employment
+-- rate, what they replace, and payment of the difference in December 2011.
+
+IMPORT prelude
+IMPORT common
+
+§ `תשע"ב/8 העלאת תעריף הקצובה הביגוד הנוספת למורה לחינוך גופני`
+
+-- akn:preamble The letterhead, title and the circular's purpose (to publish the rise in the clothing allowance for physical-education teachers of the owners); no rule of its own.
+
+-- Time is counted in school months of 2011/12 (common.l4: September 2011 =
+-- 1, December 2011 = 4).
+
+@desc A physical-education teacher of an owner, as far as this circular asks about it.
+DECLARE `PE teacher` HAS
+    `entitled to the extra PE clothing allowance under the existing rules` IS A BOOLEAN
+    `PE employment rate`                 IS A NUMBER @desc the employment rate (שיעור העסקה) the table is read by
+    `amount already paid for 2010/11`    IS A NUMBER @desc the extra PE allowance paid with the July 2011 salary, shekels
+
+DECLARE `PE clothing action` IS ONE OF
+    `pay the difference` HAS `difference paid` IS A NUMBER
+
+§§ `1 תחולה`
+
+@ref akn:art_1
+GIVEN t IS A `PE teacher`
+GIVETH A BOOLEAN
+DECIDE `this circular applies to` t IF
+    t's `entitled to the extra PE clothing allowance under the existing rules`
+
+§§ `2 העלאת תעריף הקצובה לביגוד למורים לחינוך גופני`
+
+-- Section 2(א): from 2010/11 — from the allowance paid with the July 2011
+-- salary — the rate "is raised by 800 ₪".
+@ref akn:art_2__para_a
+`the rise section 2(א) states` MEANS 800
+
+-- Section 2(ב)'s table as printed ("סכום נכון ל-1/9/10"): "עד 0.3", "מ-0.3
+-- עד 0.5", "מ-0.5 ומעלה". Its bounds meet at 0.3 and 0.5 (F-2011-12_tashab_08-b).
+@ref akn:art_2__para_b
+DECLARE `PE band` HAS
+    `from PE rate` IS A NUMBER
+    `to PE rate`   IS A NUMBER @desc 999 stands for "ומעלה"
+    `PE band amount` IS A NUMBER
+
+`the PE table after the rise` MEANS
+    LIST `PE band` 0   0.3 0,
+         `PE band` 0.3 0.5 652,
+         `PE band` 0.5 999 1301
+
+GIVEN r IS A NUMBER
+GIVETH A LIST OF NUMBER
+DECIDE `the amounts the PE table gives for` r IS
+    map (GIVEN b YIELD b's `PE band amount`)
+        (filter (GIVEN b YIELD r AT LEAST b's `from PE rate` AND r AT MOST b's `to PE rate`)
+                `the PE table after the rise`)
+
+`the PE table gives 0.3 and 0.5 two amounts each` MEANS
+        `the amounts the PE table gives for` 0.3 EQUALS LIST 0, 652
+    AND `the amounts the PE table gives for` 0.5 EQUALS LIST 652, 1301
+#ASSERT `the PE table gives 0.3 and 0.5 two amounts each`
+
+-- F-2011-12_tashab_08-a: a rise of 800 ₪ cannot have produced the first two
+-- rows: no amount before the rise, being at least 0, ends at 0 or at 652
+-- after adding 800. The reading adopted: the table governs (section 2(ג):
+-- "the amounts stated above replace" the earlier ones).
+`no band but the top one can have risen by 800` MEANS
+        (0 MINUS `the rise section 2(א) states`) LESS THAN 0
+    AND (652 MINUS `the rise section 2(א) states`) LESS THAN 0
+    AND (1301 MINUS `the rise section 2(א) states`) AT LEAST 0
+#ASSERT `no band but the top one can have risen by 800`
+
+-- F-2011-12_tashab_08-c: "שיעור העסקה" is not said to be the share of the
+-- position in physical education or the teacher's whole position; for a
+-- full-position teacher with a fifth in physical education the two differ.
+-- The reading adopted: the share in physical education (the input).
+`the two readings of the employment rate differ` MEANS
+    NOT (`the amounts the PE table gives for` 0.2 EQUALS `the amounts the PE table gives for` 1)
+#ASSERT `the two readings of the employment rate differ`
+
+-- The reading adopted for the bounds (F-2011-12_tashab_08-b): the band that
+-- OPENS at a bound ("מ-") governs it.
+@export default The extra clothing allowance for a physical-education teacher of an owner for school year 2010/11 and on, after the rise in circular תשע"ב/8
+GIVEN t IS A `PE teacher` @desc the teacher
+GIVETH A NUMBER
+DECIDE `the PE clothing allowance` t IS
+    IF `this circular applies to` t
+    THEN BRANCH IF t's `PE employment rate` AT LEAST 0.5 THEN 1301
+                IF t's `PE employment rate` AT LEAST 0.3 THEN 652
+                OTHERWISE 0
+    ELSE 0
+
+-- Section 2(ג): the amounts replace those of section ב of circular תשע"א/3
+-- and are not added to them.
+@ref akn:art_2__para_c
+`the circular whose amounts these replace` MEANS "תשע\"א/3, section ב"
+`the new amounts are added to the old` MEANS FALSE
+
+-- Section 2(ד): the rise is meant also for buying products that protect the
+-- skin from the sun. Section 2(ה): the rules for updating the allowance each
+-- school year are unchanged.
+@desc What the extra allowance is for, as section 2(ד) adds.
+DECLARE `PE clothing purpose` IS ONE OF
+    `clothing`
+    `products that protect the skin from the sun`
+
+@ref akn:art_2__para_d
+`what the raised allowance is for` MEANS LIST `clothing`, `products that protect the skin from the sun`
+
+@ref akn:art_2__para_e
+`this circular changes the yearly update rules` MEANS FALSE
+
+§§ `3 ביצוע תשלומים`
+
+-- The payments this circular gives rise to — the difference over what was
+-- paid with the July 2011 salary — are made with the December 2011 salary.
+@ref akn:art_3
+GIVEN t IS A `PE teacher`
+GIVETH A DEONTIC Party `PE clothing action`
+DECIDE `paying the difference with December's salary` t IS
+    PARTY `the local authority or owning body`
+    MUST  `pay the difference` `amount`
+          PROVIDED `amount` AT LEAST max 0 (`the PE clothing allowance` t MINUS t's `amount already paid for 2010/11`)
+    WITHIN `month number` December
+    LEST BREACH BY `the local authority or owning body` BECAUSE "section 3: the payments are made with the December 2011 salary"
+
+-- akn:conclusions The contact line for questions, the sign-off and signature; no rule.
+
+-- Worked example; the amount already paid (500) is a placeholder.
+`a teacher at 0.6 of a position in PE` MEANS
+    `PE teacher` WITH
+        `entitled to the extra PE clothing allowance under the existing rules` IS TRUE
+        `PE employment rate`                 IS 0.6
+        `amount already paid for 2010/11`    IS 500
+
+#ASSERT `the PE clothing allowance` `a teacher at 0.6 of a position in PE` EQUALS 1301
+#TRACE `paying the difference with December's salary` `a teacher at 0.6 of a position in PE` AT 0 WITH
+    PARTY `the local authority or owning body` DOES `pay the difference` 801 AT 4
+#TRACE `paying the difference with December's salary` `a teacher at 0.6 of a position in PE` AT 0 WITH
+    PARTY `the local authority or owning body` DOES `pay the difference` 801 AT 5

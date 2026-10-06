@@ -1,0 +1,170 @@
+-- חוזר לבעלויות תשע"ט/3: עדכון תוספת שקלית 2016 בחטיבה העליונה ובכיתות יג'-יד' ועדכון תוספת '87 מעבר לרפורמה למנהלים בעוז לתמורה
+-- The index-linked amounts of the 2016 shekel supplement in the upper
+-- divisions for 1.12.2018 on, and of the "87 transition-to-reform"
+-- supplement of principals under Oz LeTmura for 1.1.2019 on.
+
+IMPORT prelude
+IMPORT daydate
+IMPORT common
+
+§ `חוזר תשע"ט/3 עדכון תוספת שקלית 2016 ותוספת '87 מעבר לרפורמה`
+
+-- akn:preamble/p1 akn:preamble/p2 akn:preamble/p3 akn:preamble/p4 akn:preamble/p5 akn:preamble/p6 akn:preamble/p7 akn:preamble/p8 akn:preamble/p9 akn:preamble/p10 akn:preamble/p11 akn:preamble/p12 The letterhead, date, reference, addressee, greeting and subject line; no rule.
+
+-- akn:preamble/p13 akn:preamble/p14 akn:preamble/p15 The sources of the linkage (the agreements of 14.3.2018 and 23.3.2017, circulars 5777/4 and 5778/5), the supplement's payment in steps, and the circular's purpose for 1.12.2018-31.12.2019; the amounts are encoded below.
+
+DECLARE `linkage` IS ONE OF
+    `December 2017 against December 2015`
+    `December 2018 against December 2017`
+
+-- ¶16: the linkage is December 2018's index against December 2017's,
+-- except for the amounts for December 2018, linked December 2017 against
+-- December 2015.
+@ref akn:preamble/p16
+GIVEN `the day` IS A DATE
+GIVETH A `linkage`
+DECIDE `the linkage of the amounts for` `the day` IS
+    IF `the day` LESS THAN Date 1 1 2019
+    THEN `December 2017 against December 2015`
+    ELSE `December 2018 against December 2017`
+
+DECLARE `group` IS ONE OF
+    `teachers in the Oz LeTmura reform`
+    `teachers outside the reform and principals`
+
+@desc A teaching employee, as far as this circular asks.
+DECLARE `teaching employee` HAS
+    `rated in the teaching employees' grading` IS A BOOLEAN
+    `employed by an owner of a ministry-supervised institution` IS A BOOLEAN
+    `employed in an upper division or grades 13-14` IS A BOOLEAN
+    `employee group` IS A `group`
+    `a principal under Oz LeTmura` IS A BOOLEAN
+
+-- akn:preamble/p17 The heading "תחולה"; no rule.
+
+@ref akn:preamble/p18 akn:preamble/p19
+GIVEN e IS A `teaching employee`
+GIVETH A BOOLEAN
+DECIDE `the circular applies to` e IF
+        e's `rated in the teaching employees' grading`
+    AND e's `employed by an owner of a ministry-supervised institution`
+    AND e's `employed in an upper division or grades 13-14`
+
+§§ `א עדכון תוספת שקלית 2016`
+
+@desc A period of the linked 2016 shekel supplement for a full position.
+DECLARE `linked period` HAS
+    `period from` IS A DATE
+    `period to`   IS A DATE @desc 31.12.9999 where the circular gives no end
+    `for group`   IS A `group`
+    `amount`      IS A NUMBER
+
+-- The amounts for December 2018 replace "the amount paid for that period".
+@ref akn:art_a/p1 akn:art_a/p2 akn:art_a/p3 akn:art_a/p4 akn:art_a/p5 akn:art_a/p6 akn:art_a/p7 akn:art_a/p8 akn:art_a/p9
+`the linked shekel supplement` MEANS
+    LIST `linked period` (Date 1 12 2018) (Date 31 12 2018) `teachers in the Oz LeTmura reform`           1024.44,
+         `linked period` (Date 1 12 2018) (Date 31 12 2018) `teachers outside the reform and principals` 810.59,
+         `linked period` (Date 1 1 2019)  (Date 31 8 2019)  `teachers in the Oz LeTmura reform`           1133.64,
+         `linked period` (Date 1 1 2019)  (Date 31 8 2019)  `teachers outside the reform and principals` 918.07,
+         `linked period` (Date 1 9 2019)  (Date 31 12 9999) `teachers in the Oz LeTmura reform`           1153.84,
+         `linked period` (Date 1 9 2019)  (Date 31 12 9999) `teachers outside the reform and principals` 938.27
+
+@export default The CPI-linked 2016 shekel supplement for a full position on a day from 1 December 2018, for an upper-division teaching employee, under the owners' circular 5779/3
+@ref akn:art_a/p1 akn:art_a/p4 akn:art_a/p7
+GIVEN e IS A `teaching employee` @desc the employee
+      `the day` IS A DATE @desc the day the supplement is paid for
+GIVETH A NUMBER
+DECIDE `the linked shekel supplement for a full position` e `the day` IS
+    IF `the circular applies to` e
+    THEN sum (map (GIVEN p YIELD p's `amount`)
+                  (filter (GIVEN p YIELD p's `for group` EQUALS e's `employee group` AND `the day` AT LEAST p's `period from` AND `the day` AT MOST p's `period to`)
+                          `the linked shekel supplement`))
+    ELSE 0
+
+DECLARE `linkage action` IS ONE OF
+    `pay the linked amount` HAS `linked amount paid` IS A NUMBER
+    `indemnify the owner at the hour costs` HAS `hour-cost indemnity` IS A NUMBER
+    `indemnify the owner under payments topic 558` HAS `topic-558 indemnity` IS A NUMBER
+
+-- §a, last paragraph: indemnity at the relevant hour costs; no date named.
+@ref akn:art_a/p10
+GIVEN `indemnity due` IS A NUMBER
+GIVETH A DEONTIC Party `linkage action`
+DECIDE `indemnifying the owners for the shekel supplement` `indemnity due` IS
+    PARTY `the Ministry of Education`
+    MUST  `indemnify the owner at the hour costs` `amount`
+          PROVIDED `amount` AT LEAST `indemnity due`
+
+§§ `ב עדכון תוספת '87 מעבר לרפורמה למנהלים`
+
+-- §b: for principals under Oz LeTmura, the supplement linked "as above".
+-- The section it cites is named as section 18 of circular תשע"ח/9
+-- (F-2018-19_tashat_03-a).
+@ref akn:art_b/p1 akn:art_b/p2 akn:art_b/p3
+GIVEN e IS A `teaching employee`, `the day` IS A DATE
+GIVETH A NUMBER
+DECIDE `the linked 87 transition supplement` e `the day` IS
+    IF NOT e's `a principal under Oz LeTmura`
+    THEN 0
+    ELSE IF `the day` AT LEAST Date 1 9 2019
+         THEN 1018.62
+         ELSE IF `the day` AT LEAST Date 1 1 2019
+              THEN 554.01
+              ELSE 0
+
+-- §b ¶1: "יש לעדכן" — the owners must pay the principals the updated
+-- supplement; the circular names no date by which, so no deadline.
+@ref akn:art_b/p1
+GIVEN e IS A `teaching employee`, `the day` IS A DATE
+GIVETH A DEONTIC Party `linkage action`
+DECIDE `updating the 87 supplement` e `the day` IS
+    PARTY `the employer`
+    MUST  `pay the linked amount` `amount`
+          PROVIDED `amount` AT LEAST `the linked 87 transition supplement` e `the day`
+
+@ref akn:art_b/p4
+GIVEN `indemnity due` IS A NUMBER
+GIVETH A DEONTIC Party `linkage action`
+DECIDE `indemnifying the owners for the 87 supplement` `indemnity due` IS
+    PARTY `the Ministry of Education`
+    MUST  `indemnify the owner under payments topic 558` `amount`
+          PROVIDED `amount` AT LEAST `indemnity due`
+
+-- akn:conclusions The sign-off and the copies list; no rule.
+
+-- Findings.
+
+-- F-2018-19_tashat_03-a: §b cites "section 18 of our circular תשע"ח/9"; the
+-- corpus (and the circulars registry it is built from) holds circulars
+-- תשע"ח/1 to תשע"ח/8, and section 18 on principals' pay is in תשע"ח/3, the
+-- circular תשע"ט/1 cites for the same update.
+`the circular §b names` MEANS 9
+`the circulars of תשע"ח the corpus holds` MEANS range 1 8
+`section b cites a circular the corpus does not hold` MEANS
+    NOT elem `the circular §b names` `the circulars of תשע"ח the corpus holds`
+#ASSERT `section b cites a circular the corpus does not hold`
+
+-- Examples.
+`a reform teacher` MEANS `teaching employee` WITH
+    `rated in the teaching employees' grading` IS TRUE
+    `employed by an owner of a ministry-supervised institution` IS TRUE
+    `employed in an upper division or grades 13-14` IS TRUE
+    `employee group` IS `teachers in the Oz LeTmura reform`
+    `a principal under Oz LeTmura` IS FALSE
+
+`a principal under the reform` MEANS `teaching employee` WITH
+    `rated in the teaching employees' grading` IS TRUE
+    `employed by an owner of a ministry-supervised institution` IS TRUE
+    `employed in an upper division or grades 13-14` IS TRUE
+    `employee group` IS `teachers outside the reform and principals`
+    `a principal under Oz LeTmura` IS TRUE
+
+#ASSERT `the linked shekel supplement for a full position` `a reform teacher` (Date 15 12 2018) EQUALS 1024.44
+#ASSERT `the linked shekel supplement for a full position` `a principal under the reform` (Date 1 10 2019) EQUALS 938.27
+#ASSERT `the linked 87 transition supplement` `a principal under the reform` (Date 1 3 2019) EQUALS 554.01
+#ASSERT `the linkage of the amounts for` (Date 1 12 2018) EQUALS `December 2017 against December 2015`
+
+#TRACE `indemnifying the owners for the 87 supplement` 50 AT 0 WITH
+    PARTY `the Ministry of Education` DOES `indemnify the owner under payments topic 558` 50 AT 1
+#TRACE `updating the 87 supplement` `a principal under the reform` (Date 1 3 2019) AT 0 WITH
+    PARTY `the employer` DOES `pay the linked amount` 554.01 AT 1

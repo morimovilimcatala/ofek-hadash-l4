@@ -1,0 +1,183 @@
+-- חוזר לבעלויות תשע"ב/3: תשלום מענק חד פעמי בגובה 2,000 ₪ לעובדי הוראה
+-- A one-off grant of 2,000 ₪ to teaching staff of the owners of secondary
+-- education: who is entitled (continuous employment from 1.9.2010 to
+-- 1.1.2011), pro-rating by the average position, sabbatical, maternity and
+-- unpaid leave, what the grant does not count toward, and payment in
+-- September 2011. It replaces circular תשע"ב/1.
+
+IMPORT prelude
+IMPORT common
+
+§ `תשע"ב/3 תשלום מענק חד פעמי בגובה 2,000 ₪ לעובדי הוראה`
+
+-- The corpus publishes this circular's letterhead, date (22.9.2011),
+-- reference number and addressee as body paragraphs of an untitled block
+-- (hc_1), and drops the page's section numbers 1 and 2.
+-- akn:hc_1/p1 The letterhead ("מדינת ישראל"); no rule.
+-- akn:hc_1/p2 The letterhead (the Ministry); no rule.
+-- akn:hc_1/p3 The letterhead (the teaching-staff administration); no rule.
+-- akn:hc_1/p4 The letterhead (the senior division of teaching personnel); no rule.
+-- akn:hc_1/p5 The circular's title; no rule.
+-- akn:hc_1/p6 The Hebrew date; no rule.
+-- akn:hc_1/p7 The date, 22/09/2011; no rule.
+-- akn:hc_1/p8 The reference number; no rule.
+-- akn:hc_1/p9 The addressee, the owners of educational institutions; no rule.
+-- akn:hc_1/p10 The circular's purpose: to publish the instructions for the one-off grant of 2,000 ₪; the instructions follow.
+-- akn:hc_1/p11 Other changes in salary and conditions are to be published later; no rule here.
+-- akn:hc_1/p12 The heading "תחולה" (scope); no rule of its own.
+
+-- Time is counted in school months of 2011/12 (common.l4: September 2011 = 1).
+
+@desc An absence during the determining period (1.9.2010–1.1.2011) that sections 2(ה)–(ז) deal with.
+DECLARE `absence in the determining period` IS ONE OF
+    `no such absence`
+    `a sabbatical year for part of the period`
+    `maternity leave under section 6 of the Women's Work Law`
+    `unpaid leave, or absence treated as unpaid leave`
+
+@desc A teaching employee at one employer, as far as this circular asks about it.
+DECLARE `grant employee` HAS
+    `in the teaching-staff grade`        IS A BOOLEAN
+    `employed by an owner of secondary education supervised by the Ministry` IS A BOOLEAN
+    `received the grant under the agreement of 25.1.2011` IS A BOOLEAN @desc received the same one-off grant under the agreement of 25.1.2011 and the Wage Commissioner's circulars 2010-1-48 and 2010-1-58
+    `employed continuously from 1.9.2010 to 1.1.2011` IS A BOOLEAN @desc employed continuously at the employers through the determining period, apart from the absences of sections 2(ה)–(ו)
+    `absence`                            IS AN `absence in the determining period`
+    `longest continuous salaried period in months` IS A NUMBER @desc in 1.9.2010–31.8.2011, the longest run of months, continuous, for which the employee was entitled to salary from the employer (4 months and a day is a little over 4)
+    `average position`                   IS A NUMBER @desc the representative monthly average of the position at this employer over the part of 1.9.2010–31.8.2011 actually employed (1 = one full position)
+
+DECLARE `grant action` IS ONE OF
+    `pay the one-off grant` HAS `grant paid` IS A NUMBER
+
+§§ `1 תחולה`
+
+@ref akn:hc_1__para_a
+GIVEN g IS A `grant employee`
+GIVETH A BOOLEAN
+DECIDE `this circular applies to` g IF
+        g's `in the teaching-staff grade`
+    AND g's `employed by an owner of secondary education supervised by the Ministry`
+
+@ref akn:hc_1__para_b
+GIVEN g IS A `grant employee`
+GIVETH A BOOLEAN
+DECIDE `already received the grant` g IF
+    g's `received the grant under the agreement of 25.1.2011`
+
+-- Section 1(ג): nothing in this circular bears on the continued
+-- implementation of the reform that applies to the employee's stage of
+-- education.
+@ref akn:hc_1__para_c/p1
+`this circular bears on the reform's implementation` MEANS FALSE
+
+§§ `2 מענק חד פעמי`
+
+`the grant for a full position` MEANS 2000
+
+-- Section 2(א): continuous employment from 1.9.2010 to 1.1.2011 ("the
+-- determining period"). Section 2(ה): a sabbatical for part of it, with
+-- continuous employment for the rest, does not disentitle. Section 2(ו):
+-- maternity leave (in general 26 weeks) does not break continuity, for a
+-- woman or a man who takes it; unpaid leave after it falls under 2(ז).
+-- Section 2(ז): with unpaid leave in the period, the test is salary for 4
+-- full months and a day at least, continuously, in 1.9.2010–31.8.2011.
+@ref akn:hc_1__para_c/p2 akn:hc_1__para_c/p3 akn:hc_1__para_c__subpara_a akn:hc_1__para_c__subpara_e akn:hc_1__para_c__subpara_f akn:hc_1__para_c__subpara_g
+GIVEN g IS A `grant employee`
+GIVETH A BOOLEAN
+DECIDE `meets the employment condition` g IF
+    CONSIDER g's `absence`
+    WHEN `unpaid leave, or absence treated as unpaid leave` THEN g's `longest continuous salaried period in months` GREATER THAN 4
+    OTHERWISE g's `employed continuously from 1.9.2010 to 1.1.2011`
+
+GIVEN g IS A `grant employee`
+GIVETH A BOOLEAN
+DECIDE `entitled to the one-off grant` g IF
+        `this circular applies to` g
+    AND (NOT `already received the grant` g)
+    AND `meets the employment condition` g
+
+-- Section 2(ב): 2,000 for a full position, the same for more than a full
+-- position, and pro-rated to the average position below it. The average is
+-- taken over the part of the year actually employed (2(ב), 2(ז)).
+@ref akn:hc_1__para_c__subpara_b
+GIVEN g IS A `grant employee`
+GIVETH A NUMBER
+DECIDE `the grant's position share` g IS
+    min (g's `average position`) 1
+
+@export default The one-off grant one employer pays a teaching employee under circular תשע"ב/3
+GIVEN g IS A `grant employee` @desc the employee at this employer
+GIVETH A NUMBER
+DECIDE `the one-off grant` g IS
+    IF `entitled to the one-off grant` g
+    THEN `the grant for a full position` TIMES `the grant's position share` g
+    ELSE 0
+
+@desc A use a payment may be counted toward, as sections 2(ג)–(ד) ask.
+DECLARE `grant use` IS ONE OF
+    `salary for every purpose`
+    `severance pay`
+    `the hourly value`
+    `contributions to a provident fund, the study fund included`
+    `the minimum-wage top-up`
+
+@ref akn:hc_1__para_c__subpara_c akn:hc_1__para_c__subpara_d
+GIVEN u IS A `grant use`
+GIVETH A BOOLEAN
+DECIDE `the grant counts toward` u IF FALSE
+
+@ref akn:hc_1__para_c__subpara_h/p1
+GIVEN g IS A `grant employee`
+GIVETH A DEONTIC Party `grant action`
+DECIDE `paying the grant with September's salary` g IS
+    PARTY `the local authority or owning body`
+    MUST  `pay the one-off grant` `amount`
+          PROVIDED `amount` AT LEAST `the one-off grant` g
+    WITHIN `month number` September
+    LEST BREACH BY `the local authority or owning body` BECAUSE "section 2(ח): the one-off grant is paid with the September 2011 salary"
+
+§§ `3`
+
+@ref akn:hc_1__para_c__subpara_h/p2
+`the circular this one replaces` MEANS "תשע\"ב/1"
+
+-- akn:conclusions The contact line for questions, the sign-off and signature; no rule.
+
+-- Worked examples.
+`a teacher at 80% employed throughout` MEANS
+    `grant employee` WITH
+        `in the teaching-staff grade`        IS TRUE
+        `employed by an owner of secondary education supervised by the Ministry` IS TRUE
+        `received the grant under the agreement of 25.1.2011` IS FALSE
+        `employed continuously from 1.9.2010 to 1.1.2011` IS TRUE
+        `absence`                            IS `no such absence`
+        `longest continuous salaried period in months` IS 12
+        `average position`                   IS 0.8
+
+`a teacher back from unpaid leave in March 2011` MEANS
+    `grant employee` WITH
+        `in the teaching-staff grade`        IS TRUE
+        `employed by an owner of secondary education supervised by the Ministry` IS TRUE
+        `received the grant under the agreement of 25.1.2011` IS FALSE
+        `employed continuously from 1.9.2010 to 1.1.2011` IS FALSE
+        `absence`                            IS `unpaid leave, or absence treated as unpaid leave`
+        `longest continuous salaried period in months` IS 6
+        `average position`                   IS 1.2
+
+`a teacher back from unpaid leave in May 2011` MEANS
+    `grant employee` WITH
+        `in the teaching-staff grade`        IS TRUE
+        `employed by an owner of secondary education supervised by the Ministry` IS TRUE
+        `received the grant under the agreement of 25.1.2011` IS FALSE
+        `employed continuously from 1.9.2010 to 1.1.2011` IS FALSE
+        `absence`                            IS `unpaid leave, or absence treated as unpaid leave`
+        `longest continuous salaried period in months` IS 4
+        `average position`                   IS 1
+
+#ASSERT `the one-off grant` `a teacher at 80% employed throughout` EQUALS 1600
+#ASSERT `the one-off grant` `a teacher back from unpaid leave in March 2011` EQUALS 2000
+#ASSERT `the one-off grant` `a teacher back from unpaid leave in May 2011` EQUALS 0
+
+#TRACE `paying the grant with September's salary` `a teacher at 80% employed throughout` AT 0 WITH
+    PARTY `the local authority or owning body` DOES `pay the one-off grant` 1600 AT 1
+#TRACE `paying the grant with September's salary` `a teacher at 80% employed throughout` AT 0 WITH
+    PARTY `the local authority or owning body` DOES `pay the one-off grant` 1600 AT 2

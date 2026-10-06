@@ -1,0 +1,1306 @@
+-- חוזר לבעלויות תשפ"ה/5 (10.10.2024): הסכם קיבוצי עם ארגון המורים העל יסודיים מיום 23.09.2024
+-- The main points of the collective agreement of 23.9.2024 between the
+-- local-government employers and the secondary teachers' organization for
+-- the upper divisions: a one-time grant for תשפ"ד, the Oz 2023 shekel
+-- supplement in four pulses, the 38-hour work week, role rewards, the
+-- school role reward, principals' supplements, the supplement for
+-- employees outside the reform, special contracts, the retirement grant,
+-- and the return of the strike days of September 2024.
+
+IMPORT prelude
+IMPORT common
+
+-- Time in the regulative rules is counted in school months of תשפ"ה
+-- (common.l4: September 2024 = 1, October 2024 = 2, November 2024 = 3,
+-- January 2025 = 5, April 2025 = 8), unless a rule says otherwise.
+
+§ `תשפ"ה/5 הסכם קיבוצי 23.09.2024`
+
+-- akn:preamble/p1 akn:preamble/p2 akn:preamble/p3 akn:preamble/p4 akn:preamble/p5 akn:preamble/p6 akn:preamble/p7 akn:preamble/p8 akn:preamble/p9 akn:preamble/p10 akn:preamble/p11 akn:preamble/p12 The letterhead, date (10.10.2024), reference number, circular number, addressee (the owners of the upper divisions), greeting and subject line; no rule.
+
+-- akn:preamble/p13 akn:preamble/p14 Background: the agreement was signed on 23.9.2024 between the local-government centre, the three large cities and the regional centre and the secondary teachers' organization, and approved by the Treasury's wages commissioner; the circular sets out its main points.
+
+GIVEN d IS A DATE, e IS A DATE
+GIVETH A BOOLEAN
+DECIDE d `is on or after` e IF
+    DATE_SERIAL d AT LEAST DATE_SERIAL e
+
+@desc How a pay component counts for the purposes the agreement names (true = it counts).
+DECLARE `component treatment` HAS
+    `is salary for every purpose`                IS A BOOLEAN
+    `counts for the hourly value`                IS A BOOLEAN
+    `counts for an hour's absence`               IS A BOOLEAN
+    `counts for severance pay`                   IS A BOOLEAN
+    `counts for pension contributions`           IS A BOOLEAN
+    `counts for study-fund and Dafna contributions` IS A BOOLEAN
+    `counts for the minimum-wage top-up`         IS A BOOLEAN
+    `is in the base of other supplements`        IS A BOOLEAN
+    `counts for the jubilee grant`               IS A BOOLEAN
+
+DECLARE `agreement action` IS ONE OF
+    `pay the one-time grant` HAS `grant paid` IS A NUMBER
+    `deduct the rest of the advance` HAS `advance deducted` IS A NUMBER
+    `pay the arrears` HAS `arrears paid` IS A NUMBER
+    `set the rules of the integration-class reward`
+    `pay the physiotherapists' clothing allowance` HAS `clothing paid` IS A NUMBER
+    `report the special contracts to the teachers' organization`
+    `pay the retirement grant` HAS `retirement grant paid` IS A NUMBER
+    `pay the school-achievement grant` HAS `achievement grant paid` IS A NUMBER
+    `apply for the school-achievement grant`
+    `deduct an uncompleted strike advance` HAS `strike advance deducted` IS A NUMBER
+    `reduce the salary for the unpaid strike days` HAS `strike reduction` IS A NUMBER
+    `announce the end of the organizational measures`
+    `publish the school roles and their units`
+
+§§ `פרק א' כללי`
+
+-- akn:art_1__para_a The preamble and annexes are part of the agreement; an interpretive clause with no case of its own.
+-- akn:art_1__para_b Words in one gender include the other; an interpretive clause, so the encoding carries no sex.
+-- akn:art_1__para_c Headings are for convenience and not used to interpret the agreement; an interpretive clause.
+-- akn:art_1__para_d Mentioning letters, circulars or procedures does not change their normative standing; an interpretive clause.
+
+-- §2 and §4: the agreement applies to every employee graded as teaching
+-- staff whom the teachers' organization represents and the Oz LaTmura
+-- agreement (of 14.8.2011, as amended) covers, in the reform or not. "In
+-- the reform" means teachers and principals employed under its terms.
+@desc A teaching employee as the agreement of 23.9.2024 sees one.
+DECLARE `upper-division employee` HAS
+    `represented by the teachers' organization`   IS A BOOLEAN
+    `covered by the Oz LaTmura agreement`          IS A BOOLEAN
+    `employed under Oz LaTmura terms`              IS A BOOLEAN
+    `is a principal`                               IS A BOOLEAN
+
+@ref akn:art_2/p1 akn:art_4/p1
+GIVEN e IS AN `upper-division employee`
+GIVETH A BOOLEAN
+DECIDE `the agreement applies to` e IF
+    e's `represented by the teachers' organization` AND e's `covered by the Oz LaTmura agreement`
+
+@ref akn:art_4/p2 akn:art_4/p3 akn:art_4/p4
+GIVEN e IS AN `upper-division employee`
+GIVETH A BOOLEAN
+DECIDE `is in the reform` e IF
+    `the agreement applies to` e AND e's `employed under Oz LaTmura terms`
+
+GIVEN e IS AN `upper-division employee`
+GIVETH A BOOLEAN
+DECIDE `is a teacher in the reform` e IF
+    `is in the reform` e AND NOT e's `is a principal`
+
+@ref akn:art_3/p1
+`the agreement runs until` MEANS DATE_FROM_DMY 31 8 2028
+
+§§ `5 מענק חד-פעמי בגין שנת הלימודים תשפ"ד`
+
+DECLARE `grant month status` IS ONE OF
+    `worked`
+    `unpaid leave or sabbatical`
+    `reserve duty`
+    `birth and parenting period`
+    `unpaid absence after the birth and parenting period`
+    `not employed`
+
+@desc One month of the grant period, 1.9.2023-30.8.2024, as section 5 asks about it.
+DECLARE `grant month` HAS
+    `status of the month`     IS A `grant month status`
+    `position of the month`   IS A NUMBER  @desc the position held that month (above 1 where it exceeds 100%), or, for reserve duty or birth and parenting, the position held on the eve of leaving (5(ו))
+
+-- 5(ה)-(ו): unpaid leave (sabbatical included) and leave treated as such
+-- do not count, nor an unpaid absence after the birth-and-parenting
+-- period; reserve duty and that period do, at the position held before.
+@ref akn:art_5__para_e akn:art_5__para_e/p2 akn:art_5__para_f
+GIVEN m IS A `grant month`
+GIVETH A NUMBER
+DECIDE `the month's position for the grant` m IS
+    CONSIDER m's `status of the month`
+    WHEN `worked` THEN m's `position of the month`
+    WHEN `reserve duty` THEN m's `position of the month`
+    WHEN `birth and parenting period` THEN m's `position of the month`
+    OTHERWISE 0
+
+-- 5(א): 9,600 for an employee in the reform and 6,000 for one outside it,
+-- for a full position with the employer throughout the period ("the grant").
+@ref akn:art_5__para_a akn:art_5__para_a/p2 akn:art_5__para_a/p3 akn:art_5__para_a/p4
+GIVEN e IS AN `upper-division employee`
+GIVETH A NUMBER
+DECIDE `the full grant` e IS
+    IF NOT `the agreement applies to` e THEN 0
+    ELSE IF `is in the reform` e THEN 9600 ELSE 6000
+
+`the months of the grant period` MEANS 12
+
+-- 5(ב)-(ד): for part of the period, a part-time position, or both, the
+-- share the months and the weighted position give — a position above 100%
+-- included.
+@ref akn:art_5__para_b akn:art_5__para_c akn:art_5__para_d
+GIVEN e IS AN `upper-division employee`, months IS A LIST OF `grant month`
+GIVETH A NUMBER
+DECIDE `the one-time grant` e months IS
+    `the full grant` e
+    TIMES sum (map `the month's position for the grant` months)
+    DIVIDED BY `the months of the grant period`
+
+-- 5(ז): paid with October 2024's salary (paid November) and no later than
+-- November 2024's (paid December) — school months 2 and 3.
+@ref akn:art_5__para_g
+GIVEN grant IS A NUMBER
+GIVETH A DEONTIC Party `agreement action`
+DECIDE `the grant is paid` grant IS
+    PARTY `the employer`
+    MUST  `pay the one-time grant` g
+          PROVIDED g AT LEAST grant
+    WITHIN `month number` November
+    LEST  BREACH BY `the employer` BECAUSE "תשפ\"ה/5 §5(ז): the grant is paid no later than November 2024's salary"
+
+-- 5(ח)-(י): the grant is not salary: not for the hourly value (substitution
+-- hours, an hour's absence), severance or any fund; not for the
+-- minimum-wage top-up; it does not change the combined-salary base.
+@ref akn:art_5__para_h akn:art_5__para_h/p2 akn:art_5__para_i akn:art_5__para_j
+`how the one-time grant counts` MEANS
+    `component treatment` WITH
+        `is salary for every purpose`                   IS FALSE
+        `counts for the hourly value`                   IS FALSE
+        `counts for an hour's absence`                  IS FALSE
+        `counts for severance pay`                      IS FALSE
+        `counts for pension contributions`              IS FALSE
+        `counts for study-fund and Dafna contributions` IS FALSE
+        `counts for the minimum-wage top-up`            IS FALSE
+        `is in the base of other supplements`           IS FALSE
+        `counts for the jubilee grant`                  IS FALSE
+
+-- 5(יא): where an advance was paid under the agreement of 12.9.2023, the
+-- rest of it — after the part deducted on the commissioner's notice of
+-- 9.4.2024 — is deducted from the salary that carries the grant.
+@ref akn:art_5__para_ja
+GIVEN `rest of the advance` IS A NUMBER
+GIVETH A DEONTIC Party `agreement action`
+DECIDE `the rest of the advance is deducted with the grant` `rest of the advance` IS
+    PARTY `the employer`
+    MUST  `deduct the rest of the advance` a
+          PROVIDED a EQUALS `rest of the advance`
+    WITHIN `month number` November
+
+§§ `פרק ב' עובדי הוראה המועסקים בתנאי רפורמת עוז לתמורה`
+
+-- §6: chapter ב applies to the employees in the reform; each rule of it
+-- below asks `is in the reform`.
+@ref akn:art_6
+GIVEN e IS AN `upper-division employee`
+GIVETH A BOOLEAN
+DECIDE `chapter ב applies to` e IF
+    `is in the reform` e
+
+@desc A row of 7(ב)'s table: from a date, the four pulses of the Oz 2023 shekel supplement for a full position and their total.
+DECLARE `pulse row` HAS
+    `pulses from`  IS A DATE
+    `pulse 1`      IS A NUMBER
+    `pulse 2`      IS A NUMBER
+    `pulse 3`      IS A NUMBER
+    `pulse 4`      IS A NUMBER
+    `pulse total`  IS A NUMBER
+
+-- 7(א)-(ב): from 1.9.2024 a monthly Oz 2023 shekel supplement; for a full
+-- position it is the table's.
+@ref akn:art_7__para_a akn:art_7__para_b akn:art_7__para_b/t1
+`the table of the Oz 2023 shekel supplement` MEANS
+    LIST `pulse row` (DATE_FROM_DMY 1 9 2024) 1200 0      0      0   1200,
+         `pulse row` (DATE_FROM_DMY 1 9 2025) 1218 300    0      0   1518,
+         `pulse row` (DATE_FROM_DMY 1 9 2026) 1236 304.50 250    0   1790.50,
+         `pulse row` (DATE_FROM_DMY 1 9 2027) 1254 309    253.75 250 2066.75
+
+GIVEN d IS A DATE
+GIVETH A NUMBER
+DECIDE `the Oz 2023 shekel supplement for a full position on` d IS
+    CONSIDER reverse (filter (GIVEN r YIELD d `is on or after` (r's `pulses from`)) `the table of the Oz 2023 shekel supplement`)
+    WHEN r FOLLOWED BY rest THEN r's `pulse total`
+    WHEN EMPTY THEN 0
+
+-- 7(ג): in proportion to the position, above 100% too.
+@ref akn:art_7__para_c
+GIVEN e IS AN `upper-division employee`, `position fraction` IS A NUMBER, d IS A DATE
+GIVETH A NUMBER
+DECIDE `the Oz 2023 shekel supplement` e `position fraction` d IS
+    IF `chapter ב applies to` e
+    THEN `the Oz 2023 shekel supplement for a full position on` d TIMES `position fraction`
+    ELSE 0
+
+-- 7(ד)-(ו) and the last paragraph: salary for every purpose — the hourly
+-- value for substitution hours, an hour's absence, severance, pension
+-- under §46 of the Oz agreement, the study fund and Dafna; not for the
+-- minimum-wage top-up; in the base of no supplement; but counted for the
+-- jubilee grant.
+@ref akn:art_7__para_d akn:art_7__para_e akn:art_7__para_f akn:art_7__para_f/p2 akn:art_7__para_f/p3
+`how the Oz 2023 shekel supplement counts` MEANS
+    `component treatment` WITH
+        `is salary for every purpose`                   IS TRUE
+        `counts for the hourly value`                   IS TRUE
+        `counts for an hour's absence`                  IS TRUE
+        `counts for severance pay`                      IS TRUE
+        `counts for pension contributions`              IS TRUE
+        `counts for study-fund and Dafna contributions` IS TRUE
+        `counts for the minimum-wage top-up`            IS FALSE
+        `is in the base of other supplements`           IS FALSE
+        `counts for the jubilee grant`                  IS TRUE
+
+§§ `8 מבנה שבוע העבודה של מורה המועסק בתנאי הרפורמה`
+
+-- 8, lead-in and (א)(1)-(2): from תשפ"ה, the position base of a teacher
+-- on a full position is 38 weekly hours (40 → 38 in §9(ד) of the Oz
+-- agreement as amended in 2014).
+@ref akn:art_8/p1 akn:art_8__para_a/p1 akn:art_8__para_a__subpara_1 akn:art_8__para_a__subpara_2
+`the position base in weekly hours` MEANS 38
+
+-- (א)(3): the 38 hours are 25 frontal hours, 3 individual hours (a group
+-- of up to 3 pupils, or 5 by the pedagogical team's decision; for
+-- reinforcement, enrichment and dialogue) and 10 teaching-support hours in
+-- the school: 2 work meetings, 2 team training, 1 parents, 5 preparation
+-- and marking.
+@ref akn:art_8__para_a__subpara_3 akn:art_8__para_a__subpara_3/p2 akn:art_8__para_a__subpara_3/p3 akn:art_8__para_a__subpara_3/p4 akn:art_8__para_a__subpara_3/p5 akn:art_8__para_a__subpara_3__cls_a akn:art_8__para_a__subpara_3__cls_b akn:art_8__para_a__subpara_3__cls_c akn:art_8__para_a__subpara_3__cls_d
+`frontal hours` MEANS 25
+`individual hours` MEANS 3
+`teaching-support hours` MEANS 10
+`support hours by activity` MEANS LIST 2, 2, 1, 5
+
+GIVEN `pupils in the group` IS A NUMBER, `the pedagogical team decided on up to 5` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `an individual-hours group may have` `pupils in the group` `the pedagogical team decided on up to 5` IF
+        `pupils in the group` AT MOST 3
+    OR (`the pedagogical team decided on up to 5` AND `pupils in the group` AT MOST 5)
+
+-- (ב)-(ד): a part-time teacher works by annex א's table (replacing annex
+-- ג of the Oz agreement); annex ב replaces the mothers' work week and
+-- annex ג the age-reduction work week. The annexes are not reproduced in
+-- the circular; the hours they give are an input.
+@ref akn:art_8__para_b akn:art_8__para_c akn:art_8__para_d
+GIVEN `weekly hours by the agreement's annexes` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the week of a part-time, mother or age-reduced teacher` `weekly hours by the agreement's annexes` IS
+    `weekly hours by the agreement's annexes`
+
+-- (ה): for an employee above 100% in תשפ"ה, changes of position caused by
+-- the move to the new work week found no claim of harm to the position
+-- commitment.
+@ref akn:art_8__para_e
+GIVEN `position in תשפ"ה` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `a change from the new work week founds a claim` `position in תשפ"ה` IF
+    `position in תשפ"ה` AT MOST 1
+
+§§ `9 העסקה בתנאי הרפורמה`
+
+-- 9(א)-(ב): from 1.9.2024, a new or existing employee below a third of a
+-- position (with all employers together) is employed under the reform in
+-- an upper division where he teaches 4 frontal hours or more — in that
+-- upper division only.
+@ref akn:art_9__para_a akn:art_9__para_a/p2 akn:art_9__para_b akn:art_9__para_b/p2
+GIVEN `position with all employers` IS A NUMBER, `frontal hours in this upper division` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `is employed under the reform in this upper division despite a small position` `position with all employers` `frontal hours in this upper division` IF
+    `position with all employers` LESS THAN 1 DIVIDED BY 3 AND `frontal hours in this upper division` AT LEAST 4
+
+§§ `10 גמולי תפקיד`
+
+DECLARE `role` IS ONE OF
+    `ICT and technology coordinator`
+    `skills coordinator`
+    `homeroom teacher`
+    `grade-level coordinator`
+    `social-education coordinator`
+    `social-education coordinator, social involvement`
+    `pedagogical coordinator`
+    `subject coordinator`
+    `subject coordinator, English or mathematics`
+
+-- akn:art_10__para_a/p1 The heading "(א) the role reward of the ICT and technology coordinator".
+
+-- 10(א)(1): from 1.9.2024 the "ICT coordinator" is called "ICT and
+-- technology coordinator" (the role above).
+@ref akn:art_10__para_a__subpara_1
+`the ICT coordinator is renamed from` MEANS DATE_FROM_DMY 1 9 2024
+
+-- The percentage role rates this agreement sets, by role and date. 10(א)(2)
+-- 6% → 8% from 1.9.2025; 10(ב)(1) 6% (on the combined salary and the Oz
+-- supplement); 10(ז)(1) 6% → 10% from 1.9.2024, not for the
+-- social-involvement coordinator (ז(3)); 10(ח) 6% → 8% from 1.9.2025;
+-- 10(יא) 8% from 1.9.2025 except English and mathematics. The rates before
+-- the steps are the Oz agreement's and the 2018 agreement's, as quoted.
+@ref akn:art_10__para_a__subpara_2 akn:art_10__para_b__subpara_1 akn:art_10__para_g__subpara_1 akn:art_10__para_g__subpara_3 akn:art_10__para_h/p1 akn:art_10__para_h/p2 akn:art_10__para_ja/p1 akn:art_10__para_ja/p2
+GIVEN r IS A `role`, d IS A DATE, `rate before this agreement` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the role reward rate` r d `rate before this agreement` IS
+    CONSIDER r
+    WHEN `ICT and technology coordinator` THEN
+        IF d `is on or after` (DATE_FROM_DMY 1 9 2025) THEN 8% ELSE 6%
+    WHEN `skills coordinator` THEN
+        IF d `is on or after` (DATE_FROM_DMY 1 9 2024) THEN 6% ELSE 0
+    WHEN `social-education coordinator` THEN
+        IF d `is on or after` (DATE_FROM_DMY 1 9 2024) THEN 10% ELSE 6%
+    WHEN `pedagogical coordinator` THEN
+        IF d `is on or after` (DATE_FROM_DMY 1 9 2025) THEN 8% ELSE 6%
+    WHEN `subject coordinator` THEN
+        IF d `is on or after` (DATE_FROM_DMY 1 9 2025) THEN 8% ELSE `rate before this agreement`
+    OTHERWISE `rate before this agreement`
+
+-- 10(א)(3)-(4), 10(ב)(2): from 1.9.2024 the ICT and technology coordinator
+-- and the skills coordinator each have one role hour in place of a frontal
+-- hour of the position; the employer may give the ICT coordinator one more
+-- hour or half-hour where §17(ב)(1)-(3) of the reform agreement are met.
+@ref akn:art_10__para_a__subpara_3 akn:art_10__para_a__subpara_4 akn:art_10__para_b__subpara_2
+GIVEN r IS A `role`, `employer adds` IS A NUMBER, `the conditions of 17(ב)(1)-(3) are met` IS A BOOLEAN
+GIVETH A NUMBER
+DECIDE `role hours in place of frontal hours` r `employer adds` `the conditions of 17(ב)(1)-(3) are met` IS
+    CONSIDER r
+    WHEN `ICT and technology coordinator` THEN
+        1 PLUS (IF `the conditions of 17(ב)(1)-(3) are met` THEN min `employer adds` 1 ELSE 0)
+    WHEN `skills coordinator` THEN 1
+    OTHERWISE 0
+
+-- akn:art_10__para_a__subpara_5 A saving clause: the other rules of the ICT coordinator's reward are unchanged.
+-- akn:art_10__para_b/p1 The heading "(ב) the role reward of the skills coordinator".
+
+-- 10(ב), lead-in and (3): from 1.9.2024 the skills coordinator joins the
+-- roles of §17(א) of the reform agreement, and its reward is calculated
+-- and paid by the rules of the subject coordinator's.
+@ref akn:art_10__para_b/p2 akn:art_10__para_b__subpara_3
+GIVEN r IS A `role`
+GIVETH A `role`
+DECIDE `calculated and paid by the rules of` r IS
+    IF r EQUALS `skills coordinator` THEN `subject coordinator` ELSE r
+
+-- 10(ג): if the flexible matriculation programme is cancelled, 10(א)(3)
+-- and 10(ב) stop applying — from the next school year if it is cancelled
+-- during one.
+@ref akn:art_10__para_c
+GIVEN `programme cancelled in school year` IS A NUMBER, `cancelled at the start of the year` IS A BOOLEAN, `school year` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `the ICT role hour and the skills coordinator still apply in` `programme cancelled in school year` `cancelled at the start of the year` `school year` IS
+    IF `cancelled at the start of the year`
+    THEN `school year` LESS THAN `programme cancelled in school year`
+    ELSE `school year` AT MOST `programme cancelled in school year`
+
+-- 10(ד) and 10(ו): from 1.9.2024 the homeroom teacher's reward is the
+-- higher of 10% (by the existing rules) and 1,000; from 1.9.2025 the
+-- grade-level coordinator's the higher of 6% and 1,100. Other rules, the
+-- grade coordinator's role hours, and employees outside the reform are
+-- unchanged.
+@ref akn:art_10__para_d/p1 akn:art_10__para_d/p2 akn:art_10__para_d__subpara_1 akn:art_10__para_d__subpara_1/p2 akn:art_10__para_d__subpara_1/p3 akn:art_10__para_f/p1 akn:art_10__para_f/p2 akn:art_10__para_f__subpara_1 akn:art_10__para_f__subpara_1/p2 akn:art_10__para_f__subpara_1/p3
+GIVEN r IS A `role`, d IS A DATE, `the percentage reward by the existing rules at the new rate` IS A NUMBER, `reward before this agreement` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the homeroom or grade-coordinator reward` r d `the percentage reward by the existing rules at the new rate` `reward before this agreement` IS
+    CONSIDER r
+    WHEN `homeroom teacher` THEN
+        IF d `is on or after` (DATE_FROM_DMY 1 9 2024)
+        THEN max `the percentage reward by the existing rules at the new rate` 1000
+        ELSE `reward before this agreement`
+    WHEN `grade-level coordinator` THEN
+        IF d `is on or after` (DATE_FROM_DMY 1 9 2025)
+        THEN max `the percentage reward by the existing rules at the new rate` 1100
+        ELSE `reward before this agreement`
+    OTHERWISE `reward before this agreement`
+
+-- 10(ה): from 1.9.2024 the educational counsellor's reward (in the reform)
+-- goes by the licence and not by seniority: 12% full rate on a temporary
+-- licence, 18% on a permanent one; the full rate at 12 weekly counselling
+-- hours; the other rules, the way it is calculated included, are unchanged.
+@ref akn:art_10__para_e/p1 akn:art_10__para_e/p2 akn:art_10__para_e/p3 akn:art_10__para_e__subpara_a akn:art_10__para_e__subpara_b akn:art_10__para_e__subpara_b/p2 akn:art_10__para_e__subpara_b/p3 akn:art_10__para_e__subpara_b/p4
+GIVEN `permanent licence` IS A BOOLEAN
+GIVETH A NUMBER
+DECIDE `the full counselling rate` `permanent licence` IS
+    IF `permanent licence` THEN 18% ELSE 12%
+
+`weekly counselling hours for the full rate` MEANS 12
+
+-- akn:art_10__para_g/p1 The heading "(ז) the reward of the social-education coordinator".
+-- akn:art_10__para_g__subpara_2 A saving clause: the other rules of that reward, and the rate of employees outside the reform, are unchanged.
+-- akn:art_10__para_h/p3 A saving clause: the other rules of the pedagogical coordinator's reward, and the rate of employees outside the reform, are unchanged.
+-- akn:art_10__para_ja/p3 A saving clause: only the subject coordinator's rate changes, and not for employees outside the reform.
+
+-- 10(ט): from 1.9.2024 the percentage reward for preparing for the
+-- 5-unit chemistry matriculation, for employees in the reform, rises from
+-- 2% to 4%; its other rules are unchanged.
+@ref akn:art_10__para_i/p1 akn:art_10__para_i/p2
+GIVEN d IS A DATE
+GIVETH A NUMBER
+DECIDE `the 5-unit chemistry preparation rate` d IS
+    IF d `is on or after` (DATE_FROM_DMY 1 9 2024) THEN 4% ELSE 2%
+
+-- 10(י): from 1.9.2025 §14.2 of the 2018 agreement adds "system
+-- coordinator" and "counselling coordinator"; in all four role holders,
+-- chosen by the principal from the eight listed.
+@ref akn:art_10__para_j/p1 akn:art_10__para_j/p2 akn:art_10__para_j/p3 akn:art_10__para_j/p4 akn:art_10__para_j/p5 akn:art_10__para_j/p6 akn:art_10__para_j/p7 akn:art_10__para_j/p8 akn:art_10__para_j/p9 akn:art_10__para_j/p10 akn:art_10__para_j/p11
+`the list of §14.2 roles from 1.9.2025` MEANS
+    LIST "trips coordinator", "pedagogical coordinator", "integration and special populations coordinator",
+         "ICT and technology coordinator", "matriculation coordinator", "discipline and educational climate coordinator",
+         "system coordinator", "counselling coordinator"
+
+`role holders the principal chooses` MEANS 4
+
+GIVEN chosen IS A LIST OF STRING
+GIVETH A BOOLEAN
+DECIDE `the principal's choice is valid` chosen IF
+        count chosen AT MOST `role holders the principal chooses`
+    AND all (GIVEN c YIELD elem c `the list of §14.2 roles from 1.9.2025`) chosen
+
+§§ `11 גמול חינוך מיוחד`
+
+-- 11(א): from 1.9.2024, for an employee in the reform with a special-
+-- education qualification, 9% → 10% and 14% → 15% (eligibility unchanged);
+-- (ב): 17% for the hours taught in a class the Ministry defines as autism
+-- or severe mental disorders, in place of 14%.
+@ref akn:art_11__para_a akn:art_11__para_a/p2 akn:art_11__para_a/p3 akn:art_11__para_a/p4 akn:art_11__para_a/p5 akn:art_11__para_a/p6 akn:art_11__para_b
+GIVEN `rate before the agreement` IS A NUMBER, `autism or severe mental-disorder class` IS A BOOLEAN
+GIVETH A NUMBER
+DECIDE `the special-education rate from 1.9.2024` `rate before the agreement` `autism or severe mental-disorder class` IS
+    BRANCH IF `rate before the agreement` EQUALS 14% AND `autism or severe mental-disorder class` THEN 17%
+           IF `rate before the agreement` EQUALS 14% THEN 15%
+           IF `rate before the agreement` EQUALS 9% THEN 10%
+           OTHERWISE `rate before the agreement`
+
+-- akn:art_11__para_c A saving clause: the other rules of the special-education reward, and the rate of employees outside the reform, are unchanged.
+
+§§ `12 גמול מחנך כיתת שילוב`
+
+-- 12: agreed in principle, a reward for the homeroom teacher of a class
+-- with integrated pupils entitled to a personal basket (§2 of the Second
+-- Schedule to the Special Education Law) above a number to be set: not in
+-- role hours, payable from 1.9.2025, its rules set between the parties by
+-- 1.9.2025 and no later than 31.12.2025, within the budget of the
+-- Treasury's letter of 23.9.2024. Months here count from September 2025
+-- (= 1): 31.12.2025 is month 4.
+@ref akn:art_12/p1 akn:art_12__para_a akn:art_12__para_b akn:art_12__para_c
+GIVETH A DEONTIC Party `agreement action`
+DECIDE `the rules of the integration-class reward are set` IS
+    PARTY `the teachers' union`
+    MUST  `set the rules of the integration-class reward`
+    WITHIN 4
+    LEST  BREACH BY `the teachers' union` BECAUSE "תשפ\"ה/5 §12(ג): the rules are set by 1.9.2025 and no later than 31.12.2025"
+
+`the integration-class reward is in role hours` MEANS FALSE
+
+§§ `13 גמול בגין הכנה לבגרות בעל פה בשפה האנגלית`
+
+@ref akn:art_13/p1
+GIVEN d IS A DATE
+GIVETH A NUMBER
+DECIDE `the English oral preparation rate` d IS
+    IF d `is on or after` (DATE_FROM_DMY 1 9 2024) THEN 2% ELSE 0
+
+§§ `14 גמול תפקיד בית ספרי`
+
+-- 14(א)-(ב), (י), (יא)-(יב): from תשפ"ז, yearly, the principal may set
+-- school roles in the upper division, filled with the teacher's consent,
+-- and the reward units of each, by the school's priorities, the Ministry's
+-- criteria and the quota of units it allots; a role and its units are set
+-- afresh each year, as a rule for a full year, with no right to continue.
+@ref akn:art_14__para_a akn:art_14__para_a/p2 akn:art_14__para_b akn:art_14__para_c/p12 akn:art_14__para_c/p13 akn:art_14__para_ja akn:art_14__para_ja/p2
+GIVEN `school year` IS A NUMBER @desc the Hebrew school year as a number, תשפ"ז = 5787
+GIVETH A BOOLEAN
+DECIDE `school roles may be set in` `school year` IF
+    `school year` AT LEAST 5787
+
+-- 14(ג): between two and five units, in whole units; (ה): each unit is
+-- 200 a month (four units, 800).
+@ref akn:art_14__para_c akn:art_14__para_c/p4 akn:art_14__para_c/p5
+`one reward unit a month` MEANS 200
+
+GIVEN units IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `a valid number of units` units IF
+    units AT LEAST 2 AND units AT MOST 5 AND units EQUALS FLOOR units
+
+-- 14(ד): a role in §17(א) of the reform agreement or §14 of the 2018
+-- agreement, or a cross-school role the Ministry requires, is not a school
+-- role; the school role reward replaces no existing role reward.
+@ref akn:art_14__para_c/p2 akn:art_14__para_c/p3
+GIVEN `listed in 17(א) or the 2018 agreement's §14` IS A BOOLEAN, `a role every school must fill` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `may be a school role` `listed in 17(א) or the 2018 agreement's §14` `a role every school must fill` IF
+    (NOT `listed in 17(א) or the 2018 agreement's §14`) AND (NOT `a role every school must fill`)
+
+-- 14(ו)-(ח), (יג)-(יד): the full shekel value for a part-time teacher of a
+-- third of a position or more, and no more than a full-time one's above
+-- 100%; only a teacher in the reform; one school role a year; not a
+-- principal or vice-principal.
+@ref akn:art_14__para_c/p6 akn:art_14__para_c/p7 akn:art_14__para_c/p8 akn:art_14__para_c/p9 akn:art_14__para_c/p10 akn:art_14__para_ja/p3 akn:art_14__para_ja/p4 akn:art_14__para_ja/p5
+GIVEN e IS AN `upper-division employee`, `is a vice-principal` IS A BOOLEAN, units IS A NUMBER, `position fraction` IS A NUMBER, `school roles held this year` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the school role reward` e `is a vice-principal` units `position fraction` `school roles held this year` IS
+    IF     `is a teacher in the reform` e
+       AND NOT `is a vice-principal`
+       AND `a valid number of units` units
+       AND `position fraction` AT LEAST 1 DIVIDED BY 3
+       AND `school roles held this year` EQUALS 1
+    THEN units TIMES `one reward unit a month`
+    ELSE 0
+
+-- 14(ט): the school role reward counts within the quota of role rewards a
+-- teacher may receive; the quota is the reform agreement's, an input.
+@ref akn:art_14__para_c/p11
+GIVEN `role rewards held besides it` IS A NUMBER, `quota of role rewards` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `the school role reward fits the quota` `role rewards held besides it` `quota of role rewards` IF
+    `role rewards held besides it` PLUS 1 AT MOST `quota of role rewards`
+
+-- 14(טו)-(טז): the principal defines each role's main tasks and publishes
+-- the Ministry's criteria, the roles, their units and tasks near the start
+-- of the year and before appointing; then the names appointed.
+@ref akn:art_14__para_ja/p6 akn:art_14__para_ja/p7 akn:art_14__para_ja/p8
+GIVETH A DEONTIC Party `agreement action`
+DECIDE `the principal publishes the school roles before appointing` IS
+    PARTY `the school principal`
+    MUST  `publish the school roles and their units`
+    WITHIN 1
+    LEST  BREACH BY `the school principal` BECAUSE "תשפ\"ה/5 §14(טז): the roles, units and tasks are published near the start of the year, before appointments"
+
+-- 14(יז)-(יט): counted for the hourly value (substitution hours), absence
+-- with and without pay, severance and pension under §46; not part of the
+-- combined salary nor in the base of other supplements; no study fund.
+@ref akn:art_14__para_ja/p9 akn:art_14__para_ja/p10 akn:art_14__para_jh akn:art_14__para_ji
+`how the school role reward counts` MEANS
+    `component treatment` WITH
+        `is salary for every purpose`                   IS FALSE
+        `counts for the hourly value`                   IS TRUE
+        `counts for an hour's absence`                  IS TRUE
+        `counts for severance pay`                      IS TRUE
+        `counts for pension contributions`              IS TRUE
+        `counts for study-fund and Dafna contributions` IS FALSE
+        `counts for the minimum-wage top-up`            IS FALSE
+        `is in the base of other supplements`           IS FALSE
+        `counts for the jubilee grant`                  IS FALSE
+
+§§ `15 קצובת ביגוד לפיזיותרפיסטים`
+
+-- 15: from 1.9.2024 a physiotherapist (a teaching employee in the health
+-- professions with a physiotherapy certificate who treats by it) on a full
+-- position in the reform receives yearly, with July's salary, a
+-- physiotherapists' clothing allowance of 800, besides §43's allowance;
+-- updated as the PE teachers' (§45(ב)), with pension contributions at the
+-- clothing rates (§46(ג)).
+@ref akn:art_15/p1 akn:art_15/p2 akn:art_15/p3 akn:art_15/p4
+GIVEN e IS AN `upper-division employee`, `is a physiotherapist` IS A BOOLEAN, `position fraction` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the physiotherapists' clothing allowance` e `is a physiotherapist` `position fraction` IS
+    IF `is in the reform` e AND `is a physiotherapist` AND `position fraction` AT LEAST 1
+    THEN 800
+    ELSE 0
+
+GIVEN e IS AN `upper-division employee`, `is a physiotherapist` IS A BOOLEAN, `position fraction` IS A NUMBER
+GIVETH A DEONTIC Party `agreement action`
+DECIDE `the physiotherapists' allowance is paid with July's salary` e `is a physiotherapist` `position fraction` IS
+    IF `the physiotherapists' clothing allowance` e `is a physiotherapist` `position fraction` GREATER THAN 0
+    THEN PARTY `the employer`
+         MUST  `pay the physiotherapists' clothing allowance` a
+               PROVIDED a AT LEAST `the physiotherapists' clothing allowance` e `is a physiotherapist` `position fraction`
+         WITHIN `month number` July
+         LEST  BREACH BY `the employer` BECAUSE "תשפ\"ה/5 §15: the physiotherapists' clothing allowance is paid with July's salary"
+    ELSE FULFILLED
+
+§§ `פרק ג' שכר מנהלים, מנהלי חטיבות עליונות וסגני מנהלים`
+
+DECLARE `managerial post` IS ONE OF
+    `principal`
+    `upper-division principal`
+    `vice-principal`
+
+DECLARE `kind of manager's component` IS ONE OF
+    `ordinary component`
+    `homeroom reward`
+    `matriculation preparation reward`
+    `security coordinator reward`
+    `overtime or single hours`
+    `trips and out-of-school activity`
+    `annual payments`
+    `differential reward for school achievement`
+    `national-priority incentives`
+    `expense refunds`
+    `tax gross-up and benefit imputation`
+
+@desc A component of a manager's salary for 100% of a position, as section 16 sorts it.
+DECLARE `manager's component` HAS
+    `kind of component`   IS A `kind of manager's component`
+    `component for 100%`  IS A NUMBER
+
+-- 16: the definitions. A "principal" heads a six-, four- or three-year
+-- school (grades 13-14 included) appointed by the employer's rules; an
+-- "upper-division principal" is a vice-principal of a six-year school so
+-- appointed under takanon §7.5.2; an "academic degree" is one recognised by
+-- the Council for Higher Education or found equivalent. "Base pay" is the
+-- sum, for 100%, of every salary component but those listed: for a
+-- principal, not the homeroom and matriculation rewards, trips, annual
+-- payments, the achievement reward, priority incentives, refunds and tax
+-- gross-up; for an upper-division principal and a vice-principal also not
+-- the security coordinator's reward nor overtime or single hours.
+@ref akn:art_16/p1 akn:art_16/p2 akn:art_16/p3 akn:art_16/p4 akn:art_16/p5 akn:art_16/p6 akn:art_16/p7 akn:art_16/p8 akn:art_16/p9 akn:art_16/p10
+GIVEN post IS A `managerial post`, k IS A `kind of manager's component`
+GIVETH A BOOLEAN
+DECIDE `is in the base pay` post k IF
+    CONSIDER k
+    WHEN `ordinary component` THEN TRUE
+    WHEN `security coordinator reward` THEN post EQUALS `principal`
+    WHEN `overtime or single hours` THEN post EQUALS `principal`
+    OTHERWISE FALSE
+
+GIVEN post IS A `managerial post`, components IS A LIST OF `manager's component`
+GIVETH A NUMBER
+DECIDE `the base pay` post components IS
+    sum (map (GIVEN c YIELD c's `component for 100%`)
+             (filter (GIVEN c YIELD `is in the base pay` post (c's `kind of component`)) components))
+
+-- The "minimum amount" is annex ד's, by post, number of classes and
+-- management seniority; the annex is not reproduced in the circular, so it
+-- is an input.
+@ref akn:art_16/p11
+GIVEN `annex ד's amount for the post, classes and seniority` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the minimum amount` `annex ד's amount for the post, classes and seniority` IS
+    `annex ד's amount for the post, classes and seniority`
+
+DECLARE `degree` IS ONE OF `no degree`, `first degree`, `second degree or higher`
+
+GIVEN g IS A `degree`
+GIVETH A NUMBER
+DECIDE `degree rank` g IS
+    CONSIDER g
+    WHEN `no degree` THEN 0
+    WHEN `first degree` THEN 1
+    WHEN `second degree or higher` THEN 2
+
+-- 17-19: from 1.9.2025, a principal (second degree, 6 classes at least),
+-- an upper-division principal (first degree, 9 classes) and a
+-- vice-principal (first degree, 10 classes), in Oz LaTmura, receive the
+-- positive difference between the minimum amount and the base pay; none
+-- where it is zero or less.
+@ref akn:art_17/p1 akn:art_17__para_a akn:art_17__para_b akn:art_17__para_c akn:art_18/p1 akn:art_18__para_a akn:art_18__para_b akn:art_18__para_c akn:art_19/p1 akn:art_19__para_a akn:art_19__para_b akn:art_19__para_c
+GIVEN post IS A `managerial post`, `in Oz LaTmura` IS A BOOLEAN, g IS A `degree`, classes IS A NUMBER, d IS A DATE
+GIVETH A BOOLEAN
+DECIDE `qualifies for the managerial supplement` post `in Oz LaTmura` g classes d IF
+        d `is on or after` (DATE_FROM_DMY 1 9 2025)
+    AND `in Oz LaTmura`
+    AND (CONSIDER post
+         WHEN `principal` THEN `degree rank` g AT LEAST 2 AND classes AT LEAST 6
+         WHEN `upper-division principal` THEN `degree rank` g AT LEAST 1 AND classes AT LEAST 9
+         WHEN `vice-principal` THEN `degree rank` g AT LEAST 1 AND classes AT LEAST 10)
+
+@ref akn:art_17__para_c/p2 akn:art_17__para_c/p3 akn:art_18__para_c/p2 akn:art_18__para_c/p3 akn:art_19__para_c/p2 akn:art_19__para_c/p3
+GIVEN post IS A `managerial post`, `in Oz LaTmura` IS A BOOLEAN, g IS A `degree`, classes IS A NUMBER, d IS A DATE, `minimum amount` IS A NUMBER, components IS A LIST OF `manager's component`
+GIVETH A NUMBER
+DECIDE `the managerial supplement` post `in Oz LaTmura` g classes d `minimum amount` components IS
+    IF `qualifies for the managerial supplement` post `in Oz LaTmura` g classes d
+    THEN max 0 (`minimum amount` MINUS `the base pay` post components)
+    ELSE 0
+
+-- 20-21: the three supplements are salary for every purpose — the hourly
+-- value, an hour's absence, severance, pension under §46 and the study
+-- fund — and are in the base of no supplement.
+@ref akn:art_20 akn:art_21
+`how the managerial supplements count` MEANS
+    `component treatment` WITH
+        `is salary for every purpose`                   IS TRUE
+        `counts for the hourly value`                   IS TRUE
+        `counts for an hour's absence`                  IS TRUE
+        `counts for severance pay`                      IS TRUE
+        `counts for pension contributions`              IS TRUE
+        `counts for study-fund and Dafna contributions` IS TRUE
+        `counts for the minimum-wage top-up`            IS FALSE
+        `is in the base of other supplements`           IS FALSE
+        `counts for the jubilee grant`                  IS FALSE
+
+-- 22: the managers' pay under the agreements is full reward for all their
+-- managerial work whenever it is done, and the organization will raise no
+-- claim on it.
+@ref akn:art_22
+GIVEN `work is part of the managerial role` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `is paid beyond the managerial salary` `work is part of the managerial role` IF
+    NOT `work is part of the managerial role`
+
+§§ `פרק ד' תנאי העסקה לעובדי הוראה שאינם ברפורמה`
+
+@ref akn:art_23
+GIVEN e IS AN `upper-division employee`
+GIVETH A BOOLEAN
+DECIDE `chapter ד applies to` e IF
+    `the agreement applies to` e AND NOT `is in the reform` e
+
+-- 24(א)-(ג): from 1.9.2024 a shekel supplement 2023 of 500 for a full
+-- position, in proportion to the position, above 100% too.
+@ref akn:art_24__para_a akn:art_24__para_b akn:art_24__para_c
+GIVEN e IS AN `upper-division employee`, `position fraction` IS A NUMBER, d IS A DATE
+GIVETH A NUMBER
+DECIDE `the 2023 shekel supplement` e `position fraction` d IS
+    IF `chapter ד applies to` e AND d `is on or after` (DATE_FROM_DMY 1 9 2024)
+    THEN 500 TIMES `position fraction`
+    ELSE 0
+
+@ref akn:art_24__para_d akn:art_24__para_d/p2 akn:art_24__para_e akn:art_24__para_f akn:art_24__para_g
+`how the 2023 shekel supplement counts` MEANS
+    `how the Oz 2023 shekel supplement counts`
+
+-- 25: from 1.9.2024 the preparation reward for a state final exam in
+-- grades 13-14 of technological education: 2 weekly hours for a subject
+-- taught 1-5 hours, 3.5 for one taught 6 hours or more; other rules
+-- unchanged.
+@ref akn:art_25/p1 akn:art_25/p2 akn:art_25/p3 akn:art_25/p4 akn:art_25/p5 akn:art_25/p6
+GIVEN `weekly hours the subject is taught` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the technological final-exam reward` `weekly hours the subject is taught` IS
+    BRANCH IF `weekly hours the subject is taught` AT LEAST 6 THEN 3.5
+           IF `weekly hours the subject is taught` AT LEAST 1 THEN 2
+           OTHERWISE 0
+
+§§ `פרק ה' כלל עובדי ההוראה`
+
+-- 26: from 1.9.2025 each unit of the in-service training reward and of
+-- the double degree rises from 1.2% to 1.3%; other rules unchanged.
+@ref akn:art_26__para_a akn:art_26__para_b
+GIVEN d IS A DATE
+GIVETH A NUMBER
+DECIDE `the in-service unit rate` d IS
+    IF d `is on or after` (DATE_FROM_DMY 1 9 2025) THEN 1.3% ELSE 1.2%
+
+-- 27: from 1.9.2024 a teacher who accompanies the Israeli Journey
+-- programme receives, besides the trips reward, 300 a day accompanied,
+-- with pension contributions of 5% (employer) and 5% (employee).
+@ref akn:art_27/p1 akn:art_27/p2
+GIVEN days IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the Israeli Journey grant` days IS
+    300 TIMES days
+
+GIVEN days IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the employer's pension contribution on the Israeli Journey grant` days IS
+    5% TIMES `the Israeli Journey grant` days
+
+-- 28: from תשפ"ו, special contracts for teaching fellows and principals
+-- with an employment permit and special expertise, under the employers'
+-- letter of 23.9.2024: a fellow not employed as teaching staff in the
+-- three prior years (unpaid-leave years not counted); at most 6% of each
+-- upper division's employment yearly, or one position where 6% is less;
+-- the agreements do not apply to them; not a personal incentive contract
+-- (§53); expires 31.8.2029, with a dialogue intended before then.
+@ref akn:art_28__para_a akn:art_28__para_b akn:art_28__para_e akn:art_28__para_f akn:art_28__para_g akn:art_28__para_h
+GIVEN `is a teaching fellow` IS A BOOLEAN, `years as teaching staff in the three before` IS A NUMBER, d IS A DATE
+GIVETH A BOOLEAN
+DECIDE `may be employed on a special contract` `is a teaching fellow` `years as teaching staff in the three before` d IF
+        DATE_SERIAL d AT LEAST DATE_SERIAL (DATE_FROM_DMY 1 9 2025)
+    AND DATE_SERIAL d AT MOST DATE_SERIAL (DATE_FROM_DMY 31 8 2029)
+    AND ((NOT `is a teaching fellow`) OR `years as teaching staff in the three before` EQUALS 0)
+
+@ref akn:art_28__para_c
+GIVEN `positions of all teaching staff in the upper division` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the special-contract ceiling` `positions of all teaching staff in the upper division` IS
+    max 1 (6% TIMES `positions of all teaching staff in the upper division`)
+
+-- 28(ד): every January the employers send the organization the scope of
+-- the special contracts, principals and fellows apart (month 5).
+@ref akn:art_28__para_d
+GIVETH A DEONTIC Party `agreement action`
+DECIDE `the employers report the special contracts in January` IS
+    PARTY `the local authority or owning body`
+    MUST  `report the special contracts to the teachers' organization`
+    WITHIN `month number` January
+    LEST  BREACH BY `the local authority or owning body` BECAUSE "תשפ\"ה/5 §28(ד): the scope of the special contracts is reported every January"
+
+-- akn:art_29__para_a The organization's undertaking to cooperate with the flexible programme; a declaration with no case for the encoding to decide.
+-- akn:art_29__para_d A saving clause: cancelling the programme does not affect the rest of the agreement.
+
+-- 29(ב): the civics performance task does not continue in the flexible
+-- programme; its reward (§3(ב) of the agreement of 22.4.2009) continues
+-- only for teachers who enter pupils for it outside the programme.
+@ref akn:art_29__para_b
+GIVEN `in the flexible programme` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `the civics performance-task reward is paid` `in the flexible programme` IF
+    NOT `in the flexible programme`
+
+-- 29(ג): in the flexible programme, where the parts fall in different
+-- years, the reward is paid 35% in the year of the external exam, 35% in
+-- the year the tasks are submitted and 30% in the year of the school
+-- assessment.
+@ref akn:art_29__para_c akn:art_29__para_c/p2 akn:art_29__para_c/p3 akn:art_29__para_c/p4
+GIVEN reward IS A NUMBER, `external this year` IS A BOOLEAN, `tasks this year` IS A BOOLEAN, `school assessment this year` IS A BOOLEAN
+GIVETH A NUMBER
+DECIDE `the flexible reward paid this year` reward `external this year` `tasks this year` `school assessment this year` IS
+    reward TIMES sum (LIST (IF `external this year` THEN 35% ELSE 0),
+                           (IF `tasks this year` THEN 35% ELSE 0),
+                           (IF `school assessment this year` THEN 30% ELSE 0))
+
+-- akn:art_30__para_a The organization's undertaking to cooperate with the academisation programme; a declaration with no case for the encoding to decide.
+
+-- 30(ב): the academisation programme shall not be used to harm a teacher's
+-- position, conditions or pay, nor to end employment.
+@ref akn:art_30__para_b
+GIVEN `the change harms the teacher's position, terms or pay` IS A BOOLEAN, `the change is made through the academisation programme` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `the change is permitted` `the change harms the teacher's position, terms or pay` `the change is made through the academisation programme` IF
+    NOT (`the change harms the teacher's position, terms or pay` AND `the change is made through the academisation programme`)
+
+-- 30(ג): where some of a subject's units are done in the academisation
+-- programme, the external exam's reward (about 70% of the material) is
+-- divided between the units in it and outside it, in proportion to the
+-- subject's total units, each in the year of its exam; the school
+-- assessment's reward (about 30%) is unchanged.
+@ref akn:art_30__para_c
+GIVEN `external reward` IS A NUMBER, `academisation units` IS A NUMBER, `subject units` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the academisation share` `external reward` `academisation units` `subject units` IS
+    `external reward` TIMES `academisation units` DIVIDED BY `subject units`
+
+-- The first example: 2 units, 1.5 hours and 2%, one unit in the programme:
+-- of the external part (1.05 hours, 1.4%), 0.525 hour and 0.7% each.
+@ref akn:art_30__para_c/p2 akn:art_30__para_c/p3 akn:art_30__para_c/p4
+`the first example's split` MEANS LIST 0.525, 0.7%, 0.525, 0.7%
+
+-- The second example: 5 units, 3.5 hours and 2%, one unit in the
+-- programme: of the external part (2.45 hours, 1.4%), 0.7 hour and 0.4%
+-- for the programme's exam and 1.75 hours and 1% for the matriculation.
+@ref akn:art_30__para_c/p5 akn:art_30__para_c/p6 akn:art_30__para_c/p7 akn:art_30__para_c/p8 akn:art_30__para_c/p9
+`the second example's split` MEANS LIST 0.7, 0.4%, 1.75, 1%
+
+-- akn:art_31 A saving clause: the flexible and academisation programmes change nothing in the existing reward for guiding and directing pupils in matriculation subjects.
+-- akn:art_32 A saving clause: but for sections 29 and 30, nothing changes in the rules of the matriculation-preparation reward.
+
+-- 33: from 1.9.2024, §14(ד), (ה), (ז) of the Oz agreement are replaced:
+-- work above 100% in one school is paid by increasing the position, at the
+-- hourly value of 100%, counted for the summer months, without the 28%
+-- add-on; at most 12 weekly hours above the position; and employment above
+-- 100% under (ו) at most 31.5%.
+@ref akn:art_33/p1 akn:art_33/p2 akn:art_33/p3
+`weekly hours allowed above a full position` MEANS 12
+`the most employment above 100%` MEANS 31.5%
+`the add-on for hours above the position during the year` MEANS 0
+
+GIVEN `weekly hours above the position` IS A NUMBER, `employment above 100%` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `employment above 100% is within the limits` `weekly hours above the position` `employment above 100%` IF
+        `weekly hours above the position` AT MOST `weekly hours allowed above a full position`
+    AND `employment above 100%` AT MOST `the most employment above 100%`
+
+-- 34: from תשפ"ו, §36 of the Oz agreement (the school-achievement grant)
+-- reads "teaching employee" for "teacher" (but in its table); a principal
+-- receives twice a teacher's grant and a vice-principal 1.5 times; the
+-- grant goes to the staff of the eligible upper division in the year of
+-- eligibility and the year before ("the qualifying period"); in full for
+-- 100% through it (above 100% not counted), and pro rata for part-time or
+-- part of the period (unpaid leave and sabbatical included, the
+-- birth-and-parenting period counted in full); paid with August's salary;
+-- one who left before payment applies within 12 months. Other rules of §36
+-- unchanged.
+@ref akn:art_34/p1 akn:art_34__para_a akn:art_34__para_b akn:art_34__para_c akn:art_34__para_c/p2 akn:art_34__para_f akn:art_34__para_f__subpara_d
+GIVEN post IS A STRING, `teacher's grant` IS A NUMBER, `weighted position over the qualifying period` IS A NUMBER, `share of the qualifying period employed` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the school-achievement grant` post `teacher's grant` `weighted position over the qualifying period` `share of the qualifying period employed` IS
+    `teacher's grant`
+    TIMES (IF post EQUALS "principal" THEN 2 ELSE IF post EQUALS "vice-principal" THEN 1.5 ELSE 1)
+    TIMES min `weighted position over the qualifying period` 1
+    TIMES `share of the qualifying period employed`
+
+@ref akn:art_34__para_f/p2
+GIVEN grant IS A NUMBER
+GIVETH A DEONTIC Party `agreement action`
+DECIDE `the school-achievement grant is paid in August` grant IS
+    PARTY `the employer`
+    MUST  `pay the school-achievement grant` g
+          PROVIDED g AT LEAST grant
+    WITHIN `month number` August
+    LEST  BREACH BY `the employer` BECAUSE "תשפ\"ה/5 §34(ו1): the grant is paid with August's salary"
+
+-- (ו2): an employee who left before the payment is entitled only on
+-- applying within 12 months of it (months from the payment).
+@ref akn:art_34__para_f/p3
+GIVETH A DEONTIC Party `agreement action`
+DECIDE `a leaver applies for the school-achievement grant` IS
+    PARTY `the teaching employee`
+    MAY   `apply for the school-achievement grant`
+    WITHIN 12
+
+-- 35: from 1.9.2025 seven roles join §20(א)(1)'s table of roles earning
+-- credit points, each with 2.5 points; other promotion rules unchanged.
+@ref akn:art_35__para_a akn:art_35__para_a/p2 akn:art_35__para_a/p3 akn:art_35__para_a/p4 akn:art_35__para_a/p5 akn:art_35__para_a/p6 akn:art_35__para_a/p7 akn:art_35__para_a/p8 akn:art_35__para_a/p9 akn:art_35__para_b
+`the roles added to the credit-point table` MEANS
+    LIST "pedagogical coordinator", "integration and special populations coordinator",
+         "ICT and technology coordinator", "matriculation coordinator",
+         "discipline and educational climate coordinator", "counselling coordinator", "system coordinator"
+
+GIVEN r IS A STRING, d IS A DATE
+GIVETH A NUMBER
+DECIDE `credit points for the role` r d IS
+    IF d `is on or after` (DATE_FROM_DMY 1 9 2025) AND elem r `the roles added to the credit-point table`
+    THEN 2.5
+    ELSE 0
+
+§§ `מענק פרישה`
+
+-- akn:art_35/p1 The heading "retirement grant" of sections 36-37, printed after section 35.
+
+@desc A teacher retiring on early pension from an upper division.
+DECLARE `retiree` HAS
+    `in accruing pension`                      IS A BOOLEAN
+    `in the year's early-pension quota`        IS A BOOLEAN
+    `meets the early-pension rules`            IS A BOOLEAN
+    `age at retirement`                        IS A NUMBER
+    `actual teaching seniority`                IS A NUMBER
+    `weighted position over the last four years` IS A NUMBER
+
+-- 36: from תשפ"ו, yearly, up to 75 upper-division teachers in accruing
+-- pension whose inclusion in the year's early-pension quota (§28(ד) of the
+-- 1993 agreement, as the commissioner updated it on 4.11.2008) was
+-- approved receive a retirement grant besides the early pension, if they
+-- meet the early-pension rules, are under 60 and have more than 20 years.
+@ref akn:art_36 akn:art_36__para_a akn:art_36__para_b akn:art_36__para_c akn:art_36__para_c/p2 akn:art_36__para_c/p3
+GIVEN r IS A `retiree`
+GIVETH A BOOLEAN
+DECIDE `is an eligible retiree` r IF
+        r's `in accruing pension`
+    AND r's `in the year's early-pension quota`
+    AND r's `meets the early-pension rules`
+    AND r's `age at retirement` LESS THAN 60
+    AND r's `actual teaching seniority` GREATER THAN 20
+
+`retirees the grant is given to each year` MEANS 75
+
+-- 36 as printed limits the grant to 75 retirees a year.
+GIVEN `eligible retirees this year` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `retirees paid under §36` `eligible retirees this year` IS
+    min `eligible retirees this year` `retirees the grant is given to each year`
+
+-- 37(ב)-(ד): 120,000 for a full position in the last four years; pro rata
+-- to the weighted position below it; a position above 100% receives the
+-- full amount and no more.
+@ref akn:art_37 akn:art_37__para_b akn:art_37__para_c akn:art_37__para_d
+`the retirement grant for a full position` MEANS 120000
+
+GIVEN r IS A `retiree`
+GIVETH A NUMBER
+DECIDE `the retirement grant before any reduction` r IS
+    IF `is an eligible retiree` r
+    THEN `the retirement grant for a full position` TIMES min (r's `weighted position over the last four years`) 1
+    ELSE 0
+
+-- 37(ה) and the last paragraph of (ו): where more than 75 retirees in the
+-- quota meet the conditions, the grant is reduced so that the total cost
+-- is at most 120,000 × 75 = 9,000,000, plus what an earlier year of the
+-- agreement left unused.
+@ref akn:art_37__para_e akn:art_37__para_f/p3
+`the yearly budget of the retirement grants` MEANS
+    `the retirement grant for a full position` TIMES `retirees the grant is given to each year`
+
+GIVEN `eligible retirees this year` IS A NUMBER, `unused from the year before` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the reduction factor` `eligible retirees this year` `unused from the year before` IS
+    IF `eligible retirees this year` GREATER THAN `retirees the grant is given to each year`
+    THEN min 1 ((`the yearly budget of the retirement grants` PLUS `unused from the year before`)
+                DIVIDED BY (`eligible retirees this year` TIMES `the retirement grant for a full position`))
+    ELSE 1
+
+-- 37(א): paid by the employer within 30 days of the Ministry's
+-- reimbursement (days).
+@ref akn:art_37__para_a
+GIVEN grant IS A NUMBER
+GIVETH A DEONTIC Party `agreement action`
+DECIDE `the retirement grant is paid` grant IS
+    PARTY `the employer`
+    MUST  `pay the retirement grant` g
+          PROVIDED g AT LEAST grant
+    WITHIN 30
+    LEST  BREACH BY `the employer` BECAUSE "תשפ\"ה/5 §37(א): the retirement grant is paid within 30 days of the reimbursement"
+
+@ref akn:art_37__para_f akn:art_37__para_f/p2
+`how the retirement grant counts` MEANS
+    `component treatment` WITH
+        `is salary for every purpose`                   IS FALSE
+        `counts for the hourly value`                   IS FALSE
+        `counts for an hour's absence`                  IS FALSE
+        `counts for severance pay`                      IS FALSE
+        `counts for pension contributions`              IS FALSE
+        `counts for study-fund and Dafna contributions` IS FALSE
+        `counts for the minimum-wage top-up`            IS FALSE
+        `is in the base of other supplements`           IS FALSE
+        `counts for the jubilee grant`                  IS FALSE
+
+§§ `38 יום היערכות`
+
+-- 38: a teacher who takes part in a preparation day (at most six hours)
+-- before תשפ"ו or later may skip up to two individual hours in the first
+-- month and up to four support hours for work meetings in the first two,
+-- six in all and never more than the hours worked that day.
+@ref akn:art_38__para_a akn:art_38__para_a/p2 akn:art_38__para_a/p3 akn:art_38__para_a__subpara_2 akn:art_38__para_b
+GIVEN `hours worked on the preparation day` IS A NUMBER, `individual hours skipped` IS A NUMBER, `support hours skipped` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `the hours skipped are allowed` `hours worked on the preparation day` `individual hours skipped` `support hours skipped` IF
+        `individual hours skipped` AT MOST 2
+    AND `support hours skipped` AT MOST 4
+    AND `individual hours skipped` PLUS `support hours skipped` AT MOST min (min `hours worked on the preparation day` 6) 6
+
+§§ `39 תשלום הפרשים`
+
+@ref akn:art_39/p1
+GIVEN arrears IS A NUMBER
+GIVETH A DEONTIC Party `agreement action`
+DECIDE `the arrears are paid` arrears IS
+    PARTY `the employer`
+    MUST  `pay the arrears` a
+          PROVIDED a AT LEAST arrears
+    WITHIN `month number` November
+    LEST  BREACH BY `the employer` BECAUSE "תשפ\"ה/5 §39: the arrears are paid no later than November 2024's salary"
+
+§§ `40 פיזור יחידת עבודתו של מורה`
+
+-- 40 (changing takanon §6.3.17): at the teacher's request, work days a
+-- week by frontal hours. The bands as printed: 22-25 five days, 18-21 four,
+-- 13-17 three, 12 or fewer two (F-2024-25_tashpah_05-d).
+@ref akn:art_40/p1 akn:art_40/p2 akn:art_40/p3 akn:art_40/p4 akn:art_40/p5 akn:art_40/p6
+GIVEN `frontal hours taught` IS A NUMBER
+GIVETH A LIST OF NUMBER
+DECIDE `the work days the bands give for` `frontal hours taught` IS
+    map (GIVEN b YIELD b's `days a week`)
+        (filter (GIVEN b YIELD `frontal hours taught` AT LEAST b's `hours from` AND `frontal hours taught` AT MOST b's `hours to`)
+                (LIST `days band` 22 25 5,
+                      `days band` 18 21 4,
+                      `days band` 13 17 3,
+                      `days band` 0  12 2))
+
+DECLARE `days band` HAS
+    `hours from`  IS A NUMBER
+    `hours to`    IS A NUMBER
+    `days a week` IS A NUMBER
+
+§§ `41 שינויים בלוח החופשות`
+
+DECLARE `calendar day` IS ONE OF
+    `the day after Passover`
+    `the day after Shavuot`
+    `the Fast of Esther`
+    `a day between Yom Kippur and the eve of Sukkot`
+    `another day`
+
+-- 41: from תשפ"ה, in the Jewish sector, the day after Passover (22
+-- Nisan), the day after Shavuot (7 Sivan) and the Fast of Esther are
+-- school days; the days between Yom Kippur and the eve of Sukkot are
+-- holidays in their place.
+@ref akn:art_41/p1 akn:art_41__para_a akn:art_41__para_a__subpara_1 akn:art_41__para_a__subpara_2 akn:art_41__para_a__subpara_3 akn:art_41__para_b akn:art_41__para_b/p2
+GIVEN day IS A `calendar day`, `Jewish sector` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `is a school day in the upper division` day `Jewish sector` IF
+    IF NOT `Jewish sector`
+    THEN TRUE
+    ELSE NOT day EQUALS `a day between Yom Kippur and the eve of Sukkot`
+
+§§ `42 החזר ימי לימודים בשל שביתה`
+
+DECLARE `sector` IS ONE OF `Jewish`, `Druze`, `Arab`
+
+@desc A set of make-up days for the strike of 1-5.9.2024.
+DECLARE `make-up days` HAS
+    `for sector`              IS A `sector`
+    `make-up dates`           IS A LIST OF DATE
+    `for the absence on`      IS A LIST OF DATE
+    `deducted with salary of` IS A NUMBER  @desc the school month whose salary bears the deduction of an advance not worked back
+
+-- 42.1: per the director-general's notice of 23.9.2024, five strike days
+-- are made up; the two remaining are unpaid absence; September 2024's
+-- salary of strikers follows the notice. Each sector's days, the
+-- timetable of the weekdays missed, only those absent on those days, the
+-- same number of lessons and at most the hours missed:
+--   Jewish (א) Hanukkah 29-30.12.2024 for 1-2.9 (deduct January 2025);
+--          (ב) Passover 6-8.4.2025 for 3-5.9 (deduct April 2025);
+--   Druze  (ג) winter 22-23.12.2024 for 4-5.9 (deduct December 2024);
+--          (ד) spring 15-17.4.2025, or 13-15.4.2025 in six-day schools,
+--              for 1-3.9 (deduct April 2025);
+--   Arab   (ה) 18-20.3 and 23-24.3.2025 (22.3 for 23.3 where Saturday is
+--              a school day) for 1-5.9 (deduct April 2025).
+@ref akn:art_42__para_1 akn:art_42__para_1/p2 akn:art_42__para_1/p3 akn:art_42__para_1/p4 akn:art_42__para_1__subpara_a akn:art_42__para_1__subpara_a__cls_1 akn:art_42__para_1__subpara_a__cls_2 akn:art_42__para_1__subpara_a__cls_3 akn:art_42__para_1__subpara_a__cls_3/p2 akn:art_42__para_1__subpara_b akn:art_42__para_1__subpara_b/p2 akn:art_42__para_1__subpara_b__cls_2 akn:art_42__para_1__subpara_b__cls_3 akn:art_42__para_1__subpara_b__cls_7/p2 akn:art_42__para_1__subpara_c akn:art_42__para_1__subpara_c__cls_1 akn:art_42__para_1__subpara_c__cls_2 akn:art_42__para_1__subpara_c__cls_2/p2 akn:art_42__para_1__subpara_c__cls_3 akn:art_42__para_1__subpara_d akn:art_42__para_1__subpara_d__cls_1 akn:art_42__para_1__subpara_d__cls_1/p2 akn:art_42__para_1__subpara_d__cls_2 akn:art_42__para_1__subpara_d__cls_2/p2 akn:art_42__para_1__subpara_d__cls_3 akn:art_42__para_1__subpara_d__cls_4 akn:art_42__para_1__subpara_d__cls_6/p2 akn:art_42__para_1__subpara_e akn:art_42__para_1__subpara_e__cls_1 akn:art_42__para_1__subpara_e__cls_2 akn:art_42__para_1__subpara_e__cls_3
+`the make-up days` MEANS
+    LIST `make-up days` `Jewish` (LIST DATE_FROM_DMY 29 12 2024, DATE_FROM_DMY 30 12 2024)
+                                 (LIST DATE_FROM_DMY 1 9 2024, DATE_FROM_DMY 2 9 2024) 5,
+         `make-up days` `Jewish` (LIST DATE_FROM_DMY 6 4 2025, DATE_FROM_DMY 7 4 2025, DATE_FROM_DMY 8 4 2025)
+                                 (LIST DATE_FROM_DMY 3 9 2024, DATE_FROM_DMY 4 9 2024, DATE_FROM_DMY 5 9 2024) 8,
+         `make-up days` `Druze`  (LIST DATE_FROM_DMY 22 12 2024, DATE_FROM_DMY 23 12 2024)
+                                 (LIST DATE_FROM_DMY 4 9 2024, DATE_FROM_DMY 5 9 2024) 4,
+         `make-up days` `Druze`  (LIST DATE_FROM_DMY 15 4 2025, DATE_FROM_DMY 16 4 2025, DATE_FROM_DMY 17 4 2025)
+                                 (LIST DATE_FROM_DMY 1 9 2024, DATE_FROM_DMY 2 9 2024, DATE_FROM_DMY 3 9 2024) 8,
+         `make-up days` `Arab`   (LIST DATE_FROM_DMY 18 3 2025, DATE_FROM_DMY 19 3 2025, DATE_FROM_DMY 20 3 2025, DATE_FROM_DMY 23 3 2025, DATE_FROM_DMY 24 3 2025)
+                                 (LIST DATE_FROM_DMY 1 9 2024, DATE_FROM_DMY 2 9 2024, DATE_FROM_DMY 3 9 2024, DATE_FROM_DMY 4 9 2024, DATE_FROM_DMY 5 9 2024) 8
+
+`strike days made up` MEANS 5
+
+GIVEN `lessons missed` IS A NUMBER, `lessons in the make-up timetable` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `lessons to make up` `lessons missed` `lessons in the make-up timetable` IS
+    min `lessons missed` `lessons in the make-up timetable`
+
+-- The pay for the make-up lessons: an advance with September 2024's salary
+-- (paid in October), one strike hour's pay for each lesson to be made up;
+-- what is not made up is deducted with the salary the set names.
+@ref akn:art_42__para_1__subpara_a__cls_4 akn:art_42__para_1__subpara_a__cls_4/p2 akn:art_42__para_1__subpara_a__cls_5 akn:art_42__para_1__subpara_b__cls_6 akn:art_42__para_1__subpara_b__cls_7 akn:art_42__para_1__subpara_c__cls_4 akn:art_42__para_1__subpara_c__cls_5 akn:art_42__para_1__subpara_d__cls_5 akn:art_42__para_1__subpara_d__cls_6 akn:art_42__para_1__subpara_e__cls_4 akn:art_42__para_1__subpara_e__cls_5
+GIVEN `lessons to make up` IS A NUMBER, `pay for a strike hour` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the make-up advance` `lessons to make up` `pay for a strike hour` IS
+    `lessons to make up` TIMES `pay for a strike hour`
+
+GIVEN s IS A `make-up days`, `lessons not made up` IS A NUMBER, `pay for a strike hour` IS A NUMBER
+GIVETH A DEONTIC Party `agreement action`
+DECIDE `an advance not worked back is deducted` s `lessons not made up` `pay for a strike hour` IS
+    IF `lessons not made up` GREATER THAN 0
+    THEN PARTY `the employer`
+         MUST  `deduct an uncompleted strike advance` a
+               PROVIDED a EQUALS `lessons not made up` TIMES `pay for a strike hour`
+         WITHIN s's `deducted with salary of`
+         LEST  BREACH BY `the employer` BECAUSE "תשפ\"ה/5 §42: the advance for lessons not made up is deducted with the salary the section names"
+    ELSE FULFILLED
+
+-- 42.2: an employee on birth and parenting leave, reserve duty or sick on
+-- the make-up days returns the strike hours in substitution hours and free
+-- days within the two months after returning to work.
+@ref akn:art_42__para_2
+`months to return the hours after coming back` MEANS 2
+
+-- 42.3: besides the five days, an employee who struck on 6-8.9.2024 has
+-- the scheduled hours of those days deducted, with October 2024's salary
+-- and at the latest November 2024's — and in any case when the one-time
+-- grant is paid, which the clause calls "section 7 of the agreement of
+-- 23.9.2024" (F-2024-25_tashpah_05-c).
+@ref akn:art_42__para_3 akn:art_42__para_3/p2
+GIVEN `scheduled hours on 6-8.9.2024` IS A NUMBER, `hourly value` IS A NUMBER
+GIVETH A DEONTIC Party `agreement action`
+DECIDE `the unpaid strike days are deducted` `scheduled hours on 6-8.9.2024` `hourly value` IS
+    PARTY `the employer`
+    MUST  `reduce the salary for the unpaid strike days` a
+          PROVIDED a EQUALS `scheduled hours on 6-8.9.2024` TIMES `hourly value`
+    WITHIN `month number` November
+    LEST  BREACH BY `the employer` BECAUSE "תשפ\"ה/5 §42.3: the hours of 6-8.9.2024 are deducted no later than November 2024's salary"
+
+-- 43: on signature the organization announces at once to all secondary
+-- teaching staff the end of every organizational measure (trips, grades
+-- included) and instructs them to report grades, issue certificates and
+-- take part in out-of-school activities.
+@ref akn:art_43
+GIVETH A DEONTIC Party `agreement action`
+DECIDE `the organization announces the end of the measures` IS
+    PARTY `the teachers' union`
+    MUST  `announce the end of the organizational measures`
+    WITHIN 1
+    LEST  BREACH BY `the teachers' union` BECAUSE "תשפ\"ה/5 §43: the end of the organizational measures is announced at once"
+
+-- 44: per the commissioner's instruction of 23.9.24 and circular תשפ"ד/8:
+-- (1) the deduction of the advance from salaries stops — none in September
+-- 2024's salary; (2) the rest of the advance (the two remaining parts) is
+-- deducted with the salary that pays the one-time grant, which the clause
+-- places in "section 7(יא) of the collective agreement"
+-- (F-2024-25_tashpah_05-c).
+@ref akn:art_44 akn:art_44__para_1 akn:art_44__para_2/p1
+GIVEN `school month` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `the advance may be deducted in` `school month` IF
+    NOT `school month` EQUALS `month number` September
+
+-- akn:art_44__para_2/p2 akn:art_44__para_2/p3 akn:art_44__para_2/p4 akn:art_44__para_2/p5 akn:art_44__para_2/p6 akn:art_44__para_2/p7 akn:art_44__para_2/p8 akn:art_44__para_2/p9 akn:art_44__para_2/p10 akn:art_44__para_2/p11 akn:art_44__para_2/p12 akn:art_44__para_2/p13 akn:art_44__para_2/p14 akn:art_44__para_2/p15 akn:art_44__para_2/p16 akn:art_44__para_2/p17 akn:art_44__para_2/p18 akn:art_44__para_2/p19 akn:art_44__para_2/p20 akn:art_44__para_2/p21 akn:art_44__para_2/p22 akn:art_44__para_2/p23 akn:art_44__para_2/p24 akn:art_44__para_2/p25 akn:art_44__para_2/p26 akn:art_44__para_2/p27 akn:art_44__para_2/p28 akn:art_44__para_2/p29 akn:art_44__para_2/p30 akn:art_44__para_2/p31 akn:art_44__para_2/p32 akn:art_44__para_2/p33 akn:art_44__para_2/p34 akn:art_44__para_2/p35 The contact telephones, the sign-off, signatures and the list of copies, which the corpus prints inside §44; no rule.
+
+-- Examples and checks.
+
+`a teacher in the reform` MEANS
+    `upper-division employee` WITH
+        `represented by the teachers' organization` IS TRUE
+        `covered by the Oz LaTmura agreement`        IS TRUE
+        `employed under Oz LaTmura terms`            IS TRUE
+        `is a principal`                             IS FALSE
+
+`a teacher outside the reform` MEANS
+    `upper-division employee` WITH
+        `represented by the teachers' organization` IS TRUE
+        `covered by the Oz LaTmura agreement`        IS TRUE
+        `employed under Oz LaTmura terms`            IS FALSE
+        `is a principal`                             IS FALSE
+
+GIVEN n IS A NUMBER, s IS A `grant month status`, p IS A NUMBER
+GIVETH A LIST OF `grant month`
+DECIDE `months of` n s p IS
+    IF n AT MOST 0
+    THEN EMPTY
+    ELSE `grant month` s p FOLLOWED BY `months of` (n MINUS 1) s p
+
+#ASSERT `the one-time grant` `a teacher in the reform` (`months of` 12 `worked` 1) EQUALS 9600
+#ASSERT `the one-time grant` `a teacher outside the reform` (`months of` 12 `worked` 1) EQUALS 6000
+#ASSERT `the one-time grant` `a teacher in the reform` (`months of` 12 `worked` 1.1) EQUALS 10560
+#ASSERT `the one-time grant` `a teacher in the reform` (append (`months of` 6 `worked` 1) (`months of` 6 `unpaid leave or sabbatical` 1)) EQUALS 4800
+
+-- 7(ב)'s table: each total is the sum of its pulses.
+#ASSERT all (GIVEN r YIELD sum (LIST r's `pulse 1`, r's `pulse 2`, r's `pulse 3`, r's `pulse 4`) EQUALS r's `pulse total`) `the table of the Oz 2023 shekel supplement`
+#ASSERT `the Oz 2023 shekel supplement` `a teacher in the reform` 0.5 (DATE_FROM_DMY 1 10 2026) EQUALS 895.25
+#ASSERT `the Oz 2023 shekel supplement` `a teacher outside the reform` 1 (DATE_FROM_DMY 1 10 2026) EQUALS 0
+#ASSERT `the 2023 shekel supplement` `a teacher outside the reform` 1.2 (DATE_FROM_DMY 1 10 2024) EQUALS 600
+
+-- 8: the 38 hours are 25 + 3 + 10, and the 10 are 2 + 2 + 1 + 5.
+#ASSERT `frontal hours` PLUS `individual hours` PLUS `teaching-support hours` EQUALS `the position base in weekly hours`
+#ASSERT sum `support hours by activity` EQUALS `teaching-support hours`
+
+#ASSERT `the homeroom or grade-coordinator reward` `homeroom teacher` (DATE_FROM_DMY 1 9 2024) 800 700 EQUALS 1000
+#ASSERT `the role reward rate` `ICT and technology coordinator` (DATE_FROM_DMY 1 9 2025) (6%) EQUALS 8%
+#ASSERT `the special-education rate from 1.9.2024` (14%) TRUE EQUALS 17%
+
+-- 14(ה)'s own example: four units, 800 a month.
+#ASSERT `the school role reward` `a teacher in the reform` FALSE 4 0.5 1 EQUALS 800
+#ASSERT `the school role reward` `a teacher in the reform` FALSE 4 0.3 1 EQUALS 0
+#ASSERT `the school role reward` `a teacher outside the reform` FALSE 4 1 1 EQUALS 0
+
+#ASSERT `the managerial supplement` `vice-principal` TRUE `first degree` 12 (DATE_FROM_DMY 1 9 2025) 20000 (LIST `manager's component` `ordinary component` 17000, `manager's component` `homeroom reward` 1000, `manager's component` `overtime or single hours` 1000) EQUALS 3000
+#ASSERT `the managerial supplement` `principal` TRUE `first degree` 12 (DATE_FROM_DMY 1 9 2025) 20000 (LIST `manager's component` `ordinary component` 17000, `manager's component` `overtime or single hours` 1000) EQUALS 0
+
+#ASSERT `the technological final-exam reward` 4 EQUALS 2
+#ASSERT `the technological final-exam reward` 6 EQUALS 3.5
+#ASSERT `the Israeli Journey grant` 5 EQUALS 1500
+#ASSERT `the special-contract ceiling` 10 EQUALS 1
+#ASSERT `the special-contract ceiling` 50 EQUALS 3
+#ASSERT `the flexible reward paid this year` 2 TRUE FALSE FALSE EQUALS 0.7
+#ASSERT `the hours skipped are allowed` 6 2 4
+#ASSERT NOT `the hours skipped are allowed` 5 2 4
+
+-- The first academisation example follows the rule.
+#ASSERT `the academisation share` 1.05 1 2 EQUALS 0.525
+#ASSERT `the academisation share` (1.4%) 1 2 EQUALS 0.7%
+
+-- F-2024-25_tashpah_05-a: §36 pays at most 75 retirees a year; §37(ה)
+-- spreads the budget over more than 75 by reducing each grant. For 100
+-- eligible retirees on full positions, §36 pays 75 the full 120,000 and
+-- 25 nothing; §37(ה) pays all 100 90,000.
+`§36 and §37(ה) disagree on a year of 100 eligible retirees` MEANS
+        `retirees paid under §36` 100 EQUALS 75
+    AND `the reduction factor` 100 0 TIMES `the retirement grant for a full position` EQUALS 90000
+#ASSERT `§36 and §37(ה) disagree on a year of 100 eligible retirees`
+
+-- F-2024-25_tashpah_05-b: the second example of 30(ג) gives the
+-- programme's unit 0.7 hour and 0.4%; the rule gives it 2.45 × 1/5 = 0.49
+-- hour and 1.4% × 1/5 = 0.28%.
+`the second academisation example departs from the rule` MEANS
+        NOT `the academisation share` 2.45 1 5 EQUALS 0.7
+    AND NOT `the academisation share` (1.4%) 1 5 EQUALS 0.4%
+#ASSERT `the second academisation example departs from the rule`
+
+-- F-2024-25_tashpah_05-c: in this text the one-time grant and its advance
+-- deduction are §5 and §5(יא); §7 is the Oz 2023 shekel supplement and has
+-- no subsection (יא).
+`the grant's section in this text` MEANS 5
+`the section §42.3 and §44 name for the grant` MEANS 7
+`§42.3 and §44 cite a section that is not the grant's` MEANS
+    NOT `the section §42.3 and §44 name for the grant` EQUALS `the grant's section in this text`
+#ASSERT `§42.3 and §44 cite a section that is not the grant's`
+
+-- F-2024-25_tashpah_05-d: §40's bands give no row for a teacher with more
+-- than 25 frontal hours, whom §33 allows (up to 12 weekly hours beyond a
+-- full position), nor for one with 21.5.
+`§40 has no row above 25 frontal hours` MEANS
+        `the work days the bands give for` 27 EQUALS EMPTY
+    AND `the work days the bands give for` 21.5 EQUALS EMPTY
+#ASSERT `§40 has no row above 25 frontal hours`
+
+#TRACE `the grant is paid` 9600 AT 0 WITH
+    PARTY `the employer` DOES `pay the one-time grant` 9600 AT 2
+#TRACE `the grant is paid` 9600 AT 0 WITH
+    PARTY `the employer` DOES `pay the one-time grant` 6000 AT 2
+#TRACE `the retirement grant is paid` 120000 AT 0 WITH
+    PARTY `the employer` DOES `pay the retirement grant` 120000 AT 25
+#TRACE `the unpaid strike days are deducted` 10 100 AT 0 WITH
+    PARTY `the employer` DOES `reduce the salary for the unpaid strike days` 1000 AT 2

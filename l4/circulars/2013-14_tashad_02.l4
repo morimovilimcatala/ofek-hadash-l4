@@ -1,0 +1,575 @@
+-- חוזר לבעלויות תשע"ד/2 — החלטות ועדת המעקב מיום 28.5.2013 להסכם עוז לתמורה (29.12.2013)
+-- The steering committee's amendments of 28.5.2013 to the Oz LeTmura
+-- agreement of 14.8.2011: joining (the third-of-a-position threshold,
+-- interns, doctors, teaching-certificate completion), roles, the work week
+-- (clock hours, late work, the support-hours mix, front-loaded and
+-- back-loaded months), the hour value with age hours, deputies' allowance,
+-- minimum frontal hours of role-holders, special education, credit points,
+-- the transition supplement, new principals, maximum positions in partial
+-- implementation, the sabbatical grant, contributions above 100%, and
+-- grades 13-14.
+
+IMPORT prelude
+IMPORT common
+
+§ `חוזר תשע"ד/2 החלטות ועדת המעקב לעוז לתמורה`
+
+-- akn:preamble The letterhead, date, reference, addressee and subject line; no rule.
+-- akn:preamble/p13 The subject repeated as a heading; no rule.
+-- akn:preamble/p14 Background: the steering committee of 28.5.2013, under section 59 of the agreement, considered the parties' proposals; the decisions are sections 1-19.
+-- akn:preamble/p15 States the circular's purpose; no rule.
+
+DECLARE `school year` IS ONE OF
+    `תשע"ב`
+    `תשע"ג`
+    `תשע"ד`
+    `תשע"ה`
+    `a later year`
+
+GIVEN y IS A `school year`
+GIVETH A NUMBER
+DECIDE `year number` y IS
+    CONSIDER y
+    WHEN `תשע"ב` THEN 1
+    WHEN `תשע"ג` THEN 2
+    WHEN `תשע"ד` THEN 3
+    WHEN `תשע"ה` THEN 4
+    WHEN `a later year` THEN 5
+
+DECLARE `committee action` IS ONE OF
+    `complete the teaching-licence studies`
+    `set an earlier start of the working day` HAS `start set` IS A NUMBER
+    `sign consent to the increased-work plan`
+    `contribute to the training fund on the transition supplement` HAS `training-fund contribution` IS A NUMBER
+
+§§ `1. תנאי סף של שליש משרה`
+
+-- For sections 6(ב) and 7(ח) of the agreement, an existing teacher is
+-- deemed employed at a third of a position also where they held at least a
+-- third in the upper division the year before joining and less in the year
+-- of joining.
+@ref akn:art_1/p1 akn:art_1/p2
+GIVEN `position this year` IS A NUMBER, `position the year before joining` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `meets the third-of-a-position threshold` `position this year` `position the year before joining` IF
+    `position this year` AT LEAST 1 DIVIDED BY 3 OR `position the year before joining` AT LEAST 1 DIVIDED BY 3
+
+§§ `2. עובד הוראה בשנת התמחות`
+
+-- ¶1, (א), (ב): a teacher with an academic degree in the internship year
+-- joins the reform without a teaching licence — excepted from 6(ב) (new
+-- teachers) and added as 7(ח)(2)(ד) (existing teachers).
+@ref akn:art_2/p1 akn:art_2__para_a akn:art_2__para_b
+GIVEN `academic degree` IS A BOOLEAN, `in the internship year` IS A BOOLEAN, `teaching licence` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `meets the licence condition` `academic degree` `in the internship year` `teaching licence` IF
+    `teaching licence` OR (`academic degree` AND `in the internship year`)
+
+-- (ג)-(ה): sections 16 (the Oz LeTmura supplement) and 28 (partial
+-- implementation) apply to an intern with the Oz LeTmura, '87 and '94
+-- supplements at 90% of their values.
+@ref akn:art_2__para_c akn:art_2__para_d akn:art_2__para_e
+`an intern's share of the supplements` MEANS 90%
+
+GIVEN `supplement value` IS A NUMBER, `an intern` IS A BOOLEAN
+GIVETH A NUMBER
+DECIDE `the supplement paid` `supplement value` `an intern` IS
+    IF `an intern` THEN `supplement value` TIMES `an intern's share of the supplements` ELSE `supplement value`
+
+§§ `3. בעל תואר שלישי`
+
+-- 7(ח)(2)(ג): a doctor teaching mathematics, physics, biology, chemistry or
+-- English in the upper division joins.
+@ref akn:art_3/p1
+`the doctors' subjects` MEANS LIST "מתמטיקה", "פיסיקה", "ביולוגיה", "כימיה", "אנגלית"
+
+GIVEN `holds a doctorate` IS A BOOLEAN, `subject` IS A STRING
+GIVETH A BOOLEAN
+DECIDE `a doctor joins` `holds a doctorate` `subject` IF
+    `holds a doctorate` AND elem `subject` `the doctors' subjects`
+
+§§ `4. השלמת תעודת הוראה`
+
+-- (א) 7(ח1): a teacher not entitled to a permanent licence for want of a
+-- teaching certificate may be employed under the reform if, on the eve of
+-- the school year, they (1) received a permit letter from the personnel
+-- division, (2) registered for the studies it names, (3) signed an
+-- undertaking to complete them within 3 years of the permit.
+@ref akn:art_4__para_a
+GIVEN `permit letter` IS A BOOLEAN, `registered for the studies` IS A BOOLEAN, `signed the undertaking` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `may join while completing the certificate` `permit letter` `registered for the studies` `signed the undertaking` IF
+    `permit letter` AND `registered for the studies` AND `signed the undertaking`
+
+`years to complete the certificate from the permit` MEANS 3
+
+-- (3)'s undertaking as the duty it creates: the teacher completes the
+-- studies and their requirements within three years of the permit letter.
+-- Time in months from the permit letter.
+@ref akn:art_4__para_a
+GIVETH A DEONTIC Party `committee action`
+DECIDE `completing the licence studies` IS
+    PARTY `the teaching employee`
+    MUST  `complete the teaching-licence studies`
+    WITHIN `years to complete the certificate from the permit` TIMES 12
+    LEST  BREACH BY `the teaching employee` BECAUSE "agreement 7(ח1)(3), added by circular תשע\"ד/2 section 4: the studies are completed within three years of the permit letter"
+
+-- (ב): no change to the other rules for teachers without a certificate or
+-- licence.
+-- Encoded as: joining under 7(ח1) leaves in force whatever the other rules
+-- for an employee without a certificate or licence decide (an input).
+@ref akn:art_4__para_b
+GIVEN `what the other rules for an unlicensed employee decide` IS A BOOLEAN @desc the outcome of the rules outside this circular on employees without a teaching certificate or licence
+      `joined under 7(ח1)` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `the other licence rules still decide` `what the other rules for an unlicensed employee decide` `joined under 7(ח1)` IF
+    `what the other rules for an unlicensed employee decide`
+
+§§ `5. מחנך ויועץ בתשע"ג ותשע"ד`
+
+-- Despite 7(ט), in תשע"ג and תשע"ד employment under the reform is not a
+-- threshold for the role of homeroom teacher or counsellor.
+@ref akn:art_5/p1
+GIVEN y IS A `school year`
+GIVETH A BOOLEAN
+DECIDE `the reform is a threshold for homeroom teacher or counsellor` y IF
+    NOT (y EQUALS `תשע"ג` OR y EQUALS `תשע"ד`)
+
+§§ `6. מבנה שבוע העבודה`
+
+-- akn:art_6__para_a Heading: amendments to section 9 of the agreement; the rules are (1)-(4).
+
+-- (1) (ב1): hours count from the clock-in, not before 7:45, subject to (ב2)
+-- and (ג). (ב2): on the teacher's request before the year or the half-year
+-- the principal may start the day before 8:00 but not before 7:00; hours
+-- then count from the clock-in but not before that start, and the hours
+-- before 8:00 are support hours. Times as decimals (7.75 = 7:45).
+@ref akn:art_6__para_a__subpara_1
+GIVEN `clock-in time` IS A NUMBER @desc time of day in hours (7.75 = 7:45)
+      `start set by the principal` IS A NUMBER @desc the day's start the principal set on the teacher's request, 7 to 8; 0 if none
+GIVETH A NUMBER
+DECIDE `hours count from` `clock-in time` `start set by the principal` IS
+    IF `start set by the principal` AT LEAST 7 AND `start set by the principal` LESS THAN 8
+    THEN max `clock-in time` `start set by the principal`
+    ELSE max `clock-in time` 7.75
+
+GIVEN `hours count from` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `support hours before eight` `hours count from` IS
+    max 0 (8 MINUS `hours count from`)
+
+-- (ב2) as a permission: on the teacher's request, made before the school
+-- year or the half-year, the principal may set the day to start before
+-- 8:00 and not before 7:00. Time in months from the request.
+@ref akn:art_6__para_a__subpara_1
+GIVEN `the teacher asked before the year or half-year` IS A BOOLEAN
+GIVETH A DEONTIC Party `committee action`
+DECIDE `the principal may set an earlier start` `the teacher asked before the year or half-year` IS
+    IF `the teacher asked before the year or half-year`
+    THEN PARTY `the school principal`
+         MAY   `set an earlier start of the working day` t
+               PROVIDED t AT LEAST 7 AND t LESS THAN 8
+    ELSE FULFILLED
+
+-- (2) (ה1): teachers who need special facilities not available enough
+-- between 8:00 and 17:00 may work after 17:00, but never more than 9 hours
+-- in a day.
+@ref akn:art_6__para_a__subpara_2
+GIVEN `needs special facilities` IS A BOOLEAN, `ends at` IS A NUMBER, `hours that day` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `may work after 17:00` `needs special facilities` `ends at` `hours that day` IF
+    `ends at` AT MOST 17 OR (`needs special facilities` AND `hours that day` AT MOST 9)
+
+-- (3): the mix of activities in the support hours may change by the
+-- principal's decision or approval, provided the two-month average keeps the
+-- mix of the agreement's 9(ו) (an input: the circular does not restate it).
+DECLARE `support activity over two months` HAS
+    `hours in the first month`  IS A NUMBER
+    `hours in the second month` IS A NUMBER
+    `monthly hours 9(ו) sets`   IS A NUMBER @desc the monthly hours the agreement's section 9(ו) sets for this activity; not restated in the circular
+
+@ref akn:art_6__para_a__subpara_3
+GIVEN `activities` IS A LIST OF `support activity over two months`
+      `the principal decided or approved` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `a changed mix is allowed` `activities` `the principal decided or approved` IF
+        `the principal decided or approved`
+    AND all (GIVEN a YIELD (a's `hours in the first month` PLUS a's `hours in the second month`) DIVIDED BY 2
+                           EQUALS a's `monthly hours 9(ו) sets`)
+            `activities`
+
+-- (4) (י1): where the principal thinks some months need increased work,
+-- by agreement with the teacher, earlier months of the same year may carry
+-- fewer support hours (no more than one reduced month per increased month)
+-- and the increased months more; never more than 9 hours a day or 43 a
+-- week; the monthly salary is unchanged, the pay for the reduced months an
+-- advance; the teacher signs a consent.
+@ref akn:art_6__para_a__subpara_4
+GIVEN `reduced months` IS A NUMBER, `increased months` IS A NUMBER, `most hours in a day` IS A NUMBER, `most hours in a week` IS A NUMBER, `teacher signed consent` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `a valid increased-work plan` `reduced months` `increased months` `most hours in a day` `most hours in a week` `teacher signed consent` IF
+        `reduced months` AT MOST `increased months`
+    AND `most hours in a day` AT MOST 9
+    AND `most hours in a week` AT MOST 43
+    AND `teacher signed consent`
+
+-- (י1)(3) as the step it requires: the teacher signs consent to the plan
+-- and to the advance before the reduced months begin (month 1 of the plan).
+@ref akn:art_6__para_a__subpara_4
+GIVETH A DEONTIC Party `committee action`
+DECIDE `consent to the increased-work plan` IS
+    PARTY `the teaching employee`
+    MUST  `sign consent to the increased-work plan`
+    WITHIN 1
+    LEST  BREACH BY `the teaching employee` BECAUSE "agreement 9(י1)(3), added by circular תשע\"ד/2 section 6: the plan rests on the teacher's signed consent"
+
+-- (ב): paragraphs (א)(1) to (א)(3) "only" take effect in תשע"ב; (א)(4) is
+-- given no date and is read as taking effect with the decision itself
+-- (28.5.2013, in תשע"ג), the ordinary rule for an amendment that names no
+-- commencement.
+@ref akn:art_6__para_b
+DECLARE `paragraph of section 6` IS ONE OF
+    `(א)(1)`
+    `(א)(2)`
+    `(א)(3)`
+    `(א)(4)`
+
+GIVEN p IS A `paragraph of section 6`
+GIVETH A MAYBE `school year`
+DECIDE `the commencement 6(ב) gives` p IS
+    CONSIDER p
+    WHEN `(א)(4)` THEN NOTHING
+    OTHERWISE JUST `תשע"ב`
+
+GIVEN p IS A `paragraph of section 6`
+GIVETH A `school year`
+DECIDE `the year the paragraph takes effect` p IS
+    CONSIDER `the commencement 6(ב) gives` p
+    WHEN JUST y  THEN y
+    WHEN NOTHING THEN `תשע"ג`
+
+§§ `7. ערך שעה ושעות גיל`
+
+-- akn:art_7/p1 Introduces the quotation of section 15(ב); the rule is quoted below.
+
+-- 15(ב) as quoted (¶2-¶6): the hour value of a full position is the salary
+-- base over 4.33 weeks × 40 hours; from תשע"ב, outside the reform, over
+-- 4.33 × 24. ¶7 (ג): for a teacher entitled to age hours the 40 or 24 in the
+-- denominator is reduced by the reduction. (א): section 32 (partial
+-- implementation) now refers to 15(ב) and 15(ג). (ב): from תשע"ב.
+@ref akn:art_7/p2 akn:art_7/p3 akn:art_7/p4 akn:art_7/p5 akn:art_7/p6 akn:art_7/p7 akn:art_7__para_a akn:art_7__para_b
+GIVEN `salary base for a full position` IS A NUMBER, `under the reform` IS A BOOLEAN, `age hours` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the hour value` `salary base for a full position` `under the reform` `age hours` IS
+    `salary base for a full position`
+    DIVIDED BY (4.33 TIMES ((IF `under the reform` THEN 40 ELSE 24) MINUS `age hours`))
+
+#ASSERT `the hour value` 17320 TRUE 0 EQUALS 100
+#ASSERT `the hour value` 15588 TRUE 4 EQUALS 100
+
+§§ `8. גמול אחוזי לסגן מנהל`
+
+-- Despite the table of section 17, until the parties agree otherwise a
+-- deputy principal who does not meet (1)(א) gets the percentage allowance of
+-- a deputy who does.
+@ref akn:art_8/p1
+GIVEN `the (1)(א) deputy's rate` IS A NUMBER @desc the percentage the table of section 17 gives a deputy meeting (1)(א)
+      `meets (1)(א)` IS A BOOLEAN
+GIVETH A NUMBER
+DECIDE `a deputy's percentage allowance` `the (1)(א) deputy's rate` `meets (1)(א)` IS
+    `the (1)(א) deputy's rate`
+
+§§ `9. מכסה מינימלית של שעות פרונטליות לבעלי תפקיד`
+
+-- akn:art_9/p1 Heading: amendments to section 17 (role-holders' allowances); the rule is (א).
+
+-- (א), the new 17(ד): minimum weekly frontal hours in class — for a full
+-- position, and for a part position or an age-hours teacher a share of the
+-- frontal hours of the work-week tables, and never fewer than a floor.
+DECLARE `role` IS ONE OF
+    `counsellor`
+    `deputy principal`
+    `homeroom teacher`
+    `grade coordinator`
+    `subject coordinator`
+    `social-education coordinator`
+    `learning-adjustments coordinator`
+    `assessment coordinator`
+    `any other role-holder`
+
+DECLARE `minimum row` HAS
+    `full-position minimum` IS A NUMBER
+    `part-position share`   IS A NUMBER
+    `part-position floor`   IS A NUMBER
+
+@ref akn:art_9__para_a
+GIVEN r IS A `role`
+GIVETH A `minimum row`
+DECIDE `the minimum row` r IS
+    CONSIDER r
+    WHEN `counsellor`                        THEN `minimum row` 8  (33%) 4
+    WHEN `deputy principal`                  THEN `minimum row` 9  (33%) 6
+    WHEN `homeroom teacher`                  THEN `minimum row` 12 (50%) 6
+    WHEN `grade coordinator`                 THEN `minimum row` 12 (50%) 6
+    WHEN `subject coordinator`               THEN `minimum row` 12 (50%) 8
+    WHEN `social-education coordinator`      THEN `minimum row` 12 (50%) 8
+    WHEN `learning-adjustments coordinator`  THEN `minimum row` 12 (50%) 8
+    WHEN `assessment coordinator`            THEN `minimum row` 12 (50%) 8
+    WHEN `any other role-holder`             THEN `minimum row` 12 (50%) 10
+
+GIVEN r IS A `role`, `full position without age hours` IS A BOOLEAN, `frontal hours in the work-week table` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the minimum frontal hours` r `full position without age hours` `frontal hours in the work-week table` IS
+    IF `full position without age hours`
+    THEN (`the minimum row` r)'s `full-position minimum`
+    ELSE max ((`the minimum row` r)'s `part-position share` TIMES `frontal hours in the work-week table`)
+             ((`the minimum row` r)'s `part-position floor`)
+
+-- The text's own examples: a homeroom teacher at about 83% (20 frontal
+-- hours) must teach 10; at about 42% (10 frontal hours), 6 and not 5.
+#ASSERT `the minimum frontal hours` `homeroom teacher` FALSE 20 EQUALS 10
+#ASSERT `the minimum frontal hours` `homeroom teacher` FALSE 10 EQUALS 6
+
+§§ `10. גמול חינוך מיוחד`
+
+-- (ג1): the position for the special-education allowance is the frontal
+-- hours actually taught in special-education classes over the frontal hours
+-- of a full position for that teacher (annexes ב and ג).
+@ref akn:art_10/p1
+GIVEN `frontal hours in special-education classes` IS A NUMBER, `frontal hours of a full position` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the special-education position` `frontal hours in special-education classes` `frontal hours of a full position` IS
+    `frontal hours in special-education classes` DIVIDED BY `frontal hours of a full position`
+
+§§ `11. נקודות זכות בגין הערכה`
+
+-- The new table of 20(ב): credit points by role and assessment rank.
+-- The table has three columns: the homeroom teacher; the grade, subject,
+-- assessment, adjustments, social-education and trips coordinators; and the
+-- teacher who is not a role-holder. Section 9's own list of role-holders
+-- also has the counsellor, the deputy principal and "any other role-holder",
+-- who are in no column.
+DECLARE `credit role` IS ONE OF
+    `a homeroom teacher`
+    `a coordinator`
+    `a teacher with no role`
+    `another role-holder`
+
+DECLARE `assessment rank` IS ONE OF
+    `the highest 15%`
+    `the next 15%`
+    `below them`
+
+@ref akn:art_11/p1
+GIVEN r IS A `credit role`, k IS AN `assessment rank`
+GIVETH A MAYBE NUMBER
+DECIDE `the points the table prints` r k IS
+    CONSIDER k
+    WHEN `the highest 15%` THEN
+        CONSIDER r
+        WHEN `a homeroom teacher`     THEN JUST 4
+        WHEN `a coordinator`          THEN JUST 2.5
+        WHEN `a teacher with no role` THEN JUST 5.5
+        WHEN `another role-holder`    THEN NOTHING
+    WHEN `the next 15%` THEN
+        CONSIDER r
+        WHEN `a homeroom teacher`     THEN JUST 2
+        WHEN `a coordinator`          THEN JUST 1
+        WHEN `a teacher with no role` THEN JUST 3.5
+        WHEN `another role-holder`    THEN NOTHING
+    WHEN `below them` THEN JUST 0
+
+-- F-2013-14_tashad_02-a: a counsellor or deputy principal ranked in the
+-- top 15% has no column in the table.
+`a top-ranked counsellor or deputy has no column` MEANS
+        `the points the table prints` `another role-holder` `the highest 15%` EQUALS NOTHING
+    AND `the points the table prints` `another role-holder` `the next 15%` EQUALS NOTHING
+#ASSERT `a top-ranked counsellor or deputy has no column`
+
+-- The reading adopted (F-2013-14_tashad_02-a): a role-holder in no column
+-- earns no points under the table; the table is applied as printed.
+GIVEN r IS A `credit role`, k IS AN `assessment rank`
+GIVETH A NUMBER
+DECIDE `credit points` r k IS
+    fromMaybe 0 (`the points the table prints` r k)
+
+§§ `12. תוספת מעבר לרפורמה`
+
+-- akn:art_12/p1 Heading: amendments to section 24; the rules are (א)-(ג).
+
+-- (א): the transition supplement is computed on the combined salary and
+-- the '94, 2001, 2008, 2011 and erosion-2011 supplements.
+DECLARE `salary component` IS ONE OF
+    `combined salary`
+    `the '94 supplement`
+    `the 2001 supplement`
+    `the 2008 supplement`
+    `the 2011 supplement`
+    `the 2011 erosion supplement`
+    `another component`
+
+@ref akn:art_12__para_a
+GIVEN c IS A `salary component`
+GIVETH A BOOLEAN
+DECIDE `in the transition supplement's base` c IF
+    NOT c EQUALS `another component`
+
+-- (ב): training-fund contributions are made on the transition supplement.
+@ref akn:art_12__para_b
+GIVEN `the transition supplement paid` IS A NUMBER, `the training-fund rate` IS A NUMBER @desc the rate of the agreements on training-fund contributions; not set by this circular
+GIVETH A DEONTIC Party `committee action`
+DECIDE `training-fund contributions on the transition supplement` `the transition supplement paid` `the training-fund rate` IS
+    PARTY `the employer`
+    MUST  `contribute to the training fund on the transition supplement` c
+          PROVIDED c AT LEAST `the transition supplement paid` TIMES `the training-fund rate`
+    WITHIN 1
+    LEST  BREACH BY `the employer` BECAUSE "agreement 24(ג) as amended by circular תשע\"ד/2 section 12(ב): contributions to the training fund are made on the transition supplement"
+
+-- (ג1): an existing principal also gets "the '87 supplement – transition to
+-- the reform", equal to the '87 supplement times 50%, on the '87's rules.
+-- ¶2: from the reform's start (steering committee of 24.12.2013). ¶3: an
+-- existing or new principal gets the transition supplements only while
+-- employed as principal under the reform.
+@ref akn:art_12__para_c akn:art_12/p2 akn:art_12/p3
+GIVEN `the '87 supplement` IS A NUMBER, `principal under the reform` IS A BOOLEAN
+GIVETH A NUMBER
+DECIDE `the '87 transition supplement` `the '87 supplement` `principal under the reform` IS
+    IF `principal under the reform` THEN `the '87 supplement` TIMES 50% ELSE 0
+
+§§ `13. מנהל חדש`
+
+-- Despite sections 25 and 31(ב), until agreed otherwise a new principal
+-- under the reform is paid by the rules for an existing principal.
+@ref akn:art_13/p1
+DECLARE `principal kind` IS ONE OF
+    `an existing principal`
+    `a new principal`
+
+GIVEN k IS A `principal kind`
+GIVETH A `principal kind`
+DECIDE `the salary rules that apply` k IS
+    `an existing principal`
+
+§§ `14-15. היקפי משרה ביישום חלקי`
+
+-- akn:art_14/p1 Heading: amendments to section 26; the rules are (א)-(ב).
+-- akn:art_15/p1 Heading: amendments to section 27; the rules are (א)-(ג).
+
+-- 14(א), 26(ו): for a mother in partial implementation, 11(ד)'s "up to
+-- 107%" becomes 138.6% (תשע"ב), 139.3% (תשע"ג), 124.6% (תשע"ד). (ב) (ו1):
+-- in תשע"ד, with approval under 14(ב), 135.6%.
+@ref akn:art_14__para_a akn:art_14__para_a/p2 akn:art_14__para_a/p3 akn:art_14__para_b
+GIVEN y IS A `school year`, `approved under 14(ב)` IS A BOOLEAN
+GIVETH A MAYBE NUMBER
+DECIDE `a mother's maximum position in partial implementation` y `approved under 14(ב)` IS
+    CONSIDER y
+    WHEN `תשע"ב` THEN JUST (138.6%)
+    WHEN `תשע"ג` THEN JUST (139.3%)
+    WHEN `תשע"ד` THEN IF `approved under 14(ב)` THEN JUST (135.6%) ELSE JUST (124.6%)
+    OTHERWISE NOTHING
+
+-- 15(א)-(ב): the new table of 27(א): maximum employment in partial
+-- implementation 130% (תשע"ב), 131% (תשע"ג), 117% (תשע"ד), 128% with
+-- approval under 14(ב).
+@ref akn:art_15__para_a akn:art_15__para_b
+GIVEN y IS A `school year`, `approved under 14(ב)` IS A BOOLEAN
+GIVETH A MAYBE NUMBER
+DECIDE `the maximum position in partial implementation` y `approved under 14(ב)` IS
+    CONSIDER y
+    WHEN `תשע"ב` THEN JUST (130%)
+    WHEN `תשע"ג` THEN JUST (131%)
+    WHEN `תשע"ד` THEN IF `approved under 14(ב)` THEN JUST (128%) ELSE JUST (117%)
+    OTHERWISE NOTHING
+
+-- The two tables differ by the same margin each year (the mother's
+-- addition): 8.6, 8.3, 7.6 and 7.6 points.
+GIVEN y IS A `school year`, `approved` IS A BOOLEAN
+GIVETH A NUMBER
+DECIDE `the mother's margin` y `approved` IS
+    CONSIDER `a mother's maximum position in partial implementation` y `approved`
+    WHEN JUST m THEN
+        CONSIDER `the maximum position in partial implementation` y `approved`
+        WHEN JUST n THEN m MINUS n
+        WHEN NOTHING THEN 0
+    WHEN NOTHING THEN 0
+
+#ASSERT `the mother's margin` `תשע"ב` FALSE EQUALS 8.6%
+#ASSERT `the mother's margin` `תשע"ג` FALSE EQUALS 8.3%
+#ASSERT `the mother's margin` `תשע"ד` FALSE EQUALS 7.6%
+#ASSERT `the mother's margin` `תשע"ד` TRUE EQUALS 7.6%
+
+-- 15(ג), new 27(ב)-(ג): employment above 100% in that table is in frontal
+-- hours only; 14(ד) does not apply above 100% in partial implementation.
+-- 15(ג)(ג): the paragraph "למען הסר ספק" becomes (ד).
+@ref akn:art_15__para_c akn:art_15__para_c__subpara_c
+GIVEN `position` IS A NUMBER, `hours above 100% all frontal` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `the excess is in frontal hours` `position` `hours above 100% all frontal` IF
+    `position` AT MOST 1 OR `hours above 100% all frontal`
+
+§§ `16. מענק חד-פעמי 2000 ₪ ושבתון`
+
+-- The new 40(ה): a teacher under 40(א) who was on sabbatical for all of the
+-- determining period, or for part of it and employed continuously by the
+-- employer for the rest, is entitled to the one-time grant.
+@ref akn:art_16/p1
+GIVEN `sabbatical all the period` IS A BOOLEAN, `sabbatical part of it` IS A BOOLEAN, `continuously employed the rest` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `entitled to the one-time grant despite the sabbatical` `sabbatical all the period` `sabbatical part of it` `continuously employed the rest` IF
+    `sabbatical all the period` OR (`sabbatical part of it` AND `continuously employed the rest`)
+
+§§ `17. הפרשות מעבר ל-100%`
+
+-- The new 46(ז): contribution rates on pay for work above 100% are those
+-- of the agreements in force on the eve of the reform agreement.
+@ref akn:art_17/p1
+`contribution rates above 100% are the pre-agreement rates` MEANS TRUE
+
+§§ `18. כיתות י"ג-י"ד`
+
+-- Despite sections 5-7, teachers of grades 13-14 join only in תשע"ה; until
+-- then (א) a teacher of both joins only for grades 12 and below, and (ב)
+-- the 13-14 hours count for the minimum-position threshold and for the
+-- role-holders' minimum frontal hours.
+@ref akn:art_18/p1 akn:art_18__para_a
+GIVEN y IS A `school year`, `position in grades 12 and below` IS A NUMBER, `position in grades 13-14` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the position under the reform` y `position in grades 12 and below` `position in grades 13-14` IS
+    IF `year number` y AT LEAST `year number` `תשע"ה`
+    THEN `position in grades 12 and below` PLUS `position in grades 13-14`
+    ELSE `position in grades 12 and below`
+
+@ref akn:art_18__para_b
+GIVEN `position in grades 12 and below` IS A NUMBER, `position in grades 13-14` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the position for the thresholds` `position in grades 12 and below` `position in grades 13-14` IS
+    `position in grades 12 and below` PLUS `position in grades 13-14`
+
+-- akn:art_19/p1 Section 19 ('87 and '94 supplements): instructions will be issued in a separate circular; no rule here.
+-- akn:conclusions The contact line, the signature and the list of copies; no rule.
+
+-- Examples.
+#ASSERT `meets the third-of-a-position threshold` 0.25 0.4
+#ASSERT `the supplement paid` 1000 TRUE EQUALS 900
+#ASSERT `a doctor joins` TRUE "כימיה"
+#ASSERT NOT `a doctor joins` TRUE "היסטוריה"
+#ASSERT `hours count from` 7.2 0 EQUALS 7.75
+#ASSERT `hours count from` 7.2 7.5 EQUALS 7.5
+#ASSERT `support hours before eight` 7.5 EQUALS 0.5
+#ASSERT NOT `the reform is a threshold for homeroom teacher or counsellor` `תשע"ד`
+#ASSERT `a valid increased-work plan` 2 2 9 43 TRUE
+#ASSERT `credit points` `a teacher with no role` `the highest 15%` EQUALS 5.5
+#ASSERT `the '87 transition supplement` 200 TRUE EQUALS 100
+#ASSERT `the year the paragraph takes effect` `(א)(4)` EQUALS `תשע"ג`
+#ASSERT `a changed mix is allowed` (LIST `support activity over two months` 3 5 4, `support activity over two months` 2 2 2) TRUE
+#ASSERT NOT `a changed mix is allowed` (LIST `support activity over two months` 3 3 4) TRUE
+
+#TRACE `completing the licence studies` AT 0 WITH
+    PARTY `the teaching employee` DOES `complete the teaching-licence studies` AT 30
+#TRACE `the principal may set an earlier start` TRUE AT 0 WITH
+    PARTY `the school principal` DOES `set an earlier start of the working day` 7.5 AT 0
+-- The 7.5% below is a placeholder rate: the circular does not set it.
+#TRACE `training-fund contributions on the transition supplement` 1000 (7.5%) AT 0 WITH
+    PARTY `the employer` DOES `contribute to the training fund on the transition supplement` 75 AT 1
+#ASSERT `the position under the reform` `תשע"ד` 0.6 0.2 EQUALS 0.6
+#ASSERT `the special-education position` 6 24 EQUALS 0.25

@@ -1,0 +1,297 @@
+-- חוזר לבעלויות תשע"א/3: קצובת ביגוד לשנת הלימודים תשע"א
+-- The clothing allowance for school year 2010/11 (תשע"א): who is entitled,
+-- the amount by teaching seniority, the extra allowance for physical-education
+-- teachers and for technological-education staff, pro-rating by position, and
+-- the month it is paid in; pro-rating between employers and the 140% limit.
+
+IMPORT prelude
+IMPORT common
+
+§ `תשע"א/3 קצובת ביגוד לשנת הלימודים תשע"א`
+
+-- akn:preamble The letterhead, the circular's title, addressee, subject line and the opening words "according to the Treasury's instructions on the clothing allowance, act as follows"; the rules are sections א–ג.
+
+@desc A teaching employee's school year 2010/11, as far as this circular asks about it.
+DECLARE `clothing year` HAS
+    `in the teaching-staff grade`        IS A BOOLEAN @desc the employee is graded in the teaching-staff grade (דירוג עובדי הוראה)
+    `years of teaching seniority`        IS A NUMBER  @desc seniority in teaching (ותק בהוראה), in years
+    `position fraction`                  IS A NUMBER  @desc the share of a full position held at this employer (1 = one full position)
+    `position at all employers`          IS A NUMBER  @desc the share of a full position held at all employers together
+    `teaches physical education`         IS A BOOLEAN
+    `physical-education employment rate` IS A NUMBER  @desc the employment rate (שיעור העסקה) section ב's table is read by; see F-2010-11_tashaa_03-c
+    `in technological education`         IS A BOOLEAN @desc a teaching employee in technological education or a professional instructor (מדריך מקצועי)
+    `technological professions taught`   IS A LIST OF STRING @desc the professions taught, as section ג's lists print them
+
+@desc The things section ג grants in kind.
+DECLARE `clothing item` IS ONE OF
+    `a pair of shoes`
+    `a robe`
+
+DECLARE `clothing action` IS ONE OF
+    `pay the clothing allowance` HAS `amount of clothing allowance paid` IS A NUMBER
+    `work beyond 140% of a position`
+
+§§ `א קצובת ביגוד – כללי`
+
+-- "יש לשלמה במלואה": the allowance is paid whole, in one payment, with the
+-- July 2011 salary; "במלואה" is read as one payment, not as setting aside
+-- section א.5's pro-rating, which the same section states in the same breath.
+-- Time is counted in school months of 2010/11 (common.l4: September = 1).
+@ref akn:art_a__para_1
+GIVEN y IS A `clothing year`
+GIVETH A DEONTIC Party `clothing action`
+DECIDE `payment with July's salary` y IS
+    PARTY `the local authority or owning body`
+    MUST  `pay the clothing allowance` `amount paid`
+          PROVIDED `amount paid` AT LEAST `clothing allowance` y
+    WITHIN `month number` July
+    LEST BREACH BY `the local authority or owning body` BECAUSE "section א.1: the clothing allowance is paid in full with the July 2011 salary"
+
+-- "כנהוג כלפי מקבלי קהל בשירות המדינה": the measure is the civil service's
+-- for staff who receive the public; this circular prints the amounts itself.
+@ref akn:art_a__para_2
+GIVEN y IS A `clothing year`
+GIVETH A BOOLEAN
+DECIDE `entitled to the clothing allowance` y IF
+    y's `in the teaching-staff grade`
+
+`the school year this circular prices` MEANS "תשע\"א (September 2010 to August 2011)"
+
+-- Section א.4's table AS PRINTED, in the printed order.
+@ref akn:art_a__para_3 akn:art_a__para_4
+DECLARE `seniority band` HAS
+    `from seniority year` IS A NUMBER
+    `to seniority year`   IS A NUMBER  @desc 999 stands for "ומעלה", with no upper bound
+    `band amount`         IS A NUMBER  @desc shekels for a full position
+
+`the seniority table` MEANS
+    LIST `seniority band` 1  25  1464,
+         `seniority band` 26 999 2042
+
+GIVEN n IS A NUMBER
+GIVETH A LIST OF NUMBER
+DECIDE `the amounts the seniority table gives for` n IS
+    map (GIVEN b YIELD b's `band amount`)
+        (filter (GIVEN b YIELD n AT LEAST b's `from seniority year` AND n AT MOST b's `to seniority year`)
+                `the seniority table`)
+
+-- F-2010-11_tashaa_03-a: the table opens at year 1. The reading adopted
+-- counts the year being served, so a first-year employee is in year 1.
+GIVEN y IS A `clothing year`
+GIVETH A NUMBER
+DECIDE `full-position amount by seniority` y IS
+    IF y's `years of teaching seniority` AT LEAST 26
+    THEN 2042
+    ELSE 1464
+
+`a first-year employee has no row if seniority counts completed years` MEANS
+    `the amounts the seniority table gives for` 0 EQUALS EMPTY
+#ASSERT `a first-year employee has no row if seniority counts completed years`
+
+#ASSERT all (GIVEN n YIELD count (`the amounts the seniority table gives for` n) EQUALS 1)
+            (LIST 1, 2, 10, 25, 26, 30, 40)
+
+-- Section א.5 caps the share at one full position; section א.6: where the
+-- positions at several employers total more than 100%, each employer pays
+-- the share of the position held with it, so the cap is read per employer.
+@ref akn:art_a__para_5 akn:art_a__para_6
+GIVEN y IS A `clothing year`
+GIVETH A NUMBER
+DECIDE `position share` y IS
+    min (y's `position fraction`) 1
+
+-- Section א.7: no more than 140% of a position at all employers together,
+-- and section א.6 is no permission to employ beyond it.
+@ref akn:art_a__para_7
+GIVETH A DEONTIC Party `clothing action`
+DECIDE `the 140% limit` IS
+    PARTY `the teaching employee`
+    SHANT `work beyond 140% of a position`
+    WITHIN 12
+    LEST BREACH BY `the teaching employee` BECAUSE "section א.7: no teaching employee works beyond 140% of a position at all employers together"
+
+GIVEN y IS A `clothing year`
+GIVETH A BOOLEAN
+DECIDE `within the 140% limit` y IF
+    y's `position at all employers` AT MOST 1.4
+
+GIVEN y IS A `clothing year`
+GIVETH A NUMBER
+DECIDE `general clothing allowance` y IS
+    IF `entitled to the clothing allowance` y
+    THEN `full-position amount by seniority` y TIMES `position share` y
+    ELSE 0
+
+§§ `ב קצובת ביגוד נוספת למורה לחינוך גופני`
+
+-- Section ב's table AS PRINTED ("סכום נכון ל-1/9/10"): "עד 0.3", "מ-0.3 עד
+-- 0.5", "מ-0.5 ומעלה". Its bounds meet at 0.3 and at 0.5 (F-2010-11_tashaa_03-b).
+@ref akn:art_b
+DECLARE `employment band` HAS
+    `from employment rate` IS A NUMBER
+    `to employment rate`   IS A NUMBER  @desc 999 stands for "ומעלה"
+    `employment band amount` IS A NUMBER
+
+`the physical-education table` MEANS
+    LIST `employment band` 0   0.3 0,
+         `employment band` 0.3 0.5 252,
+         `employment band` 0.5 999 501
+
+GIVEN r IS A NUMBER
+GIVETH A LIST OF NUMBER
+DECIDE `the amounts the physical-education table gives for` r IS
+    map (GIVEN b YIELD b's `employment band amount`)
+        (filter (GIVEN b YIELD r AT LEAST b's `from employment rate` AND r AT MOST b's `to employment rate`)
+                `the physical-education table`)
+
+-- The reading adopted (F-2010-11_tashaa_03-b): the band that OPENS at a
+-- bound ("מ-") governs it, so 0.3 takes 252 and 0.5 takes 501.
+GIVEN y IS A `clothing year`
+GIVETH A NUMBER
+DECIDE `physical-education allowance` y IS
+    IF y's `teaches physical education`
+    THEN BRANCH IF y's `physical-education employment rate` AT LEAST 0.5 THEN 501
+                IF y's `physical-education employment rate` AT LEAST 0.3 THEN 252
+                OTHERWISE 0
+    ELSE 0
+
+`the physical-education table gives 0.3 and 0.5 two amounts each` MEANS
+        `the amounts the physical-education table gives for` 0.3 EQUALS LIST 0, 252
+    AND `the amounts the physical-education table gives for` 0.5 EQUALS LIST 252, 501
+#ASSERT `the physical-education table gives 0.3 and 0.5 two amounts each`
+
+#ASSERT all (GIVEN r YIELD count (`the amounts the physical-education table gives for` r) EQUALS 1)
+            (LIST 0, 0.1, 0.29, 0.31, 0.49, 0.51, 1)
+
+-- F-2010-11_tashaa_03-c: "שיעור העסקה" is not said to be the share of the
+-- position in physical education or the employee's whole position.
+`a full-position teacher with a fifth in physical education` MEANS
+    `clothing year` WITH
+        `in the teaching-staff grade`        IS TRUE
+        `years of teaching seniority`        IS 10
+        `position fraction`                  IS 1
+        `position at all employers`          IS 1
+        `teaches physical education`         IS TRUE
+        `physical-education employment rate` IS 0.2
+        `in technological education`         IS FALSE
+        `technological professions taught`   IS EMPTY
+
+`the two readings of the employment rate differ` MEANS
+    NOT (`the amounts the physical-education table gives for` 0.2
+         EQUALS `the amounts the physical-education table gives for` 1)
+#ASSERT `the two readings of the employment rate differ`
+
+§§ `ג קצובת ביגוד בחינוך הטכנולוגי`
+
+-- Section ג's lead-in names the school year "תש\"ע", the year before the one
+-- this circular is for (title, section א.2: תשע"א); read as this circular's
+-- year, the evident one.
+-- Section ג.1א's thirteen professions, in the printed order of their numbers.
+@ref akn:art_c/p1 akn:art_c__para_1__subpara_a
+`the professions granted shoes and two robes` MEANS
+    LIST "מערכות תעופה",
+         "מכטרוניקה",
+         "טרמודינמיקה וטכנית ימית",
+         "מערכות סיב\"מ ותיב\"מ",
+         "תחזוקת מערכות מכניות",
+         "מערכות מכונאות רכב",
+         "מערכות ממוחשבות ברכב",
+         "מערכות הספק, פיקוד ובקרה",
+         "מערכות בקרת אקלים",
+         "אומנות הבישול והאפיה המלונאית",
+         "ימאות – ספינות",
+         "מערכות טלוויזיה וקולנוע",
+         "מערכות צילום"
+
+-- The value line printed under ג.1א: "ערך זוג נעליים ושני חלוקים: 535 ₪".
+`the value of shoes and two robes` MEANS 535
+
+-- Section ג.1ב's thirteen professions.
+@ref akn:art_c__para_1__subpara_b
+`the professions granted two robes` MEANS
+    LIST "מערכות אלקטרוניות",
+         "מערכות מחשוב ובקרה",
+         "מערכות מחשבים",
+         "תכנון ותכנות מערכות",
+         "מערכות ביוטכנולוגיה",
+         "ניהול תיירותי",
+         "ניהול מלונאי",
+         "חינוך לגיל הרך",
+         "עיצוב",
+         "אופנה ותלבושות",
+         "עיצוב שיער, וטיפוח החן",
+         "סיעוד",
+         "אומנות שימושית"
+
+@ref akn:art_c__para_2
+`the value of two robes` MEANS 331
+
+GIVEN professions IS A LIST OF STRING
+      y IS A `clothing year`
+GIVETH A BOOLEAN
+DECIDE `teaches a profession on` professions y IF
+        y's `in technological education`
+    AND any (GIVEN p YIELD elem p professions) (y's `technological professions taught`)
+
+-- Each subparagraph grants on its own words; an employee teaching on both
+-- lists meets both, and the text grants both.
+@ref akn:art_c__para_3 akn:art_c__para_4
+GIVEN y IS A `clothing year`
+GIVETH A NUMBER
+DECIDE `technological clothing allowance` y IS
+    (   (IF `teaches a profession on` `the professions granted shoes and two robes` y
+         THEN `the value of shoes and two robes`
+         ELSE 0)
+     PLUS (IF `teaches a profession on` `the professions granted two robes` y
+           THEN `the value of two robes`
+           ELSE 0))
+    TIMES `position share` y
+
+-- akn:art_d The contact line for questions (the conditions-of-service unit's telephone numbers); no rule.
+
+@export default The clothing allowance one employer owes a teaching employee for school year 2010/11 under circular תשע"א/3, the general allowance plus the physical-education and technological-education additions
+GIVEN y IS A `clothing year` @desc the employee's school year 2010/11 at this employer
+GIVETH A NUMBER
+DECIDE `clothing allowance` y IS
+    `general clothing allowance` y
+    PLUS `physical-education allowance` y
+    PLUS `technological clothing allowance` y
+
+-- akn:conclusions The sign-off and signature; no rule.
+
+-- Worked examples, on the circular's own amounts.
+`a half-position teacher in year 30` MEANS
+    `clothing year` WITH
+        `in the teaching-staff grade`        IS TRUE
+        `years of teaching seniority`        IS 30
+        `position fraction`                  IS 0.5
+        `position at all employers`          IS 0.5
+        `teaches physical education`         IS FALSE
+        `physical-education employment rate` IS 0
+        `in technological education`         IS FALSE
+        `technological professions taught`   IS EMPTY
+
+#ASSERT `clothing allowance` `a half-position teacher in year 30` EQUALS 1021
+
+`a nursing teacher at two employers, 0.8 here` MEANS
+    `clothing year` WITH
+        `in the teaching-staff grade`        IS TRUE
+        `years of teaching seniority`        IS 5
+        `position fraction`                  IS 0.8
+        `position at all employers`          IS 1.4
+        `teaches physical education`         IS FALSE
+        `physical-education employment rate` IS 0
+        `in technological education`         IS TRUE
+        `technological professions taught`   IS LIST "סיעוד"
+
+#ASSERT `clothing allowance` `a nursing teacher at two employers, 0.8 here` EQUALS 1436
+#ASSERT `within the 140% limit` `a nursing teacher at two employers, 0.8 here`
+
+#ASSERT `clothing allowance` `a full-position teacher with a fifth in physical education` EQUALS 1464
+
+#TRACE `payment with July's salary` `a half-position teacher in year 30` AT 0 WITH
+    PARTY `the local authority or owning body` DOES `pay the clothing allowance` 1021 AT 11
+#TRACE `payment with July's salary` `a half-position teacher in year 30` AT 0 WITH
+    PARTY `the local authority or owning body` DOES `pay the clothing allowance` 1021 AT 12
+#TRACE `the 140% limit` AT 0 WITH
+    PARTY `the teaching employee` DOES `work beyond 140% of a position` AT 3

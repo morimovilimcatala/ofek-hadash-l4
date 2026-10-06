@@ -1,0 +1,375 @@
+-- חוזר לבעלויות תשע"ג/5 — ניצול ימי מחלה ופדיון בעקבות מעבר לרפורמת "עוז לתמורה" (24.2.2013)
+-- Sick days in the upper division after Oz LeTmura: accumulation (30 days a
+-- year, on a position capped by the reform), conversion of days to hours
+-- (the job base times 4.33 from תשע"ב, where it was times 4), how hours are
+-- deducted and carried between employers, redemption and reimbursement,
+-- and the tables of sick hours a year by job base.
+
+IMPORT prelude
+IMPORT common
+
+§ `חוזר תשע"ג/5 ימי מחלה בעוז לתמורה`
+
+-- akn:preamble The letterhead, title, dates and the circular's number; no rule.
+-- akn:preamble/p9 akn:preamble/p10 State the circular's subject: use, carrying and redemption of sick days; the rules follow.
+-- akn:preamble/p11 Points to the takanon, section 1.25.3.1, where the sick-day rules are published; that section is encoded on its own.
+-- akn:preamble/p12 Background: the Oz LeTmura agreement changes the conditions of employment, the job bases among them; no rule.
+-- akn:preamble/p14 "להלן הפירוט"; no rule.
+
+-- The years the circular speaks of; before תשע"ב the reform was not in
+-- force and the multiplier was 4 (2ב).
+DECLARE `school year` IS ONE OF
+    `a year before תשע"ב`
+    `תשע"ב`
+    `תשע"ג`
+    `תשע"ד`
+
+DECLARE `implementation` IS ONE OF
+    `not under the reform`
+    `partial implementation`
+    `full implementation`
+
+DECLARE `sick-day role` IS ONE OF
+    `a teacher`
+    `a deputy principal`
+    `a principal`
+
+-- ¶13: the changes apply to the employee's position in the upper division
+-- only.
+@ref akn:preamble/p13
+GIVEN `upper-division position` IS A NUMBER @desc the share of a position held in the upper division
+GIVETH A NUMBER
+DECIDE `the position the circular changes` `upper-division position` IS
+    `upper-division position`
+
+§§ `1. צבירת ימי מחלה`
+
+-- akn:art_1 Heading of section 1; no rule of its own.
+
+-- 1א: 30 sick days a year (agreement of 1.9.1958), unchanged.
+@ref akn:art_1__para_a
+`sick days a year` MEANS 30
+
+-- 1ב: accumulation is counted in days also above 100%, up to 140% for a
+-- teacher and 150% for a principal.
+@ref akn:art_1__para_b
+GIVEN r IS A `sick-day role`
+GIVETH A NUMBER
+DECIDE `the accumulable position before the reform` r IS
+    IF r EQUALS `a principal` THEN 150% ELSE 140%
+
+-- 1ג: under Oz LeTmura the position for which days accumulate is capped.
+-- The corpus prints the full-implementation teacher's cap as "125%( 100%
+-- באישור מיוחד)" and the תשע"ד partial cap as "128%( 114% באישור מיוחד)":
+-- digit runs reordered against the Hebrew (the corpus marks this text
+-- bidi-damaged). Read as printed, "special approval" would LOWER the cap,
+-- which it cannot; the principal's line ("100% - באישור מיוחד עבור מקרים
+-- חריגים – 117%") shows the shape. The encoding reads: full 100% (125% with
+-- special approval), תשע"ד partial 114% (128% with special approval).
+@ref akn:art_1__para_c akn:art_1__para_c/p2 akn:art_1__para_c/p3 akn:art_1__para_c/p4 akn:art_1__para_c/p5 akn:art_1__para_c/p6 akn:art_1__para_c/p7
+GIVEN r IS A `sick-day role`, i IS AN `implementation`, y IS A `school year`, `special approval` IS A BOOLEAN
+GIVETH A NUMBER
+DECIDE `the accumulable position` r i y `special approval` IS
+    IF r EQUALS `a principal` AND NOT i EQUALS `not under the reform`
+    THEN IF `special approval` THEN 117% ELSE 100%
+    ELSE CONSIDER i
+         WHEN `not under the reform`  THEN `the accumulable position before the reform` r
+         WHEN `full implementation`   THEN IF `special approval` THEN 125% ELSE 100%
+         WHEN `partial implementation` THEN
+             CONSIDER y
+             WHEN `תשע"ב` THEN 130%
+             WHEN `תשע"ג` THEN 131%
+             WHEN `תשע"ד` THEN IF `special approval` THEN 128% ELSE 114%
+             WHEN `a year before תשע"ב` THEN `the accumulable position before the reform` r
+
+-- 1ג ¶8-¶13: a teacher entitled to a mother's position adds to these caps:
+-- in partial implementation 8.6% (תשע"ב), 8.3% (תשע"ג), 7.6% (תשע"ד); in
+-- full implementation 7%.
+@ref akn:art_1__para_c/p8 akn:art_1__para_c/p9 akn:art_1__para_c/p10 akn:art_1__para_c/p11 akn:art_1__para_c/p12 akn:art_1__para_c/p13
+GIVEN i IS AN `implementation`, y IS A `school year`
+GIVETH A NUMBER
+DECIDE `the mother's addition` i y IS
+    CONSIDER i
+    WHEN `full implementation` THEN 7%
+    WHEN `partial implementation` THEN
+        CONSIDER y
+        WHEN `תשע"ב` THEN 8.6%
+        WHEN `תשע"ג` THEN 8.3%
+        WHEN `תשע"ד` THEN 7.6%
+        OTHERWISE 0
+    OTHERWISE 0
+
+GIVEN r IS A `sick-day role`, i IS AN `implementation`, y IS A `school year`, `special approval` IS A BOOLEAN, `entitled to a mother's position` IS A BOOLEAN
+GIVETH A NUMBER
+DECIDE `the accumulable position with the mother's addition` r i y `special approval` `entitled to a mother's position` IS
+    `the accumulable position` r i y `special approval`
+    PLUS (IF `entitled to a mother's position` THEN `the mother's addition` i y ELSE 0)
+
+-- The days a year accrue: 30 for the position held, up to the cap.
+GIVEN `position held` IS A NUMBER, `cap` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `sick days accrued in a year` `position held` `cap` IS
+    `sick days a year` TIMES min `position held` `cap`
+
+-- 1ד: no ceiling on the sick days one may accumulate.
+@ref akn:art_1__para_d
+GIVEN `days accumulated` IS A NUMBER, `days accrued this year` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the accumulated balance` `days accumulated` `days accrued this year` IS
+    `days accumulated` PLUS `days accrued this year`
+
+-- 1ה: days not used with other teaching employers accumulate too; carrying
+-- them is by the collective agreements.
+@ref akn:art_1__para_e
+GIVEN `days from other teaching employers` IS A LIST OF NUMBER
+GIVETH A NUMBER
+DECIDE `days carried from other employers` `days from other teaching employers` IS
+    sum `days from other teaching employers`
+
+§§ `2. ניצול ימי מחלה בפועל וגרירתם`
+
+-- akn:art_2 Heading of section 2; no rule of its own.
+
+-- 2א: the takanon converts days to "sick-day hours" by the job base times
+-- 4, subject to the position; ¶2 says the takanon gives examples. 2ב: from
+-- תשע"ב the base is multiplied by 4.33, for every upper-division teacher,
+-- joined to the reform or not (section 15(ב) of the agreement).
+@ref akn:art_2__para_a akn:art_2__para_a/p2 akn:art_2__para_b akn:art_2__para_b/p2
+`the takanon's multiplier` MEANS 4
+
+GIVEN y IS A `school year`
+GIVETH A NUMBER
+DECIDE `the hours multiplier in the upper division` y IS
+    IF y EQUALS `a year before תשע"ב` THEN `the takanon's multiplier` ELSE 4.33
+
+GIVEN `job base` IS A NUMBER, `position` IS A NUMBER, y IS A `school year`
+GIVETH A NUMBER
+DECIDE `sick-day hours a year` `job base` `position` y IS
+    `job base` TIMES `the hours multiplier in the upper division` y TIMES `position`
+
+-- 2ב ¶3: what was computed up to תשע"ב by the multiplier 4 is not changed
+-- and is carried to later years as days.
+@ref akn:art_2__para_b/p3
+GIVEN `hours computed by 4` IS A NUMBER, `job base then` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `days carried from before תשע"ב` `hours computed by 4` `job base then` IS
+    (`hours computed by 4` DIVIDED BY (`job base then` TIMES `the takanon's multiplier`)) TIMES `sick days a year`
+
+-- 2ג-2ד: in full implementation a full position is 40 weekly hours; the
+-- hours quota grows with the base (the tables below), the days do not, and
+-- an absence deducts the larger number of hours the employee works on the
+-- day.
+@ref akn:art_2__para_c akn:art_2__para_d
+`a full position's weekly hours in full implementation` MEANS 40
+
+-- 2ה: a justified absence (medical documents) deducts the hours of the
+-- employee's timetable for the day or days — support and individual hours
+-- missed included.
+@ref akn:art_2__para_e
+GIVEN `frontal hours that day` IS A NUMBER, `individual hours that day` IS A NUMBER, `support hours that day` IS A NUMBER, `justified by medical documents` IS A BOOLEAN
+GIVETH A NUMBER
+DECIDE `sick hours deducted for the day` `frontal hours that day` `individual hours that day` `support hours that day` `justified by medical documents` IS
+    IF `justified by medical documents`
+    THEN `frontal hours that day` PLUS `individual hours that day` PLUS `support hours that day`
+    ELSE 0
+
+-- 2ו: when the days with the present employer run out, the employee may
+-- carry days between employers by the agreements; they come over as days
+-- and are converted to hours for use.
+@ref akn:art_2__para_f akn:art_2__para_f/p2
+GIVEN `hours left with this employer` IS A NUMBER, `days with earlier employers` IS A NUMBER, `job base` IS A NUMBER, y IS A `school year`
+GIVETH A NUMBER
+DECIDE `hours available after carrying` `hours left with this employer` `days with earlier employers` `job base` y IS
+    IF `hours left with this employer` GREATER THAN 0
+    THEN `hours left with this employer`
+    ELSE (`days with earlier employers` DIVIDED BY `sick days a year`) TIMES `sick-day hours a year` `job base` 1 y
+
+§§ `3. פדיון ימי מחלה בלתי מנוצלים`
+
+-- akn:art_3 Heading of section 3; no rule of its own.
+
+-- 3א: redemption follows the rules in force before the agreement; an
+-- employee entitled to it from the owner under them is entitled to it now.
+@ref akn:art_3__para_a
+GIVEN `entitled under the rules before the agreement` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `entitled to redeem unused sick days` `entitled under the rules before the agreement` IF
+    `entitled under the rules before the agreement`
+
+DECLARE `sick-day action` IS ONE OF
+    `submit a reimbursement request`
+    `examine the request under the reimbursement procedure`
+    `convert the hours to days`
+
+-- 3ב: the owner submits a request for reimbursement as before; the
+-- Ministry examines it under the reimbursement procedure and transfers the
+-- payment. No deadline is set: the time is the redemption's.
+@ref akn:art_3__para_b
+GIVETH A DEONTIC Party `sick-day action`
+DECIDE `reimbursement of redeemed days` IS
+    PARTY `the local authority or owning body`
+    MAY   `submit a reimbursement request`
+    HENCE (PARTY `the Ministry of Education`
+           MUST  `examine the request under the reimbursement procedure`)
+
+-- akn:art_3__para_b/p2 The heading "הערות כלליות"; no rule.
+
+-- 3ב.1: the owner keeps the count in hours for each employee and at the end
+-- of each year converts it to days (keeping the base it was computed on),
+-- for the case of a move to another owner. School months: August = 12.
+@ref akn:art_3__para_b__subpara_1
+GIVETH A DEONTIC Party `sick-day action`
+DECIDE `the yearly conversion to days` IS
+    PARTY `the local authority or owning body`
+    MUST  `convert the hours to days`
+    WITHIN `month number` August
+    LEST  BREACH BY `the local authority or owning body` BECAUSE "circular תשע\"ג/5, 3ב.1: at the end of each year the hours are converted to days"
+
+GIVEN `hours left` IS A NUMBER, `job base` IS A NUMBER, y IS A `school year`
+GIVETH A NUMBER
+DECIDE `hours as days` `hours left` `job base` y IS
+    (`hours left` DIVIDED BY `sick-day hours a year` `job base` 1 y) TIMES `sick days a year`
+
+-- 3ב.2: hours up to 100% of a position and hours above it are counted
+-- separately, because their use and redemption values differ.
+@ref akn:art_3__para_b__subpara_2
+GIVEN `hours` IS A NUMBER, `position` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `hours up to a full position` `hours` `position` IS
+    IF `position` AT MOST 1 THEN `hours` ELSE `hours` DIVIDED BY `position`
+
+GIVEN `hours` IS A NUMBER, `position` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `hours above a full position` `hours` `position` IS
+    `hours` MINUS `hours up to a full position` `hours` `position`
+
+-- akn:art_3__para_b__subpara_2/p2 The contact line for questions; no rule.
+-- akn:art_3__para_b__subpara_2/p3 The tables' common title ("שעות ימי מחלה לפי בסיס משרה שונים"); no rule.
+
+§§ `טבלאות שעות מחלה`
+
+-- The three tables as printed: each row a job base and the sick hours a
+-- year for a full position. The PDF heads the first "טבלת מורים" and the
+-- third "טבלת סגן מנהל", but the first's rows are deputies and the third's
+-- teachers; the rows say what they are, and this file follows the rows.
+DECLARE `sick-hours row` HAS
+    `row role`           IS A `sick-day role`
+    `row implementation` IS AN `implementation`
+    `row base`           IS A NUMBER
+    `row hours`          IS A NUMBER
+
+@ref akn:art_3__para_b__subpara_2/p4 akn:art_3__para_b__subpara_2/p5 akn:art_3__para_b__subpara_2/p6 akn:art_3__para_b__subpara_2/p7 akn:art_3__para_b__subpara_2/p8 akn:art_3__para_b__subpara_2/p9 akn:art_3__para_b__subpara_2/p10 akn:art_3__para_b__subpara_2/p11 akn:art_3__para_b__subpara_2/p12 akn:art_3__para_b__subpara_2/p13 akn:art_3__para_b__subpara_2/p14 akn:art_3__para_b__subpara_2/p15 akn:art_3__para_b__subpara_2/p16 akn:art_3__para_b__subpara_2/p17 akn:art_3__para_b__subpara_2/p18 akn:art_3__para_b__subpara_2/p19 akn:art_3__para_b__subpara_2/p20 akn:art_3__para_b__subpara_2/p21 akn:art_3__para_b__subpara_2/p22 akn:art_3__para_b__subpara_2/p23 akn:art_3__para_b__subpara_2/p24 akn:art_3__para_b__subpara_2/p25 akn:art_3__para_b__subpara_2/p26 akn:art_3__para_b__subpara_2/p27 akn:art_3__para_b__subpara_2/p28 akn:art_3__para_b__subpara_2/p29 akn:art_3__para_b__subpara_2/p30 akn:art_3__para_b__subpara_2/p31 akn:art_3__para_b__subpara_2/p32 akn:art_3__para_b__subpara_2/p33 akn:art_3__para_b__subpara_2/p34 akn:art_3__para_b__subpara_2/p35 akn:art_3__para_b__subpara_2/p36 akn:art_3__para_b__subpara_2/p37 akn:art_3__para_b__subpara_2/p38 akn:art_3__para_b__subpara_2/p39 akn:art_3__para_b__subpara_2/p40 akn:art_3__para_b__subpara_2/p41 akn:art_3__para_b__subpara_2/p42 akn:art_3__para_b__subpara_2/p43 akn:art_3__para_b__subpara_2/p44 akn:art_3__para_b__subpara_2/p45 akn:art_3__para_b__subpara_2/p46 akn:art_3__para_b__subpara_2/p47 akn:art_3__para_b__subpara_2/p48 akn:art_3__para_b__subpara_2/p49 akn:art_3__para_b__subpara_2/p50 akn:art_3__para_b__subpara_2/p51 akn:art_3__para_b__subpara_2/p52 akn:art_3__para_b__subpara_2/p53 akn:art_3__para_b__subpara_2/p54 akn:art_3__para_b__subpara_2/p55 akn:art_3__para_b__subpara_2/p56 akn:art_3__para_b__subpara_2/p57 akn:art_3__para_b__subpara_2/p58
+`the first table (deputy rows)` MEANS
+    LIST `sick-hours row` `a deputy principal` `not under the reform`    24 96,
+         `sick-hours row` `a deputy principal` `partial implementation` 26 112.58,
+         `sick-hours row` `a deputy principal` `partial implementation` 28 121.24,
+         `sick-hours row` `a deputy principal` `partial implementation` 28 121.24,
+         `sick-hours row` `a deputy principal` `partial implementation` 28 121.24,
+         `sick-hours row` `a deputy principal` `partial implementation` 29 125.57,
+         `sick-hours row` `a deputy principal` `partial implementation` 30 129.9,
+         `sick-hours row` `a deputy principal` `partial implementation` 30 129.9,
+         `sick-hours row` `a deputy principal` `partial implementation` 30 129.9,
+         `sick-hours row` `a deputy principal` `partial implementation` 31 134.23,
+         `sick-hours row` `a deputy principal` `partial implementation` 32 138.56,
+         `sick-hours row` `a deputy principal` `partial implementation` 32 138.56,
+         `sick-hours row` `a deputy principal` `partial implementation` 34 147.22,
+         `sick-hours row` `a deputy principal` `partial implementation` 34 147.22,
+         `sick-hours row` `a deputy principal` `partial implementation` 35 151.55,
+         `sick-hours row` `a deputy principal` `partial implementation` 36 155.88,
+         `sick-hours row` `a deputy principal` `full implementation`    36 155.88,
+         `sick-hours row` `a deputy principal` `full implementation`    38 164.54,
+         `sick-hours row` `a deputy principal` `full implementation`    38 164.54,
+         `sick-hours row` `a deputy principal` `full implementation`    39 168.87,
+         `sick-hours row` `a deputy principal` `full implementation`    40 173.2
+
+@ref akn:art_3__para_b__subpara_2/p59 akn:art_3__para_b__subpara_2/p60 akn:art_3__para_b__subpara_2/p61 akn:art_3__para_b__subpara_2/p62 akn:art_3__para_b__subpara_2/p63 akn:art_3__para_b__subpara_2/p64 akn:art_3__para_b__subpara_2/p65 akn:art_3__para_b__subpara_2/p66 akn:art_3__para_b__subpara_2/p67 akn:art_3__para_b__subpara_2/p68 akn:art_3__para_b__subpara_2/p69 akn:art_3__para_b__subpara_2/p70 akn:art_3__para_b__subpara_2/p71 akn:art_3__para_b__subpara_2/p72 akn:art_3__para_b__subpara_2/p73 akn:art_3__para_b__subpara_2/p74 akn:art_3__para_b__subpara_2/p75 akn:art_3__para_b__subpara_2/p76 akn:art_3__para_b__subpara_2/p77 akn:art_3__para_b__subpara_2/p78 akn:art_3__para_b__subpara_2/p79 akn:art_3__para_b__subpara_2/p80 akn:art_3__para_b__subpara_2/p81 akn:art_3__para_b__subpara_2/p82 akn:art_3__para_b__subpara_2/p83 akn:art_3__para_b__subpara_2/p84 akn:art_3__para_b__subpara_2/p85 akn:art_3__para_b__subpara_2/p86
+`the principal table` MEANS
+    LIST `sick-hours row` `a principal` `not under the reform`    24 96,
+         `sick-hours row` `a principal` `partial implementation` 35 151.55,
+         `sick-hours row` `a principal` `partial implementation` 36 155.88,
+         `sick-hours row` `a principal` `partial implementation` 36 155.88,
+         `sick-hours row` `a principal` `partial implementation` 37 160.21,
+         `sick-hours row` `a principal` `partial implementation` 37 160.21,
+         `sick-hours row` `a principal` `partial implementation` 37 160.21,
+         `sick-hours row` `a principal` `partial implementation` 38 164.54,
+         `sick-hours row` `a principal` `partial implementation` 38 164.54,
+         `sick-hours row` `a principal` `full implementation`    38 164.54,
+         `sick-hours row` `a principal` `partial implementation` 39 168.87,
+         `sick-hours row` `a principal` `full implementation`    39 168.87,
+         `sick-hours row` `a principal` `full implementation`    40 173.2
+
+@ref akn:art_3__para_b__subpara_2/p88 akn:art_3__para_b__subpara_2/p89 akn:art_3__para_b__subpara_2/p90 akn:art_3__para_b__subpara_2/p91 akn:art_3__para_b__subpara_2/p92 akn:art_3__para_b__subpara_2/p93 akn:art_3__para_b__subpara_2/p94 akn:art_3__para_b__subpara_2/p95 akn:art_3__para_b__subpara_2/p96 akn:art_3__para_b__subpara_2/p97 akn:art_3__para_b__subpara_2/p98 akn:art_3__para_b__subpara_2/p99 akn:art_3__para_b__subpara_2/p100 akn:art_3__para_b__subpara_2/p101 akn:art_3__para_b__subpara_2/p102 akn:art_3__para_b__subpara_2/p103 akn:art_3__para_b__subpara_2/p104 akn:art_3__para_b__subpara_2/p105 akn:art_3__para_b__subpara_2/p106 akn:art_3__para_b__subpara_2/p107 akn:art_3__para_b__subpara_2/p108 akn:art_3__para_b__subpara_2/p109 akn:art_3__para_b__subpara_2/p110 akn:art_3__para_b__subpara_2/p111 akn:art_3__para_b__subpara_2/p112 akn:art_3__para_b__subpara_2/p113 akn:art_3__para_b__subpara_2/p114 akn:art_3__para_b__subpara_2/p115
+`the third table (teacher rows)` MEANS
+    LIST `sick-hours row` `a teacher` `not under the reform`    24 96,
+         `sick-hours row` `a teacher` `partial implementation` 26 112.58,
+         `sick-hours row` `a teacher` `partial implementation` 28 121.24,
+         `sick-hours row` `a teacher` `partial implementation` 28 121.24,
+         `sick-hours row` `a teacher` `partial implementation` 30 129.9,
+         `sick-hours row` `a teacher` `partial implementation` 30 129.9,
+         `sick-hours row` `a teacher` `partial implementation` 32 138.56,
+         `sick-hours row` `a teacher` `partial implementation` 32 138.56,
+         `sick-hours row` `a teacher` `partial implementation` 34 147.22,
+         `sick-hours row` `a teacher` `partial implementation` 36 155.88,
+         `sick-hours row` `a teacher` `full implementation`    36 155.88,
+         `sick-hours row` `a teacher` `full implementation`    38 164.54,
+         `sick-hours row` `a teacher` `full implementation`    40 173.2
+
+`all the table rows` MEANS
+    concat (LIST `the first table (deputy rows)`, `the principal table`, `the third table (teacher rows)`)
+
+-- Every reform row of the tables is its base times 4.33, as 2ב says.
+`every reform row is its base times 4.33` MEANS
+    all (GIVEN r YIELD r's `row implementation` EQUALS `not under the reform`
+                       OR r's `row hours` EQUALS r's `row base` TIMES 4.33)
+        `all the table rows`
+#ASSERT `every reform row is its base times 4.33`
+
+-- The age-hours notes. The principal's note (¶87): full age hours go with
+-- teaching 2/3 of the 24-hour base in class; a principal teaches less and so
+-- has half. Notes 1-2 (¶116-¶118): a deputy teaching less than 2/3 of the
+-- base of 24 has half, 2/3 and more the full entitlement. The full
+-- entitlement is what the rows print: 4 hours above 55, 2 above 50.
+@ref akn:art_3__para_b__subpara_2/p87 akn:art_3__para_b__subpara_2/p116 akn:art_3__para_b__subpara_2/p117 akn:art_3__para_b__subpara_2/p118
+GIVEN r IS A `sick-day role`, `frontal hours in class` IS A NUMBER, `age` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `age hours off the base` r `frontal hours in class` `age` IS
+    IF `age` LESS THAN 50
+    THEN 0
+    ELSE IF r EQUALS `a principal` OR (r EQUALS `a deputy principal` AND `frontal hours in class` LESS THAN (2 DIVIDED BY 3) TIMES 24)
+         THEN (IF `age` GREATER THAN 55 THEN 4 ELSE 2) DIVIDED BY 2
+         ELSE IF `age` GREATER THAN 55 THEN 4 ELSE 2
+
+-- The deputy rows agree with the notes: partial implementation תשע"ג base
+-- 32, above 55 with the full entitlement, is base 28 (121.24 hours).
+#ASSERT 32 MINUS `age hours off the base` `a deputy principal` 20 57 EQUALS 28
+#ASSERT 37 MINUS `age hours off the base` `a principal` 5 57 EQUALS 35
+
+-- F-2012-13_tashag_05-a: each table's first row prices "עולם ישן" — not
+-- under the reform — in "חט"ב וחט"ע" at base 24 times 4: 96 hours. 2ב says
+-- that from תשע"ב every upper-division teacher's base is multiplied by
+-- 4.33, "even if they have not yet joined the reform": 103.92 hours.
+`the old-world row` MEANS
+    `sick-hours row` `a teacher` `not under the reform` 24 96
+
+`2ב and the tables give an upper-division teacher outside the reform different hours` MEANS
+    NOT (`the old-world row`'s `row hours` EQUALS `sick-day hours a year` 24 1 `תשע"ג`)
+#ASSERT `2ב and the tables give an upper-division teacher outside the reform different hours`
+
+-- akn:conclusions The greeting and the signature; no rule.
+
+-- Examples.
+#ASSERT `sick-day hours a year` 40 1 `תשע"ג` EQUALS 173.2
+#ASSERT `sick-day hours a year` 36 0.5 `תשע"ד` EQUALS 77.94
+#ASSERT `the accumulable position with the mother's addition` `a teacher` `partial implementation` `תשע"ג` FALSE TRUE EQUALS 139.3%
+#ASSERT `the accumulable position` `a principal` `full implementation` `תשע"ג` TRUE EQUALS 117%
+#ASSERT `sick days accrued in a year` 1.4 (`the accumulable position` `a teacher` `full implementation` `תשע"ג` FALSE) EQUALS 30
+#ASSERT `sick hours deducted for the day` 4 1 2 TRUE EQUALS 7
+#ASSERT `hours as days` 86.6 40 `תשע"ג` EQUALS 15
+#ASSERT `days carried from before תשע"ב` 48 24 EQUALS 15
+#ASSERT NOT (`age hours off the base` `a deputy principal` 10 57 EQUALS 4)
+
+#TRACE `the yearly conversion to days` AT 0 WITH
+    PARTY `the local authority or owning body` DOES `convert the hours to days` AT 12
+#TRACE `reimbursement of redeemed days` AT 0 WITH
+    PARTY `the local authority or owning body` DOES `submit a reimbursement request` AT 3
+    PARTY `the Ministry of Education` DOES `examine the request under the reimbursement procedure` AT 4

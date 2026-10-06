@@ -1,0 +1,308 @@
+-- חוזר לבעלויות תשע"ז/2 (18.1.2017): תשלום מענק חד פעמי לעובדי הוראה המועסקים על ידי הבעלויות
+-- The second part of the one-time grant (under the agreements of 20.3.2016
+-- and 30.9.2016, following owners' circulars 2015-16/4 and /5): who is paid
+-- it, how much, the dates (January 2017's salary, special dates for sick
+-- leave without pay, maternity leave and an employment that ends), and the
+-- conditions of the grant restated (the determining period, the average
+-- position, what does not break the continuity).
+
+IMPORT prelude
+IMPORT common
+
+§ `חוזר לבעלויות תשע"ז/2 — החלק השני של המענק החד פעמי`
+
+-- akn:preamble The letterhead (Hebrew and Arabic), the date (18.1.2017), the reference number, the addressee and the subject; the recitals (the agreements of 20.3.2016 and 30.9.2016, circulars 2015-16/4 and /5, the Treasury wage director's circular of 22.2.2016), the purpose, the "תחולה" heading and the introduction carry no rule of their own. The application and the payment paragraphs are encoded below.
+
+DECLARE `grant action` IS ONE OF
+    `pay the second part of the grant` HAS `second part paid` IS A NUMBER
+    `indemnify the owner for the second part` HAS `second part indemnity` IS A NUMBER
+
+DECLARE `second-part stage` IS ONE OF
+    `kindergarten`
+    `elementary school`
+    `junior high school`
+    `high school, grades 13-14 included`
+    `teacher-training college`
+    `another stage`
+
+DECLARE `break kind` IS ONE OF
+    `maternity leave under section 6 of the Women's Employment Law`
+    `unpaid leave or absence treated as unpaid leave, after maternity leave or not`
+    `reserve duty`
+    `paid sick leave under takanon chapter 1.25.3`
+    `holiday or summer recess`
+    `end of employment`
+
+DECLARE `circumstance at the payment date` IS ONE OF
+    `at work`
+    `on sick leave without pay`
+    `on maternity leave`
+    `employment ended before the payment date`
+
+@desc A teaching employee as far as the second part of the one-time grant asks about it. Months are salary months.
+DECLARE `second-part case` HAS
+    `graded as a teaching employee in a supervised institution` IS A BOOLEAN
+    `stage`                                                     IS A `second-part stage`
+    `entitled to the first part under circular 2015-16/5`       IS A BOOLEAN @desc set by that circular, not by this one
+    `first part paid`                                           IS A NUMBER  @desc the first part paid under circular 2015-16/5
+    `employed on 1.9.2015 and on 1.1.2016`                      IS A BOOLEAN @desc employed at both ends of the determining period
+    `breaks in the determining period`                          IS A LIST OF `break kind`
+    `paid for 4 full months and a day in a row from 1.9.2015 to 31.1.2016` IS A BOOLEAN
+    `monthly positions 1.12.2014 to 30.11.2015`                 IS A LIST OF NUMBER @desc the share of a full position in each month of the period actually employed (a month of maternity leave at the share held on its eve)
+    `monthly positions 1.12.2015 to 30.6.2016`                  IS A LIST OF NUMBER @desc the same for the salaried months of that period, used only where the first period has none
+
+-- Application: teaching employees in the institutions the ministry
+-- supervises, in kindergartens, elementary schools, junior high schools,
+-- the high schools (grades 13-14 included) and teacher-training colleges.
+@ref akn:preamble/p20
+GIVEN c IS A `second-part case`
+GIVETH A BOOLEAN
+DECIDE `covered by the circular` c IF
+        c's `graded as a teaching employee in a supervised institution`
+    AND NOT c's `stage` EQUALS `another stage`
+
+§§ `Payment of the second part; 1–2 special dates`
+
+-- The preamble's payment paragraph: the second part is paid to the employees
+-- who were entitled to the first part under circular 2015-16/5.
+@ref akn:preamble/p22
+GIVEN c IS A `second-part case`
+GIVETH A BOOLEAN
+DECIDE `named in the payment paragraph` c IF
+    c's `entitled to the first part under circular 2015-16/5`
+
+-- Time in salary months from January 2017 (month 1): February is 2.
+-- The payment paragraph and §2ו ¶2: with January 2017's salary (paid in
+-- February), no later than February's (paid in March). ¶24 and §1: on sick
+-- leave without pay or maternity leave at that date, with the first salary
+-- on the return to work or the next (§1 runs the two together with no "or";
+-- read with §2ה(1)'s same rule). §2 (art. 2): an employment that ends
+-- before the date — with the last salary.
+@ref akn:preamble/p24 akn:art_1 akn:art_2/p1 akn:art_2__para_f/p2
+GIVEN `circumstance` IS A `circumstance at the payment date`
+      `salary month of the return or of the last salary` IS A NUMBER @desc in salary months from January 2017
+GIVETH A NUMBER
+DECIDE `the last salary month for the second part` `circumstance` `salary month of the return or of the last salary` IS
+    CONSIDER `circumstance`
+    WHEN `at work` THEN 2
+    WHEN `on sick leave without pay` THEN `salary month of the return or of the last salary` PLUS 1
+    WHEN `on maternity leave` THEN `salary month of the return or of the last salary` PLUS 1
+    WHEN `employment ended before the payment date` THEN `salary month of the return or of the last salary`
+
+GIVEN c IS A `second-part case`
+      `circumstance` IS A `circumstance at the payment date`
+      `salary month of the return or of the last salary` IS A NUMBER
+GIVETH A DEONTIC Party `grant action`
+DECIDE `paying the second part` c `circumstance` `salary month of the return or of the last salary` IS
+    IF `entitled to the second part` c
+    THEN PARTY `the employer`
+         MUST  `pay the second part of the grant` `amount`
+               PROVIDED `amount` AT LEAST `second part of the grant` c
+         WITHIN `the last salary month for the second part` `circumstance` `salary month of the return or of the last salary`
+         LEST BREACH BY `the employer` BECAUSE "circular 2016-17/2: the second part is paid by the salary month the circular sets"
+    ELSE FULFILLED
+
+§§ `2 התנאים לקבלת המענק`
+
+-- akn:art_2/p2 "The conditions for the one-time grant follow": an introduction to section 2's paragraphs.
+
+-- §2ה(1)–(7): maternity leave (a father's too, ¶(4)), reserve duty, paid
+-- sick leave and the recesses do not break the continuity.
+@ref akn:art_2__para_e__subpara_1 akn:art_2__para_e__subpara_4 akn:art_2__para_e__subpara_5 akn:art_2__para_e__subpara_6 akn:art_2__para_e__subpara_7
+GIVEN b IS A `break kind`
+GIVETH A BOOLEAN
+DECIDE `keeps the continuity` b IF
+    CONSIDER b
+    WHEN `maternity leave under section 6 of the Women's Employment Law` THEN TRUE
+    WHEN `reserve duty` THEN TRUE
+    WHEN `paid sick leave under takanon chapter 1.25.3` THEN TRUE
+    WHEN `holiday or summer recess` THEN TRUE
+    OTHERWISE FALSE
+
+@ref akn:art_2__para_e__subpara_2 akn:art_2__para_e__subpara_8
+GIVEN c IS A `second-part case`
+GIVETH A BOOLEAN
+DECIDE `on unpaid leave in the determining period` c IF
+    elem `unpaid leave or absence treated as unpaid leave, after maternity leave or not` (c's `breaks in the determining period`)
+
+-- §2א: employed continuously from 1.9.2015 to 1.1.2016 ("the determining
+-- period"). §2ה(3): the other conditions apply to maternity leave too.
+@ref akn:art_2__para_a akn:art_2__para_e akn:art_2__para_e__subpara_3
+GIVEN c IS A `second-part case`
+GIVETH A BOOLEAN
+DECIDE `employed continuously in the determining period` c IF
+        c's `employed on 1.9.2015 and on 1.1.2016`
+    AND all (GIVEN b YIELD `keeps the continuity` b) (c's `breaks in the determining period`)
+
+-- §2ה.8.1: on unpaid leave, entitled if paid for 4 full months and a day in
+-- a row between 1.9.2015 and 31.1.2016. F-2016-17_tashaz_02-c: "פסקה (2)
+-- להלן" is read as ה.8.2.
+@ref akn:art_2__para_e__subpara_8__cls_1
+GIVEN c IS A `second-part case`
+GIVETH A BOOLEAN
+DECIDE `meets section 2's conditions` c IF
+    `covered by the circular` c
+    AND (    `employed continuously in the determining period` c
+         OR (    `on unpaid leave in the determining period` c
+             AND c's `paid for 4 full months and a day in a row from 1.9.2015 to 31.1.2016`))
+
+-- F-2016-17_tashaz_02-a: the reading adopted — every covered employee who
+-- meets section 2's conditions is paid; the payment paragraph's reference to
+-- circular 2015-16/5 alone is read as naming the first-part recipients of
+-- both circulars the recital follows.
+GIVEN c IS A `second-part case`
+GIVETH A BOOLEAN
+DECIDE `entitled to the second part` c IF
+    `meets section 2's conditions` c
+
+GIVEN xs IS A LIST OF NUMBER
+GIVETH A NUMBER
+DECIDE `the monthly average of` xs IS
+    IF count xs EQUALS 0
+    THEN 0
+    ELSE sum xs DIVIDED BY count xs
+
+-- §2ב: the average monthly position over 1.12.2014–30.11.2015, over the
+-- months actually employed (¶2); §2ה.8.2: or, with no salary in those
+-- months at all, over the salaried months of 1.12.2015–30.6.2016.
+-- F-2016-17_tashaz_02-b: §2ב's "סעיף קטן 1(א)" is read as §2א.
+@ref akn:art_2__para_b akn:art_2__para_e__subpara_8__cls_2
+GIVEN c IS A `second-part case`
+GIVETH A NUMBER
+DECIDE `the representative average position` c IS
+    IF count (c's `monthly positions 1.12.2014 to 30.11.2015`) GREATER THAN 0
+    THEN `the monthly average of` (c's `monthly positions 1.12.2014 to 30.11.2015`)
+    ELSE `the monthly average of` (c's `monthly positions 1.12.2015 to 30.6.2016`)
+
+-- §2א, §2ד(3): 1,000 NIS for a full position, pro rata, at most one; the
+-- payment paragraph: equal to the first part paid under circular 2015-16/5.
+@ref akn:art_2__para_d__subpara_3 akn:preamble/p23
+`the full one-time grant` MEANS 1000
+
+@export default The second part of the one-time grant a teaching employee is owed under owners' circular 2016-17/2
+GIVEN c IS A `second-part case` @desc the employee's employment
+GIVETH A NUMBER
+DECIDE `second part of the grant` c IS
+    IF `entitled to the second part` c
+    THEN `the full one-time grant` TIMES min (`the representative average position` c) 1
+    ELSE 0
+
+-- §2ג, §2ד(1)–(2): not salary for any purpose.
+@ref akn:art_2__para_c akn:art_2__para_d__subpara_1 akn:art_2__para_d__subpara_2
+DECLARE `grant pay purpose` IS ONE OF
+    `salary for any purpose`
+    `severance pay`
+    `the overtime hourly value`
+    `provident-fund contributions`
+    `the minimum-wage top-up`
+    `the combined-salary base`
+
+GIVEN p IS A `grant pay purpose`
+GIVETH A BOOLEAN
+DECIDE `the second part counts for` p IF
+    FALSE
+
+-- akn:art_2__para_d "למען הסר ספק" (for the avoidance of doubt): the heading of its three paragraphs, encoded above.
+
+-- §2ו: the owners are indemnified in the payment system (no date given).
+@ref akn:art_2__para_f
+GIVEN `grants paid` IS A NUMBER
+GIVETH A DEONTIC Party `grant action`
+DECIDE `indemnifying the owner` `grants paid` IS
+    PARTY `the Ministry of Education`
+    MUST  `indemnify the owner for the second part` `amount`
+          PROVIDED `amount` AT LEAST `grants paid`
+
+-- F-2016-17_tashaz_02-a: the payment paragraph and section 2 answer "who is
+-- paid" differently. An employee covered by the application paragraph who
+-- meets section 2's conditions but was not entitled to the first part under
+-- circular 2015-16/5 (a kindergarten teacher, whose first part came under
+-- 2015-16/4, which the recital also names) is paid by one and not the other.
+`a kindergarten teacher meeting section 2` MEANS
+    `second-part case` WITH
+        `graded as a teaching employee in a supervised institution` IS TRUE
+        `stage`                                                     IS `kindergarten`
+        `entitled to the first part under circular 2015-16/5`       IS FALSE
+        `first part paid`                                           IS 0
+        `employed on 1.9.2015 and on 1.1.2016`                      IS TRUE
+        `breaks in the determining period`                          IS EMPTY
+        `paid for 4 full months and a day in a row from 1.9.2015 to 31.1.2016` IS TRUE
+        `monthly positions 1.12.2014 to 30.11.2015`                 IS LIST 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+        `monthly positions 1.12.2015 to 30.6.2016`                  IS EMPTY
+
+`the payment paragraph and section 2 part on a kindergarten teacher` MEANS
+        `covered by the circular` `a kindergarten teacher meeting section 2`
+    AND `meets section 2's conditions` `a kindergarten teacher meeting section 2`
+    AND NOT `named in the payment paragraph` `a kindergarten teacher meeting section 2`
+#ASSERT `the payment paragraph and section 2 part on a kindergarten teacher`
+
+-- The same finding the other way: circular 2015-16/5's determining period
+-- ended on 1.12.2015, section 2's ends on 1.1.2016. A high-school teacher
+-- employed from 1.9.2015 who left on 15.12.2015 was entitled to the first
+-- part under 2015-16/5, so the payment paragraph names her; section 2's
+-- period she does not meet.
+`a high-school teacher who left on 15.12.2015` MEANS
+    `second-part case` WITH
+        `graded as a teaching employee in a supervised institution` IS TRUE
+        `stage`                                                     IS `high school, grades 13-14 included`
+        `entitled to the first part under circular 2015-16/5`       IS TRUE
+        `first part paid`                                           IS 1000
+        `employed on 1.9.2015 and on 1.1.2016`                      IS FALSE
+        `breaks in the determining period`                          IS LIST `end of employment`
+        `paid for 4 full months and a day in a row from 1.9.2015 to 31.1.2016` IS FALSE
+        `monthly positions 1.12.2014 to 30.11.2015`                 IS LIST 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+        `monthly positions 1.12.2015 to 30.6.2016`                  IS EMPTY
+
+`the payment paragraph and section 2 part on a teacher who left in December 2015` MEANS
+        `named in the payment paragraph` `a high-school teacher who left on 15.12.2015`
+    AND NOT `meets section 2's conditions` `a high-school teacher who left on 15.12.2015`
+#ASSERT `the payment paragraph and section 2 part on a teacher who left in December 2015`
+
+`the payment paragraph and section 2 state two tests` MEANS
+        `the payment paragraph and section 2 part on a kindergarten teacher`
+    AND `the payment paragraph and section 2 part on a teacher who left in December 2015`
+#ASSERT `the payment paragraph and section 2 state two tests`
+
+-- F-2016-17_tashaz_02-b: §2ב and §2ה refer to "סעיף קטן 1(א)"; this
+-- circular's §1 has no paragraph (א) — it is the special-dates clause — and
+-- the determining period is §2א.
+`the labelled paragraphs of §1` MEANS EMPTY
+`the paragraphs of §2` MEANS LIST "א", "ב", "ג", "ד", "ה", "ו"
+`§2's "subsection 1(א)" is not in this circular` MEANS
+        NOT elem "א" `the labelled paragraphs of §1`
+    AND elem "א" `the paragraphs of §2`
+#ASSERT `§2's "subsection 1(א)" is not in this circular`
+
+-- F-2016-17_tashaz_02-c: ה.8.1 points to "פסקה (2) להלן"; below it is ה.8.2
+-- and then §2ו; the only "(2)" in §2ה, ה(2), is above.
+`the labels below ה.8.1` MEANS LIST "ה.8.2", "ו"
+`the labels above ה.8.1 in §2ה` MEANS LIST "(1)", "(2)", "(3)", "(4)", "(5)", "(6)", "(7)", "(8)"
+`no paragraph (2) is below ה.8.1` MEANS
+        NOT elem "(2)" `the labels below ה.8.1`
+    AND elem "(2)" `the labels above ה.8.1 in §2ה`
+#ASSERT `no paragraph (2) is below ה.8.1`
+
+-- akn:conclusions The signatures (Sonia Peretz) and the list of copies; no rule.
+
+-- Worked examples.
+`a half-position high-school teacher` MEANS
+    `second-part case` WITH
+        `graded as a teaching employee in a supervised institution` IS TRUE
+        `stage`                                                     IS `high school, grades 13-14 included`
+        `entitled to the first part under circular 2015-16/5`       IS TRUE
+        `first part paid`                                           IS 500
+        `employed on 1.9.2015 and on 1.1.2016`                      IS TRUE
+        `breaks in the determining period`                          IS LIST `reserve duty`
+        `paid for 4 full months and a day in a row from 1.9.2015 to 31.1.2016` IS TRUE
+        `monthly positions 1.12.2014 to 30.11.2015`                 IS LIST 0.5, 0.5, 0.5, 0.5
+        `monthly positions 1.12.2015 to 30.6.2016`                  IS EMPTY
+
+#ASSERT `second part of the grant` `a half-position high-school teacher` EQUALS 500
+#ASSERT `second part of the grant` `a kindergarten teacher meeting section 2` EQUALS 1000
+
+#TRACE `paying the second part` `a half-position high-school teacher` `at work` 0 AT 0 WITH
+    PARTY `the employer` DOES `pay the second part of the grant` 500 AT 1
+#TRACE `paying the second part` `a half-position high-school teacher` `on maternity leave` 5 AT 0 WITH
+    PARTY `the employer` DOES `pay the second part of the grant` 500 AT 6
+#TRACE `paying the second part` `a half-position high-school teacher` `at work` 0 AT 0 WITH
+    PARTY `the employer` DOES `pay the second part of the grant` 500 AT 4

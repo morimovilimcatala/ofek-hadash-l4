@@ -1,0 +1,121 @@
+-- חוזר לבעלויות תשע"ה/6 (14.7.2015): תשלום שכר לעובדי הוראה שאינם מחוייבים בהחזר של 4 ימי חופשה בשנה"ל תשע"ה
+-- The four working days added in 2014-15 to make up for the four extra
+-- vacation days of 2013-14, who is not bound to make them up (staff on full
+-- unpaid leave or sabbatical in 2013-14, and new staff), and the pay of
+-- those who worked them anyway: their hours on those days at the rate of
+-- single substitution hours.
+
+IMPORT prelude
+IMPORT daydate
+IMPORT common
+
+§ `חוזר לבעלויות תשע"ה/6 — תשלום עבור 4 ימי ההחזר בשנה"ל תשע"ה`
+
+-- akn:preamble The letterhead, the date (14.7.2015), the reference number, the addressee, the greeting and the subject; its last paragraph (the background) is encoded below.
+
+DECLARE `make-up action` IS ONE OF
+    `work the make-up days`
+    `pay for the hours worked on the make-up days` HAS `make-up pay` IS A NUMBER
+
+-- The background: in 2013-14 the staff had four extra vacation days, to
+-- open 2014-15 on 27.8.2014; since 2014-15 opened on 1.9.2014, four working
+-- days were added against them during 2014-15.
+@ref akn:preamble/p14
+`the number of make-up days` MEANS 4
+
+-- §1: two days of the Hanukkah recess, 18.12.2014 and 24.12.2014; §2: two
+-- days of the Passover recess, 26.3.2015 and 27.3.2015.
+@ref akn:art_1 akn:art_2
+`the make-up days` MEANS
+    LIST Date 18 12 2014, Date 24 12 2014, Date 26 3 2015, Date 27 3 2015
+
+#ASSERT count `the make-up days` EQUALS `the number of make-up days`
+
+@desc A teaching employee's 2013-14 and 2014-15, as far as the make-up days ask about them.
+DECLARE `make-up case` HAS
+    `on full unpaid leave or full sabbatical in 2013-14` IS A BOOLEAN
+    `a new teaching employee`                           IS A BOOLEAN @desc "עובד הוראה חדש"; the circular gives as its reason that such staff were not employed in 2013-14
+    `employed in 2013-14 but not when the extra vacation days were given` IS A BOOLEAN @desc employed during 2013-14, but not on the extra vacation days (the circular does not date them)
+    `hours worked on the make-up days`                  IS A NUMBER
+    `single substitution hour rate`                     IS A NUMBER  @desc the rate of a single substitution hour; an input
+
+-- §2 ¶1: staff on full unpaid leave or sabbatical in 2013-14, and new staff,
+-- are not bound to make up the four days, not having been employed in
+-- 2013-14 nor had the extra vacation. F-2014-15_tashae_06-a: the categories
+-- are what the encoding reads as the rule; the reason is read as explaining
+-- them.
+@ref akn:art_2/p1
+GIVEN c IS A `make-up case`
+GIVETH A BOOLEAN
+DECIDE `bound to make up the four days` c IF
+        NOT c's `on full unpaid leave or full sabbatical in 2013-14`
+    AND NOT c's `a new teaching employee`
+
+-- The same paragraph: those not bound who worked on those days in 2014-15
+-- are paid for their hours on them at the rate of single substitution hours.
+GIVEN c IS A `make-up case`
+GIVETH A NUMBER
+DECIDE `pay for the make-up days` c IS
+    IF `bound to make up the four days` c
+    THEN 0
+    ELSE c's `hours worked on the make-up days` TIMES c's `single substitution hour rate`
+
+-- Time in school months of 2014-15 (September 2014 = 1): the last make-up
+-- day, 27.3.2015, falls in March (7). The circular names no date for the
+-- payment.
+GIVEN c IS A `make-up case`
+GIVETH A DEONTIC Party `make-up action`
+DECIDE `the make-up days` c IS
+    IF `bound to make up the four days` c
+    THEN PARTY `the teaching employee`
+         MUST  `work the make-up days`
+         WITHIN `month number` March
+         LEST BREACH BY `the teaching employee` BECAUSE "circular 2014-15/6: four working days were added in 2014-15 against the extra vacation days of 2013-14"
+    ELSE IF `pay for the make-up days` c GREATER THAN 0
+         THEN PARTY `the employer`
+              MUST  `pay for the hours worked on the make-up days` `amount`
+                    PROVIDED `amount` AT LEAST `pay for the make-up days` c
+         ELSE FULFILLED
+
+-- F-2014-15_tashae_06-a: an employee who worked part of 2013-14 but was not
+-- employed when the extra vacation days were given did not have them — the
+-- reason the circular gives for releasing staff — yet is neither on a full
+-- year's leave nor, by that reason ("not employed in 2013-14"), new.
+GIVEN c IS A `make-up case`
+GIVETH A BOOLEAN
+DECIDE `released by the reason the circular gives` c IF
+    c's `employed in 2013-14 but not when the extra vacation days were given`
+    OR c's `on full unpaid leave or full sabbatical in 2013-14`
+    OR c's `a new teaching employee`
+
+`a teacher hired in 2013-14 after the extra vacation days` MEANS
+    `make-up case` WITH
+        `on full unpaid leave or full sabbatical in 2013-14` IS FALSE
+        `a new teaching employee`                           IS FALSE
+        `employed in 2013-14 but not when the extra vacation days were given` IS TRUE
+        `hours worked on the make-up days`                  IS 20
+        `single substitution hour rate`                     IS 100
+
+`the reason and the categories part on a teacher hired after the extra days` MEANS
+        `released by the reason the circular gives` `a teacher hired in 2013-14 after the extra vacation days`
+    AND `bound to make up the four days` `a teacher hired in 2013-14 after the extra vacation days`
+#ASSERT `the reason and the categories part on a teacher hired after the extra days`
+
+-- akn:conclusions The contact line, the signature (Sonia Peretz) and the list of copies; no rule.
+
+-- Worked example; the rate of 100 is a placeholder.
+`a new teacher who worked 20 hours on those days` MEANS
+    `make-up case` WITH
+        `on full unpaid leave or full sabbatical in 2013-14` IS FALSE
+        `a new teaching employee`                           IS TRUE
+        `employed in 2013-14 but not when the extra vacation days were given` IS FALSE
+        `hours worked on the make-up days`                  IS 20
+        `single substitution hour rate`                     IS 100
+
+#ASSERT `pay for the make-up days` `a new teacher who worked 20 hours on those days` EQUALS 2000
+#ASSERT `pay for the make-up days` `a teacher hired in 2013-14 after the extra vacation days` EQUALS 0
+
+#TRACE `the make-up days` `a new teacher who worked 20 hours on those days` AT 0 WITH
+    PARTY `the employer` DOES `pay for the hours worked on the make-up days` 2000 AT 1
+#TRACE `the make-up days` `a teacher hired in 2013-14 after the extra vacation days` AT 0 WITH
+    PARTY `the teaching employee` DOES `work the make-up days` AT 4

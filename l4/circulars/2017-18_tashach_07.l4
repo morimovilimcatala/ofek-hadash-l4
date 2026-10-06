@@ -1,0 +1,252 @@
+-- חוזר לבעלויות תשע"ח/7: קצובת ביגוד לשנת הלימודים תשע"ח, לחינוך הגופני ולחינוך הטכנולוגי
+-- The clothing allowance for school year תשע"ח: the general allowance and
+-- its pro-rating, the employment caps, the additional allowance of
+-- physical-education teachers, and the shoes-and-coats allowance in
+-- technological education.
+
+IMPORT prelude
+IMPORT common
+
+-- Time in the regulative rules is counted in school months of תשע"ח
+-- (common.l4: September 2017 = 1, July 2018 = 11).
+
+§ `חוזר תשע"ח/7 קצובת ביגוד`
+
+-- akn:preamble The letterhead, date, reference, addressee, greeting and the three subject lines; no rule.
+
+§§ `1 קצובת ביגוד לשנת הלימודים תשע"ח`
+
+-- akn:art_1/p1 The heading "תחולה"; no rule.
+
+@desc A teaching employee's school year תשע"ח, as far as the clothing allowances ask.
+DECLARE `clothing year` HAS
+    `rated in the teaching employees' grading` IS A BOOLEAN
+    `employed by an owner of a ministry-supervised institution` IS A BOOLEAN
+    `positions with employers` IS A LIST OF NUMBER @desc the position fraction with each employer, 1 = a full position
+    `physical-education position` IS A NUMBER @desc the position fraction as a physical-education teacher
+    `technological subjects` IS A LIST OF STRING @desc the technological subjects taught or instructed, by the circular's names
+
+@ref akn:art_1/p2
+GIVEN y IS A `clothing year`
+GIVETH A BOOLEAN
+DECIDE `the circular applies to` y IF
+        y's `rated in the teaching employees' grading`
+    AND y's `employed by an owner of a ministry-supervised institution`
+
+-- akn:art_1/p3 akn:art_1/p4 "By the Treasury's instructions, as follows" and the heading "כללי"; no rule.
+
+-- §1b-§1c: as for public-facing employees of the civil service, at level
+-- 4: 2,118 shekels for school year תשע"ח (09/17-08/18).
+@ref akn:art_1__para_b akn:art_1__para_c
+`the clothing allowance at level 4` MEANS 2118
+
+GIVEN y IS A `clothing year`
+GIVETH A NUMBER
+DECIDE `total position` y IS sum (y's `positions with employers`)
+
+-- §1d: in proportion to the position, no more than one full position.
+@ref akn:art_1__para_d
+GIVEN y IS A `clothing year`
+GIVETH A NUMBER
+DECIDE `clothing allowance` y IS
+    IF `the circular applies to` y
+    THEN `the clothing allowance at level 4` TIMES min (`total position` y) 1
+    ELSE 0
+
+-- §1e: with more than one employer and above 100% in all, each employer
+-- pays in proportion to the position with it. Reading adopted
+-- (F-2017-18_tashach_07-b): §1e governs several employers, §1d one.
+@ref akn:art_1__para_e
+GIVEN y IS A `clothing year`, `fraction with this employer` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the allowance one employer pays` y `fraction with this employer` IS
+    IF count (y's `positions with employers`) GREATER THAN 1 AND `total position` y GREATER THAN 1
+    THEN `the clothing allowance at level 4` TIMES `fraction with this employer`
+    ELSE `the clothing allowance at level 4` TIMES min `fraction with this employer` 1
+
+DECLARE `terms of employment` IS ONE OF
+    `a teaching employee`
+    `a principal not under the reform`
+    `a teacher under Oz LeTmura in full implementation`
+    `a teacher under Ofek Hadash`
+
+-- §1f: the caps across all employers, subject to the exceptional-
+-- employment procedure; the last paragraph: no change in the conditions
+-- for approval and no permission to exceed them. Every teaching employee
+-- is under the 140% cap, and a reform teacher under the lower one too.
+@ref akn:art_1__para_f akn:art_1__para_f/p2
+GIVEN t IS A `terms of employment`
+GIVETH A NUMBER
+DECIDE `the employment cap` t IS
+    CONSIDER t
+    WHEN `a teaching employee` THEN 1.40
+    WHEN `a principal not under the reform` THEN 1.50
+    WHEN `a teacher under Oz LeTmura in full implementation` THEN 1.25
+    WHEN `a teacher under Ofek Hadash` THEN 1.17
+
+DECLARE `clothing action` IS ONE OF
+    `pay the clothing allowance` HAS `clothing paid` IS A NUMBER
+    `employ beyond the cap` HAS `position employed` IS A NUMBER
+
+@ref akn:art_1__para_f/p3 akn:art_1/p5
+GIVEN t IS A `terms of employment`, `approved under the exceptional-employment procedure` IS A BOOLEAN
+GIVETH A DEONTIC Party `clothing action`
+DECIDE `no employment beyond the cap` t `approved under the exceptional-employment procedure` IS
+    IF `approved under the exceptional-employment procedure`
+    THEN FULFILLED
+    ELSE PARTY `the employer`
+         SHANT `employ beyond the cap` `position`
+               PROVIDED `position` GREATER THAN `the employment cap` t
+         WITHIN 12
+         LEST BREACH BY `the employer` BECAUSE "section 1f: employment beyond the cap across all employers"
+
+-- §1a: paid in full with the July 2018 salary.
+@ref akn:art_1__para_a
+GIVEN y IS A `clothing year`
+GIVETH A DEONTIC Party `clothing action`
+DECIDE `paying the clothing allowance` y IS
+    PARTY `the employer`
+    MUST  `pay the clothing allowance` `amount`
+          PROVIDED `amount` AT LEAST `clothing allowance` y
+    WITHIN `month number` July
+    LEST BREACH BY `the employer` BECAUSE "section 1a: the clothing allowance is paid in full with the July 2018 salary"
+
+§§ `2 קצובת ביגוד נוספת למורה לחינוך גופני`
+
+@desc A printed row of section 2's table: a band of physical-education position and the amount as at 1.9.2017.
+DECLARE `physical-education band` HAS
+    `band from` IS A NUMBER
+    `band to`   IS A NUMBER @desc 999 stands for "ומעלה"
+    `band amount` IS A NUMBER
+
+-- The table as printed: "up to 0.3" (0), "from 0.3 to 0.5" (676), "from 0.5
+-- and above" (1,349). Both bounds are read inclusively, as printed.
+@ref akn:art_2/p2 akn:art_2/t1
+`the physical-education table` MEANS
+    LIST `physical-education band` 0   0.3 0,
+         `physical-education band` 0.3 0.5 676,
+         `physical-education band` 0.5 999 1349
+
+GIVEN f IS A NUMBER
+GIVETH A LIST OF NUMBER
+DECIDE `the amounts the table gives for` f IS
+    map (GIVEN b YIELD b's `band amount`)
+        (filter (GIVEN b YIELD f AT LEAST b's `band from` AND f AT MOST b's `band to`) `the physical-education table`)
+
+-- The reading adopted (F-2017-18_tashach_07-a): a band's lower bound
+-- belongs to it ("from"), so exactly 0.3 takes 676 and exactly 0.5 1,349.
+@ref akn:art_2/p1 akn:art_2/t1
+GIVEN y IS A `clothing year`
+GIVETH A NUMBER
+DECIDE `additional physical-education allowance` y IS
+    BRANCH IF y's `physical-education position` AT LEAST 0.5 THEN 1349
+           IF y's `physical-education position` AT LEAST 0.3 THEN 676
+           OTHERWISE 0
+
+`the table gives 0.3 two amounts` MEANS `the amounts the table gives for` 0.3 EQUALS LIST 0, 676
+`the table gives 0.5 two amounts` MEANS `the amounts the table gives for` 0.5 EQUALS LIST 676, 1349
+`the physical-education table overlaps at its bounds` MEANS
+    `the table gives 0.3 two amounts` AND `the table gives 0.5 two amounts`
+#ASSERT `the physical-education table overlaps at its bounds`
+
+§§ `3 קצובת ביגוד בחינוך הטכנולוגי`
+
+-- §3.1(a): shoes and two coats, 557 shekels.
+@ref akn:art_3__para_1__subpara_a akn:art_3__para_1__subpara_a/t1 akn:art_3__para_1__subpara_a/p2
+`the shoes-and-coats subjects` MEANS
+    LIST "מערכות תעופה", "מכטרוניקה", "טרמודינמיקה טכנית ימית", "מערכות סיב\"מ ותיב\"מ",
+         "תחזוקת מערכות מכניות", "מערכות מכונאות רכב", "מערכות ממוחשבות ברכב",
+         "מערכות הספק, פיקוד ובקרה", "מערכות בקרת אקלים", "אומנות הבישול והאפיה המלונאית",
+         "ימאות – ספינות", "מערכות טלוויזיה וקולנוע", "מערכות צילום"
+
+@ref akn:art_3__para_1__subpara_a/p2
+`the value of shoes and two coats` MEANS 557
+
+-- §3.1(b): two coats, 346 shekels.
+@ref akn:art_3__para_1__subpara_b akn:art_3__para_1__subpara_b/t1 akn:art_3__para_1__subpara_b/p2
+`the two-coats subjects` MEANS
+    LIST "מערכות אלקטרוניות", "מערכות מחשוב ובקרה", "מערכות מחשבים", "תכנון ותכנות מערכות",
+         "מערכות ביוטכנולוגיה", "ניהול תיירותי", "ניהול מלונאי", "חינוך לגיל הרך", "עיצוב",
+         "אופנה ותלבושות", "עיצוב שיער, וטיפוח החן", "סיעוד", "אומנות שימושית"
+
+@ref akn:art_3__para_1__subpara_b/p2
+`the value of two coats` MEANS 346
+
+GIVEN y IS A `clothing year`, l IS A LIST OF STRING
+GIVETH A BOOLEAN
+DECIDE `teaches a subject in` y l IF
+    any (GIVEN s YIELD elem s l) (y's `technological subjects`)
+
+-- The reading adopted (F-2017-18_tashach_07-c): one teaching subjects of
+-- both lists gets the shoes and two coats, which include the two coats.
+@ref akn:art_3/p1 akn:art_3__para_1__subpara_a akn:art_3__para_1__subpara_b
+GIVEN y IS A `clothing year`
+GIVETH A NUMBER
+DECIDE `the technological full-position value` y IS
+    IF `teaches a subject in` y `the shoes-and-coats subjects`
+    THEN `the value of shoes and two coats`
+    ELSE IF `teaches a subject in` y `the two-coats subjects`
+         THEN `the value of two coats`
+         ELSE 0
+
+-- §3.2-§3.3: in addition to the general allowance; in proportion to the
+-- position, no more than one full position.
+@ref akn:art_3__para_2 akn:art_3__para_3
+GIVEN y IS A `clothing year`
+GIVETH A NUMBER
+DECIDE `technological clothing allowance` y IS
+    `the technological full-position value` y TIMES min (`total position` y) 1
+
+@export default The clothing allowances a teaching employee is owed for school year 5778 (2017-18) under the owners' circular 5778/7: the general allowance, plus the physical-education and technological-education allowances
+GIVEN y IS A `clothing year` @desc the employee's school year
+GIVETH A NUMBER
+DECIDE `all clothing allowances` y IS
+    `clothing allowance` y
+    PLUS `additional physical-education allowance` y
+    PLUS `technological clothing allowance` y
+
+-- akn:conclusions The contact line, the sign-off and the copies list; no rule.
+
+-- Findings.
+
+-- F-2017-18_tashach_07-b: 80% with one employer and 60% with another.
+`a teacher with two employers` MEANS `clothing year` WITH
+    `rated in the teaching employees' grading` IS TRUE
+    `employed by an owner of a ministry-supervised institution` IS TRUE
+    `positions with employers` IS LIST 0.8, 0.6
+    `physical-education position` IS 0
+    `technological subjects` IS EMPTY
+
+`the two employers pay more than one full allowance` MEANS
+    sum (map (GIVEN f YIELD `the allowance one employer pays` `a teacher with two employers` f) (`a teacher with two employers`'s `positions with employers`))
+    GREATER THAN `clothing allowance` `a teacher with two employers`
+#ASSERT `the two employers pay more than one full allowance`
+
+-- F-2017-18_tashach_07-c: a teacher of mechatronics and of electronic
+-- systems is in both lists.
+`a teacher in both technological lists` MEANS `clothing year` WITH
+    `rated in the teaching employees' grading` IS TRUE
+    `employed by an owner of a ministry-supervised institution` IS TRUE
+    `positions with employers` IS LIST 1
+    `physical-education position` IS 0
+    `technological subjects` IS LIST "מכטרוניקה", "מערכות אלקטרוניות"
+
+`both technological lists reach one teacher` MEANS
+        `teaches a subject in` `a teacher in both technological lists` `the shoes-and-coats subjects`
+    AND `teaches a subject in` `a teacher in both technological lists` `the two-coats subjects`
+#ASSERT `both technological lists reach one teacher`
+
+-- Examples.
+#ASSERT `clothing allowance` `a teacher with two employers` EQUALS 2118
+#ASSERT `technological clothing allowance` `a teacher in both technological lists` EQUALS 557
+
+`a half-time physical-education teacher` MEANS `clothing year` WITH
+    `rated in the teaching employees' grading` IS TRUE
+    `employed by an owner of a ministry-supervised institution` IS TRUE
+    `positions with employers` IS LIST 0.5
+    `physical-education position` IS 0.5
+    `technological subjects` IS EMPTY
+#ASSERT `all clothing allowances` `a half-time physical-education teacher` EQUALS 2408
+
+#TRACE `paying the clothing allowance` `a half-time physical-education teacher` AT 0 WITH
+    PARTY `the employer` DOES `pay the clothing allowance` 1059 AT 11

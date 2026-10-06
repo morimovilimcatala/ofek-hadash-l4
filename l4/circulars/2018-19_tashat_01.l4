@@ -1,0 +1,101 @@
+-- חוזר לבעלויות תשע"ט/1: עדכון שכר למנהלים בעוז לתמורה
+-- The "87 transition-to-reform" supplement of principals under Oz
+-- LeTmura: linked to the index from 1.1.2018 and raised on 1.9.2018 and
+-- 1.9.2019, under the agreement of 14.3.2018 (section 18 of circular
+-- תשע"ח/3).
+
+IMPORT prelude
+IMPORT daydate
+IMPORT common
+
+§ `חוזר תשע"ט/1 עדכון שכר למנהלים בעוז לתמורה`
+
+-- akn:hc_1/p1 akn:hc_1/p2 akn:hc_1/p3 akn:hc_1/p4 akn:hc_1/p5 akn:hc_1/p6 akn:hc_1/p7 akn:hc_1/p8 akn:hc_1/p9 akn:hc_1/p10 akn:hc_1/p11 akn:hc_1/p12 akn:hc_1/p13 The letterhead, date, reference, addressee, greeting, subject line and the recital that the agreement of 14.3.2018 was signed; no rule.
+
+DECLARE `principal` HAS
+    `a principal employed under Oz LeTmura` IS A BOOLEAN
+
+-- ¶14: the supplement of principals under Oz LeTmura is updated as
+-- follows; the amounts are linked under section 8.2 of the agreement and
+-- section 4(d) of the agreement of 23.3.2017, December 2017's index
+-- against December 2015's.
+@ref akn:hc_1/p14
+GIVEN `index of December 2017` IS A NUMBER, `index of December 2015` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the linkage factor` `index of December 2017` `index of December 2015` IS
+    `index of December 2017` DIVIDED BY `index of December 2015`
+
+@desc A step of the supplement: from when, and its monthly amount.
+DECLARE `supplement step` HAS
+    `step from`      IS A DATE
+    `step increase`  IS A NUMBER @desc the increase the clause states; 0 where it states none
+    `step amount`    IS A NUMBER
+
+@ref akn:hc_1__para_1 akn:hc_1__para_2 akn:hc_1__para_3
+`the steps of the 87 transition supplement` MEANS
+    LIST `supplement step` (Date 1 1 2018) 0      88.70,
+         `supplement step` (Date 1 9 2018) 460.92 549.62,
+         `supplement step` (Date 1 9 2019) 460.92 1010.54
+
+-- The rest of the supplement's rules are unchanged (each clause).
+@export default The monthly "87 transition-to-reform" supplement of a principal under Oz LeTmura on a given day, under the owners' circular 5779/1
+@ref akn:hc_1/p14 akn:hc_1__para_1 akn:hc_1__para_2 akn:hc_1__para_3
+GIVEN p IS A `principal` @desc the principal
+      `the day` IS A DATE @desc the day the supplement is paid for
+GIVETH A NUMBER
+DECIDE `the 87 transition supplement` p `the day` IS
+    IF p's `a principal employed under Oz LeTmura`
+    THEN sum (map (GIVEN s YIELD s's `step amount`)
+                  (take 1 (reverse (filter (GIVEN s YIELD `the day` AT LEAST s's `step from`)
+                                           `the steps of the 87 transition supplement`))))
+    ELSE 0
+
+-- ¶1: 88.70 "instead of 88.52 as paid for that period": the difference owed
+-- for each month from 1.1.2018.
+@ref akn:hc_1__para_1
+`the monthly difference owed from 1.1.2018` MEANS 88.70 MINUS 88.52
+
+DECLARE `supplement action` IS ONE OF
+    `pay the 87 transition supplement` HAS `supplement paid` IS A NUMBER
+    `indemnify the owner under payments topic 558` HAS `indemnity paid` IS A NUMBER
+
+-- ¶14: "יש לעדכן" — the owners must update the supplement of principals
+-- under Oz LeTmura as each clause sets it, with the difference for the
+-- months since 1.1.2018 already paid at 88.52 (¶1). The circular names no
+-- date by which the update must be made, so the duty has no deadline.
+@ref akn:hc_1/p14 akn:hc_1__para_1
+GIVEN p IS A `principal`, `the day` IS A DATE
+GIVETH A DEONTIC Party `supplement action`
+DECIDE `updating the supplement` p `the day` IS
+    PARTY `the employer`
+    MUST  `pay the 87 transition supplement` `amount`
+          PROVIDED `amount` AT LEAST `the 87 transition supplement` p `the day`
+
+-- ¶15: indemnity in the payments system, topic 558; no date is named.
+@ref akn:hc_1/p15
+GIVEN `indemnity due` IS A NUMBER
+GIVETH A DEONTIC Party `supplement action`
+DECIDE `indemnifying the owners` `indemnity due` IS
+    PARTY `the Ministry of Education`
+    MUST  `indemnify the owner under payments topic 558` `amount`
+          PROVIDED `amount` AT LEAST `indemnity due`
+
+-- akn:conclusions The sign-off and the copies list; no rule.
+
+-- Examples. Each step's increase brings the previous amount to the next.
+`each increase adds up to the next amount` MEANS
+    all (GIVEN pair YIELD pair's fst's `step amount` PLUS pair's snd's `step increase` EQUALS pair's snd's `step amount`)
+        (zip (take 2 `the steps of the 87 transition supplement`) (drop 1 `the steps of the 87 transition supplement`))
+#ASSERT `each increase adds up to the next amount`
+
+`a principal under Oz LeTmura` MEANS `principal` WITH `a principal employed under Oz LeTmura` IS TRUE
+#ASSERT `the 87 transition supplement` `a principal under Oz LeTmura` (Date 1 10 2018) EQUALS 549.62
+#ASSERT `the 87 transition supplement` `a principal under Oz LeTmura` (Date 1 9 2019) EQUALS 1010.54
+-- Before 1.1.2018 this circular sets no amount (0 here means "not set by this circular").
+#ASSERT `the 87 transition supplement` `a principal under Oz LeTmura` (Date 1 12 2017) EQUALS 0
+#ASSERT `the monthly difference owed from 1.1.2018` EQUALS 0.18
+
+#TRACE `indemnifying the owners` 100 AT 0 WITH
+    PARTY `the Ministry of Education` DOES `indemnify the owner under payments topic 558` 100 AT 1
+#TRACE `updating the supplement` `a principal under Oz LeTmura` (Date 1 10 2018) AT 0 WITH
+    PARTY `the employer` DOES `pay the 87 transition supplement` 549.62 AT 1

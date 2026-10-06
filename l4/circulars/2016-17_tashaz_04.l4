@@ -1,0 +1,239 @@
+-- חוזר לבעלויות תשע"ז/4 (6.4.2017): תוספת שקלית לעובדי הוראה בחטיבות העליונות החל מיום 1.9.2016;
+-- תוספת אחוזית לעובדי הוראה בחטיבות העליונות החל מיום 1.4.2017
+-- The 2016 shekel supplement (from 1.9.2016) and the 2016 percentage
+-- supplement (from 1.4.2017) for high-school teaching staff, Oz LaTmura or
+-- not, under the application agreement (20.3.2016) and the implementation
+-- agreement (23.3.2017): amounts, pro-rating, the index update, their
+-- treatment for pay purposes, the raised '87 and '94 supplements, and the
+-- payment with April 2017's salary, differences included.
+
+IMPORT prelude
+IMPORT daydate
+IMPORT common
+
+§ `חוזר לבעלויות תשע"ז/4 — תוספת שקלית ותוספת אחוזית 2016 בחטיבות העליונות`
+
+-- akn:preamble The letterhead, the date (6.4.2017), the addressee and the two-item subject; the recital naming the agreements of 20.3.2016 ("the application agreement") and 23.3.2017 ("the implementation agreement") with the Secondary School Teachers' Association, the purpose and the "תחולה" heading carry no rule of their own. The application paragraphs are encoded below.
+
+DECLARE `supplement action` IS ONE OF
+    `pay the supplements with the differences` HAS `supplements paid` IS A NUMBER
+    `indemnify the owner at the hourly cost` HAS `supplement indemnity` IS A NUMBER
+
+@desc A high-school teaching employee in a month, as far as the two supplements ask.
+DECLARE `high-school supplement case` HAS
+    `graded and employed by a supervised owner in the high school` IS A BOOLEAN @desc graded as a teaching employee, employed by an owner the ministry supervises, in the upper division or grades 13-14
+    `employed under Oz LaTmura`                    IS A BOOLEAN
+    `position fraction for the supplements`        IS A NUMBER  @desc the share of a full position (1 = 100%)
+    `combined salary`                              IS A NUMBER  @desc the monthly combined salary (שכר משולב); an input
+    `supplement 2001`                              IS A NUMBER
+    `supplement 2008`                              IS A NUMBER
+    `supplement 2011`                              IS A NUMBER
+    `erosion supplement 2011`                      IS A NUMBER
+    `Oz LaTmura supplement`                        IS A NUMBER  @desc 0 for an employee not entitled to it
+
+-- Application: teaching employees of supervised owners in the upper
+-- divisions and grades 13-14, under Oz LaTmura or not.
+@ref akn:preamble/p17 akn:preamble/p18
+GIVEN c IS A `high-school supplement case`
+GIVETH A BOOLEAN
+DECIDE `covered by the circular` c IF
+    c's `graded and employed by a supervised owner in the high school`
+
+§§ `1 תוספת שקלית אחידה לעובדי הוראה החל מיום 1.9.2016`
+
+-- §1א: by sections 5(א)(1)-(2) of the application agreement and 4(ב)(1)-(2)
+-- of the implementation agreement, a monthly shekel supplement from 1.9.2016.
+@ref akn:art_1__para_a
+`the first day of the shekel supplement` MEANS Date 1 9 2016
+
+-- §1ב: 108.74 NIS from 1.9.2016 to 31.3.2017; 176.70 NIS from 1.4.2017;
+-- later changes to be published near their dates.
+@ref akn:art_1__para_b akn:art_1__para_b__subpara_1 akn:art_1__para_b__subpara_2
+GIVEN `the day` IS A DATE
+GIVETH A NUMBER
+DECIDE `the full-position shekel supplement` `the day` IS
+    IF `the day` AT LEAST Date 1 4 2017
+    THEN 176.70
+    ELSE IF `the day` AT LEAST `the first day of the shekel supplement`
+         THEN 108.74
+         ELSE 0
+
+-- §1ג: pro rata to the position.
+@ref akn:art_1__para_c
+GIVEN c IS A `high-school supplement case`, `the day` IS A DATE
+GIVETH A NUMBER
+DECIDE `shekel supplement` c `the day` IS
+    IF `covered by the circular` c
+    THEN `the full-position shekel supplement` `the day` TIMES c's `position fraction for the supplements`
+    ELSE 0
+
+-- §1ד: from January 2017, every January, the supplement "as set above" is
+-- updated by the rise of the December index over the previous one (the
+-- first from December 2015); a fall brings no update and is offset against
+-- the next rise, measured from the last index used. F-2016-17_tashaz_04-a:
+-- the reading adopted updates the amount in force on the update's date.
+@ref akn:art_1__para_d
+GIVEN `amount` IS A NUMBER
+      `the new index` IS A NUMBER @desc December of the year before the update
+      `the last index used` IS A NUMBER @desc the index of the last update made (December 2015 for the first)
+GIVETH A NUMBER
+DECIDE `the indexed amount` `amount` `the new index` `the last index used` IS
+    IF `the new index` GREATER THAN `the last index used`
+    THEN `amount` TIMES `the new index` DIVIDED BY `the last index used`
+    ELSE `amount`
+
+`the 1.4.2017 amount read as a base indexed by January 2017's 2%` MEANS `the indexed amount` 176.70 102 100
+`§1ב(2)'s amount and §1ד's update give two readings` MEANS
+    NOT (`the 1.4.2017 amount read as a base indexed by January 2017's 2%` EQUALS 176.70)
+#ASSERT `§1ב(2)'s amount and §1ד's update give two readings`
+
+-- §1ה–§1ח: not counted for the minimum-wage top-up (an "excluded supplement"
+-- under the 2015 temporary-provision law); salary for every purpose — the
+-- hourly value for substitution hours (in place of a teaching-support hour or
+-- not), the deduction for an hour of absence, severance, pension-fund
+-- contributions under section 46 of the Oz LaTmura agreement, the training
+-- fund and the Dafna fund; not in the base of any wage supplement,
+-- percentage or shekel — except the jubilee grant.
+@ref akn:art_1__para_e akn:art_1__para_f akn:art_1__para_g akn:art_1__para_h
+DECLARE `shekel supplement purpose` IS ONE OF
+    `the minimum-wage top-up`
+    `the hourly value for substitution hours`
+    `the deduction for an hour of absence`
+    `severance pay`
+    `pension-fund contributions under section 46 of the Oz LaTmura agreement`
+    `the training fund and the Dafna fund`
+    `the base of percentage and shekel supplements`
+    `the jubilee grant`
+
+GIVEN p IS A `shekel supplement purpose`
+GIVETH A BOOLEAN
+DECIDE `the shekel supplement counts for` p IF
+    CONSIDER p
+    WHEN `the minimum-wage top-up` THEN FALSE
+    WHEN `the base of percentage and shekel supplements` THEN FALSE
+    OTHERWISE TRUE
+
+-- §1ט: paid from April 2017's salary (paid in May) and no later than May's
+-- (paid in June), with the differences from 1.9.2016. Time in salary months
+-- from January 2017: April is 4, May 5.
+@ref akn:art_1__para_i
+GIVEN `the differences owed` IS A NUMBER @desc the supplements owed for the months from 1.9.2016, with the month's own
+GIVETH A DEONTIC Party `supplement action`
+DECIDE `paying the supplements with the differences` `the differences owed` IS
+    PARTY `the employer`
+    MUST  `pay the supplements with the differences` `amount`
+          PROVIDED `amount` AT LEAST `the differences owed`
+    WITHIN 5
+    LEST BREACH BY `the employer` BECAUSE "circular 2016-17/4 section 1i: paid from April 2017's salary, no later than May's, with the differences from 1.9.2016"
+
+§§ `2 תוספת אחוזית 2016`
+
+-- §2א: from 1.4.2017, a new percentage supplement of 0.625%; §2ב: later
+-- changes to be published; §2ג: one rate for every teaching employee.
+@ref akn:art_2__para_a akn:art_2__para_b akn:art_2__para_c
+`the first day of the percentage supplement` MEANS Date 1 4 2017
+`the 2016 percentage rate` MEANS 0.00625
+
+-- §2ד: computed on the combined salary and supplements 2001, 2008, 2011,
+-- the 2011 erosion supplement and the Oz LaTmura supplement (where due).
+@ref akn:art_2__para_d
+GIVEN c IS A `high-school supplement case`
+GIVETH A NUMBER
+DECIDE `the percentage supplement's base` c IS
+    c's `combined salary`
+    PLUS c's `supplement 2001`
+    PLUS c's `supplement 2008`
+    PLUS c's `supplement 2011`
+    PLUS c's `erosion supplement 2011`
+    PLUS c's `Oz LaTmura supplement`
+
+GIVEN c IS A `high-school supplement case`, `the day` IS A DATE
+GIVETH A NUMBER
+DECIDE `percentage supplement 2016` c `the day` IS
+    IF `covered by the circular` c AND `the day` AT LEAST `the first day of the percentage supplement`
+    THEN `the 2016 percentage rate` TIMES `the percentage supplement's base` c
+    ELSE 0
+
+-- §2ה (first): counted for the percentage supplements computed on the
+-- combined salary, except supplements 2001, 2008, 2011, erosion 2011, Oz
+-- LaTmura and the promotion-grade supplement; and for the hourly value of
+-- substitution hours, the absence deduction, severance, pension under
+-- section 46, the training fund and the Dafna fund. §2ו: not counted for the
+-- minimum-wage top-up (an "excluded supplement").
+@ref akn:art_2__para_e akn:art_2__para_e__subpara_f
+DECLARE `percentage supplement purpose` IS ONE OF
+    `another percentage supplement on the combined salary`
+    `supplement 2001, 2008, 2011, erosion 2011 or Oz LaTmura`
+    `the promotion-grade supplement`
+    `the hourly value of substitution hours`
+    `the absence deduction`
+    `severance, pension, training fund and Dafna`
+    `the minimum-wage top-up`
+
+GIVEN p IS A `percentage supplement purpose`
+GIVETH A BOOLEAN
+DECIDE `the percentage supplement counts for` p IF
+    CONSIDER p
+    WHEN `supplement 2001, 2008, 2011, erosion 2011 or Oz LaTmura` THEN FALSE
+    WHEN `the promotion-grade supplement` THEN FALSE
+    WHEN `the minimum-wage top-up` THEN FALSE
+    OTHERWISE TRUE
+
+-- §2ה (second, nested under the first in the corpus): from 1.4.2017
+-- supplements '87 and '94 rise by 0.625% over their shekel value "on the eve
+-- of the signing of this agreement" (F-2016-17_tashaz_04-b), to the amounts
+-- printed.
+@ref akn:art_2__para_e__subpara_e
+DECLARE `supplement 87 or 94` IS ONE OF `supplement '87`, `supplement '94`
+
+GIVEN s IS A `supplement 87 or 94`, `under Oz LaTmura` IS A BOOLEAN
+GIVETH A NUMBER
+DECIDE `the amount from 1.4.2017` s `under Oz LaTmura` IS
+    CONSIDER s
+    WHEN `supplement '87` THEN IF `under Oz LaTmura` THEN 246.39 ELSE 177.05
+    WHEN `supplement '94` THEN IF `under Oz LaTmura` THEN 221.57 ELSE 159.22
+
+-- F-2016-17_tashaz_04-b: "this agreement" in a circular that names two —
+-- the application agreement (20.3.2016) and the implementation agreement
+-- (23.3.2017) — and is itself neither.
+`the agreements the circular names` MEANS LIST "הסכם ההחלה", "הסכם היישום"
+`"this agreement" names none of the circular's agreements` MEANS
+        count `the agreements the circular names` EQUALS 2
+    AND NOT elem "הסכם זה" `the agreements the circular names`
+#ASSERT `"this agreement" names none of the circular's agreements`
+
+§§ `3 Indemnity`
+
+-- §3: the owners are indemnified at the relevant hourly costs.
+@ref akn:art_3
+GIVEN `supplements paid` IS A NUMBER
+GIVETH A DEONTIC Party `supplement action`
+DECIDE `indemnifying the owner` `supplements paid` IS
+    PARTY `the Ministry of Education`
+    MUST  `indemnify the owner at the hourly cost` `amount`
+          PROVIDED `amount` AT LEAST `supplements paid`
+
+-- akn:conclusions The signature (Sonia Peretz) and the list of copies; no rule.
+
+-- Worked examples; the salary components are placeholders.
+`an Oz LaTmura teacher at 80%` MEANS
+    `high-school supplement case` WITH
+        `graded and employed by a supervised owner in the high school` IS TRUE
+        `employed under Oz LaTmura`                    IS TRUE
+        `position fraction for the supplements`        IS 0.8
+        `combined salary`                              IS 8000
+        `supplement 2001`                              IS 400
+        `supplement 2008`                              IS 300
+        `supplement 2011`                              IS 200
+        `erosion supplement 2011`                      IS 100
+        `Oz LaTmura supplement`                        IS 1000
+
+#ASSERT `shekel supplement` `an Oz LaTmura teacher at 80%` (Date 1 2 2017) EQUALS 108.74 TIMES 0.8
+#ASSERT `shekel supplement` `an Oz LaTmura teacher at 80%` (Date 1 5 2017) EQUALS 176.70 TIMES 0.8
+#ASSERT `percentage supplement 2016` `an Oz LaTmura teacher at 80%` (Date 1 5 2017) EQUALS 62.5
+#ASSERT `percentage supplement 2016` `an Oz LaTmura teacher at 80%` (Date 1 3 2017) EQUALS 0
+#ASSERT `the amount from 1.4.2017` `supplement '94` FALSE EQUALS 159.22
+#ASSERT `the shekel supplement counts for` `the jubilee grant`
+
+#TRACE `paying the supplements with the differences` 1000 AT 0 WITH
+    PARTY `the employer` DOES `pay the supplements with the differences` 1000 AT 4

@@ -1,0 +1,244 @@
+-- חוזר לבעלויות תשע"ב/2: תשלום פעימה ראשונה של תוספת השכר במגזר הציבורי
+-- לעובדי הוראה
+-- The first tranche of the public-sector raise for teaching staff of the
+-- owners of secondary education: "tosefet 2011" of 2.25% from 1.1.2011, the
+-- order its base is computed in, what it counts toward, the updated shekel
+-- additions, the Ofek Hadash middle-school staff, and payment in September 2011.
+
+IMPORT prelude
+IMPORT common
+
+§ `תשע"ב/2 תשלום פעימה ראשונה של תוספת השכר במגזר הציבורי`
+
+-- akn:preamble The letterhead, date (18.9.2011), reference number, addressee, and the lead-in: collective agreements of 25.1.2011 and 14.8.2011 provide for the first tranche, and this circular publishes how to carry them out; no rule of its own.
+
+-- The corpus nests this circular differently from its page: the page's
+-- section 2א has five numbered paragraphs, of which the corpus publishes the
+-- third to fifth as sections 3–5, and section 2ב and 2ג as 5ב and 5ג; the
+-- page's section 3 ("ביצוע תשלומים") is nested under 2ג(3). The citations
+-- below use the corpus's keys and the comments the page's numbers.
+
+-- Time is counted in school months of 2011/12 (common.l4: September 2011 = 1).
+
+@desc Where a teaching employee's employment, or part of it, is, as sections 2א and 2ג divide it.
+DECLARE `employment division` IS ONE OF
+    @desc the three- or four-year upper division, grades 13–14 included
+    `the upper division`
+    @desc a middle school, the employee not yet moved to Ofek Hadash terms under the agreement of 25.12.2008
+    `a middle school, not yet under Ofek Hadash`
+    @desc a middle school, the employee moved to Ofek Hadash terms under the agreement of 25.12.2008
+    `a middle school, under Ofek Hadash`
+
+@desc One portion of a teaching employee's employment by an owner, as far as this circular asks about it.
+DECLARE `employment portion` HAS
+    `in the teaching-staff grade`        IS A BOOLEAN
+    `employed by an owner of secondary education supervised by the Ministry` IS A BOOLEAN
+    `division`                           IS A `employment division`
+    `combined salary`                    IS A NUMBER @desc the combined salary (השכר המשולב) of this portion, shekels a month
+    `tosefet 2001 amount`                IS A NUMBER @desc tosefet 2001 of this portion, computed on a base without tosefet 2008 or 2011
+    `tosefet 2008 amount`                IS A NUMBER @desc tosefet 2008 of this portion, computed on a base without tosefet 2011
+    `Ofek Hadash table salary`           IS A NUMBER @desc for an Ofek Hadash portion, the salary by the agreement's table on 31.12.2010, shekels a month
+    `personal shekel addition`           IS A NUMBER @desc a personal shekel addition paid in December 2010 and still paid in January 2011 at least; 0 if none
+
+DECLARE `raise action` IS ONE OF
+    `pay the raise from 1.1.2011` HAS `raise paid` IS A NUMBER
+
+§§ `1 תחולה`
+
+@ref akn:art_1
+GIVEN p IS AN `employment portion`
+GIVETH A BOOLEAN
+DECIDE `this circular applies to` p IF
+        p's `in the teaching-staff grade`
+    AND p's `employed by an owner of secondary education supervised by the Ministry`
+
+§§ `2 יישום תוספת שכר בשיעור 2.25%`
+
+`the raise` MEANS 0.0225
+
+§§§ `2א`
+
+@ref akn:art_2__para_a
+GIVEN p IS AN `employment portion`
+GIVETH A BOOLEAN
+DECIDE `section 2א applies to` p IF
+        `this circular applies to` p
+    AND (   p's `division` EQUALS `the upper division`
+         OR p's `division` EQUALS `a middle school, not yet under Ofek Hadash`)
+
+-- Section 2א(1)–(2): from 1.1.2011, 2.25% of the combined salary, tosefet
+-- 2001 and tosefet 2008; tosefet 2001 is computed first, on a base with
+-- neither later addition, and tosefet 2008 next, on a base without tosefet
+-- 2011. Those two are inputs, computed under their own instruments.
+@ref akn:art_2__para_a__subpara_1 akn:art_2__para_a__subpara_2
+GIVEN p IS AN `employment portion`
+GIVETH A NUMBER
+DECIDE `tosefet 2011` p IS
+    IF `section 2א applies to` p
+    THEN `the raise` TIMES (p's `combined salary` PLUS p's `tosefet 2001 amount` PLUS p's `tosefet 2008 amount`)
+    ELSE 0
+
+@desc A use a salary addition may be counted toward, as sections 2א(3)–(4) ask.
+DECLARE `salary use` IS ONE OF
+    `the minimum-wage top-up`
+    `percentage additions computed from the combined salary`
+    `tosefet 2001`
+    `tosefet 2008`
+    `tosefet Oz LaTmura`
+    `erosion addition 2011`
+    `promotion-grade addition`
+    `the hourly value`
+    `severance pay under the Severance Pay Law`
+    `contributions to a pension provident fund, the study fund and the Dafna fund`
+    `every other contribution or deduction customary on the combined salary`
+
+-- Section 2א(3) (corpus section 3): not toward the minimum-wage top-up.
+-- Section 2א(4) (corpus section 4): salary for every purpose, and toward the
+-- percentage additions from the combined salary except the five it names.
+@ref akn:art_3 akn:art_4
+GIVEN u IS A `salary use`
+GIVETH A BOOLEAN
+DECIDE `tosefet 2011 counts toward` u IF
+    CONSIDER u
+    WHEN `the minimum-wage top-up` THEN FALSE
+    WHEN `tosefet 2001` THEN FALSE
+    WHEN `tosefet 2008` THEN FALSE
+    WHEN `tosefet Oz LaTmura` THEN FALSE
+    WHEN `erosion addition 2011` THEN FALSE
+    WHEN `promotion-grade addition` THEN FALSE
+    OTHERWISE TRUE
+
+-- Section 2א(5) (corpus section 5): the shekel additions rise 2.25% from
+-- 1.1.2011 over their value on 31.12.2010, and the circular prints the
+-- results.
+@desc A shekel addition with the amount it stands at from 1.1.2011.
+DECLARE `shekel addition` HAS
+    `addition name`           IS A STRING
+    `amount from 1.1.2011`    IS A NUMBER
+
+@ref akn:art_5
+`the updated shekel additions` MEANS
+    LIST `shekel addition` "תוספת הסכם '87" 167.75,
+         `shekel addition` "תוספת הסכם '94 (תגבור הוראה)" 150.85
+
+GIVEN v IS A NUMBER
+GIVETH A NUMBER
+DECIDE `a shekel addition updated from its 31.12.2010 value` v IS
+    v TIMES (1 PLUS `the raise`)
+
+§§§ `2ב`
+
+-- Section 2ב: three new additions of the "Oz LaTmura" agreement of
+-- 14.8.2011, paid under that agreement; further instructions to come. They
+-- are named here because section 2א(4) excludes them.
+@ref akn:art_5__para_b
+`the new additions of the Oz LaTmura agreement` MEANS
+    LIST `tosefet Oz LaTmura`, `erosion addition 2011`, `promotion-grade addition`
+
+#ASSERT all (GIVEN u YIELD NOT `tosefet 2011 counts toward` u) `the new additions of the Oz LaTmura agreement`
+
+§§§ `2ג`
+
+@ref akn:art_5__para_c
+GIVEN p IS AN `employment portion`
+GIVETH A BOOLEAN
+DECIDE `section 2ג applies to` p IF
+        `this circular applies to` p
+    AND p's `division` EQUALS `a middle school, under Ofek Hadash`
+
+-- Section 2ג(1)–(2): the Ofek Hadash table rises 2.25% from 1.1.2011; the
+-- updated tables are the agreement's.
+@ref akn:art_5__para_c__subpara_1 akn:art_5__para_c__subpara_2
+GIVEN p IS AN `employment portion`
+GIVETH A NUMBER
+DECIDE `the Ofek Hadash table raise` p IS
+    IF `section 2ג applies to` p
+    THEN `the raise` TIMES p's `Ofek Hadash table salary`
+    ELSE 0
+
+-- Section 2ג(3): a personal shekel addition paid in December 2010 and still
+-- paid rises 2.25% from 1.1.2011, for "a teaching employee as said in
+-- section 2ב above" — section 2ב describes no employee (F-2011-12_tashab_02-a).
+-- The reading adopted: the employee of section 2ג.
+@ref akn:art_5__para_c__subpara_3
+GIVEN p IS AN `employment portion`
+GIVETH A NUMBER
+DECIDE `the personal shekel addition raise` p IS
+    IF `section 2ג applies to` p
+    THEN `the raise` TIMES p's `personal shekel addition`
+    ELSE 0
+
+@desc The section of this circular that describes an employee.
+DECLARE `circular section` IS ONE OF
+    `section 2א`
+    `section 2ב`
+    `section 2ג`
+
+GIVEN s IS A `circular section`
+GIVETH A LIST OF `employment division`
+DECIDE `the employees described in` s IS
+    CONSIDER s
+    WHEN `section 2א` THEN LIST `the upper division`, `a middle school, not yet under Ofek Hadash`
+    WHEN `section 2ב` THEN EMPTY
+    WHEN `section 2ג` THEN LIST `a middle school, under Ofek Hadash`
+
+`the section 2ג(3) cites` MEANS `section 2ב`
+
+`section 2ג(3) cites a section that describes no employee` MEANS
+    null (`the employees described in` `the section 2ג(3) cites`)
+#ASSERT `section 2ג(3) cites a section that describes no employee`
+
+@export default The monthly raise from 1.1.2011 one portion of a teaching employee's employment by an owner earns under circular תשע"ב/2
+GIVEN p IS AN `employment portion` @desc the portion of employment
+GIVETH A NUMBER
+DECIDE `the monthly raise from 1.1.2011` p IS
+    `tosefet 2011` p
+    PLUS `the Ofek Hadash table raise` p
+    PLUS `the personal shekel addition raise` p
+
+§§ `3 ביצוע תשלומים`
+
+-- The page's section 3: the payments this circular gives rise to, from
+-- 1.1.2011 on, are made with the September 2011 salary.
+@ref akn:art_5__para_c__subpara_3__cls_3
+GIVEN p IS AN `employment portion`, `months from January 2011` IS A NUMBER
+GIVETH A DEONTIC Party `raise action`
+DECIDE `paying the raise with September's salary` p `months from January 2011` IS
+    PARTY `the local authority or owning body`
+    MUST  `pay the raise from 1.1.2011` `amount`
+          PROVIDED `amount` AT LEAST `the monthly raise from 1.1.2011` p TIMES `months from January 2011`
+    WITHIN `month number` September
+    LEST BREACH BY `the local authority or owning body` BECAUSE "section 3: the payments are made with the September 2011 salary"
+
+-- akn:conclusions The contact line for questions, the sign-off and signature; no rule.
+
+-- Worked examples; the salary figures are round placeholders.
+`an upper-division portion` MEANS
+    `employment portion` WITH
+        `in the teaching-staff grade`        IS TRUE
+        `employed by an owner of secondary education supervised by the Ministry` IS TRUE
+        `division`                           IS `the upper division`
+        `combined salary`                    IS 8000
+        `tosefet 2001 amount`                IS 1000
+        `tosefet 2008 amount`                IS 1000
+        `Ofek Hadash table salary`           IS 0
+        `personal shekel addition`           IS 0
+
+`an Ofek Hadash middle-school portion` MEANS
+    `employment portion` WITH
+        `in the teaching-staff grade`        IS TRUE
+        `employed by an owner of secondary education supervised by the Ministry` IS TRUE
+        `division`                           IS `a middle school, under Ofek Hadash`
+        `combined salary`                    IS 0
+        `tosefet 2001 amount`                IS 0
+        `tosefet 2008 amount`                IS 0
+        `Ofek Hadash table salary`           IS 10000
+        `personal shekel addition`           IS 400
+
+#ASSERT `the monthly raise from 1.1.2011` `an upper-division portion` EQUALS 225
+#ASSERT `the monthly raise from 1.1.2011` `an Ofek Hadash middle-school portion` EQUALS 234
+
+#TRACE `paying the raise with September's salary` `an upper-division portion` 9 AT 0 WITH
+    PARTY `the local authority or owning body` DOES `pay the raise from 1.1.2011` 2025 AT 1
+#TRACE `paying the raise with September's salary` `an upper-division portion` 9 AT 0 WITH
+    PARTY `the local authority or owning body` DOES `pay the raise from 1.1.2011` 2025 AT 2

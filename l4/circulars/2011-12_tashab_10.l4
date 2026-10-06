@@ -1,0 +1,146 @@
+-- חוזר לבעלויות תשע"ב/10: שעות תפקיד לרכז מקצוע בחטיבה העליונה
+-- Role hours for subject coordinators in the owners' upper divisions, under
+-- section 41 of the general collective agreement of 14.8.2011: the pool of
+-- half an hour per class, the one-hour cap per coordinator, the duty to do the
+-- hour in school under Oz LaTmura, and how the Ministry reimburses the owners.
+
+IMPORT prelude
+IMPORT common
+
+§ `תשע"ב/10 שעות תפקיד לרכז מקצוע בחטיבה העליונה`
+
+-- akn:preamble The letterhead, title, date (2.5.2012), and the lead-in: the general agreement of 14.8.2011 on Oz LaTmura and all upper-division staff, and this circular's purpose under its section 41; no rule of its own.
+
+@desc A school by the grade span section 2 uses.
+DECLARE `school span` IS ONE OF
+    `a four-year school`
+    `a three-year school`
+    `a six-year school`
+
+@desc A class of the school, by its grade (9 to 14).
+DECLARE `school class` HAS
+    `class grade` IS A NUMBER
+
+@desc An upper division and its subject coordinators, as far as this circular asks about it.
+DECLARE `upper division` HAS
+    `span`                               IS A `school span`
+    `classes`                            IS A LIST OF `school class`
+    `joined Oz LaTmura`                  IS A BOOLEAN
+
+DECLARE `coordinator action` IS ONE OF
+    `allocate role hours` HAS `hours allocated` IS A NUMBER
+    `do the role hour outside the school`
+
+§§ `1 תחולה`
+
+@desc A staff member of an owner, as far as section 1 asks about it.
+DECLARE `upper-division employee` HAS
+    `in the teaching-staff grade`        IS A BOOLEAN
+    `employed in the upper division`     IS A BOOLEAN
+    `employed by an owner of secondary education supervised by the Ministry` IS A BOOLEAN
+
+@ref akn:art_1
+GIVEN e IS AN `upper-division employee`
+GIVETH A BOOLEAN
+DECIDE `this circular applies to` e IF
+        e's `in the teaching-staff grade`
+    AND e's `employed in the upper division`
+    AND e's `employed by an owner of secondary education supervised by the Ministry`
+
+§§ `2 שעות תפקיד לרכז מקצוע בחטיבה העליונה`
+
+-- Section 2: from 2011/12, half an hour per class of grades ט'–י"ב/י"ד in a
+-- four-year school, or י'–י"ב/י"ד in a three- or six-year school, in one pool
+-- for all the subject coordinators together, in place of frontal teaching
+-- hours, for the coordinator's role. The pool is the same whether or not the
+-- school joined Oz LaTmura.
+@ref akn:art_2/p1 akn:art_2/p3
+GIVEN s IS A `school span`, c IS A `school class`
+GIVETH A BOOLEAN
+DECIDE `a class that counts for the pool` s c IF
+    CONSIDER s
+    WHEN `a four-year school` THEN c's `class grade` AT LEAST 9 AND c's `class grade` AT MOST 14
+    OTHERWISE c's `class grade` AT LEAST 10 AND c's `class grade` AT MOST 14
+
+@export default The pool of role hours a year's subject coordinators share in an owner's upper division under circular תשע"ב/10
+GIVEN u IS AN `upper division` @desc the upper division and its classes
+GIVETH A NUMBER
+DECIDE `the coordinators' pool` u IS
+    0.5 TIMES count (filter (GIVEN c YIELD `a class that counts for the pool` (u's `span`) c) (u's `classes`))
+
+-- "לרכז מקצוע לא תוקצה יותר משעה אחת מסל זה": the principal allocates from
+-- the pool, no more than one hour to a coordinator. Time in school years.
+@ref akn:art_2/p2
+GIVEN u IS AN `upper division`
+GIVETH A DEONTIC Party `coordinator action`
+DECIDE `allocating a coordinator's role hours` u IS
+    PARTY `the school principal`
+    MAY   `allocate role hours` `hours`
+          PROVIDED `hours` AT MOST 1 AND `hours` AT MOST `the coordinators' pool` u
+    WITHIN 1
+
+GIVEN `hours each` IS A LIST OF NUMBER
+      u IS AN `upper division`
+GIVETH A BOOLEAN
+DECIDE `an allocation section 2 allows` `hours each` u IF
+        all (GIVEN h YIELD h AT LEAST 0 AND h AT MOST 1) `hours each`
+    AND sum `hours each` AT MOST `the coordinators' pool` u
+
+-- A coordinator (the teaching employee who is subject coordinator) employed
+-- under Oz LaTmura does the role hour within the school's walls.
+@ref akn:art_2/p4
+GIVEN `under Oz LaTmura terms` IS A BOOLEAN
+GIVETH A DEONTIC Party `coordinator action`
+DECIDE `doing the role hour in school` `under Oz LaTmura terms` IS
+    IF `under Oz LaTmura terms`
+    THEN PARTY `the teaching employee`
+         SHANT `do the role hour outside the school`
+         WITHIN 1
+         LEST BREACH BY `the teaching employee` BECAUSE "section 2: a coordinator under Oz LaTmura does the role hour within the school"
+    ELSE FULFILLED
+
+§§ `3`
+
+-- Section 3: the Ministry's reimbursement for the coordinators' role hours
+-- reaches the owners through the payment system and is shown in מית"ר
+-- (explained in the מית"ר circular of 11/2011): topic 559 for upper divisions
+-- that joined Oz LaTmura (with their other role hours), topic 560 for those
+-- that have not.
+@ref akn:art_3
+GIVEN u IS AN `upper division`
+GIVETH A NUMBER
+DECIDE `the מית"ר topic of the reimbursement` u IS
+    IF u's `joined Oz LaTmura`
+    THEN 559
+    ELSE 560
+
+-- akn:conclusions The contact line for questions, the sign-off and signature; no rule.
+
+-- Worked examples.
+#ASSERT `this circular applies to` (`upper-division employee` WITH `in the teaching-staff grade` IS TRUE, `employed in the upper division` IS TRUE, `employed by an owner of secondary education supervised by the Ministry` IS TRUE)
+#ASSERT NOT `this circular applies to` (`upper-division employee` WITH `in the teaching-staff grade` IS TRUE, `employed in the upper division` IS FALSE, `employed by an owner of secondary education supervised by the Ministry` IS TRUE)
+
+`a three-year upper division with twelve classes` MEANS
+    `upper division` WITH
+        `span`              IS `a three-year school`
+        `classes`           IS LIST `school class` 10, `school class` 10, `school class` 10, `school class` 10,
+                                    `school class` 11, `school class` 11, `school class` 11, `school class` 11,
+                                    `school class` 12, `school class` 12, `school class` 12, `school class` 12
+        `joined Oz LaTmura` IS FALSE
+
+`a four-year upper division with five classes` MEANS
+    `upper division` WITH
+        `span`              IS `a four-year school`
+        `classes`           IS LIST `school class` 9, `school class` 10, `school class` 11, `school class` 12, `school class` 13
+        `joined Oz LaTmura` IS TRUE
+
+#ASSERT `the coordinators' pool` `a three-year upper division with twelve classes` EQUALS 6
+#ASSERT `the coordinators' pool` `a four-year upper division with five classes` EQUALS 2.5
+#ASSERT `an allocation section 2 allows` (LIST 1, 1, 0.5) `a four-year upper division with five classes`
+#ASSERT NOT `an allocation section 2 allows` (LIST 1.5, 1) `a four-year upper division with five classes`
+#ASSERT `the מית"ר topic of the reimbursement` `a four-year upper division with five classes` EQUALS 559
+
+#TRACE `allocating a coordinator's role hours` `a three-year upper division with twelve classes` AT 0 WITH
+    PARTY `the school principal` DOES `allocate role hours` 1 AT 0
+#TRACE `doing the role hour in school` TRUE AT 0 WITH
+    PARTY `the teaching employee` DOES `do the role hour outside the school` AT 0

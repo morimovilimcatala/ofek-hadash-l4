@@ -1,0 +1,177 @@
+-- חוזר לבעלויות תשע"ד/3 — תשלום מקדמות לעו"ה עובדי בעלויות בחט"ב הרשמיות
+-- המועסקים בהתאם לרפורמת "אופק חדש" בשנה"ל תשע"ד
+-- Changes section 5 of circular תשע"ד/1: the Ofek Hadash advance for
+-- teaching employees who are not principals or first deputies is 30%, not
+-- 27%, retroactively from 27.8.2013; the other rates stay. Owners whose
+-- teachers have no grade yet are to follow the attached accountant's
+-- instructions so that advances are not paid for an unreasonable time.
+
+IMPORT prelude
+IMPORT common
+
+-- Dates are numbers YYYYMMDD.
+`27 August 2013` MEANS 20130827
+
+§ `חוזר תשע"ד/3 מקדמות אופק חדש תשע"ד`
+
+-- akn:preamble The letterhead and the circular's title; no rule.
+-- akn:art_1/p1 Says the circular changes section 5 of circular תשע"ד/1 on the advance rates; the change is the rules below.
+-- akn:art_1/p2 The heading "מרכיבי מקדמות השכר"; no rule.
+
+DECLARE `role in the junior high` IS ONE OF
+    `a teacher`
+    `an intern`
+    `a principal`
+    `a first deputy principal`
+
+-- 1.1 (¶1): teachers whose Ofek Hadash grade is not yet set get, besides
+-- their present salary, an advance computed on it (not on Ofek terms), on
+-- these components.
+DECLARE `salary component` IS ONE OF
+    `combined salary`
+    `the '87 supplement`
+    `the '94 supplement`
+    `the 2001 supplement`
+    `the 2008 supplement`
+    `split-day allowance`
+    `in-service training allowances`
+    `double-degree allowance`
+    `the 2011 supplement`
+    `another component`
+
+@ref akn:art_1__para_1-1
+GIVEN c IS A `salary component`
+GIVETH A BOOLEAN
+DECIDE `in the advance base` c IF
+    NOT c EQUALS `another component`
+
+DECLARE `component paid` HAS
+    `component`   IS A `salary component`
+    `amount paid` IS A NUMBER
+
+-- ¶2: for the junior-high fraction only, from the joining date; the owner
+-- computes and pays it, as "מקדמת אופק חדש".
+@ref akn:art_1__para_1-1/p2
+GIVEN `date` IS A NUMBER @desc YYYYMMDD
+      `joining date` IS A NUMBER @desc the date the teacher joined the reform, YYYYMMDD
+      `grade set` IS A BOOLEAN @desc whether the Ofek Hadash grade has been set
+GIVETH A BOOLEAN
+DECIDE `an advance is due` `date` `joining date` `grade set` IF
+    `date` AT LEAST `joining date` AND NOT `grade set`
+
+-- ¶3: the advance for teaching employees who are not principals or first
+-- deputies is 30%, not 27% as circular תשע"ד/1 wrote, retroactively from
+-- 27.8.2013 (the start of school year תשע"ד). ¶4-¶6: interns 22%, first
+-- deputies 20%, principals 15% — unchanged.
+DECLARE `advance row` IS ONE OF
+    `teachers who are not principals or first deputies`
+    `interns`
+    `first deputies`
+    `principals`
+
+@ref akn:art_1__para_1-1/p3 akn:art_1__para_1-1/p4 akn:art_1__para_1-1/p5 akn:art_1__para_1-1/p6
+GIVEN row IS AN `advance row`, `date` IS A NUMBER @desc YYYYMMDD
+GIVETH A NUMBER
+DECIDE `the rate the row prints` row `date` IS
+    CONSIDER row
+    -- before 27.8.2013: the 27% that ¶3 quotes from circular תשע"ד/1.
+    WHEN `teachers who are not principals or first deputies` THEN IF `date` AT LEAST `27 August 2013` THEN 30% ELSE 27%
+    WHEN `interns`        THEN 22%
+    WHEN `first deputies` THEN 20%
+    WHEN `principals`     THEN 15%
+
+GIVEN row IS AN `advance row`, r IS A `role in the junior high`
+GIVETH A BOOLEAN
+DECIDE `the row covers` row r IF
+    CONSIDER row
+    WHEN `teachers who are not principals or first deputies` THEN (NOT r EQUALS `a principal`) AND (NOT r EQUALS `a first deputy principal`)
+    WHEN `interns`        THEN r EQUALS `an intern`
+    WHEN `first deputies` THEN r EQUALS `a first deputy principal`
+    WHEN `principals`     THEN r EQUALS `a principal`
+
+`the advance rows` MEANS
+    LIST `teachers who are not principals or first deputies`, `interns`, `first deputies`, `principals`
+
+GIVEN r IS A `role in the junior high`, `date` IS A NUMBER
+GIVETH A LIST OF NUMBER
+DECIDE `the advance rates the rows give` r `date` IS
+    map (GIVEN row YIELD `the rate the row prints` row `date`)
+        (filter (GIVEN row YIELD `the row covers` row r) `the advance rows`)
+
+-- F-2013-14_tashad_03-a: an intern is a teaching employee who is not a
+-- principal or first deputy: two rows, 30% and 22%.
+`an intern has two advance rates` MEANS
+    `the advance rates the rows give` `an intern` 20131001 EQUALS LIST 30%, 22%
+#ASSERT `an intern has two advance rates`
+
+-- The reading adopted: the row that names interns governs them.
+GIVEN r IS A `role in the junior high`, `date` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the advance rate` r `date` IS
+    CONSIDER r
+    WHEN `an intern`                THEN `the rate the row prints` `interns` `date`
+    WHEN `a first deputy principal` THEN `the rate the row prints` `first deputies` `date`
+    WHEN `a principal`              THEN `the rate the row prints` `principals` `date`
+    OTHERWISE `the rate the row prints` `teachers who are not principals or first deputies` `date`
+
+@export default The monthly "Ofek Hadash advance" for a junior-high owner's employee under circular תשע"ד/3
+GIVEN r IS A `role in the junior high` @desc the employee's role
+      `date` IS A NUMBER @desc the month the advance is for, YYYYMMDD
+      `components` IS A LIST OF `component paid` @desc the present salary's components for the junior-high fraction
+GIVETH A NUMBER
+DECIDE `the Ofek Hadash advance` r `date` `components` IS
+    `the advance rate` r `date`
+    TIMES sum (map (GIVEN c YIELD IF `in the advance base` (c's `component`) THEN c's `amount paid` ELSE 0) `components`)
+
+-- The change is retroactive: what was paid at 27% from 27.8.2013 is
+-- topped up to 30%.
+GIVEN `base` IS A NUMBER, `months since 27.8.2013 paid at 27%` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the retroactive difference` `base` `months since 27.8.2013 paid at 27%` IS
+    (30% MINUS 27%) TIMES `base` TIMES `months since 27.8.2013 paid at 27%`
+
+DECLARE `advance action` IS ONE OF
+    `pay the retroactive difference` HAS `difference paid` IS A NUMBER
+    `act on the accountant's instructions to set grades`
+
+-- The instruction to the owners: apply the 30% retroactively. School
+-- months (September = 1); the circular sets no month, so the next salary.
+@ref akn:art_1__para_1-1/p3
+GIVEN `base` IS A NUMBER, `months` IS A NUMBER
+GIVETH A DEONTIC Party `advance action`
+DECIDE `the retroactive top-up` `base` `months` IS
+    PARTY `the local authority or owning body`
+    MUST  `pay the retroactive difference` d PROVIDED d AT LEAST `the retroactive difference` `base` `months`
+    WITHIN 1
+    LEST  BREACH BY `the local authority or owning body` BECAUSE "circular תשע\"ד/3, 1.1: the 30% applies retroactively from 27.8.2013"
+
+-- 2: the Ministry goes on converting; owners whose teachers have no grade
+-- yet must act on the attached accountant's instructions, so that advances
+-- are not paid for an unreasonable time (¶2-¶4: the attachment's title;
+-- its content is not in the text).
+@ref akn:art_2 akn:art_2/p2 akn:art_2/p3 akn:art_2/p4
+GIVEN `a teacher's grade is not yet set` IS A BOOLEAN
+GIVETH A DEONTIC Party `advance action`
+DECIDE `owners act to set the grades` `a teacher's grade is not yet set` IS
+    IF `a teacher's grade is not yet set`
+    THEN PARTY `the local authority or owning body`
+         MUST  `act on the accountant's instructions to set grades`
+    ELSE FULFILLED
+
+-- akn:art_2/p5 akn:art_2/p6 The Ofek Hadash centre's contact details; no rule.
+-- akn:conclusions The greeting and the two signatures; no rule.
+
+-- Examples; the components are placeholders, not from a payslip.
+`a teacher's components` MEANS
+    LIST `component paid` `combined salary` 6000,
+         `component paid` `the 2008 supplement` 400,
+         `component paid` `another component` 1000
+
+#ASSERT `the Ofek Hadash advance` `a teacher` 20131001 `a teacher's components` EQUALS 1920
+#ASSERT `the Ofek Hadash advance` `a principal` 20131001 `a teacher's components` EQUALS 960
+#ASSERT `the advance rate` `a teacher` 20130801 EQUALS 27%
+#ASSERT `the retroactive difference` 6400 3 EQUALS 576
+#ASSERT `an advance is due` 20131001 20130901 FALSE
+
+#TRACE `the retroactive top-up` 6400 3 AT 0 WITH
+    PARTY `the local authority or owning body` DOES `pay the retroactive difference` 576 AT 1

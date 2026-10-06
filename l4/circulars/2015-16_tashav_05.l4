@@ -1,0 +1,245 @@
+-- חוזר לבעלויות תשע"ו/5 (28.3.2016): תשלום מענק חד פעמי לעובדי הוראה בחטיבות העליונות
+-- The one-time grant of 1,000 NIS under the collective agreement with the
+-- Secondary School Teachers' Association of 20.3.2016, for teaching staff in
+-- the high schools (the upper division):
+-- who qualifies (the determining period and what does not break it), the
+-- amount by the average position, its treatment for pay purposes, and when
+-- it is paid.
+
+IMPORT prelude
+IMPORT common
+
+§ `חוזר לבעלויות תשע"ו/5 — מענק חד פעמי לעובדי הוראה בחטיבות העליונות`
+
+-- akn:preamble The letterhead, the date (28.3.2016), the reference number, the addressee and the subject; the recitals (the collective agreement of 20.3.2016 and the Treasury wage director's circular of 22.2.2016), the "תחולה" heading and the introduction to the instructions carry no rule of their own. The application paragraph is encoded below.
+
+DECLARE `grant action` IS ONE OF
+    `pay the one-time grant` HAS `grant amount paid` IS A NUMBER
+    `indemnify the owner for the one-time grant` HAS `grant indemnity` IS A NUMBER
+
+DECLARE `grant stage` IS ONE OF
+    `kindergarten`
+    `elementary school`
+    `junior high school`
+    `teacher-training college`
+    `high school`
+
+-- What happened to the employee's employment during the determining period.
+DECLARE `break kind` IS ONE OF
+    `maternity leave under section 6 of the Women's Employment Law`
+    `unpaid leave or absence treated as unpaid leave, after maternity leave or not`
+    `reserve duty`
+    `paid sick leave under takanon chapter 1.25.3`
+    `holiday or summer recess`
+    `end of employment`
+
+@desc A teaching employee's employment as far as the one-time grant asks about it. Months are salary months.
+DECLARE `grant case` HAS
+    `graded as a teaching employee of a supervised owner` IS A BOOLEAN @desc graded as a teaching employee and employed in an institution the Ministry of Education supervises
+    `stage`                                               IS A `grant stage`
+    `employed on 1.9.2015 and on 1.12.2015`               IS A BOOLEAN @desc employed at both ends of the determining period
+    `breaks in the determining period`                    IS A LIST OF `break kind` @desc every interruption between 1.9.2015 and 1.12.2015
+    `paid for 4 full months and a day in a row from 1.9.2015 to 31.1.2016` IS A BOOLEAN @desc for an employee on unpaid leave (section 1e(8)(1))
+    `monthly positions 1.12.2014 to 30.11.2015`           IS A LIST OF NUMBER @desc the share of a full position in each month of the period actually employed (a month of maternity leave at the share held on the eve of the leave)
+    `monthly positions 1.12.2015 to 30.6.2016`            IS A LIST OF NUMBER @desc the same, for the months of that period with salary (used only where the first period has none)
+
+-- Preamble, application: every teaching employee employed in the
+-- institutions the ministry supervises, in the upper division.
+@ref akn:preamble/p18
+GIVEN c IS A `grant case`
+GIVETH A BOOLEAN
+DECIDE `covered by the circular` c IF
+        c's `graded as a teaching employee of a supervised owner`
+    AND c's `stage` EQUALS `high school`
+
+§§ `1 תשלום המענק`
+
+-- §1ה(1)–(7): maternity leave (and a father's under the same law, ¶(4)),
+-- reserve duty, paid sick leave and the holiday and summer recesses do not
+-- break the continuity; ¶(1) ¶2 notes that maternity leave is generally 26
+-- weeks unless extended under section 6.
+@ref akn:art_1__para_e__subpara_1 akn:art_1__para_e__subpara_4 akn:art_1__para_e__subpara_5 akn:art_1__para_e__subpara_6 akn:art_1__para_e__subpara_7
+GIVEN b IS A `break kind`
+GIVETH A BOOLEAN
+DECIDE `keeps the continuity` b IF
+    CONSIDER b
+    WHEN `maternity leave under section 6 of the Women's Employment Law` THEN TRUE
+    WHEN `reserve duty` THEN TRUE
+    WHEN `paid sick leave under takanon chapter 1.25.3` THEN TRUE
+    WHEN `holiday or summer recess` THEN TRUE
+    OTHERWISE FALSE
+
+-- §1ה(2): unpaid leave after maternity leave is not maternity leave; §1ה(8)
+-- governs it, as it governs any unpaid leave in the period.
+@ref akn:art_1__para_e__subpara_2 akn:art_1__para_e__subpara_8
+GIVEN c IS A `grant case`
+GIVETH A BOOLEAN
+DECIDE `on unpaid leave in the determining period` c IF
+    elem `unpaid leave or absence treated as unpaid leave, after maternity leave or not` (c's `breaks in the determining period`)
+
+-- §1א: employed continuously from 1.9.2015 to 1.12.2015 ("the determining
+-- period"). §1ה(3): the other conditions apply to maternity leave too.
+@ref akn:art_1__para_a akn:art_1__para_e akn:art_1__para_e__subpara_3
+GIVEN c IS A `grant case`
+GIVETH A BOOLEAN
+DECIDE `employed continuously in the determining period` c IF
+        c's `employed on 1.9.2015 and on 1.12.2015`
+    AND all (GIVEN b YIELD `keeps the continuity` b) (c's `breaks in the determining period`)
+
+-- §1ה.8.1: on unpaid leave, entitled if paid for 4 full months and one more
+-- day in a row between 1.9.2015 and 31.1.2016, full- or part-time.
+-- F-2015-16_tashav_05-a: "לפי הוראות שבפסקה (2) להלן" is read as §1ה.8.2.
+@ref akn:art_1__para_e__subpara_8__cls_1
+GIVEN c IS A `grant case`
+GIVETH A BOOLEAN
+DECIDE `entitled to the grant` c IF
+    `covered by the circular` c
+    AND (    `employed continuously in the determining period` c
+         OR (    `on unpaid leave in the determining period` c
+             AND c's `paid for 4 full months and a day in a row from 1.9.2015 to 31.1.2016`))
+
+GIVEN xs IS A LIST OF NUMBER
+GIVETH A NUMBER
+DECIDE `the monthly average of` xs IS
+    IF count xs EQUALS 0
+    THEN 0
+    ELSE sum xs DIVIDED BY count xs
+
+-- §1ב: the average monthly position over 1.12.2014–30.11.2015, over the
+-- months actually employed (¶2); §1ה.8.2: on unpaid leave, the same months
+-- actually employed, or, with no salary in them at all, the salaried months
+-- of 1.12.2015–30.6.2016. §1ה(1) ¶3: a month of maternity leave counts at
+-- the position held on its eve (an input convention of the list).
+@ref akn:art_1__para_b akn:art_1__para_e__subpara_8__cls_2
+GIVEN c IS A `grant case`
+GIVETH A NUMBER
+DECIDE `the representative average position` c IS
+    IF count (c's `monthly positions 1.12.2014 to 30.11.2015`) GREATER THAN 0
+    THEN `the monthly average of` (c's `monthly positions 1.12.2014 to 30.11.2015`)
+    ELSE `the monthly average of` (c's `monthly positions 1.12.2015 to 30.6.2016`)
+
+-- §1א, §1ב: 1,000 NIS for a full position; §1ד(3): pro rata, at most one.
+@ref akn:art_1__para_d__subpara_3
+`the full one-time grant` MEANS 1000
+
+@export default The one-time grant of March 2016 a high-school teaching employee is owed under owners' circular 2015-16/5
+GIVEN c IS A `grant case` @desc the employee's employment
+GIVETH A NUMBER
+DECIDE `one-time grant` c IS
+    IF `entitled to the grant` c
+    THEN `the full one-time grant` TIMES min (`the representative average position` c) 1
+    ELSE 0
+
+-- §1ג, §1ד(1)–(2): not salary for any purpose: not counted for severance,
+-- the overtime hourly value, provident-fund contributions of any kind, the
+-- minimum-wage top-up, or the salary base of the combined-salary table.
+@ref akn:art_1__para_c akn:art_1__para_d__subpara_1 akn:art_1__para_d__subpara_2
+DECLARE `grant pay purpose` IS ONE OF
+    `salary for any purpose`
+    `severance pay`
+    `the overtime hourly value`
+    `provident-fund contributions`
+    `the minimum-wage top-up`
+    `the combined-salary base`
+
+GIVEN p IS A `grant pay purpose`
+GIVETH A BOOLEAN
+DECIDE `the one-time grant counts for` p IF
+    FALSE
+
+-- akn:art_1__para_d "למען הסר ספק" (for the avoidance of doubt): the heading of its three paragraphs, encoded above.
+
+-- Time in salary months from January 2016 (month 1): March is 3, April 4,
+-- June 6, July 7. §1 and §1ו ¶2: with March 2016's salary (paid in April)
+-- and no later than April's (paid in May). §1ה(1): a woman on maternity
+-- leave, with the first salary after her return and no later than the next.
+-- §1ה.8.3: on unpaid leave, with June 2016's salary, no later than July's.
+@ref akn:art_1 akn:art_1__para_f/p2 akn:art_1__para_e__subpara_8__cls_3
+GIVEN c IS A `grant case`
+      `on maternity leave at the payment date` IS A BOOLEAN
+      `salary month of her return` IS A NUMBER @desc in salary months from January 2016
+GIVETH A NUMBER
+DECIDE `the last salary month for the grant` c `on maternity leave at the payment date` `salary month of her return` IS
+    IF `on maternity leave at the payment date`
+    THEN `salary month of her return` PLUS 1
+    ELSE IF `on unpaid leave in the determining period` c
+         THEN 7
+         ELSE 4
+
+GIVEN c IS A `grant case`
+      `on maternity leave at the payment date` IS A BOOLEAN
+      `salary month of her return` IS A NUMBER
+GIVETH A DEONTIC Party `grant action`
+DECIDE `paying the one-time grant` c `on maternity leave at the payment date` `salary month of her return` IS
+    IF `entitled to the grant` c
+    THEN PARTY `the employer`
+         MUST  `pay the one-time grant` `amount`
+               PROVIDED `amount` AT LEAST `one-time grant` c
+         WITHIN `the last salary month for the grant` c `on maternity leave at the payment date` `salary month of her return`
+         LEST BREACH BY `the employer` BECAUSE "circular 2015-16/5 section 1: the one-time grant is paid by the salary month the circular sets"
+    ELSE FULFILLED
+
+-- §1ו: the owners are indemnified in the payment system; the circular names
+-- no date for it.
+@ref akn:art_1__para_f
+GIVEN `grants paid` IS A NUMBER
+GIVETH A DEONTIC Party `grant action`
+DECIDE `indemnifying the owner` `grants paid` IS
+    PARTY `the Ministry of Education`
+    MUST  `indemnify the owner for the one-time grant` `amount`
+          PROVIDED `amount` AT LEAST `grants paid`
+
+-- F-2015-16_tashav_05-a: §1ה.8.1 points to "פסקה (2) להלן", paragraph (2)
+-- below. The paragraphs below it are numbered 1.ה.8.2, 1.ה.8.3 and ו; the
+-- only "(2)" in the section, §1ה(2), is above it and is about maternity leave.
+`the labels below §1ה.8.1` MEANS LIST "1.ה.8.2", "1.ה.8.3", "ו"
+`the labels above §1ה.8.1 in §1ה` MEANS LIST "(1)", "(2)", "(3)", "(4)", "(5)", "(6)", "(7)", "(8)"
+`no paragraph (2) is below §1ה.8.1` MEANS
+        NOT elem "(2)" `the labels below §1ה.8.1`
+    AND elem "(2)" `the labels above §1ה.8.1 in §1ה`
+#ASSERT `no paragraph (2) is below §1ה.8.1`
+
+-- akn:conclusions The signatures (Sonia Peretz) and the list of copies; no rule.
+
+-- Worked examples.
+`a full-time high-school teacher` MEANS
+    `grant case` WITH
+        `graded as a teaching employee of a supervised owner` IS TRUE
+        `stage`                                               IS `high school`
+        `employed on 1.9.2015 and on 1.12.2015`               IS TRUE
+        `breaks in the determining period`                    IS LIST `holiday or summer recess`
+        `paid for 4 full months and a day in a row from 1.9.2015 to 31.1.2016` IS TRUE
+        `monthly positions 1.12.2014 to 30.11.2015`           IS LIST 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1.2
+        `monthly positions 1.12.2015 to 30.6.2016`            IS EMPTY
+
+`a teacher who started in September 2015 at half a position` MEANS
+    `grant case` WITH
+        `graded as a teaching employee of a supervised owner` IS TRUE
+        `stage`                                               IS `high school`
+        `employed on 1.9.2015 and on 1.12.2015`               IS TRUE
+        `breaks in the determining period`                    IS EMPTY
+        `paid for 4 full months and a day in a row from 1.9.2015 to 31.1.2016` IS TRUE
+        `monthly positions 1.12.2014 to 30.11.2015`           IS LIST 0.5, 0.5, 0.5
+        `monthly positions 1.12.2015 to 30.6.2016`            IS EMPTY
+
+`a teacher on unpaid leave in October with no salary run` MEANS
+    `grant case` WITH
+        `graded as a teaching employee of a supervised owner` IS TRUE
+        `stage`                                               IS `high school`
+        `employed on 1.9.2015 and on 1.12.2015`               IS TRUE
+        `breaks in the determining period`                    IS LIST `unpaid leave or absence treated as unpaid leave, after maternity leave or not`
+        `paid for 4 full months and a day in a row from 1.9.2015 to 31.1.2016` IS FALSE
+        `monthly positions 1.12.2014 to 30.11.2015`           IS LIST 1, 1, 1
+        `monthly positions 1.12.2015 to 30.6.2016`            IS EMPTY
+
+#ASSERT `one-time grant` `a full-time high-school teacher` EQUALS 1000
+#ASSERT `one-time grant` `a teacher who started in September 2015 at half a position` EQUALS 500
+#ASSERT `one-time grant` `a teacher on unpaid leave in October with no salary run` EQUALS 0
+#ASSERT NOT `the one-time grant counts for` `severance pay`
+
+#TRACE `paying the one-time grant` `a full-time high-school teacher` FALSE 0 AT 0 WITH
+    PARTY `the employer` DOES `pay the one-time grant` 1000 AT 3
+#TRACE `paying the one-time grant` `a full-time high-school teacher` TRUE 5 AT 0 WITH
+    PARTY `the employer` DOES `pay the one-time grant` 1000 AT 6
+#TRACE `paying the one-time grant` `a full-time high-school teacher` FALSE 0 AT 0 WITH
+    PARTY `the employer` DOES `pay the one-time grant` 1000 AT 5

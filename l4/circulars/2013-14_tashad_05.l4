@@ -1,0 +1,121 @@
+-- חוזר לבעלויות תשע"ד/5 — עדכון תעריף דמי שתיה לעובדי הוראה בחטיבה העליונה (23.1.2014)
+-- The drinks allowance under the Etzioni agreement for upper-division
+-- teachers: who it is given for, its rate from 3/2013, and the Ministry's
+-- retroactive reimbursement of the owners.
+
+IMPORT prelude
+IMPORT common
+
+-- Months are numbers YYYYMM.
+`March 2013`     MEANS 201303
+`September 2013` MEANS 201309
+
+§ `חוזר תשע"ד/5 דמי שתיה בחטיבה העליונה`
+
+-- akn:preamble The letterhead, date, reference, addressee, greeting and subject line; no rule.
+-- akn:preamble/p13 The heading "כללי"; no rule.
+
+@desc A teaching employee's month at a school, as the drinks allowance asks about it.
+DECLARE `drinks month` HAS
+    `graded as a teaching employee`  IS A BOOLEAN @desc graded in the teaching-employees grading
+    `employed by a supervised owner` IS A BOOLEAN @desc employed by an owner of education supervised by the Ministry of Education
+    `in the upper division`          IS A BOOLEAN @desc employed in the upper division (only)
+    `position at the school`         IS A NUMBER  @desc the share of a position held at the school
+    `work month of the school year`  IS A NUMBER  @desc which month of the school year's work this is (1 to 12)
+    `month`                          IS A NUMBER  @desc the calendar month, YYYYMM
+
+-- ¶14: under the Etzioni agreement teachers have an allowance for drinks
+-- (coffee, tea, milk, sugar) during working hours at school. ¶15: it is
+-- given for each teacher employed at the school at a third of a position or
+-- more, for 10 working months of the school year.
+@ref akn:preamble/p14 akn:preamble/p15
+GIVEN m IS A `drinks month`
+GIVETH A BOOLEAN
+DECIDE `the allowance is given for the month` m IF
+        m's `position at the school` AT LEAST 1 DIVIDED BY 3
+    AND m's `work month of the school year` AT LEAST 1
+    AND m's `work month of the school year` AT MOST 10
+
+-- 1: the circular applies to owners' teaching employees in the upper
+-- division only.
+@ref akn:art_1/p1
+GIVEN m IS A `drinks month`
+GIVETH A BOOLEAN
+DECIDE `the circular applies to` m IF
+        m's `graded as a teaching employee`
+    AND m's `employed by a supervised owner`
+    AND m's `in the upper division`
+
+-- 2 ¶1: from 3/2013 the rate is 10.42 (printed "ש"ש"; the amount is per
+-- working month, by ¶15's ten months). Before 3/2013 this circular states
+-- no rate.
+@ref akn:art_2/p1
+GIVEN `month` IS A NUMBER @desc YYYYMM
+GIVETH A MAYBE NUMBER
+DECIDE `the drinks rate` `month` IS
+    IF `month` AT LEAST `March 2013` THEN JUST 10.42 ELSE NOTHING
+
+GIVEN m IS A `drinks month`
+GIVETH A NUMBER
+DECIDE `the drinks allowance for the month` m IS
+    IF `the circular applies to` m AND `the allowance is given for the month` m
+    THEN CONSIDER `the drinks rate` (m's `month`)
+         WHEN JUST r  THEN r
+         WHEN NOTHING THEN 0
+    ELSE 0
+
+-- 2 ¶2: accordingly the Ministry reimbursed the owners (subject 11 in the
+-- payments system) in the December 2013 payments, retroactively from
+-- September 2013.
+@ref akn:art_2/p2
+GIVEN `month` IS A NUMBER @desc YYYYMM
+GIVETH A BOOLEAN
+DECIDE `the Ministry reimburses the month at the new rate` `month` IF
+    `month` AT LEAST `September 2013`
+
+-- F-2013-14_tashad_05-a: the rate stands from 3/2013, the reimbursement
+-- at it from 9/2013; March to June 2013 are working months at the new
+-- rate that the circular reimburses at no rate.
+`a month at the new rate that is not reimbursed at it` MEANS
+        `the drinks rate` 201304 EQUALS JUST 10.42
+    AND NOT `the Ministry reimburses the month at the new rate` 201304
+#ASSERT `a month at the new rate that is not reimbursed at it`
+
+DECLARE `drinks action` IS ONE OF
+    `reimburse the owners at the new rate` HAS `reimbursed from month` IS A NUMBER
+
+-- The reimbursement as an obligation; time in months from September 2013
+-- (December 2013 = 3).
+GIVETH A DEONTIC Party `drinks action`
+DECIDE `the December 2013 reimbursement` IS
+    PARTY `the Ministry of Education`
+    MUST  `reimburse the owners at the new rate` m PROVIDED m AT MOST `September 2013`
+    WITHIN 3
+    LEST  BREACH BY `the Ministry of Education` BECAUSE "circular תשע\"ד/5, section 2: reimbursement in the December 2013 payments, retroactive from September 2013"
+
+-- akn:conclusions The contact line, the signature, the list of copies and the footer; no rule.
+
+-- Examples.
+`a full-time teacher in October 2013` MEANS
+    `drinks month` WITH
+        `graded as a teaching employee`  IS TRUE
+        `employed by a supervised owner` IS TRUE
+        `in the upper division`          IS TRUE
+        `position at the school`         IS 1
+        `work month of the school year`  IS 2
+        `month`                          IS 201310
+
+`a quarter-time teacher in October 2013` MEANS
+    `drinks month` WITH
+        `graded as a teaching employee`  IS TRUE
+        `employed by a supervised owner` IS TRUE
+        `in the upper division`          IS TRUE
+        `position at the school`         IS 0.25
+        `work month of the school year`  IS 2
+        `month`                          IS 201310
+
+#ASSERT `the drinks allowance for the month` `a full-time teacher in October 2013` EQUALS 10.42
+#ASSERT `the drinks allowance for the month` `a quarter-time teacher in October 2013` EQUALS 0
+
+#TRACE `the December 2013 reimbursement` AT 0 WITH
+    PARTY `the Ministry of Education` DOES `reimburse the owners at the new rate` 201309 AT 3

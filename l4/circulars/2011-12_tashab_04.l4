@@ -1,0 +1,215 @@
+-- חוזר לבעלויות תשע"ב/4: תשלום תוספת שחיקה לעובדי הוראה במסגרת הסכם קיבוצי
+-- כללי ליישום רפורמת "עוז לתמורה"
+-- The 2011 erosion addition of 2.1% from 1.9.2011 for teaching staff of the
+-- owners' upper divisions, under section 39 of the general collective
+-- agreement of 14.8.2011: who it applies to, the base it is computed on, what
+-- it counts toward, and payment in September 2011.
+
+IMPORT prelude
+IMPORT common
+
+§ `תשע"ב/4 תשלום תוספת שחיקה לעובדי הוראה`
+
+-- akn:preamble The letterhead, date (21.9.2011), reference number, addressee, and the lead-in: the general collective agreement of 14.8.2011 (approved by the Wage Commissioner) implements Oz LaTmura in the upper divisions, this circular publishes the erosion addition under its section 39, other changes are to follow; no rule of its own.
+
+-- The corpus nests the page's sections 1 (תחולה) and 2 (יישום תוספת שחיקה)
+-- under the second of the two numbered notes, and its section 3 (ביצוע
+-- תשלומים) as two paragraphs of that note. The comments use the page's numbers.
+
+-- akn:art_1 A note: a school entering the Oz LaTmura reform will be told so separately by the Ministry; no rule here.
+-- akn:art_2/p1 A note: the agreement's text is on the Oz LaTmura website; no rule.
+
+-- Time is counted in school months of 2011/12 (common.l4: September 2011 = 1).
+
+@desc A school by the division of grades section 1ב uses.
+DECLARE `school kind` IS ONE OF
+    `a six-year school`
+    `a three-year school`
+    `another school`
+
+@desc The division the school itself places a class in.
+DECLARE `school division` IS ONE OF
+    `the upper division`
+    `the middle division`
+
+@desc One portion of a teaching employee's employment by an owner, by the grade it teaches.
+DECLARE `erosion portion` HAS
+    `in the teaching-staff grade`        IS A BOOLEAN
+    `employed by an owner of secondary education supervised by the Ministry` IS A BOOLEAN
+    `kind of school`                     IS A `school kind`
+    `grade taught`                       IS A NUMBER @desc 7 to 14 (ז' to י"ד)
+    `division the school places it in`   IS A `school division`
+    `in a three- or four-year upper division` IS A BOOLEAN @desc the school's upper division is a three- or four-year one (section 1א)
+    `combined salary`                    IS A NUMBER @desc the combined salary of the portion, shekels a month
+    `tosefet '87`                        IS A NUMBER
+    `tosefet '94`                        IS A NUMBER
+    `tosefet 2008 amount`                IS A NUMBER
+    `tosefet 2001 amount`                IS A NUMBER
+
+DECLARE `erosion action` IS ONE OF
+    `pay the erosion addition` HAS `erosion paid` IS A NUMBER
+
+§§ `1 תחולה`
+
+@ref akn:art_2__hc_1__para_a
+GIVEN p IS AN `erosion portion`
+GIVETH A BOOLEAN
+DECIDE `the employee is within section 1א` p IF
+        p's `in the teaching-staff grade`
+    AND p's `employed by an owner of secondary education supervised by the Ministry`
+    AND p's `in a three- or four-year upper division`
+
+-- Section 1ב: where the employee teaches in both divisions, only the upper
+-- division's portion counts: grades ט'–י"ד in a six-year school, י'–י"ד in a
+-- three-year school.
+@ref akn:art_2__hc_1__para_b
+GIVEN p IS AN `erosion portion`
+GIVETH A BOOLEAN
+DECIDE `an upper-division portion by section 1ב` p IF
+    CONSIDER p's `kind of school`
+    WHEN `a six-year school` THEN p's `grade taught` AT LEAST 9 AND p's `grade taught` AT MOST 14
+    WHEN `a three-year school` THEN p's `grade taught` AT LEAST 10 AND p's `grade taught` AT MOST 14
+    WHEN `another school` THEN p's `division the school places it in` EQUALS `the upper division`
+
+-- F-2011-12_tashab_04-a: in a six-year school whose upper division is a
+-- three-year one, grade 9 is in the school's middle division and section
+-- 1ב's grades put it in the upper. The reading adopted: section 1ב's grades,
+-- the clause written to settle exactly this split.
+`grade 9 of a six-year school with a three-year upper division` MEANS
+    `erosion portion` WITH
+        `in the teaching-staff grade`        IS TRUE
+        `employed by an owner of secondary education supervised by the Ministry` IS TRUE
+        `kind of school`                     IS `a six-year school`
+        `grade taught`                       IS 9
+        `division the school places it in`   IS `the middle division`
+        `in a three- or four-year upper division` IS TRUE
+        `combined salary`                    IS 8000
+        `tosefet '87`                        IS 160
+        `tosefet '94`                        IS 140
+        `tosefet 2008 amount`                IS 400
+        `tosefet 2001 amount`                IS 300
+
+`section 1ב places in the upper division a grade the school places in the middle` MEANS
+        `an upper-division portion by section 1ב` `grade 9 of a six-year school with a three-year upper division`
+    AND `grade 9 of a six-year school with a three-year upper division`'s `division the school places it in` EQUALS `the middle division`
+#ASSERT `section 1ב places in the upper division a grade the school places in the middle`
+
+-- Section 1ג: the middle-school portion of such an employee, not yet under
+-- Ofek Hadash, is to be paid for erosion under a collective agreement still
+-- to be signed; its terms are not in this circular, so it is not priced here.
+@ref akn:art_2__hc_1__para_c
+GIVEN p IS AN `erosion portion`
+GIVETH A BOOLEAN
+DECIDE `awaits the agreement still to be signed` p IF
+        `the employee is within section 1א` p
+    AND (NOT `an upper-division portion by section 1ב` p)
+
+§§ `2 יישום תוספת שחיקה בשיעור 2.1%`
+
+`the erosion rate` MEANS 0.021
+
+@ref akn:art_2__hc_2__para_a
+GIVEN p IS AN `erosion portion`
+GIVETH A NUMBER
+DECIDE `the base of the erosion addition` p IS
+    p's `combined salary`
+    PLUS p's `tosefet '87`
+    PLUS p's `tosefet '94`
+    PLUS p's `tosefet 2008 amount`
+    PLUS p's `tosefet 2001 amount`
+
+@export default The monthly 2011 erosion addition from 1.9.2011 for one portion of a teaching employee's employment under circular תשע"ב/4
+GIVEN p IS AN `erosion portion` @desc the portion of employment, by the grade it teaches
+GIVETH A NUMBER
+DECIDE `the erosion addition` p IS
+    IF `the employee is within section 1א` p AND `an upper-division portion by section 1ב` p
+    THEN `the erosion rate` TIMES `the base of the erosion addition` p
+    ELSE 0
+
+@desc A use the erosion addition may be counted toward, as section 2ב asks.
+DECLARE `erosion use` IS ONE OF
+    `percentage additions computed from the combined salary`
+    `tosefet 2001`
+    `tosefet 2008`
+    `tosefet Oz LaTmura`
+    `tosefet 2011`
+    `promotion-grade addition`
+    `the hourly value`
+    `severance pay under the Severance Pay Law`
+    `contributions to a pension provident fund, the study fund and the Dafna fund`
+
+-- Section 2ב: a separate salary component, counted toward the percentage
+-- additions from the combined salary except the five it names, and toward
+-- the hourly value, severance pay and the three funds. Section 2ג: tosefet
+-- Oz LaTmura and the promotion grade are new additions for those who joined
+-- the reform.
+@ref akn:art_2__hc_2__para_b akn:art_2__hc_2__para_c
+GIVEN u IS AN `erosion use`
+GIVETH A BOOLEAN
+DECIDE `the erosion addition counts toward` u IF
+    CONSIDER u
+    WHEN `tosefet 2001` THEN FALSE
+    WHEN `tosefet 2008` THEN FALSE
+    WHEN `tosefet Oz LaTmura` THEN FALSE
+    WHEN `tosefet 2011` THEN FALSE
+    WHEN `promotion-grade addition` THEN FALSE
+    OTHERWISE TRUE
+
+DECLARE `payslip component` IS ONE OF
+    `a separate salary component`
+    `part of another component`
+
+@ref akn:art_2__hc_2__para_b
+`how the erosion addition is paid` MEANS `a separate salary component`
+
+§§ `3 ביצוע תשלומים`
+
+@ref akn:art_2/p2 akn:art_2/p3
+GIVEN p IS AN `erosion portion`
+GIVETH A DEONTIC Party `erosion action`
+DECIDE `paying the erosion addition with September's salary` p IS
+    PARTY `the local authority or owning body`
+    MUST  `pay the erosion addition` `amount`
+          PROVIDED `amount` AT LEAST `the erosion addition` p
+    WITHIN `month number` September
+    LEST BREACH BY `the local authority or owning body` BECAUSE "section 3: the payments are made with the September 2011 salary"
+
+-- akn:conclusions The contact line for questions, the sign-off and signature; no rule.
+
+-- Worked examples; the salary figures are round placeholders.
+`grade 11 of a three-year school` MEANS
+    `erosion portion` WITH
+        `in the teaching-staff grade`        IS TRUE
+        `employed by an owner of secondary education supervised by the Ministry` IS TRUE
+        `kind of school`                     IS `a three-year school`
+        `grade taught`                       IS 11
+        `division the school places it in`   IS `the upper division`
+        `in a three- or four-year upper division` IS TRUE
+        `combined salary`                    IS 8000
+        `tosefet '87`                        IS 160
+        `tosefet '94`                        IS 140
+        `tosefet 2008 amount`                IS 400
+        `tosefet 2001 amount`                IS 300
+
+`grade 8 of a six-year school` MEANS
+    `erosion portion` WITH
+        `in the teaching-staff grade`        IS TRUE
+        `employed by an owner of secondary education supervised by the Ministry` IS TRUE
+        `kind of school`                     IS `a six-year school`
+        `grade taught`                       IS 8
+        `division the school places it in`   IS `the middle division`
+        `in a three- or four-year upper division` IS TRUE
+        `combined salary`                    IS 8000
+        `tosefet '87`                        IS 160
+        `tosefet '94`                        IS 140
+        `tosefet 2008 amount`                IS 400
+        `tosefet 2001 amount`                IS 300
+
+#ASSERT `the erosion addition` `grade 11 of a three-year school` EQUALS 189
+#ASSERT `the erosion addition` `grade 8 of a six-year school` EQUALS 0
+#ASSERT `awaits the agreement still to be signed` `grade 8 of a six-year school`
+
+#TRACE `paying the erosion addition with September's salary` `grade 11 of a three-year school` AT 0 WITH
+    PARTY `the local authority or owning body` DOES `pay the erosion addition` 189 AT 1
+#TRACE `paying the erosion addition with September's salary` `grade 11 of a three-year school` AT 0 WITH
+    PARTY `the local authority or owning body` DOES `pay the erosion addition` 100 AT 1

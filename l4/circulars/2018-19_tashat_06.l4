@@ -1,0 +1,303 @@
+-- חוזר לבעלויות תשע"ט/6: תשלום דמי הבראה ומענק יובל לשנת הלימודים תשע"ט
+-- The recuperation allowance and the jubilee grant for school year
+-- תשע"ט: the day rate and days table, the pro-rating, the employment caps,
+-- the jubilee grant's entitlement and amount, and the June payment.
+
+IMPORT prelude
+IMPORT common
+
+-- Time in the regulative rules is counted in school months of תשע"ט
+-- (common.l4: September 2018 = 1, June 2019 = 10).
+
+§ `חוזר תשע"ט/6 הבראה ומענק יובל`
+
+-- akn:preamble The letterhead, date, reference, addressee, greeting and subject line; no rule.
+
+§§ `1 קצובת דמי הבראה`
+
+@ref akn:art_1__para_b
+`the recuperation day rate` MEANS 432
+
+@desc A printed row of §1c's table: years of teaching seniority and recuperation days.
+DECLARE `recuperation band` HAS
+    `seniority from` IS A NUMBER
+    `seniority to`   IS A NUMBER @desc 999 stands for "ומעלה"
+    `days`           IS A NUMBER
+
+@ref akn:art_1__para_c akn:art_1__para_c/p2 akn:art_1__para_c/p3 akn:art_1__para_c/p4 akn:art_1__para_c/p5 akn:art_1__para_c/p6 akn:art_1__para_c/p7 akn:art_1__para_c/p8
+`the recuperation days table` MEANS
+    LIST `recuperation band` 1  3   7,
+         `recuperation band` 4  10  9,
+         `recuperation band` 11 15  10,
+         `recuperation band` 16 19  11,
+         `recuperation band` 20 24  12,
+         `recuperation band` 25 999 13
+
+GIVEN n IS A NUMBER
+GIVETH A LIST OF NUMBER
+DECIDE `the days the table gives for year` n IS
+    map (GIVEN b YIELD b's `days`)
+        (filter (GIVEN b YIELD n AT LEAST b's `seniority from` AND n AT MOST b's `seniority to`)
+                `the recuperation days table`)
+
+GIVEN n IS A NUMBER
+GIVETH A NUMBER
+DECIDE `recuperation days` n IS sum (`the days the table gives for year` n)
+
+-- Every year of seniority from 1 to 40 falls in exactly one band.
+#ASSERT all (GIVEN n YIELD count (`the days the table gives for year` n) EQUALS 1) (range 1 40)
+
+@desc A teaching employee's school year תשע"ט, as far as the recuperation allowance asks.
+DECLARE `recuperation year` HAS
+    `seniority in teaching`   IS A NUMBER @desc the year of teaching seniority (the first year is 1)
+    `positions`               IS A LIST OF `position with an employer`
+    `months worked`           IS A NUMBER @desc months of work in the year
+
+DECLARE `position with an employer` HAS
+    `position fraction with the employer` IS A NUMBER @desc 1 = a full position
+
+GIVEN y IS A `recuperation year`
+GIVETH A NUMBER
+DECIDE `total position` y IS
+    sum (map (GIVEN p YIELD p's `position fraction with the employer`) (y's `positions`))
+
+-- §1d: a part-time employee gets the allowance in proportion to the
+-- position held that year, "1/10 for each month of work". The parenthesis
+-- is read as pro-rating by the months worked, a full year being ten months
+-- of work and never more (F-2018-19_tashat_06-a).
+@ref akn:art_1__para_d
+GIVEN y IS A `recuperation year`
+GIVETH A NUMBER
+DECIDE `months share` y IS
+    min (y's `months worked` DIVIDED BY 10) 1
+
+-- §1e: above a full position, the allowance of one full position only.
+@ref akn:art_1__para_e
+GIVEN y IS A `recuperation year`
+GIVETH A NUMBER
+DECIDE `position share` y IS
+    min (`total position` y) 1
+
+GIVEN y IS A `recuperation year`
+GIVETH A NUMBER
+DECIDE `full recuperation allowance` y IS
+    `the recuperation day rate` TIMES `recuperation days` (y's `seniority in teaching`)
+
+@export default The recuperation allowance a teaching employee is owed for school year 5779 (2018-19) under the owners' circular 5779/6
+@ref akn:art_1__para_d akn:art_1__para_e
+GIVEN y IS A `recuperation year` @desc the employee's school year
+GIVETH A NUMBER
+DECIDE `recuperation allowance` y IS
+    `full recuperation allowance` y TIMES `position share` y TIMES `months share` y
+
+-- §1f: with more than one employer and above 100% in all, each employer
+-- pays the allowance proportional to the position with it. The reading
+-- adopted (F-2018-19_tashat_06-b): §1f governs several employers, §1e one.
+@ref akn:art_1__para_f
+GIVEN y IS A `recuperation year`, p IS A `position with an employer`
+GIVETH A NUMBER
+DECIDE `the allowance one employer pays` y p IS
+    IF count (y's `positions`) GREATER THAN 1
+    THEN `full recuperation allowance` y TIMES p's `position fraction with the employer` TIMES `months share` y
+    ELSE `recuperation allowance` y
+
+-- §1g-§1h: the caps on employment across all employers, subject to the
+-- exceptional-employment procedure for תשע"ט; they are no permission to
+-- employ beyond them.
+DECLARE `terms of employment` IS ONE OF
+    `a teacher not under the reform`
+    `a principal not under the reform`
+    `a teacher under Oz LeTmura in full implementation`
+    `a teacher under Ofek Hadash`
+
+@ref akn:art_1__para_g akn:art_1__para_h
+GIVEN t IS A `terms of employment`
+GIVETH A NUMBER
+DECIDE `the employment cap` t IS
+    CONSIDER t
+    WHEN `a teacher not under the reform`   THEN 1.40
+    WHEN `a principal not under the reform` THEN 1.50
+    WHEN `a teacher under Oz LeTmura in full implementation` THEN 1.25
+    WHEN `a teacher under Ofek Hadash`      THEN 1.17
+
+DECLARE `circular action` IS ONE OF
+    `pay the recuperation allowance` HAS `recuperation paid` IS A NUMBER
+    `pay the jubilee grant` HAS `jubilee paid` IS A NUMBER
+    `employ beyond the cap` HAS `position employed` IS A NUMBER
+
+@ref akn:art_1__para_h/p2 akn:art_1__para_h/p3 akn:art_1__para_h/p4
+GIVEN t IS A `terms of employment`, `approved under the exceptional-employment procedure` IS A BOOLEAN
+GIVETH A DEONTIC Party `circular action`
+DECIDE `no employment beyond the cap` t `approved under the exceptional-employment procedure` IS
+    IF `approved under the exceptional-employment procedure`
+    THEN FULFILLED
+    ELSE PARTY `the employer`
+         SHANT `employ beyond the cap` `position`
+               PROVIDED `position` GREATER THAN `the employment cap` t
+         WITHIN 12
+         LEST BREACH BY `the employer` BECAUSE "sections 1g-1h: employment beyond the cap across all employers"
+
+-- §1a: paid in full with the June 2019 salary.
+@ref akn:art_1__para_a
+GIVEN y IS A `recuperation year`
+GIVETH A DEONTIC Party `circular action`
+DECIDE `paying the recuperation allowance` y IS
+    PARTY `the employer`
+    MUST  `pay the recuperation allowance` `amount`
+          PROVIDED `amount` AT LEAST `recuperation allowance` y
+    WITHIN `month number` June
+    LEST BREACH BY `the employer` BECAUSE "section 1a: the allowance is paid in full with the June 2019 salary"
+
+§§ `2 מענק יובל`
+
+DECLARE `stage of education` IS ONE OF
+    `a middle division, upper division or academic teachers' college`
+    `kindergarten, primary school or a seminar`
+
+@desc One part of the employee's position, by stage of education.
+DECLARE `jubilee position` HAS
+    `stage` IS A `stage of education`
+    `fraction of the position` IS A NUMBER
+
+@desc A teaching employee's school year תשע"ט, as far as the jubilee grant asks.
+DECLARE `jubilee year` HAS
+    `seniority set in September 2018` IS A NUMBER @desc cumulative teaching seniority incl. military service, as set in September of the year before the grant (section 2d)
+    `years of work completed by 1 June 2019` IS A NUMBER @desc incl. compulsory IDF service (section 2e(2))
+    `years of unpaid leave with pension rights bought` IS A NUMBER @desc counted towards seniority (section 2e(1)); assumed not already in the two counts above
+    `jubilee positions` IS A LIST OF `jubilee position`
+    `share of the year employed` IS A NUMBER @desc 1 = the whole year
+    `determining salary for pension and severance` IS A NUMBER @desc monthly, excluding once-a-year payments such as clothing and recuperation
+
+-- §2b, §2e(3): 25 years for the part of the position in a middle or upper
+-- division or an academic teachers' college, 30 for kindergartens, primary schools and seminars.
+@ref akn:art_2__para_b akn:art_2__para_b/p2 akn:art_2__para_e__subpara_3
+GIVEN s IS A `stage of education`
+GIVETH A NUMBER
+DECIDE `the jubilee threshold` s IS
+    CONSIDER s
+    WHEN `a middle division, upper division or academic teachers' college` THEN 25
+    WHEN `kindergarten, primary school or a seminar` THEN 30
+
+-- §2e(1): a year of unpaid leave for which pension rights were bought counts.
+@ref akn:art_2__para_e__subpara_1
+GIVEN j IS A `jubilee year`
+GIVETH A NUMBER
+DECIDE `seniority for the jubilee grant` j IS
+    j's `seniority set in September 2018` PLUS j's `years of unpaid leave with pension rights bought`
+
+-- §2d against §2e(2): the reading adopted (F-2018-19_tashat_06-c) is §2e(2),
+-- the years completed by 1 June of the grant's year.
+@ref akn:art_2__para_d akn:art_2__para_e__subpara_2 akn:art_2__para_e__subpara_2/p2
+GIVEN j IS A `jubilee year`
+GIVETH A NUMBER
+DECIDE `seniority counted for the grant` j IS
+    j's `years of work completed by 1 June 2019` PLUS j's `years of unpaid leave with pension rights bought`
+
+GIVEN j IS A `jubilee year`, p IS A `jubilee position`
+GIVETH A BOOLEAN
+DECIDE `the position part qualifies` j p IF
+    `seniority counted for the grant` j AT LEAST `the jubilee threshold` (p's `stage`)
+
+-- §2c: 60% of the determining salary.
+@ref akn:art_2__para_c
+`the jubilee rate` MEANS 0.6
+
+-- §2e(4): by the position that year, up to one position, and the period
+-- employed.
+@ref akn:art_2__para_e__subpara_4
+GIVEN j IS A `jubilee year`
+GIVETH A NUMBER
+DECIDE `qualifying jubilee position` j IS
+    min (sum (map (GIVEN p YIELD p's `fraction of the position`)
+                  (filter (GIVEN p YIELD `the position part qualifies` j p) (j's `jubilee positions`)))) 1
+
+@export The jubilee grant (maanak yovel) a teaching employee is owed for school year 5779 under the owners' circular 5779/6
+@ref akn:art_2__para_b akn:art_2__para_c akn:art_2__para_e__subpara_4
+GIVEN j IS A `jubilee year` @desc the employee's school year
+GIVETH A NUMBER
+DECIDE `jubilee grant` j IS
+    `the jubilee rate`
+    TIMES j's `determining salary for pension and severance`
+    TIMES `qualifying jubilee position` j
+    TIMES j's `share of the year employed`
+
+-- §2e(5): with more than one employer, §§1f-1h apply with the changes
+-- needed: each employer pays in proportion to the position with it.
+@ref akn:art_2__para_e__subpara_5
+GIVEN j IS A `jubilee year`, `fraction with this employer` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the jubilee grant one employer pays` j `fraction with this employer` IS
+    `the jubilee rate`
+    TIMES j's `determining salary for pension and severance`
+    TIMES `fraction with this employer`
+    TIMES j's `share of the year employed`
+
+-- §2a: paid with the June 2019 salary.
+@ref akn:art_2__para_a
+GIVEN j IS A `jubilee year`
+GIVETH A DEONTIC Party `circular action`
+DECIDE `paying the jubilee grant` j IS
+    PARTY `the employer`
+    MUST  `pay the jubilee grant` `amount`
+          PROVIDED `amount` AT LEAST `jubilee grant` j
+    WITHIN `month number` June
+    LEST BREACH BY `the employer` BECAUSE "section 2a: the jubilee grant is paid with the June 2019 salary"
+
+-- akn:art_2__para_e/p1 The heading "הבהרות" (clarifications); no rule.
+
+-- akn:conclusions The contact line, the sign-off and the copies list; no rule.
+
+-- Findings.
+
+-- F-2018-19_tashat_06-a: "1/10 for each month of work" gives a full year
+-- of twelve months 12/10 of the allowance if read literally.
+`a twelve-month year read literally` MEANS 12 TIMES (1 DIVIDED BY 10)
+`one tenth a month passes the full allowance in a twelve-month year` MEANS
+    `a twelve-month year read literally` GREATER THAN 1
+#ASSERT `one tenth a month passes the full allowance in a twelve-month year`
+
+-- F-2018-19_tashat_06-b: 80% with one employer and 60% with another.
+`a teacher with two employers` MEANS `recuperation year` WITH
+    `seniority in teaching` IS 12
+    `positions`             IS LIST `position with an employer` 0.8, `position with an employer` 0.6
+    `months worked`         IS 10
+
+`the two employers pay more than one full allowance` MEANS
+    sum (map (GIVEN p YIELD `the allowance one employer pays` `a teacher with two employers` p) (`a teacher with two employers`'s `positions`))
+    GREATER THAN `recuperation allowance` `a teacher with two employers`
+#ASSERT `the two employers pay more than one full allowance`
+
+-- F-2018-19_tashat_06-c: seniority 24 as set in September 2018, 25 years
+-- completed by 1 June 2019.
+`a teacher reaching 25 in the spring` MEANS `jubilee year` WITH
+    `seniority set in September 2018`               IS 24
+    `years of work completed by 1 June 2019`        IS 25
+    `years of unpaid leave with pension rights bought` IS 0
+    `jubilee positions`                             IS LIST `jubilee position` `a middle division, upper division or academic teachers' college` 1
+    `share of the year employed`                    IS 1
+    `determining salary for pension and severance`  IS 10000
+
+`section 2d and section 2e(2) decide the spring case differently` MEANS
+        `seniority for the jubilee grant` `a teacher reaching 25 in the spring` LESS THAN 25
+    AND `seniority counted for the grant` `a teacher reaching 25 in the spring` AT LEAST 25
+#ASSERT `section 2d and section 2e(2) decide the spring case differently`
+
+-- Examples. The salary of 10,000 is a placeholder.
+#ASSERT `recuperation days` 3 EQUALS 7
+#ASSERT `recuperation days` 25 EQUALS 13
+#ASSERT `recuperation allowance` `a teacher with two employers` EQUALS 4320
+#ASSERT `jubilee grant` `a teacher reaching 25 in the spring` EQUALS 6000
+
+`a primary and upper-division teacher of 27 years` MEANS `jubilee year` WITH
+    `seniority set in September 2018`               IS 27
+    `years of work completed by 1 June 2019`        IS 27
+    `years of unpaid leave with pension rights bought` IS 0
+    `jubilee positions`                             IS LIST `jubilee position` `a middle division, upper division or academic teachers' college` 0.5, `jubilee position` `kindergarten, primary school or a seminar` 0.5
+    `share of the year employed`                    IS 1
+    `determining salary for pension and severance`  IS 10000
+#ASSERT `jubilee grant` `a primary and upper-division teacher of 27 years` EQUALS 3000
+
+#TRACE `paying the recuperation allowance` `a teacher with two employers` AT 0 WITH
+    PARTY `the employer` DOES `pay the recuperation allowance` 4320 AT 10
+#TRACE `no employment beyond the cap` `a teacher under Ofek Hadash` FALSE AT 0 WITH
+    PARTY `the employer` DOES `employ beyond the cap` 1.2 AT 1

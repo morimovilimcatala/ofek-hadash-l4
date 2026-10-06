@@ -1,0 +1,185 @@
+-- חוזר לבעלויות תשע"ד/10 — תגמול עובדי הוראה בגין הישגי בית הספר לשנת
+-- הלימודים תשע"ד (21.8.2014)
+-- The one-time grant for school year תשע"ד to upper-division teachers of
+-- the schools whose achievements the Ministry found highest (section 36 of
+-- the Oz LeTmura agreement): the amount by the school's rank, pro-rating,
+-- what the grant is not part of, provident-fund contributions, payment in
+-- August 2014 and reimbursement of the owners.
+
+IMPORT prelude
+IMPORT common
+
+§ `חוזר תשע"ד/10 תגמול בגין הישגי בית הספר תשע"ד`
+
+-- akn:preamble The letterhead, title and date; no rule.
+-- akn:preamble/p8 Background: the general collective agreement of 14.8.2011 (the Oz LeTmura agreement); no rule.
+-- akn:preamble/p9 Background: the agreement covers the reform and all upper-division teachers; no rule.
+-- akn:preamble/p10 States the purpose: the achievement grant for school year תשע"ד under section 36 of the agreement; the rules follow.
+
+-- The school's rank, as the Ministry found it (2(ב)): one of the four
+-- deciles, or none. The ranking itself follows the rules of the
+-- Pedagogical Administration's letter of 21.10.2012 (2(א)), an input here.
+DECLARE `school rank` IS ONE OF
+    `rank 1, the highest 10%`
+    `rank 2, the next 10%`
+    `rank 3, the next 10%`
+    `rank 4, the next 10%`
+    `not ranked`
+
+@desc A teaching employee's school year in an upper division, as the grant asks about it.
+DECLARE `achievement year` HAS
+    `graded as a teaching employee`   IS A BOOLEAN @desc graded in the teaching-employees grading, in the upper division
+    `employed by a supervised owner`  IS A BOOLEAN @desc employed by an owner of post-primary education supervised by the Ministry
+    `rank of the school`              IS A `school rank` @desc the rank the Ministry found for the school's achievements (letter of 21.10.2012)
+    `upper-division fraction`         IS A NUMBER @desc the share of a position held in the upper division (1 = a full position)
+    `months employed in the school`   IS A NUMBER @desc months of the school year employed in the excelling institution, maternity leave under the Women's Employment Law counted as employed
+    `months in the school year`       IS A NUMBER @desc the months of the school year the period is measured against
+
+§§ `1. תחולה`
+
+@ref akn:art_1/p1
+GIVEN y IS AN `achievement year`
+GIVETH A BOOLEAN
+DECIDE `the circular applies to` y IF
+        y's `graded as a teaching employee`
+    AND y's `employed by a supervised owner`
+    AND y's `upper-division fraction` GREATER THAN 0
+
+§§ `2. תגמול בגין הישגי בית הספר`
+
+-- 2(א): the program for upper divisions (grades ט'-י"ב/י"ד in a four-year
+-- school, י'-י"ב/י"ד in a three- or six-year school) runs from תשע"ג by
+-- the letter of 21.10.2012 — the ranking is that letter's, an input.
+@ref akn:art_2__para_a
+GIVEN y IS AN `achievement year`
+GIVETH A BOOLEAN
+DECIDE `the school was found among the highest` y IF
+    NOT y's `rank of the school` EQUALS `not ranked`
+
+-- 2(ב) and its table (the corpus gives its rows as lines ¶2-¶11): the
+-- one-time grant for a teacher at 100% of a position, updated to May 2014
+-- (¶12: by the consumer price index of May 2014 against May 2013).
+@ref akn:art_2__para_b akn:art_2__para_b/p2 akn:art_2__para_b/p3 akn:art_2__para_b/p4 akn:art_2__para_b/p5 akn:art_2__para_b/p6 akn:art_2__para_b/p7 akn:art_2__para_b/p8 akn:art_2__para_b/p9 akn:art_2__para_b/p10 akn:art_2__para_b/p11 akn:art_2__para_b/p12
+GIVEN r IS A `school rank`
+GIVETH A NUMBER
+DECIDE `the grant for a full position` r IS
+    CONSIDER r
+    WHEN `rank 1, the highest 10%` THEN 8285.87
+    WHEN `rank 2, the next 10%`    THEN 6214.40
+    WHEN `rank 3, the next 10%`    THEN 4142.93
+    WHEN `rank 4, the next 10%`    THEN 3107.20
+    WHEN `not ranked`              THEN 0
+
+-- The four amounts stand to one another as 8 : 6 : 4 : 3, one index
+-- update applied to all (¶12); checked to a tenth of a percent.
+#ASSERT TRUNC ((`the grant for a full position` `rank 2, the next 10%` DIVIDED BY `the grant for a full position` `rank 1, the highest 10%`) TIMES 1000 PLUS 0.5) 0 EQUALS 750
+#ASSERT TRUNC ((`the grant for a full position` `rank 3, the next 10%` DIVIDED BY `the grant for a full position` `rank 1, the highest 10%`) TIMES 1000 PLUS 0.5) 0 EQUALS 500
+#ASSERT TRUNC ((`the grant for a full position` `rank 4, the next 10%` DIVIDED BY `the grant for a full position` `rank 1, the highest 10%`) TIMES 1000 PLUS 0.5) 0 EQUALS 375
+
+-- 2(ג): a part-time teacher, or one employed for part of the year
+-- (unpaid leave and sabbatical included; maternity leave counted as
+-- employed, but not unpaid leave after it), gets the proportional part by
+-- the upper-division fraction and/or the part of the year תשע"ד. 2(ד), and
+-- again 2(ז) ¶2: employment above 100% is not counted.
+@ref akn:art_2__para_c akn:art_2__para_d akn:art_2__para_g/p2
+GIVEN y IS AN `achievement year`
+GIVETH A NUMBER
+DECIDE `the proportional part` y IS
+    min (y's `upper-division fraction`) 1
+    TIMES min 1 (y's `months employed in the school` DIVIDED BY y's `months in the school year`)
+
+@export default The one-time school-achievement grant for school year תשע"ד under circular תשע"ד/10
+GIVEN y IS AN `achievement year` @desc the teacher's school year
+GIVETH A NUMBER
+DECIDE `achievement grant` y IS
+    IF `the circular applies to` y AND `the school was found among the highest` y
+    THEN `the grant for a full position` (y's `rank of the school`) TIMES `the proportional part` y
+    ELSE 0
+
+-- 2(ו): not part of the base for the hour value, severance pay or
+-- percentage supplements, and no training-fund contributions on it.
+DECLARE `computation` IS ONE OF
+    `the hour value`
+    `severance pay`
+    `percentage supplements`
+    `training-fund contributions`
+    `provident-fund contributions for a pension`
+
+@ref akn:art_2__para_f akn:art_2__para_g
+GIVEN c IS A `computation`
+GIVETH A BOOLEAN
+DECIDE `the grant counts for` c IF
+    c EQUALS `provident-fund contributions for a pension`
+
+-- 2(ז): provident-fund contributions at 5% employer and 5% deducted from
+-- the teacher's salary.
+@ref akn:art_2__para_g
+`the employer's contribution rate` MEANS 5%
+`the teacher's contribution rate`  MEANS 5%
+
+GIVEN y IS AN `achievement year`
+GIVETH A NUMBER
+DECIDE `the employer's contribution on the grant` y IS
+    `the employer's contribution rate` TIMES `achievement grant` y
+
+DECLARE `grant action` IS ONE OF
+    `pay the grant` HAS `grant paid` IS A NUMBER
+    `reimburse the owner` HAS `reimbursed` IS A NUMBER
+
+-- 2(ה): the grants are paid with the salary of August 2014. Time in school
+-- months (September 2013 = 1, August 2014 = 12).
+@ref akn:art_2__para_e
+GIVEN y IS AN `achievement year`
+GIVETH A DEONTIC Party `grant action`
+DECIDE `the grant paid with August's salary` y IS
+    PARTY `the employer`
+    MUST  `pay the grant` amount PROVIDED amount AT LEAST `achievement grant` y
+    WITHIN `month number` August
+    LEST  BREACH BY `the employer` BECAUSE "circular תשע\"ד/10, 2(ה): the grants are paid with the salary of August 2014"
+
+-- akn:art_3 A link to circular תשע"ג/11 with the program and the list of winning schools; the list is the input `rank of the school`.
+-- akn:art_3/p2 The link's title ("פירוט תכנית התגמול"); no rule.
+-- akn:art_3/p3 The link's title (the list of schools for תשע"ד); the list is the input `rank of the school`.
+
+-- 4: reimbursement to the owners in the payments system (subject 583), in
+-- the August 2014 payments transferred at the start of 9/2014 (month 13).
+@ref akn:art_4
+GIVEN y IS AN `achievement year`
+GIVETH A DEONTIC Party `grant action`
+DECIDE `the owner reimbursed in the August payments` y IS
+    PARTY `the Ministry of Education`
+    MUST  `reimburse the owner` amount PROVIDED amount AT LEAST `achievement grant` y
+    WITHIN 13
+    LEST  BREACH BY `the Ministry of Education` BECAUSE "circular תשע\"ד/10, section 4: reimbursement in the August 2014 payments (subject 583), transferred early 9/2014"
+
+-- akn:art_4/p2 akn:art_4/p3 The contact line for questions; no rule.
+-- akn:conclusions The greeting and the signature; no rule.
+
+-- Examples; the teachers are illustrations.
+`a full-time teacher in a rank-1 school` MEANS
+    `achievement year` WITH
+        `graded as a teaching employee`  IS TRUE
+        `employed by a supervised owner` IS TRUE
+        `rank of the school`             IS `rank 1, the highest 10%`
+        `upper-division fraction`        IS 1.2
+        `months employed in the school`  IS 12
+        `months in the school year`      IS 12
+
+`a half-time teacher for half the year in a rank-3 school` MEANS
+    `achievement year` WITH
+        `graded as a teaching employee`  IS TRUE
+        `employed by a supervised owner` IS TRUE
+        `rank of the school`             IS `rank 3, the next 10%`
+        `upper-division fraction`        IS 0.5
+        `months employed in the school`  IS 6
+        `months in the school year`      IS 12
+
+#ASSERT `achievement grant` `a full-time teacher in a rank-1 school` EQUALS 8285.87
+#ASSERT `achievement grant` `a half-time teacher for half the year in a rank-3 school` EQUALS 1035.7325
+#ASSERT NOT `the grant counts for` `training-fund contributions`
+#EVAL   `the employer's contribution on the grant` `a full-time teacher in a rank-1 school`
+
+#TRACE `the grant paid with August's salary` `a full-time teacher in a rank-1 school` AT 0 WITH
+    PARTY `the employer` DOES `pay the grant` 8285.87 AT 12
+#TRACE `the owner reimbursed in the August payments` `a full-time teacher in a rank-1 school` AT 0 WITH
+    PARTY `the Ministry of Education` DOES `reimburse the owner` 8285.87 AT 13

@@ -1,0 +1,117 @@
+-- חוזר לבעלויות תשע"ו/3 (27.1.2016): ניכוי שכר לעובדי הוראה בשל השבתת מערכת החינוך בשנת הלימודים התשע"ו
+-- The deduction of pay from teaching staff who took part in the strike the
+-- Teachers' Organization announced for 27.1.2016 until 10:00: no pay for
+-- strike time, deduction by the hours absent at the hourly value (stay and
+-- individual hours included), the attendance reports it rests on, the
+-- presumption against an employee with no report, and the ministry's own
+-- deduction from its payments to the owners.
+
+IMPORT prelude
+IMPORT common
+
+§ `חוזר לבעלויות תשע"ו/3 — ניכוי שכר בשל השבתה`
+
+-- akn:hc_1/p1 akn:hc_1/p2 akn:hc_1/p3 akn:hc_1/p4 akn:hc_1/p5 akn:hc_1/p6 akn:hc_1/p7 akn:hc_1/p8 akn:hc_1/p9 akn:hc_1/p10 akn:hc_1/p11 akn:hc_1/p12 akn:hc_1/p13 The letterhead, the date (27.1.2016), the reference number, the addressee, the greeting and the subject line; no rule.
+
+DECLARE `strike action` IS ONE OF
+    `deduct the strike hours from the salary` HAS `amount deducted` IS A NUMBER
+    `deduct from the owner's current payments` HAS `amount withheld` IS A NUMBER
+
+@desc A teaching employee on the strike day (27.1.2016), as far as the deduction asks about it.
+DECLARE `strike-day case` HAS
+    `reported attendance at the time of the strike`         IS A BOOLEAN
+    `produced an approval for the absence`                  IS A BOOLEAN @desc an approval of the absence under the procedures
+    `produced proof of presence at work`                    IS A BOOLEAN
+    `took part in the strike by the attendance reports`     IS A BOOLEAN
+    `hours absent during the strike`                        IS A NUMBER  @desc hours absent from work during the strike (to 10:00), stay hours and individual hours due then included
+    `hourly value`                                          IS A NUMBER  @desc the employee's hourly value; an input
+
+-- ¶14: by Government decisions 647 (22.4.80) and 646 (26.5.81) no pay is
+-- paid for strike days and only partial pay for partial-strike days; in the
+-- budgeted bodies section 29 of the Budget Foundations Law requires it.
+@ref akn:hc_1/p14
+GIVEN `hours of the day struck` IS A NUMBER, `hours of the working day` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the share of the day's pay payable` `hours of the day struck` `hours of the working day` IS
+    IF `hours of the working day` EQUALS 0
+    THEN 0
+    ELSE max (1 MINUS `hours of the day struck` DIVIDED BY `hours of the working day`) 0
+
+-- ¶17: an employee who did not report attendance at the time of the strike,
+-- and produced neither an approval of the absence under the procedures nor
+-- proof of presence at work, is held to have taken part in the strike or
+-- the organizational measures.
+@ref akn:hc_1/p17
+GIVEN c IS A `strike-day case`
+GIVETH A BOOLEAN
+DECIDE `held to have taken part` c IF
+        NOT c's `reported attendance at the time of the strike`
+    AND NOT c's `produced an approval for the absence`
+    AND NOT c's `produced proof of presence at work`
+
+-- ¶15–¶16: those who took part in the strike announced for today until
+-- 10:00 have pay deducted by the hours they were absent, by the attendance
+-- reports at their places of work.
+@ref akn:hc_1/p15 akn:hc_1/p16
+GIVEN c IS A `strike-day case`
+GIVETH A BOOLEAN
+DECIDE `took part in the strike` c IF
+    c's `took part in the strike by the attendance reports` OR `held to have taken part` c
+
+-- ¶18: the reduction is the time absent (in hours) times the hourly value;
+-- stay hours and individual hours due during the strike are deducted too.
+@ref akn:hc_1/p18
+GIVEN c IS A `strike-day case`
+GIVETH A NUMBER
+DECIDE `the strike deduction` c IS
+    IF `took part in the strike` c
+    THEN c's `hours absent during the strike` TIMES c's `hourly value`
+    ELSE 0
+
+GIVEN c IS A `strike-day case`, `the salary month` IS A NUMBER @desc the month whose salary carries the deduction, in months from the strike
+GIVETH A DEONTIC Party `strike action`
+DECIDE `deducting the strike hours` c `the salary month` IS
+    IF `the strike deduction` c GREATER THAN 0
+    THEN PARTY `the employer`
+         MUST  `deduct the strike hours from the salary` `amount`
+               PROVIDED `amount` EQUALS `the strike deduction` c
+         WITHIN `the salary month`
+         LEST BREACH BY `the employer` BECAUSE "circular 2015-16/3: the owner must deduct the strike hours from the salary of those who took part"
+    ELSE FULFILLED
+
+-- ¶19: the ministry deducts from its current payments to the owner by the
+-- hours budgeted at the striking institutions and the times of the strike.
+@ref akn:hc_1/p19
+GIVEN `budgeted hours at the striking institutions during the strike` IS A NUMBER
+      `the budgeted hourly cost` IS A NUMBER @desc an input
+GIVETH A NUMBER
+DECIDE `the ministry's deduction from the owner` `budgeted hours at the striking institutions during the strike` `the budgeted hourly cost` IS
+    `budgeted hours at the striking institutions during the strike` TIMES `the budgeted hourly cost`
+
+-- akn:conclusions The signature (Sonia Peretz) and the list of copies; no rule.
+
+-- Worked examples; the hourly value of 100 is a placeholder.
+`a teacher with no report, two hours due before 10:00` MEANS
+    `strike-day case` WITH
+        `reported attendance at the time of the strike`     IS FALSE
+        `produced an approval for the absence`              IS FALSE
+        `produced proof of presence at work`                IS FALSE
+        `took part in the strike by the attendance reports` IS FALSE
+        `hours absent during the strike`                    IS 2
+        `hourly value`                                      IS 100
+
+`a teacher with a sick-leave approval` MEANS
+    `strike-day case` WITH
+        `reported attendance at the time of the strike`     IS FALSE
+        `produced an approval for the absence`              IS TRUE
+        `produced proof of presence at work`                IS FALSE
+        `took part in the strike by the attendance reports` IS FALSE
+        `hours absent during the strike`                    IS 2
+        `hourly value`                                      IS 100
+
+#ASSERT `the strike deduction` `a teacher with no report, two hours due before 10:00` EQUALS 200
+#ASSERT `the strike deduction` `a teacher with a sick-leave approval` EQUALS 0
+#ASSERT `the share of the day's pay payable` 2 6 EQUALS 2 DIVIDED BY 3
+
+#TRACE `deducting the strike hours` `a teacher with no report, two hours due before 10:00` 1 AT 0 WITH
+    PARTY `the employer` DOES `deduct the strike hours from the salary` 200 AT 1
