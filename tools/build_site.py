@@ -471,7 +471,29 @@ def segment_html(v: SectionView, s: l4src.Segment, rendered: dict[int, str]) -> 
             f'</div>')
 
 
-FINDINGS_BY_KEY: dict[str, list[dict]] = {}
+# (document, row key) -> findings. Keyed by DOCUMENT as well as row: every
+# circular has an `art_1` and a `preamble`, so a key alone names a row in
+# 210 documents at once.
+FINDINGS_BY_KEY: dict[tuple[str, str], list[dict]] = {}
+
+
+def row_findings(v, r) -> list[dict]:
+    """A row's findings, by its key or any alias (a clause's number and its
+    first paragraph are one row, citable either way)."""
+    out = []
+    for k in (r.key, *r.aliases):
+        for f in FINDINGS_BY_KEY.get((v.doc, k), []):
+            if f not in out:
+                out.append(f)
+    return out
+
+
+def finding_doc(f: dict) -> str:
+    """The corpus document a finding is about, from the L4 file it names:
+    l4/<doc>/<section>.l4 for a sectioned document, l4/<doc>.l4 for a whole one."""
+    rel_ = Path(f["l4"]).relative_to("l4")
+    parent = rel_.parent.as_posix() + ".xml"
+    return parent if (akn.CORPUS / parent).exists() else rel_.with_suffix(".xml").as_posix()
 
 
 def section_block(v: SectionView, here: str, headless: bool = False) -> str:
@@ -481,7 +503,7 @@ def section_block(v: SectionView, here: str, headless: bool = False) -> str:
     corpus = f"{CORPUS_SITE}/{v.dir}.html#{sec.eid}"
     found = []
     for r in sec.rows:
-        for f in FINDINGS_BY_KEY.get(r.key, []):
+        for f in row_findings(v, r):
             if f not in found:
                 found.append(f)
     links = [f'<a href="{corpus}">corpus ↗</a>']
@@ -513,7 +535,7 @@ def section_block(v: SectionView, here: str, headless: bool = False) -> str:
                  + "</ul></div>")
 
     def flags(r):
-        fs = FINDINGS_BY_KEY.get(r.key, [])
+        fs = row_findings(v, r)
         return "".join(f'<a class="flag {f["kind"]}" href="{rel("findings.html", here)}#{esc(f["id"])}" '
                        f'title="{esc(f["title"])}">{esc(f["id"])}</a>' for f in fs)
 
@@ -604,7 +626,7 @@ def document_page(doc: str, views: list[SectionView]) -> str:
         chapters.setdefault(v.section.chapter_eid, []).append(v)
     done = sum(v.status == "done" for v in views)
     part = sum(v.status == "partial" for v in views)
-    nfind = len({f["id"] for v in views for r in v.section.rows for f in FINDINGS_BY_KEY.get(r.key, [])})
+    nfind = len({f["id"] for v in views for r in v.section.rows for f in row_findings(v, r)})
     toc = []
     for vs in chapters.values():
         s0 = vs[0].section
@@ -809,7 +831,7 @@ def findings_page(findings, views_by_file, key_to_view) -> str:
             ev = evidence_result(f, views_by_file)
             where = []
             for k in f.get("keys", []):
-                v = key_to_view.get(k)
+                v = key_to_view.get((finding_doc(f), k))
                 if v:
                     where.append(f'<a href="{v.href}#{esc(k)}"><bdi dir="ltr">{esc(citations(v.section).get(k, "§" + v.section.num))}</bdi></a>')
             state = ('<span class="okay">the #ASSERT holds: the flaw is still in the text</span>' if ev["held"] else
@@ -851,7 +873,7 @@ def findings_json(findings, views_by_file, key_to_view) -> str:
         ev = evidence_result(f, views_by_file)
         rows.append({
             "id": f["id"], "kind": f["kind"], "stage": f["stage"],
-            "addresses": [address(key_to_view[k].doc, k) for k in f["keys"] if k in key_to_view],
+            "addresses": [address(finding_doc(f), k) for k in f["keys"] if (finding_doc(f), k) in key_to_view],
             "statement": f["title"], "body": f["body"].strip(), "reading": f["reading"],
             "quote": f.get("quote"), "depends_on": f.get("depends_on", []),
             "l4": {"file": f["l4"], "line": ev["line"], "evidence": f["evidence"]},
@@ -1055,7 +1077,7 @@ def build() -> int:
     FINDINGS_BY_KEY.clear()
     for f in findings:
         for k in f.get("keys", []):
-            FINDINGS_BY_KEY.setdefault(k, []).append(f)
+            FINDINGS_BY_KEY.setdefault((finding_doc(f), k), []).append(f)
     all_views: dict[str, list[SectionView]] = {}
     for doc in DOCUMENTS:
         views = [build_view(doc, s) for s in akn.sections(doc)]
@@ -1083,7 +1105,7 @@ def build() -> int:
     key_to_view = {}
     for v in flat:
         for k in v.section.keys():
-            key_to_view.setdefault(k, v)
+            key_to_view.setdefault((v.doc, k), v)
     for coll in WORK_COLLECTIONS[1:]:
         vs = [v for d, views in all_views.items() if d.startswith(coll + "/") for v in views]
         if vs:

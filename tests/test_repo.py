@@ -94,7 +94,7 @@ class Findings(unittest.TestCase):
         self.keys = {}
         for v in views():
             for k in v.section.keys():
-                self.keys[k] = v
+                self.keys[(v.doc, k)] = v
 
     def test_findings_are_well_formed(self):
         ids = [f["id"] for f in self.findings]
@@ -108,8 +108,10 @@ class Findings(unittest.TestCase):
                     self.assertTrue(f.get(field), field)
                 for d in f.get("depends_on", []):
                     self.assertIn(d, ids, "depends on a finding that does not exist")
+                # a key is a row of the finding's OWN document: every circular
+                # has an art_1, so a key alone proves nothing
                 for k in f["keys"]:
-                    self.assertIn(k, self.keys)
+                    self.assertIn((site_mod.finding_doc(f), k), self.keys)
                 self.assertTrue((ROOT / f["l4"]).exists(), f["l4"])
 
     def test_every_finding_is_asserted_in_its_file(self):
@@ -176,6 +178,24 @@ class Segmenter(unittest.TestCase):
     def test_one_marker_may_cite_several_keys(self):
         src = self.parse("@ref akn:A akn:B__x\ny MEANS 2\n")
         self.assertEqual(src.segments[0].keys, ["A", "B__x"])
+
+
+class FindingPlacement(unittest.TestCase):
+    def test_a_page_shows_only_its_own_documents_findings(self):
+        site_mod.FINDINGS_BY_KEY.clear()
+        for f in site_mod.load_findings():
+            for k in f["keys"]:
+                site_mod.FINDINGS_BY_KEY.setdefault((site_mod.finding_doc(f), k), []).append(f)
+        for (doc, _), fs in site_mod.FINDINGS_BY_KEY.items():
+            for f in fs:
+                self.assertEqual(site_mod.finding_doc(f), doc, f["id"])
+        # and every finding is flagged on a row of its own document's page
+        flagged = {f["id"] for v in views() for r in v.section.rows for f in site_mod.row_findings(v, r)}
+        self.assertEqual(flagged, {f["id"] for f in site_mod.load_findings()})
+        self.assertEqual(site_mod.finding_doc({"l4": "l4/circulars/2019-20_tashaf_01.l4"}),
+                         "circulars/2019-20_tashaf_01.xml")
+        self.assertEqual(site_mod.finding_doc({"l4": "l4/takanon/takanon-sherut-ovdei-horaa/1.7.l4"}),
+                         "takanon/takanon-sherut-ovdei-horaa.xml")
 
 
 class Citations(unittest.TestCase):
