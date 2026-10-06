@@ -51,7 +51,7 @@ with `HENCE`/`LEST`), not booleans standing in for them.
 
 ## Findings: errors the encoding exposes in the text
 
-`findings/findings.toml` is the register the site's "ממצאי L4" page and
+`findings/<corpus path>/<section>.toml` (one per section) is the register the site's "ממצאי L4" page and
 `findings.json` show. Its model is MMS-415's (Linear), taken from L4 alone —
 not from the Catala proofs, the corpus's ambiguity ledger or its sic kinds:
 

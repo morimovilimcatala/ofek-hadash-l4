@@ -36,7 +36,7 @@ ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "build" / "site"
 L4_OUT = ROOT / "build" / "l4"
 ASSETS = Path(__file__).resolve().parent / "assets"
-FINDINGS = ROOT / "findings" / "findings.toml"
+FINDINGS = ROOT / "findings"           # one <section>.toml per section
 MANIFEST = ROOT / "corpus" / "manifest.json"
 CORPUS_SITE = "https://morimovilimcatala.github.io/ofek-hadash-corpus"
 REPO = "https://github.com/morimovilimcatala/ofek-hadash-l4"
@@ -532,9 +532,11 @@ def index_page(all_views: dict[str, list[SectionView]]) -> str:
 
 
 def load_findings() -> list[dict]:
-    if not FINDINGS.exists():
-        return []
-    return tomllib.loads(FINDINGS.read_text(encoding="utf-8")).get("finding", [])
+    out = []
+    for f in sorted(FINDINGS.rglob("*.toml"), key=lambda p: [int(x) if x.isdigit() else x
+                                                            for x in re.split(r"(\d+)", p.stem)]):
+        out += tomllib.loads(f.read_text(encoding="utf-8")).get("finding", [])
+    return out
 
 
 def address(doc: str, key: str) -> str:
