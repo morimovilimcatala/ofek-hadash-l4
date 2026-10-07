@@ -13,6 +13,7 @@ IMPORT common
 DECLARE `1.26 party` IS ONE OF
     `takanon party` HAS `the shared party` IS A Party
     `the training department`
+    `the units and the national subject supervisors`
     `the district training supervisor`
     `the teaching personnel division`
     `the district personnel department`
@@ -37,7 +38,7 @@ DECLARE `1.26 party` IS ONE OF
 DECLARE `training action` IS ONE OF
     `take part in a training during working hours`
     `publish the fixed training days`
-    `send the approval to the district personnel department`
+    `send the approval where 1.26.1.5א routes it` HAS `approval destination` IS A STRING
     `confirm the total units on part B of the form`
     `send the final approval`
     `report the cancelled units to the training supervisor`
@@ -75,14 +76,12 @@ DECLARE `time for a training` IS ONE OF
     `afternoon or evening, from 15:00`
     @ref akn:chp_1ב__sec_1_26__ssec_1_26_0__para_a/p4
     `the teachers' "free days"`
-    `the teacher's working hours`
 
 GIVEN t IS A `time for a training`, `starts at hour` IS A NUMBER
 GIVETH A BOOLEAN
 DECIDE `a training may be planned for` t `starts at hour` IF
     CONSIDER t
     WHEN `afternoon or evening, from 15:00` THEN `starts at hour` AT LEAST 15
-    WHEN `the teacher's working hours` THEN FALSE
     OTHERWISE TRUE
 
 -- 1.26.0ב: no training in the teacher's own working hours, save the
@@ -110,11 +109,12 @@ DECIDE `no training in working hours` w IS
     THEN PARTY `the teacher` MAY `take part in a training during working hours`
     ELSE PARTY `the teacher` SHANT `take part in a training during working hours`
 
--- 1.26.0ג is a recommendation ("מומלץ"), written as a permission.
+-- 1.26.0ג is a recommendation ("מומלץ") to the units and the national
+-- subject supervisors (המפמ"רים), written as a permission.
 @ref akn:chp_1ב__sec_1_26__ssec_1_26_0__para_c
 GIVETH A DEONTIC `1.26 party` `training action`
 DECIDE `publishing the fixed training days` IS
-    PARTY `the training department`
+    PARTY `the units and the national subject supervisors`
     MAY   `publish the fixed training days`
 
 -- akn:chp_1ב__sec_1_26__ssec_1_26_0/p3 akn:chp_1ב__sec_1_26__ssec_1_26_0/p4 The source of 1.26.0 (אסמכתא): a director-general circular.
@@ -132,6 +132,14 @@ GIVEN `credit units` IS A NUMBER
 GIVETH A NUMBER
 DECIDE `old-rules allowances for credit units` `credit units` IS
     min 3 (TRUNC (`credit units` DIVIDED BY 15) 0)
+
+@ref akn:chp_1ב__sec_1_26__ssec_1_26_1_0__para_a
+GIVEN `a seminary certificate` IS A BOOLEAN @desc the teaching certificate is a seminary one (else a secondary one)
+      `date` IS A NUMBER @desc year-month-day, under the old rules (to 31.8.84)
+GIVETH A BOOLEAN
+DECIDE `a degree and a teaching certificate earned an old-rules allowance` `a seminary certificate` `date` IF
+        `date` AT MOST 19840831
+    AND `date` AT LEAST (IF `a seminary certificate` THEN 19821101 ELSE 19610901)
 
 @ref akn:chp_1ב__sec_1_26__ssec_1_26_1_0__para_a
 GIVEN `hours of one structured course` IS A NUMBER, `hours of all courses` IS A NUMBER
@@ -630,26 +638,34 @@ DECIDE `a labour-ministry teacher's training abroad is realised` l IF
 
 -- 4ד(1): until 5745 a certified kindergarten teacher without matriculation
 -- got the certified grade for 240 hours and the senior grade for 960; short
--- of the quota, or beyond it, the hours earn units — those between 112 and
--- 239, and those between 241 and 959. (2): from 5746 the senior grade needs
--- 720 hours; hours short of it or beyond it earn units, from 1.9.87.
+-- of the quota, or beyond it, the hours earn units — 112 to 239 hours
+-- studied for the certified grade, and the hours from 241 to 959 studied for
+-- the senior grade. (2): from 5746 the senior grade needs 720 hours; hours
+-- short of it or beyond it earn units, from 1.9.87. (1) speaks only of a
+-- certified kindergarten teacher without matriculation: for anyone else its
+-- branch gives nothing.
 @ref akn:chp_1ב__sec_1_26__ssec_1_26_1_2/p31 akn:chp_1ב__sec_1_26__ssec_1_26_1_2/p32
-GIVEN `hours` IS A NUMBER, `from 5746` IS A BOOLEAN
+GIVEN `hours` IS A NUMBER, `from 5746` IS A BOOLEAN, `a certified kindergarten teacher without matriculation` IS A BOOLEAN
 GIVETH A NUMBER
-DECIDE `hours of a kindergarten teacher that earn units` `hours` `from 5746` IS
+DECIDE `hours of a kindergarten teacher that earn units` `hours` `from 5746` `a certified kindergarten teacher without matriculation` IS
     IF `from 5746`
     THEN IF `hours` LESS THAN 720 THEN `hours` ELSE `hours` MINUS 720
-    ELSE BRANCH IF `hours` LESS THAN 240 THEN `hours`
-                IF `hours` LESS THAN 960 THEN `hours` MINUS 240
-                OTHERWISE `hours` MINUS 960
+    ELSE IF (NOT `a certified kindergarten teacher without matriculation`)
+         THEN 0
+         ELSE BRANCH IF `hours` LESS THAN 112 THEN 0
+                     IF `hours` LESS THAN 240 THEN `hours`
+                     IF `hours` LESS THAN 960 THEN `hours` MINUS 240
+                     OTHERWISE `hours` MINUS 960
 
 @ref akn:chp_1ב__sec_1_26__ssec_1_26_1_2/p31
-GIVEN `hours` IS A NUMBER
+GIVEN `hours` IS A NUMBER, `a certified kindergarten teacher without matriculation` IS A BOOLEAN
 GIVETH A STRING
-DECIDE `a kindergarten teacher's grade until 5745` `hours` IS
-    BRANCH IF `hours` AT LEAST 960 THEN "senior teacher"
-           IF `hours` AT LEAST 240 THEN "certified teacher"
-           OTHERWISE "no grade from these hours"
+DECIDE `a kindergarten teacher's grade until 5745` `hours` `a certified kindergarten teacher without matriculation` IS
+    IF (NOT `a certified kindergarten teacher without matriculation`)
+    THEN "not under this rule"
+    ELSE BRANCH IF `hours` AT LEAST 960 THEN "senior teacher"
+                IF `hours` AT LEAST 240 THEN "certified teacher"
+                OTHERWISE "no grade from these hours"
 
 @ref akn:chp_1ב__sec_1_26__ssec_1_26_1_2/p32
 `kindergarten units from 5746 run from` MEANS 19870901
@@ -662,6 +678,8 @@ DECLARE `personal-track study` IS ONE OF
     `regular studies at a teacher-training college`
     `regular studies at a recognised yeshiva`
     `a training not recognised by the training department`
+    @ref akn:chp_1ב__sec_1_26__ssec_1_26_1_2/p36
+    `external studies at an institution of higher education, not meant for teachers`
 
 @ref akn:chp_1ב__sec_1_26__ssec_1_26_1_2/p35 akn:chp_1ב__sec_1_26__ssec_1_26_1_2/p36
 GIVEN s IS A `personal-track study`
@@ -669,6 +687,7 @@ GIVETH A BOOLEAN
 DECIDE `a personal-track study needs approval in advance` s IF
     CONSIDER s
     WHEN `a training not recognised by the training department` THEN TRUE
+    WHEN `external studies at an institution of higher education, not meant for teachers` THEN TRUE
     OTHERWISE FALSE
 
 -- 4ה(3)-(4): the approval in advance — of the plan, its hours and the terms
@@ -689,7 +708,10 @@ DECIDE `who approves a personal-track plan` `teaches at a teacher-training insti
 DECLARE `guided self-study` HAS
     `is certified`                       IS A BOOLEAN
     `years of seniority`                 IS A NUMBER
+    `research or writing in education, teaching or its methods` IS A BOOLEAN
     `the guide holds at least a master's` IS A BOOLEAN
+    `structured guiding meetings through the year` IS A BOOLEAN
+    `a written work of at least seminar level` IS A BOOLEAN
     `asked in detail before the studies` IS A BOOLEAN
     `delivered the written work with the guide's assessment and a report` IS A BOOLEAN
     `allowances the training staff grant` IS A NUMBER @desc 1 or 2, on the work's scope, its assessment and the number of guided meetings
@@ -700,7 +722,10 @@ GIVETH A NUMBER
 DECIDE `allowances for guided self-study` g IS
     IF      g's `is certified`
         AND g's `years of seniority` AT LEAST 8
+        AND g's `research or writing in education, teaching or its methods`
         AND g's `the guide holds at least a master's`
+        AND g's `structured guiding meetings through the year`
+        AND g's `a written work of at least seminar level`
         AND g's `asked in detail before the studies`
         AND g's `delivered the written work with the guide's assessment and a report`
     THEN max 1 (min 2 (g's `allowances the training staff grant`))
@@ -722,15 +747,18 @@ DECLARE `workshop teacher` IS ONE OF
 -- 4ז: hours of art and craft workshops for teachers count in full for the
 -- teachers (1) names; for others two workshop hours count one (a lecture
 -- hour counts one); workshops not for teachers, recognised in advance on the
--- personal track, count two hours for one for everyone.
+-- personal track, count two hours for one for everyone, and without that
+-- recognition count nothing.
 @ref akn:chp_1ב__sec_1_26__ssec_1_26_1_2/p42 akn:chp_1ב__sec_1_26__ssec_1_26_1_2/p43 akn:chp_1ב__sec_1_26__ssec_1_26_1_2/p44
-GIVEN t IS A `workshop teacher`, `workshop hours` IS A NUMBER, `lecture hours` IS A NUMBER, `the workshop is meant for teachers` IS A BOOLEAN
+GIVEN t IS A `workshop teacher`, `workshop hours` IS A NUMBER, `lecture hours` IS A NUMBER, `the workshop is meant for teachers` IS A BOOLEAN, `recognised in advance on the personal track` IS A BOOLEAN
 GIVETH A NUMBER
-DECIDE `training hours from art and craft workshops` t `workshop hours` `lecture hours` `the workshop is meant for teachers` IS
+DECIDE `training hours from art and craft workshops` t `workshop hours` `lecture hours` `the workshop is meant for teachers` `recognised in advance on the personal track` IS
     `lecture hours` PLUS
-        (IF `the workshop is meant for teachers` AND (NOT t EQUALS `another teacher`)
-         THEN `workshop hours`
-         ELSE `workshop hours` DIVIDED BY 2)
+        (BRANCH IF `the workshop is meant for teachers` AND (NOT t EQUALS `another teacher`)
+                THEN `workshop hours`
+                IF `the workshop is meant for teachers` OR `recognised in advance on the personal track`
+                THEN `workshop hours` DIVIDED BY 2
+                OTHERWISE 0)
 
 -- akn:chp_1ב__sec_1_26__ssec_1_26_1_2/p45 Heading "ח. לימודים לקראת תואר טכנאי או הנדסאי"; its rules follow.
 
@@ -927,7 +955,7 @@ DECIDE `training hours` `weekly yearly hours` `weekly semester hours` `single ho
 @desc One training, as section 5 counts it.
 DECLARE `training` HAS
     `hours of the training`               IS A NUMBER @desc single hours (convert weekly hours with `training hours`)
-    `hours with a passing grade`          IS A NUMBER
+    `hours with a passing grade`          IS A NUMBER @desc counting a grade split with another training only where both are on the same subject (5ב(1))
     `requirements confirmed met`          IS A BOOLEAN
     `ended on`                            IS A NUMBER @desc year-month-day
     `kind before 1.9.79`                  IS A `kind of early study`
@@ -1112,9 +1140,10 @@ DECIDE `units for a work` w `the committee's assessment` `the work earned a grad
     THEN 0
     ELSE max 0 (min (w's `at most units`) `the committee's assessment`)
 
-@ref akn:chp_1ב__sec_1_26__ssec_1_26_1_3/p27
 DECLARE `work earning nothing` IS ONE OF
+    @ref akn:chp_1ב__sec_1_26__ssec_1_26_1_3/p27
     `editing, compiling or translating`
+    @ref akn:chp_1ב__sec_1_26__ssec_1_26_1_3/p36
     `literary translation, criticism, a dictionary, compiling or editing`
 
 -- 6ג(2) ¶2: no units for writing done in one's post (curricula, Mal"am,
@@ -1371,7 +1400,7 @@ DECIDE `a confirmation of certification studies counts as a teaching certificate
         @ref akn:chp_1ב__sec_1_26__ssec_1_26_1_4/p73 akn:chp_1ב__sec_1_26__ssec_1_26_1_4/p74 akn:chp_1ב__sec_1_26__ssec_1_26_1_4/p75 akn:chp_1ב__sec_1_26__ssec_1_26_1_4/p76
         `allowance route` "ח" "an equivalent grade and matriculation with a permanent licence, neither counted for the grade" 19910901,
         @ref akn:chp_1ב__sec_1_26__ssec_1_26_1_4/p77 akn:chp_1ב__sec_1_26__ssec_1_26_1_4/p78
-        `allowance route` "ט" "a recognised practical-engineer title and a permanent licence on examinations or 'engineer for teaching'" 19890401,
+        `allowance route` "ט" "a recognised practical-engineer title and a permanent licence on examinations or 'practical engineer for teaching'" 19890401,
         @ref akn:chp_1ב__sec_1_26__ssec_1_26_1_4/p79 akn:chp_1ב__sec_1_26__ssec_1_26_1_4/p80
         `allowance route` "י" "a Bezalel certificate from before its recognition and a permanent licence on examinations" 19910401,
         @ref akn:chp_1ב__sec_1_26__ssec_1_26_1_4/p81 akn:chp_1ב__sec_1_26__ssec_1_26_1_4/p82
@@ -1483,6 +1512,9 @@ DECLARE `employee category` IS ONE OF
     `an employee of a recognised non-official institution`
     `an employee outside the district or of unclear affiliation`
 
+-- A teacher of a recognised non-official institution is one of the "other
+-- teachers ... belonging to the district" the paragraph names, unless it is
+-- independent education or outside the district, which it names apart.
 @ref akn:chp_1ב__sec_1_26__ssec_1_26_1_5__para_a
 GIVEN c IS A `employee category`
 GIVETH A STRING
@@ -1495,7 +1527,7 @@ DECIDE `where the training department's approval goes` c IS
     WHEN `a supervisor` THEN "the human-resources branch"
     WHEN `a teacher at a teacher-training institution` THEN "the teaching personnel department of the teacher-training branch"
     WHEN `an adult-education teacher` THEN "the adult-education division's personnel officer in the district"
-    WHEN `an employee of a recognised non-official institution` THEN "the employee, to bring to the employer who pays the salary"
+    WHEN `an employee of a recognised non-official institution` THEN "the district's teaching personnel department"
     WHEN `an employee outside the district or of unclear affiliation` THEN "the employee, to bring to the employer who pays the salary"
 
 -- 1.26.1.5ב: a personal-track request goes to the district training
@@ -1506,6 +1538,8 @@ DECIDE `where the training department's approval goes` c IS
 DECLARE `personal-track request` HAS
     `on the annex 2 form`                     IS A BOOLEAN
     `confirmation with name, ID, subjects, hours, requirements, grade, place and dates` IS A BOOLEAN
+    `under 4(ה)3`                             IS A BOOLEAN
+    `approved in advance by the training supervisor` IS A BOOLEAN
     `in a foreign language other than English` IS A BOOLEAN
     `with a certified Hebrew translation`     IS A BOOLEAN
 
@@ -1514,13 +1548,18 @@ GIVETH A BOOLEAN
 DECIDE `the personal-track request is complete` r IF
         r's `on the annex 2 form`
     AND r's `confirmation with name, ID, subjects, hours, requirements, grade, place and dates`
+    AND ((NOT r's `under 4(ה)3`) OR r's `approved in advance by the training supervisor`)
     AND ((NOT r's `in a foreign language other than English`) OR r's `with a certified Hebrew translation`)
 
+-- ב ¶2: the approval goes on to the districts "as detailed in א" — to
+-- wherever 1.26.1.5א routes the teacher's approvals.
 @ref akn:chp_1ב__sec_1_26__ssec_1_26_1_5__para_b/p2
+GIVEN c IS A `employee category`
 GIVETH A DEONTIC `1.26 party` `training action`
-DECIDE `sending a personal-track approval on` IS
+DECIDE `sending a personal-track approval on` c IS
     PARTY `the district training supervisor`
-    MUST  `send the approval to the district personnel department`
+    MUST  `send the approval where 1.26.1.5א routes it` d
+          PROVIDED d EQUALS `where the training department's approval goes` c
 
 -- 1.26.1.5ג: the personnel units confirm the total units on part B of the
 -- annex 1 form; one copy to the teacher, one to the treasury (official
@@ -1538,14 +1577,37 @@ GIVETH A `1.26 party`
 DECIDE `who gets the second copy for payment` `an official teacher` IS
     IF `an official teacher` THEN `the district treasury` ELSE `the ownership`
 
--- 1.26.1.5ד: section 6 claims go to the employing owner, by the same routing.
+-- 1.26.1.5ד: a section 6 claim goes to the employing owner; official
+-- teachers (kindergarten, primary, middle school, Shelach) send it to the
+-- district personnel department, adult education to its district personnel
+-- officer, teacher-training institutions to the teacher-training branch,
+-- supervisors to human resources, and recognised non-official institutions
+-- — and anyone the paragraph does not name — to the employing owner.
 @ref akn:chp_1ב__sec_1_26__ssec_1_26_1_5__para_d
 GIVEN c IS A `employee category`
 GIVETH A STRING
 DECIDE `where a section 6 claim goes` c IS
     CONSIDER c
-    WHEN `an employee of a recognised non-official institution` THEN "the employing owner"
-    OTHERWISE `where the training department's approval goes` c
+    WHEN `an official teacher paid through the district office` THEN "the district's teaching personnel department"
+    WHEN `an adult-education teacher` THEN "the adult-education division's personnel officer in the district"
+    WHEN `a teacher at a teacher-training institution` THEN "the teacher-training branch"
+    WHEN `a supervisor` THEN "the human-resources branch"
+    OTHERWISE "the employing owner"
+
+-- ד ¶2: an owner that wants the ministry's determination forwards the claim
+-- on form 050.209 — to the district personnel departments or the
+-- teacher-training branch; owners under settlement education or the northern
+-- district to the grading and certification branch in Jerusalem; the
+-- independent education centre to the recognised-education division.
+@ref akn:chp_1ב__sec_1_26__ssec_1_26_1_5__para_d/p2
+GIVEN c IS A `employee category`
+GIVETH A STRING
+DECIDE `where the owner forwards a section 6 claim` c IS
+    CONSIDER c
+    WHEN `a post-primary teacher of the northern district, or of settlement education` THEN "the grading and certification branch, Jerusalem"
+    WHEN `a teacher in independent education` THEN "the recognised-education division, Jerusalem"
+    WHEN `a teacher at a teacher-training institution` THEN "the teacher-training branch"
+    OTHERWISE "the teaching personnel department of the district (Jerusalem, South, Centre, Tel Aviv or Haifa)"
 
 @ref akn:chp_1ב__sec_1_26__ssec_1_26_1_5__para_d/p2
 GIVEN `item of section 6` IS A STRING
@@ -1581,10 +1643,16 @@ DECIDE `the units for the partial studies are cancelled` `units were for partial
     `units were for partial studies of the degree` AND `the degree and its grade were granted`
 
 @ref akn:chp_1ב__sec_1_26__ssec_1_26_1_5__para_f/p2
+`the "senior" grade certificate earns the double degree once the academic grade is approved` MEANS FALSE
+
+@ref akn:chp_1ב__sec_1_26__ssec_1_26_1_5__para_f/p2
+GIVEN `units were cancelled for a grade or the special-education supplement` IS A BOOLEAN
 GIVETH A DEONTIC `1.26 party` `training action`
-DECIDE `reporting cancelled units` IS
-    PARTY `the district personnel department`
-    MUST  `report the cancelled units to the training supervisor`
+DECIDE `reporting cancelled units` `units were cancelled for a grade or the special-education supplement` IS
+    IF `units were cancelled for a grade or the special-education supplement`
+    THEN PARTY `the district personnel department`
+         MUST  `report the cancelled units to the training supervisor`
+    ELSE FULFILLED
 
 @ref akn:chp_1ב__sec_1_26__ssec_1_26_1_5__para_f/p2
 `a salary grade may be cancelled to convert it into units` MEANS FALSE
@@ -1608,13 +1676,21 @@ DECIDE `the effective date may fall in` `school month` `retires at the end of Au
          THEN `is a supervisor` OR `retires at the end of August or goes on a fund sabbatical`
          ELSE TRUE
 
+-- 1.26.1.5ח: a retroactive request goes to the employer — (1) official
+-- teachers (kindergarten, primary, middle school, Shelach) to the district
+-- personnel units, teacher-training institutions to their branch,
+-- supervisors to human resources, adult education to its district officer;
+-- (2) non-official teachers paid by the owner to the owner.
 @ref akn:chp_1ב__sec_1_26__ssec_1_26_1_5__para_h akn:chp_1ב__sec_1_26__ssec_1_26_1_5__para_h__subpara_1
 GIVEN c IS A `employee category`
 GIVETH A STRING
 DECIDE `where a retroactive request goes` c IS
     CONSIDER c
-    WHEN `an employee of a recognised non-official institution` THEN "the owner, which may refer it to the retroactive-payment committee"
-    OTHERWISE `where the training department's approval goes` c
+    WHEN `an official teacher paid through the district office` THEN "the district's teaching personnel units"
+    WHEN `a teacher at a teacher-training institution` THEN "the teacher-training branch"
+    WHEN `a supervisor` THEN "the human-resources branch"
+    WHEN `an adult-education teacher` THEN "the adult-education division's personnel officer in the district"
+    OTHERWISE "the owner, which may refer it to the retroactive-payment committee"
 
 @ref akn:chp_1ב__sec_1_26__ssec_1_26_1_5__para_h__subpara_2
 GIVEN `the request came from the employer` IS A BOOLEAN
@@ -2018,13 +2094,19 @@ GIVEN p IS A `payment to the institution`
 GIVETH A BOOLEAN
 DECIDE `is refunded` p IF p EQUALS `tuition`
 
+-- 4.4.1.1-2: the district treasury refunds a state employee, the owner of
+-- the institution anyone else, a month after the original receipts.
 @ref akn:chp_1ב__sec_1_26__ssec_4_4_1
-GIVEN `month the receipts were delivered` IS A NUMBER
+GIVEN `month the receipts were delivered` IS A NUMBER, `is a state employee` IS A BOOLEAN
 GIVETH A DEONTIC `1.26 party` `training action`
-DECIDE `refunding tuition` `month the receipts were delivered` IS
-    PARTY `the district treasury`
-    MUST  `refund the tuition` m PROVIDED m AT MOST `month the receipts were delivered` PLUS 1
-    WITHIN 1
+DECIDE `refunding tuition` `month the receipts were delivered` `is a state employee` IS
+    IF `is a state employee`
+    THEN PARTY `the district treasury`
+         MUST  `refund the tuition` m PROVIDED m AT MOST `month the receipts were delivered` PLUS 1
+         WITHIN 1
+    ELSE PARTY `the ownership`
+         MUST  `refund the tuition` m PROVIDED m AT MOST `month the receipts were delivered` PLUS 1
+         WITHIN 1
 
 @ref akn:chp_1ב__sec_1_26__ssec_4_4_1
 `tax is deducted from the refund as the law requires` MEANS TRUE
