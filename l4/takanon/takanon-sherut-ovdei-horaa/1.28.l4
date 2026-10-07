@@ -16,6 +16,10 @@ DECLARE `1.28 party` IS ONE OF
     `the director of the Shelach department`
     `the teaching personnel division`
     `the appeals committee`
+    `the head of the minister's bureau`
+    `the parity committee's chair`
+    `the religious education administration (Mahmad)`
+    `the special committee at the Civil Service Commission`
     `the higher parity committee`
     `the regional labour court`
     `the provident fund`
@@ -39,14 +43,16 @@ DECLARE `termination action` IS ONE OF
     `give notice of resignation`  HAS `resignation notice month` IS A NUMBER
     `send a director-general warning` HAS `warning day` IS A NUMBER
     `give notice of dismissal`    HAS `dismissal notice day` IS A NUMBER
-    `ask the union to convene a parity committee`
+    `write to the union's secretary-general asking him to appoint its representatives and convene the committee`
     `send a copy to the individual-care unit`
     `appoint the union's representatives`
+    `have a protocol recorded` HAS `the protocol` IS A `parity protocol`
     `forward the file, protocol and recommendation`
     `forward the appeal with the personal file`
     `recommend on the appeal`
     `give an opinion on the recommendation`
     `answer the appellant`
+    `pass the answer to the appellant with a copy to the district manager`
     `appeal the reduced position` HAS `reduction appeal day` IS A NUMBER
     `open talks with the teachers' unions` HAS `talks day` IS A NUMBER
     `pay severance` HAS `severance paid` IS A NUMBER
@@ -61,25 +67,14 @@ DECLARE `termination action` IS ONE OF
 
 §§ `1.28.1 התפטרות`
 
-@desc The ways a teaching employee's service ends (1.28.2.1 lists them; 1.28.1 is the first).
-DECLARE `way of leaving` IS ONE OF
-    `resignation`
-    `dismissal`
-    `retirement on pension`
-    `death`
-
 -- 1.28.1.1: a resignation earns severance only in the special cases of the
--- Severance Pay Law that 1.28.2 lists (1.28.2.2, "resignation that counts as
--- dismissal"); `resignation counts as dismissal` below is that list.
+-- Severance Pay Law that 1.28.2 brings (1.28.2.2, "a resigning employee whose
+-- law is a dismissed employee's": `the resignation counts as dismissal`).
 @ref akn:chp_1ב__sec_1_28__ssec_1_28_1__para_1
-GIVEN w IS A `way of leaving`, `a special case of 1.28.2 applies` IS A BOOLEAN
+GIVEN `a special case of the Severance Pay Law brought in 1.28.2 applies` IS A BOOLEAN
 GIVETH A BOOLEAN
-DECIDE `leaving earns severance pay` w `a special case of 1.28.2 applies` IF
-    CONSIDER w
-    WHEN `resignation` THEN `a special case of 1.28.2 applies`
-    WHEN `dismissal`   THEN TRUE
-    WHEN `death`       THEN TRUE
-    OTHERWISE `a special case of 1.28.2 applies`
+DECIDE `a resignation earns severance pay` `a special case of the Severance Pay Law brought in 1.28.2 applies` IF
+    `a special case of the Severance Pay Law brought in 1.28.2 applies`
 
 -- 1.28.1.2-1.28.1.3: notice at least two months before the day work is to
 -- stop; time in months. Without that notice the teacher is regarded as
@@ -109,29 +104,29 @@ DECIDE `goes to a parity committee of the ownership and the teacher` `there is a
 
 §§ `1.28.2.1 תהליך הפיטורין`
 
--- 1.28.2.1 ¶1-¶6: the four ways of leaving (the enum above); this chapter
+-- 1.28.2.1 ¶1-¶6: the four ways a teaching employee leaves; this chapter
 -- deals with the second, dismissal.
 @ref akn:chp_1ב__sec_1_28__ssec_1_28_2_1/p1
-`the ways of leaving` MEANS
-    LIST
-        -- 1. resignation
-        @ref akn:chp_1ב__sec_1_28__ssec_1_28_2_1/p2
-        `resignation`,
-        -- 2. dismissal
-        @ref akn:chp_1ב__sec_1_28__ssec_1_28_2_1/p3
-        `dismissal`,
-        -- 3. retirement on pension
-        @ref akn:chp_1ב__sec_1_28__ssec_1_28_2_1/p4
-        `retirement on pension`,
-        -- 4. death
-        @ref akn:chp_1ב__sec_1_28__ssec_1_28_2_1/p5
-        `death`
+DECLARE `way of leaving` IS ONE OF
+    -- 1. resignation
+    @ref akn:chp_1ב__sec_1_28__ssec_1_28_2_1/p2
+    `resignation`
+    -- 2. dismissal
+    @ref akn:chp_1ב__sec_1_28__ssec_1_28_2_1/p3
+    `dismissal`
+    -- 3. retirement on pension
+    @ref akn:chp_1ב__sec_1_28__ssec_1_28_2_1/p4
+    `retirement on pension`
+    -- 4. death
+    @ref akn:chp_1ב__sec_1_28__ssec_1_28_2_1/p5
+    `death`
 
 @ref akn:chp_1ב__sec_1_28__ssec_1_28_2_1/p6
 `the way of leaving this chapter governs` MEANS `dismissal`
 
 -- 1.28.2.1 ¶7-¶12: dismissal procedures differ by stage of education, and
 -- each stage's procedure is in its own section of the takanon.
+@ref akn:chp_1ב__sec_1_28__ssec_1_28_2_1/p7
 DECLARE `stage of education` IS ONE OF
     `kindergarten`
     `primary`
@@ -139,7 +134,6 @@ DECLARE `stage of education` IS ONE OF
     `post-primary`
     `management posts`
 
-@ref akn:chp_1ב__sec_1_28__ssec_1_28_2_1/p7
 GIVEN s IS A `stage of education`
 GIVETH A LIST OF STRING
 DECIDE `the takanon sections on dismissal at` s IS
@@ -178,18 +172,19 @@ DECLARE `dismissal case` HAS
 GIVEN c IS A `dismissal case`, signer IS A `1.28 party`
 GIVETH A BOOLEAN
 DECIDE `may sign the dismissal` c signer IF
-    IF c's `the teacher is a state employee of the ministry`
-    THEN    signer EQUALS `the minister of education`
+    IF (NOT c's `the teacher is a state employee of the ministry`)
+    THEN    signer EQUALS `the employer`
+    ELSE    signer EQUALS `the minister of education`
         -- the director-general, by delegation, on pedagogical grounds
         @ref akn:chp_1ב__sec_1_28__ssec_1_28_2_1/p16
         OR  (signer EQUALS `the director-general` AND c's `for pedagogical reasons`)
         -- the director of Shelach, by delegation, for Gadna instructors
         @ref akn:chp_1ב__sec_1_28__ssec_1_28_2_1/p17
         OR  (signer EQUALS `the director of the Shelach department` AND c's `the teacher is a Gadna instructor employed by the ministry`)
-        -- the director of Arab education, by delegation, on pedagogical grounds in Arab education
+        -- the director-general and the director of Arab education, by delegation, on pedagogical grounds in Arab education
         @ref akn:chp_1ב__sec_1_28__ssec_1_28_2_1/p18
-        OR  (signer EQUALS `the director of the Arab education division` AND c's `in the Arab education system` AND c's `for pedagogical reasons`)
-    ELSE signer EQUALS `the employer`
+        OR  ((signer EQUALS `the director-general` OR signer EQUALS `the director of the Arab education division`)
+             AND c's `in the Arab education system` AND c's `for pedagogical reasons`)
 
 @ref akn:chp_1ב__sec_1_28__ssec_1_28_2_1/p15
 GIVEN c IS A `dismissal case`
@@ -226,21 +221,27 @@ DECIDE `the last day for a director-general warning` IS
 
 -- akn:chp_1ב__sec_1_28__ssec_1_28_2_1/p27 Heading "ג. מועד אחרון לפיטורין"; its rule follows.
 
+-- 1.28.2.1ג: 31 May, for teaching employees in primary and post-primary
+-- education, those on probation and those permanent.
 @ref akn:chp_1ב__sec_1_28__ssec_1_28_2_1/p28
-GIVEN s IS A `stage of education`
+GIVEN s IS A `stage of education`, `the teacher is on probation or permanent` IS A BOOLEAN
 GIVETH A BOOLEAN
-DECIDE `31 May is the last day for dismissal at` s IF
-    CONSIDER s
-    WHEN `primary`      THEN TRUE
-    WHEN `post-primary` THEN TRUE
-    OTHERWISE FALSE
+DECIDE `31 May is the last day for dismissal of` s `the teacher is on probation or permanent` IF
+        `the teacher is on probation or permanent`
+    AND (CONSIDER s
+         WHEN `primary`      THEN TRUE
+         WHEN `post-primary` THEN TRUE
+         OTHERWISE FALSE)
 
 @ref akn:chp_1ב__sec_1_28__ssec_1_28_2_1/p28
+GIVEN s IS A `stage of education`, `the teacher is on probation or permanent` IS A BOOLEAN
 GIVETH A DEONTIC `1.28 party` `termination action`
-DECIDE `the last day for a dismissal` IS
-    PARTY `the employer`
-    MAY   `give notice of dismissal` d PROVIDED d AT MOST `31 May`
-    WITHIN `31 May`
+DECIDE `the last day for a dismissal` s `the teacher is on probation or permanent` IS
+    IF `31 May is the last day for dismissal of` s `the teacher is on probation or permanent`
+    THEN PARTY `the employer`
+         MAY   `give notice of dismissal` d PROVIDED d AT MOST `31 May`
+         WITHIN `31 May`
+    ELSE FULFILLED
 
 @ref akn:chp_1ב__sec_1_28__ssec_1_28_2_1/p29
 GIVEN `the employee is temporary` IS A BOOLEAN, `the notice is in writing` IS A BOOLEAN
@@ -250,13 +251,22 @@ DECIDE `a notice ending a temporary employee's work is valid` `the employee is t
 
 -- akn:chp_1ב__sec_1_28__ssec_1_28_2_1/p30 Heading "ד. ועדות פריטטיות"; its rules follow.
 
--- 1.28.2.1ד(1): the parity committees implement the consultation with the
--- workers' committee (civil-service regulations, 82.233); they are not the
--- only forum with the unions and bar nothing else.
-@ref akn:chp_1ב__sec_1_28__ssec_1_28_2_1/p31 akn:chp_1ב__sec_1_28__ssec_1_28_2_1/p32
+-- 1.28.2.1ד(1): the parity committees implement, for the teachers' needs,
+-- the consultation with the workers' committee of the civil-service
+-- regulations (תקשי"ר), paragraph 82.233.
+@ref akn:chp_1ב__sec_1_28__ssec_1_28_2_1/p31
+`the parity committees implement the consultation with the workers' committee of Takshir 82.233` MEANS TRUE
+
+-- ¶2: they are not the only forum with the unions, and bar no handling of
+-- routine matters in the districts or the head office.
+@ref akn:chp_1ב__sec_1_28__ssec_1_28_2_1/p32
 `the parity committee is the only forum for talks with the unions` MEANS FALSE
 
+@ref akn:chp_1ב__sec_1_28__ssec_1_28_2_1/p32
+`setting up the parity committees bars handling teachers' routine matters` MEANS FALSE
+
 @desc Why a district manager may move to end a teacher's service (1.28.2.1ד(2)).
+@ref akn:chp_1ב__sec_1_28__ssec_1_28_2_1/p33
 DECLARE `ground for ending service` HAS
     `the teacher is permanent`                  IS A BOOLEAN
     `the teacher is on probation`               IS A BOOLEAN
@@ -264,7 +274,6 @@ DECLARE `ground for ending service` HAS
     `an urgent reason in the manager's discretion` IS A BOOLEAN
     `administrative reasons such as cuts`       IS A BOOLEAN
 
-@ref akn:chp_1ב__sec_1_28__ssec_1_28_2_1/p33
 GIVEN g IS A `ground for ending service`
 GIVETH A BOOLEAN
 DECIDE `the district manager initiates a parity committee` g IF
@@ -272,13 +281,21 @@ DECIDE `the district manager initiates a parity committee` g IF
     OR  ((g's `the teacher is permanent` OR g's `the teacher is on probation`) AND g's `an urgent reason in the manager's discretion`)
     OR  ((g's `the teacher is permanent` OR g's `the teacher is on probation`) AND g's `administrative reasons such as cuts`)
 
+-- The letter gives the teacher's particulars (ID, age, seniority, workplace,
+-- probation or warning), the reasons, and the district's representatives and
+-- their address; it asks the secretary-general to appoint the union's
+-- representatives soon. The text asks the union and binds it to nothing:
+-- the union MAY appoint.
 @ref akn:chp_1ב__sec_1_28__ssec_1_28_2_1/p33
+GIVEN g IS A `ground for ending service`
 GIVETH A DEONTIC `1.28 party` `termination action`
-DECIDE `convening a parity committee` IS
-         (PARTY `the district manager`
-          MUST  `ask the union to convene a parity committee`
-          HENCE (PARTY `takanon party` `the teachers' union` MUST `appoint the union's representatives`))
-    RAND (PARTY `the district manager` MUST `send a copy to the individual-care unit`)
+DECIDE `convening a parity committee` g IS
+    IF `the district manager initiates a parity committee` g
+    THEN     (PARTY `the district manager`
+              MUST  `write to the union's secretary-general asking him to appoint its representatives and convene the committee`
+              HENCE (PARTY `takanon party` `the teachers' union` MAY `appoint the union's representatives`))
+        RAND (PARTY `the district manager` MUST `send a copy to the individual-care unit`)
+    ELSE FULFILLED
 
 @ref akn:chp_1ב__sec_1_28__ssec_1_28_2_1/p34
 DECLARE `parity committee` HAS
@@ -304,23 +321,41 @@ DECIDE `the parity committee is properly composed` c IF
     AND c's `union representatives` EQUALS 2
     AND c's `the teacher was heard and then left`
 
+-- 1.28.2.1ד(4)(א): the parties' and the teacher's positions are heard; the
+-- members may read the personal file; the chair has a detailed protocol
+-- recorded, its conclusions and recommendations to the ministry's
+-- management worded unequivocally, signed by every member.
 @ref akn:chp_1ב__sec_1_28__ssec_1_28_2_1/p38
+`the parity committee's members may read the personal file` MEANS TRUE
+
+@ref akn:chp_1ב__sec_1_28__ssec_1_28_2_1/p38
+GIVETH A DEONTIC `1.28 party` `termination action`
+DECIDE `the parity committee's protocol` IS
+    PARTY `the parity committee's chair`
+    MUST  `have a protocol recorded` p PROVIDED `the protocol is in order` p
+
 DECLARE `parity protocol` HAS
-    `detailed, with conclusions and recommendations` IS A BOOLEAN
-    `worded unequivocally`                 IS A BOOLEAN
+    `detailed, with conclusions and recommendations to the ministry's management` IS A BOOLEAN
+    `the conclusions and recommendations are worded unequivocally` IS A BOOLEAN
     `signed by every member`               IS A BOOLEAN
 
 GIVEN p IS A `parity protocol`
 GIVETH A BOOLEAN
 DECIDE `the protocol is in order` p IF
-    p's `detailed, with conclusions and recommendations` AND p's `worded unequivocally` AND p's `signed by every member`
+        p's `detailed, with conclusions and recommendations to the ministry's management`
+    AND p's `the conclusions and recommendations are worded unequivocally`
+    AND p's `signed by every member`
 
+-- 1.28.2.1ד(4)(ב): the district manager sends the personal file, the protocol
+-- and his recommendation to the teaching personnel division in Jerusalem; a
+-- recommendation on a teacher in state-religious education is signed by the
+-- Mahmad (המחמ"ד) too.
 @ref akn:chp_1ב__sec_1_28__ssec_1_28_2_1/p39
 GIVEN `the teacher is in state-religious education` IS A BOOLEAN
 GIVETH A LIST OF `1.28 party`
 DECIDE `who signs the district recommendation` `the teacher is in state-religious education` IS
     IF `the teacher is in state-religious education`
-    THEN LIST `the district manager`, `takanon party` `the supervisor`
+    THEN LIST `the district manager`, `the religious education administration (Mahmad)`
     ELSE LIST `the district manager`
 
 @ref akn:chp_1ב__sec_1_28__ssec_1_28_2_1/p39
@@ -337,7 +372,7 @@ DECIDE `goes to a higher parity committee` `the committee reached a conclusion` 
 
 @ref akn:chp_1ב__sec_1_28__ssec_1_28_2_1/p41
 GIVETH A `1.28 party`
-DECIDE `who may approve enlarged severance` IS `takanon party` `the Civil Service Commission`
+DECIDE `who may approve enlarged severance` IS `the special committee at the Civil Service Commission`
 
 @ref akn:chp_1ב__sec_1_28__ssec_1_28_2_1/p41
 `the parity representatives may recommend enlarged severance in a covering letter` MEANS TRUE
@@ -348,8 +383,9 @@ DECIDE `who may approve enlarged severance` IS `takanon party` `the Civil Servic
 -- director-general goes through the teaching personnel division, with the
 -- personal file, to the appeals committee; its written recommendation goes
 -- back through the division, which adds its opinion; the answer comes from
--- whoever the appeal was addressed to, through the division, with a copy to
--- the district manager.
+-- whoever the appeal was addressed to (for the minister, the head of his
+-- bureau), passed on by the division, which sends a copy to the district
+-- manager.
 @ref akn:chp_1ב__sec_1_28__ssec_1_28_2_1/p43 akn:chp_1ב__sec_1_28__ssec_1_28_2_1/p44 akn:chp_1ב__sec_1_28__ssec_1_28_2_1/p45 akn:chp_1ב__sec_1_28__ssec_1_28_2_1/p46
 GIVEN `addressed to` IS A `1.28 party`
 GIVETH A DEONTIC `1.28 party` `termination action`
@@ -360,7 +396,17 @@ DECIDE `an appeal against a dismissal` `addressed to` IS
            MUST  `recommend on the appeal`
            HENCE (PARTY `the teaching personnel division`
                   MUST  `give an opinion on the recommendation`
-                  HENCE (PARTY `addressed to` MUST `answer the appellant`)))
+                  HENCE (PARTY `who answers an appeal addressed to` `addressed to`
+                         MUST  `answer the appellant`
+                         HENCE (PARTY `the teaching personnel division`
+                                MUST `pass the answer to the appellant with a copy to the district manager`))))
+
+GIVEN `addressed to` IS A `1.28 party`
+GIVETH A `1.28 party`
+DECIDE `who answers an appeal addressed to` `addressed to` IS
+    IF `addressed to` EQUALS `the minister of education`
+    THEN `the head of the minister's bureau`
+    ELSE `addressed to`
 
 -- akn:chp_1ב__sec_1_28__ssec_1_28_2_1/p47 Heading "ו. הקטנת היקף המשרה"; its rules follow.
 
@@ -437,7 +483,16 @@ DECLARE `district manager's comment on a return request` IS ONE OF
     NOT `the term "the shortening" names a decision the text provides for`
 #ASSERT `"the shortening" is undefined in 1.28.2.1ח`
 
--- akn:chp_1ב__sec_1_28__ssec_1_28_2_1/p56 Heading "ט. הגבלת פיטורין"; its rules follow.
+-- 1.28.2.1ט, "הגבלת פיטורין": a dismissal is barred where any of (1)-(4)
+-- bars it.
+@ref akn:chp_1ב__sec_1_28__ssec_1_28_2_1/p56
+GIVEN p IS A `protected situation`
+GIVETH A BOOLEAN
+DECIDE `the dismissal is barred` p IF
+        `a pregnant employee may not be dismissed` p
+    OR  `may not be dismissed after the birth` p
+    OR  `may not be dismissed during the extended leave` p
+    OR  `may not be dismissed during fertility treatment` p
 
 @desc A dismissal the Women's Employment Law restricts (1.28.2.1ט).
 DECLARE `protected situation` HAS
@@ -447,12 +502,18 @@ DECLARE `protected situation` HAS
     `on maternity leave`                        IS A BOOLEAN
     `absent after maternity leave on a doctor's certificate, up to 6 months` IS A BOOLEAN
     `within 45 days after the leave or absence` IS A BOOLEAN
+    `a dismissal notice is for a date in the periods of (2)` IS A BOOLEAN
     `absent on extended leave to care for the baby` IS A BOOLEAN
     `within 45 days after the extended leave`   IS A BOOLEAN
-    `absent for fertility treatment towards a first or second child` IS A BOOLEAN
+    `a dismissal notice is for a date in the periods of (3)` IS A BOOLEAN
+    `absent by law for fertility treatment towards a first or second child` IS A BOOLEAN
     `within 150 days after that absence`        IS A BOOLEAN
     `has the minister of labour's permit`       IS A BOOLEAN
 
+-- (1): a pregnant employee not yet on maternity leave, permanent, temporary
+-- or casual, who has worked six months for the employer or at the place;
+-- only with the minister of labour's permit, which he refuses where he thinks
+-- the dismissal is connected to the pregnancy.
 @ref akn:chp_1ב__sec_1_28__ssec_1_28_2_1/p57
 GIVEN p IS A `protected situation`
 GIVETH A BOOLEAN
@@ -464,7 +525,8 @@ DECIDE `a pregnant employee may not be dismissed` p IF
 @ref akn:chp_1ב__sec_1_28__ssec_1_28_2_1/p57
 `the end of a fixed-term contract counts as a dismissal for the pregnancy rule` MEANS TRUE
 
--- 1.28.2.1ט(2) names no permit: the bar is absolute.
+-- 1.28.2.1ט(2) names no permit: the bar is absolute, on the dismissal and on
+-- a notice for a date in those periods.
 @ref akn:chp_1ב__sec_1_28__ssec_1_28_2_1/p58
 GIVEN p IS A `protected situation`
 GIVETH A BOOLEAN
@@ -472,29 +534,23 @@ DECIDE `may not be dismissed after the birth` p IF
         p's `on maternity leave`
     OR  p's `absent after maternity leave on a doctor's certificate, up to 6 months`
     OR  p's `within 45 days after the leave or absence`
+    OR  p's `a dismissal notice is for a date in the periods of (2)`
 
 @ref akn:chp_1ב__sec_1_28__ssec_1_28_2_1/p59
 GIVEN p IS A `protected situation`
 GIVETH A BOOLEAN
 DECIDE `may not be dismissed during the extended leave` p IF
-        (p's `absent on extended leave to care for the baby` OR p's `within 45 days after the extended leave`)
+        (    p's `absent on extended leave to care for the baby`
+         OR  p's `within 45 days after the extended leave`
+         OR  p's `a dismissal notice is for a date in the periods of (3)`)
     AND (NOT p's `has the minister of labour's permit`)
 
 @ref akn:chp_1ב__sec_1_28__ssec_1_28_2_1/p60
 GIVEN p IS A `protected situation`
 GIVETH A BOOLEAN
 DECIDE `may not be dismissed during fertility treatment` p IF
-        (p's `absent for fertility treatment towards a first or second child` OR p's `within 150 days after that absence`)
+        (p's `absent by law for fertility treatment towards a first or second child` OR p's `within 150 days after that absence`)
     AND (NOT p's `has the minister of labour's permit`)
-
-@ref akn:chp_1ב__sec_1_28__ssec_1_28_2_1/p57 akn:chp_1ב__sec_1_28__ssec_1_28_2_1/p58 akn:chp_1ב__sec_1_28__ssec_1_28_2_1/p59 akn:chp_1ב__sec_1_28__ssec_1_28_2_1/p60
-GIVEN p IS A `protected situation`
-GIVETH A BOOLEAN
-DECIDE `the dismissal is barred` p IF
-        `a pregnant employee may not be dismissed` p
-    OR  `may not be dismissed after the birth` p
-    OR  `may not be dismissed during the extended leave` p
-    OR  `may not be dismissed during fertility treatment` p
 
 @ref akn:chp_1ב__sec_1_28__ssec_1_28_2_1/p61
 `the special rule for a pregnant post-primary teacher is in section` MEANS "6.5"
@@ -539,6 +595,7 @@ DECIDE `who owes severance for the service before a change of employers` `the ne
     ELSE `the employer`
 
 @desc The breaks in work that do not break its continuity (1.28.2.2, item 2).
+@ref akn:chp_1ב__sec_1_28__ssec_1_28_2_2/p4
 DECLARE `break in work` IS ONE OF
     `military service or partial service`
     `full service under a career undertaking that failed its conditions`
@@ -555,7 +612,6 @@ DECLARE `break in work` IS ONE OF
     `training for emergency labour service`
     `another break`
 
-@ref akn:chp_1ב__sec_1_28__ssec_1_28_2_2/p4
 GIVEN b IS A `break in work`, `months of a severing break` IS A NUMBER
 GIVETH A BOOLEAN
 DECIDE `the break keeps continuity` b `months of a severing break` IF
@@ -601,9 +657,65 @@ GIVETH A BOOLEAN
 DECIDE `the dismissal is presumed to dodge severance` `dismissed near the end of the first year` `the contrary was proved` IF
     `dismissed near the end of the first year` AND (NOT `the contrary was proved`)
 
--- akn:chp_1ב__sec_1_28__ssec_1_28_2_2/p16 akn:chp_1ב__sec_1_28__ssec_1_28_2_2/p17 Headings "עובד מתפטר שדינו כעובד מפוטר" and "1. התפטרות לרגל מצב בריאות לקוי"; their rules follow.
+-- 1.28.2.2, "עובד מתפטר שדינו כעובד מפוטר": a resignation is a dismissal for
+-- severance on any ground under this heading — health (1), a parent (2(א)),
+-- a mother back after her maternity pay (2(ב)), a move of home (3), a
+-- fixed-term contract not renewed (3), the grounds of 4, and enlisting in
+-- the police or prison service (5).
+@ref akn:chp_1ב__sec_1_28__ssec_1_28_2_2/p16
+GIVEN c IS A `resignation case`, m IS A `move of home`
+GIVETH A BOOLEAN
+DECIDE `the resignation counts as dismissal` c m IF
+        `a health resignation counts as dismissal` c
+    OR  `a parent's resignation counts as dismissal` c
+    OR  `a returning mother keeps the right to severance` (c's `returned after the 12 weeks of maternity pay`) (c's `resigns at the end of the school year`) (c's `the child's age in months`)
+    OR  (c's `moved home` AND `a move of home makes the resignation a dismissal` m)
+    OR  c's `contract ended without an offer to renew`
+    OR  `a resignation over worse conditions counts as dismissal` c
+    OR  `a seasonal worker's resignation counts as dismissal` c
+    OR  `a resignation to enlist counts as dismissal` c
+    OR  `a resignation on election as head of a local authority counts as dismissal` c
+    OR  `a resignation at pension age counts as dismissal` c
+    OR  `a police recruit or his survivors are entitled` (c's `resigned to enlist in the police or prison service`) (c's `months served in the police or prison service`) (c's `that service ended on a severance ground`) (c's `that service ended as unsuited, in circumstances earning police retirement pay`)
+
+@desc The facts that make a resignation count as a dismissal (1.28.2.2).
+DECLARE `resignation case` HAS
+    `for the health of the employee or a family member` IS A BOOLEAN
+    `the findings and conditions gave sufficient cause` IS A BOOLEAN
+    `the child's age in months`              IS A NUMBER @desc for a birth, the months since it; for an adoption, the age of the adopted child
+    `to care for the child`                  IS A BOOLEAN
+    `adoption order given before or after`   IS A BOOLEAN
+    `is the father or adoptive father`       IS A BOOLEAN
+    `the spouse worked 6 consecutive months just before` IS A BOOLEAN
+    `the child is in his sole care for the spouse's disability or illness` IS A BOOLEAN
+    `the other spouse already resigned on this ground` IS A BOOLEAN
+    `returned after the 12 weeks of maternity pay` IS A BOOLEAN
+    `resigns at the end of the school year`  IS A BOOLEAN
+    `moved home`                             IS A BOOLEAN
+    `relocation ground`                      IS A `relocation ground`
+    `contract ended without an offer to renew` IS A BOOLEAN
+    `a material worsening of conditions or circumstances making continuing unreasonable` IS A BOOLEAN
+    `seasonal, after 3 consecutive seasons without assured continuous work` IS A BOOLEAN
+    `just before enlisting for regular service, because of it` IS A BOOLEAN
+    `elected head or deputy head of a local authority, salaried` IS A BOOLEAN
+    `the employer agreed in writing to count the term as unpaid leave` IS A BOOLEAN
+    `is a woman`                             IS A BOOLEAN
+    `age`                                    IS A NUMBER
+    `resigned to enlist in the police or prison service` IS A BOOLEAN
+    `months served in the police or prison service` IS A NUMBER
+    `that service ended on a severance ground` IS A BOOLEAN
+    `that service ended as unsuited, in circumstances earning police retirement pay` IS A BOOLEAN
+
+-- akn:chp_1ב__sec_1_28__ssec_1_28_2_2/p17 Heading "1. התפטרות לרגל מצב בריאות לקוי"; its rules follow.
+
+@ref akn:chp_1ב__sec_1_28__ssec_1_28_2_2/p18
+GIVEN c IS A `resignation case`
+GIVETH A BOOLEAN
+DECIDE `a health resignation counts as dismissal` c IF
+    c's `for the health of the employee or a family member` AND c's `the findings and conditions gave sufficient cause`
 
 @desc A family member for the health ground (1.28.2.2, resignation 1).
+@ref akn:chp_1ב__sec_1_28__ssec_1_28_2_2/p19
 DECLARE `relative` IS ONE OF
     `spouse, including a reputed spouse`
     `child, including adopted or step`
@@ -611,7 +723,6 @@ DECLARE `relative` IS ONE OF
     `grandchild, grandparent or parent-in-law`
     `other relative`
 
-@ref akn:chp_1ב__sec_1_28__ssec_1_28_2_2/p19
 GIVEN r IS A `relative`, `lives with the employee and is mainly supported by him` IS A BOOLEAN
 GIVETH A BOOLEAN
 DECIDE `is a family member` r `lives with the employee and is mainly supported by him` IF
@@ -630,34 +741,6 @@ DECIDE `is a family member` r `lives with the employee and is mainly supported b
     WHEN `grandchild, grandparent or parent-in-law` THEN `lives with the employee and is mainly supported by him`
     OTHERWISE FALSE
 
-@desc The facts that make a resignation count as a dismissal (1.28.2.2).
-DECLARE `resignation case` HAS
-    `for the health of the employee or a family member` IS A BOOLEAN
-    `the findings and conditions gave sufficient cause` IS A BOOLEAN
-    `months since the birth or adoption`     IS A NUMBER
-    `to care for the child`                  IS A BOOLEAN
-    `adoption order given before or after`   IS A BOOLEAN
-    `is the father or adoptive father`       IS A BOOLEAN
-    `the spouse worked 6 consecutive months just before` IS A BOOLEAN
-    `the child is in his sole care for the spouse's disability or illness` IS A BOOLEAN
-    `the other spouse already resigned on this ground` IS A BOOLEAN
-    `moved home`                             IS A BOOLEAN
-    `relocation ground`                      IS A `relocation ground`
-    `contract ended without an offer to renew` IS A BOOLEAN
-    `a material worsening of conditions or circumstances making continuing unreasonable` IS A BOOLEAN
-    `seasonal, after 3 consecutive seasons without assured continuous work` IS A BOOLEAN
-    `just before enlisting for regular service, because of it` IS A BOOLEAN
-    `elected head or deputy head of a local authority, salaried` IS A BOOLEAN
-    `the employer agreed in writing to count the term as unpaid leave` IS A BOOLEAN
-    `is a woman`                             IS A BOOLEAN
-    `age`                                    IS A NUMBER
-
-@ref akn:chp_1ב__sec_1_28__ssec_1_28_2_2/p18
-GIVEN c IS A `resignation case`
-GIVETH A BOOLEAN
-DECIDE `a health resignation counts as dismissal` c IF
-    c's `for the health of the employee or a family member` AND c's `the findings and conditions gave sufficient cause`
-
 -- akn:chp_1ב__sec_1_28__ssec_1_28_2_2/p24 Heading "2. (א) התפטרות אם"; its rule follows.
 
 @ref akn:chp_1ב__sec_1_28__ssec_1_28_2_2/p25
@@ -665,7 +748,7 @@ GIVEN c IS A `resignation case`
 GIVETH A BOOLEAN
 DECIDE `a parent's resignation counts as dismissal` c IF
         c's `to care for the child`
-    AND c's `months since the birth or adoption` LESS THAN 9
+    AND c's `the child's age in months` LESS THAN 9
     AND c's `adoption order given before or after`
     AND (NOT c's `the other spouse already resigned on this ground`)
     AND ((NOT c's `is the father or adoptive father`)
@@ -721,7 +804,7 @@ DECLARE `relocation ground` IS ONE OF
     `a career-army spouse's posting`
     `to an approved settlement or outpost`
     `a police or prison-service spouse's posting`
-    `joining a spouse on a national mission abroad`
+    `joining a spouse on a mission abroad`
     `divorce`
 
 @desc The facts of a move of home.
@@ -731,8 +814,11 @@ DECLARE `move of home` HAS
     `the new home is farther from work`       IS A BOOLEAN
     `months lived in the new place`           IS A NUMBER
     `resigned meaning to settle there`        IS A BOOLEAN
-    `the place is on the linked list`         IS A BOOLEAN @desc the development towns, or the settlements and outposts the ministers approved: lists the source page links (table_09, table_10) and the corpus does not reproduce; an input
+    `moved to an agricultural town from a town that is not` IS A BOOLEAN
+    `moved to a development town from a town that is not` IS A BOOLEAN @desc the development towns are a list the source page links and the corpus does not reproduce; an input
+    `the place is on the linked list`         IS A BOOLEAN @desc the settlements and outposts the ministers approved: a list the source page links and the corpus does not reproduce; an input
     `the mission lasts over 6 months`         IS A BOOLEAN
+    `the mission is for the state, the Zionist Organisation, the Jewish Agency, Keren Kayemeth or Keren Hayesod` IS A BOOLEAN
     `the employer refused unpaid leave for the mission` IS A BOOLEAN
 
 @ref akn:chp_1ב__sec_1_28__ssec_1_28_2_2/p34
@@ -744,10 +830,11 @@ DECIDE `a move of home makes the resignation a dismissal` m IF
     @ref akn:chp_1ב__sec_1_28__ssec_1_28_2_2/p35 akn:chp_1ב__sec_1_28__ssec_1_28_2_2/p36
     WHEN `marriage, to the spouse's town` THEN
         m's `km between the old and the new home` AT LEAST 40 AND m's `the new home is farther from work`
-    -- (ב) to an agricultural or development town, read under F-1.28-c
-    @ref akn:chp_1ב__sec_1_28__ssec_1_28_2_2/p37 akn:chp_1ב__sec_1_28__ssec_1_28_2_2/p38 akn:chp_1ב__sec_1_28__ssec_1_28_2_2/p39 akn:chp_1ב__sec_1_28__ssec_1_28_2_2/p40
+    -- (ב) to an agricultural town from one that is not, or to a development town from one that is not: its conditions (1)-(2), read under F-1.28-c
+    @ref akn:chp_1ב__sec_1_28__ssec_1_28_2_2/p37 akn:chp_1ב__sec_1_28__ssec_1_28_2_2/p40
     WHEN `to an agricultural or development town` THEN
-        `the conditions of a move to an agricultural or development town` m
+            (m's `moved to an agricultural town from a town that is not` OR m's `moved to a development town from a town that is not`)
+        AND `the conditions of a move to an agricultural or development town` m
     -- (ג)(1) a career-army spouse's posting: 40 km, farther from work
     @ref akn:chp_1ב__sec_1_28__ssec_1_28_2_2/p41
     WHEN `a career-army spouse's posting` THEN
@@ -760,29 +847,32 @@ DECIDE `a move of home makes the resignation a dismissal` m IF
     @ref akn:chp_1ב__sec_1_28__ssec_1_28_2_2/p44
     WHEN `a police or prison-service spouse's posting` THEN
         m's `km between the old and the new home` AT LEAST 40 AND m's `the new home is farther from work`
-    -- (ג)(4) joining a spouse on a national mission abroad over 6 months, unpaid leave refused
+    -- (ג)(4) joining a spouse on a mission abroad of over 6 months for the state, the Zionist Organisation, the Jewish Agency, Keren Kayemeth or Keren Hayesod, unpaid leave refused
     @ref akn:chp_1ב__sec_1_28__ssec_1_28_2_2/p45
-    WHEN `joining a spouse on a national mission abroad` THEN
-        m's `the mission lasts over 6 months` AND m's `the employer refused unpaid leave for the mission`
+    WHEN `joining a spouse on a mission abroad` THEN
+            m's `the mission lasts over 6 months`
+        AND m's `the mission is for the state, the Zionist Organisation, the Jewish Agency, Keren Kayemeth or Keren Hayesod`
+        AND m's `the employer refused unpaid leave for the mission`
     -- (ג)(5) divorce: 40 km, lived there 6 months
     @ref akn:chp_1ב__sec_1_28__ssec_1_28_2_2/p46
     WHEN `divorce` THEN
         m's `km between the old and the new home` AT LEAST 40 AND m's `months lived in the new place` AT LEAST 6
     OTHERWISE FALSE
 
--- (ב)'s two conditions, "1. אם … 2. אם …", read as both required (F-1.28-c).
+-- (ב)'s two conditions, "1. אם … 2. אם …", read as both required (F-1.28-c):
+-- (1) he has lived 6 months at least in the town he moved to; (2) he resigned
+-- meaning to settle there.
+@ref akn:chp_1ב__sec_1_28__ssec_1_28_2_2/p38 akn:chp_1ב__sec_1_28__ssec_1_28_2_2/p39
 GIVEN m IS A `move of home`
 GIVETH A BOOLEAN
 DECIDE `the conditions of a move to an agricultural or development town` m IF
-        m's `the place is on the linked list`
-    AND m's `months lived in the new place` AT LEAST 6
+        m's `months lived in the new place` AT LEAST 6
     AND m's `resigned meaning to settle there`
 
 GIVEN m IS A `move of home`
 GIVETH A BOOLEAN
 DECIDE `the conditions of a move to an agricultural or development town, read as alternatives` m IF
-        m's `the place is on the linked list`
-    AND (m's `months lived in the new place` AT LEAST 6 OR m's `resigned meaning to settle there`)
+    m's `months lived in the new place` AT LEAST 6 OR m's `resigned meaning to settle there`
 
 `a move to settle, three months in` MEANS
     `move of home` WITH
@@ -791,8 +881,11 @@ DECIDE `the conditions of a move to an agricultural or development town, read as
         `the new home is farther from work`       IS TRUE
         `months lived in the new place`           IS 3
         `resigned meaning to settle there`        IS TRUE
-        `the place is on the linked list`         IS TRUE
+        `moved to an agricultural town from a town that is not` IS FALSE
+        `moved to a development town from a town that is not` IS TRUE
+        `the place is on the linked list`         IS FALSE
         `the mission lasts over 6 months`         IS FALSE
+        `the mission is for the state, the Zionist Organisation, the Jewish Agency, Keren Kayemeth or Keren Hayesod` IS FALSE
         `the employer refused unpaid leave for the mission` IS FALSE
 
 -- F-1.28-c: the two readings of (ב) differ for one who resigned to settle
@@ -868,19 +961,6 @@ GIVETH A NUMBER
 DECIDE `left for the employer to pay at pension age` `severance due` `paid by a provident fund from the employer's contributions` IS
     max 0 (`severance due` MINUS `paid by a provident fund from the employer's contributions`)
 
-@ref akn:chp_1ב__sec_1_28__ssec_1_28_2_2/p18 akn:chp_1ב__sec_1_28__ssec_1_28_2_2/p25 akn:chp_1ב__sec_1_28__ssec_1_28_2_2/p34 akn:chp_1ב__sec_1_28__ssec_1_28_2_2/p51
-GIVEN c IS A `resignation case`, m IS A `move of home`
-GIVETH A BOOLEAN
-DECIDE `the resignation counts as dismissal` c m IF
-        `a health resignation counts as dismissal` c
-    OR  `a parent's resignation counts as dismissal` c
-    OR  (c's `moved home` AND `a move of home makes the resignation a dismissal` m)
-    OR  `a resignation over worse conditions counts as dismissal` c
-    OR  `a seasonal worker's resignation counts as dismissal` c
-    OR  `a resignation to enlist counts as dismissal` c
-    OR  `a resignation on election as head of a local authority counts as dismissal` c
-    OR  `a resignation at pension age counts as dismissal` c
-
 -- akn:chp_1ב__sec_1_28__ssec_1_28_2_2/p56 Heading "5. פיצויים למתגייס למשטרה"; its rule follows.
 
 @ref akn:chp_1ב__sec_1_28__ssec_1_28_2_2/p57
@@ -917,7 +997,10 @@ DECIDE `the work ending with the employer earns severance as a dismissal` e IF
 
 -- akn:chp_1ב__sec_1_28__ssec_1_28_2_2/p63 Heading "7. עובד שנפטר"; its rules follow.
 
-@ref akn:chp_1ב__sec_1_28__ssec_1_28_2_2/p64 akn:chp_1ב__sec_1_28__ssec_1_28_2_2/p65
+@ref akn:chp_1ב__sec_1_28__ssec_1_28_2_2/p64
+`when an employee dies the employer pays his survivors severance as if it had dismissed him` MEANS TRUE
+
+@ref akn:chp_1ב__sec_1_28__ssec_1_28_2_2/p65
 DECLARE `survivor` IS ONE OF
     `the spouse at death, a reputed spouse living with him included`
     `a dependent child under the National Insurance Law`
@@ -950,7 +1033,16 @@ DECIDE `the severance is deposited in the regional labour court` s IF
 
 -- akn:chp_1ב__sec_1_28__ssec_1_28_2_2/p68 Heading "8. פיצויי פיטורין בעד שירות מעל ל-35 שנה"; its rules follow.
 
+@ref akn:chp_1ב__sec_1_28__ssec_1_28_2_2/p69 akn:chp_1ב__sec_1_28__ssec_1_28_2_2/p79
+GIVEN `months of service counted` IS A NUMBER, `age at retirement` IS A NUMBER, `retirement date` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `months beyond 35 years` `months of service counted` `age at retirement` `retirement date` IS
+    IF `age at retirement` AT LEAST 60 AND `retirement date` AT LEAST 19800401
+    THEN max 0 (`months of service counted` MINUS 420)
+    ELSE 0
+
 @desc The periods 1.28.2.2, 8(2) counts towards the 35 years.
+@ref akn:chp_1ב__sec_1_28__ssec_1_28_2_2/p71
 DECLARE `counted service period` IS ONE OF
     `permanent state service with pension rights`
     `temporary or special-contract service bought for pension`
@@ -960,7 +1052,6 @@ DECLARE `counted service period` IS ONE OF
     `enlarged service`
     `other service`
 
-@ref akn:chp_1ב__sec_1_28__ssec_1_28_2_2/p70 akn:chp_1ב__sec_1_28__ssec_1_28_2_2/p71
 GIVEN p IS A `counted service period`
 GIVETH A BOOLEAN
 DECIDE `counts towards the 35 years` p IF
@@ -980,18 +1071,10 @@ DECIDE `counts towards the 35 years` p IF
     -- (ה) work for another employer under a pension-continuity agreement
     @ref akn:chp_1ב__sec_1_28__ssec_1_28_2_2/p76
     WHEN `work under a pension-continuity agreement` THEN TRUE
-    -- enlarged service is not counted
+    -- enlarged service is not counted (8(1) ¶2)
     @ref akn:chp_1ב__sec_1_28__ssec_1_28_2_2/p70
     WHEN `enlarged service` THEN FALSE
     OTHERWISE FALSE
-
-@ref akn:chp_1ב__sec_1_28__ssec_1_28_2_2/p69 akn:chp_1ב__sec_1_28__ssec_1_28_2_2/p79
-GIVEN `months of service counted` IS A NUMBER, `age at retirement` IS A NUMBER, `retirement date` IS A NUMBER
-GIVETH A NUMBER
-DECIDE `months beyond 35 years` `months of service counted` `age at retirement` `retirement date` IS
-    IF `age at retirement` AT LEAST 60 AND `retirement date` AT LEAST 19800401
-    THEN max 0 (`months of service counted` MINUS 420)
-    ELSE 0
 
 -- 1.28.2.2, 8(3)-(4): 1/12 of the monthly salary for every month (and part
 -- of a month) beyond 35 years. Clause 3 names both "the combined monthly
@@ -1019,6 +1102,7 @@ DECIDE `severance may be denied or cut` `the governing collective agreement just
     `the governing collective agreement justifies dismissal without full severance`
 
 @desc A dismissal for misconduct (1.28.2.2, 9 — the agreement for state employees).
+@ref akn:chp_1ב__sec_1_28__ssec_1_28_2_2/p82
 DECLARE `misconduct dismissal` HAS
     `is permanent`                                  IS A BOOLEAN
     `convicted finally of a disgraceful offence of 3 years' imprisonment or more, tied to the service` IS A BOOLEAN
@@ -1030,39 +1114,29 @@ DECLARE `misconduct dismissal` HAS
     `the workers' committee was consulted`          IS A BOOLEAN
     `the employee was heard`                        IS A BOOLEAN
 
-@ref akn:chp_1ב__sec_1_28__ssec_1_28_2_2/p82
 GIVEN d IS A `misconduct dismissal`
 GIVETH A BOOLEAN
 DECIDE `a state employee's severance may be denied or cut` d IF
-        `a ground of 9(א) or 9(ב)` d
-    AND d's `the dismisser determined no or partial severance`
+        d's `the dismisser determined no or partial severance`
+    AND (   -- (א) a permanent employee convicted finally of a disgraceful offence of 3 years or more tied to the service
+            @ref akn:chp_1ב__sec_1_28__ssec_1_28_2_2/p83
+            (d's `is permanent` AND d's `convicted finally of a disgraceful offence of 3 years' imprisonment or more, tied to the service`)
+            -- (ב) on probation or temporary, dismissed for one of these:
+            @ref akn:chp_1ב__sec_1_28__ssec_1_28_2_2/p84
+         OR (    d's `on probation or temporary`
+             AND (   -- (1) unfair conduct in or about the duties
+                     @ref akn:chp_1ב__sec_1_28__ssec_1_28_2_2/p85
+                     d's `unfair conduct in or about the duties`
+                     -- (2) conduct that may harm the image or good name of the civil service
+                     @ref akn:chp_1ב__sec_1_28__ssec_1_28_2_2/p86
+                  OR d's `conduct that may harm the civil service's image`
+                     -- (3) a disgraceful offence tied to the service
+                     @ref akn:chp_1ב__sec_1_28__ssec_1_28_2_2/p87
+                  OR d's `convicted of a disgraceful offence tied to the service`)))
     -- (ג) the determination only after consulting the workers' committee and hearing the employee
     @ref akn:chp_1ב__sec_1_28__ssec_1_28_2_2/p88
     AND d's `the workers' committee was consulted`
     AND d's `the employee was heard`
-
-GIVEN d IS A `misconduct dismissal`
-GIVETH A BOOLEAN
-DECIDE `a ground of 9(א) or 9(ב)` d IF
-    -- (א) a permanent employee convicted finally of a disgraceful offence of 3 years or more tied to the service
-    @ref akn:chp_1ב__sec_1_28__ssec_1_28_2_2/p83
-        (d's `is permanent` AND d's `convicted finally of a disgraceful offence of 3 years' imprisonment or more, tied to the service`)
-    -- (ב) on probation or temporary, dismissed for one of these:
-    @ref akn:chp_1ב__sec_1_28__ssec_1_28_2_2/p84
-    OR  (d's `on probation or temporary` AND `a misconduct ground of 9(ב)` d)
-
-GIVEN d IS A `misconduct dismissal`
-GIVETH A BOOLEAN
-DECIDE `a misconduct ground of 9(ב)` d IF
-    -- (1) unfair conduct in or about the duties
-    @ref akn:chp_1ב__sec_1_28__ssec_1_28_2_2/p85
-        d's `unfair conduct in or about the duties`
-    -- (2) conduct that may harm the image or good name of the civil service
-    @ref akn:chp_1ב__sec_1_28__ssec_1_28_2_2/p86
-    OR  d's `conduct that may harm the civil service's image`
-    -- (3) a disgraceful offence tied to the service
-    @ref akn:chp_1ב__sec_1_28__ssec_1_28_2_2/p87
-    OR  d's `convicted of a disgraceful offence tied to the service`
 
 @ref akn:chp_1ב__sec_1_28__ssec_1_28_2_2/p89
 `these provisions detract from section 68 of the Civil Service (Discipline) Law` MEANS FALSE
@@ -1216,11 +1290,11 @@ DECIDE `last salary over a temporary change` `salary as if no temporary change` 
     `salary as if no temporary change`
 
 @desc A period of full or part-time work (1.28.2.3, 8).
+@ref akn:chp_1ב__sec_1_28__ssec_1_28_2_3/p32
 DECLARE `work period` HAS
     `years in the period`    IS A NUMBER
     `share of a full position` IS A NUMBER
 
-@ref akn:chp_1ב__sec_1_28__ssec_1_28_2_3/p32
 GIVEN `full-time salary on the eve of dismissal` IS A NUMBER, periods IS A LIST OF `work period`
 GIVETH A NUMBER
 DECIDE `severance over full and part-time periods` `full-time salary on the eve of dismissal` periods IS
@@ -1251,6 +1325,7 @@ DECIDE `last salary after unpaid leave` `unpaid leave under a law` `salary had h
     ELSE `salary on the eve of the leave` TIMES (1 PLUS `cost-of-living rise since the leave`)
 
 @desc A period of a year of work that 1.28.2.3, 12 may leave out of the count.
+@ref akn:chp_1ב__sec_1_28__ssec_1_28_2_3/p38
 DECLARE `uncounted time in a year` HAS
     `days of military service`             IS A NUMBER
     `days of partial service`              IS A NUMBER
@@ -1260,7 +1335,6 @@ DECLARE `uncounted time in a year` HAS
     `days of it paid as an employee`       IS A NUMBER
     `days of a break "as in the law"`      IS A NUMBER
 
-@ref akn:chp_1ב__sec_1_28__ssec_1_28_2_3/p38
 GIVEN u IS A `uncounted time in a year`
 GIVETH A NUMBER
 DECIDE `days left out of the count` u IS
@@ -1329,8 +1403,22 @@ DECIDE `the pension replaces severance` `a pension is due by law` IF `a pension 
 @ref akn:chp_1ב__sec_1_28__ssec_1_28_2_3/p53
 `a collective agreement may set how severance is paid, deposits included` MEANS TRUE
 
-@ref akn:chp_1ב__sec_1_28__ssec_1_28_2_3/p54 akn:chp_1ב__sec_1_28__ssec_1_28_2_3/p55
+-- 1.28.2.3, 20: the minister of labour, after consulting the minister of
+-- finance and with the Knesset labour committee's approval, may order
+-- employers to deposit in a provident fund sums at a rate the order sets, to
+-- secure the severance they may have to pay ("a deposit order").
+@ref akn:chp_1ב__sec_1_28__ssec_1_28_2_3/p54
+GIVEN `the minister of finance was consulted` IS A BOOLEAN, `the Knesset labour committee approved` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `the minister of labour may make a deposit order` `the minister of finance was consulted` `the Knesset labour committee approved` IF
+    `the minister of finance was consulted` AND `the Knesset labour committee approved`
+
+-- 1.28.2.3, 21: a deposit order, published in Reshumot, defines the kinds of
+-- employers it covers (by branch, size or region) and its start, which may
+-- not precede its publication.
+@ref akn:chp_1ב__sec_1_28__ssec_1_28_2_3/p55
 DECLARE `deposit order` HAS
+    `rate of deposit`           IS A NUMBER @desc set by the order itself; an input
     `employer kinds it covers`  IS A STRING
     `published on`              IS A NUMBER
     `in force from`             IS A NUMBER
@@ -1355,21 +1443,26 @@ DECLARE `matter of deposit regulations` IS ONE OF
     @ref akn:chp_1ב__sec_1_28__ssec_1_28_2_3/p60
     `raising late deposits`
 
-@ref akn:chp_1ב__sec_1_28__ssec_1_28_2_3/p61 akn:chp_1ב__sec_1_28__ssec_1_28_2_3/p62
+@ref akn:chp_1ב__sec_1_28__ssec_1_28_2_3/p61
 `deposits are collected as a tax under the Taxes (Collection) Ordinance, save its section 12` MEANS TRUE
 
+@ref akn:chp_1ב__sec_1_28__ssec_1_28_2_3/p62
+`the minister of labour may appoint a person with a district commissioner's and a district officer's powers under that ordinance` MEANS TRUE
+
 -- 1.28.2.3, 24: deposit within 42 days of paying the salary of the period;
--- the minister may extend by up to 3 months (time in days).
+-- the minister, or one he empowers, may extend that by up to 3 months (time
+-- in days from the salary's payment; the days those 3 months span are an
+-- input, the text counting them in months).
 @ref akn:chp_1ב__sec_1_28__ssec_1_28_2_3/p63
-GIVEN `days of extension` IS A NUMBER
+GIVEN `days of extension` IS A NUMBER, `days in the 3 months after the 42nd day` IS A NUMBER
 GIVETH A DEONTIC `1.28 party` `termination action`
-DECIDE `depositing under a deposit order` `days of extension` IS
+DECIDE `depositing under a deposit order` `days of extension` `days in the 3 months after the 42nd day` IS
     PARTY `the employer`
-    MUST  `deposit severance savings` d PROVIDED d AT MOST 42 PLUS min `days of extension` 90
-    WITHIN 42 PLUS min `days of extension` 90
+    MUST  `deposit severance savings` d PROVIDED d AT MOST 42 PLUS min `days of extension` `days in the 3 months after the 42nd day`
+    WITHIN 42 PLUS min `days of extension` `days in the 3 months after the 42nd day`
     LEST  BREACH BY `the employer` BECAUSE "1.28.2.3(24): deposits are due within 42 days of paying the salary"
 
-@ref akn:chp_1ב__sec_1_28__ssec_1_28_2_3/p64 akn:chp_1ב__sec_1_28__ssec_1_28_2_3/p65 akn:chp_1ב__sec_1_28__ssec_1_28_2_3/p66 akn:chp_1ב__sec_1_28__ssec_1_28_2_3/p67
+@ref akn:chp_1ב__sec_1_28__ssec_1_28_2_3/p64 akn:chp_1ב__sec_1_28__ssec_1_28_2_3/p65
 GIVEN `the employee left on terms that earn severance` IS A BOOLEAN, `also for an annuity and not returnable by agreement` IS A BOOLEAN
 GIVETH A BOOLEAN
 DECIDE `the deposited sums may be returned, assigned, pledged or attached` `the employee left on terms that earn severance` `also for an annuity and not returnable by agreement` IF
@@ -1377,6 +1470,9 @@ DECIDE `the deposited sums may be returned, assigned, pledged or attached` `the 
 
 @ref akn:chp_1ב__sec_1_28__ssec_1_28_2_3/p66
 `deposited sums are part of the employer's assets on death, bankruptcy or winding-up while claims are unpaid` MEANS FALSE
+
+@ref akn:chp_1ב__sec_1_28__ssec_1_28_2_3/p67
+`item 25 applies also to the interest and linkage added to those sums` MEANS TRUE
 
 -- 1.28.2.3, 26: in bankruptcy or winding-up, severance ranks as wages with
 -- priority, the two together up to 150% of the wage ceiling of priority.
@@ -1512,10 +1608,16 @@ DECIDE `day a deceased's severance counts as paid` `day of deposit in the court`
 
 §§ `1.28.2.4 פיצויי פיטורין לעובדי ממשלת ירדן או עריית ירושלים העתיקה`
 
+-- 1.28.2.4(1): on 21.1.69 the ministerial committee for Jerusalem
+-- empowered the Civil Service Commissioner to set, with the bodies concerned
+-- and on its guidelines, rules for counting the seniority rights of state
+-- employees once employed by the Jordanian government or the old Jerusalem
+-- municipality; the rules follow.
 @ref akn:chp_1ב__sec_1_28__ssec_1_28_2_4__para_1
-`the Civil Service Commissioner sets the rules for former Jordanian and old-Jerusalem employees` MEANS TRUE
+`the Civil Service Commissioner sets the rules for the seniority rights of former Jordanian and old-Jerusalem employees` MEANS TRUE
 
 @desc A state employee once employed by the Jordanian government or the old Jerusalem municipality.
+@ref akn:chp_1ב__sec_1_28__ssec_1_28_2_4__para_2
 DECLARE `former Jordanian employee` HAS
     `employed by Jordan or the municipality just before 7.6.67, in a service Israel now gives` IS A BOOLEAN
     `joined the Israeli service by`        IS A NUMBER @desc year-month-day
@@ -1524,7 +1626,6 @@ DECLARE `former Jordanian employee` HAS
     `severance by the Jordanian rules of 1.6.67` IS A NUMBER @desc the Jordanian rules and conditions on the basic salary of the time; an input
     `severance by the Severance Pay Law for the Israeli service` IS A NUMBER
 
-@ref akn:chp_1ב__sec_1_28__ssec_1_28_2_4__para_2
 GIVEN e IS A `former Jordanian employee`
 GIVETH A BOOLEAN
 DECIDE `is an "employee" of 1.28.2.4` e IF
@@ -1540,7 +1641,8 @@ GIVEN e IS A `former Jordanian employee`
 GIVETH A NUMBER
 DECIDE `severance of a former Jordanian employee` e IS
     IF `is an "employee" of 1.28.2.4` e AND e's `leaves without a pension` AND e's `entitled to severance for the Israeli service alone`
-    THEN    -- akn:chp_1ב__sec_1_28__ssec_1_28_2_4__para_3__subpara_a (א) the Jordanian service, by the Jordanian rules of 1.6.67
+    THEN    -- (א) the continuous Jordanian or municipal service, by the Jordanian rules of 1.6.67
+            @ref akn:chp_1ב__sec_1_28__ssec_1_28_2_4__para_3__subpara_a
             e's `severance by the Jordanian rules of 1.6.67`
             -- (ב) the Israeli service, by the Severance Pay Law
             @ref akn:chp_1ב__sec_1_28__ssec_1_28_2_4__para_3__subpara_b
@@ -1561,12 +1663,18 @@ DECIDE `service counted for the Jordanian severance` `years in Jordan` `years in
 
 -- akn:chp_1ב__sec_1_28__ssec_1_28_3__para_1 Heading "1. הפסקה זמנית מטעמי עברות משמעת"; its rules follow.
 
+-- From 1.2.73 teachers in official education are under the Civil Service
+-- (Discipline) Law; ownerships (education that is not official) act by their
+-- own usual procedure. For official education before 1.2.73 the section
+-- says nothing.
 @ref akn:chp_1ב__sec_1_28__ssec_1_28_3__para_1/p2 akn:chp_1ב__sec_1_28__ssec_1_28_3__para_1/p3
 GIVEN `in official education` IS A BOOLEAN, `date` IS A NUMBER
 GIVETH A STRING
 DECIDE `the rules of a disciplinary suspension` `in official education` `date` IS
-    IF `in official education` AND `date` AT LEAST 19730201
-    THEN "the Civil Service (Discipline) Law 1963"
+    IF `in official education`
+    THEN IF `date` AT LEAST 19730201
+         THEN "the Civil Service (Discipline) Law 1963"
+         ELSE "not stated in 1.28.3"
     ELSE "the ownership's own usual procedure"
 
 -- akn:chp_1ב__sec_1_28__ssec_1_28_3__para_2 Heading "2. הפסקה זמנית מטעמים פדגוגיים"; its rule follows.
@@ -1587,6 +1695,7 @@ DECIDE `a pedagogical suspension` `an urgent need to stop the work on educationa
 
 @desc An absence from work, as the judgment asks about it.
 DECLARE `absence` HAS
+    `is called a strike`                    IS A BOOLEAN
     `is a "political strike"`               IS A BOOLEAN
     `prolonged`                             IS A BOOLEAN
     `pointless to ask the employer to take disciplinary steps towards dismissal` IS A BOOLEAN
@@ -1596,7 +1705,7 @@ DECLARE `absence` HAS
 GIVEN a IS A `absence`
 GIVETH A BOOLEAN
 DECIDE `the absence has the protection of a strike` a IF
-    (NOT a's `is a "political strike"`)
+    a's `is called a strike` AND (NOT a's `is a "political strike"`)
 
 @ref akn:chp_1ב__sec_1_28__ssec_1_28_4__para_3 akn:chp_1ב__sec_1_28__ssec_1_28_4__para_3/p2
 DECLARE `way an employment relationship ends` IS ONE OF
