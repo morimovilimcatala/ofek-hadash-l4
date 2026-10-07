@@ -24,28 +24,35 @@ IMPORT common
 -- akn:chp_2__sec_2_1/p12 Table of contents: age hours.
 
 -- The parties of the kindergarten. The teacher, the owner, the supervisor and
--- the district come from common (the district office as `the district
--- manager`); the assistant, the person an owner names to handle substitutions
--- and the parents' meeting are this section's own.
+-- the district come from common; the assistant, the person in charge in the
+-- district (א(1)) and the person an owner names to handle substitutions are
+-- this section's own.
 DECLARE `2.1 party` IS ONE OF
     `a takanon party` HAS `who` IS A Party
     `the kindergarten assistant`
+    `the person in charge in the district`
     `the person responsible for substitutions`
 
 DECLARE `kindergarten action` IS ONE OF
     `notify of own absence`                         HAS `notified` IS A LIST OF `2.1 party`
-    `notify of the teacher's absence`
+    `notify in advance of a long absence`           HAS `notified in advance` IS A LIST OF `2.1 party`
+    `do her best to notify the authority or owner of the teacher's absence`
+    `ask the assistant to watch the children`
     `notify of the assistant's absence`
     `send a substitute`                             HAS `substitute` IS A `kind of substitute`
+    `exhaust every option to send a substitute`
     `arrange a substitute for the assistant`
     `name a person responsible for substitutions and a deputy`
-    `prepare the list of substitute candidates`
+    `name a person to turn to when an assistant is absent`
+    `prepare lists of candidates to substitute for teachers`
+    `prepare an additional candidate list, consulting the kindergarten supervisor`
+    `prepare lists of candidates to substitute for assistants`
     `supervise the children until relieved`
     `claim the payment for being alone`             HAS `claim details complete` IS A BOOLEAN
     `pay the assistant's daily compensation`        HAS `compensation` IS A NUMBER
-    `open an additional month`
-    `set parents' reception times`
-    `convene a parents' meeting`
+    `set parents' reception times`                  HAS `some outside the kindergarten's regular hours` IS A BOOLEAN
+    `hold the year's parents' meetings`             HAS `meetings held` IS A NUMBER
+    `visit the child's home`
     `pay the education-hours supplement`            HAS `supplement paid` IS A NUMBER
 
 DECLARE `kind of substitute` IS ONE OF
@@ -60,8 +67,14 @@ DECLARE `kind of substitute` IS ONE OF
 
 -- 1: in 5752 and 5753 kindergartens open six days a week, Sunday to Thursday
 -- 07:55-13:20 and Friday 07:55-12:45; the teachers work five days. Times are
--- minutes from midnight.
+-- minutes from midnight; a school year is named by the Gregorian year it
+-- begins in (5752 = 1991, 5753 = 1992).
 @ref akn:chp_2__sec_2_1__ssec_2_1_1__para_1
+GIVEN `school year beginning in` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `the six-day week of 2.1.1.1 holds in` `school year beginning in` IF
+    `school year beginning in` EQUALS 1991 OR `school year beginning in` EQUALS 1992
+
 DECLARE `weekday` IS ONE OF Sunday, Monday, Tuesday, Wednesday, Thursday, Friday, Saturday
 
 GIVEN d IS A `weekday`
@@ -127,14 +140,15 @@ GIVETH A BOOLEAN
 DECIDE `the additional month may open` m IF
         m's `prior approval of the district office`
     AND `staffed under 2.1.2.1` m
-    AND m's `physical conditions checked by the supervisor`
-    AND m's `feeding continues`
-    AND m's `the teacher takes part in training for it`
-    AND m's `budget for work materials provided`
+    AND `condition 2: physical conditions` m
+    AND `condition 3: feeding` m
+    AND `condition 4: training` m
+    AND `condition 5: materials budget` m
 
--- 1: preferably the permanent teacher; another teacher needs the
--- supervision's approval; ¶2: or two students of a kindergarten-teacher
--- training institution, with its consent and under guidance.
+-- 1: it is preferable (רצוי) that the permanent teacher continue; another
+-- teacher needs the supervision's approval; ¶2: instead of a teacher, two
+-- students of a kindergarten-teacher training institution, with its
+-- management's consent and under guidance.
 @ref akn:chp_2__sec_2_1__ssec_2_1_2__para_1 akn:chp_2__sec_2_1__ssec_2_1_2__para_1/p2
 GIVEN m IS AN `additional month`
 GIVETH A BOOLEAN
@@ -142,6 +156,11 @@ DECIDE `staffed under 2.1.2.1` m IF
         m's `the permanent teacher continues`
     OR  m's `another teacher approved by the supervision`
     OR  m's `two training-institution students with the institution's consent, under guidance`
+
+GIVEN m IS AN `additional month`
+GIVETH A BOOLEAN
+DECIDE `staffed as 2.1.2.1 prefers` m IF
+    m's `the permanent teacher continues`
 
 @ref akn:chp_2__sec_2_1__ssec_2_1_2__para_2
 GIVEN m IS AN `additional month`
@@ -174,26 +193,30 @@ DECIDE `condition 5: materials budget` m IF m's `budget for work materials provi
 `a kindergarten teacher bears pedagogical responsibility` MEANS TRUE
 
 -- 1 ¶2: at the start of the year she sets times to receive parents, also
--- outside working hours, convenes at least two parents' meetings in the
--- year, and visits homes when needed; so she gets a supplement equal to the
--- pay of 3 weekly hours, by her education and recognised seniority. Time in
--- school months (September = 1).
+-- outside the kindergarten's regular hours, convenes at least two parents'
+-- meetings during the year, and visits the parents' homes when needed; so
+-- she gets a supplement equal to the pay of 3 weekly hours, by her education
+-- and recognised seniority. Time in school months from the start of the year
+-- ("the start of the year" is read as its first month).
 @ref akn:chp_2__sec_2_1__ssec_2_1_3__para_1/p2
+GIVEN `a home visit is needed` IS A BOOLEAN
 GIVETH A DEONTIC `2.1 party` `kindergarten action`
-DECIDE `the parents' duties of 2.1.3` IS
+DECIDE `the parents' duties of 2.1.3` `a home visit is needed` IS
     (PARTY `a takanon party` `the teaching employee`
-     MUST  `set parents' reception times`
+     MUST  `set parents' reception times` outside PROVIDED outside
      WITHIN 1
-     LEST  BREACH BY `a takanon party` `the teaching employee` BECAUSE "2.1.3.1: parents' reception times are set at the start of the year")
+     LEST  BREACH BY `a takanon party` `the teaching employee` BECAUSE "2.1.3.1: parents' reception times, also outside regular hours, are set at the start of the year")
     RAND
     (PARTY `a takanon party` `the teaching employee`
-     MUST  `convene a parents' meeting`
+     MUST  `hold the year's parents' meetings` n PROVIDED n AT LEAST 2
      WITHIN 12
-     HENCE (PARTY `a takanon party` `the teaching employee`
-            MUST  `convene a parents' meeting`
-            WITHIN 12
-            LEST  BREACH BY `a takanon party` `the teaching employee` BECAUSE "2.1.3.1: at least two parents' meetings a year")
-     LEST  BREACH BY `a takanon party` `the teaching employee` BECAUSE "2.1.3.1: at least two parents' meetings a year")
+     LEST  BREACH BY `a takanon party` `the teaching employee` BECAUSE "2.1.3.1: at least two parents' meetings during the year")
+    RAND
+    (IF `a home visit is needed`
+     THEN PARTY `a takanon party` `the teaching employee`
+          MUST  `visit the child's home`
+          LEST  BREACH BY `a takanon party` `the teaching employee` BECAUSE "2.1.3.1: she visits the parents' homes when needed"
+     ELSE FULFILLED)
 
 GIVEN `pay of one weekly hour, by education and recognised seniority` IS A NUMBER
 GIVETH A NUMBER
@@ -250,49 +273,72 @@ DECIDE `the class is properly staffed` `teachers present` `assistants present` `
         (NOT (`minute of the day` AT LEAST 8 TIMES 60 AND `minute of the day` AT MOST 12 TIMES 60 PLUS 30))
     OR  (`teachers present` AT LEAST 1 AND `assistants present` AT LEAST 1)
 
--- ¶2: when one of them is absent, a substitute is arranged the same day.
--- Time in minutes from the moment the absence is known.
+-- ¶2: when one of the two is absent, a substitute is arranged the same day,
+-- by the guidelines below: for the teacher by the person responsible for
+-- substitutions (א(3), א(5)), for the assistant by the owner (ב(1)). Time in
+-- minutes from the moment the absence is known.
 @ref akn:chp_2__sec_2_1__ssec_2_1_8/p2
-GIVEN `minutes left in the working day` IS A NUMBER
+DECLARE `absent worker` IS ONE OF `the kindergarten teacher`, `the assistant`
+
+GIVEN w IS AN `absent worker`, `minutes left in the working day` IS A NUMBER
 GIVETH A DEONTIC `2.1 party` `kindergarten action`
-DECIDE `a substitute the same day` `minutes left in the working day` IS
-    PARTY `the person responsible for substitutions`
-    MUST  `send a substitute` s
-    WITHIN `minutes left in the working day`
-    LEST  BREACH BY `the person responsible for substitutions` BECAUSE "2.1.8: a substitute is arranged the same day"
+DECIDE `a substitute the same day` w `minutes left in the working day` IS
+    CONSIDER w
+    WHEN `the kindergarten teacher` THEN
+        PARTY `the person responsible for substitutions`
+        MUST  `send a substitute` s
+        WITHIN `minutes left in the working day`
+        LEST  BREACH BY `the person responsible for substitutions` BECAUSE "2.1.8: a substitute for the teacher is arranged the same day"
+    WHEN `the assistant` THEN
+        PARTY `a takanon party` `the local authority or owning body`
+        MUST  `arrange a substitute for the assistant`
+        WITHIN `minutes left in the working day`
+        LEST  BREACH BY `a takanon party` `the local authority or owning body` BECAUSE "2.1.8: a substitute for the assistant is arranged the same day"
 
 -- akn:chp_2__sec_2_1__ssec_2_1_8/p3 A heading ("א. substituting for an absent kindergarten teacher").
 -- akn:chp_2__sec_2_1__ssec_2_1_8/p4 A heading ("(1) the teacher's notice of her absence").
 
--- א(1): a teacher who cannot come notifies at once, herself or by a
--- messenger; in the big cities, the district's officer and the owner; and
--- where the absence may pass ten days, the supervisor and the owner in
--- advance. "At once" carries no number; it is an input.
+-- א(1): a teacher who finds she cannot come notifies at once, herself or by
+-- a messenger. In the big cities she reports at once to the person in charge
+-- in the district and to the owner. Elsewhere the clause names no addressee;
+-- א(3) names the person to be turned to when a teacher is absent, and she is
+-- read as the one. Where the absence may pass ten days, she also notifies
+-- the supervisor and the owner in advance. "At once" carries no number; it
+-- is an input.
 @ref akn:chp_2__sec_2_1__ssec_2_1_8/p5
-GIVEN `in a big city` IS A BOOLEAN, `may exceed ten days` IS A BOOLEAN
+GIVEN `in a big city` IS A BOOLEAN
 GIVETH A LIST OF `2.1 party`
-DECIDE `whom the absent teacher notifies` `in a big city` `may exceed ten days` IS
-    IF `may exceed ten days`
-    THEN LIST `a takanon party` `the supervisor`, `a takanon party` `the local authority or owning body`
-    ELSE IF `in a big city`
-         THEN LIST `a takanon party` `the district manager`, `a takanon party` `the local authority or owning body`
-         ELSE LIST `a takanon party` `the local authority or owning body`
+DECIDE `whom the absent teacher notifies at once` `in a big city` IS
+    IF `in a big city`
+    THEN LIST `the person in charge in the district`, `a takanon party` `the local authority or owning body`
+    ELSE LIST `the person responsible for substitutions`
+
+`whom she notifies in advance of an absence that may pass ten days` MEANS
+    LIST `a takanon party` `the supervisor`, `a takanon party` `the local authority or owning body`
 
 GIVEN `in a big city` IS A BOOLEAN, `may exceed ten days` IS A BOOLEAN, `minutes that count as at once` IS A NUMBER
 GIVETH A DEONTIC `2.1 party` `kindergarten action`
 DECIDE `the teacher's notice` `in a big city` `may exceed ten days` `minutes that count as at once` IS
-    PARTY `a takanon party` `the teaching employee`
-    MUST  `notify of own absence` whom
-          PROVIDED all (GIVEN w YIELD elem w whom) (`whom the absent teacher notifies` `in a big city` `may exceed ten days`)
-    WITHIN `minutes that count as at once`
-    LEST  BREACH BY `a takanon party` `the teaching employee` BECAUSE "2.1.8 א(1): the absent teacher notifies at once"
+    (PARTY `a takanon party` `the teaching employee`
+     MUST  `notify of own absence` whom
+           PROVIDED all (GIVEN w YIELD elem w whom) (`whom the absent teacher notifies at once` `in a big city`)
+     WITHIN `minutes that count as at once`
+     LEST  BREACH BY `a takanon party` `the teaching employee` BECAUSE "2.1.8 א(1): the absent teacher notifies at once")
+    RAND
+    (IF `may exceed ten days`
+     THEN PARTY `a takanon party` `the teaching employee`
+          MUST  `notify in advance of a long absence` whom
+                PROVIDED all (GIVEN w YIELD elem w whom) `whom she notifies in advance of an absence that may pass ten days`
+          LEST  BREACH BY `a takanon party` `the teaching employee` BECAUSE "2.1.8 א(1): an absence that may pass ten days is notified in advance to the supervisor and the owner"
+     ELSE FULFILLED)
 
 -- akn:chp_2__sec_2_1__ssec_2_1_8/p6 A heading ("(2) the assistant's notice of the teacher's absence").
 
--- א(2): if neither the teacher nor a substitute has come by 8:30, the
--- assistant does her best to notify the authority or owner; the responsible
--- person asks her to watch the children until the earliest of the end of the
--- day, the teacher's arrival and the substitute's.
+-- א(2): if neither the permanent teacher nor a substitute has come by 8:30,
+-- the assistant does her best to notify the authority or owner, by phone or
+-- messenger; the person responsible for substitutions asks her to watch the
+-- children until the earliest of the end of the day, the teacher's arrival
+-- and the substitute's.
 @ref akn:chp_2__sec_2_1__ssec_2_1_8/p7
 GIVEN `teacher or substitute present at 8:30` IS A BOOLEAN
 GIVETH A DEONTIC `2.1 party` `kindergarten action`
@@ -300,9 +346,12 @@ DECIDE `the assistant's notice` `teacher or substitute present at 8:30` IS
     IF `teacher or substitute present at 8:30`
     THEN FULFILLED
     ELSE PARTY `the kindergarten assistant`
-         MUST  `notify of the teacher's absence`
-         HENCE (PARTY `the kindergarten assistant`
-                MUST  `supervise the children until relieved`)
+         MUST  `do her best to notify the authority or owner of the teacher's absence`
+         HENCE (PARTY `the person responsible for substitutions`
+                MUST  `ask the assistant to watch the children`
+                HENCE (PARTY `the kindergarten assistant`
+                       MUST  `supervise the children until relieved`)
+                LEST  BREACH BY `the person responsible for substitutions` BECAUSE "2.1.8 א(2): the responsible person asks the assistant to watch the children")
          LEST  BREACH BY `the kindergarten assistant` BECAUSE "2.1.8 א(2): the assistant notifies of the teacher's absence"
 
 GIVEN `end of the working day` IS A NUMBER, `teacher arrives` IS A NUMBER, `substitute arrives` IS A NUMBER
@@ -321,12 +370,21 @@ DECIDE `naming a responsible person` IS
 
 -- akn:chp_2__sec_2_1__ssec_2_1_8/p10 A heading ("(4) preparing a list of substitute candidates").
 
--- א(4): the owners prepare lists of candidates in this order of priority.
+-- א(4): the owners of the kindergarten teachers (district offices, local
+-- authorities, organisations) prepare lists of suitable candidates, in this
+-- order of priority. The additional list (¶17, א(5)) comes after all five.
 @ref akn:chp_2__sec_2_1__ssec_2_1_8/p11
+GIVETH A DEONTIC `2.1 party` `kindergarten action`
+DECIDE `the owners' candidate lists` IS
+    PARTY `a takanon party` `the local authority or owning body`
+    MUST  `prepare lists of candidates to substitute for teachers`
+    LEST  BREACH BY `a takanon party` `the local authority or owning body` BECAUSE "2.1.8 א(4): the owners prepare lists of candidates to substitute for absent teachers"
+
 GIVEN s IS A `kind of substitute`
 GIVETH A NUMBER
 DECIDE `priority of the candidate` s IS
     CONSIDER s
+    WHEN `a candidate from the additional list` THEN 6
     @ref akn:chp_2__sec_2_1__ssec_2_1_8/p12
     WHEN `an unplaced kindergarten teacher` THEN 1
     @ref akn:chp_2__sec_2_1__ssec_2_1_8/p13
@@ -337,20 +395,28 @@ DECIDE `priority of the candidate` s IS
     WHEN `a kindergarten-teachers' seminar student` THEN 4
     @ref akn:chp_2__sec_2_1__ssec_2_1_8/p16
     WHEN `a twelfth-grade graduate after a colloquium` THEN 5
-    WHEN `a candidate from the additional list` THEN 6
 
--- ¶17: an additional list, prepared in consultation with the kindergarten
--- supervisor; separate lists for state and state-religious kindergartens;
--- all prepared at the start of the school year (school month 1).
+-- ¶17: where an additional list is needed, it is prepared in consultation
+-- with the kindergarten supervisor; separate lists for state and
+-- state-religious kindergartens; all prepared at the start of the school
+-- year, by every owner and local authority (school month 1).
 @ref akn:chp_2__sec_2_1__ssec_2_1_8/p17
 DECLARE `stream` IS ONE OF `state`, `state-religious`
 
+GIVEN `an additional list is needed` IS A BOOLEAN
 GIVETH A DEONTIC `2.1 party` `kindergarten action`
-DECIDE `lists at the start of the year` IS
-    PARTY `a takanon party` `the local authority or owning body`
-    MUST  `prepare the list of substitute candidates`
-    WITHIN 1
-    LEST  BREACH BY `a takanon party` `the local authority or owning body` BECAUSE "2.1.8 א(4): the candidate lists are prepared at the start of the school year"
+DECIDE `lists at the start of the year` `an additional list is needed` IS
+    (PARTY `a takanon party` `the local authority or owning body`
+     MUST  `prepare lists of candidates to substitute for teachers`
+     WITHIN 1
+     LEST  BREACH BY `a takanon party` `the local authority or owning body` BECAUSE "2.1.8 א(4): the candidate lists are prepared at the start of the school year")
+    RAND
+    (IF `an additional list is needed`
+     THEN PARTY `a takanon party` `the local authority or owning body`
+          MUST  `prepare an additional candidate list, consulting the kindergarten supervisor`
+          WITHIN 1
+          LEST  BREACH BY `a takanon party` `the local authority or owning body` BECAUSE "2.1.8 א(4): an additional list is prepared in consultation with the kindergarten supervisor"
+     ELSE FULFILLED)
 
 GIVEN `kindergarten's stream` IS A `stream`, `candidate's list` IS A `stream`
 GIVETH A BOOLEAN
@@ -447,7 +513,7 @@ DECIDE `qualified to substitute for an assistant` c IF
 GIVETH A DEONTIC `2.1 party` `kindergarten action`
 DECIDE `naming a responsible person for assistants` IS
     PARTY `a takanon party` `the local authority or owning body`
-    MUST  `name a person responsible for substitutions and a deputy`
+    MUST  `name a person to turn to when an assistant is absent`
     LEST  BREACH BY `a takanon party` `the local authority or owning body` BECAUSE "2.1.8 ב(4): every owner employing assistants names a person to turn to when one is absent"
 
 -- akn:chp_2__sec_2_1__ssec_2_1_8/p35 A heading ("(5) list of substitute candidates").
@@ -456,7 +522,7 @@ DECIDE `naming a responsible person for assistants` IS
 GIVETH A DEONTIC `2.1 party` `kindergarten action`
 DECIDE `lists of assistants' substitutes` IS
     PARTY `a takanon party` `the local authority or owning body`
-    MUST  `prepare the list of substitute candidates`
+    MUST  `prepare lists of candidates to substitute for assistants`
     LEST  BREACH BY `a takanon party` `the local authority or owning body` BECAUSE "2.1.8 ב(5): the owners prepare lists of substitutes for assistants"
 
 -- akn:chp_2__sec_2_1__ssec_2_1_8/p37 A heading ("ג. arrangements in small localities").
@@ -472,11 +538,17 @@ DECIDE `substitution in a small locality is arranged` `a small locality` `specia
 -- akn:chp_2__sec_2_1__ssec_2_1_8/p39 A heading ("ד. payments").
 -- akn:chp_2__sec_2_1__ssec_2_1_8/p40 A heading ("(1) payments to the teacher and a permanent assistant").
 
+-- ד(1) ¶41: in the teacher's absence and with no substitute, every option to
+-- send a substitute is exhausted.
 @ref akn:chp_2__sec_2_1__ssec_2_1_8/p41
-GIVEN `every option for a substitute was exhausted` IS A BOOLEAN
-GIVETH A BOOLEAN
-DECIDE `the assistant may be left alone` `every option for a substitute was exhausted` IF
-    `every option for a substitute was exhausted`
+GIVEN `the teacher is absent and no substitute has come` IS A BOOLEAN
+GIVETH A DEONTIC `2.1 party` `kindergarten action`
+DECIDE `every option is exhausted first` `the teacher is absent and no substitute has come` IS
+    IF `the teacher is absent and no substitute has come`
+    THEN PARTY `the person responsible for substitutions`
+         MUST  `exhaust every option to send a substitute`
+         LEST  BREACH BY `the person responsible for substitutions` BECAUSE "2.1.8 ד(1): every option to send a substitute is exhausted"
+    ELSE FULFILLED
 
 -- ד(1): an assistant alone in her class gets, from the owner, a global sum
 -- for each working day, bearing no other benefits, on top of her salary, if
@@ -508,7 +580,7 @@ DECIDE `claiming the compensation` `compensation due` IS
 GIVEN `combined monthly salary of a senior kindergarten teacher in her third year` IS A NUMBER
 GIVETH A NUMBER
 DECIDE `hourly pay of a teacher's substitute` `combined monthly salary of a senior kindergarten teacher in her third year` IS
-    `combined monthly salary of a senior kindergarten teacher in her third year` DIVIDED BY 120 TIMES 1.2
+    (`combined monthly salary of a senior kindergarten teacher in her third year` DIVIDED BY 120) TIMES 1.2
 
 -- akn:chp_2__sec_2_1__ssec_2_1_8/p46 A heading ("(3) payment to an assistant's substitute").
 

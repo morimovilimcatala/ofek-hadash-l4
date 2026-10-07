@@ -1,44 +1,65 @@
 -- תקנון שירות עובדי הוראה, פרק 2, §2.11 גננת בחטיבה צעירה
 -- A kindergarten teacher in a young division attached to a first or second
--- grade: the rate of her education allowance.
+-- grade: the rate of her education allowance, and from when.
 
 IMPORT prelude
 IMPORT common
 
 § `2.11 גננת בחטיבה צעירה`
 
+GIVEN d IS A DATE, e IS A DATE
+GIVETH A BOOLEAN
+DECIDE d `is on or after` e IF
+    DATE_SERIAL d AT LEAST DATE_SERIAL e
+
+@desc The grade the young division's kindergarten is attached to (הצמודה לכיתה א' / ב').
+DECLARE `attached grade` IS ONE OF `first grade`, `second grade`
+
 -- akn:chp_2__sec_2_11__hc_2 The section's title line.
 -- akn:chp_2__sec_2_11__hc_2/p1 An amendment note: updated 21.7.02.
 
-DECLARE `attached grade` IS ONE OF `first grade`, `second grade`, `no attached grade`
-
--- 1-2: the education allowance is 11.5% for a teacher attached to a first
--- grade and 10% for one attached to a second. The text does not name the
--- base; section 1.12 sets the class-education allowance as a share of the
--- combined salary, which is read as the base here (an input).
+-- 1: the young-division teacher attached to a first grade: an education
+-- allowance of 11.5%.
 @ref akn:chp_2__sec_2_11__hc_2__para_1
-GIVEN g IS AN `attached grade`
-GIVETH A NUMBER
-DECIDE `young-division education allowance rate` g IS
-    CONSIDER g
-    WHEN `first grade` THEN 0.115
-    @ref akn:chp_2__sec_2_11__hc_2__para_2
-    WHEN `second grade` THEN 0.10
-    WHEN `no attached grade` THEN 0
+`the education allowance beside a first grade` MEANS 11.5%
 
+-- 2: attached to a second grade: an education allowance of 10%.
+@ref akn:chp_2__sec_2_11__hc_2__para_2
+`the education allowance beside a second grade` MEANS 10%
+
+-- "תחולה: 1.9.01". The corpus nests it under 2, but it closes the list and
+-- is read as dating both rates.
 @ref akn:chp_2__sec_2_11__hc_2__para_2/p2
-`month the rates apply from` MEANS 2001 TIMES 12 PLUS 9
-
-@export default The monthly education allowance of a young-division kindergarten teacher under section 2.11 of the takanon
-GIVEN g IS AN `attached grade` @desc the grade her kindergarten is attached to
-      `combined salary` IS A NUMBER @desc her combined salary (השכר המשולב), the base section 1.12 uses; an input
-GIVETH A NUMBER
-DECIDE `young-division education allowance` g `combined salary` IS
-    `combined salary` TIMES `young-division education allowance rate` g
+`the young-division rates apply from` MEANS DATE_FROM_DMY 1 9 2001
 
 -- akn:chp_2__sec_2_11__hc_3 The heading of the source list (אסמכתא).
 -- akn:chp_2__sec_2_11__hc_3__para_1 A source: joint decision of the Ministries of Education and Finance of 6.3.01; special collective agreement of 10.7.02.
 
--- Worked examples; the salary of 10,000 is a placeholder.
-#ASSERT `young-division education allowance` `first grade` 10000 EQUALS 1150
-#ASSERT `young-division education allowance` `second grade` 10000 EQUALS 1000
+§§ `The allowance`
+
+-- The text gives the allowance as a percentage and does not name its base;
+-- section 1.12 (¶20 and ¶23 of its rows) computes every role allowance as a
+-- percentage of one base, which is taken here as an input. Before 1.9.2001
+-- section 2.11 gives no allowance: the 0 says that, not that none is owed
+-- under another section.
+GIVEN g IS AN `attached grade`
+GIVETH A NUMBER
+DECIDE `young-division education allowance rate` g IS
+    CONSIDER g
+    WHEN `first grade`  THEN `the education allowance beside a first grade`
+    WHEN `second grade` THEN `the education allowance beside a second grade`
+
+@export default The monthly education allowance of a young-division kindergarten teacher under section 2.11 of the takanon
+GIVEN g IS AN `attached grade` @desc the grade her kindergarten is attached to
+      d IS A DATE @desc any day of the month paid
+      `allowances' base` IS A NUMBER @desc the base section 1.12 computes role allowances on (its ¶20: the combined salary by grade and seniority with the 3%, 5%, 4% and 1994 supplements, for one full position); an input
+GIVETH A NUMBER
+DECIDE `young-division education allowance` g d `allowances' base` IS
+    IF d `is on or after` `the young-division rates apply from`
+    THEN `allowances' base` TIMES `young-division education allowance rate` g
+    ELSE 0
+
+-- Worked examples; the base of 10,000 is a placeholder.
+#ASSERT `young-division education allowance` `first grade` (DATE_FROM_DMY 1 10 2002) 10000 EQUALS 1150
+#ASSERT `young-division education allowance` `second grade` (DATE_FROM_DMY 1 10 2002) 10000 EQUALS 1000
+#ASSERT `young-division education allowance` `first grade` (DATE_FROM_DMY 1 8 2001) 10000 EQUALS 0
