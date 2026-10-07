@@ -603,7 +603,9 @@ def render_page(v: SectionView) -> str:
 
 
 def progress(vs: list[SectionView]) -> str:
-    """A thin bar: encoded / partly / not yet, by paragraphs."""
+    """A thin bar of the paragraphs by what the L4 does with them, and a
+    legend saying so: unlabelled, a green-and-grey bar beside "110 of 110"
+    reads as 77% done when it means 77% carry a rule."""
     t = {"rule": 0, "note": 0, "missing": 0, "todo": 0}
     for v in vs:
         if v.src is None:
@@ -612,9 +614,13 @@ def progress(vs: list[SectionView]) -> str:
             for k, n in tally(v).items():
                 t[k] += n
     total = max(sum(t.values()), 1)
+    names = {"rule": "carry a rule", "note": "read, no rule", "missing": "not cited", "todo": "not encoded yet"}
+    pct = {k: round(t[k] * 100 / total) for k in t}
+    legend = " · ".join(f'<span><i class="sw {k}"></i>{pct[k]}% {names[k]}</span>'
+                        for k in ("rule", "note", "missing", "todo") if t[k])
     return ('<span class="pbar">' + "".join(
         f'<i class="{k}" style="width:{t[k] * 100 / total:.3f}%"></i>' for k in ("rule", "note", "missing") if t[k])
-        + '</span>')
+        + f'</span><span class="plegend">Paragraphs: {legend}</span>')
 
 
 def document_page(doc: str, views: list[SectionView]) -> str:
