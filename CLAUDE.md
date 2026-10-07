@@ -106,3 +106,13 @@ The same-commit rule from the corpus repo applies: a change to an encoding
 that changes a finding, a coverage count or a page updates every place that
 states the old fact in the same commit. Do not write counts into prose; the
 coverage page computes them.
+
+## Pacing (the client, 2026-10-07)
+
+The usage limit is shared by everything a session runs. Twelve encoders
+launched at once spent it within minutes, twice, and the work then stopped
+for hours. Run at most TWO encoding agents at a time, start the next batch
+only when one finishes, and prefer one well-checked batch over a wide
+fan-out. Background loops (publish watchers) cost little; parallel agents
+are what drain the limit.
+
