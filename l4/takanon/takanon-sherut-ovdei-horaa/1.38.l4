@@ -114,9 +114,18 @@ DECIDE `the coordinator's committee work` IS
 -- akn:chp_1ב__sec_1_38__hc_2__para_e/p1 The heading of (e): absences of institutional-committee members.
 
 -- (c)(1): at most two consecutive days at a time, at most 33 working days in
--- the school year, on account of work; (d)(1): at most two working days;
--- (e)(1): two half days. (f)(1) can add one day.
+-- the school year, on account of work, and further absence is unpaid leave;
+-- (d)(1): at most two working days, and further absence is unpaid leave;
+-- (e)(1): two half days, with the district manager's approval. Note 1 of
+-- (f) can add one day for a committee member (`the extra day`, under (f)).
 @ref akn:chp_1ב__sec_1_38__hc_2__para_c__subpara_1 akn:chp_1ב__sec_1_38__hc_2__para_d__subpara_1 akn:chp_1ב__sec_1_38__hc_2__para_e__subpara_1
+GIVEN a IS A `union absences in the year`
+GIVETH A NUMBER
+DECIDE `days counted on account of work` a IS
+    IF `the absence may be taken` a
+    THEN min (a's `days absent on invitation` MINUS `days outside the permission` a) (`days allowed on account of work` a)
+    ELSE 0
+
 GIVEN a IS A `union absences in the year`
 GIVETH A NUMBER
 DECIDE `days allowed on account of work` a IS
@@ -128,22 +137,15 @@ DECIDE `the office's yearly allowance` a IS
     CONSIDER a's `office held`
     WHEN `head of a union or branch secretary`  THEN 33
     WHEN `member of a union's board or centre`  THEN 2
-    WHEN `member of an institutional committee` THEN 1
+    WHEN `member of an institutional committee` THEN 2 TIMES 1/2  -- two half days
 
-@ref akn:chp_1ב__sec_1_38__hc_2__para_f__subpara_1
+-- (e)(1): an institutional-committee member is absent "with the district
+-- manager's approval"; (c) and (d) need none.
 GIVEN a IS A `union absences in the year`
-GIVETH A NUMBER
-DECIDE `the extra day` a IS
-    IF a's `extra day permitted under (f)(1)` AND a's `office held` EQUALS `member of an institutional committee`
-    THEN 1
-    ELSE 0
-
-GIVEN a IS A `union absences in the year`
-GIVETH A NUMBER
-DECIDE `days counted on account of work` a IS
-    IF `the conditions of the absence hold` a
-    THEN min (a's `days absent on invitation` MINUS `days outside the permission` a) (`days allowed on account of work` a)
-    ELSE 0
+GIVETH A BOOLEAN
+DECIDE `the absence may be taken` a IF
+        `the conditions of the absence hold` a
+    AND ((NOT (a's `office held` EQUALS `member of an institutional committee`)) OR a's `approved by the district manager`)
 
 -- Days past the second in a row are outside (c)(1)'s permission; what
 -- follows from an absence the permission does not cover is not this
@@ -155,21 +157,36 @@ DECIDE `days outside the permission` a IS
     THEN a's `days beyond two in a row`
     ELSE 0
 
--- "Further absence ... is unpaid leave" ((c)(1), (d)(1)). (e) states no
--- consequence for an absence beyond its allowance; the same is read in.
+-- "Further absence ... is unpaid leave" ((c)(1), (d)(1)). F-1.38-c: (e)
+-- states no consequence for an absence beyond its two half days; the same
+-- is read in.
 GIVEN a IS A `union absences in the year`
 GIVETH A NUMBER
 DECIDE `days of unpaid leave` a IS
-    IF `the conditions of the absence hold` a
+    IF `the absence may be taken` a
     THEN a's `days absent on invitation` MINUS `days outside the permission` a MINUS `days counted on account of work` a
     ELSE 0
 
+GIVEN o IS A `union office`
+GIVETH A BOOLEAN
+DECIDE `the text makes an absence beyond the allowance unpaid leave` o IF
+    CONSIDER o
+    WHEN `member of an institutional committee` THEN FALSE
+    OTHERWISE TRUE
+
+`(e) leaves an absence beyond its two half days undecided` MEANS
+    NOT (`the text makes an absence beyond the allowance unpaid leave` `member of an institutional committee`)
+#ASSERT `(e) leaves an absence beyond its two half days undecided`
+
 @ref akn:chp_1ב__sec_1_38__hc_2__para_c__subpara_2
+GIVEN `the absence is on account of unpaid leave` IS A BOOLEAN
 GIVETH A DEONTIC Party `organisational action`
-DECIDE `a request before unpaid leave` IS
-    PARTY `the teaching employee`
-    MUST  `submit a reasoned request in advance`
-    LEST  BREACH BY `the teaching employee` BECAUSE "section 1.38(c)(2): an absence on account of unpaid leave needs a reasoned request in advance"
+DECIDE `a request before unpaid leave` `the absence is on account of unpaid leave` IS
+    IF `the absence is on account of unpaid leave`
+    THEN PARTY `the teaching employee`
+         MUST  `submit a reasoned request in advance`
+         LEST  BREACH BY `the teaching employee` BECAUSE "section 1.38(c)(2): an absence on account of unpaid leave needs a reasoned request in advance"
+    ELSE FULFILLED
 
 -- Counted in terms of office of the organisation, as its constitution sets them.
 @ref akn:chp_1ב__sec_1_38__hc_2__para_c__subpara_3
@@ -189,7 +206,6 @@ GIVETH A BOOLEAN
 DECIDE `the conditions of the absence hold` a IF
         (NOT a's `harms the normal course of work`)
     AND a's `days of notice to the district manager` AT LEAST `notice days required` a
-    AND ((NOT (a's `office held` EQUALS `member of an institutional committee`)) OR a's `approved by the district manager`)
 
 GIVEN a IS A `union absences in the year`
 GIVETH A NUMBER
@@ -213,10 +229,21 @@ DECIDE `the district manager's effort` IS
 @ref akn:chp_1ב__sec_1_38__hc_2__para_f/p2
 GIVEN `invited as a representative by the district or the Ministry` IS A BOOLEAN
 GIVETH A BOOLEAN
-DECIDE `per diem and travel under (f)` `invited as a representative by the district or the Ministry` IF
+DECIDE `on duty, with per diem and travel, under (f)` `invited as a representative by the district or the Ministry` IF
     `invited as a representative by the district or the Ministry`
 
 -- akn:chp_1ב__sec_1_38__hc_2__para_f/p3 The heading "הערות" (notes) over (f)'s two notes.
+
+-- Note 1: one more day on account of work for a committee member's
+-- conference, on the organisation's application, if the conditions-of-service
+-- officer permits it.
+@ref akn:chp_1ב__sec_1_38__hc_2__para_f__subpara_1
+GIVEN a IS A `union absences in the year`
+GIVETH A NUMBER
+DECIDE `the extra day` a IS
+    IF a's `extra day permitted under (f)(1)` AND a's `office held` EQUALS `member of an institutional committee`
+    THEN 1
+    ELSE 0
 
 -- F-1.38-b: note 2 denies per diem and travel to every absence counted on
 -- account of work "under this section", and (f) itself counts the
@@ -228,7 +255,7 @@ DECIDE `per diem and travel under note 2` `absence counted on account of work un
     NOT `absence counted on account of work under section 1.38`
 
 `note 2 and (f) disagree on the invited representative` MEANS
-    NOT (`per diem and travel under (f)` TRUE EQUALS `per diem and travel under note 2` TRUE)
+    NOT (`on duty, with per diem and travel, under (f)` TRUE EQUALS `per diem and travel under note 2` TRUE)
 #ASSERT `note 2 and (f) disagree on the invited representative`
 
 -- The reading adopted (F-1.38-b): note 2 governs the union absences of

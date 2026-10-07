@@ -39,7 +39,7 @@ DECLARE `kinship` HAS
     `how related`                     IS A `relation`
     `through a step or adoptive tie`  IS A BOOLEAN @desc the relative is such by a step ("שלוב [חורג]") or adoptive tie
     `the listed relative's spouse`    IS A BOOLEAN @desc the person is the spouse of a step or adopted relative of a listed kind
-    `a relative under the local authority's own definition` IS A BOOLEAN @desc the local authority's definition, where it is wider, makes them relatives (the note to section 1.1)
+    `a relative under the local authority's own definition` IS A BOOLEAN @desc the definition of a relative that applies to local-authority employees applies to these two and, being wider, makes them relatives (the note to section 1.1); FALSE where it does not apply to them
 
 GIVEN k IS A `kinship`
 GIVETH A BOOLEAN
@@ -113,51 +113,65 @@ DECLARE `relatives action` IS ONE OF
     `transfer one of the relatives out`
     `tell the candidate the selection is cancelled`
     `invite to a hearing`
+    `record the hearing and send the decision to the district teaching-manpower section`
     `appeal the transfer` HAS `days after the notice` IS A NUMBER
+                              `in writing to the district teaching-manpower section` IS A BOOLEAN
+    `hear the appeal and decide`
     `carry out the transfer`
 
 @ref akn:chp_1ב__sec_1_37__ssec_2_1
 GIVEN s IS A `relative situation`
 GIVETH A BOOLEAN
 DECIDE `employment prohibited under section 2.1` s IF
-        `a relative` (s's `the relatives are related`) AND s's `same institution`
-    OR  s's `the relative's post` EQUALS `owner of the institution`
+        `a relative` (s's `the relatives are related`)
+    AND (s's `same institution` OR s's `the relative's post` EQUALS `owner of the institution`)
 
 -- The first sentence of 2.2 is printed without its negation ("לאשר העברת
 -- עובד הוראה למוסד שיש בו קרוב משפחה"), under the heading of the
 -- prohibitions; it is read as "אין לאשר", as 2.1 and 2.2's second sentence
 -- require.
+-- The clause names no actor; the district manager is the one section 4.1
+-- has decide which relative is transferred. Section 3's permits are the
+-- exceptions to the separation.
 @ref akn:chp_1ב__sec_1_37__ssec_2_2
-GIVETH A DEONTIC `1.37 party` `relatives action`
-DECIDE `no transfer into an institution with a relative` IS
-    PARTY `the district teaching-manpower section`
-    SHANT `approve a transfer into an institution with a relative`
-    LEST  BREACH BY `the district teaching-manpower section` BECAUSE "section 1.37.2.2: a transfer into an institution where a relative works is not approved"
-
 GIVEN s IS A `relative situation`
 GIVETH A DEONTIC Party `relatives action`
-DECIDE `relatives in one institution are separated` s IS
-    IF `employment prohibited under section 2.1` s AND (NOT `permitted by an exception` s)
-    THEN PARTY `the district manager`
-         MUST  `transfer one of the relatives out`
-         LEST  BREACH BY `the district manager` BECAUSE "section 1.37.2.2: where relatives work in one institution, one of them is transferred so that they do not"
-    ELSE FULFILLED
+DECIDE `transfers and relatives in one institution` s IS
+        (PARTY `the district manager`
+         SHANT `approve a transfer into an institution with a relative`
+         LEST  BREACH BY `the district manager` BECAUSE "section 1.37.2.2: a transfer of a teaching employee into an institution where a relative works is not approved")
+    RAND
+        (IF `employment prohibited under section 2.1` s AND (NOT `permitted by an exception` s)
+         THEN PARTY `the district manager`
+              MUST  `transfer one of the relatives out`
+              LEST  BREACH BY `the district manager` BECAUSE "section 1.37.2.2: where relatives work in one institution, one of them (or more) is transferred so that they do not work in the same institution"
+         ELSE FULFILLED)
 
 
+-- In 2.3 to 2.6 "לא יוכל להיכנס לתפקידו כל עוד מכהן בתפקיד קרוב משפחתו":
+-- the bar lasts while the relative holds the post.
 @ref akn:chp_1ב__sec_1_37__ssec_2_3
-GIVEN s IS A `relative situation`
+GIVEN s IS A `relative situation`, `the relative still serves` IS A BOOLEAN
 GIVETH A BOOLEAN
-DECIDE `a principal candidate barred by a relative on the staff` s IF
+DECIDE `a principal candidate may not take up the post, a relative being on the staff` s `the relative still serves` IF
         s's `the person's post` EQUALS `principal of the institution`
     AND `a relative` (s's `the relatives are related`)
     AND s's `same institution`
     AND (   s's `the relative's post` EQUALS `teaching employee in another post`
          OR s's `the relative's post` EQUALS `deputy principal of the institution`)
+    AND `the relative still serves`
+    AND (NOT `permitted under section 3.2` s)
 
 @ref akn:chp_1ב__sec_1_37__ssec_2_4/p1
+GIVEN s IS A `relative situation`, `the relative still serves` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `a principal candidate may not take up the post, a relative heading the education department` s `the relative still serves` IF
+        `a principal candidate related to the head of education` s
+    AND `the relative still serves`
+
 GIVEN s IS A `relative situation`
 GIVETH A BOOLEAN
-DECIDE `a principal candidate barred by the head of education` s IF
+DECIDE `a principal candidate related to the head of education` s IF
         s's `the person's post` EQUALS `principal of the institution`
     AND `a relative` (s's `the relatives are related`)
     AND s's `the relative's post` EQUALS `head of the local authority's education department`
@@ -168,7 +182,7 @@ DECIDE `a principal candidate barred by the head of education` s IF
 GIVEN s IS A `relative situation`
 GIVETH A DEONTIC `1.37 party` `relatives action`
 DECIDE `notice to the barred candidate` s IS
-    IF `a principal candidate barred by the head of education` s
+    IF `a principal candidate related to the head of education` s
     THEN PARTY `the district teaching-manpower section`
          MUST  `tell the candidate the selection is cancelled`
          WITHIN 0
@@ -176,32 +190,31 @@ DECIDE `notice to the barred candidate` s IS
     ELSE FULFILLED
 
 @ref akn:chp_1ב__sec_1_37__ssec_2_5
-GIVEN s IS A `relative situation`
+GIVEN s IS A `relative situation`, `the relative still serves` IS A BOOLEAN
 GIVETH A BOOLEAN
-DECIDE `a principal candidate barred by another local office holder` s IF
+DECIDE `a principal candidate may not take up the post, a relative holding another local office` s `the relative still serves` IF
         s's `the person's post` EQUALS `principal of the institution`
     AND `a relative` (s's `the relatives are related`)
     AND s's `the relative's post` EQUALS `other office holder in the local authority`
     AND (NOT s's `conflict-of-interest arrangement found`)
+    AND `the relative still serves`
 
 @ref akn:chp_1ב__sec_1_37__ssec_2_6
-GIVEN s IS A `relative situation`
+GIVEN s IS A `relative situation`, `the relative still serves` IS A BOOLEAN
 GIVETH A BOOLEAN
-DECIDE `a teaching employee barred by a Ministry employee` s IF
+DECIDE `a teaching employee may not take up the post, a relative being a Ministry employee` s `the relative still serves` IF
         `a relative` (s's `the relatives are related`)
     AND s's `the relative's post` EQUALS `Ministry of Education employee`
     AND (NOT s's `conflict-of-interest arrangement found`)
+    AND `the relative still serves`
 
--- "לא יוכל להיכנס לתפקידו כל עוד מכהן בתפקיד קרוב משפחתו": while the
--- relative holds the post.
 GIVEN s IS A `relative situation`, `the relative still serves` IS A BOOLEAN
 GIVETH A BOOLEAN
 DECIDE `may not take up the post` s `the relative still serves` IF
-        `the relative still serves`
-    AND (   (`a principal candidate barred by a relative on the staff` s AND (NOT `permitted under section 3.2` s))
-         OR `a principal candidate barred by the head of education` s
-         OR `a principal candidate barred by another local office holder` s
-         OR `a teaching employee barred by a Ministry employee` s)
+       `a principal candidate may not take up the post, a relative being on the staff` s `the relative still serves`
+    OR `a principal candidate may not take up the post, a relative heading the education department` s `the relative still serves`
+    OR `a principal candidate may not take up the post, a relative holding another local office` s `the relative still serves`
+    OR `a teaching employee may not take up the post, a relative being a Ministry employee` s `the relative still serves`
 
 §§ `3 התנאים למתן אישור חריג`
 
@@ -218,13 +231,6 @@ DECIDE `who grants an exceptional permit` `one relative is employed by the ownin
     THEN `the district manager with the owning body's representative`
     ELSE `the district manager with the senior division manager`
 
-@desc The facts section 3.1 asks about.
-DECLARE `permit grounds` HAS
-    `only institution of its kind in the locality` IS A BOOLEAN
-    `only one relative employed, different subjects` IS A BOOLEAN @desc only one relative of the person is employed there, each teaches a different subject, and neither is subordinate to the other
-    `essential and no other suitable candidate`    IS A BOOLEAN
-    `by placement or transfer`                     IS A BOOLEAN
-
 -- F-1.37-a: "ההיתר יינתן כל פעם לשנה אחת בלבד" is printed in (ג). It is
 -- read as governing every permit under 3.1.
 @ref akn:chp_1ב__sec_1_37__ssec_3_1/p1 akn:chp_1ב__sec_1_37__ssec_3_1__para_a akn:chp_1ב__sec_1_37__ssec_3_1__para_b akn:chp_1ב__sec_1_37__ssec_3_1__para_c
@@ -237,6 +243,13 @@ DECIDE `the district manager may permit under section 3.1` s g IF
     AND (   g's `only institution of its kind in the locality`
          OR g's `only one relative employed, different subjects`
          OR g's `essential and no other suitable candidate`)
+
+@desc The facts section 3.1 asks about.
+DECLARE `permit grounds` HAS
+    `only institution of its kind in the locality` IS A BOOLEAN
+    `only one relative employed, different subjects` IS A BOOLEAN @desc only one relative of the person is employed there, each teaches a different subject, and neither is subordinate to the other
+    `essential and no other suitable candidate`    IS A BOOLEAN
+    `by placement or transfer`                     IS A BOOLEAN
 
 GIVETH A NUMBER
 DECIDE `years a section 3.1 permit lasts` IS 1
@@ -340,8 +353,8 @@ DECIDE `the teacher moves, whatever the seniority` s IF
     AND null (`who may be transferred` `a principal and a deputy who are siblings`)
 #ASSERT `a principal and a deputy who are relatives leave no one to transfer`
 
--- Time in days. The transfer is done by the end of June; before it, the
--- supervisor invites the employee to a hearing.
+-- Time in school months (September = 1). The transfer is done by the end
+-- of June; before it, the supervisor invites the employee to a hearing.
 @ref akn:chp_1ב__sec_1_37__ssec_4_2/p1
 GIVETH A DEONTIC Party `relatives action`
 DECIDE `the hearing before a transfer` IS
@@ -353,14 +366,23 @@ DECIDE `the hearing before a transfer` IS
            LEST  BREACH BY `the district manager` BECAUSE "section 1.37.4.2: a transfer for kinship in official education is carried out by the end of June")
     LEST  BREACH BY `the supervisor` BECAUSE "section 1.37.4.2: before a transfer for kinship the supervisor invites the employee to a hearing and lets him state his case"
 
--- Time in days from the day the notice of transfer is sent.
+-- After the hearing: the protocol and the decision, then the appeal. Time
+-- in days from the day the notice of transfer is sent; the text sets no
+-- time for the protocol or for the district manager's decision.
 @ref akn:chp_1ב__sec_1_37__ssec_4_2/p2
 GIVETH A DEONTIC Party `relatives action`
-DECIDE `the appeal against the transfer` IS
-    PARTY `the teaching employee`
-    MAY   `appeal the transfer` `days`
-          PROVIDED `days` AT MOST 15
-    WITHIN 15
+DECIDE `the decision after the hearing and the appeal` IS
+        (PARTY `the supervisor`
+         MUST  `record the hearing and send the decision to the district teaching-manpower section`
+         LEST  BREACH BY `the supervisor` BECAUSE "section 1.37.4.2: the employee's response and the supervisor's reasons are recorded in a protocol, and the decision goes with the documents to the district teaching-manpower section, which sends the notice")
+    RAND
+        (PARTY `the teaching employee`
+         MAY   `appeal the transfer` `days` `in writing`
+               PROVIDED `days` AT MOST 15 AND `in writing`
+         WITHIN 15
+         HENCE (PARTY `the district manager`
+                MUST  `hear the appeal and decide`
+                LEST  BREACH BY `the district manager` BECAUSE "section 1.37.4.2: the hearing of the appeal is held before the district manager, who decides it"))
 
 -- akn:chp_1ב__sec_1_37__ssec_4_2/p3 The heading "5. recognised unofficial educational institutions", printed inside 4.2.
 
@@ -404,8 +426,10 @@ DECIDE `employment prohibited` s IF
 #ASSERT `a relative` (`kinship` `parent-in-law` TRUE FALSE FALSE)
 #ASSERT `who grants an exceptional permit` TRUE EQUALS `the district manager with the owning body's representative`
 
-#TRACE `the appeal against the transfer` AT 0 WITH
-    PARTY `the teaching employee` DOES `appeal the transfer` 10 AT 10
+#TRACE `the decision after the hearing and the appeal` AT 0 WITH
+    PARTY `the supervisor` DOES `record the hearing and send the decision to the district teaching-manpower section` AT 0
+    PARTY `the teaching employee` DOES `appeal the transfer` 10 TRUE AT 10
+    PARTY `the district manager` DOES `hear the appeal and decide` AT 20
 #TRACE `the hearing before a transfer` AT 0 WITH
     PARTY `the supervisor` DOES `invite to a hearing` AT 1
     PARTY `the district manager` DOES `carry out the transfer` AT 9

@@ -33,7 +33,7 @@ DECLARE `substitute action` IS ONE OF
     `arrange regular studies with the staff at hand`
     `send the pupils home` HAS `hour` IS A NUMBER
     `answer the principal's call to fill in`
-    `be at school at the principal's disposal`
+    `be at school at the principal's disposal and fill in as needed, without pay`
     `employ on hourly pay` HAS `consecutive months` IS A NUMBER
     `deduct the organisation fee`
     `require a declaration of union membership`
@@ -45,16 +45,7 @@ DECLARE `kind of absence` IS ONE OF
     `long reserve duty`
     `maternity leave`
 
--- "This arrangement does not apply" to long reserve duty and maternity
--- leave: the fourth-day wait is lifted for them.
 @ref akn:chp_1ב__sec_1_30__hc_2__para_1
-GIVEN k IS A `kind of absence`
-GIVETH A NUMBER
-DECIDE `first day a substitute may be invited` k IS
-    CONSIDER k
-    WHEN `an ordinary absence` THEN 4
-    OTHERWISE 1
-
 GIVEN k IS A `kind of absence`
 GIVETH A DEONTIC Party `substitute action`
 DECIDE `calling a substitute` k IS
@@ -71,6 +62,15 @@ DECIDE `calling a substitute` k IS
            PROVIDED `hour` LESS THAN 12
      LEST  BREACH BY `the school principal` BECAUSE "section 1.30, general, 1: in no case are the pupils sent home before 12:00")
 
+-- "This arrangement does not apply" to long reserve duty and maternity
+-- leave: the fourth-day wait is lifted for them.
+GIVEN k IS A `kind of absence`
+GIVETH A NUMBER
+DECIDE `first day a substitute may be invited` k IS
+    CONSIDER k
+    WHEN `an ordinary absence` THEN 4
+    OTHERWISE 1
+
 §§ `1.30 כללי — 2`
 
 -- F-1.30-a: "ללא תשלום" closes the sentence about the teacher freed by a
@@ -78,17 +78,18 @@ DECIDE `calling a substitute` k IS
 -- to answer the principal's call, whose pay follows clause 3 and the pay
 -- rules below.
 @ref akn:chp_1ב__sec_1_30__hc_2__para_2
+GIVEN `freed by the pupils' trip` IS A BOOLEAN @desc the teacher is freed from work that day because the pupils are out on a trip or the like
 GIVETH A DEONTIC Party `substitute action`
-DECIDE `filling in for missing teachers` IS
-    PARTY `the teaching employee`
-    MUST  `answer the principal's call to fill in`
-    LEST  BREACH BY `the teaching employee` BECAUSE "section 1.30, general, 2: a teacher answers the principal's call to fill in for missing teachers"
-
-GIVETH A DEONTIC Party `substitute action`
-DECIDE `the teacher freed by a trip` IS
-    PARTY `the teaching employee`
-    MUST  `be at school at the principal's disposal`
-    LEST  BREACH BY `the teaching employee` BECAUSE "section 1.30, general, 2: a teacher freed for the day by the pupils' trip stays at school in those hours and fills in as needed"
+DECIDE `filling in for missing teachers` `freed by the pupils' trip` IS
+        (PARTY `the teaching employee`
+         MUST  `answer the principal's call to fill in`
+         LEST  BREACH BY `the teaching employee` BECAUSE "section 1.30, general, 2: a teacher answers the principal's call to fill in for missing teachers")
+    RAND
+        (IF `freed by the pupils' trip`
+         THEN PARTY `the teaching employee`
+              MUST  `be at school at the principal's disposal and fill in as needed, without pay`
+              LEST  BREACH BY `the teaching employee` BECAUSE "section 1.30, general, 2: a teacher freed for the day by the pupils' trip stays at school in those hours, at the principal's disposal, and fills in as needed without pay"
+         ELSE FULFILLED)
 
 GIVEN `freed by the pupils' trip` IS A BOOLEAN
 GIVETH A BOOLEAN
@@ -139,7 +140,6 @@ DECIDE `may fill in that hour` `from the same institution` `free of teaching in 
 DECLARE `role of the one filling in` IS ONE OF
     `a school principal or middle-school principal`
     `a deputy principal`
-    `another teaching employee`
 
 -- ¶1 and ¶2. ¶3: in force from 1 September 1981.
 -- F-1.30-b: a deputy principal managing more than 12 weekly hours.
@@ -150,21 +150,20 @@ DECIDE `paid for filling in` r `weekly management hours` IF
     CONSIDER r
     WHEN `a school principal or middle-school principal` THEN FALSE
     WHEN `a deputy principal` THEN `weekly management hours` AT MOST 12
-    OTHERWISE TRUE
 
 GIVEN r IS A `role of the one filling in`, `weekly management hours` IS A NUMBER
 GIVETH A BOOLEAN
 DECIDE `the text decides whether this one may fill in for pay` r `weekly management hours` IF
     CONSIDER r
     WHEN `a deputy principal` THEN `weekly management hours` AT MOST 12
-    OTHERWISE TRUE
-
-@ref akn:chp_1ב__sec_1_30__hc_2__para_7/p3
-`clause 7 applies from` MEANS DATE_FROM_DMY 1 9 1981
+    WHEN `a school principal or middle-school principal` THEN TRUE
 
 `a deputy managing 16 hours is left undecided` MEANS
     NOT (`the text decides whether this one may fill in for pay` `a deputy principal` 16)
 #ASSERT `a deputy managing 16 hours is left undecided`
+@ref akn:chp_1ב__sec_1_30__hc_2__para_7/p3
+`clause 7 applies from` MEANS DATE_FROM_DMY 1 9 1981
+
 
 §§ `1.30 שכרם של עובדי הוראה ממלאי מקום — 1 to 3`
 
@@ -179,10 +178,6 @@ DECIDE `a working day` `the institution teaches that day under its timetable` IF
 @ref akn:chp_1ב__sec_1_30__hc_3__para_2
 `supplements added to the substitute's hourly pay` MEANS 0
 
-DECLARE `month of salary value` IS ONE OF
-    `the month the work was done`
-    `the following month`
-
 @ref akn:chp_1ב__sec_1_30__hc_3__para_3
 GIVEN `paid with the next month's salary` IS A BOOLEAN
 GIVETH A `month of salary value`
@@ -191,12 +186,17 @@ DECIDE `salary values used` `paid with the next month's salary` IS
     THEN `the following month`
     ELSE `the month the work was done`
 
+DECLARE `month of salary value` IS ONE OF
+    `the month the work was done`
+    `the following month`
+
 §§ `1.30 שכרם של עובדי הוראה ממלאי מקום — 4 to 6`
 
 DECLARE `pay basis` IS ONE OF
     `own grade and seniority, with reinforcement and training increment`
     `the fixed hourly rate of clause 5`
     `own grade and seniority, retroactively, with reinforcement and training increment`
+    `own grade and seniority` @desc a teacher on sabbatical called to substitute (conditions of service 7)
 
 @ref akn:chp_1ב__sec_1_30__hc_3__para_4 akn:chp_1ב__sec_1_30__hc_3__para_5 akn:chp_1ב__sec_1_30__hc_3__para_6 akn:chp_1ב__sec_1_30__hc_3__para_6/p2
 GIVEN e IS A `substitute engagement`
@@ -204,7 +204,7 @@ GIVETH A `pay basis`
 DECIDE `how the substitute is paid` e IS
     IF e's `consecutive working days` GREATER THAN 51
     THEN `own grade and seniority, retroactively, with reinforcement and training increment`
-    ELSE IF e's `from the school's staff` OR e's `on sabbatical`
+    ELSE IF e's `from the school's staff`
          THEN `own grade and seniority, with reinforcement and training increment`
          ELSE `the fixed hourly rate of clause 5`
 
@@ -339,15 +339,6 @@ DECIDE `the organisation fee` `a member of a workers' organisation` IS
               MUST  `deduct the organisation fee`
               LEST  BREACH BY `the school principal` BECAUSE "section 1.30, conditions of service, 3: principals deduct the organisation fee from the pay of a substitute who belongs to no workers' organisation")
 
-@desc A substitute's school year, as far as full seniority under conditions of service 4 asks.
-DECLARE `substitute year` HAS
-    `months worked`                  IS A NUMBER
-    `position fraction over the months` IS A NUMBER @desc the share of a full position worked over those months
-    `days worked`                    IS A NUMBER
-    `average position over the days` IS A NUMBER
-    `actual hours worked`            IS A NUMBER  @desc hours actually worked in the school year, within one full position
-    `where worked`                   IS A `kind of institution`
-
 @ref akn:chp_1ב__sec_1_30__hc_4__para_4
 GIVEN y IS A `substitute year`
 GIVETH A BOOLEAN
@@ -366,6 +357,15 @@ GIVEN k IS A `kind of institution`
 GIVETH A BOOLEAN
 DECIDE `secondary, seminary or college` k IF
     k EQUALS `a secondary school, middle school included` OR k EQUALS `a teacher-training institution` OR k EQUALS `classes 13 and 14`
+
+@desc A substitute's school year, as far as full seniority under conditions of service 4 asks.
+DECLARE `substitute year` HAS
+    `months worked`                  IS A NUMBER
+    `position fraction over the months` IS A NUMBER @desc the share of a full position worked over those months
+    `days worked`                    IS A NUMBER
+    `average position over the days` IS A NUMBER
+    `actual hours worked`            IS A NUMBER  @desc hours actually worked in the school year, within one full position
+    `where worked`                   IS A `kind of institution`
 
 §§ `1.30 תנאי שירות — 5 and 6`
 
@@ -403,10 +403,17 @@ DECIDE `a substitute let go before the holiday is paid for it` `months worked be
 
 §§ `1.30 תנאי שירות — 7`
 
--- From 1.5.90 (6 Iyar 5750); encoded in `how the substitute is paid` by
--- the engagement's `on sabbatical`.
+-- A teacher on sabbatical called to substitute is paid as a substitute by
+-- his own grade and seniority, from 1.5.90 (6 Iyar 5750); before that, and
+-- for everyone else, the pay part decides.
 @ref akn:chp_1ב__sec_1_30__hc_4__para_7/p1
-`the sabbatical rule applies from` MEANS DATE_FROM_DMY 1 5 1990
+GIVEN e IS A `substitute engagement`, `called to substitute on` IS A DATE
+GIVETH A `pay basis`
+DECIDE `how the substitute is paid, a sabbatical teacher included` e `called to substitute on` IS
+    IF     e's `on sabbatical`
+       AND DATE_SERIAL `called to substitute on` AT LEAST DATE_SERIAL (DATE_FROM_DMY 1 5 1990)
+    THEN `own grade and seniority`
+    ELSE `how the substitute is paid` e
 
 -- akn:chp_1ב__sec_1_30__hc_4__para_7/p2 A pointer to section 2.1.8 (substitutes for an absent kindergarten teacher), encoded there.
 -- akn:chp_1ב__sec_1_30__hc_4__para_7/p3 A pointer to chapter 7 (substitutes for an absent principal), encoded there.
@@ -439,6 +446,7 @@ DECIDE `a substitute let go before the holiday is paid for it` `months worked be
 #ASSERT `holiday pay` FALSE TRUE 3 5 EQUALS `employed by the hour until the holiday ends`
 #ASSERT `entitled to full seniority` (`substitute year` 4 0.2 0 0 380 `an elementary school`)
 #ASSERT `calendar days spanned` 51 5 EQUALS 71
+#ASSERT `how the substitute is paid, a sabbatical teacher included` `a 30-day outside substitute paid at the fixed rate` (DATE_FROM_DMY 1 9 2000) EQUALS `the fixed hourly rate of clause 5`
 
 #TRACE `calling a substitute` `an ordinary absence` AT 0 WITH
     PARTY `the school principal` DOES `invite a substitute` 4 AT 4
