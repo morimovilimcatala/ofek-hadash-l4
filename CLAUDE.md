@@ -12,6 +12,13 @@ legalese/l4-ide `skills/`) for anything about the language.
   A defect in the text as the corpus publishes it — a lost table, a wrong
   date — is the corpus's to fix: file it there (Linear team `MMS`, project
   `AKN corpus`), then re-sync with `tools/sync_corpus.py`.
+- **The L4 reads the corpus text, never the PDF or the source document**
+  (the client, 2026-10-07). A page may be opened to UNDERSTAND a garbled
+  row or to confirm a finding, but what the L4 encodes is what the corpus
+  publishes. Where the page shows the corpus is wrong, missing or
+  scrambled, that is a corpus issue: file it in Linear (`AKN corpus`) with
+  what the page shows. The L4 takes the affected value as a named input
+  until the corpus is fixed and re-synced.
 - **A sic the corpus has marked (`[כך במקור]`) is taken as given.** The L4
   encodes the reading the corpus settled on; it is never re-litigated here
   and never filed as an L4 finding. The site does not show sic marks at all

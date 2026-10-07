@@ -83,7 +83,7 @@ DECLARE `incentives category` IS ONE OF
 @ref akn:chp_1א___sec_1_15__ssec_1_1
 GIVEN `locality` IS A STRING @desc a locality's name as §1.15.2 prints it
 GIVETH A BOOLEAN
-DECIDE `the maximal benefits apply in` `locality` IF
+DECIDE `maximal benefits are given to all teaching and education staff in` `locality` IF
     `in national-priority zone A` `locality`
 
 §§ `1.15.1 §1.2`
@@ -102,7 +102,6 @@ DECIDE `cancelled under §1.2` `locality` `veteran` `day` IF
         `veteran`
     AND `in the cancelled zone B` `locality`
     AND `day` AT LEAST `1 September 2003`
-    AND NOT `continued by the court rulings` `locality` `veteran` `day`
 
 -- The National Labour Court rulings of 17.09.03 and 14.12.03: veterans in
 -- those localities keep, for school year התשס"ד, the incentives they are
@@ -126,15 +125,26 @@ DECIDE `continued by the court rulings` `locality` `veteran` `day` IF
     NOT elem "ותיקים" `the terms §1.15 defines`
 #ASSERT `§1.15 does not define "ותיקים"`
 
+-- §1.2 and the rulings together: what a veteran in those localities
+-- actually loses, and when.
+GIVEN `locality` IS A STRING
+      `veteran` IS A BOOLEAN
+      `day` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `the incentives are withdrawn under §1.2 and the rulings` `locality` `veteran` `day` IF
+        `cancelled under §1.2` `locality` `veteran` `day`
+    AND NOT `continued by the court rulings` `locality` `veteran` `day`
+
 §§ `1.15.1 part 2 Requests`
 
 -- akn:chp_1א___sec_1_15__ssec_1_2/p5 The heading of part 2 ("לוח זמנים להגשת בקשות"); no rule.
 
 @ref akn:chp_1א___sec_1_15__ssec_1_2/p6
-GIVEN `issued before this information` IS A BOOLEAN @desc the notice on incentives in national-priority areas predates this one
+GIVEN `on the incentives in national-priority areas` IS A BOOLEAN @desc the notice is on the incentives given to teaching and education staff in national-priority areas
+      `issued before this information` IS A BOOLEAN @desc the notice predates this information
 GIVETH A BOOLEAN
-DECIDE `an earlier notice on the incentives still governs` `issued before this information` IF
-    NOT `issued before this information`
+DECIDE `the notice is cancelled by this information` `on the incentives in national-priority areas` `issued before this information` IF
+    `on the incentives in national-priority areas` AND `issued before this information`
 
 DECLARE `incentive kind` IS ONE OF
     `seniority advancement`
@@ -204,7 +214,6 @@ DECIDE `states a request deadline` `p` IF
 
 -- akn:chp_1א___sec_1_15__ssec_1_2/p17 The heading of part 3 ("הזכאים לתמריצים"); no rule.
 
-@ref akn:chp_1א___sec_1_15__ssec_1_2/p18
 DECLARE `grading` IS ONE OF
     `the teaching-staff grading`
     `the academic grading`
@@ -246,11 +255,17 @@ DECLARE `incentives claimant` HAS
     `locality of work`             IS A STRING @desc as §1.15.2 prints the name
     `employed by`                  IS A `kind of employer`
     `appears in the school profile` IS A BOOLEAN
-    `the department head decides the claimant eligible` IS A BOOLEAN @desc the head of the housing-and-incentives department's decision under note 1, where residence and work are in two zone-A localities
+    `moved work or residence between zone-A localities` IS A BOOLEAN @desc note 1's second case: changed the place of work or of residence from one zone-A locality to another
+    `the department head decides the claimant eligible` IS A BOOLEAN @desc the head of the housing-and-incentives department's decision under note 1, where residence and work are in two zone-A localities or the claimant moved between them
     `lowest position fraction in the year` IS A NUMBER @desc the smallest share of a full position held at any time in the school year
     `annual position fraction`     IS A NUMBER @desc the share of an annual position held over the school year
     `claimant is a veteran`        IS A BOOLEAN @desc "ותיק" under §1.2 (F-1.15-c: undefined)
 
+-- ¶18: the teaching grading (supervisors, principals, teachers, kindergarten
+-- teachers, instructors, community-centre workers, education workers of the
+-- authorities and owning bodies) and the educational psychologists of the
+-- academic grading.
+@ref akn:chp_1א___sec_1_15__ssec_1_2/p18
 GIVEN c IS AN `incentives claimant`
 GIVETH A BOOLEAN
 DECIDE `in a group the incentives cover` c IF
@@ -276,6 +291,7 @@ DECIDE `qualified for the level taught` c IF
 -- F-1.15-d: "אם הם מוסמכים לרובד החינוך בו הם מלמדים, בעלי תעודת הוראה או
 -- בעלי תואר אקדמי" is read as three alternatives — the reading under which
 -- the educational psychologists ¶18 names, who teach at no level, can meet it.
+@ref akn:chp_1א___sec_1_15__ssec_1_2/p19
 GIVEN c IS AN `incentives claimant`
 GIVETH A BOOLEAN
 DECIDE `meets condition א` c IF
@@ -291,14 +307,16 @@ DECIDE `meets condition א read as qualification alone` c IF
     `qualified for the level taught` c
 
 -- Condition ב, with note 1: living in one zone-A locality and working in
--- another (or moving between them) is decided by the department head.
+-- another, or moving work or residence between zone-A localities, is
+-- decided by the department head.
 @ref akn:chp_1א___sec_1_15__ssec_1_2/p20 akn:chp_1א___sec_1_15__ssec_1_2/p9 akn:chp_1א___sec_1_15__ssec_1_2/p23
 GIVEN c IS AN `incentives claimant`
 GIVETH A BOOLEAN
 DECIDE `meets condition ב` c IF
         `in national-priority zone A` (c's `locality of residence`)
     AND `in national-priority zone A` (c's `locality of work`)
-    AND (    c's `locality of residence` EQUALS c's `locality of work`
+    AND (    (    c's `locality of residence` EQUALS c's `locality of work`
+              AND (NOT c's `moved work or residence between zone-A localities`))
           OR c's `the department head decides the claimant eligible`)
 
 -- Condition ג, with note 3: staff of a post-primary owning body are
@@ -327,6 +345,9 @@ GIVETH A BOOLEAN
 DECIDE `meets the half-position condition read as an annual average` c IF
     c's `annual position fraction` AT LEAST 0.5
 
+-- Note 4's proportion: a part-time claimant who meets the condition
+-- receives the incentives in proportion to the position.
+@ref akn:chp_1א___sec_1_15__ssec_1_2/p12 akn:chp_1א___sec_1_15__ssec_1_2/p26
 GIVEN c IS AN `incentives claimant`
 GIVETH A NUMBER
 DECIDE `incentives share for the position` c IS
@@ -356,14 +377,13 @@ GIVETH A BOOLEAN
 DECIDE `the incentives continue` c `still lives in the locality` `still works` IF
     `eligible for incentives` c AND `still lives in the locality` AND `still works`
 
--- Note 2's duty to notify a change "בכתב". The text sets no period: it is
--- an input here, not a number of this file.
-GIVEN `notice period` IS A NUMBER @desc days allowed for the notice; section 1.15 sets none
+-- Note 2's duty to notify a change "בכתב". The text sets no period, so
+-- the duty has none.
+@ref akn:chp_1א___sec_1_15__ssec_1_2/p10 akn:chp_1א___sec_1_15__ssec_1_2/p24
 GIVETH A DEONTIC Party `incentives action`
-DECIDE `notice of a change of workplace or residence` `notice period` IS
+DECIDE `notice of a change of workplace or residence` IS
     PARTY `the teaching employee`
     MUST  `notify the district incentives department in writing of a change`
-    WITHIN `notice period`
     LEST BREACH BY `the teaching employee` BECAUSE "§1.15.1 note 2: a change of workplace or residence must be notified in writing"
 
 @ref akn:chp_1א___sec_1_15__ssec_1_2/p13 akn:chp_1א___sec_1_15__ssec_1_2/p27
@@ -386,7 +406,6 @@ GIVETH A DEONTIC Party `incentives action`
 DECIDE `no cancellation without the division's approval` IS
     PARTY `the Ministry of Education`
     SHANT `notify the teacher that the incentives are cancelled without the division's approval`
-    WITHIN `31 August 2004`
     LEST BREACH BY `the Ministry of Education` BECAUSE "§1.15.1 note 7: notice of cancellation only with the incentives division's approval"
 
 @ref akn:chp_1א___sec_1_15__ssec_1_2/p16 akn:chp_1א___sec_1_15__ssec_1_2/p30
@@ -419,32 +438,39 @@ DECIDE `seniority recognised for pay` c `real seniority` `still works and lives 
     THEN `real seniority` PLUS `years of seniority advancement in zone A`
     ELSE `real seniority`
 
--- §4.1 ¶2: the advancement applies at every seniority step; in years 33 to
--- 36 it is worth the difference between the combined salary of year 35 and
--- of year 36, times the years of advancement. "ההפרש" is read as the size of
--- the step between the two years.
+-- §4.1 ¶2: the advancement applies to the eligible staff at every seniority
+-- step; in years 33 to 36 it is worth the difference between the combined
+-- salary of year 35 and of year 36, times the years of advancement.
+-- "ההפרש" is read as the size of the step between the two years.
 @ref akn:chp_1א___sec_1_15__ssec_4_1/p2
-GIVEN `combined salary at seniority` IS A FUNCTION FROM NUMBER TO NUMBER @desc the combined salary for each seniority year; set by the salary tables, an input
+GIVEN c IS AN `incentives claimant`
+      `combined salary at seniority` IS A FUNCTION FROM NUMBER TO NUMBER @desc the combined salary for each seniority year; set by the salary tables, an input
       `real seniority` IS A NUMBER
 GIVETH A NUMBER
-DECIDE `monthly worth of the seniority advancement` `combined salary at seniority` `real seniority` IS
-    IF `real seniority` AT LEAST 33 AND `real seniority` AT MOST 36
-    THEN max (`combined salary at seniority` 36 MINUS `combined salary at seniority` 35)
-             (`combined salary at seniority` 35 MINUS `combined salary at seniority` 36)
-         TIMES `years of seniority advancement in zone A`
-    ELSE `combined salary at seniority` (`real seniority` PLUS `years of seniority advancement in zone A`)
-         MINUS `combined salary at seniority` `real seniority`
+DECIDE `monthly worth of the seniority advancement` c `combined salary at seniority` `real seniority` IS
+    IF NOT (`eligible for incentives` c AND c's `claimant grading` EQUALS `the teaching-staff grading`)
+    THEN 0
+    ELSE IF `real seniority` AT LEAST 33 AND `real seniority` AT MOST 36
+         THEN max (`combined salary at seniority` 36 MINUS `combined salary at seniority` 35)
+                  (`combined salary at seniority` 35 MINUS `combined salary at seniority` 36)
+              TIMES `years of seniority advancement in zone A`
+         ELSE `combined salary at seniority` (`real seniority` PLUS `years of seniority advancement in zone A`)
+              MINUS `combined salary at seniority` `real seniority`
 
 -- §4.1 ¶4: groups graded by grade rather than seniority (the educational
--- psychologists of the academic grading) are advanced by the money worth
--- of two grades, as the housing-and-incentives division approves.
+-- psychologists of the academic grading, the one such group ¶18 admits)
+-- are advanced in zone A by the money worth of two grades, as the
+-- housing-and-incentives division approves.
 @ref akn:chp_1א___sec_1_15__ssec_4_1/p4
-GIVEN `salary at grade` IS A FUNCTION FROM NUMBER TO NUMBER @desc the salary for each grade of the claimant's grading; an input
+GIVEN c IS AN `incentives claimant`
+      `salary at grade` IS A FUNCTION FROM NUMBER TO NUMBER @desc the salary for each grade of the claimant's grading; an input
       `grade` IS A NUMBER
       `approved by the division` IS A BOOLEAN
 GIVETH A NUMBER
-DECIDE `monthly worth of the grade advancement` `salary at grade` `grade` `approved by the division` IS
-    IF `approved by the division`
+DECIDE `monthly worth of the grade advancement` c `salary at grade` `grade` `approved by the division` IS
+    IF     `eligible for incentives` c
+       AND c's `claimant grading` EQUALS `the academic grading`
+       AND `approved by the division`
     THEN `salary at grade` (`grade` PLUS 2) MINUS `salary at grade` `grade`
     ELSE 0
 
@@ -462,8 +488,8 @@ DECLARE `tuition claim` HAS
     `studies abroad`                       IS A BOOLEAN
     `at the Open University`               IS A BOOLEAN
     `Open University courses toward a degree this year` IS A NUMBER
-    `tuition charged`                      IS A NUMBER @desc tuition for the year, without fees, exam fees or arrears
-    `registration fees, exam fees and arrears` IS A NUMBER
+    `amount charged for the studies`       IS A NUMBER @desc what the institution charges for the year, registration fees, exam fees and arrears included
+    `registration fees, exam fees and arrears` IS A NUMBER @desc the part of the amount charged that is fees, exam fees and arrears
     `annual tuition`                       IS A NUMBER @desc the institution's tuition for one year
     `school year studied begins on`        IS A NUMBER @desc days from 1 September 2003
 
@@ -520,15 +546,24 @@ DECIDE `entitled to tuition participation` c t IF
     AND NOT `barred as a foreign university's branch` t
     AND NOT `barred as study abroad` t
 
--- 75% of tuition (note 5: not of fees, exam fees or arrears, and never more
--- than a year's tuition).
+-- Note 5: the participation does not apply to registration fees, exam fees
+-- or arrears, nor ("ולא") to more than a year's tuition — read, by the
+-- sentence's parallel, as what the 75% applies to.
 @ref akn:chp_1א___sec_1_15__ssec_4_2__para_5
+GIVEN t IS A `tuition claim`
+GIVETH A NUMBER
+DECIDE `the tuition the participation applies to` t IS
+    min (t's `amount charged for the studies` MINUS t's `registration fees, exam fees and arrears`)
+        (t's `annual tuition`)
+
+-- ¶1: the division participates in 75% of the tuition.
+@ref akn:chp_1א___sec_1_15__ssec_4_2/p1
 GIVEN c IS AN `incentives claimant`
       t IS A `tuition claim`
 GIVETH A NUMBER
 DECIDE `tuition participation` c t IS
     IF `entitled to tuition participation` c t
-    THEN min (0.75 TIMES t's `tuition charged`) (t's `annual tuition`)
+    THEN 0.75 TIMES `the tuition the participation applies to` t
     ELSE 0
 
 -- akn:chp_1א___sec_1_15__ssec_4_2/p2 The heading "הערות"; no rule.
@@ -643,7 +678,6 @@ DECIDE `the rent instalments` `instalment` `instalments left` IS
 
 §§§ `4.4 הצטרפות לקרנות ההשתלמות`
 
-@ref akn:chp_1א___sec_1_15__ssec_4_4__para_a
 DECLARE `fund group` IS ONE OF
     `teaching staff`
     `informal-education staff`
@@ -692,6 +726,14 @@ GIVETH A BOOLEAN
 DECIDE `asked to move to a shortened fund` m IF
     m's `member age` AT LEAST 53
 
+-- 4.4ה: the division pays the employee's part only while the member works
+-- and lives in one of the listed localities.
+@ref akn:chp_1א___sec_1_15__ssec_4_4__para_e
+GIVEN m IS A `fund member`
+GIVETH A BOOLEAN
+DECIDE `the division keeps paying the employee's part` m IF
+    NOT m's `left residence or work in the locality`
+
 -- 4.4ה: leaving residence or work in the locality, for any reason, before
 -- five years from the first saving stops the arrangement, and the division
 -- recovers from the fund everything it paid.
@@ -712,12 +754,13 @@ DECIDE `the Ministry recovers its payments under the declaration` m IF
         AND m's `years from the first incentive saving to leaving` LESS THAN 5)
     OR m's `annual position fraction while saving` LESS THAN 0.5
 
-GIVEN `notice period` IS A NUMBER @desc days allowed; the declaration sets none
+-- The declaration's undertaking to notify every change in writing. It sets
+-- no period, so the duty has none.
+@ref akn:chp_1א___sec_1_15__ssec_4_4__para_e/p2
 GIVETH A DEONTIC Party `incentives action`
-DECIDE `the declared notice of a change` `notice period` IS
+DECIDE `the declared notice of a change` IS
     PARTY `the teaching employee`
     MUST  `notify the fund and the division in writing of a change`
-    WITHIN `notice period`
     LEST BREACH BY `the teaching employee` BECAUSE "§4.4ה declaration: every change of residence or workplace is notified in writing to the fund and the division"
 
 -- 4.4ה ¶3: a request filed BEFORE ו' בטבת התשס"ד (31.12.2003) joins from
@@ -730,11 +773,15 @@ GIVETH A BOOLEAN
 DECIDE `in the first joining window as printed` `day filed` IF
     `day filed` LESS THAN `31 December 2003`
 
+@ref akn:chp_1א___sec_1_15__ssec_4_4__para_e/p3
 GIVEN `day filed` IS A NUMBER
 GIVETH A BOOLEAN
 DECIDE `in the second joining window` `day filed` IF
     `day filed` AT LEAST `1 January 2004` AND `day filed` AT MOST `15 June 2004`
 
+-- The reading F-1.15-h adopts: a request filed by 31.12.2003 joins from the
+-- start of התשס"ד, a later one from 1.1.2004.
+@ref akn:chp_1א___sec_1_15__ssec_4_4__para_e/p3
 GIVEN `day filed` IS A NUMBER
 GIVETH A NUMBER
 DECIDE `fund membership runs from` `day filed` IS
@@ -751,10 +798,34 @@ DECIDE `the joining request is in time` `day filed` IF
     AND NOT `in the second joining window` `31 December 2003`
 #ASSERT `a request filed on 31 December 2003 falls in neither window`
 
--- 4.4ה ¶4–¶5: informal-education staff (shortened funds "מקור" and
--- "מישור") and educational psychologists (the academics' fund), resident
--- (and, for psychologists, working) in the zones and approved by the
--- division: the employer pays both parts and the division refunds it the
+DECLARE `training fund` IS ONE OF
+    `one of the four teachers' training funds`
+    `the shortened fund Makor`
+    `the shortened fund Mishor`
+    `the academics' training fund`
+
+-- 4.4ה ¶4–¶5: informal-education staff resident in the zones may join the
+-- shortened funds "מקור" and "מישור"; educational psychologists resident
+-- in and working in the zones, the academics' fund; in both cases once the
+-- division approves them.
+@ref akn:chp_1א___sec_1_15__ssec_4_4__para_e/p4 akn:chp_1א___sec_1_15__ssec_4_4__para_e/p5
+GIVEN c IS AN `incentives claimant`
+      m IS A `fund member`
+      f IS A `training fund`
+GIVETH A BOOLEAN
+DECIDE `may join within the incentives under 4.4ה` c m f IF
+        m's `approved by the incentives division`
+    AND CONSIDER m's `member group`
+        WHEN `informal-education staff` THEN
+                `in national-priority zone A` (c's `locality of residence`)
+            AND (f EQUALS `the shortened fund Makor` OR f EQUALS `the shortened fund Mishor`)
+        WHEN `educational psychologists` THEN
+                `in national-priority zone A` (c's `locality of residence`)
+            AND `in national-priority zone A` (c's `locality of work`)
+            AND f EQUALS `the academics' training fund`
+        OTHERWISE FALSE
+
+-- For them the employer pays both parts and the division refunds it the
 -- employee's part.
 @ref akn:chp_1א___sec_1_15__ssec_4_4__para_e/p4 akn:chp_1א___sec_1_15__ssec_4_4__para_e/p5
 GIVEN g IS A `fund group`
@@ -860,6 +931,7 @@ DECLARE `northern benefit` IS ONE OF
 `the benefits of northern teachers` MEANS
     LIST `rent participation for northern teachers`, `the employee's fund part paid by the employer`
 
+@ref akn:chp_1א___sec_1_15__ssec_4_5/p12
 GIVEN b IS A `northern benefit`
 GIVETH A `source of a right`
 DECIDE `the source of a northern benefit` b IS `a collective agreement`
@@ -873,7 +945,6 @@ DECIDE `the source of a northern benefit` b IS `a collective agreement`
             `the benefits of northern teachers`
 #ASSERT `a benefit listed among the incentives comes from a collective agreement`
 
-@ref akn:chp_1א___sec_1_15__ssec_4_5/p24
 DECLARE `northern teacher` HAS
     `from the minority sector`              IS A BOOLEAN
     `born in a northern-district locality`  IS A BOOLEAN
@@ -891,6 +962,9 @@ DECLARE `northern teacher` HAS
     `applied with the fund's joining confirmation` IS A BOOLEAN
     `salary the fund deduction is taken from` IS A NUMBER
 
+-- Note א: "northern teachers" are minority-sector teachers born in a
+-- northern-district locality whose permanent residence is in the north.
+@ref akn:chp_1א___sec_1_15__ssec_4_5/p24
 GIVEN n IS A `northern teacher`
 GIVETH A BOOLEAN
 DECIDE `a northern teacher in the sense of part 5` n IF
@@ -898,8 +972,9 @@ DECIDE `a northern teacher in the sense of part 5` n IF
     AND n's `born in a northern-district locality`
     AND n's `permanent residence in the northern district`
 
--- Note ב: entitlement does not turn on whether the employment is permanent
--- or temporary.
+-- Note ב: entitlement covers every northern teacher teaching in the
+-- Bedouin localities of the south, whether employed permanently or
+-- temporarily.
 @ref akn:chp_1א___sec_1_15__ssec_4_5/p25
 GIVEN n IS A `northern teacher`
       `employed permanently` IS A BOOLEAN
@@ -907,25 +982,48 @@ GIVETH A BOOLEAN
 DECIDE `entitled to the northern benefits` n `employed permanently` IF
         `a northern teacher in the sense of part 5` n
     AND n's `teaches in a Bedouin locality in the south`
+
+-- Notes ב, ג and ד together: entitled, and not cancelled.
+GIVEN n IS A `northern teacher`
+      `employed permanently` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `receives the northern benefits` n `employed permanently` IF
+        `entitled to the northern benefits` n `employed permanently`
     AND NOT `the northern benefits are cancelled` n
-    AND n's `assigned for the whole school year`
 
 -- Notes ג and ד, as printed: buying a flat in the NORTHERN district, or
 -- moving the registered address from the north to the south (even without
--- buying), cancels the benefits.
+-- buying), cancels the benefits. F-1.15-o: ג's district is the one a
+-- northern teacher already lives in, while ד's "even without buying"
+-- presupposes a purchase in the south; the encoding follows the print.
 @ref akn:chp_1א___sec_1_15__ssec_4_5/p26 akn:chp_1א___sec_1_15__ssec_4_5/p27
 GIVEN n IS A `northern teacher`
 GIVETH A BOOLEAN
 DECIDE `the northern benefits are cancelled` n IF
     n's `bought a flat in the northern district` OR n's `registered address changed to the south`
 
--- Note ה: part-time, in proportion to the position, if assigned for the
--- whole year (assignment is a condition of entitlement above).
+-- Note ה: a part-time northern teacher receives the benefits in
+-- proportion to the position, provided the assignment is for the whole
+-- school year.
 @ref akn:chp_1א___sec_1_15__ssec_4_5/p28
 GIVEN n IS A `northern teacher`
 GIVETH A NUMBER
 DECIDE `northern position share` n IS
-    min (n's `northern position fraction`) 1
+    IF n's `northern position fraction` AT LEAST 1
+    THEN 1
+    ELSE IF n's `assigned for the whole school year`
+         THEN n's `northern position fraction`
+         ELSE 0
+
+-- F-1.15-o: the district note ג names for the purchase.
+DECLARE `district` IS ONE OF `the northern district`, `the southern district`
+
+`the district note ג's purchase is in` MEANS `the northern district`
+`the district a northern teacher lives in` MEANS `the northern district`
+
+`note ג cancels on a purchase where a northern teacher already lives` MEANS
+    `the district note ג's purchase is in` EQUALS `the district a northern teacher lives in`
+#ASSERT `note ג cancels on a purchase where a northern teacher already lives`
 
 -- akn:chp_1א___sec_1_15__ssec_4_5/p13 The heading "2. החזר שכר דירה"; no rule.
 
@@ -945,8 +1043,9 @@ GIVEN n IS A `northern teacher`
       `employed permanently` IS A BOOLEAN
 GIVETH A NUMBER
 DECIDE `monthly northern rent refund` n `monthly amount for the year` `employed permanently` IS
-    IF `entitled to the northern benefits` n `employed permanently`
+    IF `receives the northern benefits` n `employed permanently`
        AND n's `filed this year's rent request with lease and identity card`
+       AND NOT (`the payer of a northern refund` n EQUALS `no refund until the southern department approves`)
     THEN min (n's `monthly rent paid in the south`) `monthly amount for the year`
          TIMES `northern position share` n
     ELSE 0
@@ -954,6 +1053,7 @@ DECIDE `monthly northern rent refund` n `monthly amount for the year` `employed 
 DECLARE `who refunds the northern teacher` IS ONE OF
     `the Ministry refunds the teacher`
     `the employer refunds the teacher and the Ministry refunds the employer`
+    `no refund until the southern department approves`
 
 -- ד (rent) and ד (fund): staff not paid directly by the Ministry and
 -- approved by the southern incentives department are refunded by their
@@ -964,7 +1064,9 @@ GIVETH A `who refunds the northern teacher`
 DECIDE `the payer of a northern refund` n IS
     IF n's `paid directly by the Ministry`
     THEN `the Ministry refunds the teacher`
-    ELSE `the employer refunds the teacher and the Ministry refunds the employer`
+    ELSE IF n's `approved by the southern incentives department`
+         THEN `the employer refunds the teacher and the Ministry refunds the employer`
+         ELSE `no refund until the southern department approves`
 
 -- akn:chp_1א___sec_1_15__ssec_4_5/p18 The heading "3. קרן השתלמות"; no rule.
 
@@ -977,10 +1079,11 @@ GIVEN n IS A `northern teacher`
       `employed permanently` IS A BOOLEAN
 GIVETH A NUMBER
 DECIDE `northern fund refund` n `employed permanently` IS
-    IF     `entitled to the northern benefits` n `employed permanently`
+    IF     `receives the northern benefits` n `employed permanently`
        AND n's `joined a training fund in the ordinary way`
        AND n's `applied with the fund's joining confirmation`
        AND n's `approved by the southern incentives department`
+       AND `northern position share` n GREATER THAN 0
     THEN 0.042 TIMES n's `salary the fund deduction is taken from`
     ELSE 0
 
@@ -2248,6 +2351,7 @@ DECIDE `a primary teacher living in Ofakim` `work locality` `lowest fraction` `a
         `locality of work`             IS `work locality`
         `employed by`                  IS `the Ministry directly`
         `appears in the school profile` IS FALSE
+        `moved work or residence between zone-A localities` IS FALSE
         `the department head decides the claimant eligible` IS FALSE
         `lowest position fraction in the year` IS `lowest fraction`
         `annual position fraction`     IS `annual fraction`
@@ -2275,6 +2379,7 @@ DECIDE `a primary teacher living in Ofakim` `work locality` `lowest fraction` `a
         `locality of work`             IS "אופקים"
         `employed by`                  IS `the Ministry directly`
         `appears in the school profile` IS FALSE
+        `moved work or residence between zone-A localities` IS FALSE
         `the department head decides the claimant eligible` IS FALSE
         `lowest position fraction in the year` IS 1
         `annual position fraction`     IS 1
@@ -2300,8 +2405,10 @@ DECIDE `a primary teacher living in Ofakim` `work locality` `lowest fraction` `a
 -- §1.2: a veteran in a locality of annex B keeps the incentives through
 -- התשס"ד and loses them after it.
 #ASSERT `continued by the court rulings` "אבטליון" TRUE 100
-#ASSERT `cancelled under §1.2` "אבטליון" TRUE 400
-#ASSERT NOT `cancelled under §1.2` "אבטליון" FALSE 400
+#ASSERT `cancelled under §1.2` "אבטליון" TRUE 100
+#ASSERT NOT `the incentives are withdrawn under §1.2 and the rulings` "אבטליון" TRUE 100
+#ASSERT `the incentives are withdrawn under §1.2 and the rulings` "אבטליון" TRUE 400
+#ASSERT NOT `the incentives are withdrawn under §1.2 and the rulings` "אבטליון" FALSE 400
 #ASSERT `the division handles the request` `rent participation` 200
 #ASSERT NOT `the division handles the request` `rent participation` 300
 #ASSERT `the division handles the request` `training-fund contributions` 300
@@ -2310,9 +2417,10 @@ DECIDE `a primary teacher living in Ofakim` `work locality` `lowest fraction` `a
 GIVEN n IS A NUMBER
 GIVETH A NUMBER
 DECIDE `a placeholder salary scale` n IS 5000 PLUS 100 TIMES n
-#ASSERT `monthly worth of the seniority advancement` `a placeholder salary scale` 10 EQUALS 400
-#ASSERT `monthly worth of the seniority advancement` `a placeholder salary scale` 34 EQUALS 400
-#ASSERT `monthly worth of the grade advancement` `a placeholder salary scale` 3 TRUE EQUALS 200
+#ASSERT `monthly worth of the seniority advancement` `a teacher living and working in Ofakim` `a placeholder salary scale` 10 EQUALS 400
+#ASSERT `monthly worth of the seniority advancement` `a teacher living and working in Ofakim` `a placeholder salary scale` 34 EQUALS 400
+#ASSERT `monthly worth of the grade advancement` `a psychologist in Ofakim` `a placeholder salary scale` 3 TRUE EQUALS 200
+#ASSERT `monthly worth of the grade advancement` `a teacher living and working in Ofakim` `a placeholder salary scale` 3 TRUE EQUALS 0
 
 -- §4.2: an Open University student on two courses and four weekly hours.
 `an Open University student` MEANS
@@ -2328,7 +2436,7 @@ DECIDE `a placeholder salary scale` n IS 5000 PLUS 100 TIMES n
         `studies abroad`                       IS FALSE
         `at the Open University`               IS TRUE
         `Open University courses toward a degree this year` IS 2
-        `tuition charged`                      IS 10000
+        `amount charged for the studies`       IS 10500
         `registration fees, exam fees and arrears` IS 500
         `annual tuition`                       IS 10000
         `school year studied begins on`        IS 0
@@ -2411,6 +2519,22 @@ DECIDE `a teaching fund member` `left` `years to leaving` `fraction while saving
 #ASSERT `fund membership runs from` 100 EQUALS 0
 #ASSERT `fund membership runs from` 200 EQUALS 122
 
+-- 4.4ה ¶5: an approved psychologist living and working in Ofakim may join
+-- the academics' fund, and not a shortened one.
+`a psychologist fund member` MEANS
+    `fund member` WITH
+        `member group`                          IS `educational psychologists`
+        `joined one of the four teachers' training funds` IS FALSE
+        `filed a personal joining request with the district division` IS TRUE
+        `approved by the incentives division`   IS TRUE
+        `member age`                            IS 45
+        `left residence or work in the locality` IS FALSE
+        `years from the first incentive saving to leaving` IS 0
+        `annual position fraction while saving` IS 1
+#ASSERT `may join within the incentives under 4.4ה` `a psychologist in Ofakim` `a psychologist fund member` `the academics' training fund`
+#ASSERT NOT `may join within the incentives under 4.4ה` `a psychologist in Ofakim` `a psychologist fund member` `the shortened fund Makor`
+#ASSERT `the payer of the fund contributions` `educational psychologists` EQUALS `the employer pays both parts and the division refunds it the employee's part`
+
 -- §4.5: two days a week of three hours each.
 GIVEN `six-hour days` IS A NUMBER
 GIVETH A `sabbatical traveller`
@@ -2428,7 +2552,7 @@ DECIDE `a sabbatical teacher studying on` `six-hour days` IS
 `a sabbatical teacher` MEANS `a sabbatical teacher studying on` 3
 #ASSERT `travel reimbursed this week` `a teacher living and working in Ofakim` `a sabbatical teacher` EQUALS 120
 
--- F-1.15-o: the readings of note 2 part on two days of three hours.
+-- F-1.15-n: the readings of note 2 part on two days of three hours.
 `note 2's readings differ on two three-hour days` MEANS
     NOT (`trips reimbursed this week` (`a sabbatical teacher studying on` 0)
          EQUALS `trips reimbursed read as six weekly hours` 2 3)
@@ -2475,7 +2599,7 @@ DECIDE `a northern teacher in Rahat who bought in the north` `bought in the nort
     PARTY `the teaching employee` DOES `submit the northern teacher's request` AT 200
 #TRACE `no cancellation without the division's approval` AT 0 WITH
     PARTY `the Ministry of Education` DOES `notify the teacher that the incentives are cancelled without the division's approval` AT 50
-#TRACE `notice of a change of workplace or residence` 30 AT 0 WITH
+#TRACE `notice of a change of workplace or residence` AT 0 WITH
     PARTY `the teaching employee` DOES `notify the district incentives department in writing of a change` AT 20
-#TRACE `the declared notice of a change` 30 AT 0 WITH
+#TRACE `the declared notice of a change` AT 0 WITH
     PARTY `the teaching employee` DOES `notify the fund and the division in writing of a change` AT 40
