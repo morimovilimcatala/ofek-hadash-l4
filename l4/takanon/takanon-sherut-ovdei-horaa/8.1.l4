@@ -7,6 +7,11 @@
 IMPORT prelude
 IMPORT common
 
+GIVEN d IS A DATE, e IS A DATE
+GIVETH A BOOLEAN
+DECIDE d `is on or after` e IF
+    DATE_SERIAL d AT LEAST DATE_SERIAL e
+
 § `8.1 מורים וגננות בתפקידי הדרכה`
 
 @desc The actors section 8.1 names that the takanon's common vocabulary does not.
@@ -22,13 +27,32 @@ DECLARE `8.1 action` IS ONE OF
     `report the work on the per-diem form`
     `approve the report`
     `work a permanent split position`
-    `approve the split in advance`
     `teach in a school` HAS `teaching days a week` IS A NUMBER
     `use the annual leave` HAS `days used` IS A NUMBER
     `carry leave over`
-    `encourage development and mentoring frameworks for guides`
-    `employ beyond six years`
-    `examine a kilometre quota`
+    `encourage development and mentoring frameworks for guides during their work`
+    `examine the possibility of a kilometre quota under private-car terms`
+    `make pension-fund contributions on the guidance allowance`
+
+@desc The sectors of education section 8.1 distinguishes.
+DECLARE `guide's sector` IS ONE OF
+    `state`, `state-religious`, `Druze`, `Arab`
+
+@desc A guide's employment in the role, for the term rules of section 8.1.2.2.
+DECLARE `guidance term` HAS
+    `years in the role`                 IS A NUMBER
+    `years in the role consecutively`   IS A NUMBER
+    `guidance position fraction`        IS A NUMBER
+    `kind`                              IS A `kind of guidance`
+    `trained suitably in the last five years` IS A BOOLEAN
+    `extension approved by the district manager or the bureau head` IS A BOOLEAN
+    `the ministry's accountant consents` IS A BOOLEAN
+    `guidance in teaching subjects or educational topics` IS A BOOLEAN
+
+DECLARE `guide's role action` IS ONE OF
+    `carry out` HAS `role duty carried out` IS A `guide's role duty`
+    `adapt the guidance to the institution's needs`
+
 
 -- akn:chp_8__sec_8_1/p2 Heading of section 8.1.1 ("יחידת עבודה וחופשות").
 
@@ -55,6 +79,119 @@ DECLARE `guidance days row` HAS
 @ref akn:chp_8__sec_8_1/p8
 `five days of guidance` MEANS `guidance days row` 5 (5/5) 8.5
 
+-- A full position of teaching and guidance is assigned over 5 days, or 6
+-- if the teacher agrees.
+@ref akn:chp_8__sec_8_1/p9
+GIVEN `agrees to six days` IS A BOOLEAN
+GIVETH A NUMBER
+DECIDE `days a full position is assigned over` `agrees to six days` IS
+    IF `agrees to six days` THEN 6 ELSE 5
+
+-- A guide assigned on certain days works only on those days. One forced to
+-- do part of the role on a day he is not assigned reports it on the
+-- per-diem form, and his superior may approve the report only where the
+-- case was not foreseeable in advance. The text sets no time for either.
+@ref akn:chp_8__sec_8_1/p9
+GIVEN `forced to do part of the role on that day` IS A BOOLEAN, `the case was foreseeable in advance` IS A BOOLEAN
+GIVETH A DEONTIC `8.1 party` `8.1 action`
+DECIDE `work on a day the guide is not assigned` `forced to do part of the role on that day` `the case was foreseeable in advance` IS
+    IF `forced to do part of the role on that day`
+    THEN PARTY `a takanon party` `the teaching employee`
+         MUST  `report the work on the per-diem form`
+         HENCE (IF `the case was foreseeable in advance`
+                THEN PARTY `the guide's superior`
+                     SHANT `approve the report`
+                     LEST BREACH BY `the guide's superior` BECAUSE "section 8.1.1.1: only work in a case not foreseeable in advance may be approved"
+                ELSE PARTY `the guide's superior`
+                     MAY   `approve the report`)
+    ELSE PARTY `a takanon party` `the teaching employee`
+         SHANT `work on a day not assigned`
+         LEST  BREACH BY `a takanon party` `the teaching employee` BECAUSE "section 8.1.1.1: a guide works only on the days he is assigned"
+
+-- A guide who asks to work permanently in a split position beyond his
+-- assigned days needs the prior approval of whoever signed the letter of
+-- appointment (or one he authorised for this alone), in coordination with
+-- the direct professional superior.
+@ref akn:chp_8__sec_8_1/p9
+GIVEN `approved in advance by the appointment's signatory in coordination with the direct professional superior` IS A BOOLEAN
+GIVETH A DEONTIC `8.1 party` `8.1 action`
+DECIDE `a permanent split position beyond the assigned days` `approved in advance by the appointment's signatory in coordination with the direct professional superior` IS
+    IF `approved in advance by the appointment's signatory in coordination with the direct professional superior`
+    THEN PARTY `a takanon party` `the teaching employee`
+         MAY   `work a permanent split position`
+    ELSE PARTY `a takanon party` `the teaching employee`
+         SHANT `work a permanent split position`
+         LEST  BREACH BY `a takanon party` `the teaching employee` BECAUSE "section 8.1.1.1: a permanent split position needs approval in advance"
+
+@desc The kinds of guidance section 8.1.1(2) distinguishes: the four it exempts from teaching, and any other.
+@ref akn:chp_8__sec_8_1/p10
+DECLARE `kind of guidance` IS ONE OF
+    `ordinary guidance`
+    @ref akn:chp_8__sec_8_1/p11
+    `guidance in assistive or remedial-differential teaching`
+    @ref akn:chp_8__sec_8_1/p12
+    `guiding a kindergarten teacher in a guidance role`
+    @ref akn:chp_8__sec_8_1/p13
+    `guidance in special subjects that are not teaching subjects`
+    @ref akn:chp_8__sec_8_1/p14
+    `guidance in a sabbatical or study year`
+
+@ref akn:chp_8__sec_8_1/p10
+GIVEN k IS A `kind of guidance`
+GIVETH A BOOLEAN
+DECIDE `must also teach` k IF
+    k EQUALS `ordinary guidance`
+
+-- At least two days a week (1/3 of a position) of actual teaching in a
+-- school alongside the guidance, except for the four kinds above. The duty
+-- is a weekly measure, not a deadline.
+@ref akn:chp_8__sec_8_1/p10
+GIVEN k IS A `kind of guidance`
+GIVETH A DEONTIC `8.1 party` `8.1 action`
+DECIDE `the guide keeps teaching` k IS
+    IF `must also teach` k
+    THEN PARTY `a takanon party` `the teaching employee`
+         MUST  `teach in a school` d PROVIDED d AT LEAST 2
+    ELSE FULFILLED
+
+-- 26 leave days a year and 10 holiday days, pro rata to the position.
+@ref akn:chp_8__sec_8_1/p15
+GIVEN `position fraction` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `guide's annual leave days` `position fraction` IS
+    26 TIMES `position fraction`
+
+@ref akn:chp_8__sec_8_1/p15
+DECLARE `guide's holiday` IS ONE OF
+    `Rosh Hashana eve`, `Yom Kippur eve`, `Sukkot eve`, `Passover eve`, `Shavuot eve`,
+    `the intermediate days of Passover`
+
+@ref akn:chp_8__sec_8_1/p15
+GIVEN `position fraction` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `guide's holiday leave days` `position fraction` IS
+    10 TIMES `position fraction`
+
+-- The annual leave is used by 31 August — the twelfth school month — and
+-- cannot be carried over, the role being temporary; the prohibition on
+-- carrying it has no time limit.
+@ref akn:chp_8__sec_8_1/p15
+GIVEN `position fraction` IS A NUMBER
+GIVETH A DEONTIC `8.1 party` `8.1 action`
+DECIDE `use the leave by 31 August` `position fraction` IS
+    (PARTY `a takanon party` `the teaching employee`
+     MAY   `use the annual leave` d PROVIDED d AT MOST `guide's annual leave days` `position fraction`
+     WITHIN `month number` August)
+    RAND
+    (PARTY `a takanon party` `the teaching employee`
+     SHANT `carry leave over`
+     LEST BREACH BY `a takanon party` `the teaching employee` BECAUSE "section 8.1.1.3: a guide's leave cannot be accumulated")
+
+-- akn:chp_8__sec_8_1/p16 Heading of the source list (אסמכתא).
+-- akn:chp_8__sec_8_1/p17 Source: director-general's circulars.
+
+§§§ `8.1.1 The schedule read as a whole (F-8.1-a)`
+
 `the guidance-days schedule` MEANS
     LIST `one day of guidance`, `two days of guidance`, `three days of guidance`,
          `four days of guidance`, `five days of guidance`
@@ -80,109 +217,6 @@ DECIDE `share by the hours column` r IS
 
 -- The five-day row agrees with the unit: 5 x 8.5 = 42.5.
 #ASSERT `share by the hours column` `five days of guidance` EQUALS 1
-
--- A full position of teaching and guidance is assigned over 5 days, or 6
--- if the teacher agrees.
-@ref akn:chp_8__sec_8_1/p9
-GIVEN `agrees to six days` IS A BOOLEAN
-GIVETH A NUMBER
-DECIDE `days a full position is assigned over` `agrees to six days` IS
-    IF `agrees to six days` THEN 6 ELSE 5
-
--- The guide works only on the assigned days. Unforeseen work on another
--- day is reported on the per-diem form, and the superior MAY approve it.
-@ref akn:chp_8__sec_8_1/p9
-GIVEN `the work was foreseeable` IS A BOOLEAN
-GIVETH A DEONTIC `8.1 party` `8.1 action`
-DECIDE `work on a day the guide is not assigned` `the work was foreseeable` IS
-    PARTY `a takanon party` `the teaching employee`
-    MUST  `report the work on the per-diem form`
-    WITHIN 1
-    HENCE (IF `the work was foreseeable`
-           THEN FULFILLED
-           ELSE PARTY `the guide's superior` MAY `approve the report` WITHIN 1)
-    LEST  BREACH BY `a takanon party` `the teaching employee` BECAUSE "section 8.1.1.1: work on a day not assigned is reported on the per-diem form"
-
--- A permanent split beyond the assigned days needs the appointing
--- signatory's approval in advance (in coordination with the direct
--- professional superior).
-@ref akn:chp_8__sec_8_1/p9
-GIVETH A DEONTIC `8.1 party` `8.1 action`
-DECIDE `a permanent split needs approval first` IS
-    PARTY `the appointing signatory`
-    MAY   `approve the split in advance`
-    WITHIN 1
-    HENCE (PARTY `a takanon party` `the teaching employee` MAY `work a permanent split position`)
-    LEST  (PARTY `a takanon party` `the teaching employee`
-           SHANT `work a permanent split position`
-           LEST BREACH BY `a takanon party` `the teaching employee` BECAUSE "section 8.1.1.1: a permanent split position needs approval in advance")
-
-DECLARE `kind of guidance` IS ONE OF
-    `ordinary guidance`
-    @ref akn:chp_8__sec_8_1/p11
-    `guidance in assistive or remedial-differential teaching`
-    @ref akn:chp_8__sec_8_1/p12
-    `guiding a kindergarten teacher in a guidance role`
-    @ref akn:chp_8__sec_8_1/p13
-    `guidance in special subjects that are not teaching subjects`
-    @ref akn:chp_8__sec_8_1/p14
-    `guidance in a sabbatical or study year`
-
-@ref akn:chp_8__sec_8_1/p10
-GIVEN k IS A `kind of guidance`
-GIVETH A BOOLEAN
-DECIDE `must also teach` k IF
-    k EQUALS `ordinary guidance`
-
--- At least two days a week (1/3 of a position) of actual teaching in a
--- school alongside the guidance, except for the four kinds above. Time in
--- school months.
-@ref akn:chp_8__sec_8_1/p10
-GIVEN k IS A `kind of guidance`
-GIVETH A DEONTIC `8.1 party` `8.1 action`
-DECIDE `the guide keeps teaching` k IS
-    IF `must also teach` k
-    THEN PARTY `a takanon party` `the teaching employee`
-         MUST  `teach in a school` d PROVIDED d AT LEAST 2
-         WITHIN 12
-         LEST  BREACH BY `a takanon party` `the teaching employee` BECAUSE "section 8.1.1.2: a guide teaches at least two days a week"
-    ELSE FULFILLED
-
--- 26 leave days a year and 10 holiday days, pro rata to the position.
-@ref akn:chp_8__sec_8_1/p15
-GIVEN `position fraction` IS A NUMBER
-GIVETH A NUMBER
-DECIDE `guide's annual leave days` `position fraction` IS
-    26 TIMES `position fraction`
-
-@ref akn:chp_8__sec_8_1/p15
-DECLARE `guide's holiday` IS ONE OF
-    `Rosh Hashana eve`, `Yom Kippur eve`, `Sukkot eve`, `Passover eve`, `Shavuot eve`,
-    `the intermediate days of Passover`
-
-@ref akn:chp_8__sec_8_1/p15
-GIVEN `position fraction` IS A NUMBER
-GIVETH A NUMBER
-DECIDE `guide's holiday leave days` `position fraction` IS
-    10 TIMES `position fraction`
-
--- The annual leave is used by 31 August — the twelfth school month — and
--- cannot be carried, the role being temporary.
-@ref akn:chp_8__sec_8_1/p15
-GIVEN `position fraction` IS A NUMBER
-GIVETH A DEONTIC `8.1 party` `8.1 action`
-DECIDE `use the leave by 31 August` `position fraction` IS
-    (PARTY `a takanon party` `the teaching employee`
-     MAY   `use the annual leave` d PROVIDED d AT MOST `guide's annual leave days` `position fraction`
-     WITHIN `month number` August)
-    RAND
-    (PARTY `a takanon party` `the teaching employee`
-     SHANT `carry leave over`
-     WITHIN `month number` August
-     LEST BREACH BY `a takanon party` `the teaching employee` BECAUSE "section 8.1.1.3: a guide's leave cannot be accumulated")
-
--- akn:chp_8__sec_8_1/p16 Heading of the source list (אסמכתא).
--- akn:chp_8__sec_8_1/p17 Source: director-general's circulars.
 
 §§ `8.1.2 מינוי`
 
@@ -229,32 +263,36 @@ DECLARE `training-course focus` IS ONE OF
 GIVETH A DEONTIC `8.1 party` `8.1 action`
 DECIDE `the system encourages guides' development` IS
     PARTY `a takanon party` `the Ministry of Education`
-    MUST  `encourage development and mentoring frameworks for guides`
-    WITHIN 12
+    MUST  `encourage development and mentoring frameworks for guides during their work`
 
-DECLARE `guide's sector` IS ONE OF
-    `state`, `state-religious`, `Druze`, `Arab`
-
-@desc Who must agree to a guide's hiring (section 8.1.2.1(d)).
-DECLARE `hiring approver` IS ONE OF
-    `the district manager`
-    `the subject's chief supervisor or the field's head`
-    `the head of religious education`
-    `the heads of the sector`
-    `the supervisor in charge of the subject or field`
-    `the head of the guidance bureau`
+-- (ד): a district guide is hired BY the district manager, in coordination
+-- with the subject's chief supervisor or the field's head, and in
+-- state-religious education with the approval of its head; in the Druze and
+-- Arab sectors with the consent of those in charge of them. A national
+-- guide is hired with the consent of the supervisor in charge of the
+-- subject or field and of the guidance bureau's head, for the pedagogical
+-- secretariat.
+@desc Who takes part in hiring a guide, and in what capacity (section 8.1.2.1(d)).
+@ref akn:chp_8__sec_8_1/p27 akn:chp_8__sec_8_1/p28 akn:chp_8__sec_8_1/p29
+DECLARE `part in hiring a guide` IS ONE OF
+    `the district manager, who hires`
+    `the subject's chief supervisor or the field's head, in coordination`
+    `the head of state-religious education, who approves`
+    `those in charge of the sector, with whose consent`
+    `the supervisor in charge of the subject or field, who consents`
+    `the head of the guidance bureau, who consents for the pedagogical secretariat`
 
 @ref akn:chp_8__sec_8_1/p27 akn:chp_8__sec_8_1/p28 akn:chp_8__sec_8_1/p29
 GIVEN `national guide` IS A BOOLEAN, s IS A `guide's sector`
-GIVETH A LIST OF `hiring approver`
-DECIDE `who must agree to hiring a guide` `national guide` s IS
+GIVETH A LIST OF `part in hiring a guide`
+DECIDE `who takes part in hiring a guide` `national guide` s IS
     IF `national guide`
-    THEN LIST `the supervisor in charge of the subject or field`, `the head of the guidance bureau`
+    THEN LIST `the supervisor in charge of the subject or field, who consents`, `the head of the guidance bureau, who consents for the pedagogical secretariat`
     ELSE CONSIDER s
-         WHEN `state`           THEN LIST `the district manager`, `the subject's chief supervisor or the field's head`
-         WHEN `state-religious` THEN LIST `the district manager`, `the subject's chief supervisor or the field's head`, `the head of religious education`
-         WHEN `Druze`           THEN LIST `the district manager`, `the subject's chief supervisor or the field's head`, `the heads of the sector`
-         WHEN `Arab`            THEN LIST `the district manager`, `the subject's chief supervisor or the field's head`, `the heads of the sector`
+         WHEN `state`           THEN LIST `the district manager, who hires`, `the subject's chief supervisor or the field's head, in coordination`
+         WHEN `state-religious` THEN LIST `the district manager, who hires`, `the subject's chief supervisor or the field's head, in coordination`, `the head of state-religious education, who approves`
+         WHEN `Druze`           THEN LIST `the district manager, who hires`, `the subject's chief supervisor or the field's head, in coordination`, `those in charge of the sector, with whose consent`
+         WHEN `Arab`            THEN LIST `the district manager, who hires`, `the subject's chief supervisor or the field's head, in coordination`, `those in charge of the sector, with whose consent`
 
 -- From תשנ"ח a new guide holds at least a first degree; an experienced guide
 -- without one goes to the committee for exceptional employment of guides.
@@ -265,16 +303,9 @@ DECIDE `meets the degree rule from 1997-98` c IF
         c's `holds at least a first degree in the broad field`
     OR ((NOT c's `new to guidance`) AND c's `approved by the exceptional-employment committee`)
 
-@desc A guide's employment in the role, for the term rules of section 8.1.2.2.
-DECLARE `guidance term` HAS
-    `years in the role`                 IS A NUMBER
-    `years in the role consecutively`   IS A NUMBER
-    `guidance position fraction`        IS A NUMBER
-    `kind`                              IS A `kind of guidance`
-    `trained suitably in the last five years` IS A BOOLEAN
-    `extension approved by the district manager or the bureau head` IS A BOOLEAN
-    `the ministry's accountant consents` IS A BOOLEAN
-    `guidance in teaching subjects or educational topics` IS A BOOLEAN
+@ref akn:chp_8__sec_8_1/p31
+GIVETH A BOOLEAN
+DECIDE `work in a guidance role is partial and temporary` IF TRUE
 
 @ref akn:chp_8__sec_8_1/p31
 GIVETH A NUMBER
@@ -336,6 +367,7 @@ DECIDE `sections 13 to 15 of the appointments law do not apply` t IF
          OR t's `kind` EQUALS `guidance in assistive or remedial-differential teaching`)
 
 @desc The committee that decides on appointing a guide for more than one consecutive year.
+@ref akn:chp_8__sec_8_1/p35 akn:chp_8__sec_8_1/p36 akn:chp_8__sec_8_1/p37
 DECLARE `multi-year committee member` IS ONE OF
     `the district guidance referent, as chair`
     `the head of the guidance bureau, as chair`
@@ -372,8 +404,8 @@ DECIDE `the multi-year appointment committee` `national guide` `in a sector` IS
 DECLARE `who the guidance circular means` IS ONE OF
     `a teacher or kindergarten teacher in a guidance role`  @desc "מורה" includes a kindergarten teacher; "מדריך" stands for a teacher or kindergarten teacher in a guidance role
 
--- akn:chp_8__sec_8_1/p48 Heading ("מהות ההדרכה") of the purposes below.
-
+@desc The purposes of guidance (section 8.1.3(1), "מהות ההדרכה").
+@ref akn:chp_8__sec_8_1/p48
 DECLARE `purpose of guidance` IS ONE OF
     @ref akn:chp_8__sec_8_1/p49
     `improve the quality of teaching and pupils' achievements, in basic skills and curricula`
@@ -382,8 +414,8 @@ DECLARE `purpose of guidance` IS ONE OF
     @ref akn:chp_8__sec_8_1/p51
     `strengthen teachers' autonomy by partnership, not by supervision`
 
--- akn:chp_8__sec_8_1/p52 Heading ("נושאי ההדרכה") of the topics below.
-
+@desc The topics the guidance system works in (section 8.1.3(2), "נושאי ההדרכה").
+@ref akn:chp_8__sec_8_1/p52
 DECLARE `guidance topic` IS ONE OF
     @ref akn:chp_8__sec_8_1__ssec_2_1/p1
     `subjects, curricula and teaching methods`
@@ -392,6 +424,7 @@ DECLARE `guidance topic` IS ONE OF
     @ref akn:chp_8__sec_8_1__ssec_2_1/p3
     `teachers' personal and team development for school pedagogical policy`
 
+@ref akn:chp_8__sec_8_1__ssec_2_2
 DECLARE `stage of education` IS ONE OF
     `pre-primary`, `primary`, `post-primary`
 
@@ -409,8 +442,9 @@ GIVETH A BOOLEAN
 DECIDE `guidance is given separately` `curriculum differs` `separate chief supervisor` IF
     `curriculum differs` OR `separate chief supervisor`
 
+@desc The guide's duties (section 8.1.3(3.1)).
+@ref akn:chp_8__sec_8_1__ssec_3_1_1
 DECLARE `guide's role duty` IS ONE OF
-    @ref akn:chp_8__sec_8_1__ssec_3_1_1
     `teachers' professional-pedagogical development, toward autonomy`
     @ref akn:chp_8__sec_8_1__ssec_3_1_2
     `tools to identify and diagnose educational needs`
@@ -422,7 +456,18 @@ DECLARE `guide's role duty` IS ONE OF
     `foster the use of didactic aids`
     @ref akn:chp_8__sec_8_1__ssec_3_1_6
     `encourage initiative and innovation`
-    @ref akn:chp_8__sec_8_1__ssec_3_2_1
+
+-- Each duty is the guide's. The text sets no time for them.
+@ref akn:chp_8__sec_8_1__ssec_3_1_1 akn:chp_8__sec_8_1__ssec_3_1_2 akn:chp_8__sec_8_1__ssec_3_1_3 akn:chp_8__sec_8_1__ssec_3_1_4 akn:chp_8__sec_8_1__ssec_3_1_5 akn:chp_8__sec_8_1__ssec_3_1_6
+GIVEN d IS A `guide's role duty`
+GIVETH A DEONTIC Party `guide's role action`
+DECIDE `the guide's role` d IS
+    PARTY `the teaching employee`
+    MUST  `carry out` x PROVIDED x EQUALS d
+
+@desc The guide's ways of working (section 8.1.3(3.2)): the means of the guidance, not further duties.
+@ref akn:chp_8__sec_8_1__ssec_3_2_1
+DECLARE `guide's way of working` IS ONE OF
     `individual and group guidance`
     @ref akn:chp_8__sec_8_1__ssec_3_2_2
     `open demonstration lessons with guidance discussion`
@@ -435,19 +480,6 @@ DECLARE `guide's role duty` IS ONE OF
     @ref akn:chp_8__sec_8_1__ssec_3_2_6
     `create awareness of and ties to resources inside and outside the ministry`
 
-DECLARE `guide's role action` IS ONE OF
-    `carry out` HAS `role duty carried out` IS A `guide's role duty`
-    `adapt the guidance to the institution's needs`
-
-@ref akn:chp_8__sec_8_1__ssec_3_1_1
-GIVEN d IS A `guide's role duty`
-GIVETH A DEONTIC Party `guide's role action`
-DECIDE `the guide's role` d IS
-    PARTY `the teaching employee`
-    MUST  `carry out` x PROVIDED x EQUALS d
-    WITHIN 12
-    LEST  BREACH BY `the teaching employee` BECAUSE "section 8.1.3: the guide's role"
-
 -- Guidance is differential, varied in fields and methods, and adapted as
 -- far as possible to the institutions' needs.
 @ref akn:chp_8__sec_8_1__ssec_3_2_6/p1
@@ -455,7 +487,6 @@ GIVETH A DEONTIC Party `guide's role action`
 DECIDE `differential guidance` IS
     PARTY `the teaching employee`
     MUST  `adapt the guidance to the institution's needs`
-    WITHIN 12
 
 -- akn:chp_8__sec_8_1__ssec_3_2_6/p2 Heading of the source list (אסמכתא).
 -- akn:chp_8__sec_8_1__ssec_3_2_6/p3 Source: a special director-general's circular.
@@ -502,6 +533,12 @@ GIVETH A NUMBER
 DECIDE `guidance allowance at 43%` g IS
     0.43 TIMES g's `personal combined salary` TIMES min (g's `guidance position fraction`) 1
 
+@ref akn:chp_8__sec_8_1__ssec_8_1_6_1__para_1/p2
+GIVEN `the month` IS A DATE
+GIVETH A BOOLEAN
+DECIDE `the 43% applies in` `the month` IF
+    `the month` `is on or after` (DATE_FROM_DMY 1 1 2001)
+
 -- A guide with an academic degree, more than two years in guidance
 -- (counted from 1.9.83, a limit that does not bind pensioners) and at least
 -- 1/6 of a position "is entitled to the teacher-instructor allowance at the
@@ -520,6 +557,20 @@ GIVEN g IS A `guide`
 GIVETH A NUMBER
 DECIDE `guidance allowance at the instructor rate` g IS
     g's `instructor table rate` TIMES g's `personal combined salary` TIMES min (g's `guidance position fraction`) 1
+
+@ref akn:chp_8__sec_8_1__ssec_8_1_6_1__para_1/p3
+GIVEN `the month` IS A DATE
+GIVETH A BOOLEAN
+DECIDE `the instructor-rate entitlement runs in` `the month` IF
+    `the month` `is on or after` (DATE_FROM_DMY 1 9 1989)
+
+-- "עובד הוראה כאמור": the qualifying guide also receives the
+-- qualifications allowance (גמול הכשרות) on the teaching part of his work.
+@ref akn:chp_8__sec_8_1__ssec_8_1_6_1__para_1/p3
+GIVEN g IS A `guide`
+GIVETH A BOOLEAN
+DECIDE `receives the qualifications allowance on the teaching part of his work` g IF
+    `qualifies for the instructor rate` g
 
 -- F-8.1-b: for a guide who qualifies under paragraph 1's third part, the
 -- second part fixes 43% and the third part the instructor's table rate.
@@ -553,25 +604,35 @@ DECIDE `guidance allowance` g IS
 -- worked at least 1/3 of a position in the role; employers in an
 -- accumulating pension fund also pay contributions on it.
 @ref akn:chp_8__sec_8_1__ssec_8_1_6_1__para_2
-GIVEN `years received before retiring` IS A NUMBER, `guidance position fraction` IS A NUMBER
+GIVEN `day of retirement` IS A DATE, `years received before retiring` IS A NUMBER, `guidance position fraction` IS A NUMBER
 GIVETH A BOOLEAN
-DECIDE `the guidance allowance enters the pension salary` `years received before retiring` `guidance position fraction` IF
-    `years received before retiring` AT LEAST 2 AND `guidance position fraction` AT LEAST 1/3
+DECIDE `the guidance allowance enters the pension salary` `day of retirement` `years received before retiring` `guidance position fraction` IF
+        (`day of retirement` `is on or after` (DATE_FROM_DMY 1 9 1994))
+    AND `years received before retiring` AT LEAST 2
+    AND `guidance position fraction` AT LEAST 1/3
 
+-- An employer whose teaching employees are insured in an accumulating
+-- pension fund also contributes to the fund on these allowances.
 @ref akn:chp_8__sec_8_1__ssec_8_1_6_1__para_2
-GIVEN `in an accumulating pension fund` IS A BOOLEAN
-GIVETH A BOOLEAN
-DECIDE `contributions are paid on the guidance allowance` `in an accumulating pension fund` IF
-    `in an accumulating pension fund`
+GIVEN `the employees are insured in an accumulating pension fund` IS A BOOLEAN
+GIVETH A DEONTIC `8.1 party` `8.1 action`
+DECIDE `contributions on the guidance allowance` `the employees are insured in an accumulating pension fund` IS
+    IF `the employees are insured in an accumulating pension fund`
+    THEN PARTY `a takanon party` `the employer`
+         MUST  `make pension-fund contributions on the guidance allowance`
+    ELSE FULFILLED
 
 -- From 1.9.01 service in a 1/6 guidance position counts for pension if the
 -- total of teaching and guidance is at least 1/3 of a position and the
 -- guide worked the last two years before retiring.
 @ref akn:chp_8__sec_8_1__ssec_8_1_6_1__para_3
-GIVEN `guidance position fraction` IS A NUMBER, `total position fraction` IS A NUMBER, `worked the last two years` IS A BOOLEAN
+GIVEN `day of retirement` IS A DATE, `guidance position fraction` IS A NUMBER, `total position fraction` IS A NUMBER, `worked the last two years` IS A BOOLEAN
 GIVETH A BOOLEAN
-DECIDE `sixth-position guidance counts for pension` `guidance position fraction` `total position fraction` `worked the last two years` IF
-    `guidance position fraction` AT LEAST 1/6 AND `total position fraction` AT LEAST 1/3 AND `worked the last two years`
+DECIDE `sixth-position guidance counts for pension` `day of retirement` `guidance position fraction` `total position fraction` `worked the last two years` IF
+        (`day of retirement` `is on or after` (DATE_FROM_DMY 1 9 2001))
+    AND `guidance position fraction` AT LEAST 1/6
+    AND `total position fraction` AT LEAST 1/3
+    AND `worked the last two years`
 
 -- A guide not entitled to have the guidance allowance in the pension
 -- salary, who held the role lawfully at retirement, receives the
@@ -605,14 +666,18 @@ DECIDE `guide's per-diem expenses` `civil-service per-diem for the guidance work
 
 §§§ `8.1.6.3 רכב`
 
--- In special cases, by criteria to be set, the possibility of a kilometre
--- quota under private-car terms is examined: a permission, not a right.
+-- In special cases, by criteria to be set, the possibility of approving a
+-- kilometre quota for a car owner under private-car terms "shall be
+-- examined": the examination is due, its outcome is not given. The text
+-- names no examiner and sets no time; the Ministry is read as examining.
 @ref akn:chp_8__sec_8_1__ssec_8_1_6_3__para_1
+GIVEN `a special case under the criteria to be set` IS A BOOLEAN
 GIVETH A DEONTIC `8.1 party` `8.1 action`
-DECIDE `a kilometre quota may be examined` IS
-    PARTY `a takanon party` `the Ministry of Education`
-    MAY   `examine a kilometre quota`
-    WITHIN 12
+DECIDE `examining a kilometre quota` `a special case under the criteria to be set` IS
+    IF `a special case under the criteria to be set`
+    THEN PARTY `a takanon party` `the Ministry of Education`
+         MUST  `examine the possibility of a kilometre quota under private-car terms`
+    ELSE FULFILLED
 
 @ref akn:chp_8__sec_8_1__ssec_8_1_6_3__para_2
 GIVEN `owns a car` IS A BOOLEAN, `paid by a set quota` IS A BOOLEAN,
@@ -629,7 +694,11 @@ DECIDE `guide's monthly car payment` `owns a car` `paid by a set quota` `global-
 
 §§§ `8.1.6.4 גמול טלפונים`
 
--- akn:chp_8__sec_8_1__ssec_8_1_6_4/p1 Effective date of the section (from 1.4.2000); the file encodes the rule in force and carries no dates.
+@ref akn:chp_8__sec_8_1__ssec_8_1_6_4/p1
+GIVEN `the month` IS A DATE
+GIVETH A BOOLEAN
+DECIDE `section 8.1.6.4 applies in` `the month` IF
+    `the month` `is on or after` (DATE_FROM_DMY 1 4 2000)
 
 -- On top of the telephone allowance all teachers receive, an amount by the
 -- days of guidance (in shekels a month).
@@ -667,13 +736,29 @@ DECIDE `any earlier telephone arrangement for guides still applies` IS FALSE
 DECLARE `kindergarten guide` HAS
     `kindergarten coordination allowance` IS A NUMBER @desc the allowance she held before the appointment; an input
     `guidance allowance`                  IS A NUMBER @desc the guidance allowance of a teacher in a guidance role; an input
+    `actually fills the guidance role`    IS A BOOLEAN
     `years in the role full-time before retiring` IS A NUMBER
 
+-- F-8.1-d: "the difference between this allowance and the guidance
+-- allowance" says nothing of a coordination allowance larger than the
+-- guidance allowance. Reading adopted: the difference is then nothing.
 @ref akn:chp_8__sec_8_1__ssec_8_1_6_5__para_1
 GIVEN k IS A `kindergarten guide`
 GIVETH A NUMBER
 DECIDE `the difference` k IS
     max 0 (k's `guidance allowance` MINUS k's `kindergarten coordination allowance`)
+
+`a kindergarten guide whose coordination allowance is the larger` MEANS
+    `kindergarten guide` WITH
+        `kindergarten coordination allowance` IS 1500
+        `guidance allowance`                  IS 1000
+        `actually fills the guidance role`    IS TRUE
+        `years in the role full-time before retiring` IS 0
+
+`the guidance allowance can fall below the coordination allowance, where the text names no difference` MEANS
+    `a kindergarten guide whose coordination allowance is the larger`'s `guidance allowance`
+        LESS THAN `a kindergarten guide whose coordination allowance is the larger`'s `kindergarten coordination allowance`
+#ASSERT `the guidance allowance can fall below the coordination allowance, where the text names no difference`
 
 @ref akn:chp_8__sec_8_1__ssec_8_1_6_5__para_1
 GIVEN k IS A `kindergarten guide`
@@ -698,15 +783,24 @@ DECIDE `the difference counts in the pension salary` k IF
 GIVETH A BOOLEAN
 DECIDE `the difference counts for severance or retirement benefits` IS FALSE
 
+-- The difference is a temporary supplement, paid for actually filling the role.
+@ref akn:chp_8__sec_8_1__ssec_8_1_6_5__para_3
+GIVEN k IS A `kindergarten guide`
+GIVETH A BOOLEAN
+DECIDE `the difference is paid` k IF
+    k's `actually fills the guidance role`
+
 -- akn:chp_8__sec_8_1__ssec_8_1_6_5/p1 Heading of the source list (אסמכתא).
 -- akn:chp_8__sec_8_1__ssec_8_1_6_5/p2 Source: a director-general's circular.
 -- akn:chp_8__sec_8_1__ssec_8_1_6_5/p3 Source: collective agreement of 19.9.94.
+
+§§ `Worked examples`
 
 -- Examples. Salaries and rates are placeholders.
 #ASSERT `guidance allowance` `a guide with a degree and five years` EQUALS 2150
 #ASSERT `position share for guidance days` 3 EQUALS 0.5
 #ASSERT `guide's additional telephone amount` 5 EQUALS 36.45
-#ASSERT `kindergarten guide's allowances` (`kindergarten guide` WITH `kindergarten coordination allowance` IS 1000, `guidance allowance` IS 1500, `years in the role full-time before retiring` IS 1) EQUALS 1500
+#ASSERT `kindergarten guide's allowances` (`kindergarten guide` WITH `kindergarten coordination allowance` IS 1000, `guidance allowance` IS 1500, `actually fills the guidance role` IS TRUE, `years in the role full-time before retiring` IS 1) EQUALS 1500
 
 #TRACE `the guide keeps teaching` `ordinary guidance` AT 0 WITH
     PARTY `a takanon party` `the teaching employee` DOES `teach in a school` 2 AT 1

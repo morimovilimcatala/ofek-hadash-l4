@@ -9,6 +9,11 @@
 IMPORT prelude
 IMPORT common
 
+GIVEN d IS A DATE, e IS A DATE
+GIVETH A BOOLEAN
+DECIDE d `is on or after` e IF
+    DATE_SERIAL d AT LEAST DATE_SERIAL e
+
 § `7.3 סגן מנהל`
 
 @desc The kinds of institution section 7.3 distinguishes.
@@ -29,6 +34,7 @@ DECLARE `deputy post` HAS
 @desc A principal or deputy of a primary school whose grades 7–8 moved to a middle school in the reform.
 DECLARE `reform-affected manager` HAS
     `classes lost to the middle school` IS A BOOLEAN @desc the school's classes were reduced by moving grades 7–8 to the middle school in the reform
+    `day of the reform`                 IS A DATE @desc the day the reform was carried out at the school
     `age on the day of the reform`      IS A NUMBER
     `management hours before`           IS A NUMBER
     `teaching hours before`             IS A NUMBER
@@ -39,7 +45,7 @@ DECLARE `7.3 party` IS ONE OF
     `the selection committee`
     `the district manager`
     `a candidate`
-    `the appointing body`
+    `the appointing body` @desc whoever gives the notice of section 3.5; the text names no one (F-7.3-b)
 
 DECLARE `7.3 action` IS ONE OF
     `submit recommendations to the district manager`
@@ -81,16 +87,16 @@ DECIDE `maximum management hours` d IS
 -- akn:chp_7__sec_7_3/p6 The heading of §7.3.1(2) (management hours); its paragraphs are encoded below.
 
 -- (2)א: management hours lost with the classes become teaching hours, hour
--- for hour; (2)ב: not for one aged 50 or more on the day of the reform.
-@ref akn:chp_7__sec_7_3/p7 akn:chp_7__sec_7_3/p8 akn:chp_7__sec_7_3/p9
+-- for hour, "notwithstanding" which (2)ב protects one aged 50 or more.
+@ref akn:chp_7__sec_7_3/p7 akn:chp_7__sec_7_3/p8
 GIVEN m IS A `reform-affected manager`
 GIVETH A NUMBER
 DECIDE `management hours after the reform` m IS
-    IF m's `classes lost to the middle school` AND m's `age on the day of the reform` LESS THAN 50
+    IF m's `classes lost to the middle school` AND NOT `(2)ב protects his management and teaching hours` m
     THEN min (m's `management hours before`) (m's `management hours the reduced school gives`)
     ELSE m's `management hours before`
 
-@ref akn:chp_7__sec_7_3/p7 akn:chp_7__sec_7_3/p8 akn:chp_7__sec_7_3/p9
+@ref akn:chp_7__sec_7_3/p7 akn:chp_7__sec_7_3/p8
 GIVEN m IS A `reform-affected manager`
 GIVETH A NUMBER
 DECIDE `teaching hours after the reform` m IS
@@ -100,15 +106,31 @@ DECIDE `teaching hours after the reform` m IS
 GIVETH A BOOLEAN
 DECIDE `turning management hours into teaching hours is a worsening of conditions` IF FALSE
 
--- (2)ג, in force from 1.9.92: one aged 50 or more keeps a position base of
--- 24, in teaching and in management hours as before the move.
-@ref akn:chp_7__sec_7_3/p10 akn:chp_7__sec_7_3/p11
+-- (2)ב, in force from 1.9.69: a principal or deputy of a primary school aged
+-- 50 or more on the day of the reform keeps his management hours and his
+-- teaching hours.
+@ref akn:chp_7__sec_7_3/p9
 GIVEN m IS A `reform-affected manager`
-GIVETH A NUMBER
-DECIDE `position base kept` m IS
-    IF m's `classes lost to the middle school` AND m's `age on the day of the reform` AT LEAST 50
-    THEN 24
-    ELSE m's `management hours before` PLUS m's `teaching hours before`
+GIVETH A BOOLEAN
+DECIDE `(2)ב protects his management and teaching hours` m IF
+        m's `classes lost to the middle school`
+    AND m's `age on the day of the reform` AT LEAST 50
+    AND (m's `day of the reform` `is on or after` (DATE_FROM_DMY 1 9 1969))
+
+-- (2)ג, in force from 1.9.92: a principal or deputy aged 50 or more on the
+-- day of the reform whose grades 7–8 moved to the middle school keeps his
+-- position base, 24, in teaching and in management hours, as it was before
+-- the move.
+@ref akn:chp_7__sec_7_3/p10 akn:chp_7__sec_7_3/p11
+`the position base (2)ג keeps` MEANS 24
+
+@ref akn:chp_7__sec_7_3/p10 akn:chp_7__sec_7_3/p11
+GIVEN m IS A `reform-affected manager`, `the month` IS A DATE
+GIVETH A BOOLEAN
+DECIDE `keeps his position base in teaching and management hours as before the move` m `the month` IF
+        m's `classes lost to the middle school`
+    AND m's `age on the day of the reform` AT LEAST 50
+    AND (`the month` `is on or after` (DATE_FROM_DMY 1 9 1992))
 
 -- akn:chp_7__sec_7_3/p12 akn:chp_7__sec_7_3/p13 akn:chp_7__sec_7_3/p14 The sources (אסמכתא) of section 7.3.1.
 
@@ -212,6 +234,18 @@ DECIDE `notice to a candidate not interviewed` `invited to interview` IS
     ELSE PARTY `the appointing body`
          MUST  `give a reasoned written notice of not being invited to interview`
 
+-- F-7.3-b: the candidate "shall receive" the notice; the text does not say
+-- from whom. Read as the body that runs the selection (`the appointing body`).
+GIVETH A LIST OF `7.3 party`
+DECIDE `the parties section 3.5 names as giving the notice` IS EMPTY
+
+GIVETH A BOOLEAN
+DECIDE `section 3.5 names no one to give the notice` IF
+    `the parties section 3.5 names as giving the notice` EQUALS EMPTY
+#ASSERT `section 3.5 names no one to give the notice`
+
+§§ `Worked examples`
+
 -- Examples (placeholder posts).
 `a deputy in a primary school` MEANS
     `deputy post` WITH
@@ -223,6 +257,7 @@ DECIDE `notice to a candidate not interviewed` `invited to interview` IS
 `a manager aged 52 at the reform` MEANS
     `reform-affected manager` WITH
         `classes lost to the middle school`         IS TRUE
+        `day of the reform`                         IS DATE_FROM_DMY 1 9 1970
         `age on the day of the reform`              IS 52
         `management hours before`                   IS 10
         `teaching hours before`                     IS 14
@@ -231,6 +266,7 @@ DECIDE `notice to a candidate not interviewed` `invited to interview` IS
 `a manager aged 40 at the reform` MEANS
     `reform-affected manager` WITH
         `classes lost to the middle school`         IS TRUE
+        `day of the reform`                         IS DATE_FROM_DMY 1 9 1970
         `age on the day of the reform`              IS 40
         `management hours before`                   IS 10
         `teaching hours before`                     IS 14
@@ -241,6 +277,8 @@ DECIDE `notice to a candidate not interviewed` `invited to interview` IS
 #ASSERT `management hours after the reform` `a manager aged 40 at the reform` EQUALS 6
 #ASSERT `teaching hours after the reform` `a manager aged 40 at the reform` EQUALS 18
 #ASSERT `management hours after the reform` `a manager aged 52 at the reform` EQUALS 10
+#ASSERT `keeps his position base in teaching and management hours as before the move` `a manager aged 52 at the reform` (DATE_FROM_DMY 1 10 1992)
+#ASSERT NOT `keeps his position base in teaching and management hours as before the move` `a manager aged 52 at the reform` (DATE_FROM_DMY 1 10 1991)
 #ASSERT `deputies the printed rows allow` `post-primary school including a middle school` 19 EQUALS 2
 
 -- The adopted reading agrees with every printed row.

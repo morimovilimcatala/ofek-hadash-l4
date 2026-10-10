@@ -7,6 +7,11 @@ IMPORT prelude
 IMPORT common
 IMPORT daydate
 
+GIVEN d IS A DATE, e IS A DATE
+GIVETH A BOOLEAN
+DECIDE d `is on or after` e IF
+    DATE_SERIAL d AT LEAST DATE_SERIAL e
+
 § `8.4 מפקח`
 
 @desc A teaching employee approved for the supervisor grade, as far as section 8.4 asks about it.
@@ -41,18 +46,21 @@ DECLARE `fixed holiday` IS ONE OF
 DECLARE `supervisor action` IS ONE OF
     `take leave on` HAS `the holiday taken` IS A `fixed holiday`
     `exchange a fixed holiday for another day` HAS `the holiday exchanged` IS A `fixed holiday`
-    `pay the savings-fund contribution` HAS `the rate paid` IS A NUMBER
+    `do additional work`
 
--- The fixed holidays are leave days and may not be exchanged for others.
--- Time is in school months.
+-- Supervisors receive leave on each of these days; they are fixed leave
+-- days and may not be exchanged for others. The prohibition has no time
+-- limit.
 @ref akn:chp_8__sec_8_4__ssec_8_4_1__para_2__subpara_b
 GIVEN h IS A `fixed holiday`
 GIVETH A DEONTIC Party `supervisor action`
-DECIDE `a fixed holiday may not be exchanged` h IS
-    PARTY `the supervisor`
-    SHANT `exchange a fixed holiday for another day` x PROVIDED x EQUALS h
-    WITHIN 12
-    LEST BREACH BY `the supervisor` BECAUSE "section 8.4.1.2(b): the holiday days are fixed and may not be exchanged for other days"
+DECIDE `a fixed holiday` h IS
+    (PARTY `the supervisor`
+     MAY   `take leave on` x PROVIDED x EQUALS h)
+    RAND
+    (PARTY `the supervisor`
+     SHANT `exchange a fixed holiday for another day` x PROVIDED x EQUALS h
+     LEST BREACH BY `the supervisor` BECAUSE "section 8.4.1.2(b): the holiday days are fixed and may not be exchanged for other days")
 
 -- akn:chp_8__sec_8_4__ssec_8_4_1/p1 Heading of the source list (אסמכתא).
 -- akn:chp_8__sec_8_4__ssec_8_4_1/p2 Source: collective agreement of 14.12.64.
@@ -60,17 +68,29 @@ DECIDE `a fixed holiday may not be exchanged` h IS
 
 §§ `8.4.6 גמול פיקוח`
 
--- §8.4.6.1 says "a percentage of his personal salary by the table below";
--- §8.4.6.2(a) multiplies the rate by the personal COMBINED salary. Read as
--- one base: (a) states the multiplication the table is applied by. The
--- table itself is not in the text as the corpus holds it: `table rate` is an input.
+-- F-8.4-c: §8.4.6.1 says "a percentage of his personal salary by the
+-- table below"; §8.4.6.2(a) multiplies the rate by the personal COMBINED
+-- salary. Read as one base: (a) states the multiplication the table is
+-- applied by. The table itself is not in the text as the corpus holds it:
+-- `table rate` is an input.
 @ref akn:chp_8__sec_8_4__ssec_8_4_6__para_1 akn:chp_8__sec_8_4__ssec_8_4_6__para_2__subpara_a
 GIVEN s IS A `supervisor`
 GIVETH A NUMBER
 DECIDE `full-position supervision allowance` s IS
     s's `table rate` TIMES s's `personal combined salary`
 
--- akn:chp_8__sec_8_4__ssec_8_4_6__para_1/p2 Effective date of the table (from 1.1.01); the file encodes the rate in force and carries no dates.
+`the base paragraph 1 names` MEANS "שכרו האישי"
+`the base (a) names` MEANS "השכר המשולב האישי של המפקח"
+`paragraph 1 and (a) name the allowance's base in different words` MEANS
+    NOT (`the base paragraph 1 names` EQUALS `the base (a) names`)
+#ASSERT `paragraph 1 and (a) name the allowance's base in different words`
+
+-- The table applies from 1.1.01; the text gives no table before it.
+@ref akn:chp_8__sec_8_4__ssec_8_4_6__para_1/p2
+GIVEN `the month` IS A DATE
+GIVETH A BOOLEAN
+DECIDE `the table applies in` `the month` IF
+    `the month` `is on or after` (DATE_FROM_DMY 1 1 2001)
 
 @ref akn:chp_8__sec_8_4__ssec_8_4_6__para_2__subpara_b
 GIVEN s IS A `supervisor`
@@ -95,7 +115,7 @@ DECLARE `move into supervision` IS ONE OF
     `instructor to supervisor`                       @desc subsections (b) and (d)
     `teacher-instructor to supervisor`               @desc subsection (d)
     `school principal to supervision`                @desc subsections (c) and (d): a principal, not a deputy or other role holder
-    `deputy or other role holder to supervision`     @desc excluded from (c) by its own words
+    `deputy or other role holder to supervision`     @desc excluded from (c) by its own words; whether (d) covers it is F-8.4-b
 
 DECLARE `supervision move` HAS
     `the move`                                  IS A `move into supervision`
@@ -152,6 +172,22 @@ DECIDE `seniority carried into supervision` m IS
          EQUALS `seniority carried in full under (d)` `a principal of eight years moves into supervision`)
 #ASSERT `(c) and (d) give a principal moving into supervision different seniority`
 
+-- F-8.4-b: (c) excludes a deputy and any other role holder; (d) counts in
+-- full a move "from management to supervision" without saying whether a
+-- deputy's management is that. Reading adopted: a deputy carries none —
+-- (d)'s "management" is the principal's, the move (c) names.
+`a deputy of eight years moves into supervision` MEANS
+    `supervision move` WITH
+        `the move`                                  IS `deputy or other role holder to supervision`
+        `years in the previous role`                IS 8
+        `years in an instruction role since 1.9.83` IS 0
+        `seniority ceiling`                         IS 13
+
+`whether a deputy moving from management carries seniority under (d) decides between none and all of it` MEANS
+    NOT (`seniority carried into supervision` `a deputy of eight years moves into supervision`
+         EQUALS `seniority carried in full under (d)` `a deputy of eight years moves into supervision`)
+#ASSERT `whether a deputy moving from management carries seniority under (d) decides between none and all of it`
+
 -- akn:chp_8__sec_8_4__ssec_8_4_6/p1 Heading of the source list (אסמכתא).
 -- akn:chp_8__sec_8_4__ssec_8_4_6/p2 Source: collective agreement of 23.10.90.
 -- akn:chp_8__sec_8_4__ssec_8_4_6/p3 Source: collective agreement of 18.12.01.
@@ -170,6 +206,7 @@ DECIDE `supervisor's in-service training allowance` `the allowance section 1.26 
     `the allowance section 1.26 gives a teaching employee in the same position`
 
 @desc A research work a supervision-grade employee submits for the in-service training allowance.
+@ref akn:chp_8__sec_8_4__ssec_8_4_7__para_2
 DECLARE `research work` HAS
     `approvable under section 1.26's rules` IS A BOOLEAN @desc it meets the rules set for all teaching employees (section 1.26); an input
     `in the field the employee works in`    IS A BOOLEAN
@@ -198,11 +235,18 @@ DECLARE `additional work` HAS
     `was in the 13 1/3% fund before 1.9.84`       IS A BOOLEAN
     `month worked`                               IS A DATE
 
+-- Supervisors may do additional work, subject to the civil-service
+-- regulations (תקשי"ר); outside them they may not.
 @ref akn:chp_8__sec_8_4__ssec_8_4_11__para_1
 GIVEN w IS AN `additional work`
-GIVETH A BOOLEAN
-DECIDE `a supervisor may do additional work` w IF
-    w's `approved under the civil-service regulations`
+GIVETH A DEONTIC Party `supervisor action`
+DECIDE `additional work` w IS
+    IF w's `approved under the civil-service regulations`
+    THEN PARTY `the supervisor`
+         MAY   `do additional work`
+    ELSE PARTY `the supervisor`
+         SHANT `do additional work`
+         LEST  BREACH BY `the supervisor` BECAUSE "section 8.4.11.1: additional work is subject to the civil-service regulations"
 
 -- Until 31.8.84: a full-position supervisor in approved additional work at
 -- the same owners (not overtime as a supervisor) earned 13 1/3%.
@@ -251,6 +295,8 @@ DECIDE `savings-fund contribution rate` w IS
 -- akn:chp_8__sec_8_4__ssec_8_4_11/p3 Source: a deputy director-general's circular of 26.9.84.
 -- akn:chp_8__sec_8_4__ssec_8_4_11/p4 Source: a supreme parity committee decision of 15.1.85.
 
+§§ `Worked examples`
+
 -- Examples. The salary and table rate are placeholders.
 `a half-position supervisor` MEANS
     `supervisor` WITH
@@ -274,5 +320,5 @@ DECIDE `savings-fund contribution rate` w IS
 
 #ASSERT `savings-fund contribution rate` `additional teaching in 1990` EQUALS 55 DIVIDED BY 300
 
-#TRACE `a fixed holiday may not be exchanged` `Passover eve` AT 0 WITH
+#TRACE `a fixed holiday` `Passover eve` AT 0 WITH
     PARTY `the supervisor` DOES `exchange a fixed holiday for another day` `Passover eve` AT 7
