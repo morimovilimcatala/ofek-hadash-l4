@@ -10,7 +10,7 @@ IMPORT common
 
 § `תשלום בגין שחיקה לעובדי הוראה לשנים 1999–2001`
 
--- akn:preamble The letterhead, title, date, addressee, subject line, and the recital of the 1.2.2007 agreement that sent the dispute to arbitration and of the award of 22.5.2007; no rule.
+-- akn:preamble The letterhead, title, date, addressee, subject line, and the recital of the collective agreement (the Treasury wage controller's circular 2007-1-14) that sent the dispute to arbitration and of the award of 22.5.2007; no rule.
 
 -- Time in this file is counted in salary months from May 2007 (0), the
 -- circular's own month.
@@ -22,15 +22,23 @@ IMPORT common
 `the rise`              MEANS 4.75%
 `the rise takes effect` MEANS Date 1 1 2007
 
+DECLARE `erosion action` IS ONE OF
+    `pay the grant` HAS `grant paid` IS A NUMBER
+    `start the current payments`
+    `pay the differences`
+
 §§ `1 עדכון טבלת השכר`
 
 -- ¶2: the updated table is "attached as an annex"; the corpus carries no
 -- annex (nor does the source PDF), so the table itself is not data here.
 @ref akn:art_1/p1 akn:art_1/p2
-GIVEN `cell before the update` IS A NUMBER @desc a cell of the salary table as it stood before 1.1.2007
+GIVEN `day` IS A DATE
+      `cell before the update` IS A NUMBER @desc a cell of the salary table as it stood before 1.1.2007
 GIVETH A NUMBER
-DECIDE `updated salary table cell` `cell before the update` IS
-    `cell before the update` TIMES (1 PLUS `the rise`)
+DECIDE `salary table cell on` `day` `cell before the update` IS
+    IF `day` AT LEAST `the rise takes effect`
+    THEN `cell before the update` TIMES (1 PLUS `the rise`)
+    ELSE `cell before the update`
 
 §§ `2 עדכון תוספות שכר שקליות`
 
@@ -39,10 +47,13 @@ DECLARE `shekel supplement` HAS
     `amount from 1.1.2007`     IS A NUMBER
 
 @ref akn:art_2/p1
-GIVEN `amount before the update` IS A NUMBER
+GIVEN `day` IS A DATE
+      `amount before the update` IS A NUMBER
 GIVETH A NUMBER
-DECIDE `updated shekel supplement` `amount before the update` IS
-    `amount before the update` TIMES (1 PLUS `the rise`)
+DECIDE `shekel supplement on` `day` `amount before the update` IS
+    IF `day` AT LEAST `the rise takes effect`
+    THEN `amount before the update` TIMES (1 PLUS `the rise`)
+    ELSE `amount before the update`
 
 @ref akn:art_2__para_a akn:art_2__para_a/p2 akn:art_2__para_b akn:art_2__para_b/p2
 `the updated shekel supplements` MEANS
@@ -78,18 +89,13 @@ DECIDE `the one-time grant` months IS
                             MINUS m's `advance paid for the month`)
              (filter `falls in the grant period` months))
 
-DECLARE `erosion action` IS ONE OF
-    `pay the grant` HAS `grant paid` IS A NUMBER
-    `start the current payments`
-    `pay the differences`
-
 @ref akn:art_3__para_b
 GIVEN months IS A LIST OF `employed month`
 GIVETH A DEONTIC Party `erosion action`
 DECIDE `the grant is paid by January 2008` months IS
     PARTY `the employer`
     MUST  `pay the grant` amount
-          PROVIDED amount AT LEAST `the one-time grant` months
+          PROVIDED amount EQUALS `the one-time grant` months
     WITHIN `January 2008 salary`
     LEST  BREACH BY `the employer` BECAUSE "§3ב: the grant is paid no later than January 2008's salary"
 
@@ -140,7 +146,9 @@ DECIDE `the differences are paid by July 2007` IS
 
 -- akn:conclusions The sign-off and signature; no rule.
 
--- Examples. Salaries of 10,000 and the advances are placeholders.
+§§ `Worked examples`
+
+-- Salaries of 10,000 and the advances are placeholders.
 `three months of 2001 and one of 2002` MEANS
     LIST `employed month` (Date 1 10 2001) 10000 50,
          `employed month` (Date 1 11 2001) 10000 50,
@@ -148,7 +156,9 @@ DECIDE `the differences are paid by July 2007` IS
          `employed month` (Date 1 1 2002) 10000 50
 
 #ASSERT `the one-time grant` `three months of 2001 and one of 2002` EQUALS 900
-#ASSERT `updated salary table cell` 1000 EQUALS 1047.5
+#ASSERT `salary table cell on` (Date 1 1 2007) 1000 EQUALS 1047.5
+#ASSERT `salary table cell on` (Date 31 12 2006) 1000 EQUALS 1000
+#ASSERT `shekel supplement on` (Date 1 1 2007) 100 EQUALS 104.75
 #ASSERT `a budget-pension retiree's amount` 900 0.7 EQUALS 630
 #ASSERT `compensated by the Ministry through the old funds` TRUE TRUE 2001
 

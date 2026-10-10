@@ -23,14 +23,18 @@ DECLARE `teacher's year` HAS
 
 §§ `1 קצובת דמי הבראה`
 
-@ref akn:art_1__para_b
-`the pay for a recuperation day` MEANS 372
-
-@desc A row of §1ג's table: a band of seniority years and its recuperation days.
+@desc A row of section 1ג's table: a band of seniority years and its recuperation days.
 DECLARE `seniority band` HAS
     `from seniority year` IS A NUMBER
     `to seniority year`   IS A NUMBER  @desc 999 stands for "ומעלה", with no upper bound
     `recuperation days`   IS A NUMBER
+
+DECLARE `payment action` IS ONE OF
+    `pay the recuperation allowance` HAS `recuperation paid` IS A NUMBER
+    `pay the jubilee grant` HAS `jubilee paid` IS A NUMBER
+
+@ref akn:art_1__para_b
+`the pay for a recuperation day` MEANS 372
 
 -- §1ג's table as printed; "3 שנים ראשונות" is years 1–3. ¶2 is its header
 -- (whose first column says "amount in shekels" over cells that are days).
@@ -67,6 +71,11 @@ DECIDE `recuperation days for year` n IS
 @ref akn:art_1__para_d
 GIVEN y IS A `teacher's year`
 GIVETH A NUMBER
+DECIDE `the position share` y IS
+    y's `position fraction`
+
+GIVEN y IS A `teacher's year`
+GIVETH A NUMBER
 DECIDE `the months share` y IS
     min 1 (y's `months worked in the year` DIVIDED BY 10)
 
@@ -74,21 +83,8 @@ DECIDE `the months share` y IS
 @ref akn:art_1__para_e
 GIVEN y IS A `teacher's year`
 GIVETH A NUMBER
-DECIDE `the position share` y IS
-    min 1 (y's `position fraction`)
-
-@export The recuperation allowance a teaching employee is paid with June 2008's salary for the 2007-08 school year
-GIVEN y IS A `teacher's year` @desc the employee's 2007-08 school year
-GIVETH A NUMBER
-DECIDE `the recuperation allowance` y IS
-    `the pay for a recuperation day`
-    TIMES `recuperation days for year` (y's `year of teaching seniority`)
-    TIMES `the position share` y
-    TIMES `the months share` y
-
-DECLARE `payment action` IS ONE OF
-    `pay the recuperation allowance` HAS `recuperation paid` IS A NUMBER
-    `pay the jubilee grant` HAS `jubilee paid` IS A NUMBER
+DECIDE `the position share, up to one position` y IS
+    min 1 (`the position share` y)
 
 -- §1א: in full with June 2008's salary.
 @ref akn:art_1__para_a
@@ -100,6 +96,17 @@ DECIDE `the allowance is paid with June's salary` y IS
           PROVIDED x AT LEAST `the recuperation allowance` y
     WITHIN `month number` June
     LEST  BREACH BY `the employer` BECAUSE "section 1א: the recuperation allowance is paid in full with June 2008's salary"
+
+-- The allowance in full: §1ב's pay a day, §1ג's days, pro-rated by §1ד and
+-- capped by §1ה.
+@export The recuperation allowance a teaching employee is paid with June 2008's salary for the 2007-08 school year
+GIVEN y IS A `teacher's year` @desc the employee's 2007-08 school year
+GIVETH A NUMBER
+DECIDE `the recuperation allowance` y IS
+    `the pay for a recuperation day`
+    TIMES `recuperation days for year` (y's `year of teaching seniority`)
+    TIMES `the position share, up to one position` y
+    TIMES `the months share` y
 
 §§ `2 תשלום מענק יובל`
 
@@ -146,7 +153,7 @@ GIVETH A NUMBER
 DECIDE `the jubilee grant` y j IS
     IF `entitled to the jubilee grant` j
     THEN `the jubilee rate` TIMES y's `determining salary`
-         TIMES `the position share` y
+         TIMES min 1 (y's `position fraction`)
          TIMES min 1 (y's `months employed in the year` DIVIDED BY 12)
     ELSE 0
 
@@ -167,7 +174,7 @@ DECIDE `the jubilee grant is paid with June's salary` y j IS
 
 -- akn:conclusions The sign-off and signature; no rule.
 
-§§ `Findings and examples`
+§§ `Findings`
 
 -- F-2007-08_tashsach_05-a: the clause pro-rates by the position, its
 -- parenthesis by months — and 1/10 a month gives more than the whole for a
@@ -212,7 +219,9 @@ DECIDE `the jubilee grant is paid with June's salary` y j IS
     AND `entitled by 1 June` `a teacher in year 35`
 #ASSERT `a 35-year teacher qualifies again`
 
--- Examples. The determining salary of 10,000 is a placeholder.
+§§ `Worked examples`
+
+-- The determining salary of 10,000 is a placeholder.
 -- Year 12: 10 days × 372 = 3,720; a half position: 1,860.
 `a full position, year 12` MEANS
     `teacher's year` WITH

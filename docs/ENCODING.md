@@ -96,6 +96,12 @@ reader can see past, a dated amount.
   bracket. `tools/layout_lint.py` (and the suite) refuses the regrouping
   kinds; a PLUS/TIMES chain is flagged too, because `l4 render` shows the
   regrouped rest as one item.
+- An `#ASSERT` that names declarations made LATER, under another `§§`, can
+  make `l4` fail with "internal error: expected unique result, got several"
+  (truncating the file shows "multiple definitions"). Put the assert after
+  both definitions, e.g. in the `§§ \`Worked examples\`` block.
+- A name the encoding settles also hangs `l4 run` if it shadows a library
+  name: daydate's `Sun`…`Sat`, for one, must not be redefined.
 - `IMPORT prelude` explicitly — `map`, `filter`, `sum`, `min`, `all`,
   `count` come from it.
 - Record field names are global within a file and across `IMPORT`: two

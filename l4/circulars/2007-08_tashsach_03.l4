@@ -53,6 +53,8 @@ DECLARE `strike period` HAS
 `the Arab, Bedouin and part of the Druze sector's strike` MEANS
     `strike period` (Date 17 10 2007) (Date 12 12 2007) 49
 
+§§ `1 Counting the days`
+
 -- Days are counted on day serials; a serial's weekday is `Weekday of` it.
 GIVEN first IS A NUMBER, last IS A NUMBER
 GIVETH A LIST OF NUMBER
@@ -75,10 +77,6 @@ DECIDE `the period totals what it says` p rest IF
 
 #ASSERT `the period totals what it says` `the Jewish and part of the Druze sector's strike` (LIST `Sat`)
 #ASSERT `the period totals what it says` `the Arab, Bedouin and part of the Druze sector's strike` (LIST `Fri`)
-
-`days returned in the holidays` MEANS 27
-`days returned during the year` MEANS 22
-#ASSERT `days returned in the holidays` PLUS `days returned during the year` EQUALS 49
 
 §§ `1א The 27 days in the holidays`
 
@@ -129,6 +127,32 @@ DECLARE `holiday line` HAS
          `holiday line` (Date 16 3 2008)  (Date 20 3 2008) `Sun` `Thu`,
          `holiday line` (Date 22 6 2008)  (Date 8 7 2008)  `Sun` `Tue`
 
+-- §1א: 27 days of the hours missed are returned on the holidays planned for
+-- 2007-08, including by putting off the end of the year; they are the days
+-- in the table. Teachers of 12th grades whose pupils cannot attend on those
+-- days because of the matriculation exams make the hours up during the year
+-- "as set out in section 2, and in addition to the number of days stated
+-- there" (F-2007-08_tashsach_03-c: §2 states neither; read as §1ב's 22 days).
+@ref akn:art_1__para_a
+GIVEN s IS A `sector`
+GIVETH A LIST OF DATE
+DECIDE `the holiday days to work` s IS
+    concat (map (GIVEN l YIELD map (GIVEN n YIELD Date n)
+                                   (`serials from` (Day (l's `line from`)) `to` (Day (l's `line to`))))
+                (`the table of` s))
+
+`days returned in the holidays` MEANS 27
+
+-- The 12th-grade exception: a teacher of 12th grades whose pupils cannot be
+-- at school on those days because of the matriculation exams makes the
+-- hours and days up during the year instead (F-2007-08_tashsach_03-c: "as
+-- set out in section 2" is read as §1ב).
+GIVEN `teaches 12th grades` IS A BOOLEAN
+      `the pupils cannot attend on those days because of the matriculation exams` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `makes the holiday days up during the year` `teaches 12th grades` `the pupils cannot attend on those days because of the matriculation exams` IF
+    `teaches 12th grades` AND `the pupils cannot attend on those days because of the matriculation exams`
+
 GIVEN s IS A `sector`
 GIVETH A LIST OF `holiday line`
 DECIDE `the table of` s IS
@@ -148,20 +172,6 @@ GIVEN s IS A `sector`, rest IS A LIST OF NUMBER
 GIVETH A NUMBER
 DECIDE `days the table lists` s rest IS
     sum (map (GIVEN l YIELD `school days between` (l's `line from`) (l's `line to`) rest) (`the table of` s))
-
--- §1א: 27 days of the hours missed are returned on the holidays planned for
--- 2007-08, including by putting off the end of the year; they are the days
--- in the table. Teachers of 12th grades whose pupils cannot attend on those
--- days because of the matriculation exams make the hours up during the year
--- "as set out in section 2, and in addition to the number of days stated
--- there" (F-2007-08_tashsach_03-c: §2 states neither; read as §1ב's 22 days).
-@ref akn:art_1__para_a
-GIVEN s IS A `sector`
-GIVETH A LIST OF DATE
-DECIDE `the holiday days to work` s IS
-    concat (map (GIVEN l YIELD map (GIVEN n YIELD Date n)
-                                   (`serials from` (Day (l's `line from`)) `to` (Day (l's `line to`))))
-                (`the table of` s))
 
 -- The Jewish sector's table is right: every printed weekday fits its date,
 -- and with Saturday as the rest day it lists the 27 days.
@@ -205,6 +215,11 @@ GIVETH A DATE
 DECIDE `the last day for the other 22 days` `grade` IS
     IF `grade` AT LEAST 11 THEN Date 31 5 2008 ELSE Date 20 6 2008
 
+`days returned during the year` MEANS 22
+
+-- 27 days in the holidays (§1א) and 22 during the year (§1ב) make the 49.
+#ASSERT `days returned in the holidays` PLUS `days returned during the year` EQUALS 49
+
 DECLARE `way of returning hours` IS ONE OF
     @ref akn:art_1__para_b/p2
     `a longer school day, in "zero" hours and after the day ends`
@@ -223,6 +238,7 @@ DECIDE `a way the circular offers` w `days in the school's week` IF
 
 DECLARE `return action` IS ONE OF
     `ask the supervisor for written approval`
+    `make up the lost quota on the dates of section 1's tables`
     `report the hours not taught` HAS `report` IS A `hours-not-taught report`
     `notify in writing of not returning the other hours`
     `notify the supervisor of the teacher's notice`
@@ -230,7 +246,9 @@ DECLARE `return action` IS ONE OF
     `pay the December advance` HAS `December amount` IS A NUMBER
     `pay the month's advance` HAS `month amount` IS A NUMBER
     `deduct the unearned advance` HAS `deducted` IS A NUMBER
-    `prepare and sign the yearly plan`
+    `prepare the yearly plan`
+    `sign the plan and agree in writing to the deduction`
+    `pass the plan to the supervisor for approval`
     `report the teachers who fell short`
     `indemnify the owning bodies`
 
@@ -258,10 +276,20 @@ DECIDE `the principal asks for approval by 1.1.2008` IS
     WITHIN `days from the circular to` (Date 1 1 2008)
     LEST  BREACH BY `the school principal` BECAUSE "§2א.2: the request for written approval is made by 1.1.2008"
 
--- §2א.3–4: teachers who struck in a school that held lessons make up the lost
--- quota by their weekly timetable on the dates of §1's tables, and those
--- hours are at the school's disposal for marathons, tutoring, enrichment.
-@ref akn:art_2__para_a__subpara_3 akn:art_2__para_a__subpara_4
+-- §2א.3: teachers who struck in a school that held lessons make up the lost
+-- quota by their weekly timetable on the dates of §1's tables.
+@ref akn:art_2__para_a__subpara_3
+GIVEN `struck in a school that held lessons` IS A BOOLEAN
+GIVETH A DEONTIC Party `return action`
+DECIDE `a teacher who struck in a school that held lessons makes up the quota` `struck in a school that held lessons` IS
+    IF `struck in a school that held lessons`
+    THEN PARTY `the teaching employee`
+         MUST  `make up the lost quota on the dates of section 1's tables`
+    ELSE FULFILLED
+
+-- §2א.4: those hours are at the school's disposal for marathons, tutoring,
+-- enrichment and the like.
+@ref akn:art_2__para_a__subpara_4
 DECLARE `use of the returned hours` IS ONE OF
     `learning marathons`
     `tutoring`
@@ -333,17 +361,20 @@ DECIDE `entitled to payment for returned hours` p IF
 -- writing by 1.1.2008 and is not paid for the 22 days; the principal tells
 -- the supervisor by 10.1.2008.
 @ref akn:art_3__para_a/p2 akn:art_3__para_a/p3
+GIVEN `cannot return the other hours` IS A BOOLEAN @desc the teacher cannot return the hours under section 1ב ("the remaining hours")
 GIVETH A DEONTIC Party `return action`
-DECIDE `the teacher's notice of not returning` IS
-    PARTY `the teaching employee`
-    MUST  `notify in writing of not returning the other hours`
-    WITHIN `days from the circular to` (Date 1 1 2008)
-    HENCE PARTY `the school principal`
-          MUST  `notify the supervisor of the teacher's notice`
-          WITHIN `days from the circular to` (Date 10 1 2008) MINUS `days from the circular to` (Date 1 1 2008)
-          LEST  BREACH BY `the school principal` BECAUSE "§3א ¶3: the principal tells the supervisor by 10.1.2008"
+DECIDE `the teacher's notice of not returning` `cannot return the other hours` IS
+    IF `cannot return the other hours`
+    THEN PARTY `the teaching employee`
+         MUST  `notify in writing of not returning the other hours`
+         WITHIN `days from the circular to` (Date 1 1 2008)
+         HENCE PARTY `the school principal`
+               MUST  `notify the supervisor of the teacher's notice`
+               WITHIN `days from the circular to` (Date 10 1 2008) MINUS `days from the circular to` (Date 1 1 2008)
+               LEST  BREACH BY `the school principal` BECAUSE "§3א ¶3: the principal tells the supervisor by 10.1.2008"
+    ELSE FULFILLED
 
-@ref akn:art_3__para_a/p2
+-- ¶2: and is not paid for the 22 days of §1ב.
 GIVEN `the teacher gave notice` IS A BOOLEAN
 GIVETH A NUMBER
 DECIDE `days the teacher is not paid for` `the teacher gave notice` IS
@@ -358,14 +389,16 @@ GIVETH A NUMBER
 DECIDE `the December advance` p IS
     IF `entitled to payment for returned hours` p
     THEN 50% TIMES p's `pay for one returned hour` TIMES p's `hours to return under the plan`
-         MINUS p's `paid by the owning body for strike days`
     ELSE 0
 
+-- ¶3: for the rest of the year, to July 2008's salary inclusive.
 @ref akn:art_3__para_b/p3
-GIVEN p IS A `return plan`, `hours returned this month` IS A NUMBER
+GIVEN p IS A `return plan`, `salary month` IS A DATE, `hours returned this month` IS A NUMBER
 GIVETH A NUMBER
-DECIDE `the month's payment` p `hours returned this month` IS
+DECIDE `the month's payment` p `salary month` `hours returned this month` IS
     IF `entitled to payment for returned hours` p
+       AND `salary month` AT LEAST Date 1 1 2008
+       AND `salary month` AT MOST Date 31 7 2008
     THEN 50% TIMES p's `pay for one returned hour` TIMES `hours returned this month`
     ELSE 0
 
@@ -383,9 +416,11 @@ DECIDE `the month's payment` p `hours returned this month` IS
 GIVETH A DEONTIC Party `return action`
 DECIDE `the yearly plan is prepared and signed` IS
     PARTY `the school principal`
-    MUST  `prepare and sign the yearly plan`
+    MUST  `prepare the yearly plan`
     HENCE PARTY `the teaching employee`
-          MUST `commit in advance to the whole plan`
+          MUST  `sign the plan and agree in writing to the deduction`
+          HENCE PARTY `the school principal`
+                MUST  `pass the plan to the supervisor for approval`
 
 -- §3ג ¶3: the December advance may be paid before 1.1.2008 to a teacher who
 -- signs before the principal a commitment to return all the hours. "עד ליום
@@ -399,7 +434,7 @@ DECIDE `the December advance before 1.1.2008` p IS
     IF p's `committed in advance to the whole plan`
     THEN PARTY `the employer`
          MAY   `pay the December advance` amount
-               PROVIDED amount AT MOST `the December advance` p
+               PROVIDED amount AT MOST `advance after strike pay already received` p
          WITHIN `days from the circular to` (Date 1 1 2008)
     ELSE FULFILLED
 
@@ -419,7 +454,6 @@ DECIDE `Hanukkah holiday pay` p IS
 -- who committed, before any day is returned — and the balance with June
 -- 2008's. F-2007-08_tashsach_03-e: for a partial return under half the
 -- balance is negative, and the circular says nothing of recovering it.
-@ref akn:art_3__para_d
 GIVEN p IS A `return plan`
 GIVETH A NUMBER
 DECIDE `the Hanukkah half paid in December 2007` p IS
@@ -432,10 +466,25 @@ GIVETH A NUMBER
 DECIDE `the Hanukkah balance paid in June 2008` p IS
     `Hanukkah holiday pay` p MINUS `the Hanukkah half paid in December 2007` p
 
--- §3ה: for hours not returned, for which an advance was paid, July 2008's
--- salary is reduced; the principal reports the teachers who fell short to
--- the supervisor (identity number, hours due, hours returned, hours not).
+-- §3ה: a teacher who does not meet the whole commitment has July 2008's
+-- salary reduced for the hours and days not returned for which an advance
+-- was paid.
 @ref akn:art_3__para_e
+GIVEN p IS A `return plan`
+GIVETH A DEONTIC Party `return action`
+DECIDE `the unearned advance is deducted in July 2008` p IS
+    IF `fell short of the commitment` p
+    THEN PARTY `the employer`
+         MUST  `deduct the unearned advance` amount
+               PROVIDED amount EQUALS `the July 2008 reduction` p
+         WITHIN `days from the circular to` (Date 31 7 2008)
+    ELSE FULFILLED
+
+GIVEN p IS A `return plan`
+GIVETH A BOOLEAN
+DECIDE `fell short of the commitment` p IF
+    p's `hours returned` LESS THAN p's `hours to return under the plan`
+
 GIVEN p IS A `return plan`
 GIVETH A NUMBER
 DECIDE `the July 2008 reduction` p IS
@@ -444,32 +493,29 @@ DECIDE `the July 2008 reduction` p IS
          TIMES max 0 (p's `hours to return under the plan` MINUS p's `hours returned`)
     ELSE 0
 
+-- ¶2: the principal reports to the supervisor the teachers who fell short,
+-- with identity number, hours due, hours returned and hours not returned.
+-- The circular sets no date for it.
 @ref akn:art_3__para_e/p2
 GIVEN p IS A `return plan`
-GIVETH A BOOLEAN
-DECIDE `the principal reports the teacher as short` p IF
-    p's `hours returned` LESS THAN p's `hours to return under the plan`
-
-GIVEN p IS A `return plan`
 GIVETH A DEONTIC Party `return action`
-DECIDE `the unearned advance is deducted in July 2008` p IS
-    IF `the principal reports the teacher as short` p
-    THEN PARTY `the employer`
-         MUST  `deduct the unearned advance` amount
-               PROVIDED amount EQUALS `the July 2008 reduction` p
-         WITHIN `days from the circular to` (Date 31 7 2008)
+DECIDE `the principal reports the teacher as short` p IS
+    IF `fell short of the commitment` p
+    THEN PARTY `the school principal`
+         MUST  `report the teachers who fell short`
     ELSE FULFILLED
 
 -- §3ו: a teacher whom the owning body paid for strike days against the
--- Ministry's instructions gets as advance only the difference — encoded in
--- `the December advance` by subtracting what was paid. ¶2: the Ministry
--- indemnifies the owning bodies for the advance in its December 2007 payments.
+-- Ministry's instructions is entitled to an advance of the difference
+-- between §3ב's advance and what was received for the strike days.
 @ref akn:art_3__para_f
 GIVEN p IS A `return plan`
 GIVETH A NUMBER
 DECIDE `advance after strike pay already received` p IS
-    max 0 (`the December advance` p)
+    max 0 (`the December advance` p MINUS p's `paid by the owning body for strike days`)
 
+-- ¶2: the Ministry indemnifies the owning bodies for the advance in its
+-- December 2007 payments.
 @ref akn:art_3__para_f/p2
 GIVETH A DEONTIC Party `return action`
 DECIDE `the Ministry indemnifies for the advance` IS
@@ -479,7 +525,7 @@ DECIDE `the Ministry indemnifies for the advance` IS
 
 -- akn:conclusions The sign-off and signature; no rule.
 
-§§ `Findings and examples`
+§§ `Findings`
 
 -- F-2007-08_tashsach_03-c: §1א sends 12th-grade teachers to "section 2"
 -- for how they make up the days and for "the number of days stated there";
@@ -545,7 +591,9 @@ DECIDE `days the corrected table lists` s rest IS
     `the Hanukkah balance paid in June 2008` `a teacher who returned 40 hours` LESS THAN 0
 #ASSERT `a partial return under half leaves the Hanukkah balance negative`
 
--- Examples: 21 weekly hours over a 7-week strike; hour pay 100 and Hanukkah
+§§ `Worked examples`
+
+-- 21 weekly hours over a 7-week strike; hour pay 100 and Hanukkah
 -- pay 1,000 are placeholders.
 `a committed teacher` MEANS
     `return plan` WITH
@@ -567,14 +615,17 @@ DECIDE `days the corrected table lists` s rest IS
 
 #ASSERT `hours to return` 21 7 EQUALS 147
 #ASSERT `the December advance` `a committed teacher` EQUALS 7350
-#ASSERT `the December advance` `a teacher already paid 2,000 for strike days` EQUALS 5350
-#ASSERT `the month's payment` `a committed teacher` 20 EQUALS 1000
+-- §3ו's difference is its own rule now; §3ב's advance is the same 7,350.
+#ASSERT `advance after strike pay already received` `a teacher already paid 2,000 for strike days` EQUALS 5350
+#ASSERT `the December advance` `a teacher already paid 2,000 for strike days` EQUALS 7350
+#ASSERT `the month's payment` `a committed teacher` (Date 1 3 2008) 20 EQUALS 1000
+#ASSERT `the month's payment` `a committed teacher` (Date 1 8 2008) 20 EQUALS 0
 #ASSERT `the July 2008 reduction` `a committed teacher` EQUALS 1350
 #ASSERT `Hanukkah holiday pay` `a teacher already paid 2,000 for strike days` EQUALS 1000
 #ASSERT `the last day for the other 22 days` 9 EQUALS Date 20 6 2008
 #ASSERT `days the teacher is not paid for` TRUE EQUALS 22
 
-#TRACE `the teacher's notice of not returning` AT 0 WITH
+#TRACE `the teacher's notice of not returning` TRUE AT 0 WITH
     PARTY `the teaching employee` DOES `notify in writing of not returning the other hours` AT 10
     PARTY `the school principal` DOES `notify the supervisor of the teacher's notice` AT 18
 #TRACE `the principal asks for approval by 1.1.2008` AT 0 WITH
