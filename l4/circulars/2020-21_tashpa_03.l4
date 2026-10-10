@@ -35,6 +35,15 @@ DECLARE `college leaver` HAS
     `working at the college as a pensioner of the same employer` IS A BOOLEAN
     `official notice of termination by the competent body` IS A BOOLEAN
 
+DECLARE `indemnity action` IS ONE OF
+    `report the teaching staff in the staff report`
+    `collect the details from the employee`
+    `apply for the indemnity` HAS `with all the documents` IS A BOOLEAN
+                                  `with a final account signed by the treasurer or HR manager` IS A BOOLEAN
+    `pay the special grant` HAS `special grant paid` IS A NUMBER
+    `declare that the indemnity was passed on within 45 days of retirement`
+    `offset the indemnity from the owner's budgets`
+
 §§ `א כללי`
 
 -- א.1-א.2: the indemnity is for the special grant only, to the owners of
@@ -71,15 +80,6 @@ GIVEN l IS A `college leaver`
 GIVETH A NUMBER
 DECIDE `share the Ministry indemnifies` l IS
     min (l's `share of employment reported in the staff report`) 1
-
-DECLARE `indemnity action` IS ONE OF
-    `report the teaching staff in the staff report`
-    `collect the details from the employee`
-    `apply for the indemnity` HAS `with all the documents` IS A BOOLEAN
-                                  `with a final account signed by the treasurer or HR manager` IS A BOOLEAN
-    `pay the special grant` HAS `special grant paid` IS A NUMBER
-    `declare that the indemnity was passed on`
-    `offset the indemnity from the owner's budgets`
 
 -- ב.3: every teaching employee teaching at the institution who is the
 -- owner's employee only is reported in the yearly staff report, under the
@@ -159,14 +159,24 @@ DECIDE `table grant` `age` IS
 #ASSERT `the last row's bound decides an employee aged 65 and a half`
 
 -- ג.ב: pro-rated to the weighted position, capped at 100% over all
--- employments. ג.ג: one entitled to the section 22 grant gets only the
--- positive difference between this grant and that one.
-@ref akn:art_c__para_b akn:art_c__para_c
+-- employments, whether they ended on one day or on several.
+@ref akn:art_c__para_b
 GIVEN l IS A `college leaver`
 GIVETH A NUMBER
 DECIDE `the special grant before section 22` l IS
     `table grant` (l's `age in months at the end of employment`)
     TIMES min (l's `weighted position fraction`) 1
+
+-- ג.ג: notwithstanding ג.ב, one entitled to the retirement grant of section
+-- 22 of the State Service (Pensions) Law gets not the special grant but the
+-- positive difference, if any, between it and what section 22 paid.
+@ref akn:art_c__para_c
+GIVEN l IS A `college leaver`
+GIVETH A NUMBER
+DECIDE `the special grant after section 22` l IS
+    IF l's `entitled to the section 22 retirement grant`
+    THEN max 0 (`the special grant before section 22` l MINUS l's `section 22 grant paid`)
+    ELSE `the special grant before section 22` l
 
 -- ה (art_e) and ו (art_f): no grant for one entitled to Civil Service
 -- Commission retirement terms, or whose employment ended not through the
@@ -182,18 +192,33 @@ DECIDE `entitled to the special grant` l IF
 
 GIVEN l IS A `college leaver`
 GIVETH A BOOLEAN
-DECIDE `may receive Civil Service Commission retirement terms` l IF
-    NOT `entitled to the special grant` l
+DECIDE `barred from Civil Service Commission retirement terms` l IF
+    `entitled to the special grant` l
+
+§§ `ג The special grant (ג-ז together)`
 
 @export default The special reform-implementation grant in shekels a teaching employee leaving a teacher-training college is owed under circular תשפ"א/3
 GIVEN l IS A `college leaver` @desc the employee whose employment at the college ended
 GIVETH A NUMBER
 DECIDE `special grant` l IS
     IF `entitled to the special grant` l
-    THEN IF l's `entitled to the section 22 retirement grant`
-         THEN max 0 (`the special grant before section 22` l MINUS l's `section 22 grant paid`)
-         ELSE `the special grant before section 22` l
+    THEN `the special grant after section 22` l
     ELSE 0
+
+-- ד (art_d): the special grant is paid to those entitled with the end of
+-- the employer-employee relation. The reading adopted
+-- (F-2020-21_tashpa_03-a): the owner pays the grant at the end of the
+-- relation, and in any case within 45 days of it, whether or not the
+-- indemnity has yet been applied for or received.
+@ref akn:art_d
+GIVEN l IS A `college leaver`
+GIVETH A DEONTIC Party `indemnity action`
+DECIDE `paying the special grant` l IS
+    PARTY `the local authority or owning body`
+    MUST  `pay the special grant` `amount`
+          PROVIDED `amount` AT LEAST `special grant` l
+    WITHIN `days to pass on the indemnity under ו.4`
+    LEST  BREACH BY `the local authority or owning body` BECAUSE "circular 2020-21/3 c-d, f4: the special grant is paid with the end of the employment, and within 45 days of it"
 
 -- F-2020-21_tashpa_03-a: when the grant is paid. ד (art_d) says "with the
 -- end of the employer-employee relation" (day 0); ו.4 has the owner declare
@@ -208,19 +233,6 @@ DECIDE `special grant` l IS
         (NOT (`days to pay under ד` EQUALS `days to pass on the indemnity under ו.4`))
     AND `days to pass on the indemnity under ו.4` LESS THAN `the fewest days in two calendar months`
 #ASSERT `the grant's payment day is given three ways`
-
--- The reading adopted (F-2020-21_tashpa_03-a): the owner pays the grant at
--- the end of the relation, and in any case within 45 days of it, whether
--- or not the indemnity has yet been applied for or received.
-@ref akn:art_d
-GIVEN l IS A `college leaver`
-GIVETH A DEONTIC Party `indemnity action`
-DECIDE `paying the special grant` l IS
-    PARTY `the local authority or owning body`
-    MUST  `pay the special grant` `amount`
-          PROVIDED `amount` AT LEAST `special grant` l
-    WITHIN `days to pass on the indemnity under ו.4`
-    LEST  BREACH BY `the local authority or owning body` BECAUSE "circular 2020-21/3 c-d, f4: the special grant is paid with the end of the employment, and within 45 days of it"
 
 §§ `ד הזכאות לשיפוי`
 
@@ -256,7 +268,11 @@ DECIDE `indemnity` l IS
 §§ `ו הנחיות להגשת הבקשה`
 
 -- ו.1: the form filled in, every document attached, at once on the end of
--- the work and no later than two months from it. Time here in months.
+-- the work and no later than two months from it, through the link given.
+-- ו.2: a request without the documents is returned; ו.3: with an exact,
+-- final account signed by the treasurer or HR manager; ו.6: by e-mail to
+-- the address given. Time here in months.
+@ref akn:art_g__para_f akn:art_g__para_f/p2 akn:art_g__para_f/p3 akn:art_g__para_f/p4 akn:art_g__para_f/p5 akn:art_g__para_f/p6 akn:art_g__para_f/p7 akn:art_g__para_f/p11 akn:art_g__para_f/p12
 `months to apply` MEANS 2
 
 GIVEN `with all the documents` IS A BOOLEAN
@@ -266,10 +282,6 @@ DECIDE `a request the Ministry accepts` `with all the documents` `with a final a
         `with all the documents`
     AND `with a final account signed by the treasurer or HR manager`
 
--- ו.2: a request without the documents is returned; ו.3: with an exact,
--- final account signed by the treasurer or HR manager; ו.6: by e-mail to
--- the address given.
-@ref akn:art_g__para_f akn:art_g__para_f/p2 akn:art_g__para_f/p3 akn:art_g__para_f/p4 akn:art_g__para_f/p5 akn:art_g__para_f/p6 akn:art_g__para_f/p7 akn:art_g__para_f/p11 akn:art_g__para_f/p12
 GIVETH A DEONTIC Party `indemnity action`
 DECIDE `applying for the indemnity` IS
     PARTY `the local authority or owning body`
@@ -280,19 +292,24 @@ DECIDE `applying for the indemnity` IS
 
 -- ו.4-ו.5: the owner declares on a form that the indemnity was passed to
 -- the employee within 45 days of retirement; an institution that does not
--- is offset from the budgets the Ministry transfers to it. Time in days.
+-- is offset from the budgets the Ministry transfers to it. The text gives
+-- the declaration no time of its own; it is read as due when the 45 days
+-- of the passing-on it attests run out (F-2020-21_tashpa_03-a's reading).
+-- Time in days.
 @ref akn:art_g__para_f/p8 akn:art_g__para_f/p9 akn:art_g__para_f/p10
 GIVETH A DEONTIC Party `indemnity action`
 DECIDE `declaring the indemnity passed on` IS
     PARTY `the local authority or owning body`
-    MUST  `declare that the indemnity was passed on`
+    MUST  `declare that the indemnity was passed on within 45 days of retirement`
     WITHIN `days to pass on the indemnity under ו.4`
     LEST  (PARTY `the Ministry of Education`
            MAY   `offset the indemnity from the owner's budgets`)
 
 -- akn:conclusions The signatures (the deputy director-general for teaching staff and the Ministry's accountant) and copies list; no rule.
 
--- Worked examples: the shekel figures are the table's; the position and
+§§ `Worked examples`
+
+-- The shekel figures are the table's; the position and
 -- the section 22 grant are placeholders.
 `a lecturer of 58 at 80%` MEANS
     `college leaver` WITH
@@ -352,8 +369,8 @@ DECIDE `declaring the indemnity passed on` IS
 #ASSERT `special grant` `a lecturer of 51 at 120% with a section 22 grant` EQUALS 50000
 #ASSERT `indemnity` `a lecturer of 51 at 120% with a section 22 grant` EQUALS 25000
 #ASSERT `special grant` `a lecturer of nine years` EQUALS 0
-#ASSERT `may receive Civil Service Commission retirement terms` `a lecturer of nine years`
-#ASSERT NOT `may receive Civil Service Commission retirement terms` `a lecturer of 58 at 80%`
+#ASSERT NOT `barred from Civil Service Commission retirement terms` `a lecturer of nine years`
+#ASSERT `barred from Civil Service Commission retirement terms` `a lecturer of 58 at 80%`
 #ASSERT `table grant` 780 EQUALS 35000
 #ASSERT `the owner that pays` (LIST "owner A", "owner B") EQUALS LIST "owner B"
 

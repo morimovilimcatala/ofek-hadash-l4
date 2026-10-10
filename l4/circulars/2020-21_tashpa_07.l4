@@ -22,6 +22,11 @@ DECLARE `recuperation year` HAS
     `position fraction at this employer`  IS A NUMBER  @desc the share of a full position held at this employer that year (1 = 100%)
     `months of work`                      IS A NUMBER  @desc months of work in the year, for the 1/10-per-month rate of 1ד
 
+DECLARE `owners' action` IS ONE OF
+    `pay the recuperation allowance` HAS `recuperation paid` IS A NUMBER
+    `pay the jubilee grant`          HAS `jubilee paid` IS A NUMBER
+    `employ beyond the ceiling`      HAS `scope employed` IS A NUMBER
+
 -- 1ב: the value of one recuperation day for תשפ"א.
 @ref akn:art_1__para_b
 `the value of a recuperation day` MEANS 432
@@ -61,9 +66,24 @@ DECIDE `recuperation days for seniority` n IS
             (LIST 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
                   21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40)
 
--- F-2020-21_tashpa_07-a: 1ד pro-rates by the position fraction and, in a
--- parenthesis, at "1/10 for each month of work". Read literally, the
--- months rate over a year of twelve months gives more than a full share:
+-- 1ד: a part-time employee is entitled in proportion to the position
+-- fraction that year, and (in a parenthesis) at "1/10 for each month of
+-- work". The reading adopted (F-2020-21_tashpa_07-a): the position fraction
+-- and the months rate combine, and ten months of work is a whole year's
+-- work.
+@ref akn:art_1__para_d
+GIVEN y IS A `recuperation year`
+GIVETH A NUMBER
+DECIDE `the share by position` y IS
+    y's `position fraction at this employer`
+
+GIVEN y IS A `recuperation year`
+GIVETH A NUMBER
+DECIDE `months share` y IS
+    min (y's `months of work`) 10 DIVIDED BY 10
+
+-- F-2020-21_tashpa_07-a: read literally, the months rate over a year of
+-- twelve months gives more than a full share:
 GIVEN `months` IS A NUMBER
 GIVETH A NUMBER
 DECIDE `the literal 1/10-per-month share` `months` IS
@@ -73,22 +93,23 @@ DECIDE `the literal 1/10-per-month share` `months` IS
     `the literal 1/10-per-month share` 12 GREATER THAN 1
 #ASSERT `twelve months at 1/10 a month is more than a whole allowance`
 
--- The reading adopted (F-2020-21_tashpa_07-a): the position fraction and
--- the months rate combine, and ten months of work is a whole year's work.
-@ref akn:art_1__para_d
-GIVEN y IS A `recuperation year`
-GIVETH A NUMBER
-DECIDE `months share` y IS
-    min (y's `months of work`) 10 DIVIDED BY 10
-
--- 1ה: more than a full position at one employer gives one full position.
--- 1ו: with several employers and a total above 100%, each employer pays
--- the share of the position held with it.
-@ref akn:art_1__para_e akn:art_1__para_f
+-- 1ה: more than a full position at one employer gives the allowance of one
+-- full position only.
+@ref akn:art_1__para_e
 GIVEN y IS A `recuperation year`
 GIVETH A NUMBER
 DECIDE `position share at this employer` y IS
-    min (y's `position fraction at this employer`) 1
+    min (`the share by position` y) 1
+
+-- 1ו: with several employers and a total above 100%, each employer pays,
+-- separately, the share of the position held with it.
+@ref akn:art_1__para_f
+GIVEN y IS A `recuperation year`
+GIVETH A NUMBER
+DECIDE `the share this employer pays` y IS
+    `position share at this employer` y
+
+§§ `1 The allowance one employer pays (1ב-1ו together)`
 
 @export default The recuperation allowance in shekels one employer pays a teaching employee for school year 2020-21 under circular תשפ"א/7
 GIVEN y IS A `recuperation year` @desc the employee's year at this employer
@@ -96,13 +117,8 @@ GIVETH A NUMBER
 DECIDE `recuperation allowance` y IS
     `the value of a recuperation day`
     TIMES `recuperation days for seniority` (y's `seniority in teaching`)
-    TIMES `position share at this employer` y
+    TIMES `the share this employer pays` y
     TIMES `months share` y
-
-DECLARE `owners' action` IS ONE OF
-    `pay the recuperation allowance` HAS `recuperation paid` IS A NUMBER
-    `pay the jubilee grant`          HAS `jubilee paid` IS A NUMBER
-    `employ beyond the ceiling`      HAS `scope employed` IS A NUMBER
 
 -- 1א: the allowance is paid in full with the June 2021 salary.
 @ref akn:art_1__para_a
@@ -118,13 +134,13 @@ DECIDE `pay the recuperation allowance with June's salary` y IS
 -- 1ז-1ח: ceilings on the total scope of employment at all employers,
 -- subject to the exceptional-employment procedure for תשפ"א (1ח ¶3-¶4,
 -- an input: whether that procedure permits the excess).
+@ref akn:art_1__para_g akn:art_1__para_h
 DECLARE `terms of employment` IS ONE OF
     `teacher not under a reform`
     `principal not under a reform`
     `teacher under עוז לתמורה in full implementation`
     `teacher under אופק חדש`
 
-@ref akn:art_1__para_g akn:art_1__para_h
 GIVEN t IS A `terms of employment`
 GIVETH A NUMBER
 DECIDE `employment ceiling` t IS
@@ -134,7 +150,9 @@ DECIDE `employment ceiling` t IS
     WHEN `teacher under עוז לתמורה in full implementation` THEN 1.25
     WHEN `teacher under אופק חדש` THEN 1.17
 
--- 1ח ¶5: nothing above is a permission to employ beyond the ceilings.
+-- 1ח ¶3-¶6: subject to the exceptional-employment procedure for תשפ"א;
+-- nothing above is a permission to employ beyond the ceilings. The text
+-- sets no time limit on the restriction.
 @ref akn:art_1__para_h/p3 akn:art_1__para_h/p4 akn:art_1__para_h/p5 akn:art_1__para_h/p6
 GIVEN t IS A `terms of employment`
       `the exceptional-employment procedure permits it` IS A BOOLEAN @desc whether the exceptional-employment procedure for 2020-21 (nohal harigot) allows the excess; an input
@@ -144,7 +162,6 @@ DECIDE `no employment beyond the ceiling` t `the exceptional-employment procedur
     SHANT `employ beyond the ceiling` `scope`
           PROVIDED `scope` GREATER THAN `employment ceiling` t
                    AND NOT `the exceptional-employment procedure permits it`
-    WITHIN 12
     LEST  BREACH BY `the employer` BECAUSE "circular 2020-21/7 1g-1h: no employment above the ceiling at all employers, save under the exceptional-employment procedure"
 
 §§ `2 תשלום מענק יובל`
@@ -259,6 +276,18 @@ GIVETH A NUMBER
 DECIDE `full jubilee grant` j IS
     0.60 TIMES j's `determining salary`
 
+-- 2ה.4: in proportion to the position that year, up to one position only,
+-- and to the part of the year employed. 2ה.5: at several employers, 1ו-1ח
+-- apply with the changes needed. The reading adopted
+-- (F-2020-21_tashpa_07-d): 2ה.5, the rule for several employers, governs
+-- them; 2ה.4's cap of one position applies at each employer.
+@ref akn:art_2__para_e__subpara_4 akn:art_2__para_e__subpara_5
+GIVEN j IS A `jubilee year`
+GIVETH A NUMBER
+DECIDE `jubilee share at this employer` j IS
+    min (j's `jubilee position fraction at this employer`) 1
+    TIMES j's `share of the year employed`
+
 -- F-2020-21_tashpa_07-d: 2ה.4 pays "up to one position only"; 2ה.5 sends
 -- several employers to 1ו, under which each employer pays its own share
 -- even where the total is above 100%. For 80% + 60%:
@@ -269,15 +298,7 @@ DECIDE `full jubilee grant` j IS
     sum `the employer shares 1ו gives for 80% and 60%` GREATER THAN 1
 #ASSERT `2ה.4 and 2ה.5 disagree on the total for two employers`
 
--- The reading adopted (F-2020-21_tashpa_07-d): 2ה.5, the rule for several
--- employers, governs them; 2ה.4's cap of one position applies at each
--- employer.
-@ref akn:art_2__para_e__subpara_4 akn:art_2__para_e__subpara_5
-GIVEN j IS A `jubilee year`
-GIVETH A NUMBER
-DECIDE `jubilee share at this employer` j IS
-    min (j's `jubilee position fraction at this employer`) 1
-    TIMES j's `share of the year employed`
+§§ `2 The grant one employer pays (2ב-2ה together)`
 
 @export The jubilee grant in shekels one employer pays a teaching employee in June 2021 under circular תשפ"א/7
 GIVEN j IS A `jubilee year` @desc the employee's year at this employer
@@ -300,7 +321,9 @@ DECIDE `pay the jubilee grant with June's salary` j IS
 
 -- akn:conclusions The contact line, signatures and copies list; no rule.
 
--- Worked examples. The determining salary of 10,000 is a placeholder: the
+§§ `Worked examples`
+
+-- The determining salary of 10,000 is a placeholder: the
 -- circular leaves it to the pension rules.
 `a full-time teacher in year 22` MEANS
     `recuperation year` WITH

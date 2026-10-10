@@ -23,6 +23,15 @@ DECLARE `college party` IS ONE OF
     `the director`
     `the labour-relations commissioner`
 
+DECLARE `agreement action` IS ONE OF
+    `send the signed accession letter to the labour-relations commissioner`
+    `send a copy of the accession letter to the Ministry's college staffing officer`
+    `perform the academic duties`
+    `come and teach on campus`
+    `complete the deferred duties`
+    `report a duty prevented` HAS `duty prevented` IS A STRING
+    `reduce or set off the consideration` HAS `amount reduced` IS A NUMBER
+
 §§ `1 תחולת ההסכם`
 
 @desc A teaching employee at a teacher-training college, as far as the agreement asks about it.
@@ -45,15 +54,6 @@ DECIDE `the agreement applies to` e IF
     AND e's `salary under the teaching employees' agreements`
     AND (    e's `employed in the civil service`
          OR  e's `the college signed the accession letter`)
-
-DECLARE `agreement action` IS ONE OF
-    `send the signed accession letter to the labour-relations commissioner`
-    `send a copy of the accession letter to the Ministry's college staffing officer`
-    `perform the academic duties`
-    `come and teach on campus`
-    `complete the deferred duties`
-    `report a duty prevented` HAS `duty prevented` IS A STRING
-    `reduce or set off the consideration` HAS `amount reduced` IS A NUMBER
 
 -- 1ב ¶3-¶4: the signed letter goes to the labour-relations commissioner at
 -- the Ministry of Labour and Welfare, with a copy to the Ministry of
@@ -84,9 +84,9 @@ DECIDE `within the agreement period` `day` `the agreement period in days` IF
 -- ¶2-¶3: "שנת הלימודים תשפ"א" is semesters A, B and summer of the academic
 -- year 2020-21; the employees go on performing every academic duty of the
 -- year, as the institution decides.
+@ref akn:art_2/p2 akn:art_2/p3
 DECLARE `semester` IS ONE OF `semester A`, `semester B`, `summer semester`
 
-@ref akn:art_2/p2 akn:art_2/p3
 `the school year תשפ"א in the agreement` MEANS
     LIST `semester A`, `semester B`, `summer semester`
 
@@ -148,16 +148,45 @@ DECIDE `additional pay for deferred duties` `done outside the usual study times`
 
 §§ `4 דיווח`
 
+-- The employee reports to the director every academic duty he was
+-- prevented, for any reason, from doing in the agreement period. The text
+-- sets no deadline for the report.
 @ref akn:art_4
 GIVEN `the agreement period in days` IS A NUMBER
 GIVETH A DEONTIC `college party` `agreement action`
 DECIDE `reporting prevented duties` `the agreement period in days` IS
     PARTY `the teaching employee at the college`
     MUST  `report a duty prevented` `duty`
-    WITHIN `the agreement period in days`
     LEST  BREACH BY `the teaching employee at the college` BECAUSE "circular 2020-21/2 4: the employee reports to the director every academic duty he was prevented from doing"
 
 §§ `5 ניכוי שכר`
+
+-- An employee the director finds did not meet the conditions of section 3
+-- is not owed the full consideration: the institution reduces the
+-- consideration in proportion, or sets it off against any sum it owes him,
+-- the final settlement included. Where the director has made no such
+-- finding, section 5 lays no rule (the consideration itself is section 2's).
+-- The reading adopted (F-2020-21_tashpa_02-a): "the conditions of section
+-- 3" are the academic and deferred duties section 2 sets, which section 3
+-- calls the basic condition of paying the full consideration.
+@ref akn:art_5/p1
+GIVEN e IS A `college teaching employee`
+      `the director determines the conditions were not met` IS A BOOLEAN
+GIVETH A DEONTIC `college party` `agreement action`
+DECIDE `reducing the consideration` e `the director determines the conditions were not met` IS
+    IF `the director determines the conditions were not met`
+    THEN PARTY `the college`
+         MAY   `reduce or set off the consideration` `reduction`
+               PROVIDED `reduction` AT MOST `the consideration` e MINUS `consideration due` e TRUE
+    ELSE FULFILLED
+
+GIVEN e IS A `college teaching employee`
+      `the director determines the conditions were not met` IS A BOOLEAN @desc the director's determination under section 5
+GIVETH A NUMBER
+DECIDE `consideration due` e `the director determines the conditions were not met` IS
+    IF `the director determines the conditions were not met`
+    THEN `the consideration` e TIMES e's `share of the duties fulfilled`
+    ELSE `the consideration` e
 
 -- F-2020-21_tashpa_02-a: section 5 deducts from an employee who "did not
 -- meet the conditions of section 3", but section 3 lays no duty on the
@@ -182,39 +211,15 @@ DECLARE `employee duty` IS ONE OF
     AND NOT null `the duties section 2 lays on the employee`
 #ASSERT `section 3 lays no duty on the employee that section 5 can find unmet`
 
--- The reading adopted (F-2020-21_tashpa_02-a): "the conditions of section
--- 3" are the academic and deferred duties section 2 sets, which section 3
--- calls the basic condition of paying the full consideration.
-GIVEN e IS A `college teaching employee`
-      `the director determines the conditions were not met` IS A BOOLEAN @desc the director's determination under section 5
-GIVETH A NUMBER
-DECIDE `consideration due` e `the director determines the conditions were not met` IS
-    IF `the director determines the conditions were not met`
-    THEN `the consideration` e TIMES e's `share of the duties fulfilled`
-    ELSE `the consideration` e
-
-@ref akn:art_5/p1
-GIVEN e IS A `college teaching employee`
-      `the director determines the conditions were not met` IS A BOOLEAN
-GIVETH A DEONTIC `college party` `agreement action`
-DECIDE `reducing the consideration` e `the director determines the conditions were not met` IS
-    IF `the director determines the conditions were not met`
-    THEN PARTY `the college`
-         MAY   `reduce or set off the consideration` `reduction`
-               PROVIDED `reduction` AT MOST `the consideration` e MINUS `consideration due` e TRUE
-    ELSE PARTY `the college`
-         SHANT `reduce or set off the consideration` `reduction`
-               PROVIDED `reduction` GREATER THAN 0
-         WITHIN 365
-         LEST  BREACH BY `the college` BECAUSE "circular 2020-21/2 5: no reduction without the director's determination"
-
 -- akn:art_5/p2 The heading of the list of enclosures ("מצ"ב"); no rule.
 -- akn:art_5__para_1 Enclosure 1, the text of the agreement of 15.10.2020; it is in neither the source PDF nor the corpus; no rule.
 -- akn:art_5__para_2 Enclosure 2, the accession letter (annex A); it is in neither the source PDF nor the corpus; no rule.
 
 -- akn:conclusions The signatures and copies list; no rule.
 
--- Worked examples. The salary figures are placeholders: the circular leaves
+§§ `Worked examples`
+
+-- The salary figures are placeholders: the circular leaves
 -- the salary to the agreements it does not restate.
 `a lecturer at a college that acceded` MEANS
     `college teaching employee` WITH
@@ -255,5 +260,5 @@ DECIDE `reducing the consideration` e `the director determines the conditions we
 #TRACE `sending the accession letter` 330 AT 0 WITH
     PARTY `the college` DOES `send the signed accession letter to the labour-relations commissioner` AT 10
     PARTY `the college` DOES `send a copy of the accession letter to the Ministry's college staffing officer` AT 10
-#TRACE `reducing the consideration` `a lecturer at a college that acceded` FALSE AT 0 WITH
+#TRACE `reducing the consideration` `a lecturer at a college that acceded` TRUE AT 0 WITH
     PARTY `the college` DOES `reduce or set off the consideration` 1000 AT 30

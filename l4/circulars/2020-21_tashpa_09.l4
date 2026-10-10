@@ -38,6 +38,12 @@ DECLARE `achievement year` HAS
     `months of maternity leave`                    IS A NUMBER  @desc months of maternity leave under the Women's Employment Law, 1954, not counting unpaid leave or absence treated as such after it
     `on full sabbatical or unpaid leave all year`  IS A BOOLEAN
 
+DECLARE `grant action` IS ONE OF
+    `pay the achievement grant` HAS `grant paid` IS A NUMBER
+    `contribute to a pension fund` HAS `employer contribution` IS A NUMBER
+                                       `employee deduction` IS A NUMBER
+    `indemnify the owner under payments topic 583`
+
 -- Whether under עוז לתמורה or not yet, by the share employed in upper
 -- secondary.
 @ref akn:art_1
@@ -104,15 +110,24 @@ DECIDE `full-time grant for` g IS
 @ref akn:art_2__para_c akn:art_2__para_d
 GIVEN a IS AN `achievement year`
 GIVETH A NUMBER
+DECIDE `share of the position` a IS
+    min (a's `upper-secondary position fraction`) 1
+
+GIVEN a IS AN `achievement year`
+GIVETH A NUMBER
 DECIDE `share of the year` a IS
     min 12 (a's `months employed at the school` PLUS a's `months of maternity leave`)
     DIVIDED BY 12
 
+-- (ג) ¶2: for the avoidance of doubt, a teacher on sabbatical or unpaid
+-- leave for the whole of תשפ"א is not entitled to the grant.
 @ref akn:art_2__para_c/p2
 GIVEN a IS AN `achievement year`
 GIVETH A BOOLEAN
 DECIDE `excluded by a full year's sabbatical or unpaid leave` a IF
     a's `on full sabbatical or unpaid leave all year`
+
+§§ `2 The grant (א-ד together)`
 
 @export default The one-time school-achievement grant in shekels for an upper-secondary teaching employee for 2020-21 under circular תשפ"א/9
 GIVEN a IS AN `achievement year` @desc the employee's school year
@@ -122,17 +137,11 @@ DECIDE `achievement grant` a IS
        AND `the school ranks for a grant` a
        AND NOT `excluded by a full year's sabbatical or unpaid leave` a
     THEN `full-time grant for` (a's `school ranking`)
-         TIMES min (a's `upper-secondary position fraction`) 1
+         TIMES `share of the position` a
          TIMES `share of the year` a
     ELSE 0
 
-DECLARE `grant action` IS ONE OF
-    `pay the achievement grant` HAS `grant paid` IS A NUMBER
-    `contribute to a pension fund` HAS `employer contribution` IS A NUMBER
-                                       `employee deduction` IS A NUMBER
-
--- (ה): paid with the August 2021 salary; (ז): with pension-fund
--- contributions of 5% from the employer and 5% deducted from the teacher.
+-- (ה): paid with the August 2021 salary.
 @ref akn:art_2__para_e
 GIVEN a IS AN `achievement year`
 GIVETH A DEONTIC Party `grant action`
@@ -143,12 +152,29 @@ DECIDE `paying the grant with August's salary` a IS
     WITHIN `month number` August
     LEST  BREACH BY `the employer` BECAUSE "circular 2020-21/9 2e: the grants are paid with the August 2021 salary"
 
+-- (ו): the grants are not part of the base for the hourly value, severance
+-- or percentage supplements, and no study-fund contributions are made on
+-- them.
+@ref akn:art_2__para_f
+DECLARE `salary base` IS ONE OF
+    `the hourly value`
+    `severance pay`
+    `percentage supplements`
+    `study-fund contributions`
+
+GIVEN b IS A `salary base`
+GIVETH A BOOLEAN
+DECIDE `the grant is left out of` b IF
+    elem b (LIST `the hourly value`, `severance pay`, `percentage supplements`, `study-fund contributions`)
+
+-- (ז): pension-fund contributions on the grants of 5% from the employer
+-- and 5% deducted from the teacher. The text names no time for them. The
+-- corpus prints (ז) inside (ו) (art_2__para_f/p2-p3), with the word
+-- "הפרשת" out of place: a corpus defect, reported.
+@ref akn:art_2__para_f/p2 akn:art_2__para_f/p3
 `employer pension rate on the grant` MEANS 0.05
 `employee pension rate on the grant` MEANS 0.05
 
--- The corpus prints (ז) inside (ו) (art_2__para_f/p2-p3), with the word
--- "הפרשת" out of place: a corpus defect, reported.
-@ref akn:art_2__para_f/p2 akn:art_2__para_f/p3
 GIVEN a IS AN `achievement year`
 GIVETH A DEONTIC Party `grant action`
 DECIDE `pension contributions on the grant` a IS
@@ -156,32 +182,26 @@ DECIDE `pension contributions on the grant` a IS
     MUST  `contribute to a pension fund` `from the employer` `from the teacher`
           PROVIDED `from the employer` AT LEAST `employer pension rate on the grant` TIMES `achievement grant` a
                    AND `from the teacher` EQUALS `employee pension rate on the grant` TIMES `achievement grant` a
-    WITHIN `month number` August
     LEST  BREACH BY `the employer` BECAUSE "circular 2020-21/9 2g: 5% employer and 5% employee pension contributions on the grant"
 
--- (ו): the grant is not part of the base for the hourly value, severance
--- or percentage supplements, and no study-fund contributions are made.
-DECLARE `salary base` IS ONE OF
-    `the hourly value`
-    `severance pay`
-    `percentage supplements`
-    `study-fund contributions`
-    `pension-fund contributions`
-
-@ref akn:art_2__para_f
-GIVEN b IS A `salary base`
-GIVETH A BOOLEAN
-DECIDE `the grant counts toward` b IF
-    b EQUALS `pension-fund contributions`
-
 -- 4: the owners are indemnified in the payment system, topic 583, in the
--- August 2021 payments transferred at the start of 9/2021.
+-- August 2021 payments transferred at the start of 9/2021 (school month
+-- 13, counting September 2020 as 1).
 @ref akn:art_4
 `the payment-system topic of the indemnity` MEANS 583
 
+GIVETH A DEONTIC Party `grant action`
+DECIDE `indemnifying the owners` IS
+    PARTY `the Ministry of Education`
+    MUST  `indemnify the owner under payments topic 583`
+    WITHIN 13
+    LEST  BREACH BY `the Ministry of Education` BECAUSE "circular 2020-21/9 4: indemnity under topic 583 in the August 2021 payments transferred at the start of 9/2021"
+
 -- akn:conclusions The contact line, signatures and copies list; no rule.
 
--- Worked examples: the shekel figures are the circular's own.
+§§ `Worked examples`
+
+-- The shekel figures are the circular's own.
 `a full-time teacher at a grade-2 school` MEANS
     `achievement year` WITH
         `graded in the teaching-employees grading`     IS TRUE
@@ -206,8 +226,7 @@ DECIDE `the grant counts toward` b IF
 
 #ASSERT `achievement grant` `a full-time teacher at a grade-2 school` EQUALS 6332.39
 #ASSERT `achievement grant` `a half-time teacher at a grade-1 school, three months on maternity leave` EQUALS 4221.595
-#ASSERT NOT `the grant counts toward` `severance pay`
-#ASSERT `the grant counts toward` `pension-fund contributions`
+#ASSERT `the grant is left out of` `severance pay`
 
 #TRACE `paying the grant with August's salary` `a full-time teacher at a grade-2 school` AT 0 WITH
     PARTY `the employer` DOES `pay the achievement grant` 6332.39 AT 12
