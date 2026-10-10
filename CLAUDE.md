@@ -45,8 +45,10 @@ with `HENCE`/`LEST`), not booleans standing in for them.
   covered by a segment that cites it or an ancestor:
   - `@ref akn:<key>` on the declaration that encodes it, or
   - `-- akn:<key> <why this carries no rule>` — a source list, an amendment
-    note, a pointer to a section encoded elsewhere. One line, in English like
-    the rest of the site (the client, 2026-10-06: the site may be in English).
+    note, a pointer to a section encoded elsewhere. One line. Notes and
+    findings are written in English for now; the site itself is in Hebrew
+    and shows them as isolated English (the client, 2026-10-10: "besides for
+    the L4-to-English, the website should be in Hebrew").
   `<key>` is a row key from `tools/akn.py`: an eId, or `<eId>/p<N>` for the
   N-th paragraph an element holds without an eId of its own. The tests fail
   on a key that is not in the section and on a text row nobody cites.

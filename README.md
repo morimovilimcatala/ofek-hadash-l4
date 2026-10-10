@@ -36,7 +36,7 @@ obligations as L4 regulative rules.
 - **Diagnostics** — the L4 checker's report, file by file.
 - `index.json` — every L4 segment with the corpus address it encodes.
 
-The site is in English; the corpus text is shown in Hebrew, as published.
+The site is in Hebrew, right to left (the client, 2026-10-10). The L4 code and the English prose `l4 render` writes from it are shown left to right; the notes and findings are still written in English.
 
 ## Building
 

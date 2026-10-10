@@ -110,7 +110,7 @@
     if (!after || items.length < 3) return null;
     var ul = document.createElement("ul");
     ul.className = "sn-outline";
-    ul.setAttribute("aria-label", "On this page");
+    ul.setAttribute("aria-label", "בעמוד זה");
     var min = Math.min.apply(null, items.map(function (i) { return i.depth; }));
     items.forEach(function (i) {
       if (i.depth > min + 1) return;
@@ -170,7 +170,7 @@
     var up = document.createElement("button");
     up.type = "button";
     up.className = "to-top";
-    up.setAttribute("aria-label", "Back to the top");
+    up.setAttribute("aria-label", "חזרה לראש העמוד");
     up.innerHTML = '<svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M10 15V5M5 10l5-5 5 5" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>';
     up.hidden = true;
     up.addEventListener("click", function () { window.scrollTo({ top: 0, behavior: "smooth" }); });

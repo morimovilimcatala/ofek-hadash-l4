@@ -221,9 +221,9 @@ def whole_section(relative: str) -> Section:
         key = {"mainBody": "body"}.get(name, name)
         part_rows = section_rows(part, notes, key)
         if part_rows:
-            rows.append(Row(key, 0, "label", "", {"preamble": "Front matter", "body": "",
-                                                   "conclusions": "Sign-off",
-                                                   "attachments": "Attachments"}.get(key, key)))
+            rows.append(Row(key, 0, "label", "", {"preamble": "פתיח", "body": "",
+                                                   "conclusions": "חתימה",
+                                                   "attachments": "נספחים"}.get(key, key)))
             rows += [r for r in part_rows]
     rows = [r for r in rows if not (r.kind == "label" and r.key == "body" and not r.heading)]
     stem = Path(relative).stem
