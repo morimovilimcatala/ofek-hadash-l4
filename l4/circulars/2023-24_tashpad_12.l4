@@ -13,6 +13,25 @@ IMPORT common
 `August 2024's salary`    MEANS 1
 `September 2024's salary` MEANS 2
 
+DECLARE `school ranking` IS ONE OF
+    `top 10%`
+    `next 10% (grade 2)`
+    `next 10% (grade 3)`
+    `next 10% (grade 4)`
+    `not ranked`
+
+DECLARE `grant row` HAS
+    `ranking` IS A `school ranking`
+    `full-position grant` IS A NUMBER
+
+-- What the employer (and, for the reimbursement, the Ministry) does.
+DECLARE `grant action` IS ONE OF
+    `pay the grant` HAS `grant paid` IS A NUMBER
+    `make the pension provisions` HAS `employer part` IS A NUMBER
+                                      `employee part` IS A NUMBER
+    `make a training-fund provision for the grant`
+    `pay the reimbursement` HAS `subject` IS A NUMBER
+
 § `חוזר לבעלויות תשפ"ד/12 — תגמול עובדי הוראה בגין הישגי בית הספר לשנת הלימודים תשפ"ד`
 
 -- akn:preamble The letterhead, date, reference number, addressees (the owners of educational institutions), greeting, subject line, the recital of the collective agreement of 14.8.2011 with the upper-secondary teachers' union and what it contains, and the circular's purpose (grants for התשפ"ד under §36 of that agreement); no rule.
@@ -49,17 +68,6 @@ DECIDE `the circular applies to` y IF
 @ref akn:art_2__para_a
 ASSUME `the rules of the letter of 21.10.2012` IS A STRING
 @desc The format and rules of the achievement-reward programme, set in the letter of 21.10.2012 of the then head of the pedagogical administration; not restated in the circular.
-
-DECLARE `school ranking` IS ONE OF
-    `top 10%`
-    `next 10% (grade 2)`
-    `next 10% (grade 3)`
-    `next 10% (grade 4)`
-    `not ranked`
-
-DECLARE `grant row` HAS
-    `ranking` IS A `school ranking`
-    `full-position grant` IS A NUMBER
 
 -- 2ב: the one-time grant for a full position, updated to May 2024 by the
 -- consumer price index (May 2024 against May 2023), by the school's
@@ -112,25 +120,19 @@ DECIDE `the achievement grant` y IS
 
 -- 2ו: the grants are not in the base for the hourly value, severance pay
 -- or percentage supplements, and no training-fund provisions are made for
--- them. 2ז: pension provident-fund provisions are made on them — 5% by the
--- employer and 5% deducted from the teacher's salary.
+-- them (the training fund is the prohibition below). 2ז: pension
+-- provident-fund provisions are made on them — 5% by the employer and 5%
+-- deducted from the teacher's salary.
 @ref akn:art_2__para_f
-GIVEN `base component` IS A STRING @desc one of "hourly value", "severance pay", "percentage supplements", "training fund"
+GIVEN `base component` IS A STRING @desc a computation the grant could be in the base of, e.g. "hourly value"
 GIVETH A BOOLEAN
-DECIDE `the grant is in the base for` `base component` IF
-    NOT elem `base component` (LIST "hourly value", "severance pay", "percentage supplements", "training fund")
+DECIDE `the grants are left out of the base for` `base component` IF
+    elem `base component` (LIST "hourly value", "severance pay", "percentage supplements")
 
 @ref akn:art_2__para_g
 `the employer's pension provision rate` MEANS 0.05
 @ref akn:art_2__para_g
 `the employee's pension deduction rate` MEANS 0.05
-
-DECLARE `grant action` IS ONE OF
-    `pay the grant` HAS `grant paid` IS A NUMBER
-    `make the pension provisions` HAS `employer part` IS A NUMBER
-                                      `employee part` IS A NUMBER
-    `make a training-fund provision for the grant`
-    `pay the reimbursement` HAS `subject` IS A NUMBER
 
 -- 2ה: paid in August 2024's salary, and no later than September 2024's.
 @ref akn:art_2__para_e
@@ -151,7 +153,6 @@ DECIDE `the pension provisions on the grant` y IS
     MUST  `make the pension provisions` er ee
           PROVIDED er EQUALS `the achievement grant` y TIMES `the employer's pension provision rate`
                AND ee EQUALS `the achievement grant` y TIMES `the employee's pension deduction rate`
-    WITHIN 1
     LEST BREACH BY `the employer` BECAUSE "section 2ז: 5% employer provision and 5% employee deduction to a pension provident fund"
 
 @ref akn:art_2__para_f
@@ -159,7 +160,6 @@ GIVETH A DEONTIC Party `grant action`
 DECIDE `no training-fund provision for the grant` IS
     PARTY `the employer`
     SHANT `make a training-fund provision for the grant`
-    WITHIN `September 2024's salary`
     LEST BREACH BY `the employer` BECAUSE "section 2ו: no training-fund provisions are made for the grants"
 
 §§ `3–4`
@@ -182,6 +182,8 @@ DECIDE `the owners are reimbursed` IS
     LEST BREACH BY `the Ministry of Education` BECAUSE "section 4: reimbursement under subject 583 in August's payments, transferred at the start of 9/2024"
 
 -- akn:conclusions The sign-off: the signatures and the copies list; no rule.
+
+§§ `Worked examples`
 
 -- Examples, on the circular's own amounts.
 `a full-time teacher at a top school` MEANS
@@ -214,8 +216,10 @@ DECIDE `the owners are reimbursed` IS
 #ASSERT `the achievement grant` `a full-time teacher at a top school` EQUALS 9453.28
 #ASSERT `the achievement grant` `a half-time teacher at a grade-3 school for half the year` EQUALS 4726.65 TIMES 0.25
 #ASSERT `the achievement grant` `a teacher on sabbatical all year` EQUALS 0
-#ASSERT NOT `the grant is in the base for` "severance pay"
-#ASSERT `the grant is in the base for` "pension"
+#ASSERT `the grants are left out of the base for` "severance pay"
+-- (This asserted the grant IS in the base for "pension", which 2ו does not
+-- say: it names only what the grants are left out of.)
+#ASSERT NOT `the grants are left out of the base for` "pension"
 
 #TRACE `the grant is paid by September 2024` `a full-time teacher at a top school` AT 0 WITH
     PARTY `the employer` DOES `pay the grant` 9453.28 AT 1

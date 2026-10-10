@@ -12,6 +12,16 @@ IMPORT common
 -- paid on 1.6.2024, is 1, and the sixth consecutive salary, October 2024's, is 6.
 `May 2024's salary` MEANS 1
 
+@desc A teaching employee who was paid the advance, as far as this circular asks.
+DECLARE `employee paid the advance` HAS
+    `advance received`              IS A NUMBER  @desc the advance the employee was paid under the agreement of 12.9.2023
+    `last salary month employed`    IS A NUMBER  @desc the last salary month (May 2024 = 1) in which the employee is employed by the employer; 99 if employment continues
+
+-- What the employer does: deduct one part of the advance, or the balance.
+DECLARE `deduction action` IS ONE OF
+    `deduct a part of the advance` HAS `part deducted` IS A NUMBER
+    `deduct the balance in the final settlement` HAS `balance deducted` IS A NUMBER
+
 § `חוזר לבעלויות תשפ"ד/8 — ניכוי המקדמה מכוח ההסכם הקיבוצי מיום 12.09.2023`
 
 -- akn:preamble/p1 akn:preamble/p2 akn:preamble/p3 akn:preamble/p4 akn:preamble/p5 akn:preamble/p6 akn:preamble/p7 akn:preamble/p8 akn:preamble/p9 akn:preamble/p10 akn:preamble/p11 akn:preamble/p12 akn:preamble/p13 The letterhead, date, reference number, addressees (the owners of upper-secondary schools), greeting, subject line and the earlier circular it follows (תשפ"ד/4); no rule.
@@ -24,11 +34,6 @@ IMPORT common
 @ref akn:preamble/p14 akn:art_4/p2
 ASSUME `the wage commissioner's instructions of 17.3.2024 and 9.4.2024` IS A STRING
 @desc The Treasury wage commissioner's instructions on deducting the advance, linked from the circular (mikdama.pdf); not restated in the circular.
-
-@desc A teaching employee who was paid the advance, as far as this circular asks.
-DECLARE `employee paid the advance` HAS
-    `advance received`              IS A NUMBER  @desc the advance the employee was paid under the agreement of 12.9.2023
-    `last salary month employed`    IS A NUMBER  @desc the last salary month (May 2024 = 1) in which the employee is employed by the employer; 99 if employment continues
 
 @ref akn:art_2
 `the number of equal payments` MEANS 6
@@ -47,16 +52,6 @@ DECIDE `a deduction falls in salary month` m IF
         m AT LEAST `May 2024's salary`
     AND m AT MOST `May 2024's salary` PLUS `the number of equal payments` MINUS 1
 
-GIVEN e IS AN `employee paid the advance`
-GIVETH A BOOLEAN
-DECIDE `leaves before the six months end` e IF
-    e's `last salary month employed` LESS THAN `May 2024's salary` PLUS `the number of equal payments` MINUS 1
-
-GIVEN e IS AN `employee paid the advance`
-GIVETH A NUMBER
-DECIDE `deductions made while employed` e IS
-    max 0 (min `the number of equal payments` (e's `last salary month employed` MINUS `May 2024's salary` PLUS 1))
-
 -- Notwithstanding the above, an employee who leaves the employer before the
 -- six months end has the balance deducted in the final settlement.
 @ref akn:art_4
@@ -68,9 +63,15 @@ DECIDE `the balance deducted in the final settlement` e IS
          MINUS `one monthly deduction` e TIMES `deductions made while employed` e
     ELSE 0
 
-DECLARE `deduction action` IS ONE OF
-    `deduct a part of the advance` HAS `part deducted` IS A NUMBER
-    `deduct the balance in the final settlement` HAS `balance deducted` IS A NUMBER
+GIVEN e IS AN `employee paid the advance`
+GIVETH A BOOLEAN
+DECIDE `leaves before the six months end` e IF
+    e's `last salary month employed` LESS THAN `May 2024's salary` PLUS `the number of equal payments` MINUS 1
+
+GIVEN e IS AN `employee paid the advance`
+GIVETH A NUMBER
+DECIDE `deductions made while employed` e IS
+    max 0 (min `the number of equal payments` (e's `last salary month employed` MINUS `May 2024's salary` PLUS 1))
 
 -- The six deductions as a chain of monthly duties: each one in its own
 -- salary month, the first in May 2024's (paid 1.6.2024).
@@ -96,6 +97,8 @@ DECIDE `the balance on leaving` e IS
     LEST BREACH BY `the employer` BECAUSE "section 4: the balance of the advance is deducted in the final settlement"
 
 -- akn:conclusions The sign-off: the signatures and the copies list; no rule.
+
+§§ `Worked examples`
 
 -- Examples. The advances are those circular תשפ"ד/4 printed for a full position.
 `a reform teacher who stays` MEANS

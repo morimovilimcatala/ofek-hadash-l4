@@ -14,6 +14,27 @@ IMPORT common
 -- (0): June 2024's salary is 1.
 `June 2024's salary` MEANS 1
 
+@desc A teaching employee's school year התשפ"ד at one employer, as far as section 1 asks.
+DECLARE `recuperation year at an employer` HAS
+    `year of seniority in teaching` IS A NUMBER  @desc which year of seniority in teaching this is (the first year is 1)
+    `position fraction here`        IS A NUMBER  @desc the share of a full position held at THIS employer in the year (1 = full)
+    `months worked`                 IS A NUMBER  @desc months of work in the school year
+    `is a monthly employee`         IS A BOOLEAN
+
+-- 1ו's table (printed as lines, not as a table): seniority in teaching,
+-- the recuperation days, and the days after the reduction. "3 שנים
+-- ראשונות" is years 1–3; 999 stands for "ומעלה".
+DECLARE `recuperation band` HAS
+    `from seniority year`       IS A NUMBER
+    `to seniority year`         IS A NUMBER
+    `days before the reduction` IS A NUMBER
+    `days after the reduction`  IS A NUMBER
+
+-- What the employer does: pay the allowance, or the grant.
+DECLARE `payment action` IS ONE OF
+    `pay the recuperation allowance` HAS `recuperation paid` IS A NUMBER
+    `pay the jubilee grant` HAS `grant paid` IS A NUMBER
+
 § `חוזר לבעלויות תשפ"ד/10 — תשלום דמי הבראה ומענק יובל לשנת הלימודים תשפ"ד`
 
 -- akn:preamble The letterhead, date, reference number, addressees (the owners of educational institutions), greeting and subject line; no rule.
@@ -34,24 +55,8 @@ IMPORT common
 ASSUME `the reduction law's instructions to employers` IS A STRING
 @desc The instructions to employers in the 2024 law freezing and reducing recuperation pay (חוק הקפאה והפחתה של דמי הבראה בשנת 2024), to which section 1ג refers; not restated in the circular.
 
-@desc A teaching employee's school year התשפ"ד at one employer, as far as section 1 asks.
-DECLARE `recuperation year at an employer` HAS
-    `year of seniority in teaching` IS A NUMBER  @desc which year of seniority in teaching this is (the first year is 1)
-    `position fraction here`        IS A NUMBER  @desc the share of a full position held at THIS employer in the year (1 = full)
-    `months worked`                 IS A NUMBER  @desc months of work in the school year
-    `is a monthly employee`         IS A BOOLEAN
-
 @ref akn:art_1__para_e akn:art_1__para_e/p2
 `the value of a recuperation day` MEANS 471.4
-
--- 1ו's table (printed as lines, not as a table): seniority in teaching,
--- the recuperation days, and the days after the reduction. "3 שנים
--- ראשונות" is years 1–3; 999 stands for "ומעלה".
-DECLARE `recuperation band` HAS
-    `from seniority year`       IS A NUMBER
-    `to seniority year`         IS A NUMBER
-    `days before the reduction` IS A NUMBER
-    `days after the reduction`  IS A NUMBER
 
 @ref akn:art_1__para_f akn:art_1__para_f/p2 akn:art_1__para_f/p3 akn:art_1__para_f/p4 akn:art_1__para_f/p5 akn:art_1__para_f/p6 akn:art_1__para_f/p7 akn:art_1__para_f/p8 akn:art_1__para_f/p9
 `the table of recuperation days` MEANS
@@ -68,6 +73,13 @@ DECIDE `the bands for seniority year` n IS
     filter (GIVEN b YIELD n AT LEAST b's `from seniority year` AND n AT MOST b's `to seniority year`)
            `the table of recuperation days`
 
+GIVEN n IS A NUMBER
+GIVETH A NUMBER
+DECIDE `days after the reduction for` n IS
+    CONSIDER `the bands for seniority year` n
+    WHEN b FOLLOWED BY rest THEN b's `days after the reduction`
+    OTHERWISE 0
+
 -- Every year of seniority from 1 to 40 has exactly one row.
 #ASSERT all (GIVEN n YIELD count (`the bands for seniority year` n) EQUALS 1)
             (LIST 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
@@ -82,13 +94,6 @@ DECIDE `the bands for seniority year` n IS
 #ASSERT all (GIVEN b YIELD b's `days before the reduction` MINUS b's `days after the reduction` EQUALS `the days the law reduces for a full year`)
             `the table of recuperation days`
 
-GIVEN n IS A NUMBER
-GIVETH A NUMBER
-DECIDE `days after the reduction for` n IS
-    CONSIDER `the bands for seniority year` n
-    WHEN b FOLLOWED BY rest THEN b's `days after the reduction`
-    OTHERWISE 0
-
 -- 1ז: "in a share proportional to the part of his position in that year
 -- (1/10 for each month of work)". F-2023-24_tashpad_10-a: the sentence
 -- pro-rates by the POSITION and its bracket by MONTHS, at a tenth a month,
@@ -96,6 +101,12 @@ DECIDE `days after the reduction for` n IS
 -- reading adopted: both apply — the position fraction, and a tenth for each
 -- month of work up to ten — so a full position through the year is the
 -- whole allowance.
+@ref akn:art_1__para_g akn:art_1__para_d
+GIVEN y IS A `recuperation year at an employer`
+GIVETH A NUMBER
+DECIDE `the share of the year` y IS
+    min 1 (y's `months worked` DIVIDED BY 10)
+
 GIVEN m IS A NUMBER
 GIVETH A NUMBER
 DECIDE `a tenth for each month of work` m IS
@@ -104,12 +115,6 @@ DECIDE `a tenth for each month of work` m IS
 `twelve months at a tenth a month exceed the whole allowance` MEANS
     `a tenth for each month of work` 12 GREATER THAN 1
 #ASSERT `twelve months at a tenth a month exceed the whole allowance`
-
-@ref akn:art_1__para_g akn:art_1__para_d
-GIVEN y IS A `recuperation year at an employer`
-GIVETH A NUMBER
-DECIDE `the share of the year` y IS
-    min 1 (y's `months worked` DIVIDED BY 10)
 
 -- 1ח: more than a full position at one employer earns one full position's
 -- allowance only. 1ט: at several employers whose total is above 100%, each
@@ -121,14 +126,44 @@ GIVETH A NUMBER
 DECIDE `the share of a position` y IS
     min 1 (y's `position fraction here`)
 
--- 1ב–1ד: the reduction is one day for a full year in a full position, and
--- in proportion to the period and/or the position otherwise — so the
--- allowance is the days after the reduction, pro-rated.
+-- 1ב: one day for a MONTHLY employee in a full position the whole year;
+-- 1ד: in proportion to the period and/or the position for an employee in a
+-- part-time position or part of the year. F-2023-24_tashpad_10-f: an
+-- employee who is not monthly, in a full position the whole year, is in
+-- neither. The reading adopted: the same reduction, one day pro-rated, for
+-- every teaching employee.
 @ref akn:art_1__para_b akn:art_1__para_d
 GIVEN y IS A `recuperation year at an employer`
 GIVETH A NUMBER
 DECIDE `the days reduced` y IS
-    `the days the law reduces for a full year` TIMES `the share of a position` y TIMES `the share of the year` y
+    IF `1ב's case` y
+    THEN `the days the law reduces for a full year`
+    ELSE `the days the law reduces for a full year` TIMES `the share of a position` y TIMES `the share of the year` y
+
+GIVEN y IS A `recuperation year at an employer`
+GIVETH A BOOLEAN
+DECIDE `1ב's case` y IF
+        y's `is a monthly employee`
+    AND `the share of a position` y EQUALS 1
+    AND `the share of the year` y EQUALS 1
+
+GIVEN y IS A `recuperation year at an employer`
+GIVETH A BOOLEAN
+DECIDE `1ד's case` y IF
+        `the share of a position` y LESS THAN 1
+    OR  `the share of the year` y LESS THAN 1
+
+`a full year in a full position, not a monthly employee` MEANS
+    `recuperation year at an employer` WITH
+        `year of seniority in teaching` IS 22
+        `position fraction here`        IS 1
+        `months worked`                 IS 12
+        `is a monthly employee`         IS FALSE
+
+`an employee who is not monthly, full-time all year, is in neither 1ב nor 1ד` MEANS
+        (NOT `1ב's case` `a full year in a full position, not a monthly employee`)
+    AND (NOT `1ד's case` `a full year in a full position, not a monthly employee`)
+#ASSERT `an employee who is not monthly, full-time all year, is in neither 1ב nor 1ד`
 
 @ref akn:art_1__para_b akn:art_1__para_d akn:art_1__para_e akn:art_1__para_f
 GIVEN y IS A `recuperation year at an employer`
@@ -143,7 +178,9 @@ DECIDE `the recuperation allowance for התשפ"ד` y IS
 -- teacher outside the reforms 140%, a principal outside the reforms 150%, a
 -- teacher in the full implementation of Oz LaTmura 125%, in Ofek Hadash
 -- 117% — subject to the procedure for exceptional employment for התשפ"ד
--- (linked as mokarshimorishmi.pdf), an input.
+-- (linked as mokarshimorishmi.pdf), an input. 1יא names a TEACHER under
+-- the reforms; a principal under them takes the cap 1יא's last paragraph
+-- restates for every employee under that reform (F-2023-24_tashpad_10-b).
 DECLARE `employment terms` IS ONE OF
     `outside the reforms`
     `Oz LaTmura in full implementation`
@@ -193,10 +230,6 @@ DECIDE `the employment is within the caps` t `is a principal` `total scope` `wee
         (    `total scope` AT MOST `the scope cap in 1י–1יא` t `is a principal`
          AND `weekly hours` AT MOST `the weekly hours cap as restated`)
     OR `the exceptional-employment procedure permits it`
-
-DECLARE `payment action` IS ONE OF
-    `pay the recuperation allowance` HAS `recuperation paid` IS A NUMBER
-    `pay the jubilee grant` HAS `grant paid` IS A NUMBER
 
 -- 1ב: the allowance, and its reduction, are paid in June 2024's salary.
 @ref akn:art_1__para_b
@@ -294,11 +327,6 @@ GIVETH A NUMBER
 DECIDE `seniority as set in September` j IS
     j's `seniority set in September 2023` PLUS j's `unpaid-leave years with purchased pension rights`
 
-GIVEN j IS A `jubilee employment`
-GIVETH A NUMBER
-DECIDE `years completed by 1 June` j IS
-    j's `years completed by 1 June 2024` PLUS j's `unpaid-leave years with purchased pension rights`
-
 -- 2ד: the grant follows the seniority set in September of the year before
 -- the payment. 2ה.2: an employee who completed 25 or 30 years by 1 June of
 -- the year in question earns it that year. F-2023-24_tashpad_10-d: the two
@@ -315,6 +343,11 @@ GIVEN j IS A `jubilee employment`
 GIVETH A BOOLEAN
 DECIDE `entitled by the years completed by 1 June` j IF
     `years completed by 1 June` j AT LEAST `the seniority that earns the grant at` (j's `stage`)
+
+GIVEN j IS A `jubilee employment`
+GIVETH A NUMBER
+DECIDE `years completed by 1 June` j IS
+    j's `years completed by 1 June 2024` PLUS j's `unpaid-leave years with purchased pension rights`
 
 `an upper-secondary teacher completing 25 years in March 2024` MEANS
     `jubilee employment` WITH
@@ -384,6 +417,8 @@ DECIDE `the jubilee grant is paid in June 2024` j IS
 -- akn:art_2__para_e The heading "הבהרות" over the clarifications below; no rule of its own.
 
 -- akn:conclusions The sign-off: the signatures and the copies list; no rule.
+
+§§ `Worked examples`
 
 -- Examples. The day value is the circular's; the salary of 10,000 is a placeholder.
 `a full year, seniority 22` MEANS

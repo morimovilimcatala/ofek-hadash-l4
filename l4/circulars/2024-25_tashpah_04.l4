@@ -23,6 +23,7 @@ IMPORT common
 @desc How a pay component counts for the purposes the agreement names (true = it counts).
 DECLARE `component treatment` HAS
     `is salary for every purpose`              IS A BOOLEAN
+    `counts for the combined salary`           IS A BOOLEAN
     `counts for the hourly value`              IS A BOOLEAN
     `counts for severance pay`                 IS A BOOLEAN
     `counts for pension contributions`         IS A BOOLEAN
@@ -35,6 +36,30 @@ DECLARE `college action` IS ONE OF
     `pay the 2024 shekel supplement with arrears from 1.7.2024` HAS `shekel amount paid` IS A NUMBER
     `pay the 2024 percentage supplement with arrears` HAS `percentage amount paid` IS A NUMBER
     `pay the one-time grant` HAS `grant paid` IS A NUMBER
+
+GIVEN d IS A DATE, e IS A DATE
+GIVETH A BOOLEAN
+DECIDE d `is on or after` e IF
+    DATE_SERIAL d AT LEAST DATE_SERIAL e
+
+@desc A pay component an employee received, described as far as 5א(ב) asks.
+DECLARE `existing component` HAS
+    `component amount`                              IS A NUMBER
+    `is the combined salary`                        IS A BOOLEAN
+    `existed on 31.12.2023`                         IS A BOOLEAN
+    `counts for the hourly value of the component`  IS A BOOLEAN
+    `paid monthly, weekly or daily`                 IS A BOOLEAN
+    `updated by cost-of-living agreements`          IS A BOOLEAN
+    `has another update mechanism`                  IS A BOOLEAN
+    `is the minimum-wage top-up`                    IS A BOOLEAN
+    `is the 2024 shekel supplement`                 IS A BOOLEAN
+
+DECLARE `status at payment` IS ONE OF
+    `at work`
+    `on unpaid leave`
+    `on sick leave without pay`
+    `in the birth and parenting period`
+    `absent through a work injury not charged to sick leave`
 
 §§ `1 הוראות כלליות`
 
@@ -57,11 +82,6 @@ DECIDE `is a college teaching employee` `covered by the colleges reform agreemen
 
 @ref akn:art_3/p1
 `the agreement ends on` MEANS DATE_FROM_DMY 31 12 2027
-
-GIVEN d IS A DATE, e IS A DATE
-GIVETH A BOOLEAN
-DECIDE d `is on or after` e IF
-    DATE_SERIAL d AT LEAST DATE_SERIAL e
 
 §§ `4 תוספת שכר שקלית 2024`
 
@@ -87,6 +107,7 @@ DECIDE `the 2024 shekel supplement` `position fraction` d IS
 `how the 2024 shekel supplement counts` MEANS
     `component treatment` WITH
         `is salary for every purpose`            IS TRUE
+        `counts for the combined salary`         IS FALSE
         `counts for the hourly value`            IS TRUE
         `counts for severance pay`               IS TRUE
         `counts for pension contributions`       IS TRUE
@@ -132,17 +153,6 @@ DECIDE `the 2024 percentage supplement rate on` d IS
            IF d `is on or after` (DATE_FROM_DMY 1 9 2024) THEN 2%
            OTHERWISE 0
 
-@desc A pay component an employee received, described as far as 5א(ב) asks.
-DECLARE `existing component` HAS
-    `component amount`                              IS A NUMBER
-    `is the combined salary`                        IS A BOOLEAN
-    `existed on 31.12.2023`                         IS A BOOLEAN
-    `counts for the hourly value of the component`  IS A BOOLEAN
-    `paid monthly, weekly or daily`                 IS A BOOLEAN
-    `updated by cost-of-living agreements`          IS A BOOLEAN
-    `is the minimum-wage top-up`                    IS A BOOLEAN
-    `is the 2024 shekel supplement`                 IS A BOOLEAN
-
 -- 5א(ב): the combined salary and every supplement (percentage or shekel,
 -- cost-of-living included) that existed on 31.12.2023 and counts for the
 -- hourly value, except the four kinds listed.
@@ -153,7 +163,8 @@ DECIDE `is in the base of the 2024 percentage supplement` c IF
         (    c's `is the combined salary`
          OR (c's `existed on 31.12.2023` AND c's `counts for the hourly value of the component`))
     AND c's `paid monthly, weekly or daily`
-    AND c's `updated by cost-of-living agreements`
+    AND (    c's `updated by cost-of-living agreements`
+         OR (NOT c's `has another update mechanism`))
     AND NOT c's `is the minimum-wage top-up`
     AND NOT c's `is the 2024 shekel supplement`
 
@@ -175,6 +186,7 @@ DECIDE `the 2024 percentage supplement` `position fraction` d components IS
 `how the 2024 percentage supplement counts` MEANS
     `component treatment` WITH
         `is salary for every purpose`            IS TRUE
+        `counts for the combined salary`         IS TRUE
         `counts for the hourly value`            IS TRUE
         `counts for severance pay`               IS TRUE
         `counts for pension contributions`       IS TRUE
@@ -255,7 +267,7 @@ DECIDE `the month's share of a full grant month` m IS
 -- (19.8.2024); the full grant for a full position through the period, and
 -- otherwise the share the months and the position give, against an
 -- employee on a full position through all nine months.
-@ref akn:art_6__para_a akn:art_6__para_b akn:art_6__para_c
+@ref akn:art_6__para_a akn:art_6__para_b akn:art_6__para_c akn:art_6/p1
 GIVEN `employed at the college on 19.8.2024` IS A BOOLEAN, months IS A LIST OF `grant month`
 GIVETH A NUMBER
 DECIDE `the one-time grant` `employed at the college on 19.8.2024` months IS
@@ -272,6 +284,7 @@ DECIDE `the one-time grant` `employed at the college on 19.8.2024` months IS
 `how the one-time grant counts` MEANS
     `component treatment` WITH
         `is salary for every purpose`            IS FALSE
+        `counts for the combined salary`         IS FALSE
         `counts for the hourly value`            IS FALSE
         `counts for severance pay`               IS FALSE
         `counts for pension contributions`       IS FALSE
@@ -279,13 +292,6 @@ DECIDE `the one-time grant` `employed at the college on 19.8.2024` months IS
         `counts for the minimum-wage top-up`     IS FALSE
         `is in the base of existing supplements` IS FALSE
         `changes the combined-salary base`       IS FALSE
-
-DECLARE `status at payment` IS ONE OF
-    `at work`
-    `on unpaid leave`
-    `on sick leave without pay`
-    `in the birth and parenting period`
-    `absent through a work injury not charged to sick leave`
 
 -- 6(יב): an employee who at the payment date is in one of the listed
 -- situations is paid with the first salary on return, at the latest the
@@ -350,6 +356,8 @@ DECIDE `the one-time grant is paid` grant s `month of return` IS
     LEST  BREACH BY `the employer` BECAUSE "תשפ\"ה/4 §6(יא)-(יב): the grant is paid no later than December 2024's salary, or the salary after the return to work"
 
 -- akn:conclusions The sign-off, signatures and the list of copies; no rule.
+
+§§ `Worked examples`
 
 -- Worked examples the circular itself gives.
 

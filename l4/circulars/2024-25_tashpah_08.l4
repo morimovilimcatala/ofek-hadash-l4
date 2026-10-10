@@ -25,6 +25,35 @@ DECLARE `professional-hours action` IS ONE OF
     `transfer the payslips` HAS `payslips transferred` IS A NUMBER
     `cooperate with the Ministry's inspector`
 
+@desc An Oz LaTmura teacher's position in תשפ"ה before and after the change of the work week.
+DECLARE `teacher in תשפ"ה` HAS
+    `position before the change`        IS A NUMBER  @desc the position set for the teacher for תשפ"ה before the change (1 = 100%)
+    `position after the change`         IS A NUMBER  @desc the position the same hours make under the new work-week tables
+    `is a permanent teaching employee`  IS A BOOLEAN
+    `chose not to add hours`            IS A BOOLEAN
+
+DECLARE `mother band` HAS
+    `from age`  IS A NUMBER
+    `below age` IS A NUMBER  @desc the first age past the band; "50-55" is read as including 55, so its bound is 56
+    `hours`     IS A NUMBER
+
+@desc A teacher the school asks professional hours for, as ג.1 checks it.
+DECLARE `requested teacher` HAS
+    `hours requested for the teacher`                  IS A NUMBER
+    `frontal hours reported by 14.11.2024`             IS A NUMBER
+    `frontal hours reported after the update`          IS A NUMBER
+    `in Oz LaTmura`                                     IS A BOOLEAN
+    `is the principal`                                  IS A BOOLEAN
+    `reported for תשפ"ה by 14.11.2024`                 IS A BOOLEAN
+    `teaches the added hours in class`                  IS A BOOLEAN
+    `position with the employer`                        IS A NUMBER
+
+DECLARE `cap band` HAS
+    `from position` IS A NUMBER
+    `to position`   IS A NUMBER
+    `cap`           IS A NUMBER
+
+
 §§ `Purpose`
 
 -- p13: following the circular of 13.11.2024, the Ministry budgets extra
@@ -54,17 +83,6 @@ DECIDE `update the teachers' work week in their pay` `teachers who are not princ
     MUST  `update the position base and work-week structure from 1.11.2024` n
           PROVIDED n EQUALS `teachers who are not principals`
 
-@desc An Oz LaTmura teacher's position in תשפ"ה before and after the change of the work week.
-DECLARE `teacher in תשפ"ה` HAS
-    `position before the change`        IS A NUMBER  @desc the position set for the teacher for תשפ"ה before the change (1 = 100%)
-    `position after the change`         IS A NUMBER  @desc the position the same hours make under the new work-week tables
-    `is a permanent teaching employee`  IS A BOOLEAN
-    `chose not to add hours`            IS A BOOLEAN
-
-GIVEN t IS A `teacher in תשפ"ה`
-GIVETH A BOOLEAN
-DECIDE `the position shrank` t IF
-    t's `position after the change` LESS THAN t's `position before the change`
 
 -- ב and ג: a teacher whose position shrank against the one set for תשפ"ה
 -- before the change is given added frontal teaching hours to keep it,
@@ -81,6 +99,11 @@ DECIDE `keep the teacher's position` t `frontal hours that restore the position`
                PROVIDED h AT LEAST `frontal hours that restore the position`
          LEST  BREACH BY `the local authority or owning body` BECAUSE "תשפ\"ה/8 ב: frontal hours are added to keep the position set for תשפ\"ה"
     ELSE FULFILLED
+
+GIVEN t IS A `teacher in תשפ"ה`
+GIVETH A BOOLEAN
+DECIDE `the position shrank` t IF
+    t's `position after the change` LESS THAN t's `position before the change`
 
 
 -- ד.1: the added hour is real teaching in class, set in the teacher's and
@@ -100,8 +123,8 @@ DECIDE `an added hour meets the rules` `taught in class and in the timetable` `t
 @ref akn:art_d__para_2 akn:art_d__para_2/p2 akn:art_d__para_2/p3
 GIVEN `position with this owning body before the change` IS A NUMBER
 GIVETH A BOOLEAN
-DECIDE `a change from the new work week founds a claim` `position with this owning body before the change` IF
-    `position with this owning body before the change` AT MOST 1
+DECIDE `a change of position from the new work week founds no claim of harm` `position with this owning body before the change` IF
+    `position with this owning body before the change` GREATER THAN 1
 
 -- ה: a teacher may choose not to add hours despite the lower position; a
 -- permanent teacher who so chooses is allowed unpaid leave for תשפ"ה on
@@ -123,6 +146,14 @@ DECIDE `allow unpaid leave on the reduced share` t IS
 -- at 55 is read as governing it.
 @ref akn:art_f
 GIVEN age IS A NUMBER
+GIVETH A NUMBER
+DECIDE `frontal hours that earn the mother's supplement` age IS
+    BRANCH IF age AT LEAST 55 THEN 16
+           IF age AT LEAST 50 THEN 18
+           OTHERWISE 19
+
+-- The bands as printed, to show where they overlap.
+GIVEN age IS A NUMBER
 GIVETH A LIST OF NUMBER
 DECIDE `the frontal hours the bands give for age` age IS
     map (GIVEN b YIELD b's `hours`)
@@ -133,18 +164,6 @@ DECIDE `the frontal hours the bands give for age` age IS
             LIST `mother band` 0  50  19,
                  `mother band` 50 56  18,
                  `mother band` 55 999 16
-
-DECLARE `mother band` HAS
-    `from age`  IS A NUMBER
-    `below age` IS A NUMBER  @desc the first age past the band; "50-55" is read as including 55, so its bound is 56
-    `hours`     IS A NUMBER
-
-GIVEN age IS A NUMBER
-GIVETH A NUMBER
-DECIDE `frontal hours that earn the mother's supplement` age IS
-    BRANCH IF age AT LEAST 55 THEN 16
-           IF age AT LEAST 50 THEN 18
-           OTHERWISE 19
 
 §§ `ב תקצוב נורמטיבי לשעות פרופסיונליות`
 
@@ -235,8 +254,8 @@ DECIDE `sign the commitment for every upper division` `upper divisions the body 
     WITHIN 21
     HENCE FULFILLED
     LEST  PARTY `the Ministry of Education`
-          MAY   `offset the professional hours paid` h
-                PROVIDED h AT MOST `professional hours paid so far`
+          MUST  `offset the professional hours paid` h
+                PROVIDED h EQUALS `professional hours paid so far`
 
 -- 2.4: a body that does not sign and asks for budgeting on an individual
 -- check submits a request per upper division, by its principal, online,
@@ -280,17 +299,6 @@ GIVETH A DEONTIC Party `professional-hours action`
 DECIDE `the position is owed whatever the budget` t `frontal hours that restore the position` IS
     `keep the teacher's position` t `frontal hours that restore the position`
 
-@desc A teacher the school asks professional hours for, as ג.1 checks it.
-DECLARE `requested teacher` HAS
-    `hours requested for the teacher`                  IS A NUMBER
-    `frontal hours reported by 14.11.2024`             IS A NUMBER
-    `frontal hours reported after the update`          IS A NUMBER
-    `in Oz LaTmura`                                     IS A BOOLEAN
-    `is the principal`                                  IS A BOOLEAN
-    `reported for תשפ"ה by 14.11.2024`                 IS A BOOLEAN
-    `teaches the added hours in class`                  IS A BOOLEAN
-    `position with the employer`                        IS A NUMBER
-
 -- ג.1 א-ו and ז: the budget follows a check of each teacher's data,
 -- subject to: every budgeted hour of the institution executed and reported;
 -- the teacher's reported frontal hours grew by at most one; an Oz LaTmura
@@ -311,22 +319,10 @@ DECIDE `the teacher may be budgeted` t `all budgeted hours executed and reported
     AND t's `position with the employer` AT MOST 1
 
 -- ח as printed: 33% to 75% at most 0.5 hour; 75% to 100% (inclusive) at
--- most one. 75% is in both bands (F-2024-25_tashpah_08-c).
+-- most one. 75% is in both bands (F-2024-25_tashpah_08-c); the reading
+-- adopted: the band that opens at 75% governs it. Above 100% or below a
+-- third, ז gives no budget.
 @ref akn:art_h
-GIVEN p IS A NUMBER
-GIVETH A LIST OF NUMBER
-DECIDE `the caps the bands of ח give for position` p IS
-    map (GIVEN b YIELD b's `cap`)
-        (filter (GIVEN b YIELD p AT LEAST b's `from position` AND p AT MOST b's `to position`)
-                (LIST `cap band` 0.33 0.75 0.5,
-                      `cap band` 0.75 1    1))
-
-DECLARE `cap band` HAS
-    `from position` IS A NUMBER
-    `to position`   IS A NUMBER
-    `cap`           IS A NUMBER
-
--- The reading adopted: the band that opens at 75% governs it.
 GIVEN p IS A NUMBER
 GIVETH A NUMBER
 DECIDE `the cap on the hours for position` p IS
@@ -334,6 +330,15 @@ DECIDE `the cap on the hours for position` p IS
            IF p AT LEAST 0.75 THEN 1
            IF p AT LEAST 1 DIVIDED BY 3 THEN 0.5
            OTHERWISE 0
+
+-- The bands as printed, to show where they overlap.
+GIVEN p IS A NUMBER
+GIVETH A LIST OF NUMBER
+DECIDE `the caps the bands of ח give for position` p IS
+    map (GIVEN b YIELD b's `cap`)
+        (filter (GIVEN b YIELD p AT LEAST b's `from position` AND p AT MOST b's `to position`)
+                (LIST `cap band` 0.33 0.75 0.5,
+                      `cap band` 0.75 1    1))
 
 GIVEN t IS A `requested teacher`, `all budgeted hours executed and reported` IS A BOOLEAN
 GIVETH A NUMBER
@@ -347,7 +352,7 @@ DECIDE `the hours budgeted for the teacher` t `all budgeted hours executed and r
 -- were not used (wholly or in part) for their purpose, all the
 -- professional hours of תשפ"ה are offset, and the Ministry will consider
 -- barring GEFEN conversions in תשפ"ו (a discretion, not a rule).
-@ref akn:art_i akn:art_jb
+@ref akn:art_i akn:art_jb akn:art_ja
 GIVEN `hours paid` IS A NUMBER, `hours found due` IS A NUMBER, `data mismatch or hours misused` IS A BOOLEAN
 GIVETH A NUMBER
 DECIDE `hours to offset` `hours paid` `hours found due` `data mismatch or hours misused` IS
@@ -359,8 +364,8 @@ GIVEN `hours paid` IS A NUMBER, `hours found due` IS A NUMBER, `data mismatch or
 GIVETH A DEONTIC Party `professional-hours action`
 DECIDE `the Ministry offsets` `hours paid` `hours found due` `data mismatch or hours misused` IS
     PARTY `the Ministry of Education`
-    MAY   `offset the professional hours paid` h
-          PROVIDED h AT MOST `hours to offset` `hours paid` `hours found due` `data mismatch or hours misused`
+    MUST  `offset the professional hours paid` h
+          PROVIDED h EQUALS `hours to offset` `hours paid` `hours found due` `data mismatch or hours misused`
 
 -- י: the principal and the owning body transfer the payslips of the
 -- teachers budgeting is asked for, and of others when the Ministry asks.
@@ -368,9 +373,13 @@ DECIDE `the Ministry offsets` `hours paid` `hours found due` `data mismatch or h
 GIVEN `teachers asked for` IS A NUMBER
 GIVETH A DEONTIC Party `professional-hours action`
 DECIDE `transfer the payslips of the teachers asked for` `teachers asked for` IS
-    PARTY `the local authority or owning body`
-    MUST  `transfer the payslips` n
-          PROVIDED n AT LEAST `teachers asked for`
+    (PARTY `the local authority or owning body`
+     MUST  `transfer the payslips` n
+           PROVIDED n AT LEAST `teachers asked for`)
+    RAND
+    (PARTY `the school principal`
+     MUST  `transfer the payslips` n
+           PROVIDED n AT LEAST `teachers asked for`)
 
 -- יא: the principal and the body cooperate with the Ministry's
 -- representative or auditing accountant in checking the request, the hours
@@ -378,8 +387,11 @@ DECIDE `transfer the payslips of the teachers asked for` `teachers asked for` IS
 @ref akn:art_ja
 GIVETH A DEONTIC Party `professional-hours action`
 DECIDE `cooperate with the check` IS
-    PARTY `the school principal`
-    MUST  `cooperate with the Ministry's inspector`
+    (PARTY `the school principal`
+     MUST  `cooperate with the Ministry's inspector`)
+    RAND
+    (PARTY `the local authority or owning body`
+     MUST  `cooperate with the Ministry's inspector`)
 
 §§ `2 אופן הגשת הבקשה`
 
@@ -414,11 +426,14 @@ DECIDE `the teacher's line is complete` `hours entered` `the teacher agreed` IF
 -- 2.ה-ו: the principal certifies that the actual positions are as reported
 -- and updated in OSHER, and attaches the body's commitment to keep the
 -- teachers' positions for תשפ"ה under the agreement's work week.
-@ref akn:art_jb__para_2__subpara_e akn:art_jb__para_2__subpara_f
-GIVEN `principal certified the positions` IS A BOOLEAN, `body's commitment attached` IS A BOOLEAN
+@ref akn:art_jb__para_2__subpara_e akn:art_jb__para_2__subpara_f akn:art_jb__para_2__subpara_g
+GIVEN `principal certified the positions` IS A BOOLEAN, `body's commitment attached` IS A BOOLEAN,
+      `payslips of September 2024 to January 2025 attached` IS A BOOLEAN
 GIVETH A BOOLEAN
-DECIDE `the request is complete` `principal certified the positions` `body's commitment attached` IF
-    `principal certified the positions` AND `body's commitment attached`
+DECIDE `the request is complete` `principal certified the positions` `body's commitment attached` `payslips of September 2024 to January 2025 attached` IF
+        `principal certified the positions`
+    AND `body's commitment attached`
+    AND `payslips of September 2024 to January 2025 attached`
 
 -- 2.ז-ח: the payslips of September 2024-January 2025 are attached; those of
 -- February-August 2025 for teachers approved are sent by dates the Ministry
@@ -433,6 +448,8 @@ DECIDE `send the later payslips` `teachers approved` `days to the date the Minis
     WITHIN `days to the date the Ministry sets`
 
 -- akn:conclusions The sign-off, signatures and the list of copies; no rule.
+
+§§ `Worked examples`
 
 -- Examples. The hour totals are placeholders.
 `a body's hours` MEANS

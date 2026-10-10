@@ -32,6 +32,95 @@ DECIDE `days from the circular to` d IS
 `30 August 2024` MEANS `days from the circular to` (Date 30 8 2024)
 #ASSERT `30 August 2024` EQUALS 26
 
+DECLARE `degree` IS ONE OF
+    `no degree`
+    `bachelor's degree`
+    `master's degree`
+    `doctorate`
+
+DECLARE `placement` HAS
+    `salary table` IS A STRING
+    `grade on placement` IS A NUMBER
+    `seniority on placement` IS A NUMBER
+    `doctorate supplement rate` IS A NUMBER
+
+DECLARE `seniority purpose` IS ONE OF
+    `salary seniority`
+    `time required for promotion`
+    `tenure`
+    `jubilee grant`
+    `recuperation`
+
+DECLARE `work week` HAS
+    `week hours`       IS A NUMBER
+    `frontal`          IS A NUMBER
+    `individual`       IS A NUMBER
+    `presence`         IS A NUMBER
+
+DECLARE `presence activity` IS ONE OF
+    `work meetings`
+    `adapting the curriculum and environment to the pupil`
+    `individual meetings with parents`
+    `checking work and tests`
+    `preparing for and taking part in committees`
+    `planning and guiding the assistants' work`
+    `coordinating with bodies outside the school`
+    `coordinating for educational continuity`
+    `another activity`
+
+DECLARE `hours split` HAS
+    `frontal part` IS A NUMBER
+    `individual part` IS A NUMBER
+    `presence part` IS A NUMBER
+
+DECLARE `over-time approval` IS ONE OF
+    `none needed`
+    `the principal's approval`
+    `a request in the entitlements system`
+    `not allowed`
+
+DECLARE `reduction after maternity leave` IS ONE OF
+    `the nursing hour`
+    `the mother's reduction`
+    `no reduction`
+
+DECLARE `frontal by level` HAS
+    `level` IS A NUMBER
+    `frontal hours at the level` IS A NUMBER
+
+DECLARE `activity day` IS ONE OF
+    `on the employee's day off`
+    `instead of a presence hour that day`
+    `instead of a presence hour done on another day`
+    `beyond the timetable`
+
+DECLARE `school activity` IS ONE OF
+    `a general school assembly`
+    `an individual parents-and-children meeting`
+    `an after-hours activity such as a theme party or a graduation party`
+    `a pre-opening meeting of the role holders or with the pupils`
+    `another kind of activity`
+
+DECLARE `reason to leave` IS ONE OF
+    `physical or mental health of the employee or a first-degree relative`
+    `a change for the worse in personal or family circumstances`
+    `another reason`
+
+DECLARE `kind of hours` IS ONE OF
+    `frontal hours`
+    `individual hours`
+    `presence hours`
+
+@desc The components of the current pay the advance is computed on (17.1).
+DECLARE `current pay` HAS
+    `components for the advance` IS A NUMBER @desc the sum of: integrated salary, the '87 and '94 supplements, the 2001, 2008 and 2011 supplements, the split allowance, in-service allowances and the double-degree allowance
+    `share in joined schools` IS A NUMBER @desc the part of the employment in a joined recognised unofficial special-education school
+
+DECLARE `month for conversion` IS ONE OF
+    `March of the year before joining`
+    `the joining month`
+    `September of the joining year`
+
 § `חוזר לבעלויות תשפ"ה/1 — בתי ספר לחינוך מיוחד מוכרים שאינם רשמיים באופק חדש`
 
 -- akn:preamble The letterhead, date, reference number, addressees (owners of recognised unofficial special-education schools not yet in Ofek Hadash), greeting and subject line; no rule.
@@ -88,7 +177,7 @@ DECIDE `the school is in Ofek Hadash` `school year` IF
 @ref akn:art_1/p10
 GIVEN p IS A Party
 GIVETH A BOOLEAN
-DECIDE `may approve joining and set the grade` p IF
+DECIDE `alone approves joining, sets the grade, converts the salary and sets the education degree and seniority` p IF
     p EQUALS `the Ministry of Education`
 
 -- akn:art_1/p11 The circular's purpose (instructions for owner-employed teaching staff of these schools for התשפ"ה); no rule of its own.
@@ -109,7 +198,9 @@ DECLARE `circular 1 action` IS ONE OF
     `pay the Ofek Hadash advance` HAS `advance` IS A NUMBER
     `submit a request` HAS `kind of request` IS A STRING
     `install an attendance clock`
+    `report the work hours` HAS `reported how` IS A STRING
     `pay and deduct by the attendance data`
+    `guide teachers without a file in opening one`
 
 -- akn:art_2__para_2-1 The heading "שלב ראשון".
 -- akn:art_2__para_2-1/p2 The lead-in "פעולות המתבצעות ע"י הבעלות".
@@ -143,16 +234,23 @@ GIVETH A DEONTIC Party `circular 1 action`
 DECIDE `the owner checks the employees' data` IS
     PARTY `the employer`
     MUST  `check the employees' data`
-    WITHIN `30 August 2024`
     LEST BREACH BY `the employer` BECAUSE "2.1(2)(א): the owner makes sure the employees' data are current"
 
+-- F-2024-25_tashpah_01-n: "בדחיפות" (urgently) names no time, so the duty
+-- carries no deadline.
 @ref akn:art_2__para_2-1__subpara_2__cls_b akn:art_2__para_2-1__subpara_2__cls_b/p2 akn:art_2__para_2-1__subpara_2__cls_b/p3 akn:art_2__para_2-1__subpara_2__cls_b/p4 akn:art_2__para_2-1__subpara_2__cls_b/p5
 GIVETH A DEONTIC Party `circular 1 action`
 DECIDE `the owner has unreported employees open files` IS
     PARTY `the employer`
     MUST  `instruct unreported employees to open files`
-    WITHIN 7
     LEST BREACH BY `the employer` BECAUSE "2.1(2)(ב): employees not yet reported are told to open a file urgently"
+
+GIVETH A MAYBE NUMBER
+DECIDE `the days 2.1(2)(ב) gives for "urgently"` IS NOTHING
+
+`"urgently" names no deadline` MEANS
+    `the days 2.1(2)(ב) gives for "urgently"` EQUALS NOTHING
+#ASSERT `"urgently" names no deadline`
 
 -- akn:art_2__para_2-1__subpara_2__cls_c Locating the employees who meet the joining conditions after stage א; the conditions are encoded in section 3.
 
@@ -174,12 +272,13 @@ DECIDE `is employed by Ofek Hadash's terms` e IF
 GIVETH A DEONTIC Party `circular 1 action`
 DECIDE `the principal's actions` IS
     (PARTY `the school principal`
-     MUST  `set the timetable by the Ofek Hadash week`
-     WITHIN `30 August 2024`)
+     MUST  `guide teachers without a file in opening one`)
     RAND
     (PARTY `the school principal`
-     MUST  `report the positions in the placement system`
-     WITHIN `30 August 2024`)
+     MUST  `set the timetable by the Ofek Hadash week`)
+    RAND
+    (PARTY `the school principal`
+     MUST  `report the positions in the placement system`)
 
 -- akn:art_2__para_2-2 The heading "שלב שני".
 -- akn:art_2__para_2-2/p2 The lead-in to the owner's actions for the initial grade.
@@ -193,23 +292,20 @@ GIVETH A DEONTIC Party `circular 1 action`
 DECIDE `the owner transfers the salary interface` IS
     PARTY `the employer`
     MUST  `transfer the salary interface`
-    WITHIN 30
     LEST BREACH BY `the employer` BECAUSE "2.2(1): the salary interface goes to the Ministry's supplier for the month asked"
 
 -- 2.2(2): once the grade is set, the owner pays by it from the joining and
 -- deducts the advances "as stated in section 15 below".
 -- F-2024-25_tashpah_01-b: section 15 is the setting of the grade (and the
 -- role allowances); the advances are section 17. The reading adopted: 17.
-@ref akn:art_2__para_2-2__subpara_2 akn:art_17__para_17-1/p3
+@ref akn:art_2__para_2-2__subpara_2
 GIVEN `months since joining` IS A NUMBER, `advances paid` IS A NUMBER
 GIVETH A DEONTIC Party `circular 1 action`
 DECIDE `the owner pays by the grade and deducts the advances` `months since joining` `advances paid` IS
     PARTY `the employer`
     MUST  `pay by the grade` m PROVIDED m EQUALS `months since joining`
-    WITHIN 1
     HENCE (PARTY `the employer`
-           MUST  `deduct the advances` d PROVIDED d EQUALS `advances paid`
-           WITHIN 1)
+           MUST  `deduct the advances` d PROVIDED d EQUALS `advances paid`)
     LEST BREACH BY `the employer` BECAUSE "2.2(2): pay by the grade from the joining, and deduct the advances"
 
 @ref akn:art_2__para_2-2__subpara_2
@@ -233,7 +329,6 @@ DECIDE `the Ministry joins the school` `undertaking received` IS
     IF `undertaking received`
     THEN PARTY `the Ministry of Education`
          MUST  `join the school to Ofek Hadash`
-         WITHIN 30
     ELSE FULFILLED
 
 @ref akn:art_2__para_2-2__subpara_2/p5 akn:art_2__para_2-2__subpara_2/p6 akn:art_2__para_2-2__subpara_2/p7 akn:art_2__para_2-2__subpara_2/p8 akn:art_2__para_2-2__subpara_2/p9
@@ -312,28 +407,18 @@ DECIDE `cannot advance until certified` e IF
 -- 3.4.1: a new academic (or equivalent grade) in a joined institution at
 -- grade 1, seniority 1 — bachelor's table, master's table, a doctorate in
 -- the master's table with 5% of the integrated salary. 3.4.2: a new
--- non-academic not on intern's pay (§§145–148) by education.
-DECLARE `degree` IS ONE OF
-    `no degree`
-    `bachelor's degree`
-    `master's degree`
-    `doctorate`
-
-DECLARE `placement` HAS
-    `salary table` IS A STRING
-    `grade on placement` IS A NUMBER
-    `seniority on placement` IS A NUMBER
-    `doctorate supplement rate` IS A NUMBER
-
+-- non-academic not on intern's pay (§§145–148) by education — at grade 1, as annex ד' places every new employee;
+-- 3.4.2 states no seniority on placement, so it is an input.
 @ref akn:art_3__para_3-4__subpara_3-4-1 akn:art_3__para_3-4__subpara_3-4-1/p2 akn:art_3__para_3-4__subpara_3-4-1/p3 akn:art_3__para_3-4__subpara_3-4-1/p4 akn:art_3__para_3-4__subpara_3-4-1/p5 akn:art_3__para_3-4__subpara_3-4-1/p6 akn:art_3__para_3-4__subpara_3-4-2
 GIVEN d IS A `degree`, `non-academic education` IS A STRING @desc for a non-academic: "senior", "certified" or "uncertified"
+      `non-academic seniority on placement` IS A NUMBER @desc the seniority a new non-academic is placed at; 3.4.2 does not state it
 GIVETH A `placement`
-DECIDE `the placement of a new employee` d `non-academic education` IS
+DECIDE `the placement of a new employee` d `non-academic education` `non-academic seniority on placement` IS
     CONSIDER d
     WHEN `bachelor's degree` THEN `placement` "bachelor's degree" 1 1 0
     WHEN `master's degree`   THEN `placement` "master's degree" 1 1 0
     WHEN `doctorate`         THEN `placement` "master's degree" 1 1 0.05
-    WHEN `no degree`         THEN `placement` `non-academic education` 1 1 0
+    WHEN `no degree`         THEN `placement` `non-academic education` 1 `non-academic seniority on placement` 0
 
 -- akn:art_3__para_3-5 The heading "מורים מתמחים".
 
@@ -353,13 +438,6 @@ GIVEN `years of internship` IS A NUMBER, `completed degree and certificate` IS A
 GIVETH A BOOLEAN
 DECIDE `may go on under the reform after the internship` `years of internship` `completed degree and certificate` IF
     `years of internship` AT MOST 2 AND `completed degree and certificate`
-
-DECLARE `seniority purpose` IS ONE OF
-    `salary seniority`
-    `time required for promotion`
-    `tenure`
-    `jubilee grant`
-    `recuperation`
 
 @ref akn:art_3__para_3-5__subpara_3-5-3
 GIVEN p IS A `seniority purpose`
@@ -394,12 +472,6 @@ DECIDE `the substitute's post` `in weekly hours` `post replaced` `post otherwise
 @ref akn:art_4__para_4-1
 `the working days of a full position` MEANS 5
 
-DECLARE `work week` HAS
-    `week hours`       IS A NUMBER
-    `frontal`          IS A NUMBER
-    `individual`       IS A NUMBER
-    `presence`         IS A NUMBER
-
 -- 4.4: in a primary special-education school, 36 hours: 26 frontal, 5
 -- individual (a group of up to 3, or one pupil; content by the principal
 -- under the Ministry's instruction), 5 presence — up to 2 of them work
@@ -432,17 +504,6 @@ DECLARE `work week` HAS
 #ASSERT all (GIVEN w YIELD w's `frontal` PLUS w's `individual` PLUS w's `presence` EQUALS w's `week hours`)
             (LIST `the primary teacher's week`, `the primary health and arts week`,
                   `the post-primary teacher's week`, `the post-primary health and arts week`)
-
-DECLARE `presence activity` IS ONE OF
-    `work meetings`
-    `adapting the curriculum and environment to the pupil`
-    `individual meetings with parents`
-    `checking work and tests`
-    `preparing for and taking part in committees`
-    `planning and guiding the assistants' work`
-    `coordinating with bodies outside the school`
-    `coordinating for educational continuity`
-    `another activity`
 
 @ref akn:art_4__para_4-4__subpara_4-4-4__cls_2 akn:art_4__para_4-4__subpara_4-4-4__cls_2/p2 akn:art_4__para_4-4__subpara_4-4-4__cls_2/p3 akn:art_4__para_4-4__subpara_4-4-4__cls_2/p4 akn:art_4__para_4-4__subpara_4-4-4__cls_2/p5 akn:art_4__para_4-4__subpara_4-4-4__cls_2/p6 akn:art_4__para_4-4__subpara_4-4-4__cls_2/p7 akn:art_4__para_4-4__subpara_4-4-4__cls_2/p8 akn:art_4__para_4-6__subpara_4-6-4__cls_2 akn:art_4__para_4-6__subpara_4-6-4__cls_2/p2 akn:art_4__para_4-6__subpara_4-6-4__cls_2/p3 akn:art_4__para_4-6__subpara_4-6-4__cls_2/p4 akn:art_4__para_4-6__subpara_4-6-4__cls_2/p5 akn:art_4__para_4-6__subpara_4-6-4__cls_2/p6 akn:art_4__para_4-6__subpara_4-6-4__cls_2/p7 akn:art_4__para_4-6__subpara_4-6-4__cls_2/p8 akn:art_4__para_4-6__subpara_4-6-4__cls_2/p9 akn:art_4__para_4-6__subpara_4-6-4__cls_2/p10
 GIVEN a IS A `presence activity`
@@ -508,11 +569,6 @@ DECIDE `the least position in the reform` e `school year` IS
 -- a third by the HR division's special approval, in three frontal hours or
 -- fewer ("single frontal hours"), teaches those only, and the position is
 -- those hours over the base.
-DECLARE `hours split` HAS
-    `frontal part` IS A NUMBER
-    `individual part` IS A NUMBER
-    `presence part` IS A NUMBER
-
 @ref akn:art_5__para_5-4
 GIVEN w IS A `work week`, f IS A NUMBER
 GIVETH AN `hours split`
@@ -520,12 +576,28 @@ DECIDE `the part-time hours` w f IS
     `hours split` WITH `frontal part` IS f TIMES w's `frontal`, `individual part` IS f TIMES w's `individual`, `presence part` IS f TIMES w's `presence`
 
 @ref akn:art_5__para_5-4/p2
+GIVEN e IS A `school employee`, `approved for a required subject below a third` IS A BOOLEAN @desc the HR division's special approval to teach a required subject below a third of a position
+      `frontal hours` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `works single frontal hours only` e `approved for a required subject below a third` `frontal hours` IF
+        (    e's `post` EQUALS `health-professions employee`
+         OR `approved for a required subject below a third`)
+    AND e's `position fraction` LESS THAN 1 DIVIDED BY 3
+    AND `frontal hours` AT MOST 3
+
+-- Such an employee teaches the single frontal hours only — no individual or
+-- presence hours — and the position is those hours over the position base.
+@ref akn:art_5__para_5-4/p2
 GIVEN `single frontal hours` IS A NUMBER, `position base` IS A NUMBER
 GIVETH A NUMBER
 DECIDE `the position of single frontal hours` `single frontal hours` `position base` IS
-    IF `single frontal hours` AT MOST 3
-    THEN `single frontal hours` DIVIDED BY `position base`
-    ELSE 0
+    `single frontal hours` DIVIDED BY `position base`
+
+@ref akn:art_5__para_5-4/p2
+GIVEN `single frontal hours` IS A NUMBER
+GIVETH AN `hours split`
+DECIDE `the hours of single frontal hours` `single frontal hours` IS
+    `hours split` `single frontal hours` 0 0
 
 -- 5.5: at most two schools (reform or not), the cumulative position not
 -- above 100% in all — except health staff and a subject the HR division
@@ -552,18 +624,12 @@ DECIDE `the period counts for promotion time` f IF
 -- one institution the principal may approve up to 42 weekly hours without a
 -- request. 6.3: in two institutions, up to 106% without approval; 6.4:
 -- above 106%, a request in the entitlements system (procedure linked).
-@ref akn:art_6__para_6-1 akn:art_6__para_6-1/p2 akn:art_6__para_6-1/p3 akn:art_6__para_6-1/p4
+@ref akn:art_6__para_6-1/p4
 `the daily hours cap` MEANS 8.5
 @ref akn:art_6__para_6-1/p4
 `the weekly hours cap` MEANS 42
 
-DECLARE `over-time approval` IS ONE OF
-    `none needed`
-    `the principal's approval`
-    `a request in the entitlements system`
-    `not allowed`
-
-@ref akn:art_6__para_6-1/p2 akn:art_6__para_6-2 akn:art_6__para_6-3 akn:art_6__para_6-4 akn:art_6__para_6-4/p2 akn:art_6__para_6-4/p3
+@ref akn:art_6__para_6-1 akn:art_6__para_6-1/p2 akn:art_6__para_6-2 akn:art_6__para_6-3 akn:art_6__para_6-4 akn:art_6__para_6-4/p2 akn:art_6__para_6-4/p3
 GIVEN e IS A `school employee`, `institutions` IS A NUMBER, `total position` IS A NUMBER, `weekly hours` IS A NUMBER
 GIVETH AN `over-time approval`
 DECIDE `what over-time needs` e `institutions` `total position` `weekly hours` IS
@@ -598,8 +664,9 @@ DECIDE `what over-time needs` e `institutions` `total position` `weekly hours` I
     AND `what over-time needs` `a teacher in two schools at 104%` 2 1.04 37 EQUALS `none needed`
 #ASSERT `5.5 and 6.3 disagree on two schools at 104%`
 
--- Over 100%, the extra hours are frontal only.
-@ref akn:art_6__para_6-1/p3
+-- Over 100%, the extra hours are frontal only; at most 8.5 hours a day and
+-- 42 a week.
+@ref akn:art_6__para_6-1/p3 akn:art_6__para_6-1/p4
 GIVEN `extra frontal hours` IS A NUMBER, `extra other hours` IS A NUMBER, `daily hours` IS A NUMBER, `weekly hours` IS A NUMBER
 GIVETH A BOOLEAN
 DECIDE `the over-time is well formed` `extra frontal hours` `extra other hours` `daily hours` `weekly hours` IF
@@ -632,10 +699,12 @@ DECIDE `entitled to a mother's position` `position fraction` `is a mother entitl
 -- 7.5 forbids both. The reading adopted: 7.3 governs at 90%, the band that
 -- opens there; 7.4 is read as below 90%.
 @ref akn:art_7__para_7-3 akn:art_7__para_7-4 akn:art_7__para_7-5
-DECLARE `reduction after maternity leave` IS ONE OF
-    `the nursing hour`
-    `the mother's reduction`
-    `no reduction`
+GIVEN f IS A NUMBER
+GIVETH A `reduction after maternity leave`
+DECIDE `the reduction within four months of maternity leave` f IS
+    BRANCH IF f AT LEAST 0.9 THEN `the nursing hour`
+           IF f AT LEAST 0.79 THEN `the mother's reduction`
+           OTHERWISE `no reduction`
 
 GIVEN f IS A NUMBER
 GIVETH A LIST OF `reduction after maternity leave`
@@ -650,13 +719,6 @@ DECIDE `the reductions the text gives at position` f IS
 `at 90% the text gives both reductions` MEANS
     `the reductions the text gives at position` 0.9 EQUALS LIST `the nursing hour`, `the mother's reduction`
 #ASSERT `at 90% the text gives both reductions`
-
-GIVEN f IS A NUMBER
-GIVETH A `reduction after maternity leave`
-DECIDE `the reduction within four months of maternity leave` f IS
-    BRANCH IF f AT LEAST 0.9 THEN `the nursing hour`
-           IF f AT LEAST 0.79 THEN `the mother's reduction`
-           OTHERWISE `no reduction`
 
 @ref akn:art_7__para_7-3
 `the nursing hours a week` MEANS 5
@@ -721,23 +783,30 @@ DECIDE `the age hours for the position` e IS
 -- then retroactive to the year's start.
 @ref akn:art_9__para_9-1
 `the managers' position` MEANS 1
+@ref akn:art_9__para_9-1
+`the managers' working days a week` MEANS 5
 
 @ref akn:art_9__para_9-2 akn:art_9__para_9-7
 `the managers' week` MEANS 40
 
 @ref akn:art_9__para_9-3 akn:art_9__para_9-4
 `the least complexity level in special education` MEANS 3
+@ref akn:art_9__para_9-4
+`the number of complexity levels` MEANS 8
 
+-- 9.5: computed at the start of May of the year before, on that month's
+-- data. 9.6: a new or growing school is computed in December of the year;
+-- until then it has the least level, and the computed level then applies
+-- retroactively from the year's start.
 @ref akn:art_9__para_9-5 akn:art_9__para_9-6
-GIVEN `new or growing school` IS A BOOLEAN, `level computed in December` IS A NUMBER, `level computed in May` IS A NUMBER
+GIVEN `new or growing school` IS A BOOLEAN, `before the December computation` IS A BOOLEAN,
+      `level computed in December` IS A NUMBER, `level computed in May` IS A NUMBER
 GIVETH A NUMBER
-DECIDE `the complexity level for the year` `new or growing school` `level computed in December` `level computed in May` IS
+DECIDE `the complexity level for the year` `new or growing school` `before the December computation` `level computed in December` `level computed in May` IS
     max `the least complexity level in special education`
-        (IF `new or growing school` THEN `level computed in December` ELSE `level computed in May`)
-
-DECLARE `frontal by level` HAS
-    `level` IS A NUMBER
-    `frontal hours at the level` IS A NUMBER
+        (IF `new or growing school`
+         THEN (IF `before the December computation` THEN `the least complexity level in special education` ELSE `level computed in December`)
+         ELSE `level computed in May`)
 
 -- The principal's frontal hours by level (printed as lines).
 @ref akn:art_9__para_9-6/p2 akn:art_9__para_9-6/p3 akn:art_9__para_9-6/p4 akn:art_9__para_9-6/p5 akn:art_9__para_9-6/p6 akn:art_9__para_9-6/p7 akn:art_9__para_9-6/p8 akn:art_9__para_9-6/p9 akn:art_9__para_9-6/p10 akn:art_9__para_9-6/p11 akn:art_9__para_9-6/p12
@@ -796,8 +865,16 @@ DECIDE `covers levels 3 to 8 within` t lo hi IF
 @ref akn:art_9__para_9-8
 GIVEN e IS A `school employee`
 GIVETH A BOOLEAN
-DECIDE `works a teacher's week` e IF
-    NOT (e's `post` EQUALS `principal` OR e's `post` EQUALS `first deputy principal`)
+DECIDE `a deputy works a teacher's week` e IF
+    e's `post` EQUALS `second or later deputy`
+
+@ref akn:art_9__para_9-8
+GIVEN e IS A `school employee`
+GIVETH A STRING
+DECIDE `what the individual hours are for` e IS
+    IF e's `post` EQUALS `second or later deputy`
+    THEN "the work of the deputy's role"
+    ELSE "individual teaching"
 
 @ref akn:art_9__para_9-9 akn:art_9__para_9-10
 GIVEN `entitled to a mother's position` IS A BOOLEAN, `age` IS A NUMBER
@@ -835,27 +912,41 @@ DECIDE `is paid a global salary` e IF
 @ref akn:art_10__para_10-1 akn:art_10__para_10-5
 `the activity rate` MEANS 1.25
 
-@ref akn:art_10__para_10-2 akn:art_10__para_10-3 akn:art_10__para_10-4
+@ref akn:art_10__para_10-2
 `the yearly cap on activity hours` MEANS 40
-
-DECLARE `activity day` IS ONE OF
-    `on the employee's day off`
-    `instead of a presence hour that day`
-    `instead of a presence hour done on another day`
-    `beyond the timetable`
-
-@ref akn:art_10__para_10-1 akn:art_10__para_10-5 akn:art_10__para_10-6 akn:art_10__para_10-7
-GIVEN `hourly value` IS A NUMBER, d IS AN `activity day`
-GIVETH A NUMBER
-DECIDE `the pay for one activity hour` `hourly value` d IS
-    CONSIDER d
-    WHEN `instead of a presence hour that day` THEN `the activity rate` TIMES `hourly value` MINUS `hourly value`
-    OTHERWISE `the activity rate` TIMES `hourly value`
 
 GIVEN `hours allotted` IS A NUMBER
 GIVETH A NUMBER
 DECIDE `the activity hours paid` `hours allotted` IS
     min `hours allotted` `the yearly cap on activity hours`
+
+@ref akn:art_10__para_10-3
+`the pre-opening meeting hours at most` MEANS 3
+
+@ref akn:art_10__para_10-4
+GIVEN a IS A `school activity`
+GIVETH A BOOLEAN
+DECIDE `is a school activity` a IF
+    NOT a EQUALS `another kind of activity`
+
+@ref akn:art_10__para_10-4
+GIVEN p IS A Party
+GIVETH A BOOLEAN
+DECIDE `divides the activity hours by the institution's needs` p IF
+    p EQUALS `the school principal`
+
+-- The pay is beyond the fixed salary (10.1). Where the activity replaces a
+-- presence hour that day, the presence hour's 100% is not paid (10.6), so
+-- beyond the fixed salary — which pays that presence hour — the hour adds
+-- 125% less 100%; where the presence hour is done on another day (10.7),
+-- both are paid.
+@ref akn:art_10__para_10-1 akn:art_10__para_10-5 akn:art_10__para_10-6 akn:art_10__para_10-7
+GIVEN `hourly value` IS A NUMBER, d IS AN `activity day`
+GIVETH A NUMBER
+DECIDE `the pay for one activity hour beyond the fixed salary` `hourly value` d IS
+    CONSIDER d
+    WHEN `instead of a presence hour that day` THEN `the activity rate` TIMES `hourly value` MINUS `hourly value`
+    OTHERWISE `the activity rate` TIMES `hourly value`
 
 §§ `11 יציאה מאופק חדש`
 
@@ -870,11 +961,6 @@ GIVETH A BOOLEAN
 DECIDE `must be in Ofek Hadash` e `request to leave granted` IF
     `meets the joining conditions` e AND NOT `request to leave granted`
 
-DECLARE `reason to leave` IS ONE OF
-    `physical or mental health of the employee or a first-degree relative`
-    `a change for the worse in personal or family circumstances`
-    `another reason`
-
 @ref akn:art_11__para_11-2 akn:art_11__para_11-2/p2 akn:art_11__para_11-2/p3 akn:art_11__para_11-2/p4
 GIVEN r IS A `reason to leave`
 GIVETH A BOOLEAN
@@ -886,7 +972,6 @@ GIVETH A DEONTIC Party `circular 1 action`
 DECIDE `a request to leave` IS
     PARTY `the teaching employee`
     MAY   `submit a request` k PROVIDED k EQUALS "to leave Ofek Hadash"
-    WITHIN 365
 
 §§ `12 ותק בהוראה`
 
@@ -939,11 +1024,13 @@ DECLARE `promotion row` HAS
 -- F-2024-25_tashpah_01-l: "עד 25 שנה" and "25 שנה ומעלה" both name 25, so
 -- a veteran with exactly 25 years is barred and freed at once. The reading
 -- adopted: 3.2's "below 25" — 25 years is "25 and more".
-@ref akn:art_13__para_13-2__subpara_13-2-2 akn:art_13__para_13-2__subpara_13-2-2/p2 akn:art_13__para_13-2__subpara_13-2-2/p3 akn:art_13__para_13-2__subpara_13-2-2/p4 akn:art_13__para_13-2__subpara_13-2-2/p5 akn:art_13__para_13-2__subpara_13-2-2/p6 akn:art_13__para_13-2__subpara_13-2-2/p7
-GIVEN `certification study hours` IS A NUMBER
-GIVETH A NUMBER
-DECIDE `the study hours counted as development hours` `certification study hours` IS
-    min `certification study hours` 60
+@ref akn:art_13__para_13-2__subpara_13-2-2 akn:art_13__para_13-2__subpara_13-2-2/p2 akn:art_13__para_13-2__subpara_13-2-2/p6 akn:art_13__para_13-2__subpara_13-2-2/p7
+GIVEN `is new` IS A BOOLEAN, `seniority in years` IS A NUMBER, `certified` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `an uncertified academic joined by exception may advance` `is new` `seniority in years` `certified` IF
+        `certified`
+    OR (    (NOT `is new`)
+        AND `seniority in years` AT LEAST 25)
 
 GIVEN `seniority in years` IS A NUMBER
 GIVETH A BOOLEAN
@@ -961,6 +1048,24 @@ DECIDE `13.2.2's sixth paragraph frees a veteran with` `seniority in years` IF
 #ASSERT `13.2.2 both bars and frees a veteran of exactly 25 years`
 #ASSERT (NOT `13.2.2's first paragraph bars a veteran with` 26) AND `13.2.2's sixth paragraph frees a veteran with` 26
 #ASSERT `13.2.2's first paragraph bars a veteran with` 24 AND (NOT `13.2.2's sixth paragraph frees a veteran with` 24)
+
+-- Once certified: a veteran's required time and development hours count
+-- from the employment in the reform, for one promotion only; a new
+-- employee's count from the certification.
+@ref akn:art_13__para_13-2__subpara_13-2-2/p2 akn:art_13__para_13-2__subpara_13-2-2/p3 akn:art_13__para_13-2__subpara_13-2-2/p4 akn:art_13__para_13-2__subpara_13-2-2/p7
+GIVEN `is new` IS A BOOLEAN
+GIVETH A STRING
+DECIDE `the required time and hours count from` `is new` IS
+    IF `is new` THEN "the certification" ELSE "the employment in the reform"
+
+@ref akn:art_13__para_13-2__subpara_13-2-2/p3 akn:art_13__para_13-2__subpara_13-2-2/p4
+`the promotions the period before certification allows a veteran` MEANS 1
+
+@ref akn:art_13__para_13-2__subpara_13-2-2/p5 akn:art_13__para_13-2__subpara_13-2-2/p7
+GIVEN `is new` IS A BOOLEAN, `certification study hours` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the study hours counted as development hours` `is new` `certification study hours` IS
+    IF `is new` THEN 0 ELSE min `certification study hours` 60
 
 -- 13.2.3: from 1.9.2023, §§51, 59, 60 and 61 of the Ofek Hadash agreement
 -- are cancelled, except for those who signed before 30.6.2023 an undertaking
@@ -999,11 +1104,22 @@ DECIDE `§§51, 59–61 still apply to one who signed on` `signed the undertakin
 -- counsellors on the new academic integrated tables. 14.3: with at least 7
 -- counselling hours, a counselling allowance — 12% on a temporary licence,
 -- 18% on a permanent one.
-@ref akn:art_14__para_14-1 akn:art_14__para_14-1/p2 akn:art_14__para_14-1/p3 akn:art_14__para_14-1/p4 akn:art_14__para_14-1/p5 akn:art_14__para_14-1/p6 akn:art_14__para_14-1/p7
-GIVEN `frontal teaching hours` IS A NUMBER, `position fraction` IS A NUMBER
+@ref akn:art_14__para_14-1 akn:art_14__para_14-1/p2 akn:art_14__para_14-1/p3 akn:art_14__para_14-1/p4 akn:art_14__para_14-1/p5
+GIVEN k IS A `kind of hours`
+GIVETH A STRING
+DECIDE `what the counsellor's hours are for` k IS
+    CONSIDER k
+    WHEN `frontal hours` THEN "frontal teaching and counselling, as the principal divides them"
+    WHEN `individual hours` THEN "counselling, not teaching"
+    WHEN `presence hours` THEN "an academic teacher's presence work, and the counselling role"
+
+@ref akn:art_14__para_14-1/p6 akn:art_14__para_14-1/p7
+GIVEN `frontal teaching hours` IS A NUMBER, `position fraction` IS A NUMBER,
+      `in a primary or middle school` IS A BOOLEAN
 GIVETH A BOOLEAN
-DECIDE `the counsellor teaches enough` `frontal teaching hours` `position fraction` IF
-        `frontal teaching hours` AT LEAST 36 TIMES `position fraction` DIVIDED BY 6
+DECIDE `the counsellor teaches enough` `frontal teaching hours` `position fraction` `in a primary or middle school` IF
+        (    (NOT `in a primary or middle school`)
+         OR `frontal teaching hours` AT LEAST 36 TIMES `position fraction` DIVIDED BY 6)
     AND `frontal teaching hours` AT LEAST 4
 
 @ref akn:art_14__para_14-2
@@ -1024,7 +1140,16 @@ DECIDE `the counselling allowance rate` `counselling hours` `permanent licence` 
 -- coefficient by status); the pay converted is that of a 100% position by
 -- the roles; half grades are possible. 15.6: more in the booklet and in
 -- annex ד'; links.
-@ref akn:art_15__para_15-1 akn:art_15__para_15-2 akn:art_15__para_15-3 akn:art_15__para_15-4
+@ref akn:art_15__para_15-1
+GIVEN p IS A Party
+GIVETH A BOOLEAN
+DECIDE `is the only body that sets the grade` p IF
+    p EQUALS `the Ministry of Education`
+
+@ref akn:art_15__para_15-2
+`the data the grade is set from` MEANS LIST "employment", "education", "salary"
+
+@ref akn:art_15__para_15-3 akn:art_15__para_15-4
 GIVEN `year of joining` IS A NUMBER
 GIVETH A DATE
 DECIDE `the conversion month` `year of joining` IS
@@ -1155,7 +1280,13 @@ DECLARE `trip band` HAS
     `ends by`     IS A NUMBER
     `trip units`  IS A NUMBER
 
-@ref akn:art_16__para_16-1 akn:art_16__para_16-2 akn:art_16__para_16-2/p2 akn:art_16__para_16-2__subpara_a akn:art_16__para_16-2__subpara_a/p2 akn:art_16__para_16-2__subpara_a/p3 akn:art_16__para_16-2__subpara_a/p4 akn:art_16__para_16-2__subpara_a/p5 akn:art_16__para_16-2__subpara_a/p6
+@ref akn:art_16__para_16-1
+GIVEN `the hour is beyond the section 4 work hours` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `the trip allowance is paid for the hour` `the hour is beyond the section 4 work hours` IF
+    `the hour is beyond the section 4 work hours`
+
+@ref akn:art_16__para_16-2 akn:art_16__para_16-2/p2 akn:art_16__para_16-2__subpara_a akn:art_16__para_16-2__subpara_a/p2 akn:art_16__para_16-2__subpara_a/p3 akn:art_16__para_16-2__subpara_a/p4 akn:art_16__para_16-2__subpara_a/p5 akn:art_16__para_16-2__subpara_a/p6
 `the trip bands as printed` MEANS
     LIST `trip band` 0  15 0,
          `trip band` 15 16 0.5,
@@ -1267,11 +1398,6 @@ DECIDE `the advance class of` e IS
     AND `the advance rate` (`the advance class of` `an existing non-academic principal`) EQUALS NOTHING
 #ASSERT `a non-academic principal in the reform has no advance rate`
 
-@desc The components of the current pay the advance is computed on (17.1).
-DECLARE `current pay` HAS
-    `components for the advance` IS A NUMBER @desc the sum of: integrated salary, the '87 and '94 supplements, the 2001, 2008 and 2011 supplements, the split allowance, in-service allowances and the double-degree allowance
-    `share in joined schools` IS A NUMBER @desc the part of the employment in a joined recognised unofficial special-education school
-
 @ref akn:art_17__para_17-1 akn:art_17__para_17-1/p2
 GIVEN e IS A `school employee`, p IS A `current pay`, `grade set` IS A BOOLEAN
 GIVETH A NUMBER
@@ -1288,7 +1414,6 @@ GIVETH A DEONTIC Party `circular 1 action`
 DECIDE `the owner pays the Ofek Hadash advance` e p IS
     PARTY `the employer`
     MUST  `pay the Ofek Hadash advance` a PROVIDED a EQUALS `the Ofek Hadash advance` e p FALSE
-    WITHIN 1
     LEST BREACH BY `the employer` BECAUSE "17.1: the owner computes the advance and pays it to each employee"
 
 @ref akn:art_17__para_17-1/p3
@@ -1306,11 +1431,17 @@ DECIDE `the retroactive difference` `Ofek Hadash pay for the period` `pre-reform
 -- until installed, by hand. 18.4: the owner pays and deducts by the clock's
 -- data, after checking justified absences (illness, mourning…), by the rules.
 @ref akn:art_18__para_18-1 akn:art_18__para_18-3
+GIVEN `the clock is installed` IS A BOOLEAN
 GIVETH A DEONTIC Party `circular 1 action`
-DECIDE `an attendance clock is installed` IS
-    PARTY `the employer`
-    MUST  `install an attendance clock`
-    WITHIN 365
+DECIDE `the attendance clock and the report of hours` `the clock is installed` IS
+    IF `the clock is installed`
+    THEN PARTY `the teaching employee`
+         MUST  `report the work hours` how PROVIDED how EQUALS "on the attendance clock"
+    ELSE (PARTY `the employer`
+          MUST  `install an attendance clock`)
+         RAND
+         (PARTY `the teaching employee`
+          MUST  `report the work hours` how PROVIDED how EQUALS "by hand")
 
 @ref akn:art_18__para_18-2
 GIVEN `clock-in` IS A TIME
@@ -1319,6 +1450,12 @@ DECIDE `work hours count from` `clock-in` IS
     IF `clock-in` LESS THAN Time 7 45 0 THEN Time 7 45 0 ELSE `clock-in`
 
 @ref akn:art_18__para_18-4
+GIVETH A DEONTIC Party `circular 1 action`
+DECIDE `the owner pays and deducts by the clock` IS
+    PARTY `the employer`
+    MUST  `pay and deduct by the attendance data`
+    LEST BREACH BY `the employer` BECAUSE "18.4: the owner pays and deducts by the attendance clock's data, after checking justified absences, by the rules"
+
 GIVEN `hours by the clock` IS A NUMBER, `hours of justified absence` IS A NUMBER, `hours owed` IS A NUMBER
 GIVETH A NUMBER
 DECIDE `the hours to deduct` `hours by the clock` `hours of justified absence` `hours owed` IS
@@ -1378,7 +1515,6 @@ GIVETH A DEONTIC Party `undertaking action`
 DECIDE `the owner applies Ofek Hadash on pain of sanctions` IS
     PARTY `the employer`
     MUST  `apply Ofek Hadash in the listed schools`
-    WITHIN 365
     LEST BREACH BY `the employer` BECAUSE "the undertaking: breach may bring sanctions up to revocation of the licence"
 
 -- akn:att_1__hc_1/p1 The undertaking's title; no rule of its own.
@@ -1420,12 +1556,13 @@ DECIDE `the pay after conversion` x y IS
 -- supplements, and the role allowances that do not continue (split,
 -- training, in-service, double degree); with no employment in March, the
 -- joining month; on leave the year before, September of the joining year.
-@ref akn:att_4__hc_1__para_1__subpara_b akn:att_4__hc_1__para_1__subpara_b/p2 akn:att_4__hc_1__para_1__subpara_b/p3 akn:att_4__hc_1__para_1__subpara_b/p4 akn:att_4__hc_1__para_1__subpara_b/p5 akn:att_4__hc_1__para_1__subpara_b/p6 akn:att_4__hc_1__para_1__subpara_b__cls_2 akn:att_4__hc_1__para_1__subpara_b__cls_4
-DECLARE `month for conversion` IS ONE OF
-    `March of the year before joining`
-    `the joining month`
-    `September of the joining year`
+@ref akn:att_4__hc_1__para_1__subpara_b akn:att_4__hc_1__para_1__subpara_b/p2 akn:att_4__hc_1__para_1__subpara_b/p3 akn:att_4__hc_1__para_1__subpara_b/p4 akn:att_4__hc_1__para_1__subpara_b/p5
+`the components of a teacher's pay for conversion` MEANS
+    LIST "integrated salary", "the '87 supplement", "the '94 supplement",
+         "the 2001 supplement", "the 2008 supplement", "the 2011 supplement",
+         "split allowance", "training allowance", "in-service allowance", "double degree"
 
+@ref akn:att_4__hc_1__para_1__subpara_b/p2 akn:att_4__hc_1__para_1__subpara_b/p6 akn:att_4__hc_1__para_1__subpara_b__cls_2 akn:att_4__hc_1__para_1__subpara_b__cls_4
 GIVEN `employed in March` IS A BOOLEAN, `on leave the year before` IS A BOOLEAN
 GIVETH A `month for conversion`
 DECIDE `the teacher's month for conversion` `employed in March` `on leave the year before` IS
@@ -1465,13 +1602,17 @@ DECIDE `the coefficient grown by 12.5 points` y IS
 -- A is placed by education and seniority at the grade whose pay is the
 -- closest equal or higher; and the 2016 shekel supplement and the 2022 Ofek
 -- supplement are added by the grade.
-@ref akn:att_4__hc_1__para_1__subpara_b/p18 akn:att_4__hc_1__para_1__subpara_b/p19 akn:att_4__hc_1__para_1__subpara_b__cls_2/p2 akn:att_4__hc_1__para_1__subpara_b__cls_5 akn:att_4__hc_1__para_2__subpara_e akn:att_4__hc_1__para_2__subpara_e/p2 akn:att_4__hc_1__para_3__subpara_e akn:att_4__hc_1__para_3__subpara_e/p2
+@ref akn:att_4__hc_1__para_1__subpara_b/p18 akn:att_4__hc_1__para_1__subpara_b/p19 akn:att_4__hc_1__para_1__subpara_b__cls_2/p2 akn:att_4__hc_1__para_2__subpara_e akn:att_4__hc_1__para_2__subpara_e/p2 akn:att_4__hc_1__para_3__subpara_e akn:att_4__hc_1__para_3__subpara_e/p2
 GIVEN a IS A NUMBER, `grid` IS A LIST OF NUMBER @desc the salaries of the grades, for the employee's education and seniority, in rising order
 GIVETH A MAYBE NUMBER
 DECIDE `the salary of the grade placed at` a `grid` IS
     CONSIDER filter (GIVEN s YIELD s AT LEAST a) `grid`
     WHEN s FOLLOWED BY rest THEN JUST s
     OTHERWISE NOTHING
+
+@ref akn:att_4__hc_1__para_1__subpara_b__cls_5
+`the supplements paid beside the table salary, by the grade` MEANS
+    LIST "the 2016 shekel supplement", "the Ofek 2022 supplement"
 
 -- akn:att_4__hc_1__para_1__subpara_b/p7 Letterhead; no rule.
 -- akn:att_4__hc_1__para_1__subpara_b/p8 Letterhead; no rule.
@@ -1485,11 +1626,28 @@ DECIDE `the salary of the grade placed at` a `grid` IS
 -- tax gross-up and imputed benefit; on leave at the joining, September.
 -- Principals: Y = 15%; X likewise, without expense refunds, yearly
 -- payments, gross-up and imputed benefit.
-@ref akn:att_4__hc_1__para_2 akn:att_4__hc_1__para_2__subpara_b akn:att_4__hc_1__para_2__subpara_b/p2 akn:att_4__hc_1__para_2__subpara_c akn:att_4__hc_1__para_2__subpara_c/p2 akn:att_4__hc_1__para_2__subpara_c/p3
+@ref akn:att_4__hc_1__para_2 akn:att_4__hc_1__para_2__subpara_b akn:att_4__hc_1__para_2__subpara_b/p2
 `the first deputy's conversion coefficient` MEANS 0.2
 
-@ref akn:att_4__hc_1__para_3 akn:att_4__hc_1__para_3__subpara_b akn:att_4__hc_1__para_3__subpara_b/p2 akn:att_4__hc_1__para_3__subpara_c akn:att_4__hc_1__para_3__subpara_c/p2 akn:att_4__hc_1__para_3__subpara_c/p3
+@ref akn:att_4__hc_1__para_2__subpara_c akn:att_4__hc_1__para_2__subpara_c/p2
+`what the first deputy's pay for conversion leaves out` MEANS
+    LIST "the education allowance", "expense refunds", "sundry payments", "tax gross-up", "imputed taxable benefit"
+
+-- A first deputy or principal on leave when the reform starts: the pay
+-- that would have been paid for September of the joining year; otherwise
+-- March of the year before, at 100% by the roles.
+@ref akn:att_4__hc_1__para_2__subpara_c/p2 akn:att_4__hc_1__para_2__subpara_c/p3 akn:att_4__hc_1__para_3__subpara_c/p2 akn:att_4__hc_1__para_3__subpara_c/p3
+GIVEN `on leave when the reform starts` IS A BOOLEAN
+GIVETH A `month for conversion`
+DECIDE `the manager's month for conversion` `on leave when the reform starts` IS
+    IF `on leave when the reform starts` THEN `September of the joining year` ELSE `March of the year before joining`
+
+@ref akn:att_4__hc_1__para_3 akn:att_4__hc_1__para_3__subpara_b akn:att_4__hc_1__para_3__subpara_b/p2
 `the principal's conversion coefficient` MEANS 0.15
+
+@ref akn:att_4__hc_1__para_3__subpara_c akn:att_4__hc_1__para_3__subpara_c/p2
+`what the principal's pay for conversion leaves out` MEANS
+    LIST "expense refunds", "yearly payments", "tax gross-up", "imputed taxable benefit"
 
 -- The worked examples. The deputy: components paid by the position
 -- (89.167%) summing to 5,948.93, management allowance 2,143.92 paid at
@@ -1576,6 +1734,8 @@ DECIDE `the personal supplement rate` t y `new table salary` IS
 #ASSERT TRUNC (`the principal's T` TIMES 1.15 PLUS 0.005) 2 EQUALS 23845.4
 #ASSERT TRUNC (`the personal supplement rate` `the principal's T` 0.15 `the principal's new integrated salary` TIMES 100 PLUS 0.0005) 3 EQUALS 18.712
 
+§§ `Worked examples`
+
 -- Examples on the encoding.
 `a primary teacher aged 55` MEANS
     `school employee` WITH
@@ -1619,10 +1779,10 @@ DECIDE `the personal supplement rate` t y `new table salary` IS
 #ASSERT `the grade coordinator's allowance` 20000 3 EQUALS 1400
 #ASSERT `the counselling allowance rate` 8 TRUE EQUALS 0.18
 #ASSERT `the counselling allowance rate` 6 TRUE EQUALS 0
-#ASSERT `the counsellor teaches enough` 6 1 AND NOT `the counsellor teaches enough` 3 0.5
+#ASSERT `the counsellor teaches enough` 6 1 TRUE AND NOT `the counsellor teaches enough` 3 0.5 TRUE
 #ASSERT `the reduction within four months of maternity leave` 0.85 EQUALS `the mother's reduction`
-#ASSERT `the pay for one activity hour` 100 `instead of a presence hour that day` EQUALS 25
-#ASSERT `the pay for one activity hour` 100 `on the employee's day off` EQUALS 125
+#ASSERT `the pay for one activity hour beyond the fixed salary` 100 `instead of a presence hour that day` EQUALS 25
+#ASSERT `the pay for one activity hour beyond the fixed salary` 100 `on the employee's day off` EQUALS 125
 #ASSERT `the advance rate` `post-primary teacher or intern` EQUALS JUST 0.2
 #ASSERT `work hours count from` (Time 7 30 0) EQUALS Time 7 45 0
 #ASSERT `the role allowances paid` 3 EQUALS 2
