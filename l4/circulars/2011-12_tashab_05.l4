@@ -31,16 +31,19 @@ DECLARE `daycare action` IS ONE OF
 
 §§ `1 תחולה`
 
+-- Section 1(א): women in the teaching-staff grade employed by the owners
+-- of secondary education who are mothers of a child or children under 5.
+-- Section 1(ב): a widower or divorced man with the child or children in his
+-- custody is treated as such an employee.
 @ref akn:art_1__para_a akn:art_1__para_b
 GIVEN d IS A `daycare employee`
 GIVETH A BOOLEAN
-DECIDE `within the circular` d IF
+DECIDE `within section 1` d IF
         d's `in the teaching-staff grade`
     AND d's `employed by an owner of secondary education`
     AND d's `children under 5` AT LEAST 1
     AND (   d's `a mother`
-         OR d's `a widower or divorced man with the children in his custody`
-         OR d's `entitled through section 4(א) of the Equal Employment Opportunities Law`)
+         OR d's `a widower or divorced man with the children in his custody`)
 
 §§ `2 תשלום תוספת מעונות`
 
@@ -61,12 +64,13 @@ DECIDE `the full-position daycare amount for` n IS
 #ASSERT `the full-position daycare amount for` 2 EQUALS `the amount for the first child` PLUS `the amount for the second child`
 #ASSERT `the full-position daycare amount for` 4 EQUALS `the full-position daycare amount for` 2
 
+-- Section 2(א)(2): paid to the mother of a child as in section 1, who is
+-- not required to produce receipts. The text sets no time limit.
 @ref akn:art_2__para_a__subpara_2
 GIVETH A DEONTIC Party `daycare action`
 DECIDE `no receipts` IS
     PARTY `the local authority or owning body`
     SHANT `require receipts`
-    WITHIN 12
     LEST BREACH BY `the local authority or owning body` BECAUSE "section 2(א)(2): the mother is not required to produce receipts"
 
 -- Section 2(ב): the amounts are for a full position, pro-rated for a part
@@ -83,21 +87,15 @@ GIVETH A NUMBER
 DECIDE `the share if pro-rated above a full position too` d IS
     d's `position fraction`
 
-`a teacher at 120% with one child` MEANS
-    `daycare employee` WITH
-        `in the teaching-staff grade`        IS TRUE
-        `employed by an owner of secondary education` IS TRUE
-        `a mother`                           IS TRUE
-        `a widower or divorced man with the children in his custody` IS FALSE
-        `entitled through section 4(א) of the Equal Employment Opportunities Law` IS FALSE
-        `children under 5`                   IS 1
-        `position fraction`                  IS 1.2
-        `entitled to salary from the employer and funded by it this month` IS TRUE
-
 `section 2(ב) leaves a position above full undecided` MEANS
     NOT (`the daycare position share` `a teacher at 120% with one child`
          EQUALS `the share if pro-rated above a full position too` `a teacher at 120% with one child`)
 #ASSERT `section 2(ב) leaves a position above full undecided`
+
+-- Section 2(ד): updated each January under the agreements; the new amounts
+-- are to be published. This circular's amounts are the ones from 1.9.2011.
+@ref akn:art_2__para_d
+`the month the amounts are updated` MEANS `month number` January
 
 -- Section 2(ה): only for a period of salary from the employer and funded by
 -- it; not for a period of maternity pay or unpaid leave.
@@ -107,32 +105,28 @@ GIVETH A BOOLEAN
 DECIDE `a month the addition is paid for` d IF
     d's `entitled to salary from the employer and funded by it this month`
 
--- Section 2(ד): updated each January under the agreements; the new amounts
--- are to be published. This circular's amounts are the ones from 1.9.2011.
-@ref akn:art_2__para_d
-`the month the amounts are updated` MEANS `month number` January
-
-@export default The monthly daycare addition from 1.9.2011 a teaching employee of an owner is paid under circular תשע"ב/5
-GIVEN d IS A `daycare employee` @desc the employee in the month
-      g IS A `general arrangement` @desc any general daycare arrangement of the grade, employer, workplace or region (section 3)
-GIVETH A NUMBER
-DECIDE `the daycare addition` d g IS
-    IF `within the circular` d AND `a month the addition is paid for` d AND `the addition replaces other arrangements under` g
-    THEN `the full-position daycare amount for` (d's `children under 5`) TIMES `the daycare position share` d
-    ELSE 0
-
 -- Section 2(ו), printed in the corpus as a paragraph of 2(ה): an expense
--- reimbursement, not salary for every purpose; contributions are made on it
--- as the employer does on expense reimbursements. Section 2(ז): a "right
--- related to parenthood" under section 4(ב) of the Equal Employment
--- Opportunities Law, to which section 4(א) applies (see the input above).
+-- reimbursement, so not salary for every purpose; contributions are made on
+-- it as the employer does on an expense-reimbursement component.
+@ref akn:art_2__para_e/p2
+`the character of the daycare addition` MEANS `daycare character` FALSE TRUE
+
 DECLARE `daycare character` HAS
     `salary for every purpose`           IS A BOOLEAN
     `contributions as on expense reimbursements` IS A BOOLEAN
-    `a right related to parenthood`      IS A BOOLEAN
 
-@ref akn:art_2__para_e/p2 akn:art_2__para_g
-`the character of the daycare addition` MEANS `daycare character` FALSE TRUE TRUE
+-- Section 2(ז): a "right related to parenthood" under section 4(ב) of the
+-- Equal Employment Opportunities Law, to which section 4(א) of that law
+-- applies; who section 4(א) extends the right to is that law's, an input.
+@ref akn:art_2__para_g
+GIVEN d IS A `daycare employee`
+GIVETH A BOOLEAN
+DECIDE `a parent the addition is paid to` d IF
+        `within section 1` d
+    OR (    d's `in the teaching-staff grade`
+        AND d's `employed by an owner of secondary education`
+        AND d's `children under 5` AT LEAST 1
+        AND d's `entitled through section 4(א) of the Equal Employment Opportunities Law`)
 
 §§ `3 החלפה/ביטול הסדר מעונות אחר`
 
@@ -195,13 +189,34 @@ DECIDE `paying the addition with September's salary` d g IS
     WITHIN `month number` September
     LEST BREACH BY `the local authority or owning body` BECAUSE "section 4: the payments are made with the September 2011 salary"
 
+@export default The monthly daycare addition from 1.9.2011 a teaching employee of an owner is paid under circular תשע"ב/5
+GIVEN d IS A `daycare employee` @desc the employee in the month
+      g IS A `general arrangement` @desc any general daycare arrangement of the grade, employer, workplace or region (section 3)
+GIVETH A NUMBER
+DECIDE `the daycare addition` d g IS
+    IF `a parent the addition is paid to` d AND `a month the addition is paid for` d AND `the addition replaces other arrangements under` g
+    THEN `the full-position daycare amount for` (d's `children under 5`) TIMES `the daycare position share` d
+    ELSE 0
+
 -- akn:art_4/p2 The contact line for questions; no rule.
 -- akn:art_4/p3 The contact line, continued; no rule.
 -- akn:art_4/p4 The telephone numbers; no rule.
 
 -- akn:conclusions The sign-off and signature; no rule.
 
--- Worked examples.
+§§ `Worked examples`
+
+`a teacher at 120% with one child` MEANS
+    `daycare employee` WITH
+        `in the teaching-staff grade`        IS TRUE
+        `employed by an owner of secondary education` IS TRUE
+        `a mother`                           IS TRUE
+        `a widower or divorced man with the children in his custody` IS FALSE
+        `entitled through section 4(א) of the Equal Employment Opportunities Law` IS FALSE
+        `children under 5`                   IS 1
+        `position fraction`                  IS 1.2
+        `entitled to salary from the employer and funded by it this month` IS TRUE
+
 `no general arrangement` MEANS `general arrangement` FALSE 0 0 TRUE
 `a better general arrangement` MEANS `general arrangement` TRUE 350 600 TRUE
 `a lesser general arrangement` MEANS `general arrangement` TRUE 350 450 TRUE

@@ -40,6 +40,7 @@ DECLARE `erosion portion` HAS
     `grade taught`                       IS A NUMBER @desc 7 to 14 (ז' to י"ד)
     `division the school places it in`   IS A `school division`
     `in a three- or four-year upper division` IS A BOOLEAN @desc the school's upper division is a three- or four-year one (section 1א)
+    `moved to Ofek Hadash in the middle school` IS A BOOLEAN @desc for a middle-school portion, the employee has moved to Ofek Hadash terms under the agreement of 25.12.2008
     `combined salary`                    IS A NUMBER @desc the combined salary of the portion, shekels a month
     `tosefet '87`                        IS A NUMBER
     `tosefet '94`                        IS A NUMBER
@@ -75,20 +76,6 @@ DECIDE `an upper-division portion by section 1ב` p IF
 -- three-year one, grade 9 is in the school's middle division and section
 -- 1ב's grades put it in the upper. The reading adopted: section 1ב's grades,
 -- the clause written to settle exactly this split.
-`grade 9 of a six-year school with a three-year upper division` MEANS
-    `erosion portion` WITH
-        `in the teaching-staff grade`        IS TRUE
-        `employed by an owner of secondary education supervised by the Ministry` IS TRUE
-        `kind of school`                     IS `a six-year school`
-        `grade taught`                       IS 9
-        `division the school places it in`   IS `the middle division`
-        `in a three- or four-year upper division` IS TRUE
-        `combined salary`                    IS 8000
-        `tosefet '87`                        IS 160
-        `tosefet '94`                        IS 140
-        `tosefet 2008 amount`                IS 400
-        `tosefet 2001 amount`                IS 300
-
 `section 1ב places in the upper division a grade the school places in the middle` MEANS
         `an upper-division portion by section 1ב` `grade 9 of a six-year school with a three-year upper division`
     AND `grade 9 of a six-year school with a three-year upper division`'s `division the school places it in` EQUALS `the middle division`
@@ -103,12 +90,24 @@ GIVETH A BOOLEAN
 DECIDE `awaits the agreement still to be signed` p IF
         `the employee is within section 1א` p
     AND (NOT `an upper-division portion by section 1ב` p)
+    AND (NOT p's `moved to Ofek Hadash in the middle school`)
 
 §§ `2 יישום תוספת שחיקה בשיעור 2.1%`
 
 `the erosion rate` MEANS 0.021
 
+-- Section 2א: from 1.9.2011 the employees of section 1א are owed 2.1% of
+-- the combined salary, tosefet '87, tosefet '94, tosefet 2008 and tosefet
+-- 2001 ("תוספת שחיקה 2011"), on the upper-division portion (section 1ב).
 @ref akn:art_2__hc_2__para_a
+@export default The monthly 2011 erosion addition from 1.9.2011 for one portion of a teaching employee's employment under circular תשע"ב/4
+GIVEN p IS AN `erosion portion` @desc the portion of employment, by the grade it teaches
+GIVETH A NUMBER
+DECIDE `the erosion addition` p IS
+    IF `the employee is within section 1א` p AND `an upper-division portion by section 1ב` p
+    THEN `the erosion rate` TIMES `the base of the erosion addition` p
+    ELSE 0
+
 GIVEN p IS AN `erosion portion`
 GIVETH A NUMBER
 DECIDE `the base of the erosion addition` p IS
@@ -118,13 +117,20 @@ DECIDE `the base of the erosion addition` p IS
     PLUS p's `tosefet 2008 amount`
     PLUS p's `tosefet 2001 amount`
 
-@export default The monthly 2011 erosion addition from 1.9.2011 for one portion of a teaching employee's employment under circular תשע"ב/4
-GIVEN p IS AN `erosion portion` @desc the portion of employment, by the grade it teaches
-GIVETH A NUMBER
-DECIDE `the erosion addition` p IS
-    IF `the employee is within section 1א` p AND `an upper-division portion by section 1ב` p
-    THEN `the erosion rate` TIMES `the base of the erosion addition` p
-    ELSE 0
+-- Section 2ב: paid as a separate salary component, counted toward the
+-- percentage additions from the combined salary except the five it names,
+-- and toward the hourly value, severance pay and the three funds.
+@ref akn:art_2__hc_2__para_b
+GIVEN u IS AN `erosion use`
+GIVETH A BOOLEAN
+DECIDE `the erosion addition counts toward` u IF
+    CONSIDER u
+    WHEN `tosefet 2001` THEN FALSE
+    WHEN `tosefet 2008` THEN FALSE
+    WHEN `tosefet Oz LaTmura` THEN FALSE
+    WHEN `tosefet 2011` THEN FALSE
+    WHEN `promotion-grade addition` THEN FALSE
+    OTHERWISE TRUE
 
 @desc A use the erosion addition may be counted toward, as section 2ב asks.
 DECLARE `erosion use` IS ONE OF
@@ -138,29 +144,20 @@ DECLARE `erosion use` IS ONE OF
     `severance pay under the Severance Pay Law`
     `contributions to a pension provident fund, the study fund and the Dafna fund`
 
--- Section 2ב: a separate salary component, counted toward the percentage
--- additions from the combined salary except the five it names, and toward
--- the hourly value, severance pay and the three funds. Section 2ג: tosefet
--- Oz LaTmura and the promotion grade are new additions for those who joined
--- the reform.
-@ref akn:art_2__hc_2__para_b akn:art_2__hc_2__para_c
-GIVEN u IS AN `erosion use`
-GIVETH A BOOLEAN
-DECIDE `the erosion addition counts toward` u IF
-    CONSIDER u
-    WHEN `tosefet 2001` THEN FALSE
-    WHEN `tosefet 2008` THEN FALSE
-    WHEN `tosefet Oz LaTmura` THEN FALSE
-    WHEN `tosefet 2011` THEN FALSE
-    WHEN `promotion-grade addition` THEN FALSE
-    OTHERWISE TRUE
+`how the erosion addition is paid` MEANS `a separate salary component`
 
 DECLARE `payslip component` IS ONE OF
     `a separate salary component`
     `part of another component`
 
-@ref akn:art_2__hc_2__para_b
-`how the erosion addition is paid` MEANS `a separate salary component`
+-- Section 2ג: tosefet Oz LaTmura and the promotion-grade addition are new
+-- additions paid to a teaching employee who joined the Oz LaTmura reform,
+-- under the agreement; further instructions are to follow.
+@ref akn:art_2__hc_2__para_c
+`the new additions for those who joined Oz LaTmura` MEANS
+    LIST `tosefet Oz LaTmura`, `promotion-grade addition`
+
+#ASSERT all (GIVEN u YIELD NOT `the erosion addition counts toward` u) `the new additions for those who joined Oz LaTmura`
 
 §§ `3 ביצוע תשלומים`
 
@@ -176,7 +173,24 @@ DECIDE `paying the erosion addition with September's salary` p IS
 
 -- akn:conclusions The contact line for questions, the sign-off and signature; no rule.
 
--- Worked examples; the salary figures are round placeholders.
+§§ `Worked examples`
+
+-- The salary figures are round placeholders.
+`grade 9 of a six-year school with a three-year upper division` MEANS
+    `erosion portion` WITH
+        `in the teaching-staff grade`        IS TRUE
+        `employed by an owner of secondary education supervised by the Ministry` IS TRUE
+        `kind of school`                     IS `a six-year school`
+        `grade taught`                       IS 9
+        `division the school places it in`   IS `the middle division`
+        `in a three- or four-year upper division` IS TRUE
+        `moved to Ofek Hadash in the middle school` IS FALSE
+        `combined salary`                    IS 8000
+        `tosefet '87`                        IS 160
+        `tosefet '94`                        IS 140
+        `tosefet 2008 amount`                IS 400
+        `tosefet 2001 amount`                IS 300
+
 `grade 11 of a three-year school` MEANS
     `erosion portion` WITH
         `in the teaching-staff grade`        IS TRUE
@@ -185,6 +199,7 @@ DECIDE `paying the erosion addition with September's salary` p IS
         `grade taught`                       IS 11
         `division the school places it in`   IS `the upper division`
         `in a three- or four-year upper division` IS TRUE
+        `moved to Ofek Hadash in the middle school` IS FALSE
         `combined salary`                    IS 8000
         `tosefet '87`                        IS 160
         `tosefet '94`                        IS 140
@@ -199,6 +214,7 @@ DECIDE `paying the erosion addition with September's salary` p IS
         `grade taught`                       IS 8
         `division the school places it in`   IS `the middle division`
         `in a three- or four-year upper division` IS TRUE
+        `moved to Ofek Hadash in the middle school` IS FALSE
         `combined salary`                    IS 8000
         `tosefet '87`                        IS 160
         `tosefet '94`                        IS 140
