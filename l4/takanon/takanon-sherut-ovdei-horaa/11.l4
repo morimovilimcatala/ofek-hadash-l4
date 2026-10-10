@@ -96,6 +96,12 @@ DECIDE `not excluded as an early leaver` t IF
 GIVETH A BOOLEAN
 DECIDE `the seminar supplement is part of the salary for every purpose` IS TRUE
 
+@ref akn:chp_11__ssec_11_6_1__para_1/p2
+GIVEN t IS A `seminar teacher`
+GIVETH A NUMBER
+DECIDE `seminar supplement from 1.4.1965 to 1.5.1965` t IS
+    0.14 TIMES t's `gross salary for those classes`
+
 @ref akn:chp_11__ssec_11_6_1__para_1
 GIVEN t IS A `seminar teacher`
 GIVETH A BOOLEAN
@@ -106,10 +112,8 @@ DECIDE `entitled to the seminar supplement` t IF
     AND `teaches enough hours for the supplement` t
     AND `not excluded as an early leaver` t
 
--- The rate and its base, by period: 14% of the gross for those classes to
--- 1.5.1965; 14% of the combined base salary from 2.5.1965 to 30.9.1982; 12%
--- of the combined salary from 1.10.1982, unchanged from 1.4.86 when the
--- combined salary was redefined.
+-- From 2.5.1965 the 14% "mentioned above" is taken of the combined base
+-- salary, which is the supplement's base.
 @ref akn:chp_11__ssec_11_6_1__para_2 akn:chp_11__ssec_11_6_1__para_2/p2
 GIVEN t IS A `seminar teacher`
 GIVETH A NUMBER
@@ -120,18 +124,31 @@ DECIDE `seminar supplement from 2.5.1965 to 30.9.1982` t IS
 GIVETH A NUMBER
 DECIDE `seminar supplement rate from 1.10.1982` IS 0.12
 
+@ref akn:chp_11__ssec_11_6_1__para_3
+GIVEN t IS A `seminar teacher`
+GIVETH A NUMBER
+DECIDE `seminar supplement from 1.10.1982` t IS
+    `seminar supplement rate from 1.10.1982` TIMES t's `combined salary`
+
+-- From 1.4.86 the rate stays 12%, although the combined salary it is taken
+-- of was redefined then.
 @ref akn:chp_11__ssec_11_6_1__para_4
 GIVEN t IS A `seminar teacher`
 GIVETH A NUMBER
 DECIDE `seminar supplement rate at` t IS
     `seminar supplement rate from 1.10.1982`
 
+§§§ `11.6.1 The seminar supplement by period`
+
+-- Puts the periods (1) to (3a) together: 14% of the gross for those classes
+-- to 1.5.1965; 14% of the combined base salary from 2.5.1965 to 30.9.1982;
+-- 12% of the combined salary from 1.10.1982.
 GIVEN t IS A `seminar teacher`
 GIVETH A NUMBER
 DECIDE `seminar supplement` t IS
     IF NOT `entitled to the seminar supplement` t
     THEN 0
-    ELSE BRANCH IF t's `month` AT MOST Date 1 5 1965 THEN 0.14 TIMES t's `gross salary for those classes`
+    ELSE BRANCH IF t's `month` AT MOST Date 1 5 1965 THEN `seminar supplement from 1.4.1965 to 1.5.1965` t
                 IF t's `month` AT MOST Date 30 9 1982 THEN `seminar supplement from 2.5.1965 to 30.9.1982` t
                 OTHERWISE `seminar supplement rate at` t TIMES t's `combined salary`
 
@@ -175,33 +192,49 @@ DECLARE `coordinator post` IS ONE OF
 
 DECLARE `coordinator` HAS
     `post`                         IS A `coordinator post`
+    `month`                        IS A DATE
     `combined salary`              IS A NUMBER
-    `key rate`                     IS A NUMBER @desc for a track or major coordinator: the rate the key of section 11.6.3.2(b) gives; the key is not in the text, so an input
-    `subject table rate`           IS A NUMBER @desc for a subject coordinator: the rate the table of section 11.6.3.2(c) gives; the table is not in the text, so an input
+    `key allowance`                IS A NUMBER @desc for a track or major coordinator: the concentration allowance the key of section 11.6.3.2(b) gives; the key is linked from the page and is not in the text, so an input
+    `subject table allowance`      IS A NUMBER @desc for a subject coordinator: the concentration allowance the table of section 11.6.3.2(c) gives; the table is linked from the page and is not in the text, so an input
     `permanent`                    IS A BOOLEAN
     `position in seminars and colleges` IS A NUMBER @desc the share of a position held in the seminar and college system
 
 @ref akn:chp_11__ssec_11_6_3__para_1
+GIVEN p IS A `coordinator post`
+GIVETH A BOOLEAN
+DECIDE `entitled to the concentration allowance of paragraph 1` p IF
+       p EQUALS `guidance coordinator`
+    OR p EQUALS `studies coordinator`
+    OR p EQUALS `students coordinator`
+
+@ref akn:chp_11__ssec_11_6_3__para_1
 GIVEN c IS A `coordinator`
 GIVETH A NUMBER
-DECIDE `eight-percent concentration allowance` c IS
+DECIDE `concentration allowance of a guidance, studies or students coordinator` c IS
     0.08 TIMES c's `combined salary`
 
 -- Track, major and subject coordinators are appointed in coordination with
--- the ministry. Time in school months.
-DECLARE `coordinator action` IS ONE OF
-    `coordinate the appointment with the ministry`
-    `appoint a coordinator` HAS `appointee` IS A `coordinator`
-
+-- the ministry: read as a bar on appointing one without that coordination.
+-- The sentence is passive; the owners are read as the party, as in section
+-- 9.10. The text sets no time, so the rule has none.
 @ref akn:chp_11__ssec_11_6_3__para_2
 GIVETH A DEONTIC Party `coordinator action`
 DECIDE `appointing a track, major or subject coordinator` IS
     PARTY `the local authority or owning body`
-    MUST  `coordinate the appointment with the ministry`
-    WITHIN 1
-    HENCE (PARTY `the local authority or owning body`
-           MAY `appoint a coordinator` c PROVIDED `may be a track, major or subject coordinator` c)
-    LEST  BREACH BY `the local authority or owning body` BECAUSE "section 11.6.3.2: coordinators are appointed in coordination with the ministry"
+    SHANT `appoint a coordinator` c `coordinated with the ministry`
+          PROVIDED `is a track, major or subject post` (c's `post`) AND NOT `coordinated with the ministry`
+    LEST  BREACH BY `the local authority or owning body` BECAUSE "section 11.6.3.2: track, major and subject coordinators are appointed in coordination with the ministry"
+
+DECLARE `coordinator action` IS ONE OF
+    `appoint a coordinator` HAS
+        `appointee`                      IS A `coordinator`
+        `coordinated with the ministry`  IS A BOOLEAN @desc the appointment was made in coordination with the Ministry of Education, Culture and Sport
+
+GIVEN p IS A `coordinator post`
+GIVETH A BOOLEAN
+DECIDE `is a track, major or subject post` p IF
+       p EQUALS `track or major coordinator`
+    OR p EQUALS `subject coordinator`
 
 -- F-11-b: (a) is headed "definitions" and defines "track" alone; a major
 -- (מגמה) and a subject (מקצוע), which (b) and (c) pay by different scales,
@@ -217,31 +250,26 @@ DECLARE `defined term` IS ONE OF
     count `the terms section 11.6.3.2(a) defines` LESS THAN count `the posts (b) and (c) pay by different scales`
 #ASSERT `"major" and "subject" are paid apart but not defined`
 
+-- From 1.9.89 by the key; the text sets nothing before, so NOTHING there.
 @ref akn:chp_11__ssec_11_6_3__para_2__subpara_b
 GIVEN c IS A `coordinator`
-GIVETH A NUMBER
+GIVETH A MAYBE NUMBER
 DECIDE `track or major coordinator's allowance` c IS
-    c's `key rate` TIMES c's `combined salary`
+    IF c's `month` AT LEAST Date 1 9 1989
+    THEN JUST (c's `key allowance`)
+    ELSE NOTHING
 
 @ref akn:chp_11__ssec_11_6_3__para_2__subpara_c
 GIVEN c IS A `coordinator`
 GIVETH A NUMBER
 DECIDE `subject coordinator's allowance` c IS
-    c's `subject table rate` TIMES c's `combined salary`
+    c's `subject table allowance`
 
 @ref akn:chp_11__ssec_11_6_3__para_2__subpara_d
 GIVEN c IS A `coordinator`
 GIVETH A BOOLEAN
 DECIDE `may be a track, major or subject coordinator` c IF
     c's `permanent` AND c's `position in seminars and colleges` AT LEAST 2 DIVIDED BY 3
-
-GIVEN c IS A `coordinator`
-GIVETH A NUMBER
-DECIDE `allowance for the post` c IS
-    CONSIDER c's `post`
-    WHEN `track or major coordinator` THEN `track or major coordinator's allowance` c
-    WHEN `subject coordinator`        THEN `subject coordinator's allowance` c
-    OTHERWISE `eight-percent concentration allowance` c
 
 -- (e): one concentration allowance only. F-11-c: the text does not say
 -- which, where a teacher holds two posts. Reading adopted: the higher.
@@ -253,11 +281,24 @@ DECIDE `concentration allowance paid` posts IS
     WHEN EMPTY THEN 0
     WHEN p FOLLOWED BY rest THEN max (`allowance for the post` p) (`concentration allowance paid` rest)
 
+-- The allowance each post carries, by paragraph 1, (b) and (c); a track or
+-- major post before 1.9.89 carries none under (b).
+GIVEN c IS A `coordinator`
+GIVETH A NUMBER
+DECIDE `allowance for the post` c IS
+    CONSIDER c's `post`
+    WHEN `track or major coordinator` THEN
+        CONSIDER `track or major coordinator's allowance` c
+        WHEN JUST a  THEN a
+        WHEN NOTHING THEN 0
+    WHEN `subject coordinator`        THEN `subject coordinator's allowance` c
+    OTHERWISE `concentration allowance of a guidance, studies or students coordinator` c
+
 `a studies coordinator who also coordinates a subject` MEANS
-    LIST (`coordinator` WITH `post` IS `studies coordinator`, `combined salary` IS 10000, `key rate` IS 0,
-                             `subject table rate` IS 0, `permanent` IS TRUE, `position in seminars and colleges` IS 1),
-         (`coordinator` WITH `post` IS `subject coordinator`, `combined salary` IS 10000, `key rate` IS 0,
-                             `subject table rate` IS 0.05, `permanent` IS TRUE, `position in seminars and colleges` IS 1)
+    LIST (`coordinator` WITH `post` IS `studies coordinator`, `month` IS Date 1 9 1990, `combined salary` IS 10000, `key allowance` IS 0,
+                             `subject table allowance` IS 0, `permanent` IS TRUE, `position in seminars and colleges` IS 1),
+         (`coordinator` WITH `post` IS `subject coordinator`, `month` IS Date 1 9 1990, `combined salary` IS 10000, `key allowance` IS 0,
+                             `subject table allowance` IS 500, `permanent` IS TRUE, `position in seminars and colleges` IS 1)
 
 GIVEN posts IS A LIST OF `coordinator`
 GIVETH A LIST OF NUMBER
@@ -309,6 +350,45 @@ DECLARE `academic college` HAS
     `students`                   IS A NUMBER
     `principal's table rate`     IS A NUMBER @desc the rate the academic-college table of section 11.6.5.2(a) gives (from 1.9.89); the table is not in the text, so an input
 
+-- (a): from 1.9.89 the principal of a listed, recognised academic college
+-- takes the academic-college table, in place of the seminary allowance.
+@ref akn:chp_11__ssec_11_6_5__para_2__subpara_a
+GIVEN c IS AN `academic college`, `month` IS A DATE
+GIVETH A BOOLEAN
+DECIDE `the academic-college table applies` c `month` IF
+        `month` AT LEAST Date 1 9 1989
+    AND c's `recognised for the BEd by the Council for Higher Education`
+    AND `listed in (c)` c
+
+GIVEN c IS AN `academic college`, `month` IS A DATE, `seminary rate` IS A NUMBER @desc the rate under section 11.6.5.1 for the college's classes; an input
+GIVETH A NUMBER
+DECIDE `college principal's management allowance rate` c `month` `seminary rate` IS
+    IF `the academic-college table applies` c `month`
+    THEN c's `principal's table rate`
+    ELSE `seminary rate`
+
+-- (b): each 250 students of a college listed in (c) ("סעיף 3", the third
+-- item) entitle it to a deputy, up to 5. (b) asks only the listing.
+@ref akn:chp_11__ssec_11_6_5__para_2__subpara_b
+GIVEN c IS AN `academic college`
+GIVETH A NUMBER
+DECIDE `deputies (b) entitles the college to` c IS
+    IF `listed in (c)` c
+    THEN min (FLOOR (c's `students` DIVIDED BY 250)) 5
+    ELSE 0
+
+-- A deputy beyond the college's entitlement under (b) is one the clauses
+-- set no allowance for: NOTHING.
+@ref akn:chp_11__ssec_11_6_5__para_2__subpara_b__cls_1 akn:chp_11__ssec_11_6_5__para_2__subpara_b__cls_2 akn:chp_11__ssec_11_6_5__para_2__subpara_b__cls_3
+GIVEN c IS AN `academic college`, `which deputy` IS A NUMBER @desc 1 for the first deputy, 2 for the second, and so on to 5
+GIVETH A MAYBE NUMBER
+DECIDE `deputy's management allowance rate` c `which deputy` IS
+    IF `which deputy` LESS THAN 1 OR `which deputy` GREATER THAN `deputies (b) entitles the college to` c
+    THEN NOTHING
+    ELSE BRANCH IF `which deputy` EQUALS 1 THEN JUST (0.75 TIMES c's `principal's table rate`)
+                IF `which deputy` EQUALS 2 THEN JUST (0.70 TIMES c's `principal's table rate`)
+                OTHERWISE JUST (0.65 TIMES c's `principal's table rate`)
+
 -- (c): the colleges (a) and (b) refer to, and, apart, the institutions "on
 -- permit". F-11-e: whether the institutions on permit are among them.
 @ref akn:chp_11__ssec_11_6_5__para_2__subpara_c
@@ -341,40 +421,6 @@ DECIDE `listed in (c), counting the institutions on permit` c IF
     NOT (`listed in (c)` `Orot` EQUALS `listed in (c), counting the institutions on permit` `Orot`)
 #ASSERT `the two readings of the permit institutions differ for one of them`
 
--- (a): the principal of a listed, recognised academic college takes the
--- academic-college table, in place of the seminary allowance.
-@ref akn:chp_11__ssec_11_6_5__para_2__subpara_a
-GIVEN c IS AN `academic college`
-GIVETH A BOOLEAN
-DECIDE `the academic-college table applies` c IF
-    c's `recognised for the BEd by the Council for Higher Education` AND `listed in (c)` c
-
-GIVEN c IS AN `academic college`, `seminary rate` IS A NUMBER @desc the rate under section 11.6.5.1 for the college's classes; an input
-GIVETH A NUMBER
-DECIDE `college principal's management allowance rate` c `seminary rate` IS
-    IF `the academic-college table applies` c
-    THEN c's `principal's table rate`
-    ELSE `seminary rate`
-
--- (b): each 250 students entitle the college to a deputy, up to 5.
-@ref akn:chp_11__ssec_11_6_5__para_2__subpara_b
-GIVEN c IS AN `academic college`
-GIVETH A NUMBER
-DECIDE `deputies the college may appoint` c IS
-    IF `the academic-college table applies` c
-    THEN min (FLOOR (c's `students` DIVIDED BY 250)) 5
-    ELSE 0
-
-@ref akn:chp_11__ssec_11_6_5__para_2__subpara_b__cls_1 akn:chp_11__ssec_11_6_5__para_2__subpara_b__cls_2 akn:chp_11__ssec_11_6_5__para_2__subpara_b__cls_3
-GIVEN c IS AN `academic college`, `which deputy` IS A NUMBER @desc 1 for the first deputy, 2 for the second, and so on to 5
-GIVETH A NUMBER
-DECIDE `deputy's management allowance rate` c `which deputy` IS
-    IF `which deputy` GREATER THAN `deputies the college may appoint` c
-    THEN 0
-    ELSE BRANCH IF `which deputy` EQUALS 1 THEN 0.75 TIMES c's `principal's table rate`
-                IF `which deputy` EQUALS 2 THEN 0.70 TIMES c's `principal's table rate`
-                OTHERWISE 0.65 TIMES c's `principal's table rate`
-
 -- akn:chp_11__ssec_11_6_5/p1 Heading of the source list (אסמכתא).
 -- akn:chp_11__ssec_11_6_5/p2 Source: a circular of the teacher-training department.
 -- akn:chp_11__ssec_11_6_5/p3 Source: collective agreements of 15.5.98 and 20.12.90.
@@ -390,14 +436,14 @@ DECIDE `an in-service training coordinator has a deputy principal's status` IS T
 -- Like a deputy, 4 weekly teaching hours (section 7.3.1); the rest of the
 -- position from the institution's pool of management hours for in-service training.
 @ref akn:chp_11__ssec_11_9__para_2
+GIVETH A NUMBER
+DECIDE `coordinator's teaching hours` IS 4
+
+@ref akn:chp_11__ssec_11_9__para_2
 GIVEN `position in weekly hours` IS A NUMBER
 GIVETH A NUMBER
 DECIDE `coordinator's hours from the management pool` `position in weekly hours` IS
-    max 0 (`position in weekly hours` MINUS 4)
-
-@ref akn:chp_11__ssec_11_9__para_2
-GIVETH A NUMBER
-DECIDE `coordinator's teaching hours` IS 4
+    max 0 (`position in weekly hours` MINUS `coordinator's teaching hours`)
 
 -- By the wage agreements, 4 management hours counting as a class (section
 -- 7.3.6.1); the remainder as read for F-11-d.
@@ -412,7 +458,11 @@ DECIDE `classes for the coordinator's allowance` `management hours` IS
 
 §§ `11.10 מרכז התמחות בהוראה`
 
--- akn:chp_11__ssec_11_10/p1 Effective date of the section (from 2.12.01); the file encodes the rules in force and carries no dates.
+@ref akn:chp_11__ssec_11_10/p1
+GIVEN `month` IS A DATE
+GIVETH A BOOLEAN
+DECIDE `section 11.10 applies in` `month` IF
+    `month` AT LEAST Date 2 12 2001
 -- akn:chp_11__ssec_11_10/p2 Heading ("הגדרת התפקיד") of the role's duties below.
 
 DECLARE `internship coordinator's duty` IS ONE OF
@@ -435,8 +485,6 @@ GIVETH A DEONTIC Party `internship action`
 DECIDE `the internship coordinator's duty` d IS
     PARTY `the teaching employee`
     MUST  `discharge` x PROVIDED x EQUALS d
-    WITHIN 12
-    LEST  BREACH BY `the teaching employee` BECAUSE "section 11.10.1: the internship coordinator's role"
 
 -- akn:chp_11__ssec_11_10/p8 Heading ("תנאים הנדרשים למינוי לתפקיד") of the conditions below.
 
@@ -521,6 +569,8 @@ DECIDE `internship coordinator's education allowance` `pedagogical guide's educa
 
 -- akn:chp_11__ssec_11_10/p21 Source (אסמכתא): a director-general's circular.
 
+§§ `Worked examples`
+
 -- Examples. Salaries, rates and dates are placeholders.
 `a doctorate-grade lecturer in 1990` MEANS
     `seminar teacher` WITH
@@ -552,7 +602,10 @@ DECIDE `internship coordinator's education allowance` `pedagogical guide's educa
 
 #ASSERT `base position after the age reduction` (`training-institution teacher` WITH `base for the layer` IS 20, `age` IS 56) EQUALS 16
 #ASSERT `classes in a seminary for the management allowance` 60 EQUALS 3
-#ASSERT `deputy's management allowance rate` `Orot` 1 EQUALS 0
+-- Orot is among the institutions on permit, outside (c)'s list as read for
+-- F-11-e, so (b) gives it no deputy and no deputy's rate. (This read
+-- EQUALS 0 while the rule gave 0 for a deputy the clauses do not speak of.)
+#ASSERT `deputy's management allowance rate` `Orot` 1 EQUALS NOTHING
 
 `Beit Berl` MEANS
     `academic college` WITH
@@ -560,11 +613,17 @@ DECIDE `internship coordinator's education allowance` `pedagogical guide's educa
         `college name`           IS "Beit Berl"
         `students`               IS 1600
         `principal's table rate` IS 0.2
-#ASSERT `deputies the college may appoint` `Beit Berl` EQUALS 5
-#ASSERT `deputy's management allowance rate` `Beit Berl` 3 EQUALS 0.13
+#ASSERT `deputies (b) entitles the college to` `Beit Berl` EQUALS 5
+#ASSERT `deputy's management allowance rate` `Beit Berl` 3 EQUALS JUST 0.13
+#ASSERT `college principal's management allowance rate` `Beit Berl` (Date 1 9 1989) 0.1 EQUALS 0.2
+#ASSERT `college principal's management allowance rate` `Beit Berl` (Date 1 8 1989) 0.1 EQUALS 0.1
 #ASSERT `may be appointed internship coordinator` `a schoolteacher candidate`
 
 #TRACE `the internship coordinator's duty` `keep working ties with the ministry's internship branch` AT 0 WITH
     PARTY `the teaching employee` DOES `discharge` `keep working ties with the ministry's internship branch` AT 5
+
+`a subject coordinator appointed without the ministry` MEANS
+    `coordinator` WITH `post` IS `subject coordinator`, `month` IS Date 1 9 1990, `combined salary` IS 10000, `key allowance` IS 0,
+                       `subject table allowance` IS 500, `permanent` IS TRUE, `position in seminars and colleges` IS 1
 #TRACE `appointing a track, major or subject coordinator` AT 0 WITH
-    PARTY `the local authority or owning body` DOES `coordinate the appointment with the ministry` AT 0
+    PARTY `the local authority or owning body` DOES `appoint a coordinator` `a subject coordinator appointed without the ministry` FALSE AT 1

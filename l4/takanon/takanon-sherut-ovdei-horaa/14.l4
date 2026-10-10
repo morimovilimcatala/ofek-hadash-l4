@@ -9,6 +9,11 @@ IMPORT common
 
 § `14 עו"ה בחינוך מבוגרים`
 
+GIVEN d IS A DATE, e IS A DATE
+GIVETH A BOOLEAN
+DECIDE d `is on or after` e IF
+    DATE_SERIAL d AT LEAST DATE_SERIAL e
+
 @desc The actors chapter 14 names that the takanon's common vocabulary does not.
 DECLARE `14 party` IS ONE OF
     `a takanon party`  HAS `who` IS A Party
@@ -22,10 +27,9 @@ DECLARE `adult-education framework` IS ONE OF
     `ulpan`     @desc the ulpanim for teaching Hebrew
 
 DECLARE `14 action` IS ONE OF
-    `complete pre-service training` HAS `pre-service hours` IS A NUMBER
+    `start work in Tehila` HAS `pre-service hours completed` IS A NUMBER
     `complete in-service training`  HAS `in-service hours` IS A NUMBER
-    `consult the adult-education department on a pedagogical dismissal`
-    `dismiss on pedagogical grounds`
+    `dismiss on pedagogical grounds` HAS `in consultation with the adult-education department` IS A BOOLEAN
     `offer work in another ulpan`
     `dismiss administratively` HAS `at the end of the ulpan cycle` IS A BOOLEAN
     `request in writing to move to the regular fund`
@@ -67,16 +71,24 @@ DECLARE `printed hours` HAS
 `the pre-service figure` MEANS `printed hours` 24 TRUE
 `the in-service figure`  MEANS `printed hours` 80 TRUE
 
+-- The pre-service training comes "before entering work": the employee does
+-- not start work without it. The text gives it no other time.
+@ref akn:chp_14__ssec_14_2__para_1/p1
 GIVETH A DEONTIC `14 party` `14 action`
-DECIDE `Tehila pre-service and in-service training` IS
+DECIDE `Tehila pre-service training` IS
     PARTY `a takanon party` `the teaching employee`
-    MUST  `complete pre-service training` h PROVIDED h AT LEAST `the pre-service figure`'s `printed figure`
-    WITHIN 1
-    HENCE (PARTY `a takanon party` `the teaching employee`
-           MUST  `complete in-service training` k PROVIDED k AT LEAST `the in-service figure`'s `printed figure`
-           WITHIN 12
-           LEST BREACH BY `a takanon party` `the teaching employee` BECAUSE "section 14.2.1: about 80 hours of in-service training during the year")
+    SHANT `start work in Tehila` h
+          PROVIDED h LESS THAN `the pre-service figure`'s `printed figure`
     LEST  BREACH BY `a takanon party` `the teaching employee` BECAUSE "section 14.2.1: about 24 hours of training before starting work"
+
+-- The in-service training is "during the year": twelve months.
+@ref akn:chp_14__ssec_14_2__para_1/p1
+GIVETH A DEONTIC `14 party` `14 action`
+DECIDE `Tehila in-service training` IS
+    PARTY `a takanon party` `the teaching employee`
+    MUST  `complete in-service training` k PROVIDED k AT LEAST `the in-service figure`'s `printed figure`
+    WITHIN 12
+    LEST  BREACH BY `a takanon party` `the teaching employee` BECAUSE "section 14.2.1: about 80 hours of in-service training during the year"
 
 `both training duties are printed as approximate figures` MEANS
     `the pre-service figure`'s `printed as "about"` AND `the in-service figure`'s `printed as "about"`
@@ -107,17 +119,16 @@ DECLARE `Tehila employment` HAS
         `by special contract`    IS TRUE
         `pedagogical supervisor` IS `the Ministry of Education`
 
--- A pedagogical dismissal is done in consultation with the adult-education department.
+-- A pedagogical dismissal is done in consultation with the adult-education
+-- department: read as a bar on dismissing without it. The sentence is
+-- passive; the employer, who dismisses, is read as the party.
 @ref akn:chp_14__ssec_14_4__para_1/p1
 GIVETH A DEONTIC `14 party` `14 action`
 DECIDE `a pedagogical dismissal in Tehila` IS
     PARTY `a takanon party` `the employer`
-    MUST  `consult the adult-education department on a pedagogical dismissal`
-    WITHIN 1
-    HENCE (PARTY `a takanon party` `the employer` MAY `dismiss on pedagogical grounds`)
-    LEST  (PARTY `a takanon party` `the employer`
-           SHANT `dismiss on pedagogical grounds`
-           LEST BREACH BY `a takanon party` `the employer` BECAUSE "section 14.4.1: a pedagogical dismissal is made in consultation with the adult-education department")
+    SHANT `dismiss on pedagogical grounds` `the department was consulted`
+          PROVIDED NOT `the department was consulted`
+    LEST  BREACH BY `a takanon party` `the employer` BECAUSE "section 14.4.1: a pedagogical dismissal is made in consultation with the adult-education department"
 
 §§§ `14.4.2 באולפנים`
 
@@ -140,9 +151,11 @@ DECIDE `an ulpan teacher is employed` t IS
     THEN `by contract`
     ELSE `by referral, without contract, under the ministry's teacher rules`
 
--- If the ulpan's work shrinks, work in another ulpan is offered; if none is
--- found, the teacher is dismissed administratively at the end of the cycle,
--- with the customary retirement terms.
+-- If the ulpan's work shrinks, work in another ulpan is offered, as the
+-- possibilities and needs allow; if none is found, the teacher is dismissed
+-- administratively at the end of the cycle ("יפוטר": a duty, timed by the
+-- cycle's end and by no period), with the customary retirement terms. The
+-- offer is the adult-education division's, which refers ulpan teachers.
 @ref akn:chp_14__ssec_14_4__para_2/p2
 GIVEN t IS AN `ulpan teacher`
 GIVETH A DEONTIC `14 party` `14 action`
@@ -152,11 +165,8 @@ DECIDE `when an ulpan's work shrinks` t IS
     ELSE IF t's `work found in another ulpan`
          THEN PARTY `the adult-education department`
               MUST  `offer work in another ulpan`
-              WITHIN 1
-              LEST  BREACH BY `the adult-education department` BECAUSE "section 14.4.2: work in another ulpan is offered"
          ELSE PARTY `a takanon party` `the employer`
-              MAY   `dismiss administratively` atEnd PROVIDED atEnd
-              WITHIN 12
+              MUST  `dismiss administratively` atEnd PROVIDED atEnd
 
 @ref akn:chp_14__ssec_14_4__para_2/p2
 GIVEN `dismissed administratively` IS A BOOLEAN
@@ -196,8 +206,6 @@ DECIDE `the fund coordinates a retroactive joining` `a retroactive joining was r
     IF `a retroactive joining was requested`
     THEN PARTY `the training fund`
          MUST  `coordinate the deductions with Bank Massad`
-         WITHIN 12
-         LEST  BREACH BY `the training fund` BECAUSE "section 14.4.2: the fund coordinates a retroactive joining with Bank Massad"
     ELSE FULFILLED
 
 -- Teachers who joined the regular fund and stop working for the ministry
@@ -225,20 +233,28 @@ DECIDE `the fund's refund` `left at the end of a year in the regular fund` IS
 
 #ASSERT `employer's share refunded` EQUALS 0.9
 
--- akn:chp_14__ssec_14_4__para_2/p7 Effective date of the arrangement (from 1.9.91); the file encodes the rule in force and carries no dates.
+@ref akn:chp_14__ssec_14_4__para_2/p7
+GIVEN d IS A DATE
+GIVETH A BOOLEAN
+DECIDE `the ulpan training-fund arrangement applies on` d IF
+    d `is on or after` (DATE_FROM_DMY 1 9 1991)
+
 -- akn:chp_14__ssec_14_4/p1 Heading of the source list (אסמכתא).
 -- akn:chp_14__ssec_14_4/p2 Source: a special director-general's circular.
 -- akn:chp_14__ssec_14_4/p3 Source: a director-general's circular.
 
 §§ `14.5 חופשה שנתית`
 
--- Tehila follows the primary-education calendar; the recess days may move
+-- Tehila's school year — its start, its end and its recesses — is primary
+-- education's; it may depart from it only by moving recess days, and only
 -- if the year's total of school days still equals primary education's.
 @ref akn:chp_14__ssec_14_5__para_1/p1
-GIVEN `Tehila school days` IS A NUMBER, `primary-education school days that year` IS A NUMBER
+GIVEN `the departure is only in recess days` IS A BOOLEAN,
+      `Tehila school days` IS A NUMBER, `primary-education school days that year` IS A NUMBER
 GIVETH A BOOLEAN
-DECIDE `Tehila's changed recesses are allowed` `Tehila school days` `primary-education school days that year` IF
-    `Tehila school days` EQUALS `primary-education school days that year`
+DECIDE `Tehila's year may depart from primary education's` `the departure is only in recess days` `Tehila school days` `primary-education school days that year` IF
+        `the departure is only in recess days`
+    AND `Tehila school days` EQUALS `primary-education school days that year`
 
 -- 60 days a year besides the holidays, pro rata to the position.
 @ref akn:chp_14__ssec_14_5__para_2/p1
@@ -247,12 +263,28 @@ GIVETH A NUMBER
 DECIDE `ulpan teacher's annual leave days` `position fraction` IS
     60 TIMES `position fraction`
 
--- An unused balance carries to the next year, up to 65 days.
+DECLARE `time of the year` IS ONE OF
+    `an ulpan recess during the year`
+    `between cycles`
+    `a teaching period of a cycle`
+
+-- As a rule the leave is taken in the ulpan's recesses and between cycles.
 @ref akn:chp_14__ssec_14_5__para_2/p1
-GIVEN `unused balance` IS A NUMBER
+GIVEN w IS A `time of the year`
+GIVETH A BOOLEAN
+DECIDE `leave is as a rule taken in` w IF
+    w EQUALS `an ulpan recess during the year` OR w EQUALS `between cycles`
+
+-- Where the system's needs kept the teacher from using it, the unused
+-- balance carries to the next year, up to 65 days. The text carries a
+-- balance over only in that case.
+@ref akn:chp_14__ssec_14_5__para_2/p1
+GIVEN `the system's needs prevented using it` IS A BOOLEAN, `unused balance` IS A NUMBER
 GIVETH A NUMBER
-DECIDE `days carried to the next year` `unused balance` IS
-    min `unused balance` 65
+DECIDE `days carried to the next year` `the system's needs prevented using it` `unused balance` IS
+    IF `the system's needs prevented using it`
+    THEN min `unused balance` 65
+    ELSE 0
 
 DECLARE `period at one position` HAS
     `period position fraction` IS A NUMBER
@@ -265,22 +297,26 @@ DECIDE `leave days for a changing position` ps IS
     sum (map (GIVEN p YIELD `ulpan teacher's annual leave days` (p's `period position fraction`) TIMES p's `share of the year`) ps)
 
 -- A permanent full-time teacher whose position was reduced with consent may
--- have the salary topped up to one full position by charging unused leave.
+-- have the salary topped up, up to one full position, by charging unused leave.
 @ref akn:chp_14__ssec_14_5__para_2/p3
-GIVEN `permanent` IS A BOOLEAN, `was full-time` IS A BOOLEAN, `reduced with consent` IS A BOOLEAN,
-      `unused leave days` IS A NUMBER, `days needed to top up` IS A NUMBER
+GIVEN `permanent` IS A BOOLEAN, `was full-time` IS A BOOLEAN, `reduced with consent` IS A BOOLEAN
 GIVETH A BOOLEAN
-DECIDE `the salary may be topped up from unused leave` `permanent` `was full-time` `reduced with consent` `unused leave days` `days needed to top up` IF
+DECIDE `the salary may be topped up from unused leave` `permanent` `was full-time` `reduced with consent` IF
         `permanent` AND `was full-time` AND `reduced with consent`
-    AND `days needed to top up` AT MOST `unused leave days`
+
+GIVEN `unused leave days` IS A NUMBER, `days that would top up to one full position` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `leave days charged for the top-up` `unused leave days` `days that would top up to one full position` IS
+    min `unused leave days` `days that would top up to one full position`
 
 -- On separation, unused leave is redeemed under the civil-service
 -- regulations (the תקשי"ר), whose rules are an input here.
 @ref akn:chp_14__ssec_14_5__para_2/p4
-GIVEN `employment relation ended` IS A BOOLEAN, `unused leave days` IS A NUMBER
+GIVEN `employment relation ended` IS A BOOLEAN, `unused leave days` IS A NUMBER,
+      `days the civil-service regulations redeem` IS A FUNCTION FROM NUMBER TO NUMBER @desc the redemption the תקשי"ר allows for a number of unused days; an input
 GIVETH A NUMBER
-DECIDE `days to redeem` `employment relation ended` `unused leave days` IS
-    IF `employment relation ended` THEN `unused leave days` ELSE 0
+DECIDE `days to redeem` `employment relation ended` `unused leave days` `days the civil-service regulations redeem` IS
+    IF `employment relation ended` THEN `days the civil-service regulations redeem` `unused leave days` ELSE 0
 
 -- akn:chp_14__ssec_14_5/p1 Heading of the source list (אסמכתא).
 -- akn:chp_14__ssec_14_5/p2 Source: a special director-general's circular.
@@ -307,7 +343,12 @@ GIVETH A BOOLEAN
 DECIDE `entitled to the class-education allowance` c IF
     `in charge of a class` c AND c's `on the department's list`
 
--- akn:chp_14__ssec_14_6/p2 Effective date (from 12.9.86) and a pointer to section 1.12, which sets the allowance.
+-- From 12.9.86; section 1.12 sets the allowance itself.
+@ref akn:chp_14__ssec_14_6/p2
+GIVEN d IS A DATE
+GIVETH A BOOLEAN
+DECIDE `section 14.6 applies on` d IF
+    d `is on or after` (DATE_FROM_DMY 12 9 1986)
 
 @ref akn:chp_14__ssec_14_6/p5
 GIVEN c IS AN `adult class`
@@ -322,9 +363,18 @@ DECIDE `education hours for an adult class` c IS 0
 
 §§§ `14.10.2 מינוי`
 
--- A Tehila principal is appointed after a tender and a selection committee
--- that recommends to the director-general.
+-- A Tehila principal is appointed as is customary in the education system:
+-- by a tender published as the law requires and a selection committee that
+-- recommends the appointment to the director-general.
 @ref akn:chp_14__ssec_14_10_2__para_1__subpara_a
+GIVEN `a tender was published as the law requires` IS A BOOLEAN,
+      `a selection committee recommended the appointment to the director-general` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `a Tehila principal is appointed as (a) requires` `a tender was published as the law requires` `a selection committee recommended the appointment to the director-general` IF
+        `a tender was published as the law requires`
+    AND `a selection committee recommended the appointment to the director-general`
+
+@ref akn:chp_14__ssec_14_10_2__para_1__subpara_a/p2 akn:chp_14__ssec_14_10_2__para_1__subpara_a/p3 akn:chp_14__ssec_14_10_2__para_1__subpara_a/p4 akn:chp_14__ssec_14_10_2__para_1__subpara_a/p5
 DECLARE `committee seat` IS ONE OF
     `adult-education department representative`
     `owners' representative`
@@ -364,12 +414,13 @@ GIVETH A BOOLEAN
 DECIDE `qualified to be a Tehila principal` `senior-teacher education at least` `years of teaching` IF
     `senior-teacher education at least` AND `years of teaching` AT LEAST 5
 
--- "Preferably in adult education": a preference, not a condition.
+-- "Preferably in adult education" (Tehila) and "priority to experience in
+-- adult education" (ulpan): a preference between candidates, not a condition.
 @ref akn:chp_14__ssec_14_10_2__para_1__subpara_b/p2 akn:chp_14__ssec_14_10_2__para_2/p2
 GIVEN `experience in adult education` IS A BOOLEAN
-GIVETH A NUMBER
-DECIDE `preference weight` `experience in adult education` IS
-    IF `experience in adult education` THEN 1 ELSE 0
+GIVETH A BOOLEAN
+DECIDE `given preference for experience in adult education` `experience in adult education` IF
+    `experience in adult education`
 
 @ref akn:chp_14__ssec_14_10_2__para_2/p1
 GIVEN `appointed as customary in primary education, adapted to adult learners` IS A BOOLEAN
@@ -404,8 +455,6 @@ GIVETH A DEONTIC Party `principal action`
 DECIDE `the adult-education principal's duty` d IS
     PARTY `the school principal`
     MUST  `perform` done PROVIDED done EQUALS d
-    WITHIN 12
-    LEST  BREACH BY `the school principal` BECAUSE "section 14.10.3: the duties of a principal in adult education"
 
 -- The principal is administratively subordinate to the owners.
 @ref akn:chp_14__ssec_14_10_3/p3
@@ -441,7 +490,11 @@ GIVETH A NUMBER
 DECIDE `ulpanit principal's rate` i IS
     i's `ulpanit table rate for these classes`
 
--- akn:chp_14__ssec_14_10_6__para_2/p2 Effective date of the ulpanit table (from 1.1.98); the file encodes the rate in force and carries no dates.
+@ref akn:chp_14__ssec_14_10_6__para_2/p2
+GIVEN d IS A DATE
+GIVETH A BOOLEAN
+DECIDE `the ulpanit table applies on` d IF
+    d `is on or after` (DATE_FROM_DMY 1 1 1998)
 
 -- F-14-c: a Tehila centre's principal gets the allowance "set for an
 -- evening ulpanit principal"; no clause sets one by that name. Reading
@@ -451,14 +504,6 @@ GIVEN i IS AN `adult institution`
 GIVETH A NUMBER
 DECIDE `Tehila centre principal's rate` i IS
     `ulpanit principal's rate` i
-
-GIVEN i IS AN `adult institution`
-GIVETH A NUMBER
-DECIDE `adult-education management allowance rate` i IS
-    CONSIDER i's `kind of institution`
-    WHEN `ulpan`         THEN `ulpan principal's rate` i
-    WHEN `ulpanit`       THEN `ulpanit principal's rate` i
-    WHEN `Tehila centre` THEN `Tehila centre principal's rate` i
 
 `the kinds of institution section 14.10.6 sets an allowance for` MEANS
     LIST "ulpan for teaching Hebrew", "ulpanit for teaching Hebrew"
@@ -478,10 +523,11 @@ DECIDE `the rate paid during the year` i `rate for a number of classes` IS
 -- itself the rate times the personal combined salary.
 @ref akn:chp_14__ssec_14_10_6__para_4/p2
 GIVEN rate IS A NUMBER, `personal combined salary` IS A NUMBER,
-      `management-seniority addition` IS A NUMBER @desc the addition for management seniority, as a fraction of the allowance, from section 7.6.10; an input
+      `management-seniority addition` IS A NUMBER @desc the management seniority added to the allowance amount, by section 7.6.10; an input
 GIVETH A NUMBER
 DECIDE `adult-education management allowance` rate `personal combined salary` `management-seniority addition` IS
-    rate TIMES `personal combined salary` TIMES (1 PLUS `management-seniority addition`)
+    (rate TIMES `personal combined salary`)
+    PLUS `management-seniority addition`
 
 -- akn:chp_14__ssec_14_10_6/p1 Heading of the source list (אסמכתא).
 -- akn:chp_14__ssec_14_10_6/p2 Source: a director-general's circular and annex C of the special collective agreement of 10.3.83.
@@ -490,6 +536,19 @@ DECIDE `adult-education management allowance` rate `personal combined salary` `m
 -- akn:chp_14__ssec_14_10_6/p5 Source: collective agreement of 11.5.93.
 -- akn:chp_14__ssec_14_10_6/p6 Source: a special director-general's circular.
 -- akn:chp_14__ssec_14_10_6/p7 Source: a clarification of 16.3.83.
+
+§§§ `14.10.6 The rate by kind of institution`
+
+-- Puts paragraphs 1 to 3 together.
+GIVEN i IS AN `adult institution`
+GIVETH A NUMBER
+DECIDE `adult-education management allowance rate` i IS
+    CONSIDER i's `kind of institution`
+    WHEN `ulpan`         THEN `ulpan principal's rate` i
+    WHEN `ulpanit`       THEN `ulpanit principal's rate` i
+    WHEN `Tehila centre` THEN `Tehila centre principal's rate` i
+
+§§ `Worked examples`
 
 -- Examples. Rates and salary are placeholders.
 `an ulpanit that shrank` MEANS
@@ -506,11 +565,14 @@ GIVETH A NUMBER
 
 #ASSERT `the rate paid during the year` `an ulpanit that shrank` `a placeholder rate table` EQUALS 0.08
 #ASSERT `ulpan teacher's annual leave days` 0.5 EQUALS 30
-#ASSERT `days carried to the next year` 80 EQUALS 65
+#ASSERT `days carried to the next year` TRUE 80 EQUALS 65
 #ASSERT `in charge of a class` (`adult class` WITH `days a week` IS 5, `hours a day` IS 4, `students` IS 15, `on the department's list` IS TRUE)
 
-#TRACE `Tehila pre-service and in-service training` AT 0 WITH
-    PARTY `a takanon party` `the teaching employee` DOES `complete pre-service training` 24 AT 0
+#TRACE `Tehila pre-service training` AT 0 WITH
+    PARTY `a takanon party` `the teaching employee` DOES `start work in Tehila` 10 AT 0
+#TRACE `Tehila in-service training` AT 0 WITH
     PARTY `a takanon party` `the teaching employee` DOES `complete in-service training` 80 AT 9
+#TRACE `a pedagogical dismissal in Tehila` AT 0 WITH
+    PARTY `a takanon party` `the employer` DOES `dismiss on pedagogical grounds` FALSE AT 1
 #TRACE `the fund's refund` TRUE AT 0 WITH
     PARTY `the training fund` DOES `refund the employer's share` 0.9 October AT 2
