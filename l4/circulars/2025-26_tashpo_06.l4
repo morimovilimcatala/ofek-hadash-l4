@@ -23,6 +23,22 @@ IMPORT common
 -- akn:hc_1/p11 The greeting; no rule.
 -- akn:hc_1/p12 The subject line; no rule.
 
+DECLARE `stage of education` IS ONE OF
+    `kindergarten`
+    `primary school`
+    `junior high`
+    `college for training teaching staff`
+    `other stage`
+
+@desc A grade-to-amount row of the list of paragraphs 20-28.
+DECLARE `supplement row` HAS
+    `Ofek Hadash grade` IS A NUMBER
+    `monthly supplement at a full position` IS A NUMBER
+
+DECLARE `supplement action` IS ONE OF
+    `pay the updated supplement with retroactive differences from January 2026` HAS `supplement paid` IS A NUMBER
+    `reimburse the owning bodies` HAS `reimbursed` IS A NUMBER
+
 -- Under the wage agreements of 30.9.2016 (§6ד) and 19.3.2017 and circular
 -- תשפ"ד/6, the 2016 shekel supplement is linked to the consumer price
 -- index; this circular updates it from 1.1.2026 by the index of December
@@ -32,13 +48,6 @@ GIVEN `index of December 2025` IS A NUMBER, `index of December 2024` IS A NUMBER
 GIVETH A NUMBER
 DECIDE `the linkage factor` `index of December 2025` `index of December 2024` IS
     `index of December 2025` DIVIDED BY `index of December 2024`
-
-DECLARE `stage of education` IS ONE OF
-    `kindergarten`
-    `primary school`
-    `junior high`
-    `college for training teaching staff`
-    `other stage`
 
 -- Scope: every employee graded as teaching staff, employed by a supervised
 -- owning body in kindergartens, primary schools, junior highs or colleges
@@ -54,11 +63,6 @@ DECIDE `the circular applies to` `graded as teaching staff` `employed by a super
     AND (CONSIDER stage
          WHEN `other stage` THEN FALSE
          OTHERWISE TRUE)
-
-@desc A grade-to-amount row of the list of paragraphs 20-28.
-DECLARE `supplement row` HAS
-    `Ofek Hadash grade` IS A NUMBER
-    `monthly supplement at a full position` IS A NUMBER
 
 -- From 1.1.2026, for a full position, by grade in the Ofek Hadash salary
 -- tables for academic and non-academic teachers.
@@ -77,30 +81,8 @@ DECLARE `supplement row` HAS
 @ref akn:hc_1/p28
 `the supplement for every other employee from 1.1.2026` MEANS 647.49
 
--- The amount falls as the grade rises: each listed grade gets more than the
--- next, and the last listed more than every other employee.
-#ASSERT all (GIVEN i YIELD (at `the supplement by grade from 1.1.2026` i)'s `monthly supplement at a full position`
-                              GREATER THAN (at `the supplement by grade from 1.1.2026` (i PLUS 1))'s `monthly supplement at a full position`)
-            (range 0 6)
-#ASSERT (at `the supplement by grade from 1.1.2026` 7)'s `monthly supplement at a full position` GREATER THAN `the supplement for every other employee from 1.1.2026`
-
-@export The monthly 2016 shekel supplement at a full position from 1.1.2026 under circular תשפ"ו/6, for kindergarten, primary, junior-high and teacher-training-college staff
-GIVEN `in Ofek Hadash's salary tables` IS A BOOLEAN @desc the employee is placed on the Ofek Hadash salary tables for academic or non-academic teachers
-      grade IS A NUMBER @desc the employee's grade in those tables (1, 1.5, … 4.5, or any other)
-GIVETH A NUMBER
-DECIDE `the 2016 shekel supplement from 1.1.2026` `in Ofek Hadash's salary tables` grade IS
-    IF `in Ofek Hadash's salary tables`
-    THEN fromMaybe `the supplement for every other employee from 1.1.2026`
-                   (lookup grade (map (GIVEN r YIELD PAIR OF r's `Ofek Hadash grade`, r's `monthly supplement at a full position`)
-                                      `the supplement by grade from 1.1.2026`))
-    ELSE `the supplement for every other employee from 1.1.2026`
-
 -- akn:hc_1/p29 The other rules for paying the supplement (part-time, etc.) are those of circular תשע"ז/3, not restated here.
 -- akn:hc_1/p30 The link to circular תשע"ז/3; no rule.
-
-DECLARE `supplement action` IS ONE OF
-    `pay the updated supplement with retroactive differences from January 2026` HAS `supplement paid` IS A NUMBER
-    `reimburse the owning bodies` HAS `reimbursed` IS A NUMBER
 
 -- The reimbursement was transferred in the relevant hour costs in
 -- February 2026's payments, retroactive to January 2026, paid early March.
@@ -125,7 +107,32 @@ DECIDE `the updated supplement paid` `owed from January 2026` IS
           PROVIDED a AT LEAST `owed from January 2026`
     LEST BREACH BY `the employer` BECAUSE "תשפ\"ו/6: the updated supplement, with retroactive differences from January 2026"
 
+§§ `The supplement, assembled`
+
+-- An employee placed on the Ofek Hadash tables at a listed grade takes
+-- that grade's amount (¶20-¶27); every other employee the circular covers
+-- takes ¶28's.
+@export The monthly 2016 shekel supplement at a full position from 1.1.2026 under circular תשפ"ו/6, for kindergarten, primary, junior-high and teacher-training-college staff
+GIVEN `in Ofek Hadash's salary tables` IS A BOOLEAN @desc the employee is placed on the Ofek Hadash salary tables for academic or non-academic teachers
+      grade IS A NUMBER @desc the employee's grade in those tables (1, 1.5, … 4.5, or any other)
+GIVETH A NUMBER
+DECIDE `the 2016 shekel supplement from 1.1.2026` `in Ofek Hadash's salary tables` grade IS
+    IF `in Ofek Hadash's salary tables`
+    THEN fromMaybe `the supplement for every other employee from 1.1.2026`
+                   (lookup grade (map (GIVEN r YIELD PAIR OF r's `Ofek Hadash grade`, r's `monthly supplement at a full position`)
+                                      `the supplement by grade from 1.1.2026`))
+    ELSE `the supplement for every other employee from 1.1.2026`
+
 -- akn:conclusions The signatures and copies; no rule.
+
+§§ `Worked examples`
+
+-- The amount falls as the grade rises: each listed grade gets more than the
+-- next, and the last listed more than every other employee.
+#ASSERT all (GIVEN i YIELD (at `the supplement by grade from 1.1.2026` i)'s `monthly supplement at a full position`
+                              GREATER THAN (at `the supplement by grade from 1.1.2026` (i PLUS 1))'s `monthly supplement at a full position`)
+            (range 0 6)
+#ASSERT (at `the supplement by grade from 1.1.2026` 7)'s `monthly supplement at a full position` GREATER THAN `the supplement for every other employee from 1.1.2026`
 
 -- Examples.
 #ASSERT `the 2016 shekel supplement from 1.1.2026` TRUE 2 EQUALS 1130.45

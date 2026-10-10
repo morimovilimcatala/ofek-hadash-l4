@@ -14,14 +14,6 @@ IMPORT common
 -- akn:preamble/p20 A recital: the circular follows circular תשע"ד/4 of 8.1.2014.
 -- akn:preamble/p21 The link to circular תשע"ד/4 and the subject of the update; the earlier circular is not restated here.
 
--- The update applies from school year תשפ"ו (school years are named by the
--- calendar year they open in: תשפ"ו = 2025).
-@ref akn:preamble/p22
-GIVEN `school year opening in` IS A NUMBER @desc the calendar year the school year opens in (2025 for תשפ"ו)
-GIVETH A BOOLEAN
-DECIDE `the update applies in` `school year opening in` IF
-    `school year opening in` AT LEAST 2025
-
 DECLARE `division` IS ONE OF
     `the junior high`
     `the upper division`
@@ -39,6 +31,18 @@ DECLARE `coordinator` HAS
     `frontal hours in the junior high`       IS A NUMBER
     `frontal hours in the upper division`    IS A NUMBER
     `frontal hours in the position`          IS A NUMBER @desc the frontal hours the teacher's position includes
+
+DECLARE `coordinator action` IS ONE OF
+    `appoint a six-year coordinator`
+    `allot a frontal hour from the upper division's coordinators' basket` HAS `hours allotted` IS A NUMBER
+
+-- The update applies from school year תשפ"ו (school years are named by the
+-- calendar year they open in: תשפ"ו = 2025).
+@ref akn:preamble/p22
+GIVEN `school year opening in` IS A NUMBER @desc the calendar year the school year opens in (2025 for תשפ"ו)
+GIVETH A BOOLEAN
+DECIDE `the update applies in` `school year opening in` IF
+    `school year opening in` AT LEAST 2025
 
 -- The threshold §1ב and §3ב share: frontal hours in both divisions together
 -- of at least 50% of the frontal hours the position includes, and in any
@@ -80,19 +84,6 @@ DECIDE `allowances under 1ב` s c IS
     THEN 2
     ELSE 0
 
--- 1ב, last line: for the maximum number of roles a teacher may fill, the
--- two count as one.
-@ref akn:art_1__para_b/p5
-GIVEN s IS A `subject in a six-year school`, c IS A `coordinator`
-GIVETH A NUMBER
-DECIDE `roles counted for the maximum` s c IS
-    IF `allowances under 1ב` s c EQUALS 2 THEN 1
-    ELSE IF c's `coordinates in the junior high` AND c's `coordinates in the upper division`
-         THEN 2
-         ELSE IF c's `coordinates in the junior high` OR c's `coordinates in the upper division`
-              THEN 1
-              ELSE 0
-
 -- F-2025-26_tashpo_03-a: a teacher who coordinates the subject in both
 -- divisions but teaches fewer frontal hours than the threshold. 1ב gives two
 -- allowances "only when" the threshold is met; §2 forbids the six-year
@@ -128,9 +119,18 @@ DECIDE `allowances under 1א read for the same teacher` s c IS
     AND `allowances under 1א read for the same teacher` `a subject each division can coordinate` `a teacher coordinating both divisions with 6 frontal hours` EQUALS 2
 #ASSERT `1א read for the same teacher gives two full allowances where 1ב gives none`
 
-DECLARE `coordinator action` IS ONE OF
-    `appoint a six-year coordinator`
-    `allot a frontal hour from the upper division's coordinators' basket` HAS `hours allotted` IS A NUMBER
+-- 1ב, last line: for the maximum number of roles a teacher may fill, the
+-- two count as one.
+@ref akn:art_1__para_b/p5
+GIVEN s IS A `subject in a six-year school`, c IS A `coordinator`
+GIVETH A NUMBER
+DECIDE `roles counted for the maximum` s c IS
+    IF `allowances under 1ב` s c EQUALS 2 THEN 1
+    ELSE IF c's `coordinates in the junior high` AND c's `coordinates in the upper division`
+         THEN 2
+         ELSE IF c's `coordinates in the junior high` OR c's `coordinates in the upper division`
+              THEN 1
+              ELSE 0
 
 §§ `2 No six-year coordinator where each division can have its own`
 
@@ -141,7 +141,6 @@ DECIDE `no six-year coordinator` s IS
     IF s's `each division justifies its own coordinator`
     THEN PARTY `the school principal`
          SHANT `appoint a six-year coordinator`
-         WITHIN 12
          LEST BREACH BY `the school principal` BECAUSE "תשפ\"ו/3 §2: from תשפ\"ו no six-year coordinator where each division can have its own; two allowances under 1ב instead"
     ELSE FULFILLED
 
@@ -162,13 +161,23 @@ DECIDE `may be appointed six-year coordinator` s c IF
 
 §§ `4 The six-year coordinator's allowance`
 
--- 4א–4ב: 9% in mathematics and English, 8% in every other subject (by the
--- number of teachers and hours of the subject in his charge).
+-- 4א–4ב: 9% in mathematics and English, 8% in every other subject
+-- "בהתאם למספר המורים והשעות של המקצוע אשר תחת אחריותו". The circular
+-- gives no scale of teachers and hours; the reading adopted is a flat 8%
+-- (F-2025-26_tashpo_03-b).
 @ref akn:art_4 akn:art_4__para_a akn:art_4__para_b
 GIVEN s IS A `subject in a six-year school`
 GIVETH A NUMBER
 DECIDE `the six-year coordinator's rate` s IS
     IF s's `the subject is mathematics or English` THEN 0.09 ELSE 0.08
+
+-- F-2025-26_tashpo_03-b: 4ב ties the 8% to the number of teachers and
+-- hours in the coordinator's charge, and nothing in the circular says how.
+`the circular gives a scale of teachers and hours for 4ב's rate` MEANS FALSE
+
+`4ב's rate depends on counts the circular does not scale` MEANS
+    NOT `the circular gives a scale of teachers and hours for 4ב's rate`
+#ASSERT `4ב's rate depends on counts the circular does not scale`
 
 -- 4ג: on the teacher's full salary in both divisions that is the base for
 -- percentage allowances, weighted to a 100% position.
@@ -179,6 +188,18 @@ GIVETH A NUMBER
 DECIDE `the salary weighted to a full position` `base salary in both divisions` `position fraction in both divisions` IS
     `base salary in both divisions` DIVIDED BY `position fraction in both divisions`
 
+-- 4ד: up to one frontal hour in the upper division, from the upper
+-- division's coordinators' hours basket, as the principal allots.
+@ref akn:art_4__para_d
+GIVETH A DEONTIC Party `coordinator action`
+DECIDE `an hour from the basket` IS
+    PARTY `the school principal`
+    MAY   `allot a frontal hour from the upper division's coordinators' basket` h
+          PROVIDED h AT MOST 1
+
+§§§ `4 The six-year coordinator's allowance, assembled`
+
+-- The rate (4א–4ב) on the salary weighted to a full position (4ג).
 @export The monthly coordination allowance of a six-year subject coordinator under circular תשפ"ו/3
 GIVEN s IS A `subject in a six-year school` @desc the subject and whether the divisions justify coordinators
       `base salary in both divisions` IS A NUMBER @desc the salary in both divisions together that is the base for percentage allowances
@@ -188,17 +209,9 @@ DECIDE `six-year coordinator's allowance` s `base salary in both divisions` `pos
     `the six-year coordinator's rate` s
         TIMES `the salary weighted to a full position` `base salary in both divisions` `position fraction in both divisions`
 
--- 4ד: up to one frontal hour in the upper division, from the upper
--- division's coordinators' hours basket, as the principal allots.
-@ref akn:art_4__para_d
-GIVETH A DEONTIC Party `coordinator action`
-DECIDE `an hour from the basket` IS
-    PARTY `the school principal`
-    MAY   `allot a frontal hour from the upper division's coordinators' basket` h
-          PROVIDED h AT MOST 1
-    WITHIN 12
-
 -- akn:conclusions The signatures and copies; no rule.
+
+§§ `Worked examples`
 
 -- Examples (hours and salaries are placeholders).
 `a teacher with 10 frontal hours in both` MEANS
