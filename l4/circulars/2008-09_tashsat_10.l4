@@ -55,16 +55,28 @@ DECIDE `entitled to the clothing allowance` y IF
 
 `the school year this circular prices` MEANS "תשס\"ט (September 2008 to August 2009)"
 
--- Section א.4's table AS PRINTED, in the printed order.
-@ref akn:art_a__para_3 akn:art_a__para_4
+-- Section א.3: the payment is by the employee's seniority. The reading
+-- adopted (F-2008-09_tashsat_10-a) counts the year being served, so a
+-- first-year employee is in year 1 of section א.4's table.
+@ref akn:art_a__para_3
+GIVEN y IS A `clothing year`
+GIVETH A NUMBER
+DECIDE `full-position amount by seniority` y IS
+    IF y's `years of teaching seniority` AT LEAST 26
+    THEN 1903
+    ELSE 1365
+
+-- Section א.4's table, in the printed order: shekels by years of teaching
+-- seniority.
+@ref akn:art_a__para_4
+`the seniority table` MEANS
+    LIST `seniority band` 1  25  1365,
+         `seniority band` 26 999 1903
+
 DECLARE `seniority band` HAS
     `from seniority year` IS A NUMBER
     `to seniority year`   IS A NUMBER  @desc 999 stands for "ומעלה", with no upper bound
     `band amount`         IS A NUMBER  @desc shekels for a full position
-
-`the seniority table` MEANS
-    LIST `seniority band` 1  25  1365,
-         `seniority band` 26 999 1903
 
 GIVEN n IS A NUMBER
 GIVETH A LIST OF NUMBER
@@ -73,28 +85,9 @@ DECIDE `the amounts the seniority table gives for` n IS
         (filter (GIVEN b YIELD n AT LEAST b's `from seniority year` AND n AT MOST b's `to seniority year`)
                 `the seniority table`)
 
--- F-2008-09_tashsat_10-a: the table opens at year 1. The reading adopted
--- counts the year being served, so a first-year employee is in year 1.
-GIVEN y IS A `clothing year`
-GIVETH A NUMBER
-DECIDE `full-position amount by seniority` y IS
-    IF y's `years of teaching seniority` AT LEAST 26
-    THEN 1903
-    ELSE 1365
-
-`a first-year employee has no row if seniority counts completed years` MEANS
-    `the amounts the seniority table gives for` 0 EQUALS EMPTY
-#ASSERT `a first-year employee has no row if seniority counts completed years`
-
-#ASSERT all (GIVEN n YIELD count (`the amounts the seniority table gives for` n) EQUALS 1)
-            (LIST 1, 2, 10, 25, 26, 30, 40)
-
+-- Section א.5: the allowance is paid in proportion to the employee's
+-- position, and for no more than one full position (100%).
 @ref akn:art_a__para_5
-GIVEN y IS A `clothing year`
-GIVETH A NUMBER
-DECIDE `position share` y IS
-    min (y's `position fraction`) 1
-
 GIVEN y IS A `clothing year`
 GIVETH A NUMBER
 DECIDE `general clothing allowance` y IS
@@ -102,20 +95,27 @@ DECIDE `general clothing allowance` y IS
     THEN `full-position amount by seniority` y TIMES `position share` y
     ELSE 0
 
+GIVEN y IS A `clothing year`
+GIVETH A NUMBER
+DECIDE `position share` y IS
+    min (y's `position fraction`) 1
+
 §§ `ב קצובת ביגוד נוספת למורה לחינוך גופני`
 
--- Section ב's table AS PRINTED ("סכום נכון ל-1/8/09"): "עד 0.3", "מ-0.3 עד
--- 0.5", "מ-0.5 ומעלה". Its bounds meet at 0.3 and at 0.5 (F-2008-09_tashsat_10-b).
+-- Section ב's table ("סכום נכון ל-1/8/09"), the amount by employment rate:
+-- "עד 0.3" 0, "מ-0.3 עד 0.5" 235, "מ-0.5 ומעלה" 467. Its bounds meet at
+-- 0.3 and at 0.5 (F-2008-09_tashsat_10-b), and "employment rate" is not
+-- said to be of what (F-2008-09_tashsat_10-c).
 @ref akn:art_b
-DECLARE `employment band` HAS
-    `from employment rate` IS A NUMBER
-    `to employment rate`   IS A NUMBER  @desc 999 stands for "ומעלה"
-    `employment band amount` IS A NUMBER
-
 `the physical-education table` MEANS
     LIST `employment band` 0   0.3 0,
          `employment band` 0.3 0.5 235,
          `employment band` 0.5 999 467
+
+DECLARE `employment band` HAS
+    `from employment rate` IS A NUMBER
+    `to employment rate`   IS A NUMBER  @desc 999 stands for "ומעלה"
+    `employment band amount` IS A NUMBER
 
 GIVEN r IS A NUMBER
 GIVETH A LIST OF NUMBER
@@ -135,6 +135,126 @@ DECIDE `physical-education allowance` y IS
                 OTHERWISE 0
     ELSE 0
 
+§§ `ג קצובת ביגוד בחינוך הטכנולוגי`
+
+GIVEN professions IS A LIST OF STRING
+      y IS A `clothing year`
+GIVETH A BOOLEAN
+DECIDE `teaches a profession on` professions y IF
+        y's `in technological education`
+    AND any (GIVEN p YIELD elem p professions) (y's `technological professions taught`)
+
+-- Section ג: a teaching employee in technological education or a
+-- professional instructor is paid a clothing allowance for 2008/09 by the
+-- list of professions below. ג.1א: one teaching one of these thirteen
+-- professions is entitled every year to a pair of shoes and two robes.
+@ref akn:art_c/p1 akn:art_c__para_1__subpara_a
+GIVEN y IS A `clothing year`
+GIVETH A LIST OF `clothing item`
+DECIDE `the items section ג.1א grants to` y IS
+    IF `teaches a profession on` `the professions granted shoes and two robes` y
+    THEN `the items section ג.1א grants`
+    ELSE EMPTY
+
+`the items section ג.1א grants` MEANS LIST `a pair of shoes`, `a robe`, `a robe`
+
+`the professions granted shoes and two robes` MEANS
+    LIST "מערכות תעופה",
+         "מכטרוניקה",
+         "טרמודינמיקה טכנית ימית",
+         "מערכות סיב\"מ ותיב\"מ",
+         "תחזוקת מערכות מכניות",
+         "מערכות מכונאות רכב",
+         "מערכות ממוחשבות ברכב",
+         "מערכות בקרת אקלים",
+         "מערכות הספק, פיקוד ובקרה",
+         "אומנות הבישול והאפיה המלונאית",
+         "ימאות – ספינות",
+         "מערכות טלוויזיה וקולנוע",
+         "מערכות צילום"
+
+-- The value line under ג.1א as printed: "ערך שני חלוקים: 308 ₪".
+`the items the value line under ג.1א prices` MEANS LIST `a robe`, `a robe`
+`the value printed under ג.1א` MEANS 308
+
+-- Section ג.1ב: one teaching one of these twelve professions is entitled
+-- to two robes a year.
+@ref akn:art_c__para_1__subpara_b
+GIVEN y IS A `clothing year`
+GIVETH A LIST OF `clothing item`
+DECIDE `the items section ג.1ב grants to` y IS
+    IF `teaches a profession on` `the professions granted two robes` y
+    THEN `the items section ג.1ב grants`
+    ELSE EMPTY
+
+`the items section ג.1ב grants` MEANS LIST `a robe`, `a robe`
+
+`the professions granted two robes` MEANS
+    LIST "מערכות אלקטרוניות",
+         "מערכות מחשוב ובקרה",
+         "מערכות מחשבים",
+         "תכנון ותכנות מערכות",
+         "מערכות ביוטכנולוגיה",
+         "ניהול תיירותי",
+         "ניהול מלונאי",
+         "חינוך לגיל הרך",
+         "עיצוב",
+         "אופנה ותלבושות",
+         "עיצוב שיער, קוסמטיקה ואיפור",
+         "סיעוד"
+
+-- The value line under ג.1ב as printed: "ערך זוג נעליים ושני חלוקים: 498
+-- ₪". Each value line prices the OTHER subparagraph's grant
+-- (F-2008-09_tashsat_10-d). The reading adopted: the line's own label names
+-- what it prices, so shoes and two robes are worth 498 and two robes 308.
+`the items the value line under ג.1ב prices` MEANS LIST `a pair of shoes`, `a robe`, `a robe`
+`the value printed under ג.1ב` MEANS 498
+
+`the value of shoes and two robes` MEANS `the value printed under ג.1ב`
+`the value of two robes` MEANS `the value printed under ג.1א`
+
+-- Section ג.2: this allowance is in addition to the clothing allowance of
+-- every teaching employee (section א). Section ב's is likewise an addition.
+@ref akn:art_c__para_2
+@export default The clothing allowance a teaching employee is owed for school year 2008/09 under circular תשס"ט/10, the general allowance plus the physical-education and technological-education additions
+GIVEN y IS A `clothing year` @desc the employee's school year 2008/09
+GIVETH A NUMBER
+DECIDE `clothing allowance` y IS
+    `general clothing allowance` y
+    PLUS `physical-education allowance` y
+    PLUS `technological clothing allowance` y
+
+-- Section ג.3: the technological allowance is paid in proportion to the
+-- position, for no more than one full position. Each subparagraph grants on
+-- its own words; an employee teaching on both lists meets both, and the
+-- text grants both.
+@ref akn:art_c__para_3
+GIVEN y IS A `clothing year`
+GIVETH A NUMBER
+DECIDE `technological clothing allowance` y IS
+    (   (IF `teaches a profession on` `the professions granted shoes and two robes` y
+         THEN `the value of shoes and two robes`
+         ELSE 0)
+     PLUS (IF `teaches a profession on` `the professions granted two robes` y
+           THEN `the value of two robes`
+           ELSE 0))
+    TIMES `position share` y
+
+-- akn:art_d The contact line for questions (the conditions-of-service unit's telephone numbers); no rule.
+
+-- akn:conclusions The sign-off and signature; no rule.
+
+§§ `Worked examples`
+
+-- F-2008-09_tashsat_10-a: the table opens at year 1.
+`a first-year employee has no row if seniority counts completed years` MEANS
+    `the amounts the seniority table gives for` 0 EQUALS EMPTY
+#ASSERT `a first-year employee has no row if seniority counts completed years`
+
+#ASSERT all (GIVEN n YIELD count (`the amounts the seniority table gives for` n) EQUALS 1)
+            (LIST 1, 2, 10, 25, 26, 30, 40)
+
+-- F-2008-09_tashsat_10-b: the bounds meet.
 `the physical-education table gives 0.3 and 0.5 two amounts each` MEANS
         `the amounts the physical-education table gives for` 0.3 EQUALS LIST 0, 235
     AND `the amounts the physical-education table gives for` 0.5 EQUALS LIST 235, 467
@@ -160,98 +280,15 @@ DECIDE `physical-education allowance` y IS
          EQUALS `the amounts the physical-education table gives for` 1)
 #ASSERT `the two readings of the employment rate differ`
 
-§§ `ג קצובת ביגוד בחינוך הטכנולוגי`
-
--- Section ג.1א's thirteen professions, in the printed order of their numbers.
-@ref akn:art_c/p1 akn:art_c__para_1__subpara_a
-`the professions granted shoes and two robes` MEANS
-    LIST "מערכות תעופה",
-         "מכטרוניקה",
-         "טרמודינמיקה טכנית ימית",
-         "מערכות סיב\"מ ותיב\"מ",
-         "תחזוקת מערכות מכניות",
-         "מערכות מכונאות רכב",
-         "מערכות ממוחשבות ברכב",
-         "מערכות בקרת אקלים",
-         "מערכות הספק, פיקוד ובקרה",
-         "אומנות הבישול והאפיה המלונאית",
-         "ימאות – ספינות",
-         "מערכות טלוויזיה וקולנוע",
-         "מערכות צילום"
-
-`the items section ג.1א grants` MEANS LIST `a pair of shoes`, `a robe`, `a robe`
-
--- Section ג.1ב's twelve professions.
-@ref akn:art_c__para_1__subpara_b
-`the professions granted two robes` MEANS
-    LIST "מערכות אלקטרוניות",
-         "מערכות מחשוב ובקרה",
-         "מערכות מחשבים",
-         "תכנון ותכנות מערכות",
-         "מערכות ביוטכנולוגיה",
-         "ניהול תיירותי",
-         "ניהול מלונאי",
-         "חינוך לגיל הרך",
-         "עיצוב",
-         "אופנה ותלבושות",
-         "עיצוב שיער, קוסמטיקה ואיפור",
-         "סיעוד"
-
-`the items section ג.1ב grants` MEANS LIST `a robe`, `a robe`
-
--- The two value lines as printed: under ג.1א "ערך שני חלוקים: 308 ₪", under
--- ג.1ב "ערך זוג נעליים ושני חלוקים: 498 ₪".
-`the items the value line under ג.1א prices` MEANS LIST `a robe`, `a robe`
-`the value printed under ג.1א` MEANS 308
-`the items the value line under ג.1ב prices` MEANS LIST `a pair of shoes`, `a robe`, `a robe`
-`the value printed under ג.1ב` MEANS 498
-
--- F-2008-09_tashsat_10-d: each value line prices the OTHER subparagraph's
--- grant. The reading adopted: the line's own label names what it prices, so
--- shoes and two robes are worth 498 and two robes 308.
+-- F-2008-09_tashsat_10-d: each value line prices the other subparagraph's
+-- grant.
 `each value line prices the other subparagraph's grant` MEANS
         (NOT (`the items the value line under ג.1א prices` EQUALS `the items section ג.1א grants`))
     AND `the items the value line under ג.1א prices` EQUALS `the items section ג.1ב grants`
     AND `the items the value line under ג.1ב prices` EQUALS `the items section ג.1א grants`
 #ASSERT `each value line prices the other subparagraph's grant`
 
-`the value of shoes and two robes` MEANS `the value printed under ג.1ב`
-`the value of two robes` MEANS `the value printed under ג.1א`
-
-GIVEN professions IS A LIST OF STRING
-      y IS A `clothing year`
-GIVETH A BOOLEAN
-DECIDE `teaches a profession on` professions y IF
-        y's `in technological education`
-    AND any (GIVEN p YIELD elem p professions) (y's `technological professions taught`)
-
--- Each subparagraph grants on its own words; an employee teaching on both
--- lists meets both, and the text grants both.
-@ref akn:art_c__para_2 akn:art_c__para_3
-GIVEN y IS A `clothing year`
-GIVETH A NUMBER
-DECIDE `technological clothing allowance` y IS
-    (   (IF `teaches a profession on` `the professions granted shoes and two robes` y
-         THEN `the value of shoes and two robes`
-         ELSE 0)
-     PLUS (IF `teaches a profession on` `the professions granted two robes` y
-           THEN `the value of two robes`
-           ELSE 0))
-    TIMES `position share` y
-
--- akn:art_d The contact line for questions (the conditions-of-service unit's telephone numbers); no rule.
-
-@export default The clothing allowance a teaching employee is owed for school year 2008/09 under circular תשס"ט/10, the general allowance plus the physical-education and technological-education additions
-GIVEN y IS A `clothing year` @desc the employee's school year 2008/09
-GIVETH A NUMBER
-DECIDE `clothing allowance` y IS
-    `general clothing allowance` y
-    PLUS `physical-education allowance` y
-    PLUS `technological clothing allowance` y
-
--- akn:conclusions The sign-off and signature; no rule.
-
--- Worked examples, on the circular's own amounts.
+-- On the circular's own amounts.
 `a half-position teacher in year 30` MEANS
     `clothing year` WITH
         `in the teaching-staff grade`        IS TRUE

@@ -60,14 +60,14 @@ DECIDE `the civics bagrut bonus applies to` t IF
         AND t's `employed in post-primary education`
         AND t's `works at an owner with salary merged in the civil service`)
 
-`the agreement starts` MEANS Date 1 9 2008
-
+-- Section 1ב: the agreement starts on 1.9.2008.
 @ref akn:art_1__para_b
 GIVEN `day` IS A DATE
 GIVETH A BOOLEAN
 DECIDE `the agreement is in force on` `day` IF
     `day` AT LEAST `the agreement starts`
 
+`the agreement starts` MEANS Date 1 9 2008
 
 §§ `2 גמול עבור הכנה לבגרות באזרחות`
 
@@ -82,54 +82,23 @@ DECIDE `the existing bagrut-preparation rules apply to` t IF
         `the civics bagrut bonus applies to` t
     AND t's `prepares pupils for the civics bagrut`
 
--- Section 2ב's table AS PRINTED, in the printed order: "10 ומעלה" 0.4, "6 עד
--- 9" 0.2, "1 עד 5" 0.1 weekly hours.
-@ref akn:art_2__para_b/t1
-DECLARE `pupils band` HAS
-    `from pupils`  IS A NUMBER
-    `to pupils`    IS A NUMBER  @desc 999 stands for "ומעלה", with no upper bound
-    `added weekly hours` IS A NUMBER
-
-`the table of added hours` MEANS
-    LIST `pupils band` 10 999 0.4,
-         `pupils band` 6  9   0.2,
-         `pupils band` 1  5   0.1
-
-GIVEN n IS A NUMBER
-GIVETH A LIST OF NUMBER
-DECIDE `the hours the table gives for` n IS
-    map (GIVEN b YIELD b's `added weekly hours`)
-        (filter (GIVEN b YIELD n AT LEAST b's `from pupils` AND n AT MOST b's `to pupils`)
-                `the table of added hours`)
-
--- The table is a function on whole numbers of pupils: every count from 1
--- has exactly one row, and none has two.
-#ASSERT all (GIVEN n YIELD count (`the hours the table gives for` n) EQUALS 1)
-            (LIST 1, 2, 5, 6, 7, 9, 10, 11, 20, 40)
-
--- Section 2ב and its footnote: the count is all the pupils of ONE class the
+-- Section 2ב: in addition to 2א, a teacher who guides and accompanies
+-- pupils preparing the performance task that is part of the external civics
+-- bagrut is entitled, in the school year of the guidance in which the task
+-- is submitted for the external grade, to weekly hours added to the
+-- position, by the total number of pupils in the class he guides, as the
+-- table sets. The footnote: the count is all the pupils of ONE class the
 -- teacher guides and accompanies, and one class earns no more than 0.4
--- weekly hours. A class earns hours only in the school year the guidance is
--- given AND the task is submitted for the external grade.
+-- weekly hours.
 @ref akn:art_2__para_b akn:art_2__para_b/p2
 GIVEN c IS A `guided class`
 GIVETH A NUMBER
 DECIDE `added weekly hours for the class` c IS
     IF c's `the task is submitted for a grade this year`
-    THEN min (BRANCH IF c's `pupils guided in the class` AT LEAST 10 THEN 0.4
-                     IF c's `pupils guided in the class` AT LEAST 6  THEN 0.2
-                     IF c's `pupils guided in the class` AT LEAST 1  THEN 0.1
-                     OTHERWISE 0)
-             0.4
+    THEN min (sum (`the hours the table gives for` (c's `pupils guided in the class`))) 0.4
     ELSE 0
 
--- The adopted function agrees with the printed table on every count.
-#ASSERT all (GIVEN n YIELD `the hours the table gives for` n
-                           EQUALS LIST (`added weekly hours for the class` (`guided class` n TRUE)))
-            (LIST 1, 5, 6, 9, 10, 30)
-
--- Section 2ב: the hours are IN ADDITION to section 2א, added to the
--- teacher's position, class by class.
+-- The hours are added to the teacher's position, class by class.
 @export default The weekly hours added to a teaching employee's position under circular תשס"ט/8 for guiding pupils through the civics bagrut performance task
 GIVEN t IS A `civics teacher` @desc the teacher and the classes guided this school year
 GIVETH A NUMBER
@@ -137,6 +106,26 @@ DECIDE `added weekly hours for the civics performance task` t IS
     IF `the civics bagrut bonus applies to` t
     THEN sum (map `added weekly hours for the class` (t's `classes guided through the performance task`))
     ELSE 0
+
+-- Section 2ב's table, in the printed order: "10 ומעלה" 0.4, "6 עד 9" 0.2,
+-- "1 עד 5" 0.1 weekly hours.
+@ref akn:art_2__para_b/t1
+`the table of added hours` MEANS
+    LIST `pupils band` 10 999 0.4,
+         `pupils band` 6  9   0.2,
+         `pupils band` 1  5   0.1
+
+DECLARE `pupils band` HAS
+    `from pupils`  IS A NUMBER
+    `to pupils`    IS A NUMBER  @desc 999 stands for "ומעלה", with no upper bound
+    `added weekly hours` IS A NUMBER
+
+GIVEN n IS A NUMBER
+GIVETH A LIST OF NUMBER
+DECIDE `the hours the table gives for` n IS
+    map (GIVEN b YIELD b's `added weekly hours`)
+        (filter (GIVEN b YIELD n AT LEAST b's `from pupils` AND n AT MOST b's `to pupils`)
+                `the table of added hours`)
 
 §§ `3 ביצוע ותשלומים`
 
@@ -155,10 +144,21 @@ DECIDE `payment by June's salary` `amount due` IS
     WITHIN `month number` June
     LEST BREACH BY `the local authority or owning body` BECAUSE "section 3: the payments and arrears under the agreement are paid with the May 2009 salary, at the latest with June's"
 
-
 -- akn:conclusions The sign-off and signature; no rule.
 
--- Worked examples, on the circular's own table.
+§§ `Worked examples`
+
+-- The table is a function on whole numbers of pupils: every count from 1
+-- has exactly one row, and none has two.
+#ASSERT all (GIVEN n YIELD count (`the hours the table gives for` n) EQUALS 1)
+            (LIST 1, 2, 5, 6, 7, 9, 10, 11, 20, 40)
+
+-- One class's hours are the table's row (none of its rows exceeds 0.4).
+#ASSERT all (GIVEN n YIELD `the hours the table gives for` n
+                           EQUALS LIST (`added weekly hours for the class` (`guided class` n TRUE)))
+            (LIST 1, 5, 6, 9, 10, 30)
+
+-- On the circular's own table.
 `a teacher guiding two classes` MEANS
     `civics teacher` WITH
         `in the teaching-staff grade`              IS TRUE

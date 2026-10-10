@@ -27,9 +27,10 @@ DECLARE `strike action` IS ONE OF
     `deduct from the owner's payments` HAS `amount withheld` IS A NUMBER
 
 -- "יש לנכות משכרם של כל המורים שנטלו חלק … בהתאם לימים ולשעות": the
--- deduction follows the days and hours of each teacher's part, by the
--- takanon's rule on unjustified absence (section 1.25.14), restated in
--- sections 1 and 2. Time in months from the strike month.
+-- salary of every teacher who took part is deducted by the days and hours
+-- of their part, by the takanon's rule on unjustified absence (section
+-- 1.25.14), restated in sections 1 and 2. No deadline is printed, so the
+-- duty has none.
 @ref akn:preamble/p13 akn:preamble/p14
 GIVEN s IS A `strike month`
 GIVETH A DEONTIC Party `strike action`
@@ -37,33 +38,31 @@ DECIDE `deducting for the strike` s IS
     PARTY `the local authority or owning body`
     MUST  `deduct from the salary` `amount`
           PROVIDED `amount` EQUALS `the strike deduction` s
-    WITHIN 1
     LEST BREACH BY `the local authority or owning body` BECAUSE "the salary of every teacher who took part is deducted for the days and hours of the strike"
 
 §§ `1`
 
+-- Section 1: where the month's absence is less than 10% of the teacher's
+-- fixed work quota, the offset is from the actual working hours only, not
+-- from the education or matriculation-preparation hours or the percentage
+-- additions for roles.
 @ref akn:art_1
-GIVEN s IS A `strike month`
-GIVETH A BOOLEAN
-DECIDE `section 1 governs` s IF
-    s's `absence share` LESS THAN 0.1
-
 GIVEN s IS A `strike month`
 GIVETH A NUMBER
 DECIDE `the deduction under section 1` s IS
     s's `absence share` TIMES s's `pay for actual working hours`
 
-§§ `2`
-
-@ref akn:art_2
 GIVEN s IS A `strike month`
 GIVETH A BOOLEAN
-DECIDE `section 2 governs` s IF
-    s's `absence share` GREATER THAN 0.1
+DECIDE `section 1 governs` s IF
+    s's `absence share` LESS THAN 0.1
 
--- "על הבעלות לנכות שכר מהעובד לפי מערכת השעות הקבועה": the share is taken
--- of the teacher's fixed timetable, which is what the inputs measure.
-@ref akn:art_2/p2
+§§ `2`
+
+-- Section 2: where the absence exceeds 10%, the proportional part of the
+-- unjustified absence is offset also from the education and matriculation
+-- hours and from the percentage additions for roles.
+@ref akn:art_2
 GIVEN s IS A `strike month`
 GIVETH A NUMBER
 DECIDE `the deduction under section 2` s IS
@@ -71,6 +70,55 @@ DECIDE `the deduction under section 2` s IS
     TIMES (    s's `pay for actual working hours`
           PLUS s's `pay for education and matriculation-preparation hours`
           PLUS s's `percentage additions for roles`)
+
+GIVEN s IS A `strike month`
+GIVETH A BOOLEAN
+DECIDE `section 2 governs` s IF
+    s's `absence share` GREATER THAN 0.1
+
+-- "על הבעלות לנכות שכר מהעובד לפי מערכת השעות הקבועה של המורה בביה"ס": the
+-- owner deducts by the teacher's fixed timetable at the school, so the
+-- absence share is the hours of that timetable missed.
+@ref akn:art_2/p2
+GIVEN `hours of the fixed timetable missed` IS A NUMBER
+      `hours of the fixed timetable` IS A NUMBER @desc the teacher's fixed weekly timetable at the school, for the month
+GIVETH A NUMBER
+DECIDE `the absence share by the fixed timetable` `hours of the fixed timetable missed` `hours of the fixed timetable` IS
+    IF `hours of the fixed timetable` GREATER THAN 0
+    THEN `hours of the fixed timetable missed` DIVIDED BY `hours of the fixed timetable`
+    ELSE 0
+
+-- "משרד החינוך ינכה מתשלומי המת"מ השוטפים לבעלויות": the Ministry deducts
+-- from its current payments to the owners, by the hours budgeted in the
+-- striking institutions and the dates of the strike. No deadline is
+-- printed, so the duty has none.
+@ref akn:art_2/p3
+GIVEN `budgeted hours in the striking institutions` IS A NUMBER
+      `budgeted value of an hour on the strike dates` IS A NUMBER @desc shekels; set by the Ministry's budgeting
+GIVETH A DEONTIC Party `strike action`
+DECIDE `the Ministry's deduction from the owner` `budgeted hours in the striking institutions` `budgeted value of an hour on the strike dates` IS
+    PARTY `the Ministry of Education`
+    MUST  `deduct from the owner's payments` `amount`
+          PROVIDED `amount` EQUALS `budgeted hours in the striking institutions` TIMES `budgeted value of an hour on the strike dates`
+    LEST BREACH BY `the Ministry of Education` BECAUSE "section 2: the Ministry deducts from its current payments to the owners for the budgeted hours on the strike dates"
+
+§§ `The month's deduction`
+
+-- The reading adopted (F-2009-10_tasha_04-a): the wider deduction needs
+-- absence that EXCEEDS 10%, so 10% exactly is deducted under section 1.
+@export default The salary deducted from a teaching employee for a month of the 2010 strike or sanctions under circular תש"ע/4
+GIVEN s IS A `strike month` @desc the teacher's month
+GIVETH A NUMBER
+DECIDE `the strike deduction` s IS
+    IF s's `took part in the strike or sanctions`
+    THEN IF `section 2 governs` s
+         THEN `the deduction under section 2` s
+         ELSE `the deduction under section 1` s
+    ELSE 0
+
+-- akn:conclusions The sign-off and signature; no rule.
+
+§§ `Worked examples`
 
 -- F-2009-10_tasha_04-a: absence of exactly 10% is neither "less than 10%"
 -- (section 1) nor "more than 10%" (section 2).
@@ -87,34 +135,7 @@ DECIDE `the deduction under section 2` s IS
     AND (NOT `section 2 governs` `a month with exactly 10% absence`)
 #ASSERT `neither section governs exactly 10%`
 
--- The reading adopted (F-2009-10_tasha_04-a): the wider deduction needs
--- absence that EXCEEDS 10%, so 10% exactly is deducted under section 1.
-@export default The salary deducted from a teaching employee for a month of the 2010 strike or sanctions under circular תש"ע/4
-GIVEN s IS A `strike month` @desc the teacher's month
-GIVETH A NUMBER
-DECIDE `the strike deduction` s IS
-    IF s's `took part in the strike or sanctions`
-    THEN IF `section 2 governs` s
-         THEN `the deduction under section 2` s
-         ELSE `the deduction under section 1` s
-    ELSE 0
-
--- "משרד החינוך ינכה מתשלומי המת"מ השוטפים לבעלויות": by the hours budgeted
--- in the striking institutions and the dates of the strike.
-@ref akn:art_2/p3
-GIVEN `budgeted hours in the striking institutions` IS A NUMBER
-      `budgeted value of an hour on the strike dates` IS A NUMBER @desc shekels; set by the Ministry's budgeting
-GIVETH A DEONTIC Party `strike action`
-DECIDE `the Ministry's deduction from the owner` `budgeted hours in the striking institutions` `budgeted value of an hour on the strike dates` IS
-    PARTY `the Ministry of Education`
-    MUST  `deduct from the owner's payments` `amount`
-          PROVIDED `amount` EQUALS `budgeted hours in the striking institutions` TIMES `budgeted value of an hour on the strike dates`
-    WITHIN 1
-    LEST BREACH BY `the Ministry of Education` BECAUSE "section 2: the Ministry deducts from its current payments to the owners for the budgeted hours on the strike dates"
-
--- akn:conclusions The sign-off and signature; no rule.
-
--- Worked examples; the pay figures are round placeholders.
+-- The pay figures are round placeholders.
 `a month with 5% absence` MEANS
     `strike month` WITH
         `took part in the strike or sanctions` IS TRUE
@@ -134,8 +155,10 @@ DECIDE `the Ministry's deduction from the owner` `budgeted hours in the striking
 #ASSERT `the strike deduction` `a month with 5% absence` EQUALS 400
 #ASSERT `the strike deduction` `a month with 20% absence` EQUALS 2000
 #ASSERT `the strike deduction` `a month with exactly 10% absence` EQUALS 800
+#ASSERT `the absence share by the fixed timetable` 4 40 EQUALS 0.1
 
 #TRACE `deducting for the strike` `a month with 20% absence` AT 0 WITH
     PARTY `the local authority or owning body` DOES `deduct from the salary` 2000 AT 1
+-- Deducting the wrong amount does not discharge the duty: it stays owed.
 #TRACE `deducting for the strike` `a month with 20% absence` AT 0 WITH
     PARTY `the local authority or owning body` DOES `deduct from the salary` 1600 AT 1
