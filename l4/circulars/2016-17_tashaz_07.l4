@@ -38,19 +38,37 @@ DECIDE `covered by the circular` c IF
 
 §§ `2 תגמול עובדי הוראה בגין הישגי בית הספר`
 
--- §2א: the program runs from 2012-13 by the rules of the pedagogical
--- administration's letter of 21.10.2012; which schools rank is decided under
--- it (an input: the case's school rank).
+-- §2א: the program rewarding teachers for their school's achievements in
+-- the upper divisions runs from 2012-13, by the format and rules of the
+-- pedagogical administration's letter of 21.10.2012; which schools rank is
+-- decided under those rules (an input: the case's school rank).
 @ref akn:art_2__para_a
 GIVEN c IS A `reward case`
 GIVETH A BOOLEAN
-DECIDE `the school is ranked` c IF
+DECIDE `the school ranks under the rules of the letter of 21.10.2012` c IF
     c's `school rank` AT LEAST 1 AND c's `school rank` AT MOST 4
 
--- §2ב's table as printed: the reward for a full position, by the school's
--- rank (each rank a further 10% of the schools), updated to May 2017 by
--- the consumer price index against May 2016.
+-- §2ב: teachers in the upper divisions whose achievements the ministry
+-- found to be the highest are entitled to a one-time grant, by the table:
+-- the grant for a full position, by the school's rank (each rank a further
+-- 10% of the schools), updated to May 2017 by the consumer price index
+-- against May 2016.
 @ref akn:art_2__para_b
+@export default The one-time achievement grant a high-school teaching employee is owed for school year 2016-17 under owners' circular 2016-17/7
+GIVEN c IS A `reward case` @desc the teacher's year
+GIVETH A NUMBER
+DECIDE `achievement reward` c IS
+    IF `entitled to the one-time grant` c
+    THEN `the full-position reward for rank` (c's `school rank`) TIMES `the reward share` c
+    ELSE 0
+
+GIVEN c IS A `reward case`
+GIVETH A BOOLEAN
+DECIDE `entitled to the one-time grant` c IF
+        `covered by the circular` c
+    AND `the school ranks under the rules of the letter of 21.10.2012` c
+    AND NOT `not entitled after a full sabbatical or full unpaid leave` c
+
 DECLARE `reward row` HAS
     `reward rank`   IS A NUMBER
     `reward amount` IS A NUMBER
@@ -67,52 +85,57 @@ DECIDE `the full-position reward for rank` n IS
     sum (map (GIVEN r YIELD r's `reward amount`)
              (filter (GIVEN r YIELD r's `reward rank` EQUALS n) `the reward table`))
 
--- §2ג: pro rata to the high-school position and to the share of the year
--- employed (maternity leave counts as employment; unpaid leave after it
--- does not); ¶2: none on a full sabbatical or full unpaid leave. §2ד: no
--- more than 100% is counted.
+-- §2ג: pro rata to the high-school position and/or to the share of the year
+-- employed at the excelling institution (maternity leave counts as
+-- employment; unpaid leave after it does not), with §2ד's cap on the
+-- position counted.
 @ref akn:art_2__para_c
 GIVEN c IS A `reward case`
 GIVETH A NUMBER
 DECIDE `the reward share` c IS
-    min (c's `high-school position fraction`) 1
+    min (c's `high-school position fraction`) `the most position counted`
     TIMES min (c's `months employed in the year` DIVIDED BY 12) 1
 
+-- §2ג ¶2: for the avoidance of doubt, a teacher on a full sabbatical or
+-- full unpaid leave in 2016-17 is not entitled to the reward.
 @ref akn:art_2__para_c/p2
 GIVEN c IS A `reward case`
 GIVETH A BOOLEAN
-DECIDE `entitled to the reward` c IF
-        `covered by the circular` c
-    AND `the school is ranked` c
-    AND NOT c's `on full sabbatical or full unpaid leave`
+DECIDE `not entitled after a full sabbatical or full unpaid leave` c IF
+    c's `on full sabbatical or full unpaid leave`
 
+-- §2ד: employment beyond 100% of a position is not counted.
 @ref akn:art_2__para_d
 `the most position counted` MEANS 1
 
-@export default The one-time achievement reward a high-school teaching employee is owed for school year 2016-17 under owners' circular 2016-17/7
-GIVEN c IS A `reward case` @desc the teacher's year
-GIVETH A NUMBER
-DECIDE `achievement reward` c IS
-    IF `entitled to the reward` c
-    THEN `the full-position reward for rank` (c's `school rank`) TIMES `the reward share` c
-    ELSE 0
+-- §2ה: paid with August 2017's salary (school month 12).
+@ref akn:art_2__para_e
+GIVEN c IS A `reward case`
+GIVETH A DEONTIC Party `reward action`
+DECIDE `paying the grants with August 2017's salary` c IS
+    PARTY `the employer`
+    MUST  `pay the achievement reward` `amount`
+          PROVIDED `amount` AT LEAST `achievement reward` c
+    WITHIN 12
+    LEST BREACH BY `the employer` BECAUSE "circular 2016-17/7 section 2e: the grants are paid with August 2017's salary"
 
--- §2ו: not in the base for the hourly value, severance or percentage
--- supplements, and no training-fund contribution.
+-- §2ו: not in the base for the hourly value, severance pay or percentage
+-- supplements, and no training-fund contributions are made on them.
 @ref akn:art_2__para_f
 DECLARE `pay purpose` IS ONE OF
     `the hourly value`
     `severance pay`
     `percentage supplements`
     `training-fund contributions`
-    `pension-fund contributions`
 
 GIVEN p IS A `pay purpose`
 GIVETH A BOOLEAN
-DECIDE `the reward counts for` p IF
+DECIDE `the grants are left out of` p IF
     CONSIDER p
-    WHEN `pension-fund contributions` THEN TRUE
-    OTHERWISE FALSE
+    WHEN `the hourly value` THEN TRUE
+    WHEN `severance pay` THEN TRUE
+    WHEN `percentage supplements` THEN TRUE
+    WHEN `training-fund contributions` THEN TRUE
 
 -- §2ז: pension-fund contributions of 5% by the employer and 5% deducted from
 -- the teacher's salary.
@@ -129,17 +152,6 @@ GIVEN c IS A `reward case`
 GIVETH A NUMBER
 DECIDE `the teacher's pension deduction on the reward` c IS
     `achievement reward` c TIMES `the teacher's pension deduction rate`
-
--- §2ה: paid with August 2017's salary (school month 12).
-@ref akn:art_2__para_e
-GIVEN c IS A `reward case`
-GIVETH A DEONTIC Party `reward action`
-DECIDE `paying the reward with August 2017's salary` c IS
-    PARTY `the employer`
-    MUST  `pay the achievement reward` `amount`
-          PROVIDED `amount` AT LEAST `achievement reward` c
-    WITHIN 12
-    LEST BREACH BY `the employer` BECAUSE "circular 2016-17/7 section 2e: the rewards are paid with August 2017's salary"
 
 -- akn:art_3 akn:art_3/p2 A link to the list of the winning schools for 2016-17; the rank is an input of each case.
 
@@ -158,7 +170,8 @@ DECIDE `indemnifying the owner` `rewards paid by the owner` IS
 
 -- akn:conclusions The contact line, the signature (Sonia Peretz) and the list of copies; no rule.
 
--- Worked examples.
+§§ `Worked examples`
+
 `a full-position teacher at a rank-2 school` MEANS
     `reward case` WITH
         `graded as a teaching employee in the high school` IS TRUE
@@ -190,11 +203,11 @@ DECIDE `indemnifying the owner` `rewards paid by the owner` IS
 #ASSERT `achievement reward` `a half-position teacher for half the year at a rank-1 school` EQUALS 2071.3075
 #ASSERT `achievement reward` `a teacher on a full sabbatical` EQUALS 0
 #ASSERT `the full-position reward for rank` 5 EQUALS 0
-#ASSERT NOT `the reward counts for` `severance pay`
+#ASSERT `the grants are left out of` `severance pay`
 #ASSERT `the employer's pension contribution on the reward` `a full-position teacher at a rank-2 school` EQUALS 6213.92 TIMES 0.05
 #ASSERT `the teacher's pension deduction on the reward` `a full-position teacher at a rank-2 school` EQUALS 6213.92 TIMES 0.05
 
-#TRACE `paying the reward with August 2017's salary` `a full-position teacher at a rank-2 school` AT 0 WITH
+#TRACE `paying the grants with August 2017's salary` `a full-position teacher at a rank-2 school` AT 0 WITH
     PARTY `the employer` DOES `pay the achievement reward` 6213.92 AT 12
 #TRACE `indemnifying the owner` 6213.92 AT 0 WITH
     PARTY `the Ministry of Education` DOES `indemnify the owner` 6213.92 AT 13
