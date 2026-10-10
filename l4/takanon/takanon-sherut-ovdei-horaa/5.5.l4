@@ -24,6 +24,7 @@ DECLARE `dismissal action` IS ONE OF
     `extend the warning by a year`
     `initiate dismissal at the end of the first year`
     `return the teacher to the upper division`
+    `send a dismissal letter ending the work at the end of that school year`
 
 @desc A middle-school teacher's case, as section 5.5's pedagogical grounds ask about it.
 DECLARE `pedagogical dismissal case` HAS
@@ -35,6 +36,7 @@ DECLARE `pedagogical dismissal case` HAS
     `lessons visited by the school's supervisor`      IS A NUMBER
     `lessons visited by a second supervisor`          IS A NUMBER
     `discussed by the district supervisors' committee` IS A BOOLEAN
+    `the trial period was extended`                   IS A BOOLEAN
     `employer`                                        IS A `kind of employer`
 
 -- Time in days from 1 September of the school year (day 0), the year
@@ -52,6 +54,8 @@ DECIDE `days from 1 September to` `day` `month` `y` IS
 -- post-primary education: at the end of each of the first three years the
 -- work may be ended by not renewing the licence, notice going out from the
 -- district manager by 31 May; the trial may not run into a fourth year.
+-- After the third year the paragraph gives no permission and states no
+-- prohibition, so it imposes nothing (FULFILLED).
 @ref akn:chp_5__sec_5_5__hc_2__para_1__subpara_a
 GIVEN `year of work` IS A NUMBER, `y` IS A NUMBER
 GIVETH A DEONTIC Party `dismissal action`
@@ -60,8 +64,7 @@ DECIDE `non-renewal of a temporary licence` `year of work` `y` IS
     THEN PARTY `the district manager`
          MAY   `send notice of non-renewal of the temporary licence`
          WITHIN `days from 1 September to` 31 5 `y`
-    ELSE PARTY `the district manager`
-         SHANT `send notice of non-renewal of the temporary licence`
+    ELSE FULFILLED
 
 @ref akn:chp_5__sec_5_5__hc_2__para_1__subpara_a
 GIVETH A BOOLEAN
@@ -102,14 +105,26 @@ GIVEN c IS A `pedagogical dismissal case`
 GIVETH A `scope of a dismissal`
 DECIDE `the first-year letter's scope` c IS `the institution alone`
 
--- 2(b): in the second or third (extended) year, as for a teacher on trial
--- in post-primary education: the school's supervisor and another, two
--- lessons each, and the district supervisors' committee.
+-- "The dismissal letter is sent to the teacher by the owner ... the owner
+-- tells the teacher that the work in the institution ends at the end of
+-- that school year." No date is named for the letter.
+GIVEN c IS A `pedagogical dismissal case`, `the principal initiated the dismissal` IS A BOOLEAN
+GIVETH A DEONTIC Party `dismissal action`
+DECIDE `the first-year dismissal letter` c `the principal initiated the dismissal` IS
+    IF `the principal initiated the dismissal` AND `the principal may initiate dismissal at the end of the first year` c
+    THEN PARTY `the local authority or owning body`
+         MUST  `send a dismissal letter ending the work at the end of that school year`
+    ELSE FULFILLED
+
+-- 2(b): in the second year, or the third if the trial was extended, as for
+-- a teacher on trial in post-primary education: the school's supervisor and
+-- another, two lessons each, and the district supervisors' committee.
 @ref akn:chp_5__sec_5_5__hc_2__hc_1__para_2__subpara_b
 GIVEN c IS A `pedagogical dismissal case`
 GIVETH A BOOLEAN
 DECIDE `dismissal in the second or third year may be proposed` c IF
-        (c's `year of work in the middle school` EQUALS 2 OR c's `year of work in the middle school` EQUALS 3)
+        (    c's `year of work in the middle school` EQUALS 2
+         OR (c's `year of work in the middle school` EQUALS 3 AND c's `the trial period was extended`))
     AND c's `lessons visited by the school's supervisor` AT LEAST 2
     AND c's `lessons visited by a second supervisor` AT LEAST 2
     AND c's `discussed by the district supervisors' committee`
@@ -128,17 +143,20 @@ GIVETH A BOOLEAN
 DECIDE `a parity committee with the representative organisation decides, and words the letter` c IF
     `the scope the dismissal proposal asks for` c EQUALS `the whole education system`
 
--- 3(a): a permanent teacher: the supervision first has a director-general's
--- warning sent; the request reaches the teaching-personnel division by
--- 1 April (and goes on under circular no. 9, section 17 — outside the takanon).
+-- 3(a): once a proposal to dismiss a permanent teacher is raised, the
+-- supervision first has a director-general's warning sent; the request
+-- reaches the teaching-personnel division by 1 April (and goes on under
+-- circular no. 9, section 17 — outside the takanon).
 @ref akn:chp_5__sec_5_5__hc_2__hc_1__para_3__subpara_a
-GIVEN `y` IS A NUMBER
+GIVEN `y` IS A NUMBER, `a proposal to dismiss a permanent teacher was raised` IS A BOOLEAN
 GIVETH A DEONTIC Party `dismissal action`
-DECIDE `the director-general's warning first` `y` IS
-    PARTY `the supervisor`
-    MUST  `request a director-general's warning`
-    WITHIN `days from 1 September to` 1 4 `y`
-    LEST BREACH BY `the supervisor` BECAUSE "section 5.5: the request for a director-general's warning reaches the teaching-personnel division by 1 April"
+DECIDE `the director-general's warning first` `y` `a proposal to dismiss a permanent teacher was raised` IS
+    IF `a proposal to dismiss a permanent teacher was raised`
+    THEN PARTY `the supervisor`
+         MUST  `request a director-general's warning`
+         WITHIN `days from 1 September to` 1 4 `y`
+         LEST BREACH BY `the supervisor` BECAUSE "section 5.5: the request for a director-general's warning reaches the teaching-personnel division by 1 April"
+    ELSE FULFILLED
 
 @ref akn:chp_5__sec_5_5__hc_2__hc_1__para_3__subpara_b
 GIVEN `the teachers' organisation consents` IS A BOOLEAN
@@ -168,6 +186,16 @@ GIVETH A BOOLEAN
 DECIDE `may be dismissed as a teacher on trial` `year in the new school` `reports of two supervisors` IF
     `year in the new school` EQUALS 1 AND `reports of two supervisors`
 
+-- "In the dismissal letter the owner tells the teacher that the work ends
+-- at the end of that school year."
+GIVEN `dismissed in the first year` IS A BOOLEAN
+GIVETH A DEONTIC Party `dismissal action`
+DECIDE `the dismissal letter of a teacher moved between post-primary schools` `dismissed in the first year` IS
+    IF `dismissed in the first year`
+    THEN PARTY `the local authority or owning body`
+         MUST  `send a dismissal letter ending the work at the end of that school year`
+    ELSE FULFILLED
+
 -- (4), third paragraph: a move within the same institution — after a first
 -- year that the supervision wants ended, the teacher goes back to the upper
 -- division, and no dismissal letter is sent.
@@ -194,6 +222,7 @@ DECIDE `back to the upper division` `moved within the same institution` `supervi
         `lessons visited by the school's supervisor`      IS 0
         `lessons visited by a second supervisor`          IS 0
         `discussed by the district supervisors' committee` IS FALSE
+        `the trial period was extended`                   IS FALSE
         `employer`                                        IS `the State`
 
 #ASSERT `the principal may initiate dismissal at the end of the first year` `a first-year teacher with the right to a permanent licence`
@@ -204,5 +233,5 @@ DECIDE `back to the upper division` `moved within the same institution` `supervi
 -- the permission, which runs to 31 May (day 272).
 #TRACE `non-renewal of a temporary licence` 3 2026 AT 0 WITH
     PARTY `the district manager` DOES `send notice of non-renewal of the temporary licence` AT 270
-#TRACE `the director-general's warning first` 2026 AT 0 WITH
+#TRACE `the director-general's warning first` 2026 TRUE AT 0 WITH
     PARTY `the supervisor` DOES `request a director-general's warning` AT 200
