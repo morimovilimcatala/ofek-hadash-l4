@@ -9,18 +9,38 @@ IMPORT common
 
 § `3.4 תקופת ניסיון וקביעות`
 
+-- The district office (הלשכה המחוזית), the general supervisor (המפקח הכולל)
+-- and the head of the religious education division are this section's own;
+-- the rest come from common.
+DECLARE `3.4 party` IS ONE OF
+    `a takanon party` HAS `who` IS A Party
+    `the district office`
+    `the general supervisor`
+    `the head of the religious education division`
+
 DECLARE `probation action` IS ONE OF
     `visit the teacher`
     `arrange a visit by someone versed in the subject`
-    `send the principal's opinion forms`
-    `return the completed forms`
+    `send each principal the principal's opinion forms, in two copies, for every teacher finishing probation that year`
+    `return the completed forms together`
+    `take the principal's opinion into account in deciding on her continued work`
     `pass the forms and the treatment sheet to the general supervisor`
-    `submit the recommendation with the principal's opinion`
+    `state his position on the principal's evaluations and add his own remarks`
+    `sum up his visits in the treatment sheet in an opinion closing with an explicit, reasoned recommendation` HAS `the recommendation made` IS A `recommendation`
+    `submit the recommendation with the principal's opinion to the district supervisor`
+    `check and decide the mismatch` HAS `after consulting the district's supervisor of religious education` IS A BOOLEAN
+    `extend probation a second time` HAS `the union consented beforehand` IS A BOOLEAN, `on exceptional grounds` IS A BOOLEAN
+    `refer the request to the union's branch`
+    `consult the district's supervisor of religious education before deciding`
+    `check her certification and private address`
+    `send the notice of a further year of probation`
+    `weigh tenure or a further year for pedagogical reasons, with reasons`
+    `send a warning letter in the set form`
+    `send the copies of the warning letters to the personnel division together at the end`
+    `send the copy to the head of the religious education division`
+    `pass the copy on to the personnel division`
     `send an extension notice`
-    `send a warning letter`
-    `send copies of the warning letters to the personnel division`
     `send a copy of the notice to the owner`
-    `extend probation a second time` HAS `union consented beforehand` IS A BOOLEAN
 
 DECLARE `recommendation` IS ONE OF
     `grant tenure`
@@ -36,7 +56,7 @@ DECLARE `probationer` HAS
     `year of work in which certified`       IS A NUMBER  @desc 0 if not certified during probation
     `a kindergarten teacher hired for general or professional teaching` IS A BOOLEAN
     `uncertified stage`                     IS A `stage of an uncertified teacher`
-    `extension notices received`            IS A NUMBER
+    `years added by extension notices`      IS A NUMBER  @desc 0 if no extension notice was sent
 
 §§ `1 A year of work`
 
@@ -56,10 +76,16 @@ DECIDE `counts towards probation` `in official education` `counted for professio
 
 §§ `2-6 How long probation lasts`
 
--- 2: a certified teacher: 2 years of work at a third of a position at least
--- (printed "3 / 1"), unless an extension notice was sent on the
--- supervision's reasoned opinion; never proposed for tenure after one year.
+-- 2: a certified teacher in an official institution: 2 years of work at a
+-- third of a position at least (printed "3 / 1"), unless an extension notice
+-- was sent on the supervision's reasoned opinion; never proposed for tenure
+-- after one year of probation only.
 @ref akn:chp_3__sec_3_4__hc_2__para_2
+GIVEN `years added by an extension notice` IS A NUMBER @desc 0 where no notice, resting on the supervision's reasoned opinion, was sent
+GIVETH A NUMBER
+DECIDE `years of probation of a certified teacher` `years added by an extension notice` IS
+    2 PLUS `years added by an extension notice`
+
 `least position fraction for a year of probation` MEANS 1/3
 
 GIVEN `years of probation done` IS A NUMBER
@@ -67,31 +93,27 @@ GIVETH A BOOLEAN
 DECIDE `may be proposed for tenure` `years of probation done` IF
     `years of probation done` GREATER THAN 1
 
--- 3: an uncertified teacher: 4 years at a third of a position at least.
--- 4: one certified during probation: 3 years if certified in her second
--- year, 4 if in her third or fourth. F-3.4-a: one certified during her
--- FIRST year is not covered; she is read as certified (2 years).
+-- 3: an uncertified teacher: 4 years at a third of a position at least,
+-- unless an extension notice was sent on the supervision's reasoned opinion.
 @ref akn:chp_3__sec_3_4__hc_2__para_3
-GIVEN p IS A `probationer`
+GIVEN `years added by an extension notice` IS A NUMBER @desc 0 where no notice, resting on the supervision's reasoned opinion, was sent
 GIVETH A NUMBER
-DECIDE `years of probation` p IS
-    IF p's `a kindergarten teacher hired for general or professional teaching`
-    THEN 4
-    ELSE IF p's `certified when hired`
-         THEN 2
-         ELSE `years by the year of certification` (p's `year of work in which certified`)
+DECIDE `years of probation of an uncertified teacher` `years added by an extension notice` IS
+    4 PLUS `years added by an extension notice`
 
-@ref akn:chp_3__sec_3_4__hc_2__para_4
-GIVEN y IS A NUMBER
+-- 4: one certified during probation: 3 years if certified in her second
+-- year of work (א), 4 if in her third or fourth (ב). F-3.4-a: one certified
+-- during her FIRST year is not covered; she is read as certified (2 years).
+-- One certified after her fourth year had served an uncertified teacher's
+-- 4 years (3) by then.
+@ref akn:chp_3__sec_3_4__hc_2__para_4 akn:chp_3__sec_3_4__hc_2__para_4__subpara_a akn:chp_3__sec_3_4__hc_2__para_4__subpara_b
+GIVEN y IS A NUMBER @desc the year of work in which she was certified
 GIVETH A NUMBER
-DECIDE `years by the year of certification` y IS
-    BRANCH
-    @ref akn:chp_3__sec_3_4__hc_2__para_4__subpara_a
-        IF y EQUALS 2 THEN 3
-    @ref akn:chp_3__sec_3_4__hc_2__para_4__subpara_b
-        IF y EQUALS 3 OR y EQUALS 4 THEN 4
-        IF y EQUALS 1 THEN 2
-        OTHERWISE 4
+DECIDE `years of probation of one certified during it` y IS
+    IF y EQUALS 2 THEN 3
+    ELSE IF y EQUALS 3 OR y EQUALS 4 THEN 4
+         ELSE IF y EQUALS 1 THEN 2
+              ELSE 4
 
 GIVEN y IS A NUMBER
 GIVETH A LIST OF NUMBER
@@ -105,44 +127,69 @@ DECIDE `years 3.4.4 prints for certification in year` y IS
 #ASSERT `certification in the first year has no row in 3.4.4`
 
 -- 5: a certified kindergarten teacher hired at the outset for general or
--- professional teaching counts as uncertified (4 years), in `years of
--- probation` above.
+-- professional teaching is as an uncertified teacher for the length of her
+-- probation.
 @ref akn:chp_3__sec_3_4__hc_2__para_5
-GIVEN p IS A `probationer`
-GIVETH A BOOLEAN
-DECIDE `a kindergarten teacher counted as uncertified` p IF
-    p's `a kindergarten teacher hired for general or professional teaching`
+GIVEN `years added by an extension notice` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `years of probation of a certified kindergarten teacher hired for general or professional teaching` `years added by an extension notice` IS
+    `years of probation of an uncertified teacher` `years added by an extension notice`
 
+-- 6: a tenured professional teacher, and a tenured kindergarten teacher,
+-- moving to general teaching do not start a new probation.
 @ref akn:chp_3__sec_3_4__hc_2__para_6
 GIVEN `tenured professional teacher or kindergarten teacher` IS A BOOLEAN, `moving to general teaching` IS A BOOLEAN
 GIVETH A BOOLEAN
-DECIDE `starts a new probation` `tenured professional teacher or kindergarten teacher` `moving to general teaching` IF
-    NOT (`tenured professional teacher or kindergarten teacher` AND `moving to general teaching`)
+DECIDE `does not start a new probation` `tenured professional teacher or kindergarten teacher` `moving to general teaching` IF
+    `tenured professional teacher or kindergarten teacher` AND `moving to general teaching`
+
+§§ `2-5 together`
+
+-- The length of a probationer's probation under 2-5. An extension notice
+-- adds to it where 2 and 3 say so; 4 states none.
+GIVEN p IS A `probationer`
+GIVETH A NUMBER
+DECIDE `years of probation` p IS
+    IF p's `a kindergarten teacher hired for general or professional teaching`
+    THEN `years of probation of a certified kindergarten teacher hired for general or professional teaching` (p's `years added by extension notices`)
+    ELSE IF p's `certified when hired`
+         THEN `years of probation of a certified teacher` (p's `years added by extension notices`)
+         ELSE IF p's `year of work in which certified` EQUALS 0
+              THEN `years of probation of an uncertified teacher` (p's `years added by extension notices`)
+              ELSE `years of probation of one certified during it` (p's `year of work in which certified`)
 
 §§ `7-8 Visits and evaluations`
 
 -- 7: every supervisor visits every teacher under him at least once a year
--- (time in school months); in probation, in a subject he is not versed in,
--- he arranges a visit by someone suitable.
+-- (time in school months); in probation, in a subject or activity he is not
+-- versed in, his duty is to arrange a visit by someone else suitable.
 @ref akn:chp_3__sec_3_4__hc_2__para_7
 GIVEN `on probation in a subject the supervisor is not versed in` IS A BOOLEAN
-GIVETH A DEONTIC Party `probation action`
+GIVETH A DEONTIC `3.4 party` `probation action`
 DECIDE `3.4.7 the yearly visit` `on probation in a subject the supervisor is not versed in` IS
     IF `on probation in a subject the supervisor is not versed in`
-    THEN PARTY `the supervisor`
+    THEN PARTY `a takanon party` `the supervisor`
          MUST  `arrange a visit by someone versed in the subject`
          WITHIN 12
-         LEST  BREACH BY `the supervisor` BECAUSE "3.4.7: a suitable person visits in a subject the supervisor is not versed in"
-    ELSE PARTY `the supervisor`
+         LEST  BREACH BY `a takanon party` `the supervisor` BECAUSE "3.4.7: a suitable person visits in a subject the supervisor is not versed in"
+    ELSE PARTY `a takanon party` `the supervisor`
          MUST  `visit the teacher`
          WITHIN 12
-         LEST  BREACH BY `the supervisor` BECAUSE "3.4.7: every supervisor visits every teacher at least once a year"
+         LEST  BREACH BY `a takanon party` `the supervisor` BECAUSE "3.4.7: every supervisor visits every teacher at least once a year"
 
--- 8: where two supervisors evaluate a teacher differently in one period, a
--- committee of three decides: the district manager and two supervisors
--- (state-religious: the district supervisor, the district's supervisor of
--- religious education and a state-religious supervisor).
+-- 8: where two supervisors evaluate a teacher differently in that period
+-- (the general supervisor and a subject supervisor, say), a committee of
+-- three decides: the district manager and two supervisors. In state-
+-- religious education: the district supervisor, the district's supervisor of
+-- religious education and a state-religious supervisor. "The district
+-- supervisor" (מפקח המחוז) is read as the district manager, as 13 ¶2 uses the
+-- two names for one office.
 @ref akn:chp_3__sec_3_4__hc_2__para_8
+GIVEN `two supervisors evaluated her differently in that period` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `a committee of three decides her evaluation` `two supervisors evaluated her differently in that period` IF
+    `two supervisors evaluated her differently in that period`
+
 DECLARE `committee seat` IS ONE OF
     `the district manager`
     `a supervisor`
@@ -156,14 +203,15 @@ DECIDE `the committee of three` `state-religious` IS
     THEN LIST `the district manager`, `the district's supervisor of religious education`, `a state-religious supervisor`
     ELSE LIST `the district manager`, `a supervisor`, `a supervisor`
 
--- 8 ¶2: between a current and an earlier evaluation, after a break or on a
--- continuous move between districts, the latest prevails; "new in the
--- district" alone does not justify recommending an extension.
+-- 8 ¶2: between a current and an earlier evaluation, after a break in her
+-- work, the latest prevails; on a move between districts in continuous work
+-- too — but "new in the district" alone does not justify recommending an
+-- extension.
 @ref akn:chp_3__sec_3_4__hc_2__para_8/p2
-GIVEN `the latest evaluation` IS A NUMBER, `an earlier evaluation` IS A NUMBER
-GIVETH A NUMBER
-DECIDE `the evaluation that holds` `the latest evaluation` `an earlier evaluation` IS
-    `the latest evaluation`
+GIVEN `after a break in her work` IS A BOOLEAN, `on a move between districts in continuous work` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `the latest evaluation prevails` `after a break in her work` `on a move between districts in continuous work` IF
+    `after a break in her work` OR `on a move between districts in continuous work`
 
 GIVEN `new in the district` IS A BOOLEAN, `other grounds` IS A BOOLEAN
 GIVETH A BOOLEAN
@@ -175,36 +223,57 @@ DECIDE `grounds to recommend an extension` `new in the district` `other grounds`
 -- Times are days from 1 September of the school year: 1 January is day 122,
 -- 1 February 153, 1 March 181, 15 April 226, 30 June 302.
 @ref akn:chp_3__sec_3_4__hc_2__para_9
-GIVETH A DEONTIC Party `probation action`
+GIVETH A DEONTIC `3.4 party` `probation action`
 DECIDE `3.4.9 forms to the principals by 1 January` IS
-    PARTY `the district manager`
-    MUST  `send the principal's opinion forms`
+    PARTY `the district office`
+    MUST  `send each principal the principal's opinion forms, in two copies, for every teacher finishing probation that year`
     WITHIN 122
-    LEST  BREACH BY `the district manager` BECAUSE "3.4.9: the district office sends the principal's opinion forms by 1 January"
+    LEST  BREACH BY `the district office` BECAUSE "3.4.9: the district office sends the principal's opinion forms by 1 January"
 
+-- 9 ¶2: the principal returns the completed forms together by 1 February;
+-- his opinion is taken into account in the decision on the continued work
+-- of those finishing probation — the district manager's decision (13).
 @ref akn:chp_3__sec_3_4__hc_2__para_9/p2
-GIVETH A DEONTIC Party `probation action`
+GIVETH A DEONTIC `3.4 party` `probation action`
 DECIDE `3.4.9 the forms back by 1 February` IS
-    PARTY `the school principal`
-    MUST  `return the completed forms`
+    PARTY `a takanon party` `the school principal`
+    MUST  `return the completed forms together`
     WITHIN 153
-    LEST  BREACH BY `the school principal` BECAUSE "3.4.9: the principal returns the completed forms by 1 February"
+    LEST  BREACH BY `a takanon party` `the school principal` BECAUSE "3.4.9: the principal returns the completed forms by 1 February"
+
+GIVETH A DEONTIC `3.4 party` `probation action`
+DECIDE `3.4.9 the principal's opinion counts` IS
+    PARTY `a takanon party` `the district manager`
+    MUST  `take the principal's opinion into account in deciding on her continued work`
+    LEST  BREACH BY `a takanon party` `the district manager` BECAUSE "3.4.9: the principal's opinion is taken into account"
 
 @ref akn:chp_3__sec_3_4__hc_2__para_9/p3
-GIVETH A DEONTIC Party `probation action`
+GIVETH A DEONTIC `3.4 party` `probation action`
 DECIDE `3.4.9 to the general supervisor by 1 March` IS
-    PARTY `the district manager`
+    PARTY `the district office`
     MUST  `pass the forms and the treatment sheet to the general supervisor`
     WITHIN 181
-    LEST  BREACH BY `the district manager` BECAUSE "3.4.9: the district office passes the forms on by 1 March"
+    LEST  BREACH BY `the district office` BECAUSE "3.4.9: the district office passes the forms on, with the treatment sheet, by 1 March"
 
--- 9 ¶4 and 10: the general supervisor states his position on the
--- principal's evaluation, and closes his treatment sheet with an explicit,
--- reasoned recommendation — one of א-ד, ד for uncertified teachers only;
--- for a professional teacher the professional supervisor's opinion is
--- attached; by 15 April to the district supervisor, with the principal's
--- opinion.
-@ref akn:chp_3__sec_3_4__hc_2__para_9/p4 akn:chp_3__sec_3_4__hc_2__para_10
+@ref akn:chp_3__sec_3_4__hc_2__para_9/p4
+GIVETH A DEONTIC `3.4 party` `probation action`
+DECIDE `3.4.9 the general supervisor's position` IS
+    PARTY `the general supervisor`
+    MUST  `state his position on the principal's evaluations and add his own remarks`
+    LEST  BREACH BY `the general supervisor` BECAUSE "3.4.9: the general supervisor states his position on the principal's evaluations"
+
+-- 10: the general supervisor sums up his visits in the treatment sheet in an
+-- opinion closing with an explicit, reasoned recommendation — one of א-ד, ד
+-- for uncertified teachers only.
+@ref akn:chp_3__sec_3_4__hc_2__para_10
+GIVEN `the teacher is certified` IS A BOOLEAN
+GIVETH A DEONTIC `3.4 party` `probation action`
+DECIDE `3.4.10 the recommendation` `the teacher is certified` IS
+    PARTY `the general supervisor`
+    MUST  `sum up his visits in the treatment sheet in an opinion closing with an explicit, reasoned recommendation` r
+          PROVIDED `a recommendation open to the supervisor` r `the teacher is certified`
+    LEST  BREACH BY `the general supervisor` BECAUSE "3.4.10: the treatment sheet closes with an explicit, reasoned recommendation"
+
 GIVEN r IS A `recommendation`, `the teacher is certified` IS A BOOLEAN
 GIVETH A BOOLEAN
 DECIDE `a recommendation open to the supervisor` r `the teacher is certified` IF
@@ -225,49 +294,66 @@ DECIDE `the report is complete` `a professional teacher` `professional superviso
     (NOT `a professional teacher`) OR `professional supervisor's opinion attached`
 
 @ref akn:chp_3__sec_3_4__hc_2__para_10__subpara_d/p3
-GIVETH A DEONTIC Party `probation action`
+GIVETH A DEONTIC `3.4 party` `probation action`
 DECIDE `3.4.10 the recommendation by 15 April` IS
-    PARTY `the supervisor`
-    MUST  `submit the recommendation with the principal's opinion`
+    PARTY `the general supervisor`
+    MUST  `submit the recommendation with the principal's opinion to the district supervisor`
     WITHIN 226
-    LEST  BREACH BY `the supervisor` BECAUSE "3.4.10: the general supervisor's recommendation reaches the district supervisor by 15 April"
+    LEST  BREACH BY `the general supervisor` BECAUSE "3.4.10: the general supervisor's recommendation reaches the district supervisor by 15 April"
 
 -- ¶4-¶5: where a supervisor's recommendation does not follow from his own
--- evaluation, the district manager decides — in state-religious education
--- after consulting the district's supervisor of religious education.
+-- evaluation, the district manager checks and decides — in state-religious
+-- education after consulting the district's supervisor of religious
+-- education.
 @ref akn:chp_3__sec_3_4__hc_2__para_10__subpara_d/p4 akn:chp_3__sec_3_4__hc_2__para_10__subpara_d/p5
-GIVEN `recommendation follows from the evaluation` IS A BOOLEAN
-GIVETH A BOOLEAN
-DECIDE `the district manager must decide the mismatch` `recommendation follows from the evaluation` IF
-    NOT `recommendation follows from the evaluation`
+GIVEN `recommendation follows from the evaluation` IS A BOOLEAN, `state-religious` IS A BOOLEAN
+GIVETH A DEONTIC `3.4 party` `probation action`
+DECIDE `3.4.10 a mismatch` `recommendation follows from the evaluation` `state-religious` IS
+    IF `recommendation follows from the evaluation`
+    THEN FULFILLED
+    ELSE PARTY `a takanon party` `the district manager`
+         MUST  `check and decide the mismatch` consulted
+               PROVIDED (NOT `state-religious`) OR consulted
+         LEST  BREACH BY `a takanon party` `the district manager` BECAUSE "3.4.10: the district manager decides where a recommendation does not follow from its evaluation"
 
--- 11: no extension of a certified teacher's probation without the
--- supervision's well-reasoned opinion, the dates of the visits and the
--- average of their evaluations.
+-- 11: a certified teacher's probation is not extended without the
+-- supervision's well-reasoned opinion, the dates of the visits in detail and
+-- the average of their evaluations.
 @ref akn:chp_3__sec_3_4__hc_2__para_11
 DECLARE `extension file` HAS
     `well-reasoned opinion`     IS A BOOLEAN
     `dates of the visits`       IS A BOOLEAN
     `average of the evaluations` IS A BOOLEAN
 
-GIVEN f IS AN `extension file`, `certified` IS A BOOLEAN
+GIVEN f IS AN `extension file`
 GIVETH A BOOLEAN
-DECIDE `the extension may be made` f `certified` IF
-        (NOT `certified`)
-    OR  (f's `well-reasoned opinion` AND f's `dates of the visits` AND f's `average of the evaluations`)
+DECIDE `a certified teacher's probation may be extended` f IF
+    f's `well-reasoned opinion` AND f's `dates of the visits` AND f's `average of the evaluations`
 
--- 12: a second extension needs the Teachers' Union's prior consent, sought
--- through the district office only on exceptional grounds.
+-- 12: a second extension needs the Teachers' Union's prior consent, and is not
+-- made but on exceptional grounds that justify asking it; the district
+-- office makes the request to the union's branch.
 @ref akn:chp_3__sec_3_4__hc_2__para_12
-GIVETH A DEONTIC Party `probation action`
+GIVETH A DEONTIC `3.4 party` `probation action`
 DECIDE `3.4.12 no second extension without the union` IS
-    PARTY `the district manager`
-    SHANT `extend probation a second time` consented PROVIDED NOT consented
-    LEST  BREACH BY `the district manager` BECAUSE "3.4.12: a second extension needs the Teachers' Union's prior consent"
+    PARTY `a takanon party` `the district manager`
+    SHANT `extend probation a second time` consented exceptional
+          PROVIDED (NOT consented) OR (NOT exceptional)
+    LEST  BREACH BY `a takanon party` `the district manager` BECAUSE "3.4.12: a second extension needs exceptional grounds and the Teachers' Union's prior consent"
+
+GIVEN `a second extension is sought` IS A BOOLEAN
+GIVETH A DEONTIC `3.4 party` `probation action`
+DECIDE `3.4.12 the request to the union` `a second extension is sought` IS
+    IF `a second extension is sought`
+    THEN PARTY `the district office`
+         MUST  `refer the request to the union's branch`
+         LEST  BREACH BY `the district office` BECAUSE "3.4.12: the district office asks the union's branch"
+    ELSE FULFILLED
 
 -- 13: the district manager decides extension or tenure; in state-religious
--- education after consulting its district supervisor, and if he does not
--- accept that supervisor's view the matter goes to the head office.
+-- education after consulting the district's supervisor of religious
+-- education, and if he does not accept that supervisor's view the matter
+-- goes to the head office.
 @ref akn:chp_3__sec_3_4__hc_2__para_13 akn:chp_3__sec_3_4__hc_2__para_13/p2
 DECLARE `who decides` IS ONE OF `the district manager decides`, `the head office decides`
 
@@ -278,14 +364,29 @@ DECIDE `who decides tenure` `state-religious` `accepts the religious supervisor'
     THEN `the head office decides`
     ELSE `the district manager decides`
 
+GIVEN `state-religious` IS A BOOLEAN
+GIVETH A DEONTIC `3.4 party` `probation action`
+DECIDE `3.4.13 consulting in state-religious education` `state-religious` IS
+    IF `state-religious`
+    THEN PARTY `a takanon party` `the district manager`
+         MUST  `consult the district's supervisor of religious education before deciding`
+         LEST  BREACH BY `a takanon party` `the district manager` BECAUSE "3.4.13: in state-religious education the district manager decides after consulting"
+    ELSE FULFILLED
+
 §§ `14-20 Kindergarten teachers, the uncertified, warnings`
 
+-- 14: a kindergarten teacher is, for these provisions, as a general teacher
+-- (the rules above serve her unchanged); for the supervisor's visit of 7, a
+-- visit of two hours at least counts.
 @ref akn:chp_3__sec_3_4__hc_2__para_14
-`least minutes of a supervisor's visit to a kindergarten` MEANS 120
+GIVEN `minutes of the visit` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `a visit to a kindergarten counts under 3.4.7` `minutes of the visit` IF
+    `minutes of the visit` AT LEAST 120
 
 -- 15: within 3, an uncertified teacher at stage A or A+ gets no tenure in her
--- fourth year of probation; the district manager sends her notice of a
--- further year, for administrative reasons.
+-- fourth year of probation; a notice from the district manager of a further
+-- year, for administrative reasons, is sent to her instead.
 @ref akn:chp_3__sec_3_4__hc_2__para_15
 GIVEN p IS A `probationer`, `year of probation` IS A NUMBER
 GIVETH A BOOLEAN
@@ -296,8 +397,23 @@ DECIDE `a further year for administrative reasons` p `year of probation` IF
     AND `year of probation` EQUALS 4
 
 -- 16א: the district office sends the notices of 15, first checking (1) that
--- the teacher was not certified after the Passover exam and (2) her address.
+-- the teacher was not certified after the Passover exam and (2) her private
+-- address.
 @ref akn:chp_3__sec_3_4__hc_2__para_16__subpara_a akn:chp_3__sec_3_4__hc_2__para_16__subpara_a/p2
+GIVEN `checked no certification after the Passover exam` IS A BOOLEAN, `checked the private address` IS A BOOLEAN
+GIVETH A DEONTIC `3.4 party` `probation action`
+DECIDE `3.4.16א the district office sends the notice` `checked no certification after the Passover exam` `checked the private address` IS
+    IF `the notice may be sent` `checked no certification after the Passover exam` `checked the private address`
+    THEN PARTY `the district office`
+         MUST  `send the notice of a further year of probation`
+         LEST  BREACH BY `the district office` BECAUSE "3.4.16א: the district office sends the notices of 15"
+    ELSE PARTY `the district office`
+         MUST  `check her certification and private address`
+         HENCE (PARTY `the district office`
+                MUST  `send the notice of a further year of probation`
+                LEST  BREACH BY `the district office` BECAUSE "3.4.16א: the district office sends the notices of 15")
+         LEST  BREACH BY `the district office` BECAUSE "3.4.16א: the district office checks before sending a notice"
+
 GIVEN `checked no certification after the Passover exam` IS A BOOLEAN, `checked the private address` IS A BOOLEAN
 GIVETH A BOOLEAN
 DECIDE `the notice may be sent` `checked no certification after the Passover exam` `checked the private address` IF
@@ -309,57 +425,70 @@ DECIDE `the notice may be sent` `checked no certification after the Passover exa
 -- 16ב: a teacher found certified meanwhile: the district manager weighs
 -- tenure or a further year for pedagogical reasons, giving his reasons.
 @ref akn:chp_3__sec_3_4__hc_2__para_16__subpara_b
-DECLARE `outcome for one certified meanwhile` IS ONE OF `tenure`, `a further year for pedagogical reasons, with reasons`
-
-GIVEN `the district manager's choice` IS AN `outcome for one certified meanwhile`
-GIVETH AN `outcome for one certified meanwhile`
-DECIDE `one certified meanwhile` `the district manager's choice` IS `the district manager's choice`
-
--- 17-19: the district managers send warning letters in a set form to every
--- uncertified teacher in her third year of probation (graduates of every
--- kind of training institution included), copies to the personnel division
--- at the end (state-religious: via the head of religious education); the
--- last day for extension notices and warnings is 30 June (day 302).
-@ref akn:chp_3__sec_3_4__hc_2__para_17
-GIVEN `uncertified` IS A BOOLEAN, `year of probation` IS A NUMBER
-GIVETH A DEONTIC Party `probation action`
-DECIDE `3.4.17 warning letters` `uncertified` `year of probation` IS
-    IF `uncertified` AND `year of probation` EQUALS 3
-    THEN PARTY `the district manager`
-         MUST  `send a warning letter`
-         WITHIN `the last day for notices and warnings`
-         HENCE (PARTY `the district manager`
-                MUST  `send copies of the warning letters to the personnel division`
-                LEST  BREACH BY `the district manager` BECAUSE "3.4.18: copies of the warnings go to the personnel division")
-         LEST  BREACH BY `the district manager` BECAUSE "3.4.17/19: the warning is sent by 30 June"
+GIVEN `found certified meanwhile` IS A BOOLEAN
+GIVETH A DEONTIC `3.4 party` `probation action`
+DECIDE `3.4.16ב one certified meanwhile` `found certified meanwhile` IS
+    IF `found certified meanwhile`
+    THEN PARTY `a takanon party` `the district manager`
+         MUST  `weigh tenure or a further year for pedagogical reasons, with reasons`
+         LEST  BREACH BY `a takanon party` `the district manager` BECAUSE "3.4.16ב: the district manager weighs tenure or a further year for one certified meanwhile"
     ELSE FULFILLED
 
-@ref akn:chp_3__sec_3_4__hc_2__para_18
-DECLARE `route of the copies` IS ONE OF `straight to the personnel division`, `via the head of religious education`
+-- 17: the district managers send warning letters in a set form to every
+-- uncertified teacher in her third year of probation, graduates of every kind
+-- of teachers' and kindergarten teachers' training institution included; the
+-- last day for them is 19's 30 June (day 302).
+@ref akn:chp_3__sec_3_4__hc_2__para_17
+GIVEN `uncertified` IS A BOOLEAN, `year of probation` IS A NUMBER
+GIVETH A DEONTIC `3.4 party` `probation action`
+DECIDE `3.4.17 warning letters` `uncertified` `year of probation` IS
+    IF `uncertified` AND `year of probation` EQUALS 3
+    THEN PARTY `a takanon party` `the district manager`
+         MUST  `send a warning letter in the set form`
+         WITHIN `the last day for notices and warnings`
+         LEST  BREACH BY `a takanon party` `the district manager` BECAUSE "3.4.17/19: the warning is sent by 30 June"
+    ELSE FULFILLED
 
+-- 18: copies of the warning letters go together to the personnel division
+-- at the end; for a state-religious institution the copy goes to the head
+-- of the religious education division, who passes it on.
+@ref akn:chp_3__sec_3_4__hc_2__para_18
 GIVEN `state-religious` IS A BOOLEAN
-GIVETH A `route of the copies`
-DECIDE `how the copies go` `state-religious` IS
-    IF `state-religious` THEN `via the head of religious education` ELSE `straight to the personnel division`
+GIVETH A DEONTIC `3.4 party` `probation action`
+DECIDE `3.4.18 copies of the warnings` `state-religious` IS
+    IF `state-religious`
+    THEN PARTY `a takanon party` `the district manager`
+         MUST  `send the copy to the head of the religious education division`
+         HENCE (PARTY `the head of the religious education division`
+                MUST  `pass the copy on to the personnel division`
+                LEST  BREACH BY `the head of the religious education division` BECAUSE "3.4.18: the head of religious education passes the copy on")
+         LEST  BREACH BY `a takanon party` `the district manager` BECAUSE "3.4.18: the copy goes to the head of religious education"
+    ELSE PARTY `a takanon party` `the district manager`
+         MUST  `send the copies of the warning letters to the personnel division together at the end`
+         LEST  BREACH BY `a takanon party` `the district manager` BECAUSE "3.4.18: copies of the warnings go to the personnel division"
 
 @ref akn:chp_3__sec_3_4__hc_2__para_19
 `the last day for notices and warnings` MEANS 302
 
-GIVETH A DEONTIC Party `probation action`
-DECIDE `3.4.19 extension notices by 30 June` IS
-    PARTY `the district manager`
-    MUST  `send an extension notice`
-    WITHIN `the last day for notices and warnings`
-    LEST  BREACH BY `the district manager` BECAUSE "3.4.19: extension notices are sent by 30 June"
+-- The extension notices' own deadline; the warnings' is in 17.
+GIVEN `an extension was decided` IS A BOOLEAN
+GIVETH A DEONTIC `3.4 party` `probation action`
+DECIDE `3.4.19 extension notices by 30 June` `an extension was decided` IS
+    IF `an extension was decided`
+    THEN PARTY `a takanon party` `the district manager`
+         MUST  `send an extension notice`
+         WITHIN `the last day for notices and warnings`
+         LEST  BREACH BY `a takanon party` `the district manager` BECAUSE "3.4.19: extension notices are sent by 30 June"
+    ELSE FULFILLED
 
 @ref akn:chp_3__sec_3_4__hc_2__para_20
 GIVEN `a non-official teacher` IS A BOOLEAN
-GIVETH A DEONTIC Party `probation action`
+GIVETH A DEONTIC `3.4 party` `probation action`
 DECIDE `3.4.20 a copy to the owner` `a non-official teacher` IS
     IF `a non-official teacher`
-    THEN PARTY `the district manager`
+    THEN PARTY `a takanon party` `the district manager`
          MUST  `send a copy of the notice to the owner`
-         LEST  BREACH BY `the district manager` BECAUSE "3.4.20: a copy of the notice goes to the owner of a non-official teacher's institution"
+         LEST  BREACH BY `a takanon party` `the district manager` BECAUSE "3.4.20: a copy of the notice goes to the owner of a non-official teacher's institution"
     ELSE FULFILLED
 
 -- akn:chp_3__sec_3_4__hc_3 The heading of the source list (אסמכתא).
@@ -373,18 +502,19 @@ DECIDE `3.4.20 a copy to the owner` `a non-official teacher` IS
         `year of work in which certified`       IS 2
         `a kindergarten teacher hired for general or professional teaching` IS FALSE
         `uncertified stage`                     IS `other stage`
-        `extension notices received`            IS 0
+        `years added by extension notices`      IS 0
 #ASSERT `years of probation` `certified in her second year` EQUALS 3
+#ASSERT `years of probation of a certified teacher` 0 EQUALS 2
+#ASSERT `years of probation of an uncertified teacher` 1 EQUALS 5
 #ASSERT NOT `may be proposed for tenure` 1
 #ASSERT `a year of work` 150
 #ASSERT NOT `a recommendation open to the supervisor` `administrative dismissal` TRUE
 
 #TRACE `3.4.9 forms to the principals by 1 January` AT 0 WITH
-    PARTY `the district manager` DOES `send the principal's opinion forms` AT 115
+    PARTY `the district office` DOES `send each principal the principal's opinion forms, in two copies, for every teacher finishing probation that year` AT 115
 #TRACE `3.4.10 the recommendation by 15 April` AT 0 WITH
-    PARTY `the supervisor` DOES `submit the recommendation with the principal's opinion` AT 240
+    PARTY `the general supervisor` DOES `submit the recommendation with the principal's opinion to the district supervisor` AT 240
 #TRACE `3.4.17 warning letters` TRUE 3 AT 0 WITH
-    PARTY `the district manager` DOES `send a warning letter` AT 290
-    PARTY `the district manager` DOES `send copies of the warning letters to the personnel division` AT 295
+    PARTY `a takanon party` `the district manager` DOES `send a warning letter in the set form` AT 290
 #TRACE `3.4.12 no second extension without the union` AT 0 WITH
-    PARTY `the district manager` DOES `extend probation a second time` FALSE AT 100
+    PARTY `a takanon party` `the district manager` DOES `extend probation a second time` FALSE TRUE AT 100
