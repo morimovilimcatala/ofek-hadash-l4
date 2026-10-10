@@ -14,7 +14,7 @@ IMPORT common
 
 DECLARE `reward action` IS ONE OF
     `pay the achievement reward` HAS `reward amount paid` IS A NUMBER
-    `indemnify the owner` HAS `indemnity paid` IS A NUMBER
+    `indemnify the owner in the payment system` HAS `indemnity paid` IS A NUMBER
 
 §§ `1 תחולה`
 
@@ -26,6 +26,17 @@ DECLARE `reward case` HAS
     `high-school position fraction`                    IS A NUMBER  @desc the share of a full position in the upper division (1 = 100%)
     `months employed in the year`                      IS A NUMBER  @desc months of the school year employed at the excelling institution, counting maternity leave under the Women's Employment Law
     `on full sabbatical or full unpaid leave`          IS A BOOLEAN @desc on sabbatical or unpaid leave for the whole school year
+
+DECLARE `reward row` HAS
+    `reward rank`   IS A NUMBER
+    `reward amount` IS A NUMBER
+
+DECLARE `pay purpose` IS ONE OF
+    `the hourly value`
+    `severance pay`
+    `percentage supplements`
+    `training-fund contributions`
+    `pension-fund contributions`
 
 -- §1 and the recitals: every teaching employee in the upper division at a
 -- supervised post-primary owner, per the share of the employment there,
@@ -49,12 +60,9 @@ DECIDE `the school is ranked` c IF
 
 -- §2ב's table as printed: the reward for a full position, by the school's
 -- rank (each rank a further 10% of the schools), updated to May 2016 by
--- the consumer price index against May 2015.
+-- the consumer price index against May 2015. Teachers at a school the
+-- ministry found among the highest achieving are entitled to it.
 @ref akn:art_2__para_b
-DECLARE `reward row` HAS
-    `reward rank`   IS A NUMBER
-    `reward amount` IS A NUMBER
-
 `the reward table` MEANS
     LIST `reward row` 1 8219.31,
          `reward row` 2 6164.49,
@@ -67,28 +75,24 @@ DECIDE `the full-position reward for rank` n IS
     sum (map (GIVEN r YIELD r's `reward amount`)
              (filter (GIVEN r YIELD r's `reward rank` EQUALS n) `the reward table`))
 
--- §2ג: pro rata to the high-school position and to the share of the year
--- employed (maternity leave counts as employment; unpaid leave after it
--- does not); ¶3: none on a full sabbatical or full unpaid leave; ¶4: no
--- more than 100% is counted.
-@ref akn:art_2__para_c
-GIVEN c IS A `reward case`
-GIVETH A NUMBER
-DECIDE `the reward share` c IS
-    min (c's `high-school position fraction`) 1
-    TIMES min (c's `months employed in the year` DIVIDED BY 12) 1
-
-@ref akn:art_2__para_c/p3
 GIVEN c IS A `reward case`
 GIVETH A BOOLEAN
 DECIDE `entitled to the reward` c IF
         `covered by the circular` c
     AND `the school is ranked` c
-    AND NOT c's `on full sabbatical or full unpaid leave`
+    AND NOT `no reward for a full sabbatical or unpaid leave` c
 
-@ref akn:art_2__para_c/p4
-`the most position counted` MEANS 1
+-- §2ג: pro rata to the high-school position and to the share of the year
+-- employed (maternity leave counts as employment; unpaid leave after it
+-- does not); ¶4 caps the position counted at 100%.
+@ref akn:art_2__para_c
+GIVEN c IS A `reward case`
+GIVETH A NUMBER
+DECIDE `the reward share` c IS
+    min (c's `high-school position fraction`) `the most position counted`
+    TIMES min (c's `months employed in the year` DIVIDED BY 12) 1
 
+-- The reward: the full-position amount for the school's rank, by the share.
 @export default The one-time achievement reward a high-school teaching employee is owed for school year 2015-16 under owners' circular 2015-16/10
 GIVEN c IS A `reward case` @desc the teacher's year
 GIVETH A NUMBER
@@ -97,16 +101,21 @@ DECIDE `achievement reward` c IS
     THEN `the full-position reward for rank` (c's `school rank`) TIMES `the reward share` c
     ELSE 0
 
+-- §2ג ¶3: no reward for a teacher on a full sabbatical or full unpaid leave
+-- in 2015-16.
+@ref akn:art_2__para_c/p3
+GIVEN c IS A `reward case`
+GIVETH A BOOLEAN
+DECIDE `no reward for a full sabbatical or unpaid leave` c IF
+    c's `on full sabbatical or full unpaid leave`
+
+-- §2ג ¶4: employment above 100% of a position is not counted.
+@ref akn:art_2__para_c/p4
+`the most position counted` MEANS 1
+
 -- §2ה: not in the base for the hourly value, severance or percentage
 -- supplements, and no training-fund contribution.
 @ref akn:art_2__para_e
-DECLARE `pay purpose` IS ONE OF
-    `the hourly value`
-    `severance pay`
-    `percentage supplements`
-    `training-fund contributions`
-    `pension-fund contributions`
-
 GIVEN p IS A `pay purpose`
 GIVETH A BOOLEAN
 DECIDE `the reward counts for` p IF
@@ -142,18 +151,19 @@ DECIDE `paying the reward with August 2016's salary` c IS
 -- August 2016's payments, transferred at the start of 9/2016 (school month
 -- 13 counted from September 2015).
 @ref akn:art_4
-GIVEN `rewards paid by the owner` IS A NUMBER
+GIVEN `the indemnity` IS A NUMBER @desc the indemnity the payment system gives; the circular does not set it (an input)
 GIVETH A DEONTIC Party `reward action`
-DECIDE `indemnifying the owner` `rewards paid by the owner` IS
+DECIDE `indemnifying the owner` `the indemnity` IS
     PARTY `the Ministry of Education`
-    MUST  `indemnify the owner` `amount`
-          PROVIDED `amount` AT LEAST `rewards paid by the owner`
+    MUST  `indemnify the owner in the payment system` `amount`
+          PROVIDED `amount` AT LEAST `the indemnity`
     WITHIN 13
     LEST BREACH BY `the Ministry of Education` BECAUSE "circular 2015-16/10: the owners are indemnified in August 2016's payments, transferred at the start of 9/2016"
 
 -- akn:conclusions The contact line, the signature (Sonia Peretz) and the list of copies; no rule.
 
--- Worked examples.
+§§ `Worked examples`
+
 `a full-position teacher at a rank-2 school` MEANS
     `reward case` WITH
         `graded as a teaching employee in the high school` IS TRUE
@@ -191,4 +201,4 @@ DECIDE `indemnifying the owner` `rewards paid by the owner` IS
 #TRACE `paying the reward with August 2016's salary` `a full-position teacher at a rank-2 school` AT 0 WITH
     PARTY `the employer` DOES `pay the achievement reward` 6164.49 AT 12
 #TRACE `indemnifying the owner` 6164.49 AT 0 WITH
-    PARTY `the Ministry of Education` DOES `indemnify the owner` 6164.49 AT 13
+    PARTY `the Ministry of Education` DOES `indemnify the owner in the payment system` 6164.49 AT 13

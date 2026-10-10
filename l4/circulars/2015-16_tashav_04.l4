@@ -15,7 +15,7 @@ IMPORT common
 
 DECLARE `grant action` IS ONE OF
     `pay the one-time grant` HAS `grant amount paid` IS A NUMBER
-    `indemnify the owner for the one-time grant` HAS `grant indemnity` IS A NUMBER
+    `indemnify the owner for the one-time grant in the payment system` HAS `grant indemnity` IS A NUMBER
 
 DECLARE `grant stage` IS ONE OF
     `kindergarten`
@@ -42,6 +42,14 @@ DECLARE `grant case` HAS
     `paid for 4 full months and a day in a row from 1.9.2015 to 31.1.2016` IS A BOOLEAN @desc for an employee on unpaid leave (section 1e(8)(1))
     `monthly positions 1.12.2014 to 30.11.2015`           IS A LIST OF NUMBER @desc the share of a full position in each month of the period actually employed (a month of maternity leave at the share held on the eve of the leave)
     `monthly positions 1.12.2015 to 30.6.2016`            IS A LIST OF NUMBER @desc the same, for the months of that period with salary (used only where the first period has none)
+
+DECLARE `grant pay purpose` IS ONE OF
+    `salary for any purpose`
+    `severance pay`
+    `the overtime hourly value`
+    `provident-fund contributions`
+    `the minimum-wage top-up`
+    `the combined-salary base`
 
 -- Preamble, application: every teaching employee of a supervised owner in
 -- kindergartens, elementary schools, junior high schools and
@@ -70,6 +78,13 @@ DECIDE `keeps the continuity` b IF
     WHEN `holiday or summer recess` THEN TRUE
     OTHERWISE FALSE
 
+-- §1ה(1), its second half: a woman on maternity leave is paid the grant with
+-- the first salary after her return and no later than the next one.
+GIVEN `salary month of her return` IS A NUMBER @desc in salary months from January 2016
+GIVETH A NUMBER
+DECIDE `the last salary month after maternity leave` `salary month of her return` IS
+    `salary month of her return` PLUS 1
+
 -- §1ה(2): unpaid leave after maternity leave is not maternity leave; §1ה(8)
 -- governs it, as it governs any unpaid leave in the period.
 @ref akn:art_1__para_e__subpara_2 akn:art_1__para_e__subpara_8
@@ -87,6 +102,9 @@ DECIDE `employed continuously in the determining period` c IF
         c's `employed on 1.9.2015 and on 1.12.2015`
     AND all (GIVEN b YIELD `keeps the continuity` b) (c's `breaks in the determining period`)
 
+-- §1א: the grant is 1,000 NIS; §1ב: that sum is for a full position.
+`the full one-time grant` MEANS 1000
+
 -- §1ה.8.1: on unpaid leave, entitled if paid for 4 full months and one more
 -- day in a row between 1.9.2015 and 31.1.2016, full- or part-time.
 -- F-2015-16_tashav_04-a: "לפי הוראות שבפסקה (2) להלן" is read as §1ה.8.2.
@@ -99,6 +117,22 @@ DECIDE `entitled to the grant` c IF
          OR (    `on unpaid leave in the determining period` c
              AND c's `paid for 4 full months and a day in a row from 1.9.2015 to 31.1.2016`))
 
+-- §1ב: the average monthly position over 1.12.2014–30.11.2015, over the
+-- months actually employed (¶2); §1ה.8.2: on unpaid leave, the same months
+-- actually employed, or, with no salary in them at all, the salaried months
+-- of 1.12.2015–30.6.2016 (§1ב itself has no such fallback). §1ה(1) ¶3: a
+-- month of maternity leave counts at the position held on its eve (an input
+-- convention of the list).
+@ref akn:art_1__para_b akn:art_1__para_e__subpara_8__cls_2
+GIVEN c IS A `grant case`
+GIVETH A NUMBER
+DECIDE `the representative average position` c IS
+    IF count (c's `monthly positions 1.12.2014 to 30.11.2015`) GREATER THAN 0
+    THEN `the monthly average of` (c's `monthly positions 1.12.2014 to 30.11.2015`)
+    ELSE IF `on unpaid leave in the determining period` c
+         THEN `the monthly average of` (c's `monthly positions 1.12.2015 to 30.6.2016`)
+         ELSE 0
+
 GIVEN xs IS A LIST OF NUMBER
 GIVETH A NUMBER
 DECIDE `the monthly average of` xs IS
@@ -106,23 +140,9 @@ DECIDE `the monthly average of` xs IS
     THEN 0
     ELSE sum xs DIVIDED BY count xs
 
--- §1ב: the average monthly position over 1.12.2014–30.11.2015, over the
--- months actually employed (¶2); §1ה.8.2: on unpaid leave, the same months
--- actually employed, or, with no salary in them at all, the salaried months
--- of 1.12.2015–30.6.2016. §1ה(1) ¶3: a month of maternity leave counts at
--- the position held on its eve (an input convention of the list).
-@ref akn:art_1__para_b akn:art_1__para_e__subpara_8__cls_2
-GIVEN c IS A `grant case`
-GIVETH A NUMBER
-DECIDE `the representative average position` c IS
-    IF count (c's `monthly positions 1.12.2014 to 30.11.2015`) GREATER THAN 0
-    THEN `the monthly average of` (c's `monthly positions 1.12.2014 to 30.11.2015`)
-    ELSE `the monthly average of` (c's `monthly positions 1.12.2015 to 30.6.2016`)
-
--- §1א, §1ב: 1,000 NIS for a full position; §1ד(3): pro rata, at most one.
+-- §1ד(3): the grant is paid by the position share, as the circular sets
+-- out (§1ב), and for no more than one full position.
 @ref akn:art_1__para_d__subpara_3
-`the full one-time grant` MEANS 1000
-
 @export default The one-time grant of February 2016 a teaching employee (kindergarten to junior high, colleges) is owed under owners' circular 2015-16/4
 GIVEN c IS A `grant case` @desc the employee's employment
 GIVETH A NUMBER
@@ -135,14 +155,6 @@ DECIDE `one-time grant` c IS
 -- the overtime hourly value, provident-fund contributions of any kind, the
 -- minimum-wage top-up, or the salary base of the combined-salary table.
 @ref akn:art_1__para_c akn:art_1__para_d__subpara_1 akn:art_1__para_d__subpara_2
-DECLARE `grant pay purpose` IS ONE OF
-    `salary for any purpose`
-    `severance pay`
-    `the overtime hourly value`
-    `provident-fund contributions`
-    `the minimum-wage top-up`
-    `the combined-salary base`
-
 GIVEN p IS A `grant pay purpose`
 GIVETH A BOOLEAN
 DECIDE `the one-time grant counts for` p IF
@@ -162,7 +174,7 @@ GIVEN c IS A `grant case`
 GIVETH A NUMBER
 DECIDE `the last salary month for the grant` c `on maternity leave at the payment date` `salary month of her return` IS
     IF `on maternity leave at the payment date`
-    THEN `salary month of her return` PLUS 1
+    THEN `the last salary month after maternity leave` `salary month of her return`
     ELSE IF `on unpaid leave in the determining period` c
          THEN 7
          ELSE 3
@@ -181,14 +193,18 @@ DECIDE `paying the one-time grant` c `on maternity leave at the payment date` `s
     ELSE FULFILLED
 
 -- §1ו: the owners are indemnified in the payment system; the circular names
--- no date for it.
+-- neither a date nor the amount of the indemnity.
 @ref akn:art_1__para_f
-GIVEN `grants paid` IS A NUMBER
+GIVEN `the indemnity` IS A NUMBER @desc the indemnity the payment system gives; the circular does not set it (an input)
 GIVETH A DEONTIC Party `grant action`
-DECIDE `indemnifying the owner` `grants paid` IS
+DECIDE `indemnifying the owner` `the indemnity` IS
     PARTY `the Ministry of Education`
-    MUST  `indemnify the owner for the one-time grant` `amount`
-          PROVIDED `amount` AT LEAST `grants paid`
+    MUST  `indemnify the owner for the one-time grant in the payment system` `amount`
+          PROVIDED `amount` AT LEAST `the indemnity`
+
+-- akn:conclusions The signatures (Sonia Peretz) and the list of copies; no rule.
+
+§§ `"פסקה (2) להלן" in §1ה.8.1 (finding a)`
 
 -- F-2015-16_tashav_04-a: §1ה.8.1 points to "פסקה (2) להלן", paragraph (2)
 -- below. The paragraphs below it are numbered 1.ה.8.2, 1.ה.8.3 and ו; the
@@ -196,13 +212,12 @@ DECIDE `indemnifying the owner` `grants paid` IS
 `the labels below §1ה.8.1` MEANS LIST "1.ה.8.2", "1.ה.8.3", "ו"
 `the labels above §1ה.8.1 in §1ה` MEANS LIST "(1)", "(2)", "(3)", "(4)", "(5)", "(6)", "(7)", "(8)"
 `no paragraph (2) is below §1ה.8.1` MEANS
-        NOT elem "(2)" `the labels below §1ה.8.1`
+        (NOT elem "(2)" `the labels below §1ה.8.1`)
     AND elem "(2)" `the labels above §1ה.8.1 in §1ה`
 #ASSERT `no paragraph (2) is below §1ה.8.1`
 
--- akn:conclusions The signatures (Sonia Peretz) and the list of copies; no rule.
+§§ `Worked examples`
 
--- Worked examples.
 `a full-time kindergarten teacher` MEANS
     `grant case` WITH
         `graded as a teaching employee of a supervised owner` IS TRUE

@@ -15,7 +15,7 @@ IMPORT common
 
 DECLARE `grant action` IS ONE OF
     `pay the second part of the grant` HAS `second part paid` IS A NUMBER
-    `indemnify the owner for the second part` HAS `second part indemnity` IS A NUMBER
+    `indemnify the owner for the second part in the payment system` HAS `second part indemnity` IS A NUMBER
 
 DECLARE `second-part stage` IS ONE OF
     `kindergarten`
@@ -32,6 +32,14 @@ DECLARE `break kind` IS ONE OF
     `paid sick leave under takanon chapter 1.25.3`
     `holiday or summer recess`
     `end of employment`
+
+DECLARE `grant pay purpose` IS ONE OF
+    `salary for any purpose`
+    `severance pay`
+    `the overtime hourly value`
+    `provident-fund contributions`
+    `the minimum-wage top-up`
+    `the combined-salary base`
 
 DECLARE `circumstance at the payment date` IS ONE OF
     `at work`
@@ -71,6 +79,21 @@ GIVETH A BOOLEAN
 DECIDE `named in the payment paragraph` c IF
     c's `entitled to the first part under circular 2015-16/5`
 
+-- The payment paragraph's date: with January 2017's salary (paid in
+-- February) and no later than February's (paid in March) — salary month 2,
+-- counted from January 2017.
+`the payment paragraph's last salary month` MEANS 2
+
+-- The payment paragraph's amount (¶23): equal to the first part paid under
+-- circular 2015-16/5. F-2016-17_tashaz_02-a: the amount the encoding pays is
+-- the one section 2 computes (`second part of the grant`); the two meet for
+-- an employee whose first part was computed on the same average position.
+@ref akn:preamble/p23
+GIVEN c IS A `second-part case`
+GIVETH A NUMBER
+DECIDE `the second part as the payment paragraph sets it` c IS
+    c's `first part paid`
+
 -- Time in salary months from January 2017 (month 1): February is 2.
 -- The payment paragraph and §2ו ¶2: with January 2017's salary (paid in
 -- February), no later than February's (paid in March). ¶24 and §1: on sick
@@ -84,7 +107,7 @@ GIVEN `circumstance` IS A `circumstance at the payment date`
 GIVETH A NUMBER
 DECIDE `the last salary month for the second part` `circumstance` `salary month of the return or of the last salary` IS
     CONSIDER `circumstance`
-    WHEN `at work` THEN 2
+    WHEN `at work` THEN `the payment paragraph's last salary month`
     WHEN `on sick leave without pay` THEN `salary month of the return or of the last salary` PLUS 1
     WHEN `on maternity leave` THEN `salary month of the return or of the last salary` PLUS 1
     WHEN `employment ended before the payment date` THEN `salary month of the return or of the last salary`
@@ -134,6 +157,9 @@ DECIDE `employed continuously in the determining period` c IF
         c's `employed on 1.9.2015 and on 1.1.2016`
     AND all (GIVEN b YIELD `keeps the continuity` b) (c's `breaks in the determining period`)
 
+-- §2א: the grant is 1,000 NIS; §2ב: that sum is for a full position.
+`the full one-time grant` MEANS 1000
+
 -- §2ה.8.1: on unpaid leave, entitled if paid for 4 full months and a day in
 -- a row between 1.9.2015 and 31.1.2016. F-2016-17_tashaz_02-c: "פסקה (2)
 -- להלן" is read as ה.8.2.
@@ -155,16 +181,10 @@ GIVETH A BOOLEAN
 DECIDE `entitled to the second part` c IF
     `meets section 2's conditions` c
 
-GIVEN xs IS A LIST OF NUMBER
-GIVETH A NUMBER
-DECIDE `the monthly average of` xs IS
-    IF count xs EQUALS 0
-    THEN 0
-    ELSE sum xs DIVIDED BY count xs
-
 -- §2ב: the average monthly position over 1.12.2014–30.11.2015, over the
--- months actually employed (¶2); §2ה.8.2: or, with no salary in those
--- months at all, over the salaried months of 1.12.2015–30.6.2016.
+-- months actually employed (¶2); §2ה.8.2: on unpaid leave, the same months,
+-- or, with no salary in them at all, the salaried months of
+-- 1.12.2015–30.6.2016 (§2ב itself has no such fallback).
 -- F-2016-17_tashaz_02-b: §2ב's "סעיף קטן 1(א)" is read as §2א.
 @ref akn:art_2__para_b akn:art_2__para_e__subpara_8__cls_2
 GIVEN c IS A `second-part case`
@@ -172,13 +192,20 @@ GIVETH A NUMBER
 DECIDE `the representative average position` c IS
     IF count (c's `monthly positions 1.12.2014 to 30.11.2015`) GREATER THAN 0
     THEN `the monthly average of` (c's `monthly positions 1.12.2014 to 30.11.2015`)
-    ELSE `the monthly average of` (c's `monthly positions 1.12.2015 to 30.6.2016`)
+    ELSE IF `on unpaid leave in the determining period` c
+         THEN `the monthly average of` (c's `monthly positions 1.12.2015 to 30.6.2016`)
+         ELSE 0
 
--- §2א, §2ד(3): 1,000 NIS for a full position, pro rata, at most one; the
--- payment paragraph: equal to the first part paid under circular 2015-16/5.
-@ref akn:art_2__para_d__subpara_3 akn:preamble/p23
-`the full one-time grant` MEANS 1000
+GIVEN xs IS A LIST OF NUMBER
+GIVETH A NUMBER
+DECIDE `the monthly average of` xs IS
+    IF count xs EQUALS 0
+    THEN 0
+    ELSE sum xs DIVIDED BY count xs
 
+-- §2ד(3): the grant is paid by the position share, as the circular sets out
+-- (§2ב), and for no more than one full position.
+@ref akn:art_2__para_d__subpara_3
 @export default The second part of the one-time grant a teaching employee is owed under owners' circular 2016-17/2
 GIVEN c IS A `second-part case` @desc the employee's employment
 GIVETH A NUMBER
@@ -189,14 +216,6 @@ DECIDE `second part of the grant` c IS
 
 -- §2ג, §2ד(1)–(2): not salary for any purpose.
 @ref akn:art_2__para_c akn:art_2__para_d__subpara_1 akn:art_2__para_d__subpara_2
-DECLARE `grant pay purpose` IS ONE OF
-    `salary for any purpose`
-    `severance pay`
-    `the overtime hourly value`
-    `provident-fund contributions`
-    `the minimum-wage top-up`
-    `the combined-salary base`
-
 GIVEN p IS A `grant pay purpose`
 GIVETH A BOOLEAN
 DECIDE `the second part counts for` p IF
@@ -204,14 +223,19 @@ DECIDE `the second part counts for` p IF
 
 -- akn:art_2__para_d "למען הסר ספק" (for the avoidance of doubt): the heading of its three paragraphs, encoded above.
 
--- §2ו: the owners are indemnified in the payment system (no date given).
+-- §2ו: the owners are indemnified in the payment system; the circular names
+-- neither a date nor the amount of the indemnity.
 @ref akn:art_2__para_f
-GIVEN `grants paid` IS A NUMBER
+GIVEN `the indemnity` IS A NUMBER @desc the indemnity the payment system gives; the circular does not set it (an input)
 GIVETH A DEONTIC Party `grant action`
-DECIDE `indemnifying the owner` `grants paid` IS
+DECIDE `indemnifying the owner` `the indemnity` IS
     PARTY `the Ministry of Education`
-    MUST  `indemnify the owner for the second part` `amount`
-          PROVIDED `amount` AT LEAST `grants paid`
+    MUST  `indemnify the owner for the second part in the payment system` `amount`
+          PROVIDED `amount` AT LEAST `the indemnity`
+
+-- akn:conclusions The signatures (Sonia Peretz) and the list of copies; no rule.
+
+§§ `The payment paragraph against section 2 (finding a)`
 
 -- F-2016-17_tashaz_02-a: the payment paragraph and section 2 answer "who is
 -- paid" differently. An employee covered by the application paragraph who
@@ -263,28 +287,31 @@ DECIDE `indemnifying the owner` `grants paid` IS
     AND `the payment paragraph and section 2 part on a teacher who left in December 2015`
 #ASSERT `the payment paragraph and section 2 state two tests`
 
+§§ `"סעיף קטן 1(א)" (finding b)`
+
 -- F-2016-17_tashaz_02-b: §2ב and §2ה refer to "סעיף קטן 1(א)"; this
 -- circular's §1 has no paragraph (א) — it is the special-dates clause — and
 -- the determining period is §2א.
 `the labelled paragraphs of §1` MEANS EMPTY
 `the paragraphs of §2` MEANS LIST "א", "ב", "ג", "ד", "ה", "ו"
 `§2's "subsection 1(א)" is not in this circular` MEANS
-        NOT elem "א" `the labelled paragraphs of §1`
+        (NOT elem "א" `the labelled paragraphs of §1`)
     AND elem "א" `the paragraphs of §2`
 #ASSERT `§2's "subsection 1(א)" is not in this circular`
+
+§§ `"פסקה (2) להלן" in ה.8.1 (finding c)`
 
 -- F-2016-17_tashaz_02-c: ה.8.1 points to "פסקה (2) להלן"; below it is ה.8.2
 -- and then §2ו; the only "(2)" in §2ה, ה(2), is above.
 `the labels below ה.8.1` MEANS LIST "ה.8.2", "ו"
 `the labels above ה.8.1 in §2ה` MEANS LIST "(1)", "(2)", "(3)", "(4)", "(5)", "(6)", "(7)", "(8)"
 `no paragraph (2) is below ה.8.1` MEANS
-        NOT elem "(2)" `the labels below ה.8.1`
+        (NOT elem "(2)" `the labels below ה.8.1`)
     AND elem "(2)" `the labels above ה.8.1 in §2ה`
 #ASSERT `no paragraph (2) is below ה.8.1`
 
--- akn:conclusions The signatures (Sonia Peretz) and the list of copies; no rule.
+§§ `Worked examples`
 
--- Worked examples.
 `a half-position high-school teacher` MEANS
     `second-part case` WITH
         `graded as a teaching employee in a supervised institution` IS TRUE
@@ -298,6 +325,7 @@ DECIDE `indemnifying the owner` `grants paid` IS
         `monthly positions 1.12.2015 to 30.6.2016`                  IS EMPTY
 
 #ASSERT `second part of the grant` `a half-position high-school teacher` EQUALS 500
+#ASSERT `the second part as the payment paragraph sets it` `a half-position high-school teacher` EQUALS 500
 #ASSERT `second part of the grant` `a kindergarten teacher meeting section 2` EQUALS 1000
 
 #TRACE `paying the second part` `a half-position high-school teacher` `at work` 0 AT 0 WITH

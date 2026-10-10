@@ -15,7 +15,11 @@ IMPORT common
 -- akn:preamble The letterhead, the date (3.4.2016), the reference number, the addressee, the subject, and the introduction: the ministry's responsibility for education, its standing as employer at official schools and regulator of the supervised ones, the owner as employer of the staff and the principal, and the normative sources (section 9 and section 28 of the Supervision of Schools Law 1969, section 3 of the State Education (Recognized Institutions) Regulations, the Director-General's circular on appointing principals and its introduction, the owner's undertaking in its licence application). The duties the introduction concludes with are encoded below.
 
 DECLARE `appointment action` IS ONE OF
-    `appoint a principal`
+    `appoint a teaching employee` HAS
+        `the appointee is the principal`          IS A BOOLEAN
+        `meets the ministry's competence conditions` IS A BOOLEAN
+        `in full coordination with the ministry`  IS A BOOLEAN
+        `with the ministry's consent`             IS A BOOLEAN
     `check the candidate against the threshold conditions`
     `prepare a candidate file`
     `review the candidate file in the full committee`
@@ -39,6 +43,15 @@ DECIDE `an owner the circular addresses` `owns a supervised, funded, licensed po
 -- coordination with the ministry. ¶26: no principal may be appointed without
 -- the ministry's consent, and certainly not against its position.
 @ref akn:preamble/p25 akn:preamble/p26
+GIVETH A DEONTIC Party `appointment action`
+DECIDE `appointing by the ministry's conditions and with its consent` IS
+    PARTY `the employer`
+    SHANT `appoint a teaching employee` `principal` `competent` `coordinated` `consent`
+          PROVIDED (NOT `competent`)
+                OR (NOT `coordinated`)
+                OR (`principal` AND NOT `consent`)
+    LEST BREACH BY `the employer` BECAUSE "circular 2015-16/6: the owner appoints teaching staff, and above all the principal, by the ministry's conditions of competence and in full coordination with it, and no principal without its consent"
+
 GIVEN `meets the threshold conditions` IS A BOOLEAN
       `the ministry consents` IS A BOOLEAN
 GIVETH A BOOLEAN
@@ -203,31 +216,33 @@ DECIDE `desired qualifications shown` `qualifications shown` IS
 -- regional councils: the 1977 order; municipalities: the 1979 regulations —
 -- a tender and an examiners' committee); but every owner must check each
 -- candidate against the ministry's threshold conditions, and the
--- responsibility is the owner's alone. Time in days, an input horizon.
+-- responsibility is the owner's alone. The text sets no time for the check.
 @ref akn:art_12/p4 akn:art_12/p5
-GIVEN `days to the interviews` IS A NUMBER
 GIVETH A DEONTIC Party `appointment action`
-DECIDE `checking each candidate` `days to the interviews` IS
+DECIDE `checking each candidate` IS
     PARTY `the employer`
     MUST  `check the candidate against the threshold conditions`
-    WITHIN `days to the interviews`
     LEST BREACH BY `the employer` BECAUSE "circular 2015-16/6: the owner alone must check every candidate against the threshold conditions"
 
 -- ¶6: for each candidate who meets them, the owner prepares a file (the CV
 -- and every document showing the conditions are met); before the interview
--- the full committee checks it.
+-- the full committee checks it. Time in days to the interview, the deadline
+-- the text sets ("בטרם יערך ראיון").
 @ref akn:art_12/p6
-GIVEN `days to the interviews` IS A NUMBER
+GIVEN `the candidate met the threshold conditions` IS A BOOLEAN
+      `days to the interview` IS A NUMBER
 GIVETH A DEONTIC Party `appointment action`
-DECIDE `preparing and reviewing the candidate file` `days to the interviews` IS
-    PARTY `the employer`
-    MUST  `prepare a candidate file`
-    WITHIN `days to the interviews`
-    HENCE PARTY `the employer`
-          MUST  `review the candidate file in the full committee`
-          WITHIN `days to the interviews`
-          LEST BREACH BY `the employer` BECAUSE "circular 2015-16/6: the candidate file is reviewed in the full committee before the interview"
-    LEST BREACH BY `the employer` BECAUSE "circular 2015-16/6: the owner prepares a file for every candidate who meets the threshold conditions"
+DECIDE `preparing and reviewing the candidate file` `the candidate met the threshold conditions` `days to the interview` IS
+    IF `the candidate met the threshold conditions`
+    THEN PARTY `the employer`
+         MUST  `prepare a candidate file`
+         WITHIN `days to the interview`
+         HENCE PARTY `the employer`
+               MUST  `review the candidate file in the full committee`
+               WITHIN `days to the interview`
+               LEST BREACH BY `the employer` BECAUSE "circular 2015-16/6: the candidate file is reviewed in the full committee before the interview"
+         LEST BREACH BY `the employer` BECAUSE "circular 2015-16/6: the owner prepares a file for every candidate who meets the threshold conditions"
+    ELSE FULFILLED
 
 -- ¶8–¶9: the ministry's representatives take part in interviewing the
 -- candidates shown to meet the threshold conditions, and their task is to
@@ -249,13 +264,15 @@ GIVETH A BOOLEAN
 DECIDE `¶10 allows the choice` `the committee chose the candidate` `the ministry's representatives found the candidate unsuitable` IF
     `the committee chose the candidate` AND NOT `the ministry's representatives found the candidate unsuitable`
 
-GIVEN `days to the appointment` IS A NUMBER
 GIVETH A DEONTIC Party `appointment action`
-DECIDE `not choosing an unsuitable candidate` `days to the appointment` IS
+DECIDE `not choosing an unsuitable candidate` IS
     PARTY `the employer`
     SHANT `select a candidate the ministry's representatives found unsuitable`
-    WITHIN `days to the appointment`
     LEST BREACH BY `the employer` BECAUSE "circular 2015-16/6: a candidate the ministry's representatives found unsuitable may not be chosen"
+
+-- akn:conclusions The signature (Sonia Peretz) and the list of copies; no rule.
+
+§§ `¶26 against ¶10 (finding a)`
 
 -- F-2015-16_tashav_06-a: ¶26 of the introduction requires the ministry's
 -- consent to the appointment; ¶10 lets the committee's majority choose among
@@ -268,9 +285,8 @@ DECIDE `not choosing an unsuitable candidate` `days to the appointment` IS
     AND NOT `the introduction allows the appointment` TRUE FALSE
 #ASSERT `¶26 and ¶10 part on a suitable candidate the ministry does not prefer`
 
--- akn:conclusions The signature (Sonia Peretz) and the list of copies; no rule.
+§§ `Worked examples`
 
--- Worked examples.
 `a candidate with six years' teaching and a licence` MEANS
     `principal candidate` WITH
         `years of actual teaching in grades 1-12 in Israel`        IS 6
@@ -314,10 +330,12 @@ DECIDE `not choosing an unsuitable candidate` `days to the appointment` IS
 #ASSERT `meets the training condition` `a manager from outside education with three years' teaching and a counselling licence`
 #ASSERT NOT `meets the threshold conditions` `a manager from outside education with three years' teaching and a counselling licence`
 
-#TRACE `preparing and reviewing the candidate file` 30 AT 0 WITH
+#TRACE `preparing and reviewing the candidate file` TRUE 30 AT 0 WITH
     PARTY `the employer` DOES `prepare a candidate file` AT 5
     PARTY `the employer` DOES `review the candidate file in the full committee` AT 20
 #TRACE `completing the programme after selection` 180 TRUE AT 0 WITH
     PARTY `the teaching employee` DOES `complete the principals' training programme` AT 150
-#TRACE `not choosing an unsuitable candidate` 60 AT 0 WITH
+#TRACE `not choosing an unsuitable candidate` AT 0 WITH
     PARTY `the employer` DOES `select a candidate the ministry's representatives found unsuitable` AT 40
+#TRACE `appointing by the ministry's conditions and with its consent` AT 0 WITH
+    PARTY `the employer` DOES `appoint a teaching employee` TRUE TRUE TRUE FALSE AT 10

@@ -33,22 +33,6 @@ DECLARE `supplement case` HAS
     `Ofek Hadash rank`                                    IS A NUMBER  @desc the rank (דרגה) on the Ofek Hadash tables: 1, 1.5, 2 … 4.5; 0 if none
     `position fraction for the supplement`                IS A NUMBER  @desc the share of a full position (1 = 100%)
 
--- Application: teaching employees of supervised owners in kindergartens,
--- elementary schools, junior high schools and teacher-training colleges,
--- under Ofek Hadash or not.
-@ref akn:preamble/p16 akn:preamble/p17
-GIVEN c IS A `supplement case`
-GIVETH A BOOLEAN
-DECIDE `covered by the circular` c IF
-        c's `graded as a teaching employee of a supervised owner`
-    AND NOT c's `supplement stage of the employee` EQUALS `another stage`
-
-§§ `1 תוספת שקלית לעובדי הוראה החל מיום 1.9.2016`
-
--- §1א: from 1.9.2016 a monthly shekel supplement.
-@ref akn:art_1__para_a
-`the first day of the supplement` MEANS Date 1 9 2016
-
 DECLARE `who a row is for` IS ONE OF
     `everyone covered`
     `the rank on the academic Ofek Hadash tables`
@@ -63,6 +47,41 @@ DECLARE `supplement row` HAS
     `row amount`  IS A NUMBER
 
 `the open end` MEANS Date 31 12 9999
+
+DECLARE `supplement purpose` IS ONE OF
+    `the minimum-wage top-up`
+    `salary for any purpose`
+    `the hourly value for substitution hours and school activities`
+    `the deduction for an hour of absence`
+    `the payment under section 33(ד) of the Ofek Hadash agreement`
+    `severance pay`
+    `pension-fund contributions for an employee in an accumulating pension on the determining salary`
+    `training-fund contributions`
+    `other contributions and deductions made on the combined salary`
+    `the base of percentage and shekel supplements`
+    `annual supplements and grants on the overtime hourly-value base`
+
+-- Application: teaching employees of supervised owners in kindergartens,
+-- elementary schools, junior high schools and teacher-training colleges,
+-- under Ofek Hadash or not.
+@ref akn:preamble/p16 akn:preamble/p17
+GIVEN c IS A `supplement case`
+GIVETH A BOOLEAN
+DECIDE `covered by the circular` c IF
+        c's `graded as a teaching employee of a supervised owner`
+    AND NOT c's `supplement stage of the employee` EQUALS `another stage`
+
+§§ `1 תוספת שקלית לעובדי הוראה החל מיום 1.9.2016`
+
+-- §1א: from 1.9.2016 the teaching employees are entitled to a monthly
+-- shekel supplement, as §1ב–§1ג set it.
+@ref akn:art_1__para_a
+GIVEN c IS A `supplement case`, `the day` IS A DATE
+GIVETH A BOOLEAN
+DECIDE `entitled to the monthly shekel supplement` c `the day` IF
+    `covered by the circular` c AND `the day` AT LEAST `the first day of the supplement`
+
+`the first day of the supplement` MEANS Date 1 9 2016
 
 -- §1ב(1)–(5) as printed: the full-position amount by period and rank.
 @ref akn:art_1__para_b
@@ -146,7 +165,7 @@ GIVEN c IS A `supplement case` @desc the employee
       `the day` IS A DATE @desc a day of the month the supplement is for
 GIVETH A NUMBER
 DECIDE `shekel supplement` c `the day` IS
-    IF `covered by the circular` c AND `the day` AT LEAST `the first day of the supplement`
+    IF `entitled to the monthly shekel supplement` c `the day`
     THEN `the full-position supplement` c `the day` TIMES c's `position fraction for the supplement`
     ELSE 0
 
@@ -178,14 +197,6 @@ DECIDE `the index the next update measures from` `the new index` `the last index
 #ASSERT `the indexed amount` 100 99 100 EQUALS 100
 #ASSERT `the index the next update measures from` 99 100 EQUALS 100
 
--- F-2016-17_tashaz_03-a: read as bases indexed by every update since
--- January 2017, the amount printed for 1.9.2020 on is not the amount paid;
--- read as fixed amounts, it is. With a 2% rise the two differ.
-`the 1.9.2020 rank-1 amount read as a base indexed by 2%` MEANS `the indexed amount` 1074.37 102 100
-`§1ב's later amounts and §1ד's update give two readings` MEANS
-    NOT (`the 1.9.2020 rank-1 amount read as a base indexed by 2%` EQUALS 1074.37)
-#ASSERT `§1ב's later amounts and §1ד's update give two readings`
-
 -- §1ה: not counted for the minimum-wage top-up, and an "excluded supplement"
 -- under the Minimum Wage (Raising the Amounts — Temporary Provision) Law
 -- 2015. §1ו: salary for every purpose — the hourly value for substitution
@@ -197,18 +208,6 @@ DECIDE `the index the next update measures from` `the new index` `the last index
 -- or shekel; §1ח: except annual supplements and grants computed on the
 -- salary that sets the overtime hourly value.
 @ref akn:art_1__para_e akn:art_1__para_f akn:art_1__para_g akn:art_1__para_h
-DECLARE `supplement purpose` IS ONE OF
-    `the minimum-wage top-up`
-    `the hourly value for substitution hours and school activities`
-    `the deduction for an hour of absence`
-    `the payment under section 33(ד) of the Ofek Hadash agreement`
-    `severance pay`
-    `pension-fund contributions`
-    `training-fund contributions`
-    `other contributions and deductions made on the combined salary`
-    `the base of percentage and shekel supplements`
-    `annual supplements and grants on the overtime hourly-value base`
-
 GIVEN p IS A `supplement purpose`
 GIVETH A BOOLEAN
 DECIDE `the shekel supplement counts for` p IF
@@ -217,12 +216,35 @@ DECIDE `the shekel supplement counts for` p IF
     WHEN `the base of percentage and shekel supplements` THEN FALSE
     OTHERWISE TRUE
 
+-- §2: the owners are indemnified at the relevant hourly costs in the
+-- payment system; the circular names no date.
+@ref akn:art_2
+GIVEN `the indemnity at the relevant hourly costs` IS A NUMBER @desc the relevant hourly costs in the payment system; the circular does not set them (an input)
+GIVETH A DEONTIC Party `supplement action`
+DECIDE `indemnifying the owner` `the indemnity at the relevant hourly costs` IS
+    PARTY `the Ministry of Education`
+    MUST  `indemnify the owner at the hourly cost` `amount`
+          PROVIDED `amount` AT LEAST `the indemnity at the relevant hourly costs`
+
+-- akn:conclusions The signature (Sonia Peretz) and the list of copies; no rule.
+
+§§ `Later amounts against the index update (finding a)`
+
+-- F-2016-17_tashaz_03-a: read as bases indexed by every update since
+-- January 2017, the amount printed for 1.9.2020 on is not the amount paid;
+-- read as fixed amounts, it is. With a 2% rise the two differ.
+`the 1.9.2020 rank-1 amount read as a base indexed by 2%` MEANS `the indexed amount` 1074.37 102 100
+`§1ב's later amounts and §1ד's update give two readings` MEANS
+    NOT (`the 1.9.2020 rank-1 amount read as a base indexed by 2%` EQUALS 1074.37)
+#ASSERT `§1ב's later amounts and §1ד's update give two readings`
+
+§§ `No date for the months already past (finding b)`
+
 -- The supplement is monthly; each month's is paid with that month's salary.
 -- F-2016-17_tashaz_03-b: the circular, issued on 5.4.2017, sets the
 -- supplement from 1.9.2016 and names no date for paying the months already
 -- past. The reading adopted owes them with the first salary after the
 -- circular.
-@ref akn:art_1__para_a
 GIVEN c IS A `supplement case`, `the day` IS A DATE, `days to the salary` IS A NUMBER
 GIVETH A DEONTIC Party `supplement action`
 DECIDE `paying the month's supplement` c `the day` `days to the salary` IS
@@ -239,19 +261,8 @@ DECIDE `paying the month's supplement` c `the day` `days to the salary` IS
     AND count `the payment dates the circular states` EQUALS 0
 #ASSERT `months of supplement past when the circular issued, unpaid by any stated date`
 
--- §2: the owners are indemnified at the relevant hourly costs in the
--- payment system.
-@ref akn:art_2
-GIVEN `supplements paid` IS A NUMBER
-GIVETH A DEONTIC Party `supplement action`
-DECIDE `indemnifying the owner` `supplements paid` IS
-    PARTY `the Ministry of Education`
-    MUST  `indemnify the owner at the hourly cost` `amount`
-          PROVIDED `amount` AT LEAST `supplements paid`
+§§ `Worked examples`
 
--- akn:conclusions The signature (Sonia Peretz) and the list of copies; no rule.
-
--- Worked examples.
 `an academic Ofek Hadash teacher at rank 2, 80%` MEANS
     `supplement case` WITH
         `graded as a teaching employee of a supervised owner` IS TRUE

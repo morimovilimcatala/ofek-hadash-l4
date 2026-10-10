@@ -13,7 +13,7 @@ IMPORT common
 
 DECLARE `persistence action` IS ONE OF
     `pay the persistence grant` HAS `persistence amount paid` IS A NUMBER
-    `indemnify the owner for the grant` HAS `persistence indemnity` IS A NUMBER
+    `indemnify the owner for the grant in the payment system` HAS `persistence indemnity` IS A NUMBER
 
 DECLARE `grant year` IS ONE OF
     `school year 2013-14`
@@ -60,9 +60,24 @@ DECLARE `persistence case` HAS
     `months employed in the year`                          IS A NUMBER  @desc months of the school year employed, counting absences paid from the employer's funds (bereavement, reserve duty, maternity leave, sick pay) and no other absence
     `on full sabbatical or unpaid leave`                   IS A BOOLEAN @desc on sabbatical or unpaid leave for the whole year
 
+DECLARE `persistence pay purpose` IS ONE OF
+    `the salary base`
+    `the base of supplements`
+    `salary for any purpose`
+    `severance pay`
+    `the overtime hourly value`
+    `other provident-fund contributions (study fund, pension fund, managers' insurance)`
+    `provident-fund contributions for benefits at 5% and 5%`
+
 -- §2 ¶1: teaching employees of supervised owners, employed in elementary
 -- schools, junior high schools and high schools in 2015-16.
 @ref akn:art_2/p1
+GIVEN c IS A `persistence case`
+GIVETH A BOOLEAN
+DECIDE `covered by the circular` c IF
+        c's `graded and employed by a supervised owner`
+    AND any (GIVEN e YIELD `a stage the circular covers` e) (c's `schools`)
+
 GIVEN e IS A `school employment`
 GIVETH A BOOLEAN
 DECIDE `a stage the circular covers` e IF
@@ -89,9 +104,10 @@ GIVETH A BOOLEAN
 DECIDE `a required subject` `subject` IF
     elem `subject` `the required subjects`
 
--- §3.א.2: 25 years' seniority for pay at an official school or in the high
--- school; 30 at a recognized unofficial elementary school or junior high.
--- Read, with §4ד, school by school: the share counts where it qualifies.
+-- §3א.2: seniority for pay of 25 years at an official school or in the
+-- high school (א); 30 at a recognized unofficial elementary school or junior
+-- high (ב). Read, with §4ד, school by school: the share counts where it
+-- qualifies.
 @ref akn:art_3__para_a__subpara_2
 GIVEN e IS A `school employment`
 GIVETH A NUMBER
@@ -100,14 +116,13 @@ DECIDE `the seniority this school requires` e IS
     THEN 25
     ELSE 30
 
--- §3.א.2.ב ¶2: seniority is counted by the takanon and the collective
--- agreements — an input of the case (`seniority for pay`).
-@ref akn:art_3__para_a__subpara_2__cls_b/p2
 GIVEN c IS A `persistence case`, e IS A `school employment`
 GIVETH A BOOLEAN
 DECIDE `this school qualifies` c e IF
         `a stage the circular covers` e
     AND c's `seniority for pay` AT LEAST `the seniority this school requires` e
+
+-- akn:art_3__para_a__subpara_2__cls_b/p2 Seniority is counted by the takanon and the collective agreements, which this circular points to and does not restate; here it is the input `seniority for pay`.
 
 -- §3א: the conditions are cumulative. §3א.1 a required subject taught in
 -- 2015-16, §3א.3 ten years in formal education, and the fourth condition —
@@ -117,7 +132,7 @@ DECIDE `this school qualifies` c e IF
 GIVEN c IS A `persistence case`
 GIVETH A BOOLEAN
 DECIDE `meets the conditions` c IF
-        c's `graded and employed by a supervised owner`
+        `covered by the circular` c
     AND c's `teaches a required subject in the year`
     AND any (GIVEN e YIELD `this school qualifies` c e) (c's `schools`)
     AND c's `years in formal education in Israel` AT LEAST 10
@@ -140,21 +155,8 @@ DECIDE `the qualifying position share` c IS
                   (filter (GIVEN e YIELD `this school qualifies` c e) (c's `schools`))))
         1
 
--- §4ה, §4ז: for part of a year, the share of the year worked, counting
--- absences paid from the employer's funds and no other absence.
-@ref akn:art_4__para_4__subpara_e akn:art_4__para_4__subpara_g
-GIVEN c IS A `persistence case`
-GIVETH A NUMBER
-DECIDE `the share of the year employed` c IS
-    min (c's `months employed in the year` DIVIDED BY 12) 1
-
--- §5ג: none on a full sabbatical or unpaid leave.
-@ref akn:art_5__para_c
-GIVEN c IS A `persistence case`
-GIVETH A BOOLEAN
-DECIDE `entitled to the persistence grant` c IF
-    `meets the conditions` c AND NOT c's `on full sabbatical or unpaid leave`
-
+-- §4ו: the grant is the full-position amount by the weighted position share
+-- (up to 100%) and by the period of employment (§4ה).
 @export default The persistence grant for veteran teachers of required subjects owed for one school year under owners' circular 2015-16/9
 GIVEN c IS A `persistence case` @desc the employee's school year
 GIVETH A NUMBER
@@ -165,30 +167,38 @@ DECIDE `persistence grant` c IS
          TIMES `the share of the year employed` c
     ELSE 0
 
+-- §4ה, §4ז: for part of a year, the share of the year worked, counting
+-- absences paid from the employer's funds and no other absence.
+@ref akn:art_4__para_4__subpara_e akn:art_4__para_4__subpara_g
+GIVEN c IS A `persistence case`
+GIVETH A NUMBER
+DECIDE `the share of the year employed` c IS
+    min (c's `months employed in the year` DIVIDED BY 12) 1
+
 -- §4ח–§4י: the grant does not change the salary base, is not in the base of
 -- any supplement, is not salary for severance, overtime, on-call, incentive
--- pay, duty rosters or shifts, and carries no fund contribution except 5% by
--- the employer and 5% deducted from the employee, to a pension fund.
+-- pay, duty rosters or shifts, and carries no provident-fund contribution
+-- except at the rates paid on expense reimbursements: 5% by the employer and
+-- 5% deducted from the employee, for benefits (תגמולים).
 @ref akn:art_4__para_4__subpara_h akn:art_4__para_4__subpara_i akn:art_4__para_4__subpara_j
-DECLARE `persistence pay purpose` IS ONE OF
-    `the salary base`
-    `the base of supplements`
-    `severance pay`
-    `the overtime hourly value`
-    `training-fund contributions`
-    `pension-fund contributions at 5% and 5%`
-
 GIVEN p IS A `persistence pay purpose`
 GIVETH A BOOLEAN
 DECIDE `the persistence grant counts for` p IF
     CONSIDER p
-    WHEN `pension-fund contributions at 5% and 5%` THEN TRUE
+    WHEN `provident-fund contributions for benefits at 5% and 5%` THEN TRUE
     OTHERWISE FALSE
 
-`the employer's pension contribution on the grant` MEANS 0.05
-`the employee's pension deduction on the grant` MEANS 0.05
+`the employer's benefits contribution on the grant` MEANS 0.05
+`the employee's benefits deduction on the grant` MEANS 0.05
 
 §§ `5 הבהרות`
+
+-- §5ג: none on a full sabbatical or unpaid leave.
+@ref akn:art_5__para_c
+GIVEN c IS A `persistence case`
+GIVETH A BOOLEAN
+DECIDE `entitled to the persistence grant` c IF
+    `meets the conditions` c AND NOT c's `on full sabbatical or unpaid leave`
 
 -- §5ב: employed above 100% by the State and an owner — the State pays for
 -- its share and the owner the rest up to 100%; several owners pay pro rata,
@@ -233,18 +243,19 @@ DECIDE `paying the persistence grant with August 2016's salary` c IS
          LEST BREACH BY `the employer` BECAUSE "circular 2015-16/9 sections 4a and 5e: the persistence grant for 2015-16 is paid with August 2016's salary"
     ELSE FULFILLED
 
-GIVEN `grants paid` IS A NUMBER
+GIVEN `the indemnity` IS A NUMBER @desc the indemnity the payment system gives; the circular does not set it (an input)
 GIVETH A DEONTIC Party `persistence action`
-DECIDE `indemnifying the owner in August 2016` `grants paid` IS
+DECIDE `indemnifying the owner in August 2016` `the indemnity` IS
     PARTY `the Ministry of Education`
-    MUST  `indemnify the owner for the grant` `amount`
-          PROVIDED `amount` AT LEAST `grants paid`
+    MUST  `indemnify the owner for the grant in the payment system` `amount`
+          PROVIDED `amount` AT LEAST `the indemnity`
     WITHIN `month number` August
     LEST BREACH BY `the Ministry of Education` BECAUSE "circular 2015-16/9 section 5e: the owners are indemnified in August 2016's payments (topic 613)"
 
 -- akn:conclusions The signatures (Sonia Peretz) and the list of copies; no rule.
 
--- Worked examples.
+§§ `Worked examples`
+
 `a 26-year official-school mathematics teacher` MEANS
     `persistence case` WITH
         `graded and employed by a supervised owner`    IS TRUE
@@ -276,4 +287,4 @@ DECIDE `indemnifying the owner in August 2016` `grants paid` IS
 #TRACE `paying the persistence grant with August 2016's salary` `a 26-year official-school mathematics teacher` AT 0 WITH
     PARTY `the employer` DOES `pay the persistence grant` 4000 AT 12
 #TRACE `indemnifying the owner in August 2016` 4000 AT 0 WITH
-    PARTY `the Ministry of Education` DOES `indemnify the owner for the grant` 4000 AT 12
+    PARTY `the Ministry of Education` DOES `indemnify the owner for the grant in the payment system` 4000 AT 12
