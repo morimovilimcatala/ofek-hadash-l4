@@ -20,7 +20,9 @@ DECLARE `3.20 party` IS ONE OF
 DECLARE `internship action` IS ONE OF
     `issue the internship referral`
     `apply for renewal of the referral`
-    `notify the internship coordinator of entering work` HAS `details given` IS A LIST OF `entry detail`
+    `notify the internship coordinator of entering work` HAS
+        `details given` IS A LIST OF `entry detail`
+        `shows a confirmation signed by the supervision or the principal` IS A BOOLEAN
     `take part in the internship workshop`
     `approve employment outside the frameworks`
 
@@ -251,13 +253,15 @@ DECIDE `employment through "קרן קרב" is approved` `in a school framework` 
 -- 1.5.3, 1.6.2, 1.7.2: a treatment centre or club, a conservatory, an
 -- out-of-school dance centre — each needs the branch's special approval,
 -- and may take no more than 40% of the required third of a position; the
--- rest is worked in an approved framework.
+-- rest is worked in an approved framework (1.5.2, 1.6.1, 1.7.1).
 @ref akn:chp_3__sec_3_20__ssec_1_5_3 akn:chp_3__sec_3_20__ssec_1_6_2 akn:chp_3__sec_3_20__ssec_1_7_2
 GIVEN y IS AN `internship year`, `the internship branch approved it specially` IS A BOOLEAN
 GIVETH A BOOLEAN
 DECIDE `the specially approved setting is within its limits` y `the internship branch approved it specially` IF
     y's `share in specially approved settings` EQUALS 0
-    OR (`the internship branch approved it specially` AND y's `share in specially approved settings` AT MOST 40%)
+    OR (    `the internship branch approved it specially`
+        AND y's `share in specially approved settings` AT MOST 40%
+        AND `an approved framework` (y's `framework`))
 
 @ref akn:chp_3__sec_3_20__ssec_1_5_4
 GIVEN `months of employment, holidays included` IS A NUMBER
@@ -291,11 +295,20 @@ GIVETH A BOOLEAN
 DECIDE `PE teaching in a kindergarten class is recognised` `a kindergarten class in a school's young division` IF
     `a kindergarten class in a school's young division`
 
+-- F-3.20-b: "at least 4 weekly hours" may measure the PE teaching it
+-- follows or the sports-club work the sentence is about. The reading
+-- adopted: the PE teaching, the words it stands next to.
 @ref akn:chp_3__sec_3_20__ssec_1_8_3
-GIVEN `weekly PE hours in the school` IS A NUMBER, `position fraction of both roles` IS A NUMBER
+GIVEN `weekly PE teaching hours in the school` IS A NUMBER, `weekly hours in the sports club` IS A NUMBER, `position fraction of both roles` IS A NUMBER
 GIVETH A BOOLEAN
-DECIDE `work in the school sports club is recognised` `weekly PE hours in the school` `position fraction of both roles` IF
-    `weekly PE hours in the school` AT LEAST 4 AND `position fraction of both roles` AT LEAST 1/3
+DECIDE `work in the school sports club is recognised` `weekly PE teaching hours in the school` `weekly hours in the sports club` `position fraction of both roles` IF
+    `weekly PE teaching hours in the school` AT LEAST 4 AND `position fraction of both roles` AT LEAST 1/3
+
+-- The other reading: the 4 hours are the club's.
+GIVEN `weekly PE teaching hours in the school` IS A NUMBER, `weekly hours in the sports club` IS A NUMBER, `position fraction of both roles` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `work in the school sports club is recognised, the 4 hours being the club's` `weekly PE teaching hours in the school` `weekly hours in the sports club` `position fraction of both roles` IF
+    `weekly hours in the sports club` AT LEAST 4 AND `position fraction of both roles` AT LEAST 1/3
 
 §§ `1.9 התמחות בחינוך החברתי-קהילתי`
 
@@ -307,11 +320,15 @@ GIVETH A BOOLEAN
 DECIDE `the social-community internship combines its two parts` `teaches the trained subject` `works with youth in the trained sub-field` IF
     `teaches the trained subject` AND `works with youth in the trained sub-field`
 
+-- 1.9.2: each part of the internship is a condition of its own licence —
+-- the part in teaching subjects of a teaching licence, the part in the
+-- social-community field of a guidance licence; an intern who combines the
+-- two (1.9.1) has a part toward each.
 @ref akn:chp_3__sec_3_20__ssec_1_9_2
-GIVEN `the internship is in the social-community field` IS A BOOLEAN
+GIVEN `this part of the internship is in the social-community field` IS A BOOLEAN @desc FALSE for the part in teaching subjects in formal education
 GIVETH A `licence the internship is a condition of`
-DECIDE `the licence the internship counts toward` `the internship is in the social-community field` IS
-    IF `the internship is in the social-community field`
+DECIDE `the licence this part of the internship is one of the conditions for` `this part of the internship is in the social-community field` IS
+    IF `this part of the internship is in the social-community field`
     THEN `a youth-guidance licence, from the society and youth administration`
     ELSE `a teaching licence, from the senior division of teaching personnel`
 
@@ -447,7 +464,8 @@ GIVETH A BOOLEAN
 DECIDE `the placement is approved` `pre-primary, primary or middle school` `signed by the supervision` `signed by the district personnel branch` IF
     `pre-primary, primary or middle school` IMPLIES (`signed by the supervision` AND `signed by the district personnel branch`)
 
--- 3.4: at once on entering work (WITHIN 0 days), with all seven details.
+-- 3.4: at once on entering work (WITHIN 0 days), showing a confirmation
+-- signed by the supervision or the principal, with all seven details.
 @ref akn:chp_3__sec_3_20__ssec_3_4
 `the details owed to the internship coordinator` MEANS
     LIST
@@ -477,8 +495,8 @@ DECIDE `the placement is approved` `pre-primary, primary or middle school` `sign
 GIVETH A DEONTIC `3.20 party` `internship action`
 DECIDE `notifying the internship coordinator` IS
     PARTY `the intern`
-    MUST  `notify the internship coordinator of entering work` d
-          PROVIDED all (GIVEN x YIELD elem x d) `the details owed to the internship coordinator`
+    MUST  `notify the internship coordinator of entering work` d c
+          PROVIDED c AND all (GIVEN x YIELD elem x d) `the details owed to the internship coordinator`
     WITHIN 0
     LEST BREACH BY `the intern` BECAUSE "section 3.20.3.4: the coordinator is told at once on entering work, with every listed detail"
 
@@ -594,10 +612,17 @@ DECIDE `entitled to a conditional loan as a teaching student` `interning alongsi
 #ASSERT `the intern is paid as` TRUE FALSE TRUE 1 FALSE EQUALS `senior certified teacher`
 
 #TRACE `notifying the internship coordinator` AT 0 WITH
-    PARTY `the intern` DOES `notify the internship coordinator of entering work` (LIST `the name of the kindergarten, school or institution`, `its address and telephone`, `the name of the supervisor or principal`, `the mentor's name and identity number`, `the scope of employment`, `the age layer`, `the subjects, fields of employment and further roles`) AT 0
+    PARTY `the intern` DOES `notify the internship coordinator of entering work` (LIST `the name of the kindergarten, school or institution`, `its address and telephone`, `the name of the supervisor or principal`, `the mentor's name and identity number`, `the scope of employment`, `the age layer`, `the subjects, fields of employment and further roles`) TRUE AT 0
 
 -- F-3.20-a: a fifth of a position in teaching and a fifth in youth
 -- guidance — the two readings of 1.9.3 answer differently.
 `the two readings of 1.9.3 differ for a fifth and a fifth` MEANS
     NOT (`a split year is recognised` 0.2 0.2 EQUALS `a split year is recognised, teaching alone counted` 0.2 0.2)
 #ASSERT `the two readings of 1.9.3 differ for a fifth and a fifth`
+
+-- F-3.20-b: 3 weekly hours of PE teaching and 5 in the sports club, on a
+-- third of a position — the two readings of 1.8.3 answer differently.
+`the two readings of 1.8.3 differ for 3 PE hours and 5 club hours` MEANS
+    NOT (`work in the school sports club is recognised` 3 5 (1/3)
+         EQUALS `work in the school sports club is recognised, the 4 hours being the club's` 3 5 (1/3))
+#ASSERT `the two readings of 1.8.3 differ for 3 PE hours and 5 club hours`
