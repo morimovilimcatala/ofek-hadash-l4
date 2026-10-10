@@ -87,4 +87,99 @@
       if (row && row !== t) row.classList.add("hit");
     }
   });
+
+  // Long pages: an "On this page" outline of the headed rows, under the
+  // current entry of the sidebar, and a back-to-top button. On the takanon's
+  // one page the outline is the section in view; on a circular, the whole
+  // document. The outline marks the heading the reader is at.
+  function outlineOf(scope) {
+    var rows = scope.querySelectorAll(".row.label");
+    var items = [];
+    rows.forEach(function (r) {
+      var h = r.querySelector(".h");
+      if (!h || !r.id || r.id === "preamble" || r.id === "conclusions") return;
+      var n = r.querySelector(".num");
+      var d = /\bd(\d)\b/.exec(r.className);
+      items.push({ id: r.id, num: n ? n.textContent : "", h: h.textContent, depth: d ? +d[1] : 0 });
+    });
+    return items;
+  }
+  function renderOutline(items, after) {
+    var old = document.querySelector(".sn-outline");
+    if (old) old.remove();
+    if (!after || items.length < 3) return null;
+    var ul = document.createElement("ul");
+    ul.className = "sn-outline";
+    ul.setAttribute("aria-label", "On this page");
+    var min = Math.min.apply(null, items.map(function (i) { return i.depth; }));
+    items.forEach(function (i) {
+      if (i.depth > min + 1) return;
+      var li = document.createElement("li");
+      li.className = "o" + (i.depth - min);
+      var a = document.createElement("a");
+      a.href = "#" + i.id;
+      a.innerHTML = '<span class="secnum" dir="ltr"></span><span class="sh" lang="he" dir="rtl"></span>';
+      a.firstChild.textContent = i.num;
+      a.lastChild.textContent = i.h;
+      a.title = (i.num ? i.num + " " : "") + i.h;
+      li.appendChild(a);
+      ul.appendChild(li);
+    });
+    after.insertAdjacentElement("afterend", ul);
+    return ul;
+  }
+  var outlineIO = null;
+  function watchOutline(ul) {
+    if (outlineIO) { outlineIO.disconnect(); outlineIO = null; }
+    if (!ul || !window.IntersectionObserver) return;
+    var links = {};
+    ul.querySelectorAll("a").forEach(function (a) { links[decodeURIComponent(a.getAttribute("href").slice(1))] = a; });
+    var cur = null;
+    outlineIO = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        var a = links[e.target.id];
+        if (!a || a === cur) return;
+        if (cur) cur.classList.remove("here");
+        a.classList.add("here");
+        cur = a;
+      });
+    }, { rootMargin: "-120px 0px -70% 0px" });
+    Object.keys(links).forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) outlineIO.observe(el);
+    });
+  }
+  document.addEventListener("DOMContentLoaded", function () {
+    var nav = document.getElementById("sidenav");
+    // a circular: the whole page, under its own entry
+    var cur = nav && nav.querySelector('a[aria-current="page"]');
+    if (cur) watchOutline(renderOutline(outlineOf(document.querySelector("main")), cur));
+    // the takanon: the section in view, under its entry, as the scrollspy moves
+    if (nav && nav.querySelector('a[href^="#"]')) {
+      var shown = null;
+      new MutationObserver(function () {
+        var a = nav.querySelector('a.current[href^="#"]');
+        if (!a || a === shown) return;
+        shown = a;
+        var sec = document.getElementById(decodeURIComponent(a.getAttribute("href").slice(1)));
+        if (sec) watchOutline(renderOutline(outlineOf(sec), a));
+      }).observe(nav, { subtree: true, attributes: true, attributeFilter: ["class"] });
+    }
+    // back to the top
+    var up = document.createElement("button");
+    up.type = "button";
+    up.className = "to-top";
+    up.setAttribute("aria-label", "Back to the top");
+    up.innerHTML = '<svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M10 15V5M5 10l5-5 5 5" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    up.hidden = true;
+    up.addEventListener("click", function () { window.scrollTo({ top: 0, behavior: "smooth" }); });
+    document.body.appendChild(up);
+    var tick = false;
+    window.addEventListener("scroll", function () {
+      if (tick) return;
+      tick = true;
+      requestAnimationFrame(function () { up.hidden = window.scrollY < 900; tick = false; });
+    }, { passive: true });
+  });
 })();
