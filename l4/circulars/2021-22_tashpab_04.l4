@@ -35,22 +35,14 @@ DECIDE `to the agora` x IS
 -- ¶14: the circular governs the period from 1 January 2022 onward. ¶15: the
 -- update is to the December 2021 index (published January 2022) against the
 -- December 2019 index (published January 2020).
-@desc A consumer price index by the month it measures (the index is published the month after).
-DECLARE `consumer price index` IS ONE OF
-    `the index of December 2019`
-    `the index of December 2021`
-
 @ref akn:preamble/p14 akn:preamble/p15
 `the index the update is made to` MEANS `the index of December 2021`
 `the index the update is measured against` MEANS `the index of December 2019`
 
-@desc A teaching employee as far as this circular asks about it.
-DECLARE `upper-division employee` HAS
-    `rated on the teaching-employee scale`                 IS A BOOLEAN
-    `employed by an owner of a supervised institution`     IS A BOOLEAN @desc employed by an owner of educational institutions the Ministry of Education supervises
-    `employed in the upper division or grades 13-14`       IS A BOOLEAN
-    `a principal`                                          IS A BOOLEAN @desc employed as a school principal (otherwise a teacher)
-    `employed under Oz LaTmura`                            IS A BOOLEAN @desc employed under the terms of the Oz LaTmura reform
+@desc A consumer price index by the month it measures (the index is published the month after).
+DECLARE `consumer price index` IS ONE OF
+    `the index of December 2019`
+    `the index of December 2021`
 
 -- ¶16: who the circular applies to; ¶17: whether or not under Oz LaTmura.
 @ref akn:preamble/p16 akn:preamble/p17
@@ -60,6 +52,14 @@ DECIDE `the circular applies to` e IF
         e's `rated on the teaching-employee scale`
     AND e's `employed by an owner of a supervised institution`
     AND e's `employed in the upper division or grades 13-14`
+
+@desc A teaching employee as far as this circular asks about it.
+DECLARE `upper-division employee` HAS
+    `rated on the teaching-employee scale`                 IS A BOOLEAN
+    `employed by an owner of a supervised institution`     IS A BOOLEAN @desc employed by an owner of educational institutions the Ministry of Education supervises
+    `employed in the upper division or grades 13-14`       IS A BOOLEAN
+    `a principal`                                          IS A BOOLEAN @desc employed as a school principal (otherwise a teacher)
+    `employed under Oz LaTmura`                            IS A BOOLEAN @desc employed under the terms of the Oz LaTmura reform
 
 §§ `א. עדכון תוספת שקלית 2016`
 
@@ -124,51 +124,33 @@ DECIDE `the shekel supplement 2016 in the upper division` e IS
     THEN sum (`the amounts the rows give` e)
     ELSE 0
 
--- The rows read narrowly, for F-2021-22_tashpab_04-a.
-`the rows read narrowly` MEANS
-    LIST `shekel supplement row` `teachers under Oz LaTmura`                     1433.98 1404.62,
-         `shekel supplement row` `teachers and principals not under Oz LaTmura` 1212.59 1187.76
-
-`a principal under Oz LaTmura` MEANS
-    `upper-division employee` WITH
-        `rated on the teaching-employee scale`             IS TRUE
-        `employed by an owner of a supervised institution` IS TRUE
-        `employed in the upper division or grades 13-14`   IS TRUE
-        `a principal`                                      IS TRUE
-        `employed under Oz LaTmura`                        IS TRUE
-
--- F-2021-22_tashpab_04-a: read as printed with "and principals" meaning all
--- principals, a principal under Oz LaTmura has an amount; read with the
--- qualifier reaching the principals, no row gives one.
-`a principal under Oz LaTmura has a row only if the principals are not qualified by the reform` MEANS
-        count (filter (GIVEN r YIELD `the row names` (r's `row category`) `a principal under Oz LaTmura`) `the shekel supplement 2016 from 1.1.2022`) EQUALS 1
-    AND count (filter (GIVEN r YIELD `the row names` (r's `row category`) `a principal under Oz LaTmura`) `the rows read narrowly`) EQUALS 0
-#ASSERT `a principal under Oz LaTmura has a row only if the principals are not qualified by the reform`
-
--- Every employee gets exactly one row under the reading adopted.
-#ASSERT all (GIVEN e YIELD count (`the amounts the rows give` e) EQUALS 1)
-            (LIST `a principal under Oz LaTmura`,
-                  `upper-division employee` TRUE TRUE TRUE FALSE TRUE,
-                  `upper-division employee` TRUE TRUE TRUE FALSE FALSE,
-                  `upper-division employee` TRUE TRUE TRUE TRUE FALSE)
-
-DECLARE `update action` IS ONE OF
-    `reimburse the owner at the hour cost in the payment system`
-    `reimburse the owner in payment-system topic 558`
-    `pay the '87 transition supplement` HAS `monthly amount paid` IS A NUMBER, `retroactive to January 2022` IS A BOOLEAN
-
 @ref akn:art_a/p4
 GIVETH A DEONTIC Party `update action`
 DECIDE `reimbursement for the shekel supplement` IS
     PARTY `the Ministry of Education`
     MUST  `reimburse the owner at the hour cost in the payment system`
 
+DECLARE `update action` IS ONE OF
+    `reimburse the owner at the hour cost in the payment system`
+    `reimburse the owner in payment-system topic 558`
+    `pay the '87 transition supplement` HAS `monthly amount paid` IS A NUMBER, `retroactive to January 2022` IS A BOOLEAN
+
 §§ `ב. עדכון סכום תוספת 87' מעבר רפורמה למנהלים`
 
 -- ¶1: under the agreement and §18 of circular תשע"ח/9, the '87
 -- reform-transition supplement of principals employed under Oz LaTmura is
--- updated by the same index change.
+-- updated by the same index change as the 2016 shekel supplement above.
 @ref akn:art_b/p1
+GIVEN e IS AN `upper-division employee`
+      `amount before the update` IS A NUMBER @desc the principal's '87 transition supplement before this update
+      `index of the update`      IS A NUMBER @desc the December 2021 index
+      `index of the base`        IS A NUMBER @desc the December 2019 index
+GIVETH A NUMBER
+DECIDE `the '87 transition supplement for principals, updated by the index` e `amount before the update` `index of the update` `index of the base` IS
+    IF `entitled to the '87 transition supplement for principals` e
+    THEN `the supplement linked to the CPI` `amount before the update` `index of the update` `index of the base`
+    ELSE 0
+
 GIVEN e IS AN `upper-division employee`
 GIVETH A BOOLEAN
 DECIDE `entitled to the '87 transition supplement for principals` e IF
@@ -199,6 +181,37 @@ DECIDE `reimbursement for the '87 transition supplement` IS
     MUST  `reimburse the owner in payment-system topic 558`
 
 -- akn:conclusions The sign-off: the signatures of the two officials and the list of copies; no rule.
+
+§§ `Worked examples`
+
+-- The rows read narrowly, for F-2021-22_tashpab_04-a.
+`the rows read narrowly` MEANS
+    LIST `shekel supplement row` `teachers under Oz LaTmura`                     1433.98 1404.62,
+         `shekel supplement row` `teachers and principals not under Oz LaTmura` 1212.59 1187.76
+
+`a principal under Oz LaTmura` MEANS
+    `upper-division employee` WITH
+        `rated on the teaching-employee scale`             IS TRUE
+        `employed by an owner of a supervised institution` IS TRUE
+        `employed in the upper division or grades 13-14`   IS TRUE
+        `a principal`                                      IS TRUE
+        `employed under Oz LaTmura`                        IS TRUE
+
+-- F-2021-22_tashpab_04-a: read as printed with "and principals" meaning all
+-- principals, a principal under Oz LaTmura has an amount; read with the
+-- qualifier reaching the principals, no row gives one.
+`a principal under Oz LaTmura has a row only if the principals are not qualified by the reform` MEANS
+        count (filter (GIVEN r YIELD `the row names` (r's `row category`) `a principal under Oz LaTmura`) `the shekel supplement 2016 from 1.1.2022`) EQUALS 1
+    AND count (filter (GIVEN r YIELD `the row names` (r's `row category`) `a principal under Oz LaTmura`) `the rows read narrowly`) EQUALS 0
+#ASSERT `a principal under Oz LaTmura has a row only if the principals are not qualified by the reform`
+
+-- Every employee gets exactly one row under the reading adopted.
+#ASSERT all (GIVEN e YIELD count (`the amounts the rows give` e) EQUALS 1)
+            (LIST `a principal under Oz LaTmura`,
+                  `upper-division employee` TRUE TRUE TRUE FALSE TRUE,
+                  `upper-division employee` TRUE TRUE TRUE FALSE FALSE,
+                  `upper-division employee` TRUE TRUE TRUE TRUE FALSE)
+
 
 -- The three printed updates are one index change: the factor the '87 row
 -- implies (1,046.15 / 1,024.73) reproduces the other two rows to the agora.
