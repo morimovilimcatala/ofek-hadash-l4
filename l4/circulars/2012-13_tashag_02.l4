@@ -34,6 +34,7 @@ DECLARE `upper-division employee` HAS
     `role`                               IS AN `upper-division role`
     `appointed in 2012/13`               IS A BOOLEAN @desc a principal or deputy newly appointed to the post in 2012/13
     `age`                                IS A NUMBER
+    `a mother`                           IS A BOOLEAN @desc a teaching employee who is a mother (section 2(ד))
     `a mother keeping the regular week`  IS A BOOLEAN @desc a mother who goes on working the week she would work were she not a mother (the same number of hours of each kind)
     `actual position`                    IS A NUMBER @desc the share of a full position actually held (1 = 100%)
     `position at all employers`          IS A NUMBER
@@ -139,18 +140,17 @@ DECIDE `doing the hours in school` e IS
     THEN PARTY `the teaching employee`
          MUST  `do matriculation and homeroom hours in school` `hours`
                PROVIDED `hours` AT LEAST `matriculation hours done in school` e PLUS `homeroom hours in school in 2012/13`
-         WITHIN 1
          LEST BREACH BY `the teaching employee` BECAUSE "section 2(ג): in partial implementation the matriculation and homeroom hours are done in school, in part"
     ELSE FULFILLED
 
 -- (ד), amending section 28 of circular תשע"ב/7: in 2012/13 the most a
 -- teacher in partial implementation may be employed, at all employers
--- together, is 131%, and a mother 139.3%.
+-- together, is 131%, and for a teaching employee who is a mother 139.3%.
 @ref akn:art_1__para_d
 GIVEN e IS AN `upper-division employee`
 GIVETH A NUMBER
 DECIDE `the position ceiling in 2012/13` e IS
-    IF e's `a mother keeping the regular week` THEN 139.3% ELSE 131%
+    IF e's `a mother` THEN 139.3% ELSE 131%
 
 GIVEN e IS AN `upper-division employee`
 GIVETH A BOOLEAN
@@ -163,44 +163,31 @@ DECIDE `within the position ceiling` e IF
 -- (ה), by section 29 of circular תשע"ב/7: the Oz LaTmura addition for
 -- teachers in partial implementation in 2012/13 is 21%.
 -- (ו) ¶2, by section 32 of circular תשע"ב/7: for existing principals of
--- schools in partial implementation it is 15%.
+-- schools in partial implementation it is 15%. A deputy, a teacher holding
+-- a post, takes the teachers' rate, as in (ז).
 @ref akn:art_1__para_e akn:art_1__para_f/p2
 GIVEN e IS AN `upper-division employee`
 GIVETH A NUMBER
 DECIDE `the Oz LaTmura addition rate` e IS
     IF `within the scope of section 1` e
     THEN CONSIDER e's `role`
-         WHEN `a teacher`   THEN 21%
          WHEN `a principal` THEN 15%
-         OTHERWISE 0
+         OTHERWISE 21%
     ELSE 0
 
 -- (ו), by section 31 of circular תשע"ב/7: the principal's week in partial
 -- implementation (100%) in 2012/13 is 38 hours; 37 for a principal "from 50
--- to 55", 36 for one "from 55 and above".
--- (ז), by section 33 of circular תשע"ב/7: the job base by which the hourly
--- value is computed in 2012/13 is 32 hours for a teacher, 30 at "50-55" and
--- 28 at "55 and above"; for a principal (for an hour of absence) 38, 37 at
--- "50-55" and 36 at "55 and above".
--- Both clauses' age bands as printed, each band with the hours it gives.
+-- to 55", 36 for one "from 55 and above". The bands as printed, each with
+-- the hours it gives.
+@ref akn:art_1__para_f
 DECLARE `age band` HAS
     `band role`     IS AN `upper-division role`
     `band from age` IS A NUMBER
     `band to age`   IS A NUMBER @desc 999 stands for "ומעלה"
     `band hours`    IS A NUMBER
 
-@ref akn:art_1__para_f
 `the principal's week bands` MEANS
     LIST `age band` `a principal` 0  49.99 38,
-         `age band` `a principal` 50 55    37,
-         `age band` `a principal` 55 999   36
-
-@ref akn:art_1__para_g akn:art_1__para_g/p2
-`the job-base bands` MEANS
-    LIST `age band` `a teacher`   0  49.99 32,
-         `age band` `a teacher`   50 55    30,
-         `age band` `a teacher`   55 999   28,
-         `age band` `a principal` 0  49.99 38,
          `age band` `a principal` 50 55    37,
          `age band` `a principal` 55 999   36
 
@@ -221,6 +208,28 @@ DECIDE `the hours the bands give` bands r a IS
     `the hours the bands give` `the principal's week bands` `a principal` 55 EQUALS LIST 37, 36
 #ASSERT `a principal of 55 has two weeks`
 
+-- The reading adopted (F-2012-13_tashag_02-a): the band that opens at 55
+-- governs age 55, "from 50 to 55" being read as 50 up to 55.
+GIVEN a IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the principal's week in 2012/13` a IS
+    BRANCH IF a AT LEAST 55 THEN 36
+           IF a AT LEAST 50 THEN 37
+           OTHERWISE 38
+
+-- (ז), by section 33 of circular תשע"ב/7: the job base by which the hourly
+-- value is computed in 2012/13 is 32 hours for a teacher, 30 at "50-55" and
+-- 28 at "55 and above"; for a principal (for an hour of absence) 38, 37 at
+-- "50-55" and 36 at "55 and above".
+@ref akn:art_1__para_g akn:art_1__para_g/p2
+`the job-base bands` MEANS
+    LIST `age band` `a teacher`   0  49.99 32,
+         `age band` `a teacher`   50 55    30,
+         `age band` `a teacher`   55 999   28,
+         `age band` `a principal` 0  49.99 38,
+         `age band` `a principal` 50 55    37,
+         `age band` `a principal` 55 999   36
+
 -- F-2012-13_tashag_02-b: at 55 the job-base bands give a teacher 30 and 28,
 -- and a principal 37 and 36.
 `the job bases give age 55 two answers` MEANS
@@ -233,15 +242,8 @@ DECIDE `the hours the bands give` bands r a IS
                            AND count (`the hours the bands give` `the principal's week bands` `a principal` a) EQUALS 1)
             (LIST 30, 40, 49, 50, 51, 52, 53, 54, 56, 60, 65, 70)
 
--- The reading adopted (F-2012-13_tashag_02-a, -b): the band that opens at
--- 55 governs age 55, the "50-55" bands being read as 50 up to 55.
-GIVEN a IS A NUMBER
-GIVETH A NUMBER
-DECIDE `the principal's week in 2012/13` a IS
-    BRANCH IF a AT LEAST 55 THEN 36
-           IF a AT LEAST 50 THEN 37
-           OTHERWISE 38
-
+-- The reading adopted (F-2012-13_tashag_02-b): the band that opens at 55
+-- governs age 55, the "50-55" bands being read as 50 up to 55.
 -- (ז) names a teacher's base and a principal's; a deputy, a teacher holding
 -- a post, takes the teacher's.
 @export default The weekly job base by which the hourly value is computed in school year 2012/13 for a teacher or principal in partial implementation of Oz LaTmura in an owner's upper division, under circular תשע"ג/2
@@ -268,13 +270,13 @@ DECIDE `the job base in 2012/13` r a IS
 -- implementation: unchanged from circular תשע"ב/9 — an input here.
 -- F-2012-13_tashag_02-c: the first and third groups are outside section 1's
 -- scope.
+@ref akn:art_1__para_h akn:art_1__para_h/p2 akn:art_1__para_h/p3 akn:art_1__para_h/p4 akn:art_1__para_h/p5 akn:art_1__para_h/p6 akn:art_1__para_h/p7
 DECLARE `shekel additions` HAS
     `the '94 teaching-reinforcement addition` IS A NUMBER
     `the '87 addition`                        IS A NUMBER
 
 ASSUME `the full-implementation amounts of circular תשע"ב/9` IS A `shekel additions`
 
-@ref akn:art_1__para_h akn:art_1__para_h/p2 akn:art_1__para_h/p3 akn:art_1__para_h/p4 akn:art_1__para_h/p5 akn:art_1__para_h/p6 akn:art_1__para_h/p7
 GIVEN e IS AN `upper-division employee`
 GIVETH A `shekel additions`
 DECIDE `the shekel additions from 27.8.2012` e IS
@@ -297,7 +299,6 @@ DECIDE `employing a new teacher on full-implementation terms` `the upper divisio
     IF (NOT `the upper division joined`) AND `a new teacher meeting the thresholds`
     THEN PARTY `the local authority or owning body`
          MUST  `employ on full-implementation terms`
-         WITHIN 1
          LEST BREACH BY `the local authority or owning body` BECAUSE "section 2(ט): a new teacher meeting the thresholds is employed on full-implementation terms though the school has not joined"
     ELSE FULFILLED
 
@@ -321,15 +322,14 @@ DECIDE `the new appointee's management allowance` e IS
     IF e's `appointed in 2012/13` AND (NOT e's `role` EQUALS `a teacher`)
     THEN PARTY `the local authority or owning body`
          MUST  `pay the management allowance by the pre-reform rules`
-         WITHIN 1
          LEST BREACH BY `the local authority or owning body` BECAUSE "section 2(י): a new principal or deputy is paid the management allowance by the pre-reform rules"
     ELSE FULFILLED
 
+@ref akn:art_1__para_j/p4 akn:art_1__para_j/p5
 DECLARE `new principal's additions` HAS
     `reform transition addition`     IS A NUMBER
     `Oz LaTmura addition - principals` IS A NUMBER
 
-@ref akn:art_1__para_j/p4 akn:art_1__para_j/p5
 GIVEN e IS AN `upper-division employee`
 GIVETH A `new principal's additions`
 DECIDE `the new principal's additions` e IS
@@ -339,27 +339,6 @@ DECIDE `the new principal's additions` e IS
          WHEN `partial implementation` THEN `new principal's additions` (50%) (15%)
          OTHERWISE `new principal's additions` 0 0
     ELSE `new principal's additions` 0 0
-
--- A new principal in partial implementation takes the same Oz LaTmura
--- addition (15%) as an existing one under (ו).
-`a new principal of 52 in partial implementation` MEANS
-    `upper-division employee` WITH
-        `in the upper-division teaching-staff grade` IS TRUE
-        `employed by an owner supervised by the Ministry` IS TRUE
-        `implementation`                     IS `partial implementation`
-        `role`                               IS `a principal`
-        `appointed in 2012/13`               IS TRUE
-        `age`                                IS 52
-        `a mother keeping the regular week`  IS FALSE
-        `actual position`                    IS 1
-        `position at all employers`          IS 1
-        `matriculation preparation hours allotted` IS 0
-
-`a new and an existing principal take the same addition` MEANS
-    (`the new principal's additions` `a new principal of 52 in partial implementation`)'s `Oz LaTmura addition - principals`
-    EQUALS `the Oz LaTmura addition rate` `a new principal of 52 in partial implementation`
-#ASSERT `a new and an existing principal take the same addition`
-#ASSERT `the principal's week in 2012/13` (`a new principal of 52 in partial implementation`'s `age`) EQUALS 37
 
 -- F-2012-13_tashag_02-c: section 1 confines the circular to employees in
 -- PARTIAL implementation; (ט) and (י) give rules to new teachers on full-
@@ -373,6 +352,7 @@ DECIDE `the new principal's additions` e IS
         `role`                               IS `a principal`
         `appointed in 2012/13`               IS TRUE
         `age`                                IS 45
+        `a mother`                           IS FALSE
         `a mother keeping the regular week`  IS FALSE
         `actual position`                    IS 1
         `position at all employers`          IS 1
@@ -385,7 +365,30 @@ DECIDE `the new principal's additions` e IS
 
 -- akn:conclusions The sign-off and signature; no rule.
 
--- Worked examples.
+§§ `Worked examples`
+
+-- A new principal in partial implementation takes the same Oz LaTmura
+-- addition (15%) as an existing one under (ו).
+`a new principal of 52 in partial implementation` MEANS
+    `upper-division employee` WITH
+        `in the upper-division teaching-staff grade` IS TRUE
+        `employed by an owner supervised by the Ministry` IS TRUE
+        `implementation`                     IS `partial implementation`
+        `role`                               IS `a principal`
+        `appointed in 2012/13`               IS TRUE
+        `age`                                IS 52
+        `a mother`                           IS FALSE
+        `a mother keeping the regular week`  IS FALSE
+        `actual position`                    IS 1
+        `position at all employers`          IS 1
+        `matriculation preparation hours allotted` IS 0
+
+`a new and an existing principal take the same addition` MEANS
+    (`the new principal's additions` `a new principal of 52 in partial implementation`)'s `Oz LaTmura addition - principals`
+    EQUALS `the Oz LaTmura addition rate` `a new principal of 52 in partial implementation`
+#ASSERT `a new and an existing principal take the same addition`
+#ASSERT `the principal's week in 2012/13` (`a new principal of 52 in partial implementation`'s `age`) EQUALS 37
+
 `a partial-implementation mother of 56` MEANS
     `upper-division employee` WITH
         `in the upper-division teaching-staff grade` IS TRUE
@@ -394,6 +397,7 @@ DECIDE `the new principal's additions` e IS
         `role`                               IS `a teacher`
         `appointed in 2012/13`               IS FALSE
         `age`                                IS 56
+        `a mother`                           IS TRUE
         `a mother keeping the regular week`  IS TRUE
         `actual position`                    IS 0.8
         `position at all employers`          IS 1.35

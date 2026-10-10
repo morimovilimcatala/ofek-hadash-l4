@@ -40,29 +40,9 @@ DECLARE `junior-high teacher` HAS
     `substitute in weekly hours`        IS A BOOLEAN @desc a substitute employed in weekly hours (not single hours)
     `placed in the placement system`    IS A BOOLEAN @desc the principal placed the employee in the placement system (Mashkit) as required
 
-§§ `1. מבוא`
-
--- akn:art_1/p1 Background: the Ofek Hadash collective agreement was signed on 25.12.2008; no rule.
--- akn:art_1/p7 States the circular's purpose; no rule.
--- akn:art_1/p8 Background: joining requires the owner's data, so actions are split between the principal and the owner — section 2.
-
--- ¶2-¶3: in תשע"ד the reform is applied in all official junior highs whose
--- entry the Pedagogical Administration approved. ¶4: to state employees and
--- owners' employees alike. ¶5: only to the junior-high fraction, never to
--- the upper division.
-@ref akn:art_1/p2 akn:art_1/p3 akn:art_1/p4 akn:art_1/p5
-GIVEN t IS A `junior-high teacher`
-GIVETH A NUMBER
-DECIDE `the position the reform governs` t IS
-    IF t's `school in the reform` OR `a new teacher meeting the thresholds` t
-    THEN t's `junior-high position`
-    ELSE 0
-
--- ¶6: the Ministry alone approves joining and sets the Ofek Hadash grade
--- ("conversion"), and, as before, the education grade and the seniority —
--- which is why they are inputs here, never computed.
 DECLARE `ofek action` IS ONE OF
     `approve joining and set the grade`
+    `set the education grade and the seniority`
     `place the owners' employees in the placement system`
     `set a timetable by the Ofek work week`
     `update and approve the placements`
@@ -80,15 +60,45 @@ DECLARE `ofek action` IS ONE OF
     `reimburse the owner`
     `install a time clock`
     `report working hours by the clock`
+    `report working hours manually`
     `pay and deduct by the clock reports`
     `follow up the undertaking`
     `send the request to the conditions-of-service department`
 
+§§ `1. מבוא`
+
+-- akn:art_1/p1 Background: the Ofek Hadash collective agreement was signed on 25.12.2008; no rule.
+-- akn:art_1/p7 States the circular's purpose; no rule.
+-- akn:art_1/p8 Background: joining requires the owner's data, so actions are split between the principal and the owner — section 2.
+
+-- ¶2-¶3: in תשע"ד the reform is applied in all official junior highs whose
+-- entry the Pedagogical Administration approved. ¶4: to state employees and
+-- owners' employees alike. ¶5: only to the junior-high fraction, never to
+-- the upper division.
+@ref akn:art_1/p2 akn:art_1/p3 akn:art_1/p4 akn:art_1/p5
+GIVEN t IS A `junior-high teacher`
+GIVETH A NUMBER
+DECIDE `the position the reform governs in an approved school` t IS
+    IF t's `school in the reform`
+    THEN t's `junior-high position`
+    ELSE 0
+
+-- ¶6: as a rule, the Ministry is the only body that approves joining and
+-- sets the Ofek Hadash grade ("conversion"); as before, it also sets the
+-- education grade and the seniority — which is why they are inputs here,
+-- never computed. "The only body" is read as barring the owner, to whom the
+-- circular is addressed.
 @ref akn:art_1/p6
 GIVETH A DEONTIC Party `ofek action`
 DECIDE `only the Ministry sets joining and grade` IS
-    PARTY `the Ministry of Education`
-    MAY   `approve joining and set the grade`
+    (PARTY `the Ministry of Education`
+     MAY   `approve joining and set the grade`)
+    RAND
+    (PARTY `the local authority or owning body`
+     SHANT `approve joining and set the grade`)
+    RAND
+    (PARTY `the Ministry of Education`
+     MAY   `set the education grade and the seniority`)
 
 §§ `2. תחומי אחריות ביישום הרפורמה`
 
@@ -129,7 +139,8 @@ GIVETH A BOOLEAN
 DECIDE `joined to Ofek Hadash for תשע"ד` `reported in תשע"ג` `meets the criteria` `requested by the principal or owner` IF
     `meets the criteria` AND (`reported in תשע"ג` OR `requested by the principal or owner`)
 
--- ¶11 and א-ג: the principal (א) sets a timetable by the Ofek week; (ב)
+-- ¶11 and א-ג, in no order the text sets: the principal (א) sets a
+-- timetable by the Ofek week; (ב)
 -- updates and approves the placements — roles, position, weekly hours, kind
 -- of standard hours — every position as an owner's position not against the
 -- standard; (ג) rejects the placements of teachers not active in תשע"ד.
@@ -140,12 +151,14 @@ DECIDE `joined to Ofek Hadash for תשע"ד` `reported in תשע"ג` `meets the 
 @ref akn:art_2__para_a akn:art_2__para_b akn:art_2__para_b/p2 akn:art_2__para_c akn:art_2__para_c/p2 akn:art_2__para_c/p3 akn:art_2__para_c/p4
 GIVETH A DEONTIC Party `ofek action`
 DECIDE `the principal's tasks` IS
-    PARTY `the school principal`
-    MUST  `set a timetable by the Ofek work week`
-    HENCE (PARTY `the school principal`
-           MUST  `update and approve the placements`
-           HENCE (PARTY `the school principal`
-                  MUST  `reject the placements of inactive teachers`))
+    (PARTY `the school principal`
+     MUST  `set a timetable by the Ofek work week`)
+    RAND
+    (PARTY `the school principal`
+     MUST  `update and approve the placements`)
+    RAND
+    (PARTY `the school principal`
+     MUST  `reject the placements of inactive teachers`)
 
 -- ג ¶5-¶7: requests to employ an owner's employee above 106% of a position,
 -- or below the minimum (existing teacher 1/3, new teacher 1/2), go from the
@@ -179,23 +192,32 @@ DECIDE `who approves under 2ג` t `also employed by the State` IS
 -- sends the salary-data interface to the Ofek conversion centre (Unique),
 -- by the finance division's instructions (annex ב), from which the Ministry
 -- sets the grade (¶2); a teacher not placed cannot be converted or promoted
--- (¶3). (5) pays salary by the grade and the agreement from joining.
+-- (¶3). (5) pays salary by the grade and the agreement from joining. Only
+-- (4)-(5) are a sequence (the grade is set from the interface, the salary
+-- paid by the grade); (2) arises only where a teacher has no file or
+-- out-of-date data.
 -- akn:art_2__para_c/p8 Heading: "the owner will do the following"; the rules are its items.
 @ref akn:art_2__para_c__subpara_1 akn:art_2__para_c__subpara_2 akn:art_2__para_c__subpara_3 akn:art_2__para_c__subpara_4 akn:art_2__para_c__subpara_4/p2 akn:art_2__para_c__subpara_5
+GIVEN `a teacher has no file or out-of-date data` IS A BOOLEAN @desc an owner's teaching employee has no file at the district personnel office, or the file's data are not up to date
 GIVETH A DEONTIC Party `ofek action`
-DECIDE `the owner's tasks` IS
-    PARTY `the local authority or owning body`
-    MUST  `locate the teachers who meet the conditions`
-    HENCE (PARTY `the local authority or owning body`
-           MUST  `send updated data to open or update a file`
-           HENCE (PARTY `the local authority or owning body`
-                  MUST  `employ by the Ofek work week`
-                  HENCE (PARTY `the local authority or owning body`
-                         MUST  `send the salary interface to the conversion centre`
-                         HENCE (PARTY `the Ministry of Education`
-                                MUST  `approve joining and set the grade`
-                                HENCE (PARTY `the local authority or owning body`
-                                       MUST  `pay salary by the grade from joining`)))))
+DECIDE `the owner's tasks` `a teacher has no file or out-of-date data` IS
+    (PARTY `the local authority or owning body`
+     MUST  `locate the teachers who meet the conditions`)
+    RAND
+    (IF `a teacher has no file or out-of-date data`
+     THEN PARTY `the local authority or owning body`
+          MUST  `send updated data to open or update a file`
+     ELSE FULFILLED)
+    RAND
+    (PARTY `the local authority or owning body`
+     MUST  `employ by the Ofek work week`)
+    RAND
+    (PARTY `the local authority or owning body`
+     MUST  `send the salary interface to the conversion centre`
+     HENCE (PARTY `the Ministry of Education`
+            MUST  `approve joining and set the grade`
+            HENCE (PARTY `the local authority or owning body`
+                   MUST  `pay salary by the grade from joining`)))
 
 @ref akn:art_2__para_c__subpara_4/p3
 GIVEN t IS A `junior-high teacher`
@@ -238,23 +260,24 @@ DECIDE `individual and stay hours reimbursed with them` `approved frontal hours`
     `under Ofek Hadash` AND `approved frontal hours` GREATER THAN 0
 
 -- ¶9 and 1-3: the Ministry checks each owner's employee and decides
--- joining; computes the school's Ofek profile; and reimburses the owner for
--- the approved hours by Ofek terms — accurately only if the placement
--- system follows the Ofek week and the salary interface reached the
--- conversion centre.
+-- joining; computes the school's Ofek profile (in no order the text sets);
+-- and reimburses the owner for the approved hours by Ofek terms —
+-- accurately only if the placement system follows the Ofek week and the
+-- salary interface reached the conversion centre.
 -- akn:art_2__para_c__subpara_7/p9 Heading: "the Ministry will do the following"; the rules are its items.
 @ref akn:art_2__para_c__subpara_7__cls_1 akn:art_2__para_c__subpara_7__cls_2
 GIVETH A DEONTIC Party `ofek action`
 DECIDE `the Ministry's tasks` IS
-    PARTY `the Ministry of Education`
-    MUST  `check each teacher's joining`
-    HENCE (PARTY `the Ministry of Education`
-           MUST  `compute the school's Ofek profile`)
+    (PARTY `the Ministry of Education`
+     MUST  `check each teacher's joining`)
+    RAND
+    (PARTY `the Ministry of Education`
+     MUST  `compute the school's Ofek profile`)
 
 @ref akn:art_2__para_c__subpara_7__cls_3
 GIVEN `placement updated to the Ofek week` IS A BOOLEAN, `salary interface sent` IS A BOOLEAN
 GIVETH A BOOLEAN
-DECIDE `the Ministry can reimburse the owner` `placement updated to the Ofek week` `salary interface sent` IF
+DECIDE `the Ministry can reimburse the owner accurately` `placement updated to the Ofek week` `salary interface sent` IF
     `placement updated to the Ofek week` AND `salary interface sent`
 
 §§ `3. תנאי ההצטרפות`
@@ -304,17 +327,19 @@ GIVETH A BOOLEAN
 DECIDE `must sign the undertaking` t IF
     (NOT t's `academic`) AND t's `seniority years` AT MOST 27
 
-@ref akn:art_3__para_3-3__subpara_3-3-2
-GIVEN t IS A `junior-high teacher`
-GIVETH A BOOLEAN
-DECIDE `employed under the reform without an undertaking` t IF
-    (NOT t's `academic`) AND t's `seniority years` AT LEAST 28
-
+-- Until signed, not joined; a non-academic of 28 years and more (3.3.2,
+-- below) joins without it.
 GIVEN t IS A `junior-high teacher`
 GIVETH A BOOLEAN
 DECIDE `a non-academic joins` t IF
        `employed under the reform without an undertaking` t
     OR (`must sign the undertaking` t AND t's `signed the undertaking`)
+
+@ref akn:art_3__para_3-3__subpara_3-3-2
+GIVEN t IS A `junior-high teacher`
+GIVETH A BOOLEAN
+DECIDE `employed under the reform without an undertaking` t IF
+    (NOT t's `academic`) AND t's `seniority years` AT LEAST 28
 
 -- F-2012-13_tashag_03-d: the two bands meet at 27 and 28; a seniority
 -- between them (27.5 years) is in neither.
@@ -393,27 +418,39 @@ DECIDE `a new teacher meeting the thresholds` t IF
     AND t's `academic`
     AND t's `completed internship successfully`
 
+-- With section 1 ¶2-¶5: the junior-high position the reform governs — in a
+-- school approved for it, or for a new teacher meeting 3.4.1's thresholds.
+GIVEN t IS A `junior-high teacher`
+GIVETH A NUMBER
+DECIDE `the position the reform governs` t IS
+    IF t's `school in the reform` OR `a new teacher meeting the thresholds` t
+    THEN t's `junior-high position`
+    ELSE 0
+
 -- akn:art_3__para_3-5 Heading of 3.5 (interns); the rules follow.
 
 -- 3.5.1: interns are employed only under the reform; the internship year
--- counts only at a third of a position or more. 3.5.2: at most two years,
--- in which the degree and certificate must be completed, or no further
--- employment under the reform.
+-- counts only at a third of a position or more.
 @ref akn:art_3__para_3-5__subpara_3-5-1
 GIVEN t IS A `junior-high teacher`
 GIVETH A BOOLEAN
 DECIDE `the internship year is recognised` t IF
     t's `role` EQUALS `an intern` AND t's `junior-high position` AT LEAST 1 DIVIDED BY 3
 
+-- 3.5.2: the internship lasts at most two years, in which the intern must
+-- complete eligibility for a degree and a teaching certificate; one who
+-- does not cannot go on being employed at the school under the reform.
 @ref akn:art_3__para_3-5__subpara_3-5-2
-GIVEN `years of internship` IS A NUMBER, `completed degree and certificate` IS A BOOLEAN
+GIVEN `years of internship` IS A NUMBER
+      `completed degree and certificate within the internship` IS A BOOLEAN
 GIVETH A BOOLEAN
-DECIDE `an intern may go on under the reform` `years of internship` `completed degree and certificate` IF
-    `years of internship` AT MOST 2 OR `completed degree and certificate`
+DECIDE `an intern may go on under the reform` `years of internship` `completed degree and certificate within the internship` IF
+    `years of internship` AT MOST 2 OR `completed degree and certificate within the internship`
 
 -- 3.5.3: the internship does not count for salary seniority or the
 -- minimum time to a grade; it counts for tenure, the jubilee grant and
 -- recuperation.
+@ref akn:art_3__para_3-5__subpara_3-5-3 akn:art_3__para_3-5__subpara_3-5-3/p2
 DECLARE `purpose of seniority` IS ONE OF
     `salary seniority`
     `minimum time to promotion`
@@ -421,7 +458,6 @@ DECLARE `purpose of seniority` IS ONE OF
     `jubilee grant`
     `recuperation`
 
-@ref akn:art_3__para_3-5__subpara_3-5-3 akn:art_3__para_3-5__subpara_3-5-3/p2
 GIVEN p IS A `purpose of seniority`
 GIVETH A BOOLEAN
 DECIDE `the internship counts for` p IF
@@ -455,12 +491,12 @@ DECIDE `a substitute is under the reform` t `the replaced teacher is under the r
 
 -- 4.1.2: a teacher who is not a principal or first deputy works 36 hours:
 -- 23 frontal, 4 individual, 9 stay. A paramedical teacher: 23, 3, 10.
+@ref akn:art_4/p2
 DECLARE `work week` HAS
     `frontal hours`    IS A NUMBER
     `individual hours` IS A NUMBER
     `stay hours`       IS A NUMBER
 
-@ref akn:art_4/p2
 GIVEN t IS A `junior-high teacher`
 GIVETH A `work week`
 DECIDE `the full-position work week` t IS
@@ -530,6 +566,21 @@ DECIDE `may be approved above a full position` t r IF
     AND r's `hours a day` AT MOST 8.5
     AND r's `hours a week` AT MOST 42
 
+-- F-2013-14_tashad_01-f: 4.2.2 approves "subject to the following
+-- criteria" and lists five without saying which are alternatives. 4.2.2.4
+-- and 4.2.2.5 are limits every approval must keep; 4.2.2.1-3 (a subject in
+-- demand, a shortage in the area, a remote school) read as alternatives
+-- above, and read cumulatively they approve almost no one.
+GIVEN t IS A `junior-high teacher`, r IS AN `extra-hours request`
+GIVETH A BOOLEAN
+DECIDE `may be approved with every criterion of 4.2.2 cumulative` t r IF
+        NOT t's `role` EQUALS `a principal`
+    AND NOT t's `role` EQUALS `a first deputy principal`
+    AND r's `subject in demand` AND r's `shortage in the area` AND r's `remote locality`
+    AND r's `extra hours all frontal`
+    AND r's `hours a day` AT MOST 8.5
+    AND r's `hours a week` AT MOST 42
+
 -- 4.2.3: approved by the system's needs by the district personnel
 -- managers. 4.2.4: beyond 42 hours, to the head of the senior personnel
 -- division with reasons.
@@ -540,6 +591,57 @@ DECIDE `who approves` r IS
     IF r's `hours a week` GREATER THAN 42
     THEN `the head of the senior personnel division`
     ELSE `the district personnel managers`
+
+-- F-2013-14_tashad_01-e: who approves employment above a full position.
+-- 2ג ¶6 sends every request above 106% to the conditions-of-service
+-- department at headquarters; 4.2.3 gives the approval of employment above
+-- 100% to the district personnel managers, and 4.2.4 only what passes 42
+-- hours to the head of the senior division. A request for 110%, within 42
+-- hours, has two approvers.
+`a teacher asking for 110%` MEANS
+    `junior-high teacher` WITH
+        `role`                               IS `a teacher`
+        `prior teaching seniority recognised` IS TRUE
+        `seniority years`                    IS 12
+        `academic`                           IS TRUE
+        `teaching certificate`               IS TRUE
+        `completed internship successfully`  IS TRUE
+        `signed the undertaking`             IS FALSE
+        `junior-high position`               IS 1.1
+        `total position`                     IS 1.1
+        `number of schools`                  IS 1
+        `age`                                IS 40
+        `paramedical`                        IS FALSE
+        `entitled to a mother's position`    IS FALSE
+        `school in the reform`               IS TRUE
+        `substitute in weekly hours`         IS FALSE
+        `placed in the placement system`     IS TRUE
+
+`a request for 110% within 42 hours` MEANS
+    `extra-hours request` WITH
+        `subject in demand`       IS TRUE
+        `shortage in the area`    IS FALSE
+        `remote locality`         IS FALSE
+        `extra hours all frontal` IS TRUE
+        `hours a day`             IS 8
+        `hours a week`            IS 39.6
+
+`2ג and 4.2.3 name different approvers for 110%` MEANS
+    NOT (`who approves under 2ג` `a teacher asking for 110%` FALSE
+         EQUALS `who approves` `a request for 110% within 42 hours`)
+#ASSERT `2ג and 4.2.3 name different approvers for 110%`
+
+-- The reading adopted: 2ג's headquarters approval for an owner's employee
+-- above 106%, as the clause written for owners' employees; 4.2.3 for
+-- 100%-106%, and 4.2.4 above 42 hours (which a 36-hour week reaches only
+-- above 106%).
+GIVEN t IS A `junior-high teacher`, r IS AN `extra-hours request`, `also employed by the State` IS A BOOLEAN
+GIVETH AN `approver`
+DECIDE `who approves employment above a full position` t r `also employed by the State` IS
+    BRANCH IF r's `hours a week` GREATER THAN 42 THEN `the head of the senior personnel division`
+           IF t's `total position` GREATER THAN 106% THEN `who approves under 2ג` t `also employed by the State`
+           OTHERWISE `the district personnel managers`
+
 
 -- akn:art_4/p17 Heading of 4.3 (a mother); the rules follow.
 
@@ -664,9 +766,9 @@ DECIDE `the first deputy's frontal hours` `complexity` IS
 -- deputy's work in the individual hours.
 @ref akn:art_4__para_4-4__subpara_4-4-9
 GIVEN t IS A `junior-high teacher`
-GIVETH A BOOLEAN
-DECIDE `works a teacher's week` t IF
-    (NOT t's `role` EQUALS `a principal`) AND (NOT t's `role` EQUALS `a first deputy principal`)
+GIVETH A `work week`
+DECIDE `the second deputy's work week` t IS
+    `the full-position work week` t
 
 -- 4.4.10: a principal or first deputy entitled to a mother's position may
 -- take 2.5 stay hours off, and no frontal hours. 4.4.11: at 50 and above,
@@ -680,57 +782,17 @@ GIVETH A NUMBER
 DECIDE `a principal's age hours off non-frontal work` `age` IS
     IF `age` AT LEAST 50 THEN 2 ELSE 0
 
--- 4.4.12: a teacher appointed principal or first deputy stops working in
--- the upper division and works the whole position (40 hours) in the junior
--- high.
+-- 4.4.12 (printed under 4.4.11): a teacher appointed principal or first
+-- deputy stops working in the upper division and works the whole position
+-- under the reform (40 hours) in the junior high.
 @ref akn:art_4__para_4-4__subpara_4-4-11/p2
 GIVEN t IS A `junior-high teacher`
 GIVETH A BOOLEAN
-DECIDE `whole position in the junior high` t IF
-    t's `junior-high position` EQUALS t's `total position`
-
--- F-2013-14_tashad_01-e: who approves employment above a full position.
--- 2ג ¶6 sends every request above 106% to the conditions-of-service
--- department at headquarters; 4.2.3 gives the approval of employment above
--- 100% to the district personnel managers, and 4.2.4 only what passes 42
--- hours to the head of the senior division. A request for 110%, within 42
--- hours, has two approvers.
-`a teacher asking for 110%` MEANS
-    `junior-high teacher` WITH
-        `role`                               IS `a teacher`
-        `prior teaching seniority recognised` IS TRUE
-        `seniority years`                    IS 12
-        `academic`                           IS TRUE
-        `teaching certificate`               IS TRUE
-        `completed internship successfully`  IS TRUE
-        `signed the undertaking`             IS FALSE
-        `junior-high position`               IS 1.1
-        `total position`                     IS 1.1
-        `number of schools`                  IS 1
-        `age`                                IS 40
-        `paramedical`                        IS FALSE
-        `entitled to a mother's position`    IS FALSE
-        `school in the reform`               IS TRUE
-        `substitute in weekly hours`         IS FALSE
-        `placed in the placement system`     IS TRUE
-
-`a request for 110% within 42 hours` MEANS
-    `extra-hours request` WITH
-        `subject in demand`       IS TRUE
-        `shortage in the area`    IS FALSE
-        `remote locality`         IS FALSE
-        `extra hours all frontal` IS TRUE
-        `hours a day`             IS 8
-        `hours a week`            IS 39.6
-
-`2ג and 4.2.3 name different approvers for 110%` MEANS
-    NOT (`who approves under 2ג` `a teacher asking for 110%` FALSE
-         EQUALS `who approves` `a request for 110% within 42 hours`)
-#ASSERT `2ג and 4.2.3 name different approvers for 110%`
-
--- The reading adopted: 2ג's headquarters approval for an owner's employee
--- above 106%, as the clause written for owners' employees; 4.2.3 for
--- 100%-106%, and 4.2.4 above 42 hours.
+DECIDE `a principal or first deputy holds the whole position in the junior high` t IS
+    IF t's `role` EQUALS `a principal` OR t's `role` EQUALS `a first deputy principal`
+    THEN     t's `junior-high position` EQUALS t's `total position`
+         AND t's `junior-high position` EQUALS `the principal's position`
+    ELSE TRUE
 
 §§ `5. מקדמות השכר`
 
@@ -760,15 +822,23 @@ DECLARE `component paid` HAS
     `component`     IS A `salary component`
     `amount paid`   IS A NUMBER
 
+@export default The monthly "Ofek Hadash advance" an owner pays a junior-high teaching employee under circular תשע"ד/1, section 5 (the 27% was raised to 30% by circular תשע"ד/3)
+GIVEN t IS A `junior-high teacher` @desc the employee
+      `components` IS A LIST OF `component paid` @desc the present salary's components (not under Ofek Hadash terms) for the junior-high fraction
+GIVETH A NUMBER
+DECIDE `the Ofek Hadash advance` t `components` IS
+    `the advance rate` (t's `role`)
+    TIMES sum (map (GIVEN c YIELD IF `in the advance base` (c's `component`) THEN c's `amount paid` ELSE 0) `components`)
+
 -- The four rows as printed: teachers who are not principals or first
 -- deputies 27%; interns 22%; first deputies 20%; principals 15%.
+@ref akn:art_5__para_5-1/p3 akn:art_5__para_5-1/p4 akn:art_5__para_5-1/p5 akn:art_5__para_5-1/p6
 DECLARE `advance row` IS ONE OF
     `teachers who are not principals or first deputies`
     `interns`
     `first deputies`
     `principals`
 
-@ref akn:art_5__para_5-1/p3 akn:art_5__para_5-1/p4 akn:art_5__para_5-1/p5 akn:art_5__para_5-1/p6
 GIVEN row IS AN `advance row`
 GIVETH A NUMBER
 DECIDE `the rate the row prints` row IS
@@ -812,14 +882,6 @@ DECIDE `the advance rate` r IS
     WHEN `a principal`              THEN 15%
     OTHERWISE 27%
 
-@export default The monthly "Ofek Hadash advance" an owner pays a junior-high teaching employee under circular תשע"ד/1, section 5 (the 27% was raised to 30% by circular תשע"ד/3)
-GIVEN t IS A `junior-high teacher` @desc the employee
-      `components` IS A LIST OF `component paid` @desc the present salary's components (not under Ofek Hadash terms) for the junior-high fraction
-GIVETH A NUMBER
-DECIDE `the Ofek Hadash advance` t `components` IS
-    `the advance rate` (t's `role`)
-    TIMES sum (map (GIVEN c YIELD IF `in the advance base` (c's `component`) THEN c's `amount paid` ELSE 0) `components`)
-
 -- 5.2: from September to December, until the owners report list ב to the
 -- district treasuries, owners entitled to union-hours funding are
 -- reimbursed by advances (subject 15 in the payments system). 5.3: once the
@@ -834,15 +896,22 @@ DECIDE `reimbursed by advances` `school month` `list ב reported` IF
 
 §§ `6. שעון הנוכחות`
 
--- 6.1.1: a time clock is installed and teachers report their hours on it;
--- 6.1.3: until it is installed, reporting is manual.
+-- 6.1.1: a time clock is installed in the school ("יותקן": who installs it
+-- is not said; the owner, to whom the circular is addressed, is read), and
+-- teachers must report their hours on it; 6.1.3: until it is installed,
+-- reporting is manual.
 @ref akn:art_6/p1 akn:art_6/p3
+GIVEN `the clock is installed` IS A BOOLEAN
 GIVETH A DEONTIC Party `ofek action`
-DECIDE `the time clock` IS
-    PARTY `the local authority or owning body`
-    MUST  `install a time clock`
-    HENCE (PARTY `the teaching employee`
-           MUST  `report working hours by the clock`)
+DECIDE `the time clock` `the clock is installed` IS
+    (PARTY `the local authority or owning body`
+     MUST  `install a time clock`)
+    RAND
+    (IF `the clock is installed`
+     THEN PARTY `the teaching employee`
+          MUST  `report working hours by the clock`
+     ELSE PARTY `the teaching employee`
+          MUST  `report working hours manually`)
 
 -- 6.1.2: hours count from the clock-in, not before 7:45 (hours as decimals:
 -- 7.75 = 7:45).
@@ -854,13 +923,12 @@ DECIDE `hours count from` `clock-in time` IS
 
 -- 6.1.4: the owner must pay and deduct salary by the clock reports, after
 -- checking the absence certificates (sickness, mourning …), by the rules.
--- Monthly: within the month the report covers.
+-- The circular sets no time for it.
 @ref akn:art_6/p4
 GIVETH A DEONTIC Party `ofek action`
 DECIDE `pay and deduct by the clock` IS
     PARTY `the local authority or owning body`
     MUST  `pay and deduct by the clock reports`
-    WITHIN 1
     LEST  BREACH BY `the local authority or owning body` BECAUSE "circular תשע\"ד/1, 6.1.4: the owner pays and deducts salary by the time-clock reports"
 
 -- akn:art_6/p5 6.1.5: the clock instructions are on the web; no rule.
@@ -869,7 +937,9 @@ DECIDE `pay and deduct by the clock` IS
 -- akn:att_1__hc_1 Annex א as the corpus has it: only the tail of its title (the undertaking form of a non-academic teacher); its content is missing from the corpus text.
 -- akn:att_2__hc_1 Annex ב as the corpus has it: only the tail of its title (owners' employees in the official junior highs); its content is missing from the corpus text.
 
--- Examples; the teacher and the salary components are illustrations.
+§§ `Worked examples`
+
+-- The teacher and the salary components are illustrations.
 `Dana, a new teacher` MEANS
     `junior-high teacher` WITH
         `role`                               IS `a teacher`
@@ -909,8 +979,14 @@ DECIDE `pay and deduct by the clock` IS
 
 #ASSERT `who approves` `a forty-hour request` EQUALS `the district personnel managers`
 #ASSERT `may be approved above a full position` `Dana, a new teacher` `a forty-hour request`
+#ASSERT `who approves employment above a full position` `a teacher asking for 110%` `a request for 110% within 42 hours` FALSE EQUALS `the conditions-of-service department at headquarters`
 
-#TRACE `the owner's tasks` AT 0 WITH
+`the readings of 4.2.2 part on a mathematics teacher in an ordinary school` MEANS
+    NOT (`may be approved above a full position` `Dana, a new teacher` `a forty-hour request`
+         EQUALS `may be approved with every criterion of 4.2.2 cumulative` `Dana, a new teacher` `a forty-hour request`)
+#ASSERT `the readings of 4.2.2 part on a mathematics teacher in an ordinary school`
+
+#TRACE `the owner's tasks` TRUE AT 0 WITH
     PARTY `the local authority or owning body` DOES `locate the teachers who meet the conditions` AT 0
     PARTY `the local authority or owning body` DOES `send updated data to open or update a file` AT 1
     PARTY `the local authority or owning body` DOES `employ by the Ofek work week` AT 1
