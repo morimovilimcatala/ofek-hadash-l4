@@ -108,6 +108,11 @@ DECIDE `recuperation days` n IS
 @ref akn:art_1__para_d
 GIVEN y IS A `recuperation and jubilee year`
 GIVETH A NUMBER
+DECIDE `the part-time share under 1ד` y IS
+    y's `position fraction` TIMES `the months share` y
+
+GIVEN y IS A `recuperation and jubilee year`
+GIVETH A NUMBER
 DECIDE `the months share as printed` y IS
     y's `months worked` DIVIDED BY 10
 
@@ -141,20 +146,32 @@ DECIDE `the position share under 1ה` y IS
     min (y's `position fraction`) 1
 
 -- 1ו: with more than one employer and above 100% in total, each employer
--- pays the allowance proportional to the position held with it.
+-- pays separately the allowance proportional to the position held with it.
+-- NOTHING where 1ו's condition does not hold.
 @ref akn:art_1__para_f
 GIVEN e IS AN `employment with one employer`, y IS A `recuperation and jubilee year`
-GIVETH A NUMBER
+GIVETH A MAYBE NUMBER
 DECIDE `what one employer pays under 1ו` e y IS
-    `the payment per recuperation day`
-    TIMES `recuperation days` (y's `year of service`)
-    TIMES e's `position at this employer`
-    TIMES `the months share` y
+    IF `employed by more than one employer above a full position` y
+    THEN JUST (`the payment per recuperation day`
+               TIMES `recuperation days` (y's `year of service`)
+               TIMES e's `position at this employer`
+               TIMES `the months share` y)
+    ELSE NOTHING
+
+GIVEN y IS A `recuperation and jubilee year`
+GIVETH A BOOLEAN
+DECIDE `employed by more than one employer above a full position` y IF
+        count (y's `employments`) GREATER THAN 1
+    AND y's `position fraction` GREATER THAN 1
 
 GIVEN y IS A `recuperation and jubilee year`
 GIVETH A NUMBER
 DECIDE `the total all employers pay under 1ו` y IS
-    sum (map (GIVEN e YIELD `what one employer pays under 1ו` e y) (y's `employments`))
+    sum (map (GIVEN e YIELD CONSIDER `what one employer pays under 1ו` e y
+                            WHEN JUST a  THEN a
+                            WHEN NOTHING THEN 0)
+             (y's `employments`))
 
 -- F-2013-14_tashad_07-a: for an employee with more than one employer and
 -- more than a full position in total, 1ה caps the allowance at one full
@@ -179,22 +196,10 @@ DECIDE `the total all employers pay under 1ו` y IS
                 TIMES `the position share under 1ה` `seventy and sixty percent with two employers`)
 #ASSERT `1ה and 1ו give different allowances for two employers above a full position`
 
--- The reading adopted: 1ו is the rule for more than one employer, 1ה for
--- one employer.
-@export default The recuperation allowance for school year תשע"ד under circular תשע"ד/7, before any later law reduces it
-GIVEN y IS A `recuperation and jubilee year` @desc the employee's school year תשע"ד
-GIVETH A NUMBER
-DECIDE `recuperation allowance` y IS
-    IF count (y's `employments`) GREATER THAN 1
-    THEN `the total all employers pay under 1ו` y
-    ELSE `the payment per recuperation day`
-         TIMES `recuperation days` (y's `year of service`)
-         TIMES `the position share under 1ה` y
-         TIMES `the months share` y
-
 -- 1ז-1ח: the caps on the position held with all employers together, by
 -- terms of employment and, outside the reforms, by role; ¶3: what is said is
--- no permit to employ above them.
+-- no permit to employ above them. A principal's cap is 150% outside the
+-- reforms (1ז); ¶3's list names the teachers' figures.
 @ref akn:art_1__para_g akn:art_1__para_h akn:art_1__para_h/p2
 GIVEN t IS A `terms of employment`, `a principal` IS A BOOLEAN
 GIVETH A NUMBER
@@ -207,11 +212,30 @@ DECIDE `the cap on the position with all employers` t `a principal` IS
 
 -- akn:art_1__para_g/p2 A running page header ("המשנה למנכ\"לית") caught in the text; no rule.
 
+-- 1ח ¶3: what is said above is no permit to employ beyond these position
+-- sizes.
 @ref akn:art_1__para_h/p3
-GIVEN y IS A `recuperation and jubilee year`
+GIVEN y IS A `recuperation and jubilee year`, `a principal` IS A BOOLEAN
 GIVETH A BOOLEAN
-DECIDE `the position is within the cap` y IF
-    y's `position fraction` AT MOST `the cap on the position with all employers` (y's `terms`) FALSE
+DECIDE `the position is within the cap` y `a principal` IF
+    y's `position fraction` AT MOST `the cap on the position with all employers` (y's `terms`) `a principal`
+
+§§ `1. The recuperation allowance put together`
+
+-- The reading adopted for F-2013-14_tashad_07-a: 1ו is the rule for more
+-- than one employer above a full position; otherwise 1ד for a part-time
+-- position and 1ה for a full one or more.
+@export default The recuperation allowance for school year תשע"ד under circular תשע"ד/7, before any later law reduces it
+GIVEN y IS A `recuperation and jubilee year` @desc the employee's school year תשע"ד
+GIVETH A NUMBER
+DECIDE `recuperation allowance` y IS
+    IF `employed by more than one employer above a full position` y
+    THEN `the total all employers pay under 1ו` y
+    ELSE `the payment per recuperation day`
+         TIMES `recuperation days` (y's `year of service`)
+         TIMES (IF y's `position fraction` LESS THAN 1
+                THEN `the part-time share under 1ד` y
+                ELSE `the position share under 1ה` y TIMES `the months share` y)
 
 §§ `2. תשלום מענק יובל`
 
@@ -303,21 +327,31 @@ DECIDE `entitled to the jubilee grant for the stage` y s IF
          EQUALS `qualifies by the 1 June seniority` `crossing 25 between September and June` `upper division`)
 #ASSERT `2ד and 2ה(2) disagree for an employee who crosses the threshold between September and June`
 
--- 2ג: 60% of the determining salary. 2ה(3)-(4): computed per stage
--- fraction against that stage's threshold, the fractions together capped
--- at one position, and pro-rated for the part of the year employed.
+-- 2ג: 60% of the salary determining pension and severance pay, one-time
+-- annual payments such as clothing and recuperation excluded (the field's
+-- definition).
 @ref akn:art_2__para_c
-`the jubilee rate` MEANS 60%
+GIVEN y IS A `recuperation and jubilee year`
+GIVETH A NUMBER
+DECIDE `the jubilee grant at 60% of the determining salary` y IS
+    60% TIMES y's `determining salary`
 
+-- 2ה(4): paid by the position fraction that year, up to one position only,
+-- and by the fraction of the period employed. The fractions counted are
+-- those of the stages whose threshold (2ה(3)) the employee is entitled by.
 @ref akn:art_2__para_e__subpara_4
 GIVEN y IS A `recuperation and jubilee year`
 GIVETH A NUMBER
-DECIDE `jubilee grant` y IS
-    `the jubilee rate`
-    TIMES y's `determining salary`
-    TIMES min 1 (sum (map (GIVEN f YIELD IF `entitled to the jubilee grant for the stage` y (f's `stage`) THEN f's `stage fraction` ELSE 0)
-                          (y's `jubilee fractions`)))
+DECIDE `the jubilee share` y IS
+    min 1 (sum (map (GIVEN f YIELD IF `entitled to the jubilee grant for the stage` y (f's `stage`) THEN f's `stage fraction` ELSE 0)
+                    (y's `jubilee fractions`)))
     TIMES y's `period fraction`
+
+GIVEN y IS A `recuperation and jubilee year`
+GIVETH A NUMBER
+DECIDE `jubilee grant` y IS
+    `the jubilee grant at 60% of the determining salary` y
+    TIMES `the jubilee share` y
 
 -- 2א: paid to those entitled with the salary of June 2014.
 @ref akn:art_2__para_a
@@ -337,7 +371,9 @@ DECIDE `jubilee grant paid with June's salary` y IS
 -- akn:art_2/p1 The contact line for questions; no rule.
 -- akn:conclusions The signature and the list of copies; no rule.
 
--- Examples. Figures are placeholders, not from a payslip.
+§§ `Worked examples`
+
+-- Figures are placeholders, not from a payslip.
 `a full-time teacher in year 22` MEANS
     `recuperation and jubilee year` WITH
         `year of service`                    IS 22
@@ -356,7 +392,7 @@ DECIDE `jubilee grant paid with June's salary` y IS
 #ASSERT `recuperation days` 25 EQUALS 13
 #ASSERT `jubilee grant` `crossing 25 between September and June` EQUALS 6000
 #ASSERT `jubilee grant` `a full-time teacher in year 22` EQUALS 0
-#ASSERT `the position is within the cap` `a full-time teacher in year 22`
+#ASSERT `the position is within the cap` `a full-time teacher in year 22` FALSE
 #EVAL   `recuperation allowance` `seventy and sixty percent with two employers`
 
 #TRACE `recuperation paid with June's salary` `a full-time teacher in year 22` AT 0 WITH

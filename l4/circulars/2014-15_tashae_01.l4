@@ -23,6 +23,7 @@ DECLARE `father's request` HAS
     `has a child under 14`                           IS A BOOLEAN @desc section 4
     `employment`                                     IS A `father's employment`
     `fixed position`                                 IS A NUMBER  @desc his fixed position before the shortening (1 = 100%)
+    `weekly hours of his full position`              IS A NUMBER  @desc the weekly hours of a full position on his terms: 24 frontal for a pre-reform teacher (7(א)); for an Ofek Hadash kindergarten teacher, by that agreement (not in this circular)
     `principal can schedule part hours`              IS A BOOLEAN @desc the principal can set him a position with hours that are not whole numbers (section 5(א))
     `requested this year`                            IS A BOOLEAN @desc he submitted this year's request to the employer (section 5(ג) ¶6)
 
@@ -38,18 +39,35 @@ DECLARE `father's action` IS ONE OF
 
 §§ `הזכות: קיצור בעין בלבד`
 
--- ¶14: the State agreed to recognise a father of children (to 14) as
--- entitled to a mother's position by a shorter working week only, subject
--- to the conditions below. ¶15: the money realisation of the right is for
--- mothers only. ¶16: so a father has an actual shortening of his hours and
--- no monetary supplement. Section 9: a father working 100% who does not
--- shorten gets no supplement either.
-@ref akn:preamble/p14 akn:preamble/p15 akn:preamble/p16 akn:art_9
+-- ¶14: the State agreed to recognise a teaching employee who is a father
+-- of children (to 14) as entitled to a mother's position by a shorter
+-- working week only, subject to the conditions set out below (sections
+-- 1-5, and the yearly request of 5(ג) ¶6).
+@ref akn:preamble/p14
+@export default Whether a teaching employee who is a father is entitled to a shortened working week (a "mother's position" in kind) under owners' circular 2014-15/1
+GIVEN r IS A `father's request` @desc the father and his spouse
+      `actual position after the shortening` IS A NUMBER @desc the share of a full position he would actually work after the shortening (1 = 100%)
+GIVETH A BOOLEAN
+DECIDE `a father is entitled to a shortened week` r `actual position after the shortening` IF
+        `condition 1: the spouse works` r
+    AND `condition 2: the spouse works at least 80%` r
+    AND `condition 3: the spouse has no shortened day` r
+    AND `condition 4: a child under 14` r
+    AND r's `requested this year`
+    AND `actual position after the shortening` AT LEAST `the least actual position`
+    AND (CONSIDER r's `employment`
+         WHEN `Oz LeTmura` THEN r's `fixed position` GREATER THAN `the least actual position`
+         OTHERWISE r's `fixed position` AT LEAST `the least actual position`)
+
+-- ¶15: the money realisation of the right is for mothers only. ¶16: so a
+-- father has an actual shortening of his hours and no monetary supplement.
+-- Section 9: a father working 100% who does not shorten gets no
+-- supplement either.
+@ref akn:preamble/p15 akn:preamble/p16 akn:art_9
 GIVETH A DEONTIC Party `father's action`
 DECIDE `no money for a father's position` IS
     PARTY `the employer`
     SHANT `pay a monetary supplement for the father's position` x
-    WITHIN 12
     LEST  BREACH BY `the employer` BECAUSE "circular תשע\"ה/1: a father's right is to a shorter week in kind only, never a monetary supplement"
 
 §§ `1–4 תנאי הזכאות`
@@ -87,38 +105,35 @@ DECIDE `condition 4: a child under 14` r IF
 -- 5(א): pre-reform, or Ofek Hadash as a kindergarten teacher: he may
 -- shorten his fixed position by up to 10% "בש"ש", so that the shortened
 -- (actual) position is not below 79%; where the principal cannot set part
--- hours, by whole hours only. ¶3: see 7(א). Hours of a full pre-reform
--- position: 24 (7(א)). F-2014-15_tashae_01-a: "10% in weekly hours" of
--- the fixed position is read as 10% OF the fixed position.
-`the weekly hours of a full pre-reform position` MEANS 24
-
-GIVEN r IS A `father's request`
-GIVETH A NUMBER
-DECIDE `the fixed position in weekly hours` r IS
-    r's `fixed position` TIMES `the weekly hours of a full pre-reform position`
-
-GIVEN `cut` IS A NUMBER, `whole hours only` IS A BOOLEAN
-GIVETH A NUMBER
-DECIDE `in whole hours if need be` `cut` `whole hours only` IS
-    IF `whole hours only` THEN TRUNC `cut` 0 ELSE `cut`
-
+-- hours, by whole hours only. ¶3: see 7(א). F-2014-15_tashae_01-a: "10% in
+-- weekly hours" of the fixed position is read as 10% OF the fixed position.
 @ref akn:art_5__para_a
 GIVEN r IS A `father's request`
 GIVETH A NUMBER
 DECIDE `the hours a 5(א) father may shorten` r IS
     `in whole hours if need be`
         (max 0 (min (10% TIMES `the fixed position in weekly hours` r)
-                    (`the fixed position in weekly hours` r MINUS `the least actual position` TIMES `the weekly hours of a full pre-reform position`)))
+                    (`the fixed position in weekly hours` r MINUS `the least actual position` TIMES r's `weekly hours of his full position`)))
         (NOT r's `principal can schedule part hours`)
 
+GIVEN r IS A `father's request`
+GIVETH A NUMBER
+DECIDE `the fixed position in weekly hours` r IS
+    r's `fixed position` TIMES r's `weekly hours of his full position`
+
+GIVEN `cut` IS A NUMBER, `whole hours only` IS A BOOLEAN
+GIVETH A NUMBER
+DECIDE `in whole hours if need be` `cut` `whole hours only` IS
+    IF `whole hours only` THEN TRUNC `cut` 0 ELSE `cut`
+
 -- The other reading of "עד 10% בש"ש" (F-2014-15_tashae_01-a): 10% of a
--- full position, in weekly hours (2.4), whatever the fixed position.
+-- full position, in weekly hours (2.4 of 24), whatever the fixed position.
 GIVEN r IS A `father's request`
 GIVETH A NUMBER
 DECIDE `the hours under the full-position reading` r IS
     `in whole hours if need be`
-        (max 0 (min (10% TIMES `the weekly hours of a full pre-reform position`)
-                    (`the fixed position in weekly hours` r MINUS `the least actual position` TIMES `the weekly hours of a full pre-reform position`)))
+        (max 0 (min (10% TIMES r's `weekly hours of his full position`)
+                    (`the fixed position in weekly hours` r MINUS `the least actual position` TIMES r's `weekly hours of his full position`)))
         (NOT r's `principal can schedule part hours`)
 
 -- 5(ב): Ofek Hadash, not as a kindergarten teacher, at a position of at
@@ -156,22 +171,6 @@ DECIDE `the yearly request` IS
     WITHIN 12
     LEST  BREACH BY `the teaching employee` BECAUSE "circular תשע\"ה/1 section 5(ג): the father must apply to the employer every year"
 
--- Sections 1-5 together, and the yearly request.
-@export default Whether a teaching employee who is a father is entitled to a shortened working week (a "mother's position" in kind) under owners' circular 2014-15/1
-GIVEN r IS A `father's request` @desc the father and his spouse
-      `actual position after the shortening` IS A NUMBER @desc the share of a full position he would actually work after the shortening (1 = 100%)
-GIVETH A BOOLEAN
-DECIDE `a father is entitled to a shortened week` r `actual position after the shortening` IF
-        `condition 1: the spouse works` r
-    AND `condition 2: the spouse works at least 80%` r
-    AND `condition 3: the spouse has no shortened day` r
-    AND `condition 4: a child under 14` r
-    AND r's `requested this year`
-    AND `actual position after the shortening` AT LEAST `the least actual position`
-    AND (CONSIDER r's `employment`
-         WHEN `Oz LeTmura` THEN r's `fixed position` GREATER THAN `the least actual position`
-         OTHERWISE r's `fixed position` AT LEAST `the least actual position`)
-
 §§ `6, 8 התקרה והרצפה`
 
 -- 6: the right being in kind only, the father's position including the
@@ -206,6 +205,7 @@ DECIDE `may ask for a shorter week` r IF
         `has a child under 14`                    IS TRUE
         `employment`                              IS `pre-reform terms`
         `fixed position`                          IS 1
+        `weekly hours of his full position`       IS 24
         `principal can schedule part hours`       IS FALSE
         `requested this year`                     IS TRUE
 
@@ -240,6 +240,8 @@ DECIDE `the week's hours` w IS
 -- akn:art_9/p2 akn:art_9/p3 The contact line for questions; no rule.
 -- akn:conclusions The greeting, the signature (Sonia Peretz) and the list of copies; no rule.
 
+§§ `Worked examples`
+
 -- F-2014-15_tashae_01-a: a pre-reform father at 90% (21.6 hours) whose
 -- principal can set part hours: 10% of his position is 2.16 hours, 10% of
 -- a full position 2.4 — the two readings give different weeks.
@@ -251,6 +253,7 @@ DECIDE `the week's hours` w IS
         `has a child under 14`                    IS TRUE
         `employment`                              IS `pre-reform terms`
         `fixed position`                          IS 0.9
+        `weekly hours of his full position`       IS 24
         `principal can schedule part hours`       IS TRUE
         `requested this year`                     IS TRUE
 
@@ -268,6 +271,7 @@ DECIDE `the week's hours` w IS
         `has a child under 14`                    IS TRUE
         `employment`                              IS `pre-reform terms`
         `fixed position`                          IS 0.79
+        `weekly hours of his full position`       IS 24
         `principal can schedule part hours`       IS TRUE
         `requested this year`                     IS TRUE
 

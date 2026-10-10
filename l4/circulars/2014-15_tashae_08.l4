@@ -25,6 +25,7 @@ DECLARE `reward case` HAS
     `school rank`                                      IS A NUMBER  @desc the school's rank as the ministry found it (1 to 4); 0 for a school not ranked
     `high-school position fraction`                    IS A NUMBER  @desc the share of a full position in the upper division (1 = 100%)
     `months employed in the year`                      IS A NUMBER  @desc months of the school year employed at the excelling institution, counting maternity leave under the Women's Employment Law
+    `months in the school year`                        IS A NUMBER  @desc the months of school year 2014-15 the period is measured against; the circular does not say, so an input
     `on full sabbatical or full unpaid leave`          IS A BOOLEAN @desc on sabbatical or unpaid leave for the whole school year
 
 -- §1 and the recitals: every teaching employee in the upper division at a
@@ -38,14 +39,16 @@ DECIDE `covered by the circular` c IF
 
 §§ `2 תגמול עובדי הוראה בגין הישגי בית הספר`
 
--- §2א: the program runs from 2012-13 by the rules of the pedagogical
--- administration's letter of 21.10.2012; which schools rank is decided under
--- it (an input: the case's school rank).
+-- §2א: the program rewarding teachers for the (scholastic, social and
+-- value) achievements of upper divisions is implemented from 2012-13, in the
+-- format and by the rules of the pedagogical administration's letter of
+-- 21.10.2012; which schools rank is decided under it (an input: the case's
+-- school rank).
 @ref akn:art_2__para_a
-GIVEN c IS A `reward case`
+GIVEN `school year` IS A NUMBER @desc the school year, by the year it ends in (2012-13 = 2013)
 GIVETH A BOOLEAN
-DECIDE `the school is ranked` c IF
-    c's `school rank` AT LEAST 1 AND c's `school rank` AT MOST 4
+DECIDE `the achievement program is implemented in` `school year` IF
+    `school year` AT LEAST 2013
 
 -- §2ב's table as printed: the reward for a full position, by the school's
 -- rank (each rank a further 10% of the schools), updated to May 2015 by
@@ -67,6 +70,13 @@ DECIDE `the full-position reward for rank` n IS
     sum (map (GIVEN r YIELD r's `reward amount`)
              (filter (GIVEN r YIELD r's `reward rank` EQUALS n) `the reward table`))
 
+-- §2ב: those entitled teach in an upper division whose achievements the
+-- ministry examined and found highest — a school ranked 1 to 4.
+GIVEN c IS A `reward case`
+GIVETH A BOOLEAN
+DECIDE `the school is ranked` c IF
+    c's `school rank` AT LEAST 1 AND c's `school rank` AT MOST 4
+
 -- §2ג: pro rata to the high-school position and to the share of the year
 -- employed (maternity leave counts as employment; unpaid leave after it
 -- does not); ¶2: none on a full sabbatical or full unpaid leave. §2ד: no
@@ -75,8 +85,8 @@ DECIDE `the full-position reward for rank` n IS
 GIVEN c IS A `reward case`
 GIVETH A NUMBER
 DECIDE `the reward share` c IS
-    min (c's `high-school position fraction`) 1
-    TIMES min (c's `months employed in the year` DIVIDED BY 12) 1
+    min (c's `high-school position fraction`) `the most position counted`
+    TIMES min (c's `months employed in the year` DIVIDED BY c's `months in the school year`) 1
 
 @ref akn:art_2__para_c/p2
 GIVEN c IS A `reward case`
@@ -85,17 +95,10 @@ DECIDE `entitled to the reward` c IF
         `covered by the circular` c
     AND `the school is ranked` c
     AND NOT c's `on full sabbatical or full unpaid leave`
+    AND `the achievement program is implemented in` 2015
 
 @ref akn:art_2__para_d
 `the most position counted` MEANS 1
-
-@export default The one-time achievement reward a high-school teaching employee is owed for school year 2014-15 under owners' circular 2014-15/8
-GIVEN c IS A `reward case` @desc the teacher's year
-GIVETH A NUMBER
-DECIDE `achievement reward` c IS
-    IF `entitled to the reward` c
-    THEN `the full-position reward for rank` (c's `school rank`) TIMES `the reward share` c
-    ELSE 0
 
 -- §2ו: not in the base for the hourly value, severance or percentage
 -- supplements, and no training-fund contribution.
@@ -136,6 +139,14 @@ DECIDE `paying the reward with August 2015's salary` c IS
     WITHIN 12
     LEST BREACH BY `the employer` BECAUSE "circular 2014-15/8 section 2e: the rewards are paid with August 2015's salary"
 
+@export default The one-time achievement reward a high-school teaching employee is owed for school year 2014-15 under owners' circular 2014-15/8
+GIVEN c IS A `reward case` @desc the teacher's year
+GIVETH A NUMBER
+DECIDE `achievement reward` c IS
+    IF `entitled to the reward` c
+    THEN `the full-position reward for rank` (c's `school rank`) TIMES `the reward share` c
+    ELSE 0
+
 -- akn:art_3 akn:art_3/p2 akn:art_3/p3 A link to the post-primary division's page detailing the program and listing the winning schools; the rank is an input of each case.
 
 -- §3 ¶4–¶5: the owners are indemnified in the payment system (topic 583) in
@@ -154,7 +165,8 @@ DECIDE `indemnifying the owner` `rewards paid by the owner` IS
 
 -- akn:conclusions The contact line, the signature (Sonia Peretz) and the list of copies; no rule.
 
--- Worked examples.
+§§ `Worked examples`
+
 `a full-position teacher at a rank-2 school` MEANS
     `reward case` WITH
         `graded as a teaching employee in the high school` IS TRUE
@@ -162,6 +174,7 @@ DECIDE `indemnifying the owner` `rewards paid by the owner` IS
         `school rank`                                      IS 2
         `high-school position fraction`                    IS 1.2
         `months employed in the year`                      IS 12
+        `months in the school year`                        IS 12
         `on full sabbatical or full unpaid leave`          IS FALSE
 
 `a half-position teacher for half the year at a rank-1 school` MEANS
@@ -171,6 +184,7 @@ DECIDE `indemnifying the owner` `rewards paid by the owner` IS
         `school rank`                                      IS 1
         `high-school position fraction`                    IS 0.5
         `months employed in the year`                      IS 6
+        `months in the school year`                        IS 12
         `on full sabbatical or full unpaid leave`          IS FALSE
 
 `a teacher on a full sabbatical` MEANS
@@ -180,6 +194,7 @@ DECIDE `indemnifying the owner` `rewards paid by the owner` IS
         `school rank`                                      IS 1
         `high-school position fraction`                    IS 1
         `months employed in the year`                      IS 0
+        `months in the school year`                        IS 12
         `on full sabbatical or full unpaid leave`          IS TRUE
 
 #ASSERT `achievement reward` `a full-position teacher at a rank-2 school` EQUALS 6189.54

@@ -37,6 +37,7 @@ DECLARE `agreement action` IS ONE OF
     `cooperate with the matriculation reform`
     `make up the working time` HAS `support hours made up` IS A NUMBER
     `deduct from salary for the measures` HAS `deducted` IS A NUMBER
+    `take a step against the teacher`
 
 §§ `א. כללי`
 
@@ -77,7 +78,7 @@ DECLARE `implementation` IS ONE OF
     `partial implementation`
     `full implementation`
 
-@ref akn:art_b__para_1
+@ref akn:art_b__para_1 akn:art_b__para_1__subpara_a
 GIVEN `year` IS A NUMBER, `the school implements the reform` IS A BOOLEAN, `partial requested` IS A BOOLEAN
 GIVETH AN `implementation`
 DECIDE `the school's implementation` `year` `the school implements the reform` `partial requested` IS
@@ -113,7 +114,6 @@ DECIDE `no joining without the Ministry's notice` `notice received from the Peda
          MAY   `join a school to Oz LeTmura`
     ELSE PARTY `the local authority or owning body`
          SHANT `join a school to Oz LeTmura`
-         WITHIN 12
          LEST  BREACH BY `the local authority or owning body` BECAUSE "circular תשע\"ד/9, ב.1(ב): no school is joined to Oz LeTmura without the Pedagogical Administration's notice"
 
 §§ `ב.2–ב.4 עובדים קיימים, מילוי מקום, כיתות י"ג-י"ד`
@@ -122,20 +122,24 @@ DECIDE `no joining without the Ministry's notice` `notice received from the Peda
 -- school who did not consent in writing (in the Ministry's computerised
 -- system) is not employed under the reform — is extended through תשע"ו;
 -- from תשע"ז every teacher is employed under the reform. ¶2: exceptional
--- cases go to the Ministry's exceptions committee under 7(ז), an input.
+-- cases go to the Ministry's exceptions committee under 7(ז), whose
+-- decision is outside this text: NOTHING. NOTHING too where ב.2 does not
+-- speak (a principal, or a school outside the reform, before תשע"ז).
 @ref akn:art_b__para_2
 GIVEN `year` IS A NUMBER
       `a principal` IS A BOOLEAN
       `consented in writing` IS A BOOLEAN
       `in a reform school` IS A BOOLEAN
-      `the exceptions committee decided otherwise` IS A BOOLEAN @desc a decision of the Ministry's exceptions committee under section 7(ז) of the agreement
-GIVETH A BOOLEAN
-DECIDE `an existing teacher is employed under the reform` `year` `a principal` `consented in writing` `in a reform school` `the exceptions committee decided otherwise` IF
-    IF `the exceptions committee decided otherwise`
-    THEN FALSE
+      `an exceptional case` IS A BOOLEAN @desc a case for the Ministry's exceptions committee under section 7(ז) of the agreement
+GIVETH A MAYBE BOOLEAN
+DECIDE `an existing teacher is employed under the reform` `year` `a principal` `consented in writing` `in a reform school` `an exceptional case` IS
+    IF `an exceptional case`
+    THEN NOTHING
     ELSE IF `year` AT LEAST `תשע"ז`
-         THEN TRUE
-         ELSE `in a reform school` AND (`consented in writing` OR `a principal`)
+         THEN JUST TRUE
+         ELSE IF `in a reform school` AND NOT `a principal`
+              THEN JUST `consented in writing`
+              ELSE NOTHING
 
 -- ב.3: the substitutes' rules (section 8 of the agreement) are extended
 -- through תשע"ו.
@@ -283,12 +287,14 @@ DECIDE `different hours may be set` `a special case` `the teachers' committee co
     `a special case` AND `the teachers' committee consents` AND `weekly hours unchanged` AND `composition unchanged`
 
 -- (ה1): teachers who need special facilities not available enough between
--- 8:00 and 16:15 may work after 16:15, never more than 9 hours in a day.
+-- 8:00 and 16:15 may work after 16:15, provided they do not work more
+-- than 9 hours in one day. A day ending by 16:15 is outside (ה1).
 @ref akn:art_e/p2
 GIVEN `needs special facilities` IS A BOOLEAN, `ends at` IS A NUMBER, `hours that day` IS A NUMBER
 GIVETH A BOOLEAN
 DECIDE `may work until then` `needs special facilities` `ends at` `hours that day` IF
-    (`ends at` AT MOST 16.25 OR `needs special facilities`) AND `hours that day` AT MOST 9
+        `ends at` AT MOST 16.25
+    OR  (`needs special facilities` AND `hours that day` AT MOST 9)
 
 -- (ו): the 40 hours are 24 frontal (subject to sections 10-12 of the
 -- agreement), 6 individual (a group of up to 3 pupils, or 5 by the
@@ -351,12 +357,16 @@ DECIDE `a changed mix is allowed` `activities` `the principal decided or approve
                            EQUALS `the weekly support hours of the activity` (a's `activity`))
             `activities`
 
--- (ח): no hour of one kind is converted into another.
+-- (ח): no conversion of individual hours into support hours, of support
+-- hours into individual hours, or of frontal hours into individual or
+-- support hours. (It does not speak of converting into frontal hours.)
 @ref akn:art_h
 GIVEN `from` IS A `kind of hour`, `to` IS A `kind of hour`
 GIVETH A BOOLEAN
-DECIDE `a conversion is allowed` `from` `to` IF
-    `from` EQUALS `to`
+DECIDE `(ח) rules out converting` `from` `to` IF
+        (`from` EQUALS `individual` AND `to` EQUALS `support`)
+    OR  (`from` EQUALS `support` AND `to` EQUALS `individual`)
+    OR  (`from` EQUALS `frontal` AND (`to` EQUALS `individual` OR `to` EQUALS `support`))
 
 -- (ט): a teacher may do a substitution hour instead of a support hour. One
 -- who chooses not to make the support hour up is paid 125% of the hour
@@ -398,7 +408,6 @@ GIVETH A DEONTIC Party `agreement action`
 DECIDE `consent to the increased-work plan` IS
     PARTY `the teaching employee`
     MUST  `sign consent to the increased-work plan`
-    WITHIN 1
     LEST  BREACH BY `the teaching employee` BECAUSE "agreement 9(י1)(3) as restated in circular תשע\"ד/9: the plan and the advance rest on the teacher's signed consent"
 
 -- (יא): for a teacher (full or part position) with fewer than 8 weekly
@@ -428,10 +437,10 @@ DECIDE `the length of a weekly hour in minutes` `weekly hours that day` `lesson 
 -- (יב): nothing above derogates from the teacher's duty to perform all
 -- tasks throughout the time at school, or the duties under the timetable.
 @ref akn:art_jb
-GIVEN `the timetable's duties are met` IS A BOOLEAN, `the work-week rules are met` IS A BOOLEAN
+GIVEN `performs all tasks throughout the time at school` IS A BOOLEAN, `meets the duties under the timetable` IS A BOOLEAN
 GIVETH A BOOLEAN
-DECIDE `the teacher has met the work week` `the timetable's duties are met` `the work-week rules are met` IF
-    `the timetable's duties are met` AND `the work-week rules are met`
+DECIDE `the duties (יב) preserves are met` `performs all tasks throughout the time at school` `meets the duties under the timetable` IF
+    `performs all tasks throughout the time at school` AND `meets the duties under the timetable`
 
 -- (יג): sections 26(י) and 30(ג) of the agreement are void, and the words
 -- "(hours of 60 minutes)" are struck from the work-week tables of annexes
@@ -531,19 +540,18 @@ GIVETH A BOOLEAN
 DECIDE `teachers are evaluated in every school` `year` IF
     `year` AT LEAST `תשע"ה`
 
--- 6(ב): from תשע"ד section 35 of the agreement is void. 6(ג): section 20
--- stands — a teacher under the reform may gather credit points from the
--- evaluation of תשע"ה onward toward a promotion step. ¶2: the parties
--- intend to consider a grant for personal evaluation, not before תשע"ז —
--- an intention, no rule.
+-- 6(ב): from תשע"ד section 35 of the agreement (all its subsections) is
+-- void.
 @ref akn:art_jc__para_ja__subpara_7__cls_6__pnt_b
-GIVEN p IS AN `agreement provision`, `year` IS A NUMBER
+GIVEN `year` IS A NUMBER
 GIVETH A BOOLEAN
-DECIDE `void from the year` p `year` IF
-        (p EQUALS `section 35` AND `year` AT LEAST `תשע"ד`)
-    OR  (p EQUALS `sections 24(ד)-(ו) and 31(א)` AND `year` AT LEAST `תשע"ד`)
-    OR  `struck by (יג)` p
+DECIDE `section 35 is void in the year` `year` IF
+    `year` AT LEAST `תשע"ד`
 
+-- 6(ג): section 20 stands — a teacher under the reform may gather credit
+-- points from the evaluation of תשע"ה onward toward a promotion step. ¶2:
+-- the parties intend to consider a grant for personal evaluation, not
+-- before תשע"ז — an intention, no rule.
 @ref akn:art_jc__para_ja__subpara_7__cls_6__pnt_c
 GIVEN `year of the evaluation` IS A NUMBER, `under the reform` IS A BOOLEAN
 GIVETH A BOOLEAN
@@ -620,12 +628,12 @@ DECIDE `the grant paid with August 2014's salary` g IS
     WITHIN `month number` August
     LEST  BREACH BY `the employer` BECAUSE "circular תשע\"ד/9, 7(ד): the one-time grant is paid with August 2014's salary"
 
--- 7(ה): no grant for תשע"ד, nor for תשע"ה and תשע"ו.
+-- 7(ה): no grant is paid for תשע"ד, nor for תשע"ה and תשע"ו.
 @ref akn:art_jc__para_ja__subpara_7__cls_7__pnt_e
 GIVEN `year` IS A NUMBER
 GIVETH A BOOLEAN
-DECIDE `a grant is paid for the year` `year` IF
-    `year` EQUALS `תשע"ג`
+DECIDE `no grant is paid for the year` `year` IF
+    `year` EQUALS `תשע"ד` OR `year` EQUALS `תשע"ה` OR `year` EQUALS `תשע"ו`
 
 §§ `8. שכר מנהלים`
 
@@ -647,15 +655,19 @@ GIVETH A DEONTIC Party `agreement action`
 DECIDE `no Oz LeTmura supplement for principals` IS
     PARTY `the employer`
     SHANT `pay the Oz LeTmura supplement for principals` x
-    WITHIN 12
     LEST  BREACH BY `the employer` BECAUSE "circular תשע\"ד/9, 8(ב): the 30% Oz LeTmura supplement for principals is not paid from the start of תשע\"ד"
+
+GIVEN `year` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `sections 24(ד)-(ו) and 31(א) are void in the year` `year` IF
+    `year` AT LEAST `תשע"ד`
 
 -- F-2013-14_tashad_09-c: א.2 starts the agreement on its signature
 -- (15.7.2014); 8(ב) voids the principals' supplement from the start of
 -- תשע"ד (September 2013), ten months before. September 2013 to June 2014
 -- is inside 8(ב)'s period and outside the agreement's.
 `8(ב) reaches back before the agreement's commencement` MEANS
-        `void from the year` `sections 24(ד)-(ו) and 31(א)` `תשע"ד`
+        `sections 24(ד)-(ו) and 31(א) are void in the year` `תשע"ד`
     AND NOT `within the agreement's period` 20140101
 #ASSERT `8(ב) reaches back before the agreement's commencement`
 
@@ -670,20 +682,27 @@ GIVETH A DEONTIC Party `agreement action`
 DECIDE `the organisation cooperates with the matriculation reform` IS
     PARTY `the teachers' union`
     MUST  `cooperate with the matriculation reform`
-    WITHIN 12
     LEST  BREACH BY `the teachers' union` BECAUSE "circular תשע\"ד/9 section 9: the organisation undertook to cooperate fully with the matriculation reform"
 
 -- akn:art_jc__para_ja__subpara_7__cls_9/p3 Points to the DG circular תשע"ד/7(ד) for the reform's details and to later DG circulars; no rule of this circular.
 
--- 9(א): no change in the pay for guiding pupils in matriculation subjects
--- (research papers and performance tasks included), for the subjects and
--- tasks paid before the agreement. 9(ב): no change in the conditions of
--- the preparation allowances, by hours or by percentage, subject to (ג).
-@ref akn:art_jc__para_ja__subpara_7__cls_9__pnt_a akn:art_jc__para_ja__subpara_7__cls_9__pnt_b
+-- 9(א): no change in the existing agreements' pay for guiding pupils in
+-- matriculation subjects (research papers and performance tasks included),
+-- for the subjects and tasks it was paid for before the agreement.
+@ref akn:art_jc__para_ja__subpara_7__cls_9__pnt_a
 GIVEN `paid before the agreement` IS A BOOLEAN, `the allowance under the existing agreements` IS A NUMBER
 GIVETH A NUMBER
 DECIDE `the guidance allowance` `paid before the agreement` `the allowance under the existing agreements` IS
     IF `paid before the agreement` THEN `the allowance under the existing agreements` ELSE 0
+
+-- 9(ב): no change in the conditions of entitlement to the preparation
+-- allowances, by hours or by percentage, each by its own conditions,
+-- subject to (ג) below.
+@ref akn:art_jc__para_ja__subpara_7__cls_9__pnt_b
+GIVEN `meets the allowance's conditions under the existing agreements` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `entitled to the preparation allowance` `meets the allowance's conditions under the existing agreements` IF
+    `meets the allowance's conditions under the existing agreements`
 
 -- 9(ג): the examination is split into an external examination (about 70%
 -- of the material) and a school assessment (about 30%); where they fall in
@@ -730,15 +749,17 @@ DECIDE `the preparation allowance paid this year` full w IS
 -- who was at school less than the agreement requires may make the time up.
 -- (א): by staying longer on working days of the teaching period up to
 -- 31.12.2014, on support-hour tasks — relying on the teacher having missed
--- no frontal or individual hours. (ב): at most 11 support hours in all.
-@ref akn:art_jc__para_ja__subpara_7__cls_10 akn:art_jc__para_ja__subpara_7__cls_10/p2 akn:art_jc__para_ja__subpara_7__cls_10__pnt_a akn:art_jc__para_ja__subpara_7__cls_10__pnt_b
-`the most support hours to make up` MEANS 11
-
+-- no frontal or individual hours.
+@ref akn:art_jc__para_ja__subpara_7__cls_10 akn:art_jc__para_ja__subpara_7__cls_10/p2 akn:art_jc__para_ja__subpara_7__cls_10__pnt_a
 GIVEN `date made up` IS A NUMBER @desc YYYYMMDD
       `missed frontal or individual hours` IS A BOOLEAN
 GIVETH A BOOLEAN
 DECIDE `time made up counts` `date made up` `missed frontal or individual hours` IF
     `date made up` AT MOST 20141231 AND NOT `missed frontal or individual hours`
+
+-- (ב): the time made up is at most 11 support hours in all.
+@ref akn:art_jc__para_ja__subpara_7__cls_10__pnt_b
+`the most support hours to make up` MEANS 11
 
 -- (ג): a teacher who makes up the time missed, or 11 support hours,
 -- whichever is lower, has no deduction from salary for the time missed in
@@ -757,13 +778,27 @@ DECIDE `the deduction rule` `hours missed` `hours made up` IS
     IF `no deduction for the measures` `hours missed` `hours made up`
     THEN PARTY `the employer`
          SHANT `deduct from salary for the measures` x
-         WITHIN 12
          LEST  BREACH BY `the employer` BECAUSE "circular תשע\"ד/9 section 10(ג): no deduction from the salary of a teacher who made the time up"
+    ELSE FULFILLED
+
+-- (ג) ¶2, its last sentences: these instructions replace those of the
+-- letter of 2.3.2014; no step is taken against a teacher who acted by the
+-- agreement from 11.3.2014.
+@ref akn:art_jc__para_ja__subpara_7__cls_10__pnt_c/p2
+GIVEN `acted by the agreement from 11.3.2014` IS A BOOLEAN
+GIVETH A DEONTIC Party `agreement action`
+DECIDE `no step against a teacher who acted by the agreement` `acted by the agreement from 11.3.2014` IS
+    IF `acted by the agreement from 11.3.2014`
+    THEN PARTY `the employer`
+         SHANT `take a step against the teacher`
+         LEST  BREACH BY `the employer` BECAUSE "circular תשע\"ד/9 section 10(ג): no step is taken against a teacher who acted by the agreement from 11.3.2014"
     ELSE FULFILLED
 
 -- akn:conclusions The contact line, the signature and the list of the annexes (the agreement, the protocols of 5.2.2014 and 6.3.2014, the wage director's letter of 23.7.2014, the evaluation model and DG circular תשע"ד/7(ד)); no rule.
 
--- Examples. The figures are illustrations, not from a payslip.
+§§ `Worked examples`
+
+-- The figures are illustrations, not from a payslip.
 `a half-time teacher for eight months` MEANS
     `grant year` WITH
         `employed under the reform in תשע"ג`   IS TRUE
@@ -782,14 +817,14 @@ DECIDE `the deduction rule` `hours missed` `hours made up` IS
 
 #ASSERT `the one-time grant` `a half-time teacher for eight months` EQUALS 266.4
 #ASSERT `the one-time grant` `a teacher on a year's sabbatical` EQUALS 0
-#ASSERT NOT `a grant is paid for the year` `תשע"ד`
+#ASSERT `no grant is paid for the year` `תשע"ד`
 #ASSERT `the school's implementation` `תשע"ה` TRUE TRUE EQUALS `full implementation`
 #ASSERT `the school's implementation` `תשע"ד` TRUE TRUE EQUALS `partial implementation`
 #ASSERT `the school's implementation` `תשע"ז` FALSE FALSE EQUALS `full implementation`
 #ASSERT `the consent threshold is met` `תשע"ה` (55%) (50%)
 #ASSERT NOT `the consent threshold is met` `תשע"ו` (55%) (60%)
-#ASSERT `an existing teacher is employed under the reform` `תשע"ז` FALSE FALSE TRUE FALSE
-#ASSERT NOT `an existing teacher is employed under the reform` `תשע"ו` FALSE FALSE TRUE FALSE
+#ASSERT `an existing teacher is employed under the reform` `תשע"ז` FALSE FALSE TRUE FALSE EQUALS JUST TRUE
+#ASSERT `an existing teacher is employed under the reform` `תשע"ו` FALSE FALSE TRUE FALSE EQUALS JUST FALSE
 #ASSERT `hours count from` 7.2 0 EQUALS 7.75
 #ASSERT `hours count from` 7.2 7.5 EQUALS 7.5
 #ASSERT `the day ends earlier at` 7.5 `a long day` EQUALS 15
@@ -797,7 +832,8 @@ DECIDE `the deduction rule` `hours missed` `hours made up` IS
 #ASSERT `a principal's management hours` 4 EQUALS 36
 #ASSERT `no deduction for the measures` 15 11
 #ASSERT NOT `no deduction for the measures` 8 6
-#ASSERT NOT `a conversion is allowed` `individual` `support`
+#ASSERT `(ח) rules out converting` `individual` `support`
+#ASSERT NOT `(ח) rules out converting` `support` `frontal`
 
 #TRACE `the grant paid with August 2014's salary` `a half-time teacher for eight months` AT 0 WITH
     PARTY `the employer` DOES `pay the one-time grant` 266.4 AT 12

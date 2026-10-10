@@ -58,6 +58,7 @@ DECLARE `persistence case` HAS
     `has reached entitlement to the jubilee grant`         IS A BOOLEAN @desc has become entitled to the jubilee grant (set by the jubilee rules, not by this circular)
     `schools`                                              IS A LIST OF `school employment`
     `months employed in the year`                          IS A NUMBER  @desc months of the school year employed, counting absences paid from the employer's funds (bereavement, reserve duty, maternity leave, sick pay) and no other absence
+    `months in the school year`                            IS A NUMBER  @desc the months of the school year the period is measured against; the circular does not say, so an input
     `on full sabbatical or unpaid leave`                   IS A BOOLEAN @desc on sabbatical or unpaid leave for the whole year
 
 -- §2 ¶1: teaching employees of supervised owners, employed in elementary
@@ -99,14 +100,20 @@ DECIDE `the seniority this school requires` e IS
     THEN 25
     ELSE 30
 
--- §3.א.2.ב ¶2: seniority is counted by the takanon and the collective
--- agreements — an input of the case (`seniority for pay`).
-@ref akn:art_3__para_a__subpara_2__cls_b/p2
 GIVEN c IS A `persistence case`, e IS A `school employment`
 GIVETH A BOOLEAN
 DECIDE `this school qualifies` c e IF
         `a stage the circular covers` e
-    AND c's `seniority for pay` AT LEAST `the seniority this school requires` e
+    AND `the seniority for pay` c AT LEAST `the seniority this school requires` e
+
+-- §3.א.2.ב ¶2: seniority is counted by the conditions of the takanon and
+-- the collective agreements that apply to teaching employees — counted
+-- there, so an input of the case here.
+@ref akn:art_3__para_a__subpara_2__cls_b/p2
+GIVEN c IS A `persistence case`
+GIVETH A NUMBER
+DECIDE `the seniority for pay` c IS
+    c's `seniority for pay`
 
 -- §3א: the conditions are cumulative. §3.א.1 a required subject, §3.א.3 ten
 -- years in formal education, §3.א.4 not entitled to the jubilee grant.
@@ -145,7 +152,7 @@ DECIDE `the qualifying position share` c IS
 GIVEN c IS A `persistence case`
 GIVETH A NUMBER
 DECIDE `the share of the year employed` c IS
-    min (c's `months employed in the year` DIVIDED BY 12) 1
+    min (c's `months employed in the year` DIVIDED BY c's `months in the school year`) 1
 
 -- §5ג: none on a full sabbatical or unpaid leave.
 @ref akn:art_5__para_c
@@ -153,16 +160,6 @@ GIVEN c IS A `persistence case`
 GIVETH A BOOLEAN
 DECIDE `entitled to the persistence grant` c IF
     `meets the conditions` c AND NOT c's `on full sabbatical or unpaid leave`
-
-@export default The persistence grant for veteran teachers of required subjects owed for one school year under owners' circular 2015-16/1
-GIVEN c IS A `persistence case` @desc the employee's school year
-GIVETH A NUMBER
-DECIDE `persistence grant` c IS
-    IF `entitled to the persistence grant` c
-    THEN `the full persistence grant`
-         TIMES `the qualifying position share` c
-         TIMES `the share of the year employed` c
-    ELSE 0
 
 -- §4ח–§4י: the grant does not change the salary base, is not in the base of
 -- any supplement, is not salary for severance, overtime, on-call, incentive
@@ -226,9 +223,32 @@ DECIDE `listed as eligible for 2013-14 and 2014-15` `listed in the OSHR system` 
 
 -- Time in months from September 2015 (month 1): November 2015 is 3,
 -- August 2016 is 12, August 2017 is 24; August 2014 is -12, August 2015 0.
--- §4א and §5ד: paid with August's salary, for the school year just ended,
--- from 2013-14 (8/2014) to 2016-17 (8/2017).
+-- §4א and §5ד: paid to those entitled with August's salary each year, for
+-- the school year just ended, from 2013-14 (8/2014) to 2016-17 (8/2017).
+-- F-2015-16_tashav_01-a: for 2013-14 and 2014-15 the month is §5ו's
+-- November 2015 (`the month the grant is due`).
 @ref akn:art_4__para_a akn:art_5__para_d
+GIVEN c IS A `persistence case`, y IS A `grant year`
+GIVETH A DEONTIC Party `persistence action`
+DECIDE `paying the persistence grant` c y IS
+    IF `a year of the grant` y AND `persistence grant` c GREATER THAN 0
+    THEN PARTY `the employer`
+         MUST  `pay the persistence grant` `amount`
+               PROVIDED `amount` AT LEAST `persistence grant` c
+         WITHIN `the month the grant is due` y
+         LEST BREACH BY `the employer` BECAUSE "circular 2015-16/1: the persistence grant is paid with the salary of the month the circular sets"
+    ELSE FULFILLED
+
+@export default The persistence grant for veteran teachers of required subjects owed for one school year under owners' circular 2015-16/1
+GIVEN c IS A `persistence case` @desc the employee's school year
+GIVETH A NUMBER
+DECIDE `persistence grant` c IS
+    IF `entitled to the persistence grant` c
+    THEN `the full persistence grant`
+         TIMES `the qualifying position share` c
+         TIMES `the share of the year employed` c
+    ELSE 0
+
 GIVEN y IS A `grant year`
 GIVETH A NUMBER
 DECIDE `the August §5ד names for` y IS
@@ -256,17 +276,6 @@ DECIDE `the month the grant is due` y IS
     NOT (`the August §5ד names for` `school year 2013-14` EQUALS `the month the grant is due` `school year 2013-14`)
 #ASSERT `§5ד and §5ו give 2013-14's grant different months`
 
-GIVEN c IS A `persistence case`, y IS A `grant year`
-GIVETH A DEONTIC Party `persistence action`
-DECIDE `paying the persistence grant` c y IS
-    IF `a year of the grant` y AND `persistence grant` c GREATER THAN 0
-    THEN PARTY `the employer`
-         MUST  `pay the persistence grant` `amount`
-               PROVIDED `amount` AT LEAST `persistence grant` c
-         WITHIN `the month the grant is due` y
-         LEST BREACH BY `the employer` BECAUSE "circular 2015-16/1: the persistence grant is paid with the salary of the month the circular sets"
-    ELSE FULFILLED
-
 GIVEN `grants paid` IS A NUMBER
 GIVETH A DEONTIC Party `persistence action`
 DECIDE `indemnifying the owner for 2013-14 and 2014-15` `grants paid` IS
@@ -275,6 +284,8 @@ DECIDE `indemnifying the owner for 2013-14 and 2014-15` `grants paid` IS
           PROVIDED `amount` AT LEAST `grants paid`
     WITHIN 3
     LEST BREACH BY `the Ministry of Education` BECAUSE "circular 2015-16/1 section 5f: the owners are indemnified in November 2015's payments (topic 613)"
+
+§§ `The findings' cases`
 
 -- F-2015-16_tashav_01-b: §3.א.4 asks whether the employee is entitled to
 -- the jubilee PAYMENT; §5א ends the grant once the employee REACHES the
@@ -292,7 +303,8 @@ DECIDE `passes §3.א.4 read as a yearly condition` `a jubilee grant is payable 
 
 -- akn:conclusions The signatures (Sonia Peretz) and the list of copies; no rule.
 
--- Worked examples.
+§§ `Worked examples`
+
 `a 26-year official-school mathematics teacher` MEANS
     `persistence case` WITH
         `graded and employed by a supervised owner`    IS TRUE
@@ -302,6 +314,7 @@ DECIDE `passes §3.א.4 read as a yearly condition` `a jubilee grant is payable 
         `has reached entitlement to the jubilee grant` IS FALSE
         `schools`                                      IS LIST `school employment` `official school` `elementary school` 1.1
         `months employed in the year`                  IS 12
+        `months in the school year`                    IS 12
         `on full sabbatical or unpaid leave`           IS FALSE
 
 `a 27-year teacher at a recognized unofficial elementary school and an official one` MEANS
@@ -314,6 +327,7 @@ DECIDE `passes §3.א.4 read as a yearly condition` `a jubilee grant is payable 
         `schools`                                      IS LIST `school employment` `recognized unofficial school` `elementary school` 0.5,
                                                                `school employment` `official school` `junior high school` 0.25
         `months employed in the year`                  IS 12
+        `months in the school year`                    IS 12
         `on full sabbatical or unpaid leave`           IS FALSE
 
 #ASSERT `persistence grant` `a 26-year official-school mathematics teacher` EQUALS 4000
@@ -330,6 +344,7 @@ DECIDE `passes §3.א.4 read as a yearly condition` `a jubilee grant is payable 
         `has reached entitlement to the jubilee grant` IS TRUE
         `schools`                                      IS LIST `school employment` `official school` `elementary school` 1
         `months employed in the year`                  IS 12
+        `months in the school year`                    IS 12
         `on full sabbatical or unpaid leave`           IS FALSE
 
 #TRACE `paying the persistence grant` `a 26-year official-school mathematics teacher` `school year 2014-15` AT 0 WITH
