@@ -28,6 +28,10 @@ DECLARE `supplement employee` HAS
     `Ofek Hadash grade`                                IS A NUMBER  @desc the grade (דרגה) in the Ofek Hadash salary tables for academic and non-academic teachers; meaningful only under Ofek Hadash
     `share of the full amount payable`                 IS A NUMBER  @desc the share of the full-position amount this employee is paid; set by circular תשע"ז/3's rules for part positions (¶11), an input here
 
+DECLARE `supplement action` IS ONE OF
+    `pay the supplement` HAS `amount paid` IS A NUMBER
+    `reimburse the owner in the cost of the relevant hour`
+
 §§ `Index linkage and its purpose`
 
 -- The circular rests on the wage agreements of 30.9.2016 (§6(d)) and
@@ -37,9 +41,6 @@ DECLARE `supplement employee` HAS
 GIVETH A BOOLEAN
 DECIDE `the shekel supplement 2016 is linked to the consumer price index` IS TRUE
 
-@desc The consumer price index for a month, as published; an input of this file.
-ASSUME `consumer price index for` IS A FUNCTION FROM DATE TO NUMBER
-
 @ref akn:preamble/p15
 `the period this circular updates begins` MEANS Date 1 1 2020
 
@@ -48,6 +49,9 @@ GIVETH A NUMBER
 DECIDE `the linkage factor` IS
     `consumer price index for` (Date 1 12 2019)
     DIVIDED BY `consumer price index for` (Date 1 12 2018)
+
+@desc The consumer price index for a month, as published; an input of this file.
+ASSUME `consumer price index for` IS A FUNCTION FROM DATE TO NUMBER
 
 §§ `Applicability`
 
@@ -95,6 +99,25 @@ DECLARE `grade row` HAS
          `grade row` 4.5 639.07,
          `grade row` 0   551.79
 
+-- §א ¶1, §ב ¶1: the amount for a teaching employee in a full position is
+-- the row of the table in force on the day — the employee's own Ofek Hadash
+-- grade (1 to 4.5), or ¶10's row for every other employee the circular
+-- applies to, under Ofek Hadash or not.
+@ref akn:art_a/p1 akn:art_b/p1
+@export The monthly shekel supplement 2016 for a full position under circular תש"פ/4, for a teaching employee on a given date
+GIVEN e IS A `supplement employee` @desc the employee
+      d IS A DATE                  @desc the month the supplement is for
+GIVETH A MAYBE NUMBER
+DECIDE `full-position shekel supplement 2016` e d IS
+    IF `the circular applies to` e
+    THEN CONSIDER `the table in force on` d
+         WHEN JUST rows THEN
+             CONSIDER `the amounts the table gives for grade` (`the row grade for` e) rows
+             WHEN a FOLLOWED BY rest THEN JUST a
+             WHEN EMPTY THEN NOTHING
+         WHEN NOTHING THEN NOTHING
+    ELSE NOTHING
+
 GIVEN d IS A DATE
 GIVETH A MAYBE (LIST OF `grade row`)
 DECIDE `the table in force on` d IS
@@ -117,24 +140,6 @@ GIVEN g IS A NUMBER, rows IS A LIST OF `grade row`
 GIVETH A LIST OF NUMBER
 DECIDE `the amounts the table gives for grade` g rows IS
     map (GIVEN r YIELD r's `row amount`) (filter (GIVEN r YIELD r's `row grade` EQUALS g) rows)
-
-@export The monthly shekel supplement 2016 for a full position under circular תש"פ/4, for a teaching employee on a given date
-GIVEN e IS A `supplement employee` @desc the employee
-      d IS A DATE                  @desc the month the supplement is for
-GIVETH A MAYBE NUMBER
-DECIDE `full-position shekel supplement 2016` e d IS
-    IF `the circular applies to` e
-    THEN CONSIDER `the table in force on` d
-         WHEN JUST rows THEN
-             CONSIDER `the amounts the table gives for grade` (`the row grade for` e) rows
-             WHEN a FOLLOWED BY rest THEN JUST a
-             WHEN EMPTY THEN NOTHING
-         WHEN NOTHING THEN NOTHING
-    ELSE NOTHING
-
-DECLARE `supplement action` IS ONE OF
-    `pay the supplement` HAS `amount paid` IS A NUMBER
-    `reimburse the owner in the cost of the relevant hour`
 
 -- ¶11–12: every other rule for paying the supplement — part positions
 -- among them — is circular תשע"ז/3's (the link printed in ¶12), so the share
@@ -159,6 +164,8 @@ DECIDE `reimbursing the owners` IS
     LEST BREACH BY `the Ministry of Education` BECAUSE "תש\"פ/4: the owners are reimbursed in the cost of the relevant hour"
 
 -- akn:conclusions The sign-off, signatures and copies list; no rule.
+
+§§ `Worked examples`
 
 -- Examples.
 GIVEN g IS A NUMBER, ofek IS A BOOLEAN, s IS AN `education stage`, share IS A NUMBER

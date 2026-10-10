@@ -31,6 +31,17 @@ DECLARE `college employee` HAS
     `the college signed the joining letter`           IS A BOOLEAN @desc the college signed the letter of joining in the form of the agreement's annex A
     `position fraction at the college`                IS A NUMBER  @desc the share of a full position held at the college
 
+DECLARE `college action` IS ONE OF
+    `send the signed joining letter to the labour-relations commissioner with a copy to the Ministry`
+    `perform the semester B academic duties`
+    `complete the deferred academic duties`
+    `report a duty prevented to the director`
+    `decide the employee did not meet section 3`
+    `appeal the director's decision`
+    `decide the appeal`
+    `name the appeals body and notify the Ministry in writing`
+    `reduce the consideration` HAS `days after the decision` IS A NUMBER
+
 §§ `1 Who the agreement covers`
 
 @ref akn:art_1/p1 akn:art_1__para_a/p1 akn:art_1__para_b/p1 akn:art_1__para_b/p2
@@ -42,17 +53,6 @@ DECIDE `the agreement covers` e IF
     AND e's `salary computed by the teachers' agreements`
     AND (   e's `employed in the state service`
          OR e's `the college signed the joining letter`)
-
-DECLARE `college action` IS ONE OF
-    `send the signed joining letter to the labour-relations commissioner with a copy to the Ministry`
-    `perform the semester B academic duties`
-    `complete the deferred academic duties`
-    `report a duty prevented to the director`
-    `decide the employee did not meet section 3`
-    `appeal the director's decision`
-    `decide the appeal`
-    `name the appeals body and notify the Ministry in writing`
-    `reduce the consideration` HAS `days after the decision` IS A NUMBER
 
 -- §1 ¶2–3: the college sends the signed joining letter to the labour-relations
 -- commissioner at the Ministry of Labour (by e-mail), with a copy to the
@@ -96,14 +96,13 @@ DECIDE `the position the agreement governs` e IS e's `position fraction at the c
 
 -- §3 ¶1–2: every semester-B duty goes on — lessons, exercises, labs, tours,
 -- exams, office hours, grading, committees, online teaching and any duty the
--- institution imposes — "חובות ומטלות אקדמיות". Time in days from 15.3.2020.
+-- institution imposes — "חובות ומטלות אקדמיות". The paragraph sets no time
+-- limit of its own: what semester B leaves undone ¶3 defers.
 @ref akn:art_3/p1 akn:art_3/p2
-GIVEN `days to the end of semester B` IS A NUMBER
 GIVETH A DEONTIC `college party` `college action`
-DECIDE `continuing the academic duties` `days to the end of semester B` IS
+DECIDE `continuing the academic duties` IS
     PARTY `the teaching employee at the college`
     MUST  `perform the semester B academic duties`
-    WITHIN `days to the end of semester B`
     LEST BREACH BY `the teaching employee at the college` BECAUSE "תש\"פ/6 §3: the semester B academic duties continue"
 
 -- §3 ¶3: duties not done in semester B are completed in full by the start of
@@ -144,11 +143,6 @@ DECIDE `reporting prevented duties` IS
     MUST  `report a duty prevented to the director`
     LEST BREACH BY `the teaching employee at the college` BECAUSE "תש\"פ/6 §5: every prevented duty is reported to the director"
 
-`the circular names who "the director" is` MEANS FALSE
-`"the director" is used in sections 5 and 6 and defined nowhere` MEANS
-    (NOT `the circular names who "the director" is`)
-#ASSERT `"the director" is used in sections 5 and 6 and defined nowhere`
-
 -- §6(א): where the director finds §3 was not met, the institution reduces
 -- the consideration in proportion, or deducts from any sum due — the final
 -- settlement included. The share not performed is an input.
@@ -185,6 +179,12 @@ DECIDE `naming the appeals body` IS
 -- both are waiting periods (no reduction earlier than 8 days, or than 2 days
 -- after the appeal decision), the reading under which an employee's appeal
 -- right is protected in both branches.
+@ref akn:art_6__para_c/p1
+GIVEN o IS AN `appeal outcome`, day IS A NUMBER @desc days after the director's decision
+GIVETH A BOOLEAN
+DECIDE `the reduction may be made on day` o day IF
+    day AT LEAST `the earliest day of the reduction` o
+
 DECLARE `appeal outcome` IS ONE OF
     `no appeal`
     `appeal decided` HAS `days from director's decision to appeal decision` IS A NUMBER
@@ -196,27 +196,11 @@ DECIDE `the earliest day of the reduction` o IS
     WHEN `no appeal` THEN 8
     WHEN `appeal decided` n THEN n PLUS 2
 
-@ref akn:art_6__para_c/p1
-GIVEN o IS AN `appeal outcome`, day IS A NUMBER @desc days after the director's decision
-GIVETH A BOOLEAN
-DECIDE `the reduction may be made on day` o day IF
-    day AT LEAST `the earliest day of the reduction` o
-
--- The other reading: "תוך יומיים" as a deadline. A reduction on day 5 of an
--- appeal decided on day 2 is then too late, yet allowed under the reading above.
-GIVEN n IS A NUMBER, day IS A NUMBER
-GIVETH A BOOLEAN
-DECIDE `"within two days" read as a deadline allows day` n day IF
-    day AT MOST n PLUS 2
-
-`§6(ג)'s two limits read two ways for an appeal` MEANS
-        `the reduction may be made on day` (`appeal decided` 2) 5
-    AND (NOT `"within two days" read as a deadline allows day` 2 5)
-#ASSERT `§6(ג)'s two limits read two ways for an appeal`
-
 -- akn:art_6__para_c/p2 akn:art_6__para_c__subpara_1 akn:art_6__para_c__subpara_2 akn:art_6__para_c__subpara_3 The list of enclosures (the agreement, the joining letter, the deputy director-general's letter on appeals); sent with the circular and not part of its text, so annex A's joining letter is not encoded here.
 
 -- akn:conclusions The sign-off, signatures and copies list; no rule.
+
+§§ `Worked examples`
 
 -- Examples.
 `a college lecturer in a joined college` MEANS
@@ -250,3 +234,21 @@ DECIDE `"within two days" read as a deadline allows day` n day IF
     PARTY `the college` DOES `name the appeals body and notify the Ministry in writing` AT 5
 #TRACE `naming the appeals body` AT 0 WITH
     PARTY `the college` DOES `name the appeals body and notify the Ministry in writing` AT 7
+
+-- The findings' evidence.
+`the circular names who "the director" is` MEANS FALSE
+`"the director" is used in sections 5 and 6 and defined nowhere` MEANS
+    (NOT `the circular names who "the director" is`)
+#ASSERT `"the director" is used in sections 5 and 6 and defined nowhere`
+
+-- The other reading: "תוך יומיים" as a deadline. A reduction on day 5 of an
+-- appeal decided on day 2 is then too late, yet allowed under the reading above.
+GIVEN n IS A NUMBER, day IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `"within two days" read as a deadline allows day` n day IF
+    day AT MOST n PLUS 2
+
+`§6(ג)'s two limits read two ways for an appeal` MEANS
+        `the reduction may be made on day` (`appeal decided` 2) 5
+    AND (NOT `"within two days" read as a deadline allows day` 2 5)
+#ASSERT `§6(ג)'s two limits read two ways for an appeal`
