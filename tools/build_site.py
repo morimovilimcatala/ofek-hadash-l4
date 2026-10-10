@@ -358,6 +358,74 @@ def rel(target: str, here: str) -> str:
     return "../" * here.count("/") + target
 
 
+# every document's views, set by build() before any page is written, so each
+# page can carry the same navigation tree
+NAV_VIEWS: dict[str, list[SectionView]] = {}
+
+
+def nav_html(here: str) -> str:
+    """The sidebar: every encoded document, grouped as the corpus groups them.
+    The group, year and chapter holding the current page start open; on the
+    takanon's own page its sections link to their anchors, so the scrollspy
+    in site.js can mark the one in view."""
+    if not NAV_VIEWS:
+        return ""
+    groups = []
+    for coll, label in COLLECTIONS:
+        docs = [d for d in NAV_VIEWS if d.split("/")[0] == coll]
+        if not docs:
+            continue
+        hub = f"{coll}.html" if akn.is_whole(docs[0]) else f"{docs[0].removesuffix('.xml')}.html"
+        here_in = any(here.startswith(d.removesuffix(".xml")) for d in docs) or here == f"{coll}.html"
+        items = []
+        if not akn.is_whole(docs[0]):
+            for d in docs:
+                page_ = f"{d.removesuffix('.xml')}.html"
+                on_page = here == page_
+                chapters: dict[str, list[SectionView]] = {}
+                for v in NAV_VIEWS[d]:
+                    chapters.setdefault(v.section.chapter_eid, []).append(v)
+                for vs in chapters.values():
+                    s0 = vs[0].section
+                    lis = "".join(
+                        f'<li><a href="{"#" + esc(v.section.eid) if on_page else rel(v.href, here)}" '
+                        f'title="{esc(v.section.heading)}"><span class="secnum" dir="ltr">{esc(v.section.num)}</span>'
+                        f'<span class="sh" lang="he" dir="rtl">{esc(v.section.heading)}</span></a></li>' for v in vs)
+                    items.append(f'<li class="toc-ch"><details><summary><span class="ch" lang="he" dir="rtl">'
+                                 f'פרק {esc(s0.chapter_num)} · {esc(s0.chapter_heading)}</span>'
+                                 f'<span class="n">{len(vs)}</span></summary>'
+                                 f'<ul>{lis}</ul></details></li>')
+        else:
+            by_year: dict[str, list[SectionView]] = {}
+            for d in docs:
+                by_year.setdefault(school_year(d) if coll == "circulars" else "", []).extend(NAV_VIEWS[d])
+
+            def doc_li(v):
+                cur = ' aria-current="page"' if here == v.page else ""
+                num = Path(v.doc).stem.split("_", 1)[-1] if coll == "circulars" else Path(v.doc).stem[:10]
+                return (f'<li><a href="{rel(v.page, here)}" title="{esc(v.section.heading)}"{cur}>'
+                        f'<span class="secnum" dir="ltr">{esc(num)}</span>'
+                        f'<span class="sh" lang="he" dir="rtl">{esc(v.section.heading)}</span></a></li>')
+            for year in sorted(by_year, reverse=True):
+                vs = sorted(by_year[year], key=lambda v: v.doc)
+                lis = "".join(doc_li(v) for v in vs)
+                if not year:
+                    items.append(lis)
+                    continue
+                open_ = " open" if any(here == v.page for v in vs) else ""
+                items.append(f'<li class="toc-ch"><details{open_}><summary>{esc(year)}'
+                             f'<span class="n">{len(vs)}</span></summary><ul>{lis}</ul></details></li>')
+        groups.append(f'<li class="sn-group"><details{" open" if here_in else ""}>'
+                      f'<summary>{esc(label.split(" — ")[0])}<span class="n">{len(docs) if akn.is_whole(docs[0]) else len(NAV_VIEWS[docs[0]])}</span></summary>'
+                      f'<a class="sn-hub" href="{rel(hub, here)}">Overview</a>'
+                      f'<ul>{"".join(items)}</ul></details></li>')
+    return (f'<aside class="sidenav" id="sidenav" aria-label="Browse the documents">'
+            f'<div class="sn-head"><span>Browse</span>'
+            f'<button type="button" class="sn-close" aria-label="Close">×</button></div>'
+            f'<ul class="sn-tree">{"".join(groups)}</ul></aside>'
+            f'<div class="sn-scrim" hidden></div>')
+
+
 def page(here: str, title: str, body: str, *, tab: str = "", desc: str = "",
          wide: bool = False) -> str:
     nav = [("index.html", "Documents", "docs"),
@@ -388,13 +456,18 @@ def page(here: str, title: str, body: str, *, tab: str = "", desc: str = "",
 <body>
 <header class="top">
   <div class="top-in">
+    <button type="button" class="sn-open" aria-controls="sidenav" aria-expanded="false" aria-label="Browse the documents">
+      <svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
     <a class="brand" href="{rel('index.html', here)}"><span class="mark">L4</span><span>Ofek Hadash</span></a>
     <nav class="tabs-top">{links}</nav>
   </div>
 </header>
+<div class="shell">
+{nav_html(here)}
 <main class="{'wide' if wide else ''}">
 {body}
 </main>
+</div>
 <footer class="foot">
   <div>Text: the <a href="{CORPUS_SITE}/">Ofek Hadash corpus</a>, as published. Code:
   <a href="{REPO}">{esc(REPO.split('github.com/')[1])}</a>.</div>
@@ -669,10 +742,10 @@ def document_page(doc: str, views: list[SectionView]) -> str:
     toolbar = (f'<div class="doc-toolbar"><span class="tb-label">L4 shown as</span>{switch}'
                f'<span class="tb-where" aria-live="polite"></span>'
                f'<span class="tb-cols"><span>L4</span><span>Text</span></span></div>')
-    page_body = (head + '<div class="doc-layout">'
-                 f'<aside class="toc" aria-label="Contents"><details open><summary>Contents</summary>'
-                 f'<ul dir="rtl">{"".join(toc)}</ul></details></aside>'
-                 f'<div class="doc-main">{toolbar}{"".join(body)}</div></div>')
+    # the sidebar is the contents now (nav_html links this page's sections to
+    # their anchors); `toc` stays only for its counts
+    page_body = head + f'<div class="doc-main">{toolbar}{"".join(body)}</div>'
+
     return page(here, f"{akn.title(doc)} — {TITLE}", page_body, tab="docs", wide=True,
                 desc="The teaching staff service regulations, whole, each paragraph beside its L4 encoding")
 
@@ -1090,10 +1163,12 @@ def build() -> int:
     for f in findings:
         for k in f.get("keys", []):
             FINDINGS_BY_KEY.setdefault((finding_doc(f), k), []).append(f)
-    all_views: dict[str, list[SectionView]] = {}
+    all_views: dict[str, list[SectionView]] = {
+        doc: [build_view(doc, s) for s in akn.sections(doc)] for doc in DOCUMENTS}
+    NAV_VIEWS.clear()
+    NAV_VIEWS.update(all_views)
     for doc in DOCUMENTS:
-        views = [build_view(doc, s) for s in akn.sections(doc)]
-        all_views[doc] = views
+        views = all_views[doc]
         d = OUT / doc.removesuffix(".xml")
         if akn.is_whole(doc):
             v = views[0]
