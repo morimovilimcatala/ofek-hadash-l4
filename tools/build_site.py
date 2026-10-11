@@ -12,6 +12,8 @@ Pages, laid out like the corpus they encode:
   takanon/<doc>/<num>.prose.json   that section's prose views, fetched on the switch
   <collection>/<doc>.html          a circular: its text | L4, row by row
   findings.html  findings.json     errors in the LAW that encoding exposed
+  salary.html                      what §1.1's salary is made of, drawn from its L4
+  calculator.html                  §1.1's salary, computed in the browser by L4 (WASM)
   coverage.html                    how much of the corpus is encoded
   diagnostics.html                 what the L4 checker reported, file by file
   index.json                       every L4 segment with its corpus address
@@ -35,6 +37,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import akn      # noqa: E402
+import calculator  # noqa: E402
 import l4src    # noqa: E402
 import rule_graph  # noqa: E402
 
@@ -662,6 +665,7 @@ def page(here: str, title: str, body: str, *, tab: str = "", desc: str = "",
     nav = [("index.html", "מסמכים", "docs"),
            ("findings.html", "ממצאים", "findings"),
            ("salary.html", "מבנה השכר", "salary"),
+           *([("calculator.html", "מחשבון שכר", "calculator")] if CALCULATOR else []),
            ("coverage.html", "כיסוי", "coverage"),
            ("diagnostics.html", "בדיקות", "diagnostics"),
            ("about.html", "אודות", "about")]
@@ -819,6 +823,8 @@ def section_block(v: SectionView, here: str, headless: bool = False) -> str:
     links = [f'<a href="{corpus}">בקורפוס ↗</a>']
     if (v.doc, v.section.num) == SALARY:
         links.append(f'<a href="{rel("salary.html", here)}">מבנה השכר</a>')
+        if CALCULATOR:
+            links.append(f'<a href="{rel("calculator.html", here)}">מחשבון שכר</a>')
     if v.l4:
         links += [f'<a href="{REPO}/blob/main/{v.l4.relative_to(ROOT)}">קוד מקור ↗</a>',
                   f'<a href="{rel(v.render_href, here)}">כפרוזה</a>']
@@ -1347,6 +1353,25 @@ def salary_page(all_views: dict[str, list["SectionView"]]) -> str:
     return page(here, f"מבנה השכר — {TITLE}", body, tab="salary")
 
 
+# the calculator runs L4's evaluator built to WebAssembly (toolchain/build-wasm.sh);
+# without the build there is no calculator, rather than one that cannot run
+CALCULATOR = (ASSETS / "l4wasm" / "l4.wasm").exists()
+
+
+def calculator_page(all_views: dict[str, list["SectionView"]], findings: list[dict]) -> str:
+    """A form for §1.1's salary rule, evaluated in the browser by L4's own
+    evaluator compiled to WebAssembly (tools/calculator.py)."""
+    here = "calculator.html"
+    v = next(v for v in all_views[SALARY[0]] if v.section.num == SALARY[1])
+    s = calculator.spec(v.section, v.l4, citations(v.section))
+    s = calculator.ship(s, v.l4, OUT / "assets")
+    link = f'<a href="{v.href}"><bdi dir="ltr">§{esc(v.section.num)}</bdi> {esc(v.section.heading)}</a>'
+    mine = [f for f in findings if f.get("l4") == str(v.l4.relative_to(ROOT))]
+    body = calculator.body(s, link, mine, rel("findings.html", here))
+    return page(here, f"מחשבון שכר — {TITLE}", body, tab="calculator",
+                desc="השכר החודשי של עובד הוראה לפי סעיף 1.1 לתקנון, מחושב בדפדפן בקוד ה-L4 של האתר")
+
+
 def findings_json(findings, views_by_file, key_to_view) -> str:
     rows = []
     for f in findings:
@@ -1552,7 +1577,10 @@ def build() -> int:
         shutil.rmtree(OUT)
     (OUT / "assets").mkdir(parents=True)
     for f in ASSETS.iterdir():
-        shutil.copy(f, OUT / "assets" / f.name)
+        if f.is_dir():
+            shutil.copytree(f, OUT / "assets" / f.name)
+        else:
+            shutil.copy(f, OUT / "assets" / f.name)
     findings = load_findings()
     FINDINGS_BY_KEY.clear()
     for f in findings:
@@ -1609,6 +1637,8 @@ def build() -> int:
     (OUT / "index.html").write_text(index_page(all_views, findings), encoding="utf-8")
     (OUT / "findings.html").write_text(findings_page(findings, by_file, key_to_view), encoding="utf-8")
     (OUT / "salary.html").write_text(salary_page(all_views), encoding="utf-8")
+    if CALCULATOR:
+        (OUT / "calculator.html").write_text(calculator_page(all_views, findings), encoding="utf-8")
     (OUT / "findings.json").write_text(findings_json(findings, by_file, key_to_view), encoding="utf-8")
     (OUT / "index.json").write_text(index_json(flat), encoding="utf-8")
     (OUT / "coverage.html").write_text(coverage_page(all_views), encoding="utf-8")
