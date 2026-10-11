@@ -5,6 +5,7 @@ For each file under l4/ this writes, to build/l4/<same path>:
   .run.json      `l4 run --json`  — diagnostics and every #EVAL/#ASSERT result
   .render.html   `l4 render`      — L4's own rendering of the rules as a document
   .graph.dot     `l4 state-graph` — each regulative rule as a state diagram (GraphViz)
+  .traces/       `l4 trace`       — each #EVALTRACE as a drawing of its evaluation (GraphViz)
 
 A file's outputs are keyed by the bytes of every .l4 file in its directory
 (a section imports its document's shared vocabulary) and by the compiler's
@@ -65,6 +66,7 @@ def outputs(path: Path) -> dict[str, Path]:
     return {"run": d / f"{stem}.run.json",
             "render": d / f"{stem}.render.html",
             "graph": d / f"{stem}.graph.dot",
+            "traces": d / f"{stem}.traces",
             "key": d / f"{stem}.key"}
 
 
@@ -109,6 +111,8 @@ def run_one(path: Path, exe: str, cid: str) -> tuple[Path, bool, bool]:
         ok = json.loads(out["run"].read_text()).get("ok", False)
         if not out["graph"].exists():
             write_graph(path, exe, out["graph"])
+        if not out["traces"].exists():
+            write_traces(path, exe, out["traces"])
         return path, ok, False
     out["run"].parent.mkdir(parents=True, exist_ok=True)
     cwd = path.parent
@@ -133,8 +137,21 @@ def run_one(path: Path, exe: str, cid: str) -> tuple[Path, bool, bool]:
     out["render"].write_text(rr.stdout if rr.returncode == 0 else "",
                              encoding="utf-8")
     write_graph(path, exe, out["graph"])
+    write_traces(path, exe, out["traces"])
     out["key"].write_text(k)
     return path, bool(data.get("ok")), True
+
+
+def write_traces(path: Path, exe: str, dest: Path) -> None:
+    """Every #EVALTRACE in the file, as L4 draws its evaluation step by step
+    (`l4 trace --optimize`, one .dot per trace). An empty directory when the
+    file traces nothing, so the cache knows it was asked."""
+    shutil.rmtree(dest, ignore_errors=True)
+    dest.mkdir(parents=True)
+    if "#EVALTRACE" in path.read_text(encoding="utf-8"):
+        subprocess.run([exe, "trace", path.name, "--format", "dot", "--optimize",
+                        f"--fixed-now={FIXED_NOW}", "-o", str(dest.resolve())],
+                       cwd=path.parent, capture_output=True, text=True)
 
 
 def write_graph(path: Path, exe: str, dest: Path) -> None:

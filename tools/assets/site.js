@@ -272,3 +272,22 @@
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
   else init();
 })();
+
+// The trace page: a drawing shows whole; "הגדלה" shows it at 60% of its own
+// size, opened on its root box (the left edge of a left-to-right tree).
+document.addEventListener("click", function (e) {
+  var b = e.target.closest && e.target.closest(".trace-zoom");
+  if (!b) return;
+  var box = b.parentElement.nextElementSibling;
+  var on = box.classList.toggle("fit") === false;
+  b.setAttribute("aria-pressed", on ? "true" : "false");
+  b.textContent = on ? "הקטנה" : "הגדלה";
+  var img = box.querySelector("img");
+  // zoomed is 60% of the drawing's own size: readable, and less to scroll
+  img.style.width = on ? Math.round(img.naturalWidth * 0.6) + "px" : "";
+  if (on) {
+    box.scrollLeft = 0;
+    var y = parseFloat(img.dataset.rootY || "0.5") * img.offsetHeight;
+    box.scrollTop = Math.max(0, y - box.clientHeight / 2);
+  }
+});

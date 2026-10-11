@@ -32,6 +32,10 @@ obligations as L4 regulative rules.
   Each obligation (`MUST`/`MAY`/`SHANT`) carries its state diagram, drawn by
   `l4 state-graph` and GraphViz (`dot`, which `make site` needs installed to
   draw them; without it the pages are built with no diagrams).
+- **חישוב לדוגמה** (`traces.html`) — each `#EVALTRACE` in the encoding, drawn
+  by `l4 trace`: one computation step by step, every box an expression of the
+  code and its value. It starts with §1.1's worked salary (GraphViz needed,
+  as for the state diagrams).
 - **L4 findings** — what encoding found wrong in the law itself, by kind and
   by the stage that caught it (`findings.json` for machines), grouped by
   section or circular, folded to a title, and filterable by kind, stage,

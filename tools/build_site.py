@@ -534,6 +534,7 @@ def page(here: str, title: str, body: str, *, tab: str = "", desc: str = "",
          wide: bool = False) -> str:
     nav = [("index.html", "מסמכים", "docs"),
            ("findings.html", "ממצאים", "findings"),
+           ("traces.html", "חישוב לדוגמה", "traces"),
            ("coverage.html", "כיסוי", "coverage"),
            ("diagnostics.html", "בדיקות", "diagnostics"),
            ("about.html", "אודות", "about")]
@@ -1119,6 +1120,88 @@ def findings_page(findings, views_by_file, key_to_view) -> str:
     return page("findings.html", f"ממצאי L4 — {TITLE}", body, tab="findings")
 
 
+# What a reader needs to know about a traced example that the code alone
+# does not say, in Hebrew: keyed by the .l4 file and the trace's order in it.
+TRACE_CAPTIONS = {
+    ("l4/takanon/takanon-sherut-ovdei-horaa/1.1.l4", 0):
+        "שכרו של עובד הוראה במשרה מלאה במרץ 2012 לפני הגמולים האחוזיים, כפי שסעיף 1.1 מחשב אותו: "
+        "השכר המשולב ועליו תוספות 3%, 2008, 2011 ו־1994 (א–ה). השכר המשולב (10,000) ותוספת 1994 (200) "
+        "הם ערכי דוגמה שהקוד בחר, לא סכומים שהתקנון קובע; שיעורי התוספות הם של התקנון.",
+    ("l4/takanon/takanon-sherut-ovdei-horaa/1.1.l4", 1):
+        "אותו עובד, עם גמול חינוך כיתה של 10%: הגמול האחוזי (ו) מחושב על בסיס התוספות של משרה מלאה "
+        "ומתווסף לשכר. אותם ערכי דוגמה.",
+}
+EVALTRACE = re.compile(r"^#EVALTRACE\s+(.*)$", re.M)
+TRACE_LABEL = re.compile(r'(label=")((?:[^"\\]|\\.)*)(")')
+TRACE_ROOT = re.compile(r'^\s*0 \[label="((?:[^"\\]|\\.)*)"', re.M)
+
+
+def root_ratio(svg: str) -> float:
+    """Where the trace's root box sits, as a share of the drawing's height,
+    so that zooming in opens on it rather than on an empty corner."""
+    h = re.search(r'<svg width="[\d.]+pt" height="([\d.]+)pt"', svg)
+    tr = re.search(r'translate\([\d.]+ ([\d.]+)\)', svg)
+    pts = re.search(r"<title>0</title>\s*<polygon[^>]*points=\"([^\"]+)\"", svg)
+    if not (h and tr and pts):
+        return 0.5
+    ys = [float(p.split(",")[1]) for p in pts.group(1).split()]
+    return max(0.0, min(1.0, (float(tr.group(1)) + sum(ys) / len(ys)) / float(h.group(1))))
+
+
+def traces_page(views: list["SectionView"]) -> str:
+    """Each #EVALTRACE in the encoding, drawn by `l4 trace`: one computation,
+    step by step, every box an expression of the code with its value."""
+    here = "traces.html"
+    cards = []
+    for v in views:
+        if v.l4 is None:
+            continue
+        rel_ = v.l4.relative_to(ROOT / "l4")
+        d = ROOT / "build" / "l4" / rel_.parent / (rel_.name.removesuffix(".l4") + ".traces")
+        dots = sorted(d.glob("*.dot"), key=lambda p: int(re.search(r"(\d+)$", p.stem).group(1))) if d.is_dir() else []
+        exprs = EVALTRACE.findall(v.l4.read_text(encoding="utf-8"))
+        for i, dot in enumerate(dots):
+            # left to right, each box's expression wrapped: as printed, a
+            # trace of the whole salary is 11,301pt wide; this is 4,831
+            src = TRACE_LABEL.sub(lambda m: m.group(1) + "\\n".join(
+                w for part in m.group(2).split("\\n")
+                for w in (textwrap.wrap(part, 40, break_long_words=False, break_on_hyphens=False) or [part]))
+                + m.group(3), dot.read_text(encoding="utf-8").replace("rankdir=TB", "rankdir=LR"))
+            root = TRACE_ROOT.search(src)
+            value = root.group(1).replace("\\n", "\n").split("\n")[-1] if root else ""
+            img = ""
+            if shutil.which("dot"):
+                name = hashlib.sha1(src.encode()).hexdigest()[:16] + ".svg"
+                svg = OUT / "assets" / "traces" / name
+                if not svg.exists():
+                    svg.parent.mkdir(parents=True, exist_ok=True)
+                    r = subprocess.run(["dot", "-Tsvg"], input=src, capture_output=True, text=True)
+                    if r.returncode == 0:
+                        svg.write_text(r.stdout, encoding="utf-8")
+                if svg.exists():
+                    path = f"assets/traces/{name}"
+                    ry = root_ratio(svg.read_text(encoding="utf-8"))
+                    img = (f'<div class="trace-tools"><button type="button" class="trace-zoom" aria-pressed="false">הגדלה</button>'
+                           f'<a href="{path}" target="_blank" rel="noopener">פתיחה בגודל מלא</a></div>'
+                           f'<div class="trace-box fit" dir="ltr"><img loading="lazy" src="{path}" alt="trace" data-root-y="{ry:.3f}"></div>')
+            l4file = str(v.l4.relative_to(ROOT))
+            cap = TRACE_CAPTIONS.get((l4file, i), "")
+            cards.append(
+                f'<section class="trace"><h2><a href="{v.href}" lang="he" dir="rtl"><bdi dir="ltr">§{esc(v.section.num)}</bdi> '
+                f'{esc(v.section.heading)}</a></h2>'
+                + (f'<p>{esc(cap)}</p>' if cap else "")
+                + f'<p class="trace-expr">הביטוי: <bdi dir="ltr"><code>{esc(exprs[i] if i < len(exprs) else dot.stem)}</code></bdi>'
+                f' · התוצאה: <b dir="ltr">{esc(value)}</b>'
+                f' · <a href="{REPO}/blob/main/{l4file}">קוד המקור</a></p>{img}</section>')
+    intro = ('<h1>חישוב לדוגמה</h1><p class="lede">חישוב אחד, צעד אחר צעד, כפי שכלי ה־L4 עצמו מצייר '
+             'אותו (<code dir="ltr">l4 trace</code>): כל תיבה היא ביטוי מן הקוד ומתחתיו ערכו, והחצים '
+             'יוצאים מן התוצאה אל מה שהיא מורכבת ממנו. הביטויים כתובים בשפת ה־L4, באנגלית. '
+             'הציור מוצג כולו; "הגדלה" מציגה אותו בגודלו הטבעי (גוללים בו לכל הכיוונים), '
+             'ו"פתיחה בגודל מלא" פותחת אותו בלשונית משלו.</p>')
+    body = intro + ("".join(cards) or '<p class="empty">אין עדיין חישובים לדוגמה.</p>')
+    return page(here, f"חישוב לדוגמה — {TITLE}", body, tab="traces")
+
+
 def findings_json(findings, views_by_file, key_to_view) -> str:
     rows = []
     for f in findings:
@@ -1366,6 +1449,7 @@ def build() -> int:
             (OUT / f"{coll}.html").write_text(collection_page(coll, vs), encoding="utf-8")
     (OUT / "index.html").write_text(index_page(all_views, findings), encoding="utf-8")
     (OUT / "findings.html").write_text(findings_page(findings, by_file, key_to_view), encoding="utf-8")
+    (OUT / "traces.html").write_text(traces_page(flat), encoding="utf-8")
     (OUT / "findings.json").write_text(findings_json(findings, by_file, key_to_view), encoding="utf-8")
     (OUT / "index.json").write_text(index_json(flat), encoding="utf-8")
     (OUT / "coverage.html").write_text(coverage_page(all_views), encoding="utf-8")
