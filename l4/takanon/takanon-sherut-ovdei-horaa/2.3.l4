@@ -31,12 +31,14 @@ DECIDE `entitled to the coordination allowance` t IF
     NOT t's `subordinate to a coordinating teacher`
 
 -- 2: the rate grows with the teacher's years in coordination (section
--- 7.6.10.1): the input above takes those years.
+-- 7.6.10.1): the input above takes those years. It is paid to a teacher
+-- entitled under 1, and to one who keeps it under 3 in the post she moved
+-- to.
 @ref akn:chp_2__sec_2_3__ssec_2_3_6__para_2
 GIVEN t IS AN `independent teacher`, `years in coordination` IS A NUMBER
 GIVETH A NUMBER
 DECIDE `coordination allowance` t `years in coordination` IS
-    IF `entitled to the coordination allowance` t
+    IF `paid the coordination allowance` t
     THEN `the one-class principal's management allowance of section 7.6.6.1` `years in coordination`
     ELSE 0
 
@@ -50,6 +52,11 @@ DECIDE `keeps the coordination allowance` t IF
         t's `consecutive years as an independent teacher` AT LEAST 8
     AND t's `kept from the post by the system's constraints`
     AND t's `moved to another teaching post in a kindergarten`
+
+GIVEN t IS AN `independent teacher`
+GIVETH A BOOLEAN
+DECIDE `paid the coordination allowance` t IF
+    `entitled to the coordination allowance` t OR `keeps the coordination allowance` t
 
 -- akn:chp_2__sec_2_3__ssec_2_3_6/p1 The heading of the source list (אסמכתא).
 -- akn:chp_2__sec_2_3__ssec_2_3_6/p2 A source: collective agreement of 27.12.73; special director-general's circular of 5739.
@@ -129,3 +136,62 @@ DECIDE `the dates the clauses give, 2 read as 5744 only` year IS
 #ASSERT `coordination seniority counts from` `a teacher entitled since 5740` EQUALS DATE_FROM_DMY 1 9 1982
 #ASSERT `keeps the coordination allowance` `a teacher entitled since 5740`
 #ASSERT `entitled to the coordination allowance` `a teacher entitled since 5740`
+
+§§ `Property checks`
+
+-- The section's rules over their whole finite space: subordinate or not,
+-- 0 to 12 consecutive years in the post, kept from it or not, moved or
+-- not, and every school year of first entitlement from 5735 (1974) to
+-- 5760 (1999).
+
+`both booleans` MEANS LIST TRUE, FALSE
+`the years of first entitlement checked` MEANS range 1974 1999
+
+GIVEN sub IS A BOOLEAN, years IS A NUMBER, kept IS A BOOLEAN, moved IS A BOOLEAN, first IS A NUMBER
+GIVETH AN `independent teacher`
+DECIDE `a checked teacher` sub years kept moved first IS
+    `independent teacher` WITH
+        `subordinate to a coordinating teacher`          IS sub
+        `consecutive years as an independent teacher`    IS years
+        `kept from the post by the system's constraints` IS kept
+        `moved to another teaching post in a kindergarten` IS moved
+        `first school year of entitlement`               IS first
+
+-- 2.3.6: the allowance is paid exactly to a teacher not subordinate to a
+-- coordinating teacher (1) and to one who drags it after eight years (3);
+-- a subordinate teacher who has not served eight years and been kept from
+-- the post is never paid it.
+#ASSERT all (GIVEN sub YIELD
+                all (GIVEN y YIELD
+                        all (GIVEN kept YIELD
+                                all (GIVEN moved YIELD
+                                        `paid the coordination allowance` (`a checked teacher` sub y kept moved 1990)
+                                        EQUALS ((NOT sub) OR (y AT LEAST 8 AND kept AND moved)))
+                                    `both booleans`)
+                            `both booleans`)
+                    (range 0 12))
+            `both booleans`
+
+-- 2.3.11: the two clauses never both date one teacher, and the dates they
+-- give step forward: a later first year of entitlement never counts from
+-- an earlier day, and (with F-2.3-a's reading for a start after 5744) the
+-- count never starts before the school year of first entitlement began.
+#ASSERT all (GIVEN y YIELD
+                    (NOT (    `entitled in 5743 or before` (`a checked teacher` FALSE 0 FALSE FALSE y)
+                          AND `entitlement began in 5744` (`a checked teacher` FALSE 0 FALSE FALSE y)))
+                AND DATE_SERIAL (`coordination seniority counts from` (`a checked teacher` FALSE 0 FALSE FALSE y))
+                    AT MOST DATE_SERIAL (`coordination seniority counts from` (`a checked teacher` FALSE 0 FALSE FALSE (y PLUS 1)))
+                AND DATE_SERIAL (`coordination seniority counts from` (`a checked teacher` FALSE 0 FALSE FALSE y))
+                    AT LEAST DATE_SERIAL (DATE_FROM_DMY 1 9 y))
+            `the years of first entitlement checked`
+
+-- F-2.3-a over every school year: the clauses date every start up to 5744
+-- under either reading; from 5745 (1984) on, read as "from 5744 on" clause
+-- 2 dates every one of them to 1.9.83, before the entitlement began, and
+-- read as "in 5744" the section dates none.
+#ASSERT all (GIVEN y YIELD
+                    ((y AT LEAST 1984)
+                     EQUALS (`the dates the clauses give, 2 read as 5744 only` y EQUALS EMPTY))
+                AND (    (y LESS THAN 1984)
+                      OR (`the dates the clauses give, 2 read as from 5744 on` y EQUALS LIST DATE_FROM_DMY 1 9 1983)))
+            `the years of first entitlement checked`

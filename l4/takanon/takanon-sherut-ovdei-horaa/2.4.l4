@@ -379,3 +379,125 @@ DECIDE `keeps the management allowance` f IF
 #TRACE `the union's discussion and appeal` FALSE AT 0 WITH
     PARTY `the Teachers' Union branch committee` DOES `request a discussion with the district manager of the supervisor's decision` AT 1
     PARTY `a takanon party` `the parity committee` DOES `hear the appeal in the joint parity committee` AT 2
+
+§§ `Property checks`
+
+-- The section's rules over their whole finite space: sites of 0 to 6
+-- classes with every pair of the other two conditions, every candidate
+-- with 0 to 5 years and every combination of the four other conditions,
+-- and every former manager by post, 0 to 10 years, the three conditions of
+-- the 2009 decision, and a move on the day before 14.10.2009 or on it.
+
+`both booleans` MEANS LIST TRUE, FALSE
+
+GIVEN n IS A NUMBER, one IS A BOOLEAN, attached IS A BOOLEAN
+GIVETH A `kindergarten site`
+DECIDE `a checked site` n one attached IS
+    `kindergarten site` WITH
+        `full-establishment classes of one stream in or near the building` IS n
+        `classes belong to one owner or the owners agree`                 IS one
+        `classes administratively attached to a school`                   IS attached
+
+-- 2.4.2.1 against 2.4.6.1: a coordinating teacher may be appointed only
+-- where there are two classes or more, and 2.4.6.1 pays the management
+-- allowance "החל משתי כיתות" — so every site that may have one pays her.
+#ASSERT all (GIVEN n YIELD
+                all (GIVEN one YIELD
+                        all (GIVEN attached YIELD
+                                    `a coordinating teacher may be appointed` (`a checked site` n one attached)
+                                    EQUALS (n AT LEAST 2 AND one AND (NOT attached)))
+                            `both booleans`)
+                    `both booleans`)
+            (range 0 6)
+
+-- 2.4.2.4: a candidate qualifies exactly on all five conditions.
+GIVEN a IS A BOOLEAN, b IS A BOOLEAN, y IS A NUMBER, d IS A BOOLEAN, e IS A BOOLEAN
+GIVETH A `candidate for coordinating teacher`
+DECIDE `a checked candidate` a b y d e IS
+    `candidate for coordinating teacher` WITH
+        `certified kindergarten teacher`                  IS a
+        `official (רשמית) kindergarten teacher`           IS b
+        `years teaching in kindergartens`                 IS y
+        `administrative ability`                          IS d
+        `has shown proper working relations`              IS e
+
+#ASSERT all (GIVEN a YIELD
+                all (GIVEN b YIELD
+                        all (GIVEN d YIELD
+                                all (GIVEN e YIELD
+                                        all (GIVEN y YIELD
+                                                `may be appointed coordinating teacher` (`a checked candidate` a b y d e)
+                                                EQUALS (a AND b AND d AND e AND y AT LEAST 3))
+                                            (range 0 5))
+                                    `both booleans`)
+                            `both booleans`)
+                    `both booleans`)
+            `both booleans`
+
+-- 2.4.3: the sixteen duties and the five planning subjects are each listed
+-- once.
+#ASSERT all (GIVEN d YIELD count (filter (GIVEN x YIELD x EQUALS d) `the coordinating teacher's duties`) EQUALS 1)
+            `the coordinating teacher's duties`
+#ASSERT all (GIVEN s YIELD count (filter (GIVEN x YIELD x EQUALS s) `the subjects planned jointly`) EQUALS 1)
+            `the subjects planned jointly`
+
+-- 2.4.6.2 and the 2009 decision over every former manager.
+GIVEN p IS A `former post`, y IS A NUMBER, cont IS A BOOLEAN, init IS A BOOLEAN, nomgmt IS A BOOLEAN, d IS A DATE
+GIVETH A `former manager`
+DECIDE `a checked former manager` p y cont init nomgmt d IS
+    `former manager` WITH
+        `post`                                  IS p
+        `years in the post with the allowance`  IS y
+        `served continuously`                   IS cont
+        `moved at the employer's initiative, for its needs` IS init
+        `moved to a post without a management allowance` IS nomgmt
+        `date moved`                            IS d
+
+`every former post` MEANS LIST `coordinating teacher`, `other kindergarten manager`
+`the move dates checked` MEANS LIST DATE_FROM_DMY 13 10 2009, DATE_FROM_DMY 14 10 2009
+
+GIVEN prop IS A FUNCTION FROM `former manager` TO BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `holds for every former manager` prop IF
+    all (GIVEN p YIELD
+            all (GIVEN y YIELD
+                    all (GIVEN cont YIELD
+                            all (GIVEN init YIELD
+                                    all (GIVEN nomgmt YIELD
+                                            all (GIVEN d YIELD prop (`a checked former manager` p y cont init nomgmt d))
+                                                `the move dates checked`)
+                                        `both booleans`)
+                                `both booleans`)
+                        `both booleans`)
+                (range 0 10))
+        `every former post`
+
+-- The 2009 decision's date is a step with no hole: a move on 13.10.2009
+-- is outside it, a move on 14.10.2009 inside, all else equal.
+GIVEN f IS A `former manager`
+GIVETH A BOOLEAN
+DECIDE `the 2009 decision covers exactly the moves from its day` f IF
+    `drags under the 2009 decision` f
+    EQUALS (    `meets the 2009 decision's conditions` f
+            AND DATE_SERIAL (f's `date moved`) AT LEAST DATE_SERIAL (DATE_FROM_DMY 14 10 2009))
+#ASSERT `holds for every former manager` `the 2009 decision covers exactly the moves from its day`
+
+-- F-2.4-a over the whole space: every former coordinating teacher of
+-- under eight years whom the 2009 decision covers is refused by 2, and
+-- under the reading adopted she keeps the allowance exactly when either
+-- grants it.
+GIVEN f IS A `former manager`
+GIVETH A BOOLEAN
+DECIDE `2 refuses every coordinating teacher of under eight years the 2009 decision covers` f IF
+        (NOT (    f's `post` EQUALS `coordinating teacher`
+              AND f's `years in the post with the allowance` LESS THAN 8
+              AND `drags under the 2009 decision` f))
+    OR  (NOT `drags under 2.4.6.2` f)
+#ASSERT `holds for every former manager` `2 refuses every coordinating teacher of under eight years the 2009 decision covers`
+
+GIVEN f IS A `former manager`
+GIVETH A BOOLEAN
+DECIDE `she keeps it exactly when either clause grants it` f IF
+    `keeps the management allowance` f
+    EQUALS (`drags under 2.4.6.2` f OR `drags under the 2009 decision` f)
+#ASSERT `holds for every former manager` `she keeps it exactly when either clause grants it`
