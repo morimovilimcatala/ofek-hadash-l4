@@ -834,8 +834,6 @@ def section_block(v: SectionView, here: str, headless: bool = False) -> str:
         checks = sum(len(s.results) for s in v.src.segments)
         stats = (f'<div class="stats">'
                  f'<span class="{"okay" if v.ok else "notok"}">{"✓ הבדיקות תקינות" if v.ok else "✗ l4 מדווח על שגיאות"}</span>'
-                 f'<span><b>{t["rule"]}</b> עם כלל</span>'
-                 f'<span><b>{t["note"]}</b> ללא כלל</span>'
                  + (f'<span class="notok"><b>{t["missing"]}</b> לא צוטטו</span>' if t["missing"] else "")
                  + f'<span><b>{checks}</b> בדיקות</span>'
                  + (f'<span class="fcount"><b>{len(found)}</b> {"ממצאים" if len(found) != 1 else "ממצא"}</span>' if found else "")
@@ -1482,8 +1480,7 @@ def coverage_page(all_views: dict[str, list[SectionView]]) -> str:
             c = tally(v)
             segs = "".join(f'<i class="{k}" style="flex:{c[k]}"></i>'
                            for k in ("rule", "note", "missing") if c[k])
-            tip = (f"{name} {v.section.heading}: {c['rule']} עם כלל, "
-                   f"{c['note']} ללא כלל, {c['missing']} לא צוטטו")
+            tip = f"{name} {v.section.heading}" + (f": {c['missing']} פסקאות לא צוטטו" if c["missing"] else "")
         return (f'<a class="cell" href="{v.href}" title="{esc(tip)}" style="flex:{n}">{segs}</a>')
 
     for doc, vs in all_views.items():
