@@ -149,3 +149,97 @@ DECIDE `payment with July's salary` y IS
     PARTY `the employer` DOES `pay the clothing allowance` 500 AT 11
 
 -- akn:chp_1א___sec_1_6__hc_3 The section's sources (אסמכתא): the circular, agreement and letter it rests on.
+
+§§ `Property checks`
+
+-- The section's rules over their whole finite space: every year of teaching
+-- seniority from 1 to 50 with up to five army years counted in it (a year
+-- of seniority always holds at least the year being served, so there are
+-- fewer army years than the year's number), a grid of position fractions
+-- and shares of the year, and both values of each eligibility condition.
+
+`the seniority years checked` MEANS range 1 50
+`the army years checked` MEANS range 0 5
+`the shares checked` MEANS LIST 0, 0.25, 0.5, 0.75, 1, 1.25, 1.5
+
+GIVEN p IS A FUNCTION FROM NUMBER AND NUMBER TO BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `holds for every seniority and army years` p IF
+    all (GIVEN n YIELD
+            all (GIVEN a YIELD a AT LEAST n OR p n a) `the army years checked`)
+        `the seniority years checked`
+
+-- Totality and exclusivity of the levels: once the army years are taken out,
+-- the printed table gives every case exactly one level, and it is the level
+-- the encoding pays.
+GIVEN n IS A NUMBER, a IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `the table gives the year exactly the level paid` n a IF
+    `the levels the table gives for seniority` (n MINUS a) EQUALS LIST (`clothing level` (n MINUS a))
+
+#ASSERT `holds for every seniority and army years` `the table gives the year exactly the level paid`
+
+GIVEN n IS A NUMBER, a IS A NUMBER, position IS A NUMBER, share IS A NUMBER
+      entitled IS A BOOLEAN
+GIVETH A `clothing year`
+DECIDE `a checked clothing year` n a position share entitled IS
+    `clothing year` WITH
+        `ranked on the teaching employees' scale`         IS entitled
+        `employed in a teaching role`                     IS TRUE
+        `year of teaching seniority`                      IS n
+        `years of compulsory army service counted in it`  IS a
+        `position fraction this year`                     IS position
+        `share of the year worked`                        IS share
+        `level 1 amount`                                  IS 1000
+        `level 2 amount`                                  IS 1200
+        `clothing allowance under other arrangements`     IS 300
+
+GIVEN n IS A NUMBER, a IS A NUMBER, p IS A FUNCTION FROM `clothing year` TO BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `holds at every position and share for` n a p IF
+    all (GIVEN position YIELD
+            all (GIVEN share YIELD
+                    all (GIVEN entitled YIELD p (`a checked clothing year` n a position share entitled))
+                        (LIST TRUE, FALSE))
+                (filter (GIVEN s YIELD s AT MOST 1) `the shares checked`))
+        `the shares checked`
+
+-- Bounds (1.6.3): never negative, never more than the level's yearly amount
+-- (no more than one position, and no more than the whole year), nothing
+-- for an employee 1.6.1 does not entitle, and 1.6.4 only adds.
+GIVEN y IS A `clothing year`
+GIVETH A BOOLEAN
+DECIDE `the allowance is within its bounds` y IF
+        `clothing allowance` y AT LEAST 0
+    AND `clothing allowance` y AT MOST `level amount` y
+    AND (`entitled to the clothing allowance` y OR `clothing allowance` y EQUALS 0)
+    AND `clothing allowances in all` y AT LEAST `clothing allowance` y
+
+#ASSERT `holds for every seniority and army years` (GIVEN n, a YIELD `holds at every position and share for` n a `the allowance is within its bounds`)
+
+-- Monotonicity: more position (up to one) or more of the year never pays
+-- less; past one position nothing more is paid.
+GIVEN n IS A NUMBER, a IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `a larger position or share never pays less` n a IF
+    and (zipWith (GIVEN p, q YIELD
+                        `clothing allowance` (`a checked clothing year` n a p 1 TRUE)
+                        AT MOST `clothing allowance` (`a checked clothing year` n a q 1 TRUE)
+                    AND `clothing allowance` (`a checked clothing year` n a 1 p TRUE)
+                        AT MOST `clothing allowance` (`a checked clothing year` n a 1 q TRUE))
+                 `the shares checked`
+                 (drop 1 `the shares checked`))
+    AND `clothing allowance` (`a checked clothing year` n a 1.5 1 TRUE)
+        EQUALS `clothing allowance` (`a checked clothing year` n a 1 1 TRUE)
+
+#ASSERT `holds for every seniority and army years` `a larger position or share never pays less`
+
+-- Seniority: the level never goes back as the years grow, and an army year
+-- never raises it. (Whether level 2 pays more than level 1 is the
+-- Treasury's amount, not the text's; the levels themselves are what the
+-- text orders.)
+#ASSERT and (zipWith (GIVEN n, m YIELD `clothing level` n AT MOST `clothing level` m)
+                     `the seniority years checked`
+                     (drop 1 `the seniority years checked`))
+#ASSERT `holds for every seniority and army years` (GIVEN n, a YIELD
+                                                        `clothing level` (n MINUS a) AT MOST `clothing level` n)

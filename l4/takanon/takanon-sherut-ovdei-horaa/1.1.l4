@@ -374,3 +374,239 @@ DECIDE `salary of a teaching employee` m `the allowances held` IS
     PARTY `the employer` DOES `show on its own payslip line` `the 2011 supplement` AT 1
 
 -- akn:chp_1א___sec_1_1__hc_3 The section's sources (אסמכתא): the agreements and circulars it rests on.
+
+§§ `Property checks`
+
+-- Each rate and factor of the section evaluated over its whole finite space:
+-- the dates the section names (every step day and the day before it, so a
+-- rate that changes between two consecutive dates changes on the later), both
+-- values of the postponement flag, every allowance kind, and a grid of
+-- position fractions around the thresholds the section names (1/3, 1).
+
+`the dates in calendar order` MEANS
+    LIST DATE_FROM_DMY 31 12 2000, DATE_FROM_DMY 1 1 2001
+       , DATE_FROM_DMY 31 8 2001, DATE_FROM_DMY 1 9 2001
+       , DATE_FROM_DMY 31 1 2008, DATE_FROM_DMY 1 2 2008
+       , DATE_FROM_DMY 31 12 2008, DATE_FROM_DMY 1 1 2009
+       , DATE_FROM_DMY 31 12 2009, DATE_FROM_DMY 1 1 2010
+       , DATE_FROM_DMY 31 12 2010, DATE_FROM_DMY 1 1 2011
+       , DATE_FROM_DMY 30 9 2011, DATE_FROM_DMY 1 10 2011
+       , DATE_FROM_DMY 31 12 2011, DATE_FROM_DMY 1 1 2012
+
+`the position fractions checked` MEANS
+    LIST 0, 0.25, 0.33, 1/3, 0.5, 0.99, 1, 1.25, 1.5
+
+`every percentage allowance` MEANS
+    LIST `class education`, `subject, laboratory, grade-level and social coordination`
+       , `split position`, `boarding-school supervision`, `security officer`
+       , `training`, `seminar coordination and guidance`
+       , `technical coordination in vocational centres`, `management`
+       , `counselling`, `matriculation preparation`, `further training`
+       , `subject and qualifications`, `special education`, `seminars`
+       , `MA or PhD degree`, `supervision and guidance`
+       , `out-of-school activity with pupils`, `incentives`, `jubilee grant`
+       , `framework agreement`
+
+GIVEN f IS A FUNCTION FROM DATE TO NUMBER
+GIVETH A BOOLEAN
+DECIDE `the rate never goes backwards` f IF
+    and (zipWith (GIVEN d, e YIELD f d AT MOST f e)
+                 `the dates in calendar order`
+                 (drop 1 `the dates in calendar order`))
+
+GIVEN f IS A FUNCTION FROM DATE TO NUMBER
+GIVETH A BOOLEAN
+DECIDE `the rate is a share between 0 and 1` f IF
+    all (GIVEN d YIELD f d AT LEAST 0 AND f d AT MOST 1) `the dates in calendar order`
+
+-- Date steps: every rate is a share, never goes backwards, and changes on
+-- exactly the days the section names.
+`the 2008 rate, as postponed` MEANS GIVEN d YIELD `2008 supplement rate` d TRUE
+`the 2008 rate, not postponed` MEANS GIVEN d YIELD `2008 supplement rate` d FALSE
+
+#ASSERT `the rate is a share between 0 and 1` `3% supplement rate`
+#ASSERT `the rate is a share between 0 and 1` `the 2008 rate, as postponed`
+#ASSERT `the rate is a share between 0 and 1` `the 2008 rate, not postponed`
+#ASSERT `the rate is a share between 0 and 1` `2011 supplement rate`
+#ASSERT `the rate never goes backwards` `3% supplement rate`
+#ASSERT `the rate never goes backwards` `the 2008 rate, as postponed`
+#ASSERT `the rate never goes backwards` `the 2008 rate, not postponed`
+#ASSERT `the rate never goes backwards` `2011 supplement rate`
+
+GIVEN `step days` IS A LIST OF DATE
+      f IS A FUNCTION FROM DATE TO NUMBER
+GIVETH A BOOLEAN
+DECIDE `the rate steps on exactly` `step days` `under` f IF
+    and (zipWith (GIVEN d, e YIELD (NOT (f d EQUALS f e)) EQUALS elem e `step days`)
+                 `the dates in calendar order`
+                 (drop 1 `the dates in calendar order`))
+
+#ASSERT `the rate steps on exactly` (LIST DATE_FROM_DMY 1 1 2001) `under` `3% supplement rate`
+#ASSERT `the rate steps on exactly` (LIST DATE_FROM_DMY 1 2 2008, DATE_FROM_DMY 1 1 2009, DATE_FROM_DMY 1 1 2010) `under` `the 2008 rate, not postponed`
+#ASSERT `the rate steps on exactly` (LIST DATE_FROM_DMY 1 2 2008, DATE_FROM_DMY 1 1 2009, DATE_FROM_DMY 1 10 2011) `under` `the 2008 rate, as postponed`
+#ASSERT `the rate steps on exactly` (LIST DATE_FROM_DMY 1 1 2011, DATE_FROM_DMY 1 1 2012) `under` `2011 supplement rate`
+
+-- The note to ג.3 only delays: a postponed population is never paid more,
+-- and the two differ only from 1.1.2010 to 30.9.2011.
+#ASSERT all (GIVEN d YIELD
+                    `the 2008 rate, as postponed` d AT MOST `the 2008 rate, not postponed` d
+                AND (`the 2008 rate, as postponed` d EQUALS `the 2008 rate, not postponed` d
+                     OR (d `is on or after` (DATE_FROM_DMY 1 1 2010)
+                         AND (NOT (d `is on or after` (DATE_FROM_DMY 1 10 2011))))))
+            `the dates in calendar order`
+
+-- F-1.1-a over every date: the defined term's reading (the 3% supplement
+-- raised to 3% and 5%, the 2008 supplement left at 1.5%) and the heading's
+-- reading part on every date from 1.1.2009 and on none before it.
+GIVEN d IS A DATE
+GIVETH A NUMBER
+DECIDE `3% and 2008 together, read by the defined term` d IS
+    BRANCH IF d `is on or after` (DATE_FROM_DMY 1 1 2010) THEN 5% PLUS 1.5%
+           IF d `is on or after` (DATE_FROM_DMY 1 2 2008) THEN 3% PLUS 1.5%
+           OTHERWISE `3% supplement rate` d
+
+#ASSERT all (GIVEN d YIELD
+                (NOT (`3% and 2008 together, read by the defined term` d
+                      EQUALS `3% supplement rate` d PLUS `2008 supplement rate` d FALSE))
+                EQUALS d `is on or after` (DATE_FROM_DMY 1 1 2009))
+            `the dates in calendar order`
+
+-- ו.1–3 and ה–ו: the three printed lists of percentage allowances. Every
+-- allowance is in exactly one of them, and the scaling the encoding gives
+-- it is that list's.
+`the allowances listed in ו.1` MEANS
+    LIST `class education`, `subject, laboratory, grade-level and social coordination`
+       , `split position`, `boarding-school supervision`, `security officer`
+       , `training`, `seminar coordination and guidance`
+       , `technical coordination in vocational centres`, `management`
+       , `counselling`, `matriculation preparation`
+`the allowances listed in ו.2 and in clause ו` MEANS
+    LIST `further training`, `subject and qualifications`, `special education`
+       , `seminars`, `MA or PhD degree`, `framework agreement`
+`the allowances listed in ו.3 and in clause ה` MEANS
+    LIST `supervision and guidance`, `out-of-school activity with pupils`
+       , `incentives`, `jubilee grant`
+
+GIVEN a IS A `percentage allowance`
+GIVETH A NUMBER
+DECIDE `the number of lists naming` a IS
+    count (filter (GIVEN l YIELD elem a l)
+                  (LIST `the allowances listed in ו.1`
+                      , `the allowances listed in ו.2 and in clause ו`
+                      , `the allowances listed in ו.3 and in clause ה`))
+
+#ASSERT all (GIVEN a YIELD `the number of lists naming` a EQUALS 1) `every percentage allowance`
+#ASSERT all (GIVEN a YIELD `the scaling of` a EQUALS `one full position, from a third of a position`) `the allowances listed in ו.1`
+#ASSERT all (GIVEN a YIELD `the scaling of` a EQUALS `in proportion to the position, beyond one position too`) `the allowances listed in ו.2 and in clause ו`
+#ASSERT all (GIVEN a YIELD `the scaling of` a EQUALS `in proportion to the position, up to one position`) `the allowances listed in ו.3 and in clause ה`
+
+-- Bounds and monotonicity of the position factor: never negative, never
+-- above one position under ו.1 and ו.3, never above the position under ו.2,
+-- and never smaller for a larger position.
+#ASSERT all (GIVEN a YIELD
+                all (GIVEN f YIELD
+                            `position factor of` a `at` f AT LEAST 0
+                        AND `position factor of` a `at` f AT MOST max f 1
+                        AND (   `the scaling of` a EQUALS `in proportion to the position, beyond one position too`
+                             OR `position factor of` a `at` f AT MOST 1))
+                    `the position fractions checked`
+                AND and (zipWith (GIVEN f, g YIELD `position factor of` a `at` f AT MOST `position factor of` a `at` g)
+                                 `the position fractions checked`
+                                 (drop 1 `the position fractions checked`)))
+            `every percentage allowance`
+
+-- Months over the whole space: every date named, a principal or not,
+-- postponed or not, at every position checked. The salary figures are the
+-- placeholders of the worked examples.
+GIVEN d IS A DATE, principal IS A BOOLEAN, postponed IS A BOOLEAN, f IS A NUMBER
+GIVETH A `salary month`
+DECIDE `a checked month` d principal postponed f IS
+    `salary month` WITH
+        `month`                                       IS d
+        `full-position combined salary`               IS 10000
+        `position fraction of the month`              IS f
+        `is a principal`                              IS principal
+        `in a population whose 5% step was postponed` IS postponed
+        `1994 supplement per full position`           IS 200
+
+GIVEN d IS A DATE, principal IS A BOOLEAN, postponed IS A BOOLEAN
+GIVETH A LIST OF `salary month`
+DECIDE `the checked months at every position` d principal postponed IS
+    map (GIVEN f YIELD `a checked month` d principal postponed f) `the position fractions checked`
+
+GIVEN p IS A FUNCTION FROM LIST OF `salary month` TO BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `holds in every checked case` p IF
+    all (GIVEN d YIELD
+            all (GIVEN principal YIELD
+                    all (GIVEN postponed YIELD p (`the checked months at every position` d principal postponed))
+                        (LIST TRUE, FALSE))
+                (LIST TRUE, FALSE))
+        `the dates in calendar order`
+
+GIVEN g IS A FUNCTION FROM `salary month` TO NUMBER, ms IS A LIST OF `salary month`
+GIVETH A BOOLEAN
+DECIDE `never less for a larger position` g ms IF
+    and (zipWith (GIVEN m, n YIELD g m AT MOST g n) ms (drop 1 ms))
+
+-- Monotone in the position: the salary, the 1994 supplement, and every
+-- percentage allowance (at 10%).
+GIVEN ms IS A LIST OF `salary month`
+GIVETH A BOOLEAN
+DECIDE `the salary never falls as the position grows` ms IF
+    `never less for a larger position` (GIVEN m YIELD `salary of a teaching employee` m (LIST)) ms
+
+GIVEN ms IS A LIST OF `salary month`
+GIVETH A BOOLEAN
+DECIDE `the 1994 supplement never falls as the position grows` ms IF
+    `never less for a larger position` `1994 supplement` ms
+
+GIVEN ms IS A LIST OF `salary month`
+GIVETH A BOOLEAN
+DECIDE `no percentage allowance falls as the position grows` ms IF
+    all (GIVEN a YIELD `never less for a larger position` (GIVEN m YIELD `percentage allowance amount` a 0.1 m) ms)
+        `every percentage allowance`
+
+#ASSERT `holds in every checked case` `the salary never falls as the position grows`
+#ASSERT `holds in every checked case` `the 1994 supplement never falls as the position grows`
+#ASSERT `holds in every checked case` `no percentage allowance falls as the position grows`
+
+-- The base of the percentage allowances is one full position's: the same at
+-- every position. And the salary computed two ways (the opening line's sum
+-- of א–ו, and the components before the allowances) agrees when no
+-- allowance is held.
+GIVEN ms IS A LIST OF `salary month`
+GIVETH A BOOLEAN
+DECIDE `the base is one full position's at every position` ms IF
+    all (GIVEN m YIELD `base of the percentage allowances` m
+                       EQUALS `salary before the percentage allowances` (`the same month at position` m 1))
+        ms
+
+GIVEN ms IS A LIST OF `salary month`
+GIVETH A BOOLEAN
+DECIDE `the two sums of the salary agree` ms IF
+    all (GIVEN m YIELD `salary of a teaching employee` m (LIST) EQUALS `salary before the percentage allowances` m) ms
+
+#ASSERT `holds in every checked case` `the base is one full position's at every position`
+#ASSERT `holds in every checked case` `the two sums of the salary agree`
+
+-- ה: the 1994 supplement is proportional to the position, beyond one
+-- position too, for every employee but a principal before 1.9.2001.
+GIVEN ms IS A LIST OF `salary month`
+GIVETH A BOOLEAN
+DECIDE `the 1994 supplement is proportional but for an early principal` ms IF
+    all (GIVEN m YIELD
+            (m's `is a principal` AND (NOT (m's `month` `is on or after` (DATE_FROM_DMY 1 9 2001))))
+            OR `1994 supplement` m EQUALS 200 TIMES m's `position fraction of the month`)
+        ms
+
+#ASSERT `holds in every checked case` `the 1994 supplement is proportional but for an early principal`
+
+-- F-1.1-b over every case: the letters and the names part wherever the
+-- 1994 supplement is paid, which in every checked month it is.
+GIVEN ms IS A LIST OF `salary month`
+GIVETH A BOOLEAN
+DECIDE `the letters and the names part in every month of` ms IF
+    all `the letters and the names of §1.1ו give different bases` ms
+
+#ASSERT `holds in every checked case` `the letters and the names part in every month of`
