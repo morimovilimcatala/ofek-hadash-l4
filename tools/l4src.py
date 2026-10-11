@@ -266,7 +266,11 @@ def numbered_html(numbered: list[tuple[int, str]]) -> str:
         rows.append(f'<span class=l{attr}>{highlight(line) or " "}</span>')
         prev = n
     start = numbered[0][0] - 1 if numbered else 0
-    return f'<pre class="code" dir="ltr"><code style="counter-reset:ln {start}">' + "".join(rows) + "</code></pre>"
+    # the gutter is as wide as the largest number it shows, three digits at least
+    gw = max(3, len(str(numbered[-1][0]))) if numbered else 3
+    gutter = f";--gw:{gw}" if gw != 3 else ""
+    return (f'<pre class="code" dir="ltr"><code style="counter-reset:ln {start}{gutter}">'
+            + "".join(rows) + "</code></pre>")
 
 
 def for_reading(lines: list[str], first: int) -> list[tuple[int, str]]:
