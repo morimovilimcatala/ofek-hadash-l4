@@ -203,3 +203,75 @@ DECIDE `within the quota of district coordinators` `approved in תשנ"ד` `appr
     NOT (`the district manager may recommend a coordinator` `a small school with half a position in the subject`
          EQUALS `the district manager may recommend a coordinator, hours governing the second kind only` `a small school with half a position in the subject`)
 #ASSERT `the two readings of the hours condition differ for a small school`
+
+§§ `Property checks`
+
+-- The section's rules over their whole finite space: schools of 0 to 60
+-- classes; a combined salary of 10000 (a placeholder); every school of 3.14.3
+-- with 0 to 4 parallel classes on average, entitled to coordination or
+-- not, 0 to 4 teachers of the subject holding 0 to 2 positions by
+-- quarters; and quotas of 0 to 600 by fifties.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`the positions checked` MEANS map (GIVEN k YIELD k DIVIDED BY 4) (range 0 8)
+`the quotas checked` MEANS map (GIVEN k YIELD k TIMES 50) (range 0 12)
+
+-- 2 over 0 to 60 classes: every school of one class or more falls in
+-- exactly one band, a school of none in none; the rate is 5%, 6% or 7%
+-- and never falls as the classes grow; the allowance is within the salary.
+#ASSERT all (GIVEN n YIELD
+                    count (filter (GIVEN b YIELD n AT LEAST b's `from classes` AND n AT MOST b's `to classes`) `the coordination allowance bands`)
+                    EQUALS (IF n AT LEAST 1 THEN 1 ELSE 0)
+                AND ((n EQUALS 0)
+                     OR `coordination allowance rate` n EQUALS 5%
+                     OR `coordination allowance rate` n EQUALS 6%
+                     OR `coordination allowance rate` n EQUALS 7%)
+                AND ((n EQUALS 0)
+                     OR `coordination allowance rate` (n PLUS 1) AT LEAST `coordination allowance rate` n)
+                AND `coordination allowance` (`coordination case` WITH `classes in the school` IS n, `the candidate is at least a certified teacher` IS TRUE, `combined salary` IS 10000)
+                    AT MOST 10000)
+            (range 0 60)
+
+GIVEN avg IS A NUMBER, entitled IS A BOOLEAN, teachers IS A NUMBER, positions IS A NUMBER
+GIVETH A `district coordination case`
+DECIDE `a checked district case` avg entitled teachers positions IS
+    `district coordination case` WITH
+        `average parallel classes per grade` IS avg
+        `entitled to subject coordination under the existing criteria` IS entitled
+        `teachers teaching the subject`      IS teachers
+        `positions all those teachers hold in the subject` IS positions
+
+GIVEN prop IS A FUNCTION FROM `district coordination case` TO BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `holds for every district case` prop IF
+    all (GIVEN avg YIELD
+            all (GIVEN entitled YIELD
+                    all (GIVEN teachers YIELD
+                            all (GIVEN positions YIELD prop (`a checked district case` avg entitled teachers positions))
+                                `the positions checked`)
+                        (range 0 4))
+                `both booleans`)
+        (range 0 4)
+
+-- F-3.14-a over the whole space: the reading adopted never allows what the
+-- other refuses, and the two part exactly on a small school whose teachers
+-- of the subject hold less than one position between them.
+GIVEN d IS A `district coordination case`
+GIVETH A BOOLEAN
+DECIDE `the readings of the hours condition part only on a small school short of a position` d IF
+        ((NOT `the district manager may recommend a coordinator` d)
+         OR `the district manager may recommend a coordinator, hours governing the second kind only` d)
+    AND (NOT (   `the district manager may recommend a coordinator` d
+              EQUALS `the district manager may recommend a coordinator, hours governing the second kind only` d))
+        EQUALS (`a small school` d AND d's `positions all those teachers hold in the subject` LESS THAN 1)
+#ASSERT `holds for every district case` `the readings of the hours condition part only on a small school short of a position`
+
+-- The quota of 3.14.3 over 0 to 600 by fifties: what is within it stays
+-- within it when fewer are approved in either year.
+#ASSERT all (GIVEN a YIELD
+                all (GIVEN b YIELD
+                        (NOT `within the quota of district coordinators` a b)
+                        OR (    `within the quota of district coordinators` (a MINUS 50) b
+                            AND `within the quota of district coordinators` a (b MINUS 50)))
+                    `the quotas checked`)
+            `the quotas checked`
