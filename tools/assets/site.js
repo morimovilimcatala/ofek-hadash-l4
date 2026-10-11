@@ -183,3 +183,92 @@
     }, { passive: true });
   });
 })();
+
+// The findings page: filter by kind, stage, collection and words; fold and
+// unfold; a link to a finding opens it (and clears a filter hiding it).
+(function () {
+  function init() {
+    var root = document.querySelector(".findings");
+    if (!root) return;
+    var cards = [].slice.call(root.querySelectorAll("details.finding"));
+    var groups = [].slice.call(root.querySelectorAll(".fgroup"));
+    var dims = ["kind", "stage", "col"];
+    var sel = { kind: {}, stage: {}, col: {} };
+    var q = "";
+    var shown = document.getElementById("fshown");
+    var none = document.querySelector(".fnone");
+    function any(o) { for (var k in o) if (o[k]) return true; return false; }
+    function apply() {
+      var n = 0;
+      cards.forEach(function (c) {
+        var ok = dims.every(function (d) { return !any(sel[d]) || sel[d][c.dataset[d]]; })
+          && (!q || c.textContent.toLowerCase().indexOf(q) >= 0);
+        c.hidden = !ok;
+        if (ok) n++;
+      });
+      groups.forEach(function (g) {
+        var v = g.querySelectorAll("details.finding:not([hidden])").length;
+        g.hidden = !v;
+        var s = g.querySelector(".gcount");
+        if (s) s.textContent = v;
+      });
+      if (shown) shown.textContent = n;
+      if (none) none.hidden = n > 0;
+      document.querySelectorAll(".ffilter .chips").forEach(function (box) {
+        box.querySelectorAll(".chip").forEach(function (b) {
+          b.setAttribute("aria-pressed", sel[box.dataset.dim][b.dataset.v] ? "true" : "false");
+        });
+      });
+    }
+    function reset() {
+      dims.forEach(function (d) { sel[d] = {}; });
+      q = "";
+      var box = document.getElementById("fq");
+      if (box) box.value = "";
+    }
+    document.querySelectorAll(".ffilter .chips").forEach(function (box) {
+      box.addEventListener("click", function (e) {
+        var b = e.target.closest(".chip");
+        if (!b) return;
+        var d = box.dataset.dim;
+        sel[d][b.dataset.v] = !sel[d][b.dataset.v];
+        apply();
+      });
+    });
+    document.querySelectorAll(".mcell").forEach(function (b) {
+      b.addEventListener("click", function () {
+        reset();
+        sel.kind[b.dataset.kind] = true;
+        sel.stage[b.dataset.stage] = true;
+        apply();
+        var bar = document.querySelector(".ffilter");
+        if (bar) bar.scrollIntoView({ block: "start" });
+      });
+    });
+    var t = null;
+    var input = document.getElementById("fq");
+    if (input) input.addEventListener("input", function () {
+      clearTimeout(t);
+      t = setTimeout(function () { q = input.value.trim().toLowerCase(); apply(); }, 150);
+    });
+    function setAll(open) {
+      cards.forEach(function (c) { if (!c.hidden) c.open = open; });
+    }
+    var o = document.getElementById("fopen"), c = document.getElementById("fclose"), r = document.getElementById("freset");
+    if (o) o.addEventListener("click", function () { setAll(true); });
+    if (c) c.addEventListener("click", function () { setAll(false); });
+    if (r) r.addEventListener("click", function () { reset(); apply(); });
+    function openHash() {
+      var id = decodeURIComponent(location.hash.slice(1));
+      var el = id && document.getElementById(id);
+      if (!el || !el.matches("details.finding")) return;
+      if (el.hidden) { reset(); apply(); }
+      el.open = true;
+      el.scrollIntoView({ block: "start" });
+    }
+    window.addEventListener("hashchange", openHash);
+    openHash();
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
+  else init();
+})();

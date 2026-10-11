@@ -959,60 +959,105 @@ def evidence_result(f: dict, views_by_file: dict[str, SectionView]) -> dict:
 
 
 def findings_page(findings, views_by_file, key_to_view) -> str:
+    """Every finding, grouped by the section or circular it is about, each
+    folded to its title. A bar over them filters by kind, stage, collection
+    and words (assets/site.js); a link to a finding opens it."""
     counts: dict[tuple[str, str], int] = {}
     for f in findings:
         counts[(f["kind"], f["stage"])] = counts.get((f["kind"], f["stage"]), 0) + 1
+    # each cell of the matrix sets the filter to that kind and stage
     matrix = ('<div class="scroll-x"><table class="diag matrix"><thead><tr><th>סוג \\ שלב</th>'
               + "".join(f'<th title="{esc(d)}">{esc(t)}</th>' for t, d in STAGES.values())
               + "</tr></thead><tbody>"
-              + "".join(f'<tr><th title="{esc(d)}"><a href="#k-{k}">{esc(t)}</a></th>'
-                        + "".join(f"<td>{counts.get((k, st), '')}</td>" for st in STAGES) + "</tr>"
+              + "".join(f'<tr><th title="{esc(d)}">{esc(t)}</th>'
+                        + "".join(f'<td>{f"<button type=button class=mcell data-kind={k} data-stage={st}>{counts[(k, st)]}</button>" if counts.get((k, st)) else ""}</td>'
+                                  for st in STAGES) + "</tr>"
                         for k, (t, d) in KINDS.items())
               + "</tbody></table></div>")
     by_id = {f["id"]: f for f in findings}
-    groups = []
-    for kind, (label, gloss) in KINDS.items():
-        cards = []
-        for f in (x for x in findings if x["kind"] == kind):
-            ev = evidence_result(f, views_by_file)
-            where = []
-            for k in f.get("keys", []):
-                v = key_to_view.get((finding_doc(f), k))
-                if v:
-                    where.append(f'<a href="{v.href}#{esc(k)}"><bdi dir="ltr">{esc(citations(v.section).get(k, "§" + v.section.num))}</bdi></a>')
-            state = ('<span class="okay">ה־<bdi dir="ltr">#ASSERT</bdi> מתקיים: הפגם עדיין בטקסט</span>' if ev["held"] else
-                     '<span class="notok">הראיה אינה מתקיימת — ראו בדיקות</span>')
-            deps = "".join(f'<a href="#{esc(d)}">{esc(d)}</a> ' for d in f.get("depends_on", []) if d in by_id)
-            stage, sgloss = STAGES[f["stage"]]
-            paras = f["body"].strip().split("\n\n")
-            body = (f'<div class="fbody" lang="he" dir="rtl">{"".join(f"<p>{prose(p, link_ids=True)}</p>" for p in paras)}</div>'
-                    if is_hebrew(f["body"]) else
-                    f'<div class="fbody" lang="en" dir="ltr">{"".join(f"<p>{esc(p)}</p>" for p in paras)}</div>')
-            quote = (f'<blockquote lang="he" dir="rtl">{esc(f["quote"])}</blockquote>' if f.get("quote") else "")
-            cards.append(
-                f'<article class="finding" id="{esc(f["id"])}">'
-                f'<h3><span class="fid" dir="ltr">{esc(f["id"])}</span> {prose(f["title"])}</h3>'
-                f'<p class="fmeta"><span class="stage" title="{esc(sgloss)}">נתגלה {esc(stage)}</span> · '
-                f'{" · ".join(where)}</p>{quote}'
-                f'{body}'
-                f'<p class="reading"><strong>הקריאה שהקידוד מאמץ:</strong> {prose(f["reading"], link_ids=True)}</p>'
-                + (f'<p class="deps">תלוי בקריאות של: {deps}</p>' if deps else "")
-                + (f'<p class="ev"><a href="{ev["url"]}">הראיה ב-L4</a> · {state}</p>'
-                   + "".join(f'<pre class="msg" dir="ltr">{esc(m)}</pre>' for m in ev["messages"])
-                   if ev["url"] else "")
-                + f'<p class="who">נקרא על ידי {who(f["read_by"])} · {esc(REVIEW[f["review"]])}</p>'
-                + "</article>")
-        if cards:
-            groups.append(f'<section id="k-{kind}"><h2>{esc(label)} <small>— {esc(gloss)}</small></h2>{"".join(cards)}</section>')
+    order: dict[int, int] = {}
+    for i, v in enumerate(key_to_view.values()):
+        order.setdefault(id(v), i)
+    cols = dict(COLLECTIONS)
+    groups: dict[tuple, dict] = {}
+    for f in findings:
+        doc = finding_doc(f)
+        col = doc.split("/")[0]
+        v = next((key_to_view[(doc, k)] for k in f.get("keys", []) if (doc, k) in key_to_view), None)
+        if v is not None and not v.whole:
+            gkey = (doc, v.section.num)
+            label, href = f"§{v.section.num} {v.section.heading}", v.href
+        else:
+            gkey = (doc,)
+            label, href = akn.title(doc), f"{doc.removesuffix('.xml')}.html"
+        g = groups.setdefault(gkey, {"label": label, "href": href, "col": col, "cards": [],
+                                     "rank": (WORK_COLLECTIONS.index(col) if col in WORK_COLLECTIONS else 99,
+                                              order.get(id(v), 10**9) if col == "takanon" else 0, doc)})
+        ev = evidence_result(f, views_by_file)
+        where = []
+        for k in f.get("keys", []):
+            kv = key_to_view.get((doc, k))
+            if kv:
+                where.append(f'<a href="{kv.href}#{esc(k)}"><bdi dir="ltr">{esc(citations(kv.section).get(k, "§" + kv.section.num))}</bdi></a>')
+        state = ('<span class="okay">ה־<bdi dir="ltr">#ASSERT</bdi> מתקיים: הפגם עדיין בטקסט</span>' if ev["held"] else
+                 '<span class="notok">הראיה אינה מתקיימת — ראו בדיקות</span>')
+        deps = "".join(f'<a href="#{esc(d)}"><bdi dir="ltr" class="fref">{esc(d)}</bdi></a> ' for d in f.get("depends_on", []) if d in by_id)
+        stage, sgloss = STAGES[f["stage"]]
+        paras = f["body"].strip().split("\n\n")
+        body = (f'<div class="fbody" lang="he" dir="rtl">{"".join(f"<p>{prose(p, link_ids=True)}</p>" for p in paras)}</div>'
+                if is_hebrew(f["body"]) else
+                f'<div class="fbody" lang="en" dir="ltr">{"".join(f"<p>{esc(p)}</p>" for p in paras)}</div>')
+        quote = (f'<blockquote lang="he" dir="rtl">{esc(f["quote"])}</blockquote>' if f.get("quote") else "")
+        g["cards"].append(
+            f'<details class="finding" id="{esc(f["id"])}" data-kind="{f["kind"]}" data-stage="{f["stage"]}" data-col="{col}">'
+            f'<summary><span class="kind-tag {f["kind"]}">{esc(KINDS[f["kind"]][0])}</span>'
+            f'<span class="ftitle">{prose(f["title"])}</span><span class="fid" dir="ltr">{esc(f["id"])}</span></summary>'
+            f'<div class="fcard"><p class="fmeta"><span class="stage" title="{esc(sgloss)}">נתגלה {esc(stage)}</span> · '
+            f'{" · ".join(where)}</p>{quote}{body}'
+            f'<p class="reading"><strong>הקריאה שהקידוד מאמץ:</strong> {prose(f["reading"], link_ids=True)}</p>'
+            + (f'<p class="deps">תלוי בקריאות של: {deps}</p>' if deps else "")
+            + (f'<p class="ev"><a href="{ev["url"]}">הראיה ב-L4</a> · {state}</p>'
+               + "".join(f'<pre class="msg" dir="ltr">{esc(m)}</pre>' for m in ev["messages"])
+               if ev["url"] else "")
+            + f'<p class="who">נקרא על ידי {who(f["read_by"])} · {esc(REVIEW[f["review"]])}</p>'
+            + "</div></details>")
+    sections = "".join(
+        f'<section class="fgroup" data-col="{g["col"]}"><h2><a href="{g["href"]}" lang="he" dir="rtl">{esc(g["label"])}</a>'
+        f' <small class="gcount">{len(g["cards"])}</small></h2>{"".join(g["cards"])}</section>'
+        for g in sorted(groups.values(), key=lambda g: g["rank"]))
+
+    def chips(dim, items):
+        return (f'<div class="chips" data-dim="{dim}" role="group">'
+                + "".join(f'<button type="button" class="chip" data-v="{esc(v)}" aria-pressed="false">'
+                          f'{esc(label)} <span class="n">{n}</span></button>' for v, label, n in items if n)
+                + "</div>")
+    n_kind = {k: sum(f["kind"] == k for f in findings) for k in KINDS}
+    n_stage = {k: sum(f["stage"] == k for f in findings) for k in STAGES}
+    n_col = {c: sum(finding_doc(f).split("/")[0] == c for f in findings) for c in WORK_COLLECTIONS}
+    bar = ('<div class="ffilter" role="search">'
+           '<input type="search" id="fq" placeholder="חיפוש בממצאים: מילה, מזהה, סעיף…" aria-label="חיפוש בממצאים">'
+           '<div class="frow"><span class="flabel">סוג</span>'
+           + chips("kind", [(k, KINDS[k][0], n_kind[k]) for k in KINDS]) + '</div>'
+           '<div class="frow"><span class="flabel">שלב</span>'
+           + chips("stage", [(k, STAGES[k][0], n_stage[k]) for k in STAGES]) + '</div>'
+           '<div class="frow"><span class="flabel">אוסף</span>'
+           + chips("col", [(c, cols.get(c, c), n_col[c]) for c in WORK_COLLECTIONS]) + '</div>'
+           f'<div class="fstat">מוצגים <b id="fshown">{len(findings)}</b> מתוך {len(findings)}'
+           '<span class="fbtns"><button type="button" id="fopen">פתיחת הכול</button>'
+           '<button type="button" id="fclose">סגירת הכול</button>'
+           '<button type="button" id="freset">ניקוי הסינון</button></span></div></div>')
     intro = ('<h1>ממצאי L4</h1><p class="lede">מה ש<strong>הכללים</strong> טועים בו כשכותבים אותם '
              'באופן פורמלי — לא מה שעמוד מדפיס בטעות (טעות דפוס שהקורפוס תיקן נלקחת '
              'כאן כמתוקנת). לכל ממצא שתי תוויות: <strong>הסוג</strong>, מה לא תקין בחוק, '
              'ו<strong>השלב</strong>, מה גילה אותו. שורה אחת לכל פגם, לא לכל הודעה. כל ממצא נשען על '
              '<code>#ASSERT</code> בקוד שמתקיים כל עוד הפגם בטקסט; אם הטקסט יתוקן, הבדיקה תיכשל והממצא '
-             'יתיישן. ממצא הוא קריאה משפטית, ולכן הוא מציין של מי הקריאה והאם עורך הדין ראה אותו. '
-             'תוכן הממצאים כתוב כרגע באנגלית.</p>'
+             'יתיישן. ממצא הוא קריאה משפטית, ולכן הוא מציין של מי הקריאה והאם עורך הדין ראה אותו.</p>'
+             '<p>הממצאים מקובצים לפי הסעיף או החוזר שהם עוסקים בו, וכל ממצא מקופל לכותרתו: '
+             'לחיצה פותחת אותו. אפשר לסנן לפי סוג, שלב ואוסף, לחפש מילה, או ללחוץ על משבצת בטבלה.</p>'
              '<p><a href="findings.json">findings.json</a> — אותם ממצאים, למכונות, עם כתובות בקורפוס.</p>')
-    body = intro + matrix + ("".join(groups) or '<p class="empty">אין עדיין ממצאים.</p>')
+    body = (intro + matrix + bar
+            + (f'<div class="findings">{sections}</div><p class="empty fnone" hidden>אין ממצאים שמתאימים לסינון.</p>'
+               if sections else '<p class="empty">אין עדיין ממצאים.</p>'))
     return page("findings.html", f"ממצאי L4 — {TITLE}", body, tab="findings")
 
 
