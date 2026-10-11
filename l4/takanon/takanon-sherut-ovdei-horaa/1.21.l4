@@ -2034,15 +2034,18 @@ DECIDE `grades for seamanship` a IS
 -- two working years (one year in exceptional cases), for the subject, school
 -- and grades written in it; ¶3: it may be extended to a third year, and in
 -- the most exceptional cases a special approval allows a fourth. Years are
--- counted from the first year of work.
+-- counted from the first year of work. F-1.21-e: the text extends the
+-- licence "to the third year" and says nothing of extending the one-year
+-- licence of the exceptional cases; the reading adopted is that only the
+-- two-year licence is extended, so a one-year licence covers its one year.
 @ref akn:chp_1א___sec_1_21__ssec_1_21_2_6__hc_2__para_2/p2 akn:chp_1א___sec_1_21__ssec_1_21_2_6__hc_2__para_2/p3
 GIVEN `year of work` IS A NUMBER, `an exceptional one-year licence` IS A BOOLEAN, `extended to a third year` IS A BOOLEAN, `special approval for a fourth year` IS A BOOLEAN
 GIVETH A BOOLEAN
 DECIDE `the temporary licence covers the year` `year of work` `an exceptional one-year licence` `extended to a third year` `special approval for a fourth year` IF
     BRANCH IF `year of work` AT MOST 1 THEN TRUE
            IF `year of work` EQUALS 2  THEN NOT `an exceptional one-year licence`
-           IF `year of work` EQUALS 3  THEN `extended to a third year`
-           IF `year of work` EQUALS 4  THEN `extended to a third year` AND `special approval for a fourth year`
+           IF `year of work` EQUALS 3  THEN (NOT `an exceptional one-year licence`) AND `extended to a third year`
+           IF `year of work` EQUALS 4  THEN (NOT `an exceptional one-year licence`) AND `extended to a third year` AND `special approval for a fourth year`
            OTHERWISE FALSE
 
 `a recommended BA holder` MEANS `temporary-licence applicant` WITH
@@ -2665,3 +2668,177 @@ DECIDE `the Ministry funds the salary costs` `the worker holds the approval` IF
     `the worker holds the approval`
 
 -- akn:chp_1א___sec_1_21__ssec_1_21_3_11/p21 akn:chp_1א___sec_1_21__ssec_1_21_3_11/p22 The label of a specimen application form (not in the corpus text), and the source (circular נד/9, section 428).
+
+§§ `Property checks`
+
+-- The section's rules over their whole finite space: every printed licence
+-- route, every subject they name in every grade range for the worked
+-- applicants with and without one more holding, every temporary-licence
+-- applicant, every year of a temporary licence, and every day of the
+-- veterans' year.
+
+`every printed licence route` MEANS
+    concat (LIST `the general routes`, `the special-subject routes`, `the exceptional routes`)
+
+`every route name` MEANS map (GIVEN q YIELD q's `route name`) `every printed licence route`
+
+-- The route tables of 1.21.2.2–1.21.2.5: every route asks for something,
+-- no two routes share a name, and every general route a special route sends
+-- to (by its grades, less the ones it leaves out) is a route paragraphs 2–4
+-- print.
+#ASSERT all (GIVEN q YIELD NOT null (q's `route requirements`)) `every printed licence route`
+#ASSERT count (nub `every route name`) EQUALS count `every route name`
+
+GIVEN r IS A `requirement`
+GIVETH A BOOLEAN
+DECIDE `the general route it sends to is printed` r IF
+    CONSIDER r
+    WHEN `a general route` g out THEN
+            any (GIVEN q YIELD q's `licence grades` EQUALS g AND NOT elem (q's `route name`) out) `the general routes`
+        AND all (GIVEN n YIELD elem n (map (GIVEN q YIELD q's `route name`) `the general routes`)) out
+    OTHERWISE TRUE
+
+#ASSERT all (GIVEN q YIELD all `the general route it sends to is printed` (q's `route requirements`))
+            `every printed licence route`
+
+-- Holding more never closes a route: for each worked applicant, every
+-- subject the tables name and every grade range, the routes open to the
+-- applicant stay open with a further degree, certificate, exam or report.
+`every licensed subject` MEANS
+    filter (GIVEN s YIELD NOT (s EQUALS "any subject"))
+           (nub (concat (map (GIVEN q YIELD q's `licence subjects`) `every printed licence route`)))
+
+`every grade range` MEANS LIST `grades 7 to 12`, `grades 7 to 10`, `the junior high school`, `grades 11 to 12`
+
+`the worked applicants` MEANS
+    LIST `an Israeli MA in history with an Israeli history certificate`
+       , `an Israeli single-major BA in English who sat the English exams`
+       , `a foreign MA in history with no Hebrew education`
+       , `a senior certified Bible teacher for the junior high`
+
+`the further holdings checked` MEANS
+    LIST `holds a degree` 3 "mathematics" `Israel`
+       , `recognised as having full Hebrew education`
+       , `passed` `theory of education`
+       , `has a positive supervision report`
+
+GIVEN hs IS A LIST OF `holding`
+GIVETH A BOOLEAN
+DECIDE `one more holding closes no route for` hs IF
+    all (GIVEN s YIELD
+            all (GIVEN g YIELD
+                    LET open MEANS `the routes that grant the licence` hs s g
+                    IN null open
+                       OR all (GIVEN h YIELD
+                                  all (GIVEN n YIELD elem n (`the routes that grant the licence` (h FOLLOWED BY hs) s g)) open)
+                              `the further holdings checked`)
+                `every grade range`)
+        `every licensed subject`
+
+#ASSERT all `one more holding closes no route for` `the worked applicants`
+
+-- 1.21.2.6 over every recommended or unrecommended applicant, degree and
+-- equivalent-grade levels from 0 to 3, and every combination of its five
+-- other conditions: nothing without the recommendation; and a higher
+-- degree or equivalent grade never licenses fewer grades.
+GIVEN g IS A `grade range`
+GIVETH A LIST OF NUMBER
+DECIDE `the grades in` g IS
+    CONSIDER g
+    WHEN `grades 7 to 12` THEN range 7 12
+    WHEN `grades 7 to 10` THEN range 7 10
+    WHEN `the junior high school` THEN range 7 9
+    WHEN `grades 11 to 12` THEN range 11 12
+
+GIVEN a IS A `temporary-licence applicant`
+GIVETH A LIST OF NUMBER
+DECIDE `the grades a temporary licence reaches` a IS
+    nub (concat (map `the grades in` (`the grades a temporary licence may cover` a)))
+
+GIVEN recommended IS A BOOLEAN, degree IS A NUMBER, equivalent IS A NUMBER, r IS A LIST OF BOOLEAN
+GIVETH A `temporary-licence applicant`
+DECIDE `a checked temporary applicant` recommended degree equivalent r IS
+    `temporary-licence applicant` WITH
+        `recommended by the principal and the supervisor` IS recommended
+        `level of a degree in the subject`                IS degree
+        `level of an equivalent grade in an arts, sport or Oral-Law subject` IS equivalent
+        `a regular third-year student of the relevant major` IS at r 0
+        `a Shelach applicant with an Israeli degree in a listed major and a certified Shelach instructor's certificate` IS at r 1
+        `a third-year student of teacher training toward a junior-high certificate in the subject` IS at r 2
+        `a seamanship applicant with a Wingate coach, IDF sailor or naval officer certificate` IS at r 3
+
+GIVEN n IS A NUMBER
+GIVETH A LIST OF (LIST OF BOOLEAN)
+DECIDE `every row of licence conditions of length` n IS
+    IF n AT MOST 0
+    THEN LIST EMPTY
+    ELSE concat (map (GIVEN r YIELD LIST (TRUE FOLLOWED BY r), (FALSE FOLLOWED BY r))
+                     (`every row of licence conditions of length` (n MINUS 1)))
+
+#ASSERT all (GIVEN r YIELD
+                all (GIVEN d YIELD
+                        all (GIVEN e YIELD
+                                    null (`the grades a temporary licence may cover` (`a checked temporary applicant` FALSE d e r))
+                                AND all (GIVEN x YIELD elem x (`the grades a temporary licence reaches` (`a checked temporary applicant` TRUE (d PLUS 1) e r)))
+                                        (`the grades a temporary licence reaches` (`a checked temporary applicant` TRUE d e r))
+                                AND all (GIVEN x YIELD elem x (`the grades a temporary licence reaches` (`a checked temporary applicant` TRUE d (e PLUS 1) r)))
+                                        (`the grades a temporary licence reaches` (`a checked temporary applicant` TRUE d e r)))
+                            (range 0 3))
+                    (range 0 3))
+            (`every row of licence conditions of length` 4)
+
+-- The temporary licence (1.21.2.6) and the technological one (1.21.3) over
+-- every year from 0 to 6 and every combination of their extensions: a year
+-- is covered only if every earlier year is, the first year always is, and
+-- neither ever reaches a fifth year.
+#ASSERT all (GIVEN r YIELD
+                    `the temporary licence covers the year` 1 (at r 0) (at r 1) (at r 2)
+                AND NOT `the temporary licence covers the year` 5 (at r 0) (at r 1) (at r 2)
+                AND and (zipWith (GIVEN y, z YIELD
+                                    (NOT `the temporary licence covers the year` z (at r 0) (at r 1) (at r 2))
+                                    OR `the temporary licence covers the year` y (at r 0) (at r 1) (at r 2))
+                                 (range 0 5) (range 1 6))
+                AND `the temporary technological licence covers the year` 1 (at r 0) (at r 1)
+                AND NOT `the temporary technological licence covers the year` 5 (at r 0) (at r 1)
+                AND and (zipWith (GIVEN y, z YIELD
+                                    (NOT `the temporary technological licence covers the year` z (at r 0) (at r 1))
+                                    OR `the temporary technological licence covers the year` y (at r 0) (at r 1))
+                                 (range 0 5) (range 1 6)))
+            (`every row of licence conditions of length` 3)
+
+-- 1.21.1 ¶32–33 over every day from 0 to 400: a non-citizen is deemed to
+-- have resigned exactly from day 365, unless he acquired citizenship or is
+-- kept under a special contract, and once deemed he stays so.
+#ASSERT all (GIVEN d YIELD
+                all (GIVEN c YIELD
+                        all (GIVEN k YIELD
+                                `deemed to have resigned` d c k EQUALS (d AT LEAST 365 AND NOT (c OR k)))
+                            (LIST TRUE, FALSE))
+                    (LIST TRUE, FALSE))
+            (range 0 400)
+
+-- 1.21.3 (13) over ages 18 to 70 and the first five years of teaching: the
+-- exam permit is given only in the second year, and from 25 an older
+-- applicant is never refused what a younger one is given.
+#ASSERT all (GIVEN age YIELD
+                all (GIVEN y YIELD
+                            ((NOT `may get a technological exam permit` TRUE age y TRUE) OR y EQUALS 2)
+                        AND ((NOT `may get a technological exam permit` TRUE age y TRUE)
+                             OR `may get a technological exam permit` TRUE (age PLUS 1) y TRUE))
+                    (range 1 5))
+            (range 18 70)
+
+-- F-1.21-e's evidence: the paragraph's two durations and its one extension.
+-- The extension is "to the third year", the year after a two-year licence;
+-- a one-year licence ends a year earlier, and the text names no extension
+-- to its second year.
+`the years a temporary licence is given for` MEANS LIST 2, 1
+`the year the licence is extended to` MEANS 3
+
+`the extension to the third year follows only the two-year licence` MEANS
+        elem 1 `the years a temporary licence is given for`
+    AND NOT (`the year the licence is extended to` EQUALS 1 PLUS 1)
+    AND `the year the licence is extended to` EQUALS 2 PLUS 1
+    AND NOT `the temporary licence covers the year` 2 TRUE TRUE FALSE
+    AND NOT `the temporary licence covers the year` 3 TRUE TRUE FALSE
+#ASSERT `the extension to the third year follows only the two-year licence`

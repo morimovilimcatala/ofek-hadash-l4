@@ -284,3 +284,130 @@ DECIDE `value of a weekly hour above the position` c k `date` IS
 #ASSERT `hours of the base an hour above the position is paid on` `a teacher of 52 in a full position` `an extra hour` 19790101 EQUALS 28
 #ASSERT `hours of the base an hour above the position is paid on` `a teacher of 52 in a full position` `a substitution hour` 19790101 EQUALS 30
 #ASSERT `hours of the base an hour above the position is paid on` `a teacher of 52 in a full position` `a substitution hour` 19810101 EQUALS 28
+
+§§ `Property checks`
+
+-- The section's rules over their whole finite space: every age from 40 to
+-- 70 in the school year, every combination of the six circumstances of
+-- §§1.23.3–6, every weekly load from 0 to 30 hours on a base of 24 to 30,
+-- every manager by age and teaching hours, and both kinds of hour above the
+-- position on each boundary day (1.9.78, 1.9.80) and the day before.
+
+GIVEN age IS A NUMBER, base IS A NUMBER, worked IS A NUMBER
+      parttime IS A BOOLEAN, refused IS A BOOLEAN, health IS A BOOLEAN
+      nofull IS A BOOLEAN, pensioner IS A BOOLEAN, mother IS A BOOLEAN
+GIVETH AN `age-hours case`
+DECIDE `a checked age case` age base worked parttime refused health nofull pensioner mother IS
+    `age-hours case` 2024 (2024 MINUS age) base worked parttime refused health nofull pensioner mother 10000
+
+`the ages checked for age hours` MEANS range 40 70
+
+-- §§1.23.1–2 over every age: 0 hours below 50, 2 from 50, 4 from 55; one
+-- more year never lowers them; and "by 31 December" and "on 1 January or
+-- later" never both hold, the second being exactly the year before the
+-- first starts.
+#ASSERT all (GIVEN a YIELD
+                    `age hours` (`a checked age case` a 30 30 FALSE FALSE FALSE FALSE FALSE FALSE)
+                    EQUALS (BRANCH IF a AT LEAST 55 THEN 4 IF a AT LEAST 50 THEN 2 OTHERWISE 0)
+                AND `age hours` (`a checked age case` a 30 30 FALSE FALSE FALSE FALSE FALSE FALSE)
+                    AT MOST `age hours` (`a checked age case` (a PLUS 1) 30 30 FALSE FALSE FALSE FALSE FALSE FALSE)
+                AND all (GIVEN n YIELD
+                            NOT (    `reaches` n `by 31 December of the school year` (`a checked age case` a 30 30 FALSE FALSE FALSE FALSE FALSE FALSE)
+                                 AND `reaches` n `on 1 January or later in the school year` (`a checked age case` a 30 30 FALSE FALSE FALSE FALSE FALSE FALSE)))
+                        (LIST 50, 55)
+                AND (`reaches` 50 `on 1 January or later in the school year` (`a checked age case` a 30 30 FALSE FALSE FALSE FALSE FALSE FALSE)
+                     EQUALS (a EQUALS 49)))
+            `the ages checked for age hours`
+
+-- §§1.23.3–6 over every combination of the six circumstances, at 52 and
+-- 56, on 20 and 26 hours of a 30-hour base: 3א takes the reduction only
+-- from a part-timer who refused completion; each of 3ב, 4, 5 and 6 gives it
+-- back; and no one under 50 is entitled.
+GIVEN n IS A NUMBER
+GIVETH A LIST OF (LIST OF BOOLEAN)
+DECIDE `every row of circumstances of length` n IS
+    IF n AT MOST 0
+    THEN LIST EMPTY
+    ELSE concat (map (GIVEN r YIELD LIST (TRUE FOLLOWED BY r), (FALSE FOLLOWED BY r))
+                     (`every row of circumstances of length` (n MINUS 1)))
+
+GIVEN age IS A NUMBER, worked IS A NUMBER, r IS A LIST OF BOOLEAN
+GIVETH AN `age-hours case`
+DECIDE `the case of` age worked `and row` r IS
+    `a checked age case` age 30 worked (at r 0) (at r 1) (at r 2) (at r 3) (at r 4) (at r 5)
+
+#ASSERT all (GIVEN age YIELD
+                all (GIVEN worked YIELD
+                        all (GIVEN r YIELD
+                                `entitled to the age-hours reduction` (`the case of` age worked `and row` r)
+                                EQUALS (    age AT LEAST 50
+                                        AND (   (NOT (at r 0 AND at r 1))
+                                             OR at r 2 OR at r 3 OR at r 4
+                                             OR (at r 5 AND worked AT LEAST 24))))
+                            (`every row of circumstances of length` 6))
+                    (LIST 20, 26))
+            (LIST 45, 52, 56)
+
+-- §1.23.6 (F-1.23-a over the space): on a base of 24 to 30 hours, at 50
+-- or 55, a mother who refused completion is entitled exactly from 24
+-- hours, whatever the 79% is read as — the floor of 79% never binds.
+#ASSERT all (GIVEN base YIELD
+                all (GIVEN age YIELD
+                        all (GIVEN worked YIELD
+                                `entitled as a mother of a child under 14, notwithstanding section 3`
+                                    (`a checked age case` age base worked TRUE TRUE FALSE FALSE FALSE TRUE)
+                                EQUALS (worked AT LEAST 24))
+                            (range 0 base))
+                    (LIST 50, 55))
+            (range 24 30)
+
+-- §1.23.4: on every load from 1 to 26 hours, at 56 on a 30-hour base, the
+-- salary is never less for one more hour, an entitled employee is never
+-- paid less than one who is not for the same hours, and the age-position
+-- (26 hours) pays a full position's salary.
+#ASSERT all (GIVEN w YIELD
+                    `monthly salary` (`a checked age case` 56 30 w TRUE FALSE FALSE TRUE FALSE FALSE)
+                    AT MOST `monthly salary` (`a checked age case` 56 30 (w PLUS 1) TRUE FALSE FALSE TRUE FALSE FALSE)
+                AND `monthly salary` (`a checked age case` 56 30 w TRUE FALSE FALSE TRUE FALSE FALSE)
+                    AT LEAST `monthly salary` (`a checked age case` 56 30 w TRUE TRUE FALSE FALSE FALSE FALSE))
+            (range 1 26)
+#ASSERT `monthly salary` (`a checked age case` 56 30 26 TRUE FALSE FALSE TRUE FALSE FALSE) EQUALS 10000
+
+-- The managers' paragraph over every age from 40 to 70 and every teaching
+-- load from 0 to 30 of a 30-hour position: the reduction is 0, 1, 2 or 4
+-- hours; never more than a teacher of the same age gets; never less for an
+-- older manager or for more teaching; nothing off a part-time position.
+GIVEN age IS A NUMBER, teaching IS A NUMBER, full IS A BOOLEAN
+GIVETH A `manager's case`
+DECIDE `a checked manager` age teaching full IS
+    `manager's case` 2024 (2024 MINUS age) full teaching 30
+
+#ASSERT all (GIVEN a YIELD
+                all (GIVEN t YIELD
+                            elem (`managers' weekly reduction` (`a checked manager` a t TRUE)) (LIST 0, 1, 2, 4)
+                        AND `managers' weekly reduction` (`a checked manager` a t TRUE)
+                            AT MOST `age hours` (`a checked age case` a 30 30 FALSE FALSE FALSE FALSE FALSE FALSE)
+                        AND `managers' weekly reduction` (`a checked manager` a t TRUE)
+                            AT MOST `managers' weekly reduction` (`a checked manager` (a PLUS 1) t TRUE)
+                        AND `managers' weekly reduction` (`a checked manager` a t TRUE)
+                            AT MOST `managers' weekly reduction` (`a checked manager` a (t PLUS 1) TRUE)
+                        AND `managers' weekly reduction` (`a checked manager` a t FALSE) EQUALS 0)
+                    (range 0 30))
+            `the ages checked for age hours`
+
+-- General 1–2 over both kinds of hour and each boundary day: an hour above
+-- the position is paid on a base between the age-position and the full
+-- base, so never at less than the unreduced rate; extra hours step onto the
+-- age base on 1.9.78 and substitution hours on 1.9.80, and neither steps
+-- back.
+`the days checked for hours above the position` MEANS LIST 19780831, 19780901, 19800831, 19800901, 20240901
+
+#ASSERT all (GIVEN k YIELD
+                all (GIVEN d YIELD
+                            `hours of the base an hour above the position is paid on` `a teacher of 52 in a full position` k d AT LEAST 28
+                        AND `hours of the base an hour above the position is paid on` `a teacher of 52 in a full position` k d AT MOST 30
+                        AND `value of a weekly hour above the position` `a teacher of 52 in a full position` k d AT LEAST 10000 DIVIDED BY 30
+                        AND (`hours of the base an hour above the position is paid on` `a teacher of 52 in a full position` k d EQUALS 28)
+                            EQUALS (d AT LEAST (IF k EQUALS `an extra hour` THEN 19780901 ELSE 19800901)))
+                    `the days checked for hours above the position`)
+            (LIST `an extra hour`, `a substitution hour`)
