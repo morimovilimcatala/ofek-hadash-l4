@@ -163,3 +163,84 @@ DECIDE `a separate payslip line` IS
 -- akn:chp_1א___sec_1_19__ssec_1_19/p7 Source: the collective agreement of 31.8.94 and the Treasury's wage-agreements circular of 5.12.94.
 -- akn:chp_1א___sec_1_19__ssec_1_19/p8 Source: the Committee of Four's summary of 27.9.95 and a Director-General's special circular.
 -- akn:chp_1א___sec_1_19__ssec_1_19/p9 Source: the Committee of Four's summary of 27.6.02.
+
+§§ `Property checks`
+
+-- ¶3 over its whole finite space: the dates it names and the day before
+-- each, principals and not, and position shares from none to twice a
+-- position, around the caps it names (one position, 150%).
+
+`the reinforcement dates checked, in order` MEANS
+    LIST 19961231, 19970101, 20010831, 20010901, 20050101
+`the shares held checked, in order` MEANS
+    LIST 0, 0.5, 1, 1.2, 1.5, 1.8, 2
+
+GIVEN d IS A NUMBER, principal IS A BOOLEAN, share IS A NUMBER
+GIVETH A `reinforcement month`
+DECIDE `a checked reinforcement month` d principal share IS
+    `reinforcement month` WITH
+        `month as a date`                IS d
+        `position share held`            IS share
+        `is a principal`                 IS principal
+        `supplement for a full position` IS `the amount from 1.1.01`
+
+GIVEN d IS A NUMBER, principal IS A BOOLEAN, share IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the share paid on` d principal share IS
+    `the position share the supplement is paid on` (`a checked reinforcement month` d principal share)
+
+-- Bounds: never negative and never more than the share held; a principal
+-- never on more than 150%, and never on more than a teacher in the same
+-- month at the same share (¶3 only ever restricts the principals).
+#ASSERT all (GIVEN d YIELD
+                all (GIVEN s YIELD
+                            `the share paid on` d TRUE s AT LEAST 0
+                        AND `the share paid on` d FALSE s AT MOST s
+                        AND `the share paid on` d TRUE s AT MOST min s 1.5
+                        AND `the share paid on` d TRUE s AT MOST `the share paid on` d FALSE s)
+                    `the shares held checked, in order`)
+            `the reinforcement dates checked, in order`
+
+-- Monotonicity: a larger share is never paid on less, and a later month
+-- never on less for the same share (each date only lifts a cap).
+#ASSERT all (GIVEN d YIELD
+                all (GIVEN p YIELD
+                        and (zipWith (GIVEN a, b YIELD `the share paid on` d p a AT MOST `the share paid on` d p b)
+                                     `the shares held checked, in order` (drop 1 `the shares held checked, in order`)))
+                    (LIST TRUE, FALSE))
+            `the reinforcement dates checked, in order`
+#ASSERT all (GIVEN s YIELD
+                all (GIVEN p YIELD
+                        and (zipWith (GIVEN a, b YIELD `the share paid on` a p s AT MOST `the share paid on` b p s)
+                                     `the reinforcement dates checked, in order` (drop 1 `the reinforcement dates checked, in order`)))
+                    (LIST TRUE, FALSE))
+            `the shares held checked, in order`
+
+-- Up to one position everyone is paid on the share held, on every date.
+#ASSERT all (GIVEN d YIELD
+                all (GIVEN p YIELD
+                        all (GIVEN s YIELD s GREATER THAN 1 OR `the share paid on` d p s EQUALS s)
+                            `the shares held checked, in order`)
+                    (LIST TRUE, FALSE))
+            `the reinforcement dates checked, in order`
+
+-- ¶2 (F-1.19-a over both kinds of increase and both periods): a
+-- cost-of-living increment always moves the supplement; the two periods
+-- part exactly on a general wage increase; no increase at a non-negative
+-- rate lowers it.
+GIVEN k IS A `kind of increase`, r IS A NUMBER
+GIVETH AN `increase`
+DECIDE `an increase of` k `at` r IS
+    `increase` WITH
+        `kind of the increase` IS k
+        `rate of the increase` IS r
+
+#ASSERT all (GIVEN k YIELD
+                all (GIVEN r YIELD
+                            `the supplement after one increase` `the amount from 1.1.01` TRUE (`an increase of` k `at` r) AT LEAST `the amount from 1.1.01`
+                        AND `the supplement after one increase` `the amount from 1.1.01` FALSE (`an increase of` k `at` r) AT LEAST `the amount from 1.1.01`
+                        AND (NOT (`the supplement after one increase` `the amount from 1.1.01` TRUE (`an increase of` k `at` r)
+                                  EQUALS `the supplement after one increase` `the amount from 1.1.01` FALSE (`an increase of` k `at` r)))
+                            EQUALS (k EQUALS `general wage increase` AND r GREATER THAN 0))
+                    (LIST 0, 0.01, 0.02, 0.1))
+            (LIST `cost-of-living increment`, `general wage increase`)

@@ -1505,3 +1505,120 @@ DECIDE `the supplement enters the severance base` `entitled on 1.6.81` `dismissa
     `entitled on 1.6.81` AND `dismissal date` GREATER THAN `1 June 1981`
 
 -- akn:chp_1א___sec_1_17__ssec_1_17_4/p23 akn:chp_1א___sec_1_17__ssec_1_17_4/p24 akn:chp_1א___sec_1_17__ssec_1_17_4/p25 akn:chp_1א___sec_1_17__ssec_1_17_4/p26 akn:chp_1א___sec_1_17__ssec_1_17_4/p27 akn:chp_1א___sec_1_17__ssec_1_17_4/p28 akn:chp_1א___sec_1_17__ssec_1_17_4/p29 akn:chp_1א___sec_1_17__ssec_1_17_4/p30 Subsection 1.17.4's source list (אסמכתא): a government decision, circulars, the 1994 agreements, a special agreement of 30.1.83 and a letter of 30.11.81.
+
+§§ `Property checks`
+
+-- The section's rules over their whole finite space: every position share
+-- in 24ths of a position from 0 to 2 (the hours of the 24-hour position of
+-- explanation 3) and the third of a position itself, every age from 40 to
+-- 70, both levels and both reductions, every length of a "stay hour" from
+-- 1 to 90 minutes with 1 to 7 working days, and the dates the section
+-- names with the day before each.
+
+`the shares checked` MEANS
+    append (map (GIVEN k YIELD k DIVIDED BY 24) (range 0 48)) (LIST 1 DIVIDED BY 3)
+`the shares checked, in order` MEANS
+    map (GIVEN k YIELD k DIVIDED BY 24) (range 0 48)
+
+-- 1.17.1(1)–(2) and explanation 3: the stay at one employer never falls as
+-- the share grows; it is two hours at a full position, never more up to
+-- it and never less above it; and above a third of a position it is the
+-- proportion of two hours rounded UP to the next half-hour, never below it
+-- and less than half an hour above it.
+#ASSERT and (zipWith (GIVEN a, b YIELD `stay hours at one employer` a AT MOST `stay hours at one employer` b)
+                     `the shares checked, in order` (drop 1 `the shares checked, in order`))
+#ASSERT all (GIVEN s YIELD
+                    (s GREATER THAN 1 OR `stay hours at one employer` s AT MOST 2)
+                AND (s AT MOST 1 OR `stay hours at one employer` s AT LEAST 2)
+                AND (    s AT MOST (1 DIVIDED BY 3) OR s GREATER THAN 1
+                     OR (    `stay hours at one employer` s AT LEAST 2 TIMES s
+                         AND `stay hours at one employer` s LESS THAN 2 TIMES s PLUS 0.5)))
+            `the shares checked`
+#ASSERT `stay hours at one employer` 1 EQUALS `weekly stay hours of a full position`
+#ASSERT `stay hours at one employer` 2 EQUALS 2 TIMES `weekly stay hours of a full position`
+
+-- A supervisor's stay (the procedure's ז) is a teacher's up to a full
+-- position.
+#ASSERT all (GIVEN s YIELD
+                s GREATER THAN 1 OR `a supervisor's weekly stay hours` s EQUALS `stay hours at one employer` s)
+            `the shares checked`
+
+-- 6: a general cut never raises the stay hours and never takes more than
+-- there are.
+#ASSERT all (GIVEN s YIELD
+                all (GIVEN cut YIELD
+                            `stay hours after a general cut` (`stay hours at one employer` s) cut AT LEAST 0
+                        AND `stay hours after a general cut` (`stay hours at one employer` s) cut AT MOST `stay hours at one employer` s)
+                    (LIST 0, 0.1, 0.5, 1))
+            `the shares checked`
+
+-- Explanation 1's age reduction over every age from 40 to 70: never less
+-- for an older employee, 0, 2 or 4 hours, and stepping exactly at 50 and 55.
+`the ages checked` MEANS range 40 70
+#ASSERT and (zipWith (GIVEN a, b YIELD `age reduction in weekly hours` a AT MOST `age reduction in weekly hours` b)
+                     `the ages checked` (drop 1 `the ages checked`))
+`the ages the reduction steps at` MEANS
+    filter (GIVEN a YIELD NOT (`age reduction in weekly hours` (a MINUS 1) EQUALS `age reduction in weekly hours` a))
+           `the ages checked`
+#ASSERT `the ages the reduction steps at` EQUALS LIST 50, 55
+
+-- Explanation 4 against explanation 1 (F-1.17-c, over every level and
+-- reduction): the two rows a level prints must come from ONE unreduced
+-- position, the base plus its reduction. They do for grades 1–6 and the
+-- kindergarten (28 + 2 = 26 + 4 = 30); for grade 7 and up the printed rows
+-- give 28 and 24, and only the reading adopted (22 + 2 = 20 + 4 = 24)
+-- agrees with itself.
+`every level taught` MEANS LIST `grades 1 to 6 or kindergarten`, `grade 7 and up`
+
+GIVEN l IS A `level taught`
+GIVETH A BOOLEAN
+DECIDE `one unreduced position gives the printed rows of` l IF
+    sum (`the printed base for` l 2) PLUS 2 EQUALS sum (`the printed base for` l 4) PLUS 4
+
+GIVEN l IS A `level taught`
+GIVETH A BOOLEAN
+DECIDE `one unreduced position gives the adopted bases of` l IF
+    `the position base after a reduction` l 2 PLUS 2 EQUALS `the position base after a reduction` l 4 PLUS 4
+
+#ASSERT all (GIVEN l YIELD count (`the printed base for` l 2) EQUALS 1 AND count (`the printed base for` l 4) EQUALS 1)
+            `every level taught`
+`the levels whose printed rows part` MEANS
+    filter (GIVEN l YIELD NOT `one unreduced position gives the printed rows of` l) `every level taught`
+#ASSERT `the levels whose printed rows part` EQUALS LIST `grade 7 and up`
+#ASSERT all (GIVEN l YIELD `one unreduced position gives the adopted bases of` l) `every level taught`
+
+-- F-1.17-d over every length of a stay hour from 1 to 90 minutes and every
+-- week of 1 to 7 working days: the three ways of 5א come to the two weekly
+-- stay hours of 1.17.1(1) in exactly one case, a 45-minute hour in a
+-- six-day week.
+`every kindergarten stay plan` MEANS
+    LIST `two stay hours a week after the working day or in the afternoon`,
+         `fifteen minutes at the end of every working day`,
+         `one afternoon stay hour and fifteen minutes on three days`
+
+GIVEN minutes IS A NUMBER, days IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `every way comes to two stay hours with` minutes days IF
+    all (GIVEN p YIELD `weekly stay minutes under the plan` p minutes days EQUALS 2 TIMES minutes)
+        `every kindergarten stay plan`
+
+`the hour lengths and weeks where the three ways agree` MEANS
+    concat (map (GIVEN m YIELD
+                    map (GIVEN d YIELD m TIMES 10 PLUS d)
+                        (filter (GIVEN d YIELD `every way comes to two stay hours with` m d) (range 1 7)))
+                (range 1 90))
+#ASSERT `the hour lengths and weeks where the three ways agree` EQUALS LIST 456
+
+-- 1.17.4(1): the supplement on top of the combined salary is paid exactly
+-- from 1.6.81 to 31.12.93, and the base of the percentage allowances is
+-- the combined salary with it there and the combined salary alone outside
+-- it (before, no supplement; after, the tables include it).
+`the supplement dates checked` MEANS
+    LIST 19810531, 19810601, 19810831, 19810901, 19931231, 19940101, 20200101
+
+#ASSERT all (GIVEN d YIELD
+                    (`the stay supplement paid on top of the tables` d 10000 TRUE GREATER THAN 0)
+                    EQUALS (d AT LEAST `1 June 1981` AND d LESS THAN `1 January 1994`)
+                AND `the base of percentage allowances` d 10000
+                    EQUALS (IF d AT LEAST `1 June 1981` AND d LESS THAN `1 January 1994` THEN 11000 ELSE 10000))
+            `the supplement dates checked`
