@@ -1456,10 +1456,9 @@ def coverage_page(all_views: dict[str, list[SectionView]]) -> str:
     head = (f'<h1>כיסוי</h1>'
             f'<p class="lede">כמה מהקורפוס מקודד ב-L4. המכנה הוא רשימת המסמכים של הקורפוס עצמו '
             f'— {len(manifest)} מסמכים — ולא רק מה שהתחיל. מסמך מתחלק לסעיפים וסעיף לפסקאות; פסקה היא '
-            f'<span class="sw rule"></span> מקודדת ככלל, <span class="sw note"></span> נקראה ונמצא '
-            f'שאין בה כלל (רשימת מקורות, הערת תיקון — עם הנימוק), '
-            f'<span class="sw missing"></span> בסעיף מקודד אך אין קוד שמצטט אותה, או '
-            f'<span class="sw todo"></span> בסעיף שטרם קודד.</p>'
+            f'<span class="sw read"></span> נקראה — קוד ה־L4 מצטט אותה, בכלל או בהערה שאומרת למה אין בה כלל, '
+            f'<span class="sw missing"></span> לא צוטטה — בסעיף מקודד אך אין קוד שמצטט אותה, או '
+            f'<span class="sw todo"></span> טרם קודדה — בסעיף שטרם קודד.</p>'
             f'<div class="kpis">'
             f'<div><b>{n_docs_done}</b> / {len(manifest)}<span>מסמכים מקודדים במלואם</span></div>'
             + (f'<div><b>{len(DOCUMENTS) - n_docs_done}</b><span>מסמכים בעבודה</span></div>'
@@ -1467,7 +1466,6 @@ def coverage_page(all_views: dict[str, list[SectionView]]) -> str:
             + f'<div><b>{done}</b> / {len(flat)}<span>חלקים מקודדים במלואם</span></div>'
             f'<div><b>{part}</b><span>חלקים מקודדים בחלקם</span></div>'
             f'<div><b>{t["rule"] + t["note"]}</b> / {paras}<span>פסקאות שנקראו</span></div>'
-            f'<div><b>{t["rule"]}</b><span>פסקאות עם כלל</span></div>'
             f'</div>')
     parts = [head]
     def cell(v: SectionView) -> str:
@@ -1477,9 +1475,12 @@ def coverage_page(all_views: dict[str, list[SectionView]]) -> str:
             segs = '<i class="todo" style="flex:1"></i>'
             tip = f"{name} {v.section.heading}: טרם קודד ({len(v.text_rows)} פסקאות)"
         else:
+            # a paragraph is read or it is not: whether the L4 beside it is a
+            # rule or a note saying why there is none is not coverage
             c = tally(v)
-            segs = "".join(f'<i class="{k}" style="flex:{c[k]}"></i>'
-                           for k in ("rule", "note", "missing") if c[k])
+            read = c["rule"] + c["note"]
+            segs = "".join(f'<i class="{k}" style="flex:{n}"></i>'
+                           for k, n in (("read", read), ("missing", c["missing"])) if n)
             tip = f"{name} {v.section.heading}" + (f": {c['missing']} פסקאות לא צוטטו" if c["missing"] else "")
         return (f'<a class="cell" href="{v.href}" title="{esc(tip)}" style="flex:{n}">{segs}</a>')
 
