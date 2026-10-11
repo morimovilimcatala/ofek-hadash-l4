@@ -17,10 +17,12 @@ The site is in English; the corpus's text is shown as it is, in Hebrew.
 """
 from __future__ import annotations
 
+import hashlib
 import html
 import json
 import re
 import shutil
+import subprocess
 import sys
 import tomllib
 from dataclasses import dataclass, field
@@ -380,6 +382,39 @@ DECL = re.compile(r"""^\s*(?:DECIDE\s+)?`([^`]+)`|^\s*DECLARE\s+(`[^`]+`|\S+)
                   re.VERBOSE)
 
 
+DIGRAPH = re.compile(r"^digraph \{.*?^\}", re.S | re.M)
+GRAPH_LABEL = re.compile(r'graph \[[^\]]*?label=(?:"((?:[^"\\]|\\.)*)"|([^\s,\]]+))', re.S)
+GRAPHS = OUT / "assets" / "graphs"
+
+
+def state_graphs(v: "SectionView") -> dict[str, str]:
+    """rule name -> the site path of its state diagram (an SVG drawn by
+    GraphViz from `l4 state-graph`, which l4run.py keeps beside the run).
+    Nothing when GraphViz is not installed: the page then shows no diagram."""
+    if v.l4 is None or not shutil.which("dot"):
+        return {}
+    rel_ = v.l4.relative_to(ROOT / "l4")
+    dot = ROOT / "build" / "l4" / rel_.parent / (rel_.name.removesuffix(".l4") + ".graph.dot")
+    if not dot.exists():
+        return {}
+    out = {}
+    for m in DIGRAPH.finditer(dot.read_text(encoding="utf-8")):
+        lab = GRAPH_LABEL.search(m.group(0))
+        if not lab:
+            continue
+        src = m.group(0)
+        name = hashlib.sha1(src.encode()).hexdigest()[:16] + ".svg"
+        svg = GRAPHS / name
+        if not svg.exists():
+            GRAPHS.mkdir(parents=True, exist_ok=True)
+            r = subprocess.run(["dot", "-Tsvg"], input=src, capture_output=True, text=True)
+            if r.returncode != 0:
+                continue
+            svg.write_text(r.stdout, encoding="utf-8")
+        out[_norm((lab.group(1) or lab.group(2)).replace('\\"', '"'))] = f"assets/graphs/{name}"
+    return out
+
+
 def declared(seg: l4src.Segment) -> list[str]:
     out = []
     for line in seg.lines:
@@ -579,7 +614,8 @@ def results_html(seg: l4src.Segment) -> str:
     return '<ul class="results">' + "".join(items) + "</ul>"
 
 
-def segment_html(v: SectionView, s: l4src.Segment, rendered: dict[int, str]) -> str:
+def segment_html(v: SectionView, s: l4src.Segment, rendered: dict[int, str],
+                 graphs: dict[str, str] | None = None) -> str:
     gh = f"{REPO}/blob/main/{v.l4.relative_to(ROOT)}#L{s.start}-L{s.end}"
     if s.note_only:
         return (f'<div class="seg note"><span class="note-label">ללא כלל</span>'
@@ -592,9 +628,16 @@ def segment_html(v: SectionView, s: l4src.Segment, rendered: dict[int, str]) -> 
             'או חלק מכלל שמוצג ליד פסקה אחרת.</div>')
     notes = "".join(f'<div class="seg note"><span class="note-label">ללא כלל</span>'
                     f'<span class="note-text" lang="en" dir="ltr">{esc(n)}</span></div>' for n in l4src.lead_notes(s.lines))
+    # an obligation (MUST / MAY / SHANT) as L4 draws it: `l4 state-graph`
+    diagram = "".join(
+        f'<details class="graph" dir="rtl"><summary>תרשים המצבים של החובה</summary>'
+        f'<div class="graph-box" dir="ltr"><a href="{esc(graphs[n])}" target="_blank" rel="noopener" '
+        f'title="פתיחה בגודל מלא"><img loading="lazy" src="{esc(graphs[n])}" '
+        f'alt="{esc(n)}: state diagram"></a></div></details>'
+        for n in dict.fromkeys(declared(s)) if graphs and n in graphs)
     return (f'{notes}<div class="seg" dir="ltr">'
             f'<div class="view code-view">{l4src.numbered_html(l4src.for_reading(s.lines, s.start))}</div>'
-            f'{rend}{results_html(s)}'
+            f'{rend}{diagram}{results_html(s)}'
             f'<div class="seg-foot">{others}<a class="gh" href="{gh}">קוד מקור, שורות {s.start}–{s.end}</a></div>'
             f'</div>')
 
@@ -676,6 +719,7 @@ def section_block(v: SectionView, here: str, headless: bool = False) -> str:
                 f'<div class="grid only-text">{rows}</div></section>')
 
     rendered = rendered_for(v)
+    graphs = {n: rel(p, here) for n, p in state_graphs(v).items()}
     out = []
     for r in sec.rows:
         segs = v.anchors.get(r.key, [])
@@ -686,7 +730,7 @@ def section_block(v: SectionView, here: str, headless: bool = False) -> str:
             cls.append("covered")
         if segs and all(s.note_only for s in segs):
             cls.append("noted")
-        code = "".join(segment_html(v, s, rendered) for s in segs)
+        code = "".join(segment_html(v, s, rendered, graphs) for s in segs)
         if "covered" in cls and v.covered_by.get(r.key, r.key) != r.key:
             # covered by a segment that sits beside an earlier row (a note
             # on the whole preamble, a rule citing a list's head): say so
@@ -714,7 +758,7 @@ def section_block(v: SectionView, here: str, headless: bool = False) -> str:
     if v.appendix:
         appendix = ('<details class="appendix"><summary>הגדרות משותפות, דוגמאות ובדיקות '
                     f'<span class="meta">({len(v.appendix)})</span></summary>'
-                    + "".join(segment_html(v, s, rendered) for s in v.appendix) + '</details>')
+                    + "".join(segment_html(v, s, rendered, graphs) for s in v.appendix) + '</details>')
     return (f'<section class="tsec" id="{esc(sec.eid)}">{head}{unplaced}'
             f'<div class="grid">{"".join(out)}</div>{appendix}</section>')
 

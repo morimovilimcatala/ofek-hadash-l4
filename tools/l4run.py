@@ -4,6 +4,7 @@ For each file under l4/ this writes, to build/l4/<same path>:
 
   .run.json      `l4 run --json`  — diagnostics and every #EVAL/#ASSERT result
   .render.html   `l4 render`      — L4's own rendering of the rules as a document
+  .graph.dot     `l4 state-graph` — each regulative rule as a state diagram (GraphViz)
 
 A file's outputs are keyed by the bytes of every .l4 file in its directory
 (a section imports its document's shared vocabulary) and by the compiler's
@@ -63,6 +64,7 @@ def outputs(path: Path) -> dict[str, Path]:
     d = OUT / rel.parent
     return {"run": d / f"{stem}.run.json",
             "render": d / f"{stem}.render.html",
+            "graph": d / f"{stem}.graph.dot",
             "key": d / f"{stem}.key"}
 
 
@@ -105,6 +107,8 @@ def run_one(path: Path, exe: str, cid: str) -> tuple[Path, bool, bool]:
     k = key(path, cid)
     if out["key"].exists() and out["key"].read_text() == k:
         ok = json.loads(out["run"].read_text()).get("ok", False)
+        if not out["graph"].exists():
+            write_graph(path, exe, out["graph"])
         return path, ok, False
     out["run"].parent.mkdir(parents=True, exist_ok=True)
     cwd = path.parent
@@ -128,8 +132,16 @@ def run_one(path: Path, exe: str, cid: str) -> tuple[Path, bool, bool]:
                         cwd=cwd, capture_output=True, text=True)
     out["render"].write_text(rr.stdout if rr.returncode == 0 else "",
                              encoding="utf-8")
+    write_graph(path, exe, out["graph"])
     out["key"].write_text(k)
     return path, bool(data.get("ok")), True
+
+
+def write_graph(path: Path, exe: str, dest: Path) -> None:
+    """Every MUST/MAY/SHANT the file declares, as L4's own state diagram."""
+    g = subprocess.run([exe, "state-graph", path.name], cwd=path.parent,
+                       capture_output=True, text=True)
+    dest.write_text(g.stdout if g.returncode == 0 else "", encoding="utf-8")
 
 
 def main(argv: list[str]) -> int:

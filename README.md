@@ -29,8 +29,13 @@ obligations as L4 regulative rules.
   two-column comparison, paragraph by paragraph: the text, and the L4 that
   encodes it (switchable to `l4 render`'s natural-language rendering). The
   results of the file's `#EVAL`/`#ASSERT`/`#TRACE` sit under the code they test.
+  Each obligation (`MUST`/`MAY`/`SHANT`) carries its state diagram, drawn by
+  `l4 state-graph` and GraphViz (`dot`, which `make site` needs installed to
+  draw them; without it the pages are built with no diagrams).
 - **L4 findings** — what encoding found wrong in the law itself, by kind and
-  by the stage that caught it (`findings.json` for machines).
+  by the stage that caught it (`findings.json` for machines), grouped by
+  section or circular, folded to a title, and filterable by kind, stage,
+  collection and words.
 - **Coverage** — how much of the corpus is encoded, against the corpus's own
   document list.
 - **Diagnostics** — the L4 checker's report, file by file.
