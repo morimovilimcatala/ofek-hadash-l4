@@ -38,6 +38,12 @@ obligations as L4 regulative rules.
   closed below; on the findings page, every section and circular that has
   findings, with its count, following the filters; elsewhere, every
   collection.
+- **Salary calculator** (`calculator.html`) — a form for §1.1's
+  `salary of a teaching employee`: its fields and allowance kinds are read
+  off the L4 file, and "חישוב" runs that file, with the form's values and an
+  `#EVALTRACE` appended, through L4's own evaluator compiled to WebAssembly.
+  It shows the total, each component with its clause, and the evaluation
+  trace. Nothing in it re-implements a rule.
 - **L4 findings** — what encoding found wrong in the law itself, by kind and
   by the stage that caught it (`findings.json` for machines), grouped by
   section or circular, folded to a title, and filterable by kind, stage,
@@ -53,8 +59,28 @@ The site is in Hebrew, right to left (the client, 2026-10-10). The L4 code and t
 
 ```sh
 toolchain/build-l4.sh          # once: GHC 9.10.2 + cabal, builds `l4` (~30-60 min cold)
+toolchain/build-wasm.sh        # only to rebuild the calculator's evaluator (see below)
 make l4 site test
 python3 -m http.server -d build/site
 ```
 
 The working rules are in [CLAUDE.md](CLAUDE.md).
+
+### The calculator's evaluator
+
+`tools/assets/l4wasm/` holds `l4.wasm` (the L4 evaluator, `wasm-opt -Oz`)
+and `l4.mjs` (GHC's JavaScript glue for it), committed so that the site
+build needs no WASM toolchain. `BUILD.toml` beside them records what they
+were built from: the commit in `toolchain/L4_COMMIT` plus
+`toolchain/wasm-trace.patch`, with the sha256 of each file; a test fails if
+either pin moves without a rebuild.
+
+The patch is ours and is not upstream. It changes `jl4-core/src/L4/API.hs`
+in two ways: an `#EVALTRACE` result in the evaluator's JSON carries its
+trace (`trace`, a tree of steps and values, and `traceText`, the text `l4`
+prints), where upstream drops it; and a new export, `l4_eval_files`, takes
+the modules a source imports (here `common`), where `l4_eval` resolves only
+the built-in libraries. `toolchain/build-wasm.sh` installs GHC's WASM
+toolchain (ghc-wasm-meta at the commit in `toolchain/GHC_WASM_META`),
+applies the patch at the pinned commit, builds, and rewrites the directory.
+Bumping `L4_COMMIT` means re-running it, and checking the patch still applies.

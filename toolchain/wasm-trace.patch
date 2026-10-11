@@ -1,0 +1,102 @@
+diff --git a/jl4-core/src/L4/API.hs b/jl4-core/src/L4/API.hs
+index eb9c9b8..4943032 100644
+--- a/jl4-core/src/L4/API.hs
++++ b/jl4-core/src/L4/API.hs
+@@ -19,6 +19,7 @@ module L4.API
+   , l4Completions
+   , l4SemanticTokens
+   , l4Eval
++  , l4EvalWithFiles
+   , l4VisualizeByName
+   , l4CodeLenses
+   , l4EvalDirective
+@@ -41,12 +42,13 @@ import L4.Annotation (HasSrcRange(..), rangeOfNode)
+ import L4.Parser.SrcSpan (SrcRange(..), SrcPos(..))
+ import L4.TypeCheck (severity, prettyCheckErrorWithContext, applyFinalSubstitution)
+ import L4.TypeCheck.Types (CheckResult(..), CheckErrorWithContext(..), Severity(..), Substitution)
+-import L4.Print (prettyLayout, prettyLayoutNF, ConstructorFieldNames, extractConstructorFieldNames)
++import L4.Print (prettyLayout, prettyLayoutNF, docText, ConstructorFieldNames, extractConstructorFieldNames)
+ import L4.Syntax (Info(..), Type'(..), Resolved, OptionallyNamedType(..), TopDecl(..), Directive(..), Module(..), Section(..))
+ import L4.Annotation (emptyAnno)
+ import qualified L4.Utils.IntervalMap as IV
+ import qualified L4.EvaluateLazy as EL
+ import L4.EvaluateLazy.Machine (prettyEvalException)
++import L4.EvaluateLazy.Trace (EvalTrace(..), printExceptionOrNF)
+ 
+ import L4.TracePolicy (lspDefaultPolicy)
+ import L4.EvaluateLazy.GraphVizOptions (defaultGraphVizOptions)
+@@ -55,7 +57,7 @@ import L4.FindDefinition (findDefinition)
+ import L4.FindReferences (findReferences)
+ 
+ -- Import resolution (VFS + embedded libs)
+-import L4.API.VirtualFS (checkWithImports, emptyVFS, TypeCheckWithDepsResult(..), ResolvedImport(..))
++import L4.API.VirtualFS (vfsFromList, checkWithImports, emptyVFS, TypeCheckWithDepsResult(..), ResolvedImport(..))
+ import qualified L4.Evaluate.ValueLazy as ValLazy
+ 
+ 
+@@ -219,8 +221,12 @@ l4SemanticTokens source =
+ --
+ -- If there are parse or type errors, returns diagnostics instead.
+ l4Eval :: Text -> IO Text
+-l4Eval source =
+-  case checkWithImports emptyVFS source of
++l4Eval = l4EvalWithFiles []
++
++-- | 'l4Eval' with the modules the source imports, as (module name, source).
++l4EvalWithFiles :: [(Text, Text)] -> Text -> IO Text
++l4EvalWithFiles files source =
++  case checkWithImports (vfsFromList files) source of
+     Left errors ->
+       -- Return import/parse errors as diagnostics
+       pure $ encodeJson $ Aeson.object
+@@ -377,6 +383,17 @@ js_l4_eval source = do
+   result <- l4Eval $ Text.pack $ fromJSString source
+   pure $ toJSString $ Text.unpack result
+ 
++-- | Evaluate L4 source code whose imports are given as a JSON list of
++-- [module name, source] pairs.
++foreign export javascript "l4_eval_files"
++  js_l4_eval_files :: JSString -> JSString -> IO JSString
++
++js_l4_eval_files :: JSString -> JSString -> IO JSString
++js_l4_eval_files source files = do
++  let vfs = fromMaybe [] (Aeson.decode (LazyText.encodeUtf8 (LazyText.pack (fromJSString files))))
++  result <- l4EvalWithFiles vfs $ Text.pack $ fromJSString source
++  pure $ toJSString $ Text.unpack result
++
+ -- | Evaluate a specific directive at a position.
+ foreign export javascript "l4_eval_directive"
+   js_l4_eval_directive :: JSString -> Int -> Int -> JSString -> IO JSString
+@@ -533,14 +550,30 @@ evalResultToJson fields edr = Aeson.object $
+   [ "result" .= prettyEvalResult fields edr.result
+   , "success" .= isSuccess edr.result
+   ] ++
+-  case edr.range of
++  (case edr.range of
++    Nothing -> []
++    Just r -> ["range" .= rangeToJson r]) ++
++  -- #EVALTRACE: the trace `l4 run` prints, as text and as a tree
++  (case edr.trace of
+     Nothing -> []
+-    Just r -> ["range" .= rangeToJson r]
++    Just tr -> ["traceText" .= prettyLayout tr, "trace" .= traceToJson tr])
+   where
+     isSuccess (EL.Assertion b) = b
+     isSuccess (EL.Reduction (Right _)) = True
+     isSuccess (EL.Reduction (Left _)) = False
+ 
++-- | An evaluation trace as JSON: each node is the steps its expression
++-- took (each with the traces of the sub-expressions it forced) and the
++-- value it reached, printed as `l4 run` prints them.
++traceToJson :: EvalTrace -> Aeson.Value
++traceToJson (Trace mlabel steps v) = Aeson.object
++  [ "label" .= fmap prettyLayout mlabel
++  , "steps" .= [ Aeson.object ["expr" .= prettyLayout e, "subs" .= map traceToJson subs]
++               | (e, subs) <- steps ]
++  , "value" .= docText (printExceptionOrNF v)
++  , "error" .= either (const True) (const False) v
++  ]
++
+ -- | Pretty print an evaluation directive result value.
+ prettyEvalResult :: ConstructorFieldNames -> EL.EvalDirectiveValue -> Text
+ prettyEvalResult _fields (EL.Assertion True)       = "assertion satisfied"
