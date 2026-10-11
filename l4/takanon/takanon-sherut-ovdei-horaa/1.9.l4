@@ -58,6 +58,9 @@ GIVETH A BOOLEAN
 DECIDE `paid real expenses in any case` m IF
     m's `days employed a week` AT MOST 2
 
+-- F-1.9-e: 1ב.1 pays only one who needs transport to reach work; 1א
+-- names no such condition and its note does not bring 1ב.1 in. Encoded as
+-- printed: where a pass operates, the price of the pass, needed or not.
 @ref akn:chp_1א___sec_1_9__ssec_1_9_1__para_1__subpara_a akn:chp_1א___sec_1_9__ssec_1_9_1__para_1__subpara_a/p2 akn:chp_1א___sec_1_9__ssec_1_9_1__para_1__subpara_a/p3
 GIVEN m IS A `commuting month`
 GIVETH A NUMBER
@@ -261,7 +264,9 @@ DECIDE `the personal-matters committee decides` `a case is brought under 2ב or 
 -- F-1.9-c: a teacher in official education who moved away meets 2ב (frozen
 -- at the old rate) and, on 2ד's three conditions, 2ד (paid travel
 -- expenses). The reading adopted: 2ד is the exception to 2ב and pays the
--- present journey.
+-- present journey. F-1.9-f: 2א and 2ב, 2ב and 2ג, and 2ג and 2ד also
+-- reach one teacher with different rates, and the text orders none of
+-- them; the order adopted is 2א, then 2ד, then 2ג, then 2ב.
 @export The commuting allowance under section 1.9.1.2 of a teaching employee who works outside the jurisdiction where she lives
 GIVEN w IS A `work outside the jurisdiction` @desc the employee's situation
 GIVETH A NUMBER
@@ -726,3 +731,335 @@ DECIDE `owners' half-yearly accounting` IS
     PARTY `the head of the local education department` DOES `pass the request to the district committee` AT 10
 #TRACE `owners' half-yearly accounting` AT 0 WITH
     PARTY `the local authority or owning body` DOES `send the half-yearly summary` AT 6
+
+§§ `Property checks`
+
+-- The section's rules over their whole finite space: every combination of
+-- a commuting month's flags with 1 to 6 days a week, one to three passes and
+-- each of the five bars; every journey of one to three buses and 0 to 6
+-- stops; every spread of 6 to 24 hours over one to three schools; every
+-- combination of the eleven conditions of 1.9.1.2; every group of 1.9.3 on
+-- each boundary day the text names and the day before it; and every
+-- framework of 1.9.4 with each of its flags.
+
+-- A commuting month built from the flags under test. Amounts are
+-- placeholders: a pass of 200, real expenses of 90, a published 250 a month
+-- or 6 a journey, 8 journeys made. `bar` 0 is no bar; 1 to 5 set one of
+-- the five bars of 1ב.5 and 1ב.6.
+GIVEN pass IS A BOOLEAN, days IS A NUMBER, some IS A BOOLEAN, needs IS A BOOLEAN
+      passes IS A NUMBER, bar IS A NUMBER
+GIVETH A `commuting month`
+DECIDE `a checked month` pass days some needs passes bar IS
+    `commuting month` WITH
+        `a free monthly pass operates where the employee lives` IS pass
+        `passes the journey needs`                IS passes
+        `price of a monthly pass`                 IS 200
+        `days employed a week`                    IS days
+        `real travel expenses of the month`       IS 90
+        `needs transport to reach work`           IS needs
+        `published allowance for a full month`    IS 250
+        `published allowance per journey`         IS 6
+        `required to attend only some days`       IS some
+        `journeys made`                           IS 8
+        `in a month after the first of a continuous paid absence longer than a month` IS bar EQUALS 1
+        `in a month after the first of reserve duty longer than a month` IS bar EQUALS 2
+        `on unpaid leave`                         IS bar EQUALS 3
+        `work temporarily stopped`                IS bar EQUALS 4
+        `a month of the summer break`             IS bar EQUALS 5
+
+`both booleans` MEANS LIST TRUE, FALSE
+
+GIVEN pass IS A BOOLEAN, days IS A NUMBER, some IS A BOOLEAN, needs IS A BOOLEAN
+GIVETH A LIST OF `commuting month`
+DECIDE `the checked months for` pass days some needs IS
+    concat (map (GIVEN passes YIELD map (GIVEN bar YIELD `a checked month` pass days some needs passes bar) (range 0 5))
+                (LIST 1, 2, 3))
+
+`every checked month` MEANS
+    concat (map (GIVEN pass YIELD
+                    concat (map (GIVEN days YIELD
+                                    concat (map (GIVEN some YIELD
+                                                    concat (map (GIVEN needs YIELD `the checked months for` pass days some needs)
+                                                                `both booleans`))
+                                                `both booleans`))
+                                (range 1 6)))
+                `both booleans`)
+
+#ASSERT count `every checked month` EQUALS 864
+
+-- 1ב.5–6 (and, through 1א's note, for pass users too): a barred month pays
+-- nothing, whoever the employee is; every other month pays a non-negative
+-- amount.
+#ASSERT all (GIVEN m YIELD
+                    `commuting allowance` m AT LEAST 0
+                AND ((NOT `no allowance this month` m) OR `commuting allowance` m EQUALS 0))
+            `every checked month`
+
+-- 1א ¶4, "בכל מקרה": every pass user employed one or two days a week in a
+-- month no bar reaches is paid her real expenses, whatever else holds.
+#ASSERT all (GIVEN m YIELD
+                    (NOT m's `a free monthly pass operates where the employee lives`)
+                 OR `no allowance this month` m
+                 OR m's `days employed a week` GREATER THAN 2
+                 OR `commuting allowance` m EQUALS m's `real travel expenses of the month`)
+            `every checked month`
+
+-- 1א ¶2–3: a pass user who attends every day is refunded at most two
+-- passes, however many the journey needs.
+#ASSERT all (GIVEN m YIELD
+                    `allowance where a pass operates` m
+                    AT MOST 2 TIMES m's `price of a monthly pass`
+                 OR `paid real expenses in any case` m)
+            `every checked month`
+
+-- 1ב.1: where no pass operates, one who needs no transport is paid nothing.
+-- 1א names no such condition, and its note brings in 1ב.3, 1ב.5 and 1ב.6
+-- but not 1ב.1 (F-1.9-e): where a pass operates, a teacher employed three
+-- days or more who needs no transport to reach work is paid the price of a
+-- pass. The two regimes part on exactly that teacher.
+#ASSERT all (GIVEN m YIELD
+                    m's `needs transport to reach work`
+                 OR m's `a free monthly pass operates where the employee lives`
+                 OR `commuting allowance` m EQUALS 0)
+            `every checked month`
+
+GIVEN m IS A `commuting month`
+GIVETH A BOOLEAN
+DECIDE `paid where she needs no transport` m IF
+        (NOT m's `needs transport to reach work`)
+    AND `commuting allowance` m GREATER THAN 0
+
+`the months that pay one who needs no transport` MEANS
+    filter `paid where she needs no transport` `every checked month`
+
+#ASSERT all (GIVEN m YIELD
+                    m's `a free monthly pass operates where the employee lives`
+                AND (NOT `no allowance this month` m))
+            `the months that pay one who needs no transport`
+
+`a pass area pays a teacher who needs no transport to reach work` MEANS
+        `paid where she needs no transport` (`a checked month` TRUE 5 FALSE FALSE 1 0)
+    AND `commuting allowance` (`a checked month` TRUE 5 FALSE FALSE 1 0) EQUALS 200
+    AND `commuting allowance` (`a checked month` FALSE 5 FALSE FALSE 1 0) EQUALS 0
+#ASSERT `a pass area pays a teacher who needs no transport to reach work`
+
+-- 1ב.2 over one to three buses, 0 to 6 urban stops and either way of
+-- walking: the second bus is claimed only with two buses or more, 3 stops
+-- or more and no shorter walk; and one more stop never takes the claim away.
+GIVEN buses IS A NUMBER, walk IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `the second-bus rule holds for` buses walk IF
+        all (GIVEN stops YIELD
+                `may claim for the second bus` buses stops walk
+                EQUALS (buses AT LEAST 2 AND stops AT LEAST 3 AND NOT walk))
+            (range 0 6)
+    AND and (zipWith (GIVEN s, t YIELD
+                        (NOT `may claim for the second bus` buses s walk)
+                        OR `may claim for the second bus` buses t walk)
+                     (range 0 6) (drop 1 (range 0 6)))
+
+#ASSERT all (GIVEN buses YIELD all (GIVEN walk YIELD `the second-bus rule holds for` buses walk) `both booleans`)
+            (LIST 1, 2, 3)
+
+-- 1ב.4 over every spread of 6, 12, 18 or 24 hours over one to three
+-- schools: the allowance always attaches to some school, only to one with
+-- the greatest hours, and to more than one exactly where the greatest is
+-- shared (F-1.9-b over the whole space).
+`the hours a school may hold` MEANS LIST 6, 12, 18, 24
+
+`every spread over one to three schools` MEANS
+    append (map (GIVEN a YIELD LIST a) `the hours a school may hold`)
+           (append (concat (map (GIVEN a YIELD map (GIVEN b YIELD LIST a, b) `the hours a school may hold`)
+                                `the hours a school may hold`))
+                   (concat (map (GIVEN a YIELD
+                                    concat (map (GIVEN b YIELD map (GIVEN c YIELD LIST a, b, c) `the hours a school may hold`)
+                                                `the hours a school may hold`))
+                                `the hours a school may hold`)))
+
+#ASSERT count `every spread over one to three schools` EQUALS 84
+#ASSERT all (GIVEN hs YIELD
+                    count (`schools the allowance attaches to` hs) AT LEAST 1
+                AND all (GIVEN h YIELD h EQUALS maximum hs) (`schools the allowance attaches to` hs)
+                AND (count (`schools the allowance attaches to` hs) GREATER THAN 1)
+                    EQUALS (count (filter (GIVEN h YIELD h EQUALS maximum hs) hs) GREATER THAN 1))
+            `every spread over one to three schools`
+
+-- 1.9.1.2 over every combination of its eleven conditions. The amounts are
+-- placeholders chosen to tell the clauses apart: real bus fares 100, the
+-- rate before the move 200, at the previous workplace 250, the present
+-- journey 300.
+GIVEN n IS A NUMBER
+GIVETH A LIST OF (LIST OF BOOLEAN)
+DECIDE `every row of booleans of length` n IS
+    IF n AT MOST 0
+    THEN LIST EMPTY
+    ELSE concat (map (GIVEN r YIELD LIST (TRUE FOLLOWED BY r), (FALSE FOLLOWED BY r))
+                     (`every row of booleans of length` (n MINUS 1)))
+
+GIVEN r IS A LIST OF BOOLEAN
+GIVETH A `work outside the jurisdiction`
+DECIDE `the teacher of row` r IS
+    `work outside the jurisdiction` WITH
+        `posted there for the system's needs`           IS at r 0
+        `moved home out of the jurisdiction`            IS at r 1
+        `the move raised the travel expenses or first made them payable` IS at r 2
+        `moved at the Ministry's demand`                IS at r 3
+        `moved for personal reasons the committee recognised` IS at r 4
+        `in official education`                         IS at r 5
+        `asked for a transfer and the Ministry agreed`  IS at r 6
+        `the transfer took the workplace further from home` IS at r 7
+        `moved to another city and still works in the old one` IS at r 8
+        `asked for work in the new city and was not placed for two years` IS at r 9
+        `a realistic placement in the new city was not used` IS at r 10
+        `real bus fares for the days travelled`         IS 100
+        `allowance before the move`                     IS 200
+        `allowance at the previous workplace`           IS 250
+        `allowance on the present journey`              IS 300
+
+-- A teacher posted for the system's needs neither asked for her transfer
+-- (2ג) nor chose to keep working in the city she left (2ד); those rows are
+-- left out as cases the words exclude.
+`every teacher outside the jurisdiction` MEANS
+    filter (GIVEN w YIELD
+                (NOT w's `posted there for the system's needs`)
+             OR ((NOT w's `asked for a transfer and the Ministry agreed`)
+                 AND (NOT w's `moved to another city and still works in the old one`)))
+           (map `the teacher of row` (`every row of booleans of length` 11))
+
+DECLARE `clause of 1.9.1.2` IS ONE OF `2א`, `2ב`, `2ג`, `2ד`
+
+GIVEN w IS A `work outside the jurisdiction`
+GIVETH A LIST OF `clause of 1.9.1.2`
+DECIDE `the clauses that reach` w IS
+    concat (LIST (IF `paid real bus fares as posted` w THEN LIST `2א` ELSE EMPTY)
+               , (IF `frozen at the rate before the move under 2ב` w THEN LIST `2ב` ELSE EMPTY)
+               , (IF `held at the previous workplace's rate under 2ג` w THEN LIST `2ג` ELSE EMPTY)
+               , (IF `paid travel expenses under 2ד` w THEN LIST `2ד` ELSE EMPTY))
+
+GIVEN c IS A `clause of 1.9.1.2`, w IS A `work outside the jurisdiction`
+GIVETH A NUMBER
+DECIDE `what clause` c `pays` w IS
+    CONSIDER c
+    WHEN `2א` THEN w's `real bus fares for the days travelled`
+    WHEN `2ב` THEN min (w's `allowance on the present journey`) (w's `allowance before the move`)
+    WHEN `2ג` THEN min (w's `allowance on the present journey`) (w's `allowance at the previous workplace`)
+    WHEN `2ד` THEN w's `allowance on the present journey`
+
+-- Consistency: wherever one clause reaches the teacher, the allowance is
+-- that clause's; wherever none does, it is the present journey's.
+#ASSERT all (GIVEN w YIELD
+                CONSIDER `the clauses that reach` w
+                WHEN EMPTY THEN `allowance outside the jurisdiction` w EQUALS w's `allowance on the present journey`
+                WHEN c FOLLOWED BY rest THEN
+                    (NOT (rest EQUALS EMPTY))
+                    OR `allowance outside the jurisdiction` w EQUALS `what clause` c `pays` w)
+            `every teacher outside the jurisdiction`
+
+-- Overlap (F-1.9-f): the pairs of 2א–2ד that reach one teacher and pay her
+-- different amounts. 2ב with 2ד is F-1.9-c; the text orders none of the
+-- others either.
+GIVEN a IS A `clause of 1.9.1.2`, b IS A `clause of 1.9.1.2`
+GIVETH A BOOLEAN
+DECIDE `clauses` a `and` b `part on some teacher` IF
+    any (GIVEN w YIELD
+                elem a (`the clauses that reach` w)
+            AND elem b (`the clauses that reach` w)
+            AND NOT (`what clause` a `pays` w EQUALS `what clause` b `pays` w))
+        `every teacher outside the jurisdiction`
+
+`2א, 2ב, 2ג and 2ד reach one teacher with different rates and set no order` MEANS
+        `clauses` `2א` `and` `2ב` `part on some teacher`
+    AND `clauses` `2ב` `and` `2ג` `part on some teacher`
+    AND `clauses` `2ג` `and` `2ד` `part on some teacher`
+#ASSERT `2א, 2ב, 2ג and 2ד reach one teacher with different rates and set no order`
+#ASSERT `clauses` `2ב` `and` `2ד` `part on some teacher`
+#ASSERT NOT `clauses` `2א` `and` `2ג` `part on some teacher`
+#ASSERT NOT `clauses` `2א` `and` `2ד` `part on some teacher`
+
+-- 1.9.3 over every group, both kinds of area, and each boundary day the
+-- text names (1.4.79, 1.4.82, 1.9.90) with the day before it. Fares 90, a
+-- travel allowance of 400 and a refund under the existing instructions of
+-- 150 are placeholders.
+`the duty-travel days checked` MEANS
+    LIST DATE_FROM_DMY 31 3 1979, DATE_FROM_DMY 1 4 1979
+       , DATE_FROM_DMY 31 3 1982, DATE_FROM_DMY 1 4 1982
+       , DATE_FROM_DMY 31 8 1990, DATE_FROM_DMY 1 9 1990, DATE_FROM_DMY 1 9 2024
+
+`every duty-travel group` MEANS
+    LIST `works in an educational institution`, `role-holder on a global duty-travel rate`
+       , `in guidance, supervision or curriculum writing`
+
+GIVEN d IS A DATE, g IS A `duty-travel group`, pass IS A BOOLEAN
+GIVETH A NUMBER
+DECIDE `duty travel checked on` d g pass IS
+    `duty-travel compensation` d g pass 400 90 150
+
+-- Never negative, and never more than the larger of the three measures.
+-- From 1.4.79 to 31.3.82 every group is refunded the fares (clause 1);
+-- from 1.4.82 an institution teacher gets 25% of the allowance and the
+-- others their existing refund (clause 2); from 1.9.90 nobody in a pass
+-- area is paid (clause 3, read as F-1.9-d reads it), and outside one
+-- clause 2 goes on.
+#ASSERT all (GIVEN d YIELD
+                all (GIVEN g YIELD
+                        all (GIVEN pass YIELD
+                                    `duty travel checked on` d g pass AT LEAST 0
+                                AND `duty travel checked on` d g pass AT MOST 150)
+                            `both booleans`)
+                    `every duty-travel group`)
+            `the duty-travel days checked`
+
+#ASSERT all (GIVEN g YIELD
+                all (GIVEN pass YIELD
+                            `duty travel checked on` (DATE_FROM_DMY 1 4 1979) g pass EQUALS 90
+                        AND `duty travel checked on` (DATE_FROM_DMY 31 3 1982) g pass EQUALS 90
+                        AND `duty travel checked on` (DATE_FROM_DMY 1 4 1982) g pass
+                            EQUALS (IF g EQUALS `works in an educational institution` THEN 100 ELSE 150)
+                        AND `duty travel checked on` (DATE_FROM_DMY 31 8 1990) g pass
+                            EQUALS `duty travel checked on` (DATE_FROM_DMY 1 4 1982) g pass
+                        AND `duty travel checked on` (DATE_FROM_DMY 1 9 1990) g pass
+                            EQUALS (IF pass THEN 0 ELSE `duty travel checked on` (DATE_FROM_DMY 1 4 1982) g pass))
+                    `both booleans`)
+            `every duty-travel group`
+
+-- 1.9.4 over every framework and each of its six flags: the refund is never
+-- negative, never more than the inter-city fares, never touched by the
+-- urban fares, and nothing outside the three frameworks or on a sabbatical.
+GIVEN f IS A `study framework`, urban IS A NUMBER, r IS A LIST OF BOOLEAN
+GIVETH A `further studies`
+DECIDE `the studies of` f `with urban fares` urban `and row` r IS
+    `further studies` WITH
+        `employed by the Ministry or an owner in its tuition-refund arrangements` IS at r 0
+        `framework`                                IS f
+        `on a full or partial sabbatical`          IS at r 1
+        `inter-city fares`                         IS 120
+        `urban fares`                              IS urban
+        `form approved by the direct manager`      IS at r 2
+        `confirmation of studies attached`         IS at r 3
+        `has a study-hours grant or tuition refund` IS at r 4
+
+`every study framework` MEANS
+    LIST `academic studies at a higher-education institution or academic college`
+       , `retraining or certification at a teacher-training institution`
+       , `courses and study days initiated by the Ministry's supervision`
+       , `another framework`
+
+#ASSERT all (GIVEN f YIELD
+                all (GIVEN r YIELD
+                            `study-travel refund` (`the studies of` f `with urban fares` 0 `and row` r) AT LEAST 0
+                        AND `study-travel refund` (`the studies of` f `with urban fares` 0 `and row` r) AT MOST 120
+                        AND `study-travel refund` (`the studies of` f `with urban fares` 0 `and row` r)
+                            EQUALS `study-travel refund` (`the studies of` f `with urban fares` 50 `and row` r)
+                        AND ((NOT (f EQUALS `another framework` OR at r 1))
+                             OR `study-travel refund` (`the studies of` f `with urban fares` 0 `and row` r) EQUALS 0))
+                    (`every row of booleans of length` 5))
+            `every study framework`
+
+-- Procedures 2–3: every framework files at least one request, and one a
+-- month at most, over studies of 1 to 12 months.
+#ASSERT all (GIVEN f YIELD
+                all (GIVEN months YIELD
+                            `requests the studies take` f months AT LEAST 1
+                        AND `requests the studies take` f months AT MOST months)
+                    (range 1 12))
+            `every study framework`
