@@ -233,3 +233,72 @@ DECIDE `a change in lesson length or break times is valid` `the district manager
 -- akn:chp_1א___sec_1_22__ssec_1_22/p2 Source list: a Director-General's circular the section rests on.
 -- akn:chp_1א___sec_1_22__ssec_1_22/p3 Source list: a Director-General's circular the section rests on.
 -- akn:chp_1א___sec_1_22__ssec_1_22/p4 Source list: a Director-General's circular the section rests on.
+
+§§ `Property checks`
+
+-- The section's rules over their whole finite space: every order of four
+-- lessons of 40, 45, 50 or 55 minutes, every number of lessons from 0 to 6
+-- in a special school and not, with joined lessons and without, and the
+-- two recommended timetables slot by slot.
+
+`the lesson lengths checked` MEANS LIST 40, 45, 50, 55
+
+`every four lesson lengths` MEANS
+    concat (map (GIVEN a YIELD
+                    concat (map (GIVEN b YIELD
+                                    concat (map (GIVEN c YIELD
+                                                    map (GIVEN d YIELD LIST a, b, c, d) `the lesson lengths checked`)
+                                                `the lesson lengths checked`))
+                                `the lesson lengths checked`))
+                `the lesson lengths checked`)
+
+-- 1א over every order of four lengths: it holds for exactly the six orders
+-- of 50, 50, 45 and 45, and each comes to 190 minutes.
+`the orders 1א allows` MEANS filter `the first four lessons are two of 50 and two of 45 minutes` `every four lesson lengths`
+#ASSERT count `the orders 1א allows` EQUALS 6
+#ASSERT all (GIVEN ls YIELD sum ls EQUALS 190) `the orders 1א allows`
+
+-- 1ב against 1א: the minimum time in school is never less than the lessons
+-- it is for take — 190 minutes for the four of 1א, at most 150 for three —
+-- and joined lessons never ask for more than separate ones.
+GIVEN lessons IS A NUMBER, special IS A BOOLEAN, joined IS A BOOLEAN
+GIVETH A `school day of a class`
+DECIDE `a checked school day` lessons special joined IS
+    `school day of a class` WITH
+        `lesson lengths`                  IS LIST 50, 50, 45, 45
+        `lessons the class studies`       IS lessons
+        `the school is a special school`  IS special
+        `the school gives joined lessons` IS joined
+        `minutes the class is in school`  IS 0
+        `the school has a restaurant`     IS FALSE
+
+#ASSERT all (GIVEN special YIELD
+                all (GIVEN joined YIELD
+                            `minimum minutes in school` (`a checked school day` 4 special joined) AT LEAST 190
+                        AND `minimum minutes in school` (`a checked school day` 4 special TRUE)
+                            AT MOST `minimum minutes in school` (`a checked school day` 4 special FALSE)
+                        AND ((NOT special) OR `minimum minutes in school` (`a checked school day` 3 special joined) AT LEAST 150))
+                    (LIST TRUE, FALSE))
+            (LIST TRUE, FALSE)
+
+-- The minimum is stated for four lessons, and for three in a special
+-- school; every other day has none (the reading beside the rule).
+#ASSERT all (GIVEN n YIELD
+                all (GIVEN special YIELD
+                        (`minimum minutes in school` (`a checked school day` n special FALSE) GREATER THAN 0)
+                        EQUALS (n EQUALS 4 OR (special AND n EQUALS 3)))
+                    (LIST TRUE, FALSE))
+            (range 0 6)
+
+-- 1ג: in each recommended timetable the slots run in order and never
+-- overlap; the first has no gap between them, and the second's gaps are its
+-- breaks of 10, 25 and 15 minutes.
+GIVEN slots IS A LIST OF `timetable slot`
+GIVETH A LIST OF NUMBER
+DECIDE `the gaps between slots` slots IS
+    zipWith (GIVEN s, t YIELD t's `slot starts` MINUS s's `slot ends`) slots (drop 1 slots)
+
+#ASSERT all (GIVEN g YIELD g EQUALS 0) (`the gaps between slots` `the first recommended timetable`)
+#ASSERT `the gaps between slots` `the second recommended timetable` EQUALS LIST 10, 25, 15
+#ASSERT all (GIVEN s YIELD `slot length` s GREATER THAN 0)
+            (append `the first recommended timetable` `the second recommended timetable`)
