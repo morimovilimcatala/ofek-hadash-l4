@@ -5,9 +5,11 @@
 Pages, laid out like the corpus they encode:
 
   index.html                       the collections, and how much is encoded
-  takanon/<doc>/index.html         a document's chapters and sections
-  takanon/<doc>/<num>.html         one section: text | L4, row by row
+  takanon/<doc>.html               the takanon's contents: its chapters and sections
+  takanon/<doc>/chapter-<n>.html   one chapter: each section's text | L4, row by row
+  takanon/<doc>/<num>.html         a redirect to the section on its chapter page
   takanon/<doc>/<num>.render.html  L4's own rendering of that section
+  <collection>/<doc>.html          a circular: its text | L4, row by row
   findings.html  findings.json     errors in the LAW that encoding exposed
   coverage.html                    how much of the corpus is encoded
   diagnostics.html                 what the L4 checker reported, file by file
@@ -161,6 +163,17 @@ def who(read_by: str) -> str:
 
 # ----------------------------------------------------------------- model
 
+HEB_LATIN = dict(zip("אבגדהוזחטיכלמנסעפצקרשת",
+                     "a b g d h v z ch t y k l m n s e p ts q r sh t".split()))
+
+
+def chapter_slug(num: str) -> str:
+    """A chapter page's file name: "1א'" -> "chapter-1a". Not the bare
+    number: a chapter that is one section ("9") has that number's redirect
+    page already."""
+    return "chapter-" + "".join(HEB_LATIN.get(c, c) for c in num if c.isalnum())
+
+
 @dataclass
 class SectionView:
     doc: str                      # corpus-relative xml path
@@ -186,10 +199,20 @@ class SectionView:
         return akn.is_whole(self.doc)
 
     @property
-    def page(self) -> str:
-        """The document's one page; a section is an anchor on it, named by
-        the same eId the corpus site uses, so links between the two match."""
+    def doc_page(self) -> str:
+        """The document's own page: a circular's text | L4, or the takanon's
+        contents."""
         return f"{self.dir}.html"
+
+    @property
+    def page(self) -> str:
+        """The page the section is on: a circular's own page, or the takanon
+        chapter that holds it (one page each: the whole takanon was 18MB).
+        A section is an anchor there, named by the same eId the corpus site
+        uses, so links between the two match."""
+        if self.whole:
+            return self.doc_page
+        return f"{self.dir}/{chapter_slug(self.section.chapter_num)}.html"
 
     @property
     def href(self) -> str:
@@ -469,9 +492,9 @@ NAV_VIEWS: dict[str, list[SectionView]] = {}
 
 def nav_html(here: str) -> str:
     """The sidebar: every encoded document, grouped as the corpus groups them.
-    The group, year and chapter holding the current page start open; on the
-    takanon's own page its sections link to their anchors, so the scrollspy
-    in site.js can mark the one in view."""
+    The group, year and chapter holding the current page start open; on a
+    takanon chapter page that chapter's sections link to their anchors, so
+    the scrollspy in site.js can mark the one in view."""
     if not NAV_VIEWS:
         return ""
     groups = []
@@ -484,18 +507,17 @@ def nav_html(here: str) -> str:
         items = []
         if not akn.is_whole(docs[0]):
             for d in docs:
-                page_ = f"{d.removesuffix('.xml')}.html"
-                on_page = here == page_
                 chapters: dict[str, list[SectionView]] = {}
                 for v in NAV_VIEWS[d]:
                     chapters.setdefault(v.section.chapter_eid, []).append(v)
                 for vs in chapters.values():
                     s0 = vs[0].section
+                    on_page = here == vs[0].page
                     lis = "".join(
                         f'<li><a href="{"#" + esc(v.section.eid) if on_page else rel(v.href, here)}" '
                         f'title="{esc(v.section.heading)}"><span class="secnum" dir="ltr">{esc(v.section.num)}</span>'
                         f'<span class="sh" lang="he" dir="rtl">{esc(v.section.heading)}</span></a></li>' for v in vs)
-                    items.append(f'<li class="toc-ch"><details><summary><span class="ch" lang="he" dir="rtl">'
+                    items.append(f'<li class="toc-ch"><details{" open" if on_page else ""}><summary><span class="ch" lang="he" dir="rtl">'
                                  f'פרק {esc(s0.chapter_num)} · {esc(s0.chapter_heading)}</span>'
                                  f'<span class="n">{len(vs)}</span></summary>'
                                  f'<ul>{lis}</ul></details></li>')
@@ -821,58 +843,104 @@ def progress(vs: list[SectionView]) -> str:
         + f'</span><span class="plegend">{"כל הפסקאות נקראו" if not (t["missing"] or t["todo"]) else "פסקאות"}: {legend}</span>')
 
 
-def document_page(doc: str, views: list[SectionView]) -> str:
-    """The whole document on one page, as the corpus publishes it: a contents
-    rail, then every section with its text beside its L4."""
-    here = f"{doc.removesuffix('.xml')}.html"
-    chapters: dict[str, list[SectionView]] = {}
+def chapters_of(views: list[SectionView]) -> list[list[SectionView]]:
+    """A sectioned document's sections, chapter by chapter, in order."""
+    out: dict[str, list[SectionView]] = {}
     for v in views:
-        chapters.setdefault(v.section.chapter_eid, []).append(v)
+        out.setdefault(v.section.chapter_eid, []).append(v)
+    return list(out.values())
+
+
+SWITCH = ('<div class="switch" role="group" aria-label="איך להציג את ה-L4">'
+          '<button type="button" data-view="code-view" aria-pressed="true">קוד</button>'
+          '<button type="button" data-view="rendered" aria-pressed="false">פרוזה (אנגלית)</button></div>')
+
+
+def old_anchor_script(doc: str, views: list[SectionView]) -> str:
+    """The takanon was one page, and a link into it carried the clause as a
+    fragment, which never reaches the server: this sends such a link on to
+    the chapter that now holds the clause. Every id on the old page began
+    with its chapter's eId (build() checks that it still does)."""
+    here = f"{doc.removesuffix('.xml')}.html"
+    to = {vs[0].section.chapter_eid: rel(vs[0].page, here) for vs in chapters_of(views)}
+    return ('<script>(function(){var h=location.hash,id;if(!h)return;'
+            'try{id=decodeURIComponent(h.slice(1))}catch(e){return}'
+            f'var to={json.dumps(to, ensure_ascii=False)};'
+            'for(var c in to)if(id===c||id.indexOf(c+"__")===0){location.replace(to[c]+h);return}'
+            '})();</script>')
+
+
+def contents_page(doc: str, views: list[SectionView]) -> str:
+    """The takanon's contents: its chapters and sections, each linking to the
+    chapter page that holds it (one page per chapter; the whole document on
+    one page was 18MB). Its address is the one the whole document had, and a
+    link into the old page by fragment is sent on to its chapter."""
+    here = f"{doc.removesuffix('.xml')}.html"
+    chapters = chapters_of(views)
     done = sum(v.status == "done" for v in views)
     part = sum(v.status == "partial" for v in views)
     nfind = len({f["id"] for v in views for r in v.section.rows for f in row_findings(v, r)})
-    toc = []
-    for vs in chapters.values():
+    parts = []
+    for vs in chapters:
         s0 = vs[0].section
         lis = "".join(
-            f'<li class="{v.status}"><a href="#{esc(v.section.eid)}">{dot(v.status)}'
+            f'<li class="{v.status}"><a href="{rel(v.href, here)}">{dot(v.status)}'
             f'<span class="secnum" dir="ltr">{esc(v.section.num)}</span>'
             f'<span class="sh" lang="he">{esc(v.section.heading)}</span></a></li>' for v in vs)
-        toc.append(f'<li class="toc-ch"><a href="#{esc(s0.chapter_eid)}" class="toc-chead" lang="he">'
-                   f'פרק {esc(s0.chapter_num)} · {esc(s0.chapter_heading)}</a><ul>{lis}</ul></li>')
-    body = []
-    for vs in chapters.values():
-        s0 = vs[0].section
-        n_done = sum(v.status == "done" for v in vs)
-        blocks = "".join(section_block(v, here) for v in vs)
-        # a chapter the corpus holds as one block is its own section; it
-        # takes the chapter's anchor itself
-        chap_id = "" if any(v.section.eid == s0.chapter_eid for v in vs) else f' id="{esc(s0.chapter_eid)}"'
-        body.append(f'<div class="chapter-band"{chap_id}><h2 lang="he" dir="rtl">פרק {esc(s0.chapter_num)} · '
-                    f'{esc(s0.chapter_heading)}</h2><span class="ccount">{n_done} מתוך {len(vs)} מקודדים</span></div>'
-                    + blocks)
-    switch = ('<div class="switch" role="group" aria-label="איך להציג את ה-L4">'
-              '<button type="button" data-view="code-view" aria-pressed="true">קוד</button>'
-              '<button type="button" data-view="rendered" aria-pressed="false">פרוזה (אנגלית)</button></div>')
+        parts.append(f'<section class="chapter" dir="rtl"><div class="chapter-head"><h2>'
+                     f'<a href="{rel(vs[0].page, here)}" lang="he" dir="rtl">פרק {esc(s0.chapter_num)} · '
+                     f'{esc(s0.chapter_heading)}</a></h2>'
+                     f'<span class="ccount">{sum(v.status == "done" for v in vs)} מתוך {len(vs)} מקודדים</span></div>'
+                     f'<ul class="secs">{lis}</ul></section>')
     head = (f'<header class="sec-head doc-head"><nav class="crumbs"><a href="{rel("index.html", here)}">מסמכים</a></nav>'
             f'<div class="title-row"><h1 lang="he" dir="rtl">{esc(akn.title(doc))}</h1></div>'
             f'<p class="lede">תקנון שירות עובדי הוראה של משרד החינוך, במלואו, '
-            f'כפי שהקורפוס מפרסם אותו: {len(views)} סעיפים ב־{len(chapters)} פרקים. כל פסקה '
+            f'כפי שהקורפוס מפרסם אותו: {len(views)} סעיפים ב־{len(chapters)} פרקים, עמוד לכל פרק. כל פסקה '
             f'של הטקסט (מימין) עומדת ליד ה-L4 שמקודד אותה (משמאל).</p>'
             f'<div class="stats"><span><b>{done}</b> מתוך {len(views)} סעיפים מקודדים</span>'
             + (f'<span><b>{part}</b> בחלקם</span>' if part else "")
             + f'<a class="fcount" href="{rel("findings.html", here)}"><b>{nfind}</b> ממצאים</a>'
             f'<a href="{CORPUS_SITE}/{doc.removesuffix(".xml")}.html">בקורפוס ↗</a></div>'
             f'{progress(views)}</header>')
-    toolbar = (f'<div class="doc-toolbar"><span class="tb-label">הצגת ה-L4:</span>{switch}'
+    return page(here, f"{akn.title(doc)} — {TITLE}", old_anchor_script(doc, views) + head + "".join(parts),
+                tab="docs", desc="תקנון שירות עובדי הוראה: הפרקים והסעיפים, כל פסקה ליד קידוד ה-L4 שלה")
+
+
+def chapter_page(doc: str, chapters: list[list[SectionView]], i: int) -> str:
+    """One chapter of the takanon: each of its sections with its text beside
+    its L4. The sidebar lists its sections (and follows the one in view)."""
+    vs = chapters[i]
+    s0 = vs[0].section
+    here = vs[0].page
+    contents = f"{doc.removesuffix('.xml')}.html"
+    n_done = sum(v.status == "done" for v in vs)
+    nfind = len({f["id"] for v in vs for r in v.section.rows for f in row_findings(v, r)})
+    name = f"פרק {s0.chapter_num} · {s0.chapter_heading}"
+    # a chapter the corpus holds as one block is its own section; it takes
+    # the chapter's anchor itself
+    chap_id = "" if any(v.section.eid == s0.chapter_eid for v in vs) else f' id="{esc(s0.chapter_eid)}"'
+    head = (f'<header class="sec-head doc-head"{chap_id}><nav class="crumbs"><a href="{rel("index.html", here)}">מסמכים</a><span>/</span>'
+            f'<a href="{rel(contents, here)}" lang="he" dir="rtl">{esc(akn.title(doc))}</a></nav>'
+            f'<div class="title-row"><h1 lang="he" dir="rtl">{esc(name)}</h1></div>'
+            f'<div class="stats"><span><b>{n_done}</b> מתוך {len(vs)} סעיפים מקודדים</span>'
+            + (f'<a class="fcount" href="{rel("findings.html", here)}"><b>{nfind}</b> ממצאים</a>' if nfind else "")
+            + f'<a href="{CORPUS_SITE}/{doc.removesuffix(".xml")}.html#{esc(s0.chapter_eid)}">בקורפוס ↗</a></div>'
+            f'{progress(vs)}</header>')
+    toolbar = (f'<div class="doc-toolbar"><span class="tb-label">הצגת ה-L4:</span>{SWITCH}'
                f'<span class="tb-where" aria-live="polite"></span>'
                f'<span class="tb-cols"><span>L4</span><span>טקסט</span></span></div>')
-    # the sidebar is the contents now (nav_html links this page's sections to
-    # their anchors); `toc` stays only for its counts
-    page_body = head + f'<div class="doc-main">{toolbar}{"".join(body)}</div>'
+    blocks = "".join(section_block(v, here) for v in vs)
 
-    return page(here, f"{akn.title(doc)} — {TITLE}", page_body, tab="docs", wide=True,
-                desc="תקנון שירות עובדי הוראה במלואו, כל פסקה ליד קידוד ה-L4 שלה")
+    def step(j: int, cls: str, label: str) -> str:
+        if not 0 <= j < len(chapters):
+            return ""
+        c = chapters[j][0]
+        return (f'<a class="{cls}" href="{rel(c.page, here)}"><small>{label}</small>'
+                f'<span lang="he" dir="rtl">פרק {esc(c.section.chapter_num)} · {esc(c.section.chapter_heading)}</span></a>')
+    prevnext = f'<nav class="prevnext">{step(i - 1, "prev", "הפרק הקודם")}{step(i + 1, "next", "הפרק הבא")}</nav>'
+    body = head + f'<div class="doc-main">{toolbar}{blocks}</div>' + prevnext
+    return page(here, f"{name} — {akn.title(doc)} — {TITLE}", body, tab="docs", wide=True,
+                desc=f"תקנון שירות עובדי הוראה, {name}: כל פסקה ליד קידוד ה-L4 שלה")
 
 
 def doc_meta(doc: str) -> dict:
@@ -897,9 +965,7 @@ def single_page(doc: str, v: SectionView) -> str:
     if v.l4:
         links += [f'<a href="{REPO}/blob/main/{v.l4.relative_to(ROOT)}">קוד מקור ↗</a>',
                   f'<a href="{rel(v.render_href, here)}">המסמך כולו כפרוזה</a>']
-    switch = ('<div class="switch" role="group" aria-label="איך להציג את ה-L4">'
-              '<button type="button" data-view="code-view" aria-pressed="true">קוד</button>'
-              '<button type="button" data-view="rendered" aria-pressed="false">פרוזה (אנגלית)</button></div>')
+    switch = SWITCH
     head = (f'<header class="sec-head"><nav class="crumbs"><a href="{rel("index.html", here)}">מסמכים</a><span>/</span>'
             f'<a href="{rel(coll + ".html", here)}">{esc(coll_name(coll))}</a></nav>'
             f'<div class="title-row"><h1 lang="he" dir="rtl">{esc(v.section.heading)}</h1>{badge(v.status)}</div>'
@@ -1056,7 +1122,7 @@ def findings_page(findings, views_by_file, key_to_view) -> str:
         for k in f.get("keys", []):
             kv = key_to_view.get((doc, k))
             if kv:
-                where.append(f'<a href="{kv.href}#{esc(k)}"><bdi dir="ltr">{esc(citations(kv.section).get(k, "§" + kv.section.num))}</bdi></a>')
+                where.append(f'<a href="{kv.page}#{esc(k)}"><bdi dir="ltr">{esc(citations(kv.section).get(k, "§" + kv.section.num))}</bdi></a>')
         state = ('<span class="okay">ה־<bdi dir="ltr">#ASSERT</bdi> מתקיים: הפגם עדיין בטקסט</span>' if ev["held"] else
                  '<span class="notok">הראיה אינה מתקיימת — ראו בדיקות</span>')
         deps = "".join(f'<a href="#{esc(d)}"><bdi dir="ltr" class="fref">{esc(d)}</bdi></a> ' for d in f.get("depends_on", []) if d in by_id)
@@ -1345,9 +1411,21 @@ def build() -> int:
                 (OUT / v.render_href).write_text(render_page(v), encoding="utf-8")
             continue
         d.mkdir(parents=True, exist_ok=True)
-        (OUT / f"{doc.removesuffix('.xml')}.html").write_text(document_page(doc, views), encoding="utf-8")
+        chapters = chapters_of(views)
+        pages = [vs[0].page for vs in chapters]
+        assert len(set(pages)) == len(pages), f"{doc}: two chapters share a page name"
+        # the contents page sends an old #fragment on by the chapter eId
+        # that begins it
+        for vs in chapters:
+            ch = vs[0].section.chapter_eid
+            for v in vs:
+                for k in [v.section.eid, *v.section.keys()]:
+                    assert k == ch or k.startswith(ch + "__"), f"{doc}: {k} is not under its chapter {ch}"
+        (OUT / f"{doc.removesuffix('.xml')}.html").write_text(contents_page(doc, views), encoding="utf-8")
+        for i, p in enumerate(pages):
+            (OUT / p).write_text(chapter_page(doc, chapters, i), encoding="utf-8")
         # the per-section pages and the chapter list this site had first
-        # now send the reader to the anchor on the one page
+        # now send the reader to the section's anchor on its chapter page
         (d / "index.html").write_text(redirect_page(f"{doc.removesuffix('.xml')}/index.html",
                                                     f"{doc.removesuffix('.xml')}.html", akn.title(doc)), encoding="utf-8")
         for v in views:

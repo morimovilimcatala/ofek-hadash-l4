@@ -120,9 +120,9 @@
   window.addEventListener("load", settleOnHash);
 
   // Long pages: an "On this page" outline of the headed rows, under the
-  // current entry of the sidebar, and a back-to-top button. On the takanon's
-  // one page the outline is the section in view; on a circular, the whole
-  // document. The outline marks the heading the reader is at.
+  // current entry of the sidebar, and a back-to-top button. On a takanon
+  // chapter page the outline is the section in view; on a circular, the
+  // whole document. The outline marks the heading the reader is at.
   function outlineOf(scope) {
     var rows = scope.querySelectorAll(".row.label");
     var items = [];

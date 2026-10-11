@@ -25,9 +25,10 @@ obligations as L4 regulative rules.
 
 ## Site
 
-- **Documents** — documents → chapters → sections. A section page is a
-  two-column comparison, paragraph by paragraph: the text, and the L4 that
-  encodes it (switchable to `l4 render`'s natural-language rendering). The
+- **Documents** — documents → chapters → sections. The takanon has a
+  contents page and a page per chapter; a circular is one page. Each section
+  is a two-column comparison, paragraph by paragraph: the text, and the L4
+  that encodes it (switchable to `l4 render`'s natural-language rendering). The
   results of the file's `#EVAL`/`#ASSERT`/`#TRACE` sit under the code they test.
   Each obligation (`MUST`/`MAY`/`SHANT`) carries its state diagram, drawn by
   `l4 state-graph` and GraphViz (`dot`, which `make site` needs installed to
