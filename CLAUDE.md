@@ -18,7 +18,12 @@ legalese/l4-ide `skills/`) for anything about the language.
   publishes. Where the page shows the corpus is wrong, missing or
   scrambled, that is a corpus issue: file it in Linear (`AKN corpus`) with
   what the page shows. The L4 takes the affected value as a named input
-  until the corpus is fixed and re-synced.
+  until the corpus is fixed and re-synced. An issue whose answer turns on
+  what a page prints carries the page (the client, 2026-10-11, MMS-440):
+  crops of the source's own pixels, enlarged by nearest-neighbour only and
+  never retouched, titled with file, page, resolution and pixel box, plus
+  a wider context image, shown inline in a comment — the corpus repo's
+  CLAUDE.md states the rule in full.
 - **A sic the corpus has marked (`[כך במקור]`) is taken as given.** The L4
   encodes the reading the corpus settled on; it is never re-litigated here
   and never filed as an L4 finding. The site does not show sic marks at all
