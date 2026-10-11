@@ -103,3 +103,66 @@ DECIDE `this year's allowance for one position` `last year's allowance` `the gen
 
 #TRACE `payment of the additional clothing allowance in June` `a PE teacher on one and a half positions` AT 0 WITH
     PARTY `the employer` DOES `pay the additional clothing allowance` 1000 AT 10
+
+§§ `Property checks`
+
+-- The section's rules over their whole finite space: a teacher of physical
+-- education or not, meeting the table's criteria or not, on 0 to 2
+-- positions by quarters, with a one-position allowance of 1000 (a
+-- placeholder); and update rates of 0% to 10%.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`the positions checked` MEANS map (GIVEN k YIELD k DIVIDED BY 4) (range 0 8)
+
+GIVEN pe IS A BOOLEAN, crit IS A BOOLEAN, f IS A NUMBER
+GIVETH A `PE clothing year`
+DECIDE `a checked PE clothing year` pe crit f IS
+    `PE clothing year` WITH
+        `teaches physical education`      IS pe
+        `meets the criteria of the table` IS crit
+        `position fraction`               IS f
+        `allowance for one position`      IS 1000
+
+GIVEN prop IS A FUNCTION FROM `PE clothing year` TO BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `holds for every PE clothing year` prop IF
+    all (GIVEN pe YIELD
+            all (GIVEN crit YIELD
+                    all (GIVEN f YIELD prop (`a checked PE clothing year` pe crit f))
+                        `the positions checked`)
+                `both booleans`)
+        `both booleans`
+
+-- 1 and the table: nothing to one who does not teach physical education
+-- or does not meet the criteria; and note (a): never less than nothing,
+-- never more than one position's allowance.
+GIVEN y IS A `PE clothing year`
+GIVETH A BOOLEAN
+DECIDE `the allowance is within one position` y IF
+        `additional clothing allowance` y AT LEAST 0
+    AND `additional clothing allowance` y AT MOST y's `allowance for one position`
+    AND (`paid the additional clothing allowance` y OR `additional clothing allowance` y EQUALS 0)
+    AND `paid the additional clothing allowance` y
+        EQUALS (y's `teaches physical education` AND y's `meets the criteria of the table`)
+#ASSERT `holds for every PE clothing year` `the allowance is within one position`
+
+-- Note (a), as read: a larger position never pays less, and every position
+-- of one or more pays exactly one position's allowance.
+#ASSERT all (GIVEN f YIELD
+                    `additional clothing allowance` (`a checked PE clothing year` TRUE TRUE (f PLUS 0.25))
+                    AT LEAST `additional clothing allowance` (`a checked PE clothing year` TRUE TRUE f)
+                AND ((f LESS THAN 1)
+                     OR `additional clothing allowance` (`a checked PE clothing year` TRUE TRUE f) EQUALS 1000))
+            `the positions checked`
+
+-- Note (b): an update at a rate of 0% leaves the allowance as it was, and
+-- a higher rate never gives less.
+#ASSERT all (GIVEN r YIELD
+                    `this year's allowance for one position` 1000 (r DIVIDED BY 100) AT LEAST 1000
+                AND `this year's allowance for one position` 1000 ((r PLUS 1) DIVIDED BY 100)
+                    GREATER THAN `this year's allowance for one position` 1000 (r DIVIDED BY 100))
+            (range 0 10)
+#ASSERT `this year's allowance for one position` 1000 0 EQUALS 1000
+
+-- 2: June, the month of payment, is the tenth month of the school year.
+#ASSERT `month number` June EQUALS 10

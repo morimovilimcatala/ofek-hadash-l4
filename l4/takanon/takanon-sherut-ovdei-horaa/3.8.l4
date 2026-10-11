@@ -87,3 +87,51 @@ DECIDE `entitled to the full salary` e IF
     PARTY `the teaching employee` DOES `complete the position in a third school` 2 AT 1
 #TRACE `completing in a third school` `28 hours in two schools, no third found` FALSE AT 0 WITH
     PARTY `the employer` DOES `require extra working hours` 1 AT 1
+
+§§ `Property checks`
+
+-- The section's rules over their whole finite space: 0 to 30 weekly hours
+-- in 0 to 3 schools, a third school found or not.
+
+`both booleans` MEANS LIST TRUE, FALSE
+
+GIVEN h IS A NUMBER, n IS A NUMBER, found IS A BOOLEAN
+GIVETH A `crafts employment`
+DECIDE `a checked crafts employment` h n found IS
+    `crafts employment` WITH
+        `weekly hours in the first two schools`   IS h
+        `number of schools`                       IS n
+        `an institution to complete in was found` IS found
+
+GIVEN prop IS A FUNCTION FROM `crafts employment` TO BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `holds for every crafts employment` prop IF
+    all (GIVEN h YIELD
+            all (GIVEN n YIELD
+                    all (GIVEN found YIELD prop (`a checked crafts employment` h n found))
+                        `both booleans`)
+                (range 0 3))
+        (range 0 30)
+
+-- ¶3 against the unit of ¶1: the hours the teacher may complete are never
+-- negative, and where there are any they bring her exactly to the 30-hour
+-- unit, never past it.
+GIVEN e IS A `crafts employment`
+GIVETH A BOOLEAN
+DECIDE `the completion fills the unit exactly` e IF
+        `weekly hours the teacher may complete in a third school` e AT LEAST 0
+    AND (   `weekly hours the teacher may complete in a third school` e EQUALS 0
+         OR    e's `weekly hours in the first two schools`
+             PLUS `weekly hours the teacher may complete in a third school` e
+           EQUALS `weekly hours in a crafts teacher's primary work unit`)
+#ASSERT `holds for every crafts employment` `the completion fills the unit exactly`
+
+-- ¶4 is a case of ¶3: the full salary goes only to a teacher who may
+-- complete, and to each of them exactly when no third school was found.
+GIVEN e IS A `crafts employment`
+GIVETH A BOOLEAN
+DECIDE `the full salary answers the completion that failed` e IF
+    `entitled to the full salary` e
+    EQUALS (    `weekly hours the teacher may complete in a third school` e GREATER THAN 0
+            AND NOT e's `an institution to complete in was found`)
+#ASSERT `holds for every crafts employment` `the full salary answers the completion that failed`
