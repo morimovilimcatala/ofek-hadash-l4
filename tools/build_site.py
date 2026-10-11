@@ -1501,7 +1501,9 @@ def calculator_page(all_views: dict[str, list["SectionView"]], findings: list[di
     v = next(v for v in all_views[SALARY[0]] if v.section.num == SALARY[1])
     s = calculator.spec(v.section, v.l4, {k: clause(v.section, k, k) for k in citations(v.section)})
     s = calculator.ship(s, v.l4, OUT / "assets")
-    link = f'<a href="{v.href}"><bdi dir="ltr">§{esc(v.section.num)}</bdi> {esc(v.section.heading)}</a>'
+    # the document is named: "§1.1 השכר" alone does not say which text it is
+    link = (f'<a href="{v.href}">סעיף {esc(v.section.num)} ("{esc(v.section.heading)}") '
+            f'ב{esc(akn.title(v.doc))}</a>')
     mine = [f for f in findings if f.get("l4") == str(v.l4.relative_to(ROOT))]
     body = calculator.body(s, link, mine, rel("findings.html", here))
     return page(here, f"מחשבון שכר — {TITLE}", body, tab="calculator",
