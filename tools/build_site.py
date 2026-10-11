@@ -101,7 +101,7 @@ COLLECTIONS = [
     ("circulars-sachar", "חוזרי שכר"),
     ("circulars-tnai-sherut", "חוזרי תנאי שירות"),
     ("letters", "מכתבים"),
-    ("takam", "תקשי\"ר"),
+    ("takam", "הוראות תכ\"ם (החשב הכללי)"),
     ("tables", "טבלאות"),
 ]
 
