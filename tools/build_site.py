@@ -112,7 +112,8 @@ def en(text: str) -> str:
 HEB = re.compile(r"[\u05d0-\u05ea]")
 LAT = re.compile(r"[A-Za-z]")
 IDENT = re.compile(r"`[^`]*`")
-LTR_RUN = re.compile(r"`[^`]*`|§[0-9][0-9A-Za-z\u05d0-\u05ea.()]*[0-9A-Za-z\u05d0-\u05ea)]|§[0-9]|#[A-Z]+")
+FID = re.compile(r"F-[0-9A-Za-z][0-9A-Za-z._\u05d0-\u05ea-]*[0-9A-Za-z\u05d0-\u05ea]")
+LTR_RUN = re.compile(r"`[^`]*`|\bF-[0-9A-Za-z][0-9A-Za-z._\u05d0-\u05ea-]*[0-9A-Za-z\u05d0-\u05ea]|§[0-9][0-9A-Za-z\u05d0-\u05ea.()]*[0-9A-Za-z\u05d0-\u05ea)]|§[0-9]|#[A-Z]+")
 
 
 def is_hebrew(text: str) -> bool:
@@ -122,7 +123,7 @@ def is_hebrew(text: str) -> bool:
     return len(HEB.findall(bare)) > len(LAT.findall(bare))
 
 
-def prose(text: str) -> str:
+def prose(text: str, link_ids: bool = False) -> str:
     """A finding's own words, in whichever language they are written. In
     Hebrew prose an L4 identifier, a section number ("§1.1ב") and a keyword
     ("#ASSERT") stay left to right, isolated."""
@@ -132,6 +133,12 @@ def prose(text: str) -> str:
     for m in LTR_RUN.finditer(text):
         out.append(esc(text[last:m.start()]))
         run = m.group(0)
+        fid = run.strip("`")
+        if FID.fullmatch(fid):
+            ref = f'<bdi dir="ltr" class="fref">{esc(fid)}</bdi>'
+            out.append(f'<a href="#{esc(fid)}">{ref}</a>' if link_ids else ref)
+            last = m.end()
+            continue
         out.append(f'<bdi dir="ltr" lang="en"><code>{esc(run[1:-1])}</code></bdi>' if run.startswith("`")
                    else f'<bdi dir="ltr">{esc(run)}</bdi>')
         last = m.end()
@@ -965,7 +972,7 @@ def findings_page(findings, views_by_file, key_to_view) -> str:
             deps = "".join(f'<a href="#{esc(d)}">{esc(d)}</a> ' for d in f.get("depends_on", []) if d in by_id)
             stage, sgloss = STAGES[f["stage"]]
             paras = f["body"].strip().split("\n\n")
-            body = (f'<div class="fbody" lang="he" dir="rtl">{"".join(f"<p>{prose(p)}</p>" for p in paras)}</div>'
+            body = (f'<div class="fbody" lang="he" dir="rtl">{"".join(f"<p>{prose(p, link_ids=True)}</p>" for p in paras)}</div>'
                     if is_hebrew(f["body"]) else
                     f'<div class="fbody" lang="en" dir="ltr">{"".join(f"<p>{esc(p)}</p>" for p in paras)}</div>')
             quote = (f'<blockquote lang="he" dir="rtl">{esc(f["quote"])}</blockquote>' if f.get("quote") else "")
@@ -975,7 +982,7 @@ def findings_page(findings, views_by_file, key_to_view) -> str:
                 f'<p class="fmeta"><span class="stage" title="{esc(sgloss)}">נתגלה {esc(stage)}</span> · '
                 f'{" · ".join(where)}</p>{quote}'
                 f'{body}'
-                f'<p class="reading"><strong>הקריאה שהקידוד מאמץ:</strong> {prose(f["reading"])}</p>'
+                f'<p class="reading"><strong>הקריאה שהקידוד מאמץ:</strong> {prose(f["reading"], link_ids=True)}</p>'
                 + (f'<p class="deps">תלוי בקריאות של: {deps}</p>' if deps else "")
                 + (f'<p class="ev"><a href="{ev["url"]}">הראיה ב-L4</a> · {state}</p>'
                    + "".join(f'<pre class="msg" dir="ltr">{esc(m)}</pre>' for m in ev["messages"])
