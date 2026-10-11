@@ -431,13 +431,20 @@ DECIDE `the candidate's list fits the kindergarten` `kindergarten's stream` `can
 -- assistants; in a single class the assistant watches until the substitute
 -- comes.
 @ref akn:chp_2__sec_2_1__ssec_2_1_8/p19
+-- The substitute sent is one of the candidates available ("מתוך המועמדות
+-- שברשימה"), and none available ranks above her. Where no candidate is
+-- available at all, the duty of ד(1) (`every option is exhausted first`)
+-- governs, not this one.
 GIVEN available IS A LIST OF `kind of substitute`
 GIVETH A DEONTIC `2.1 party` `kindergarten action`
 DECIDE `sending by priority` available IS
-    PARTY `the person responsible for substitutions`
-    MUST  `send a substitute` s
-          PROVIDED all (GIVEN a YIELD `priority of the candidate` s AT MOST `priority of the candidate` a) available
-    LEST  BREACH BY `the person responsible for substitutions` BECAUSE "2.1.8 א(5): the substitute is sent from the list by priority"
+    IF null available
+    THEN FULFILLED
+    ELSE PARTY `the person responsible for substitutions`
+         MUST  `send a substitute` s
+               PROVIDED elem s available
+                    AND all (GIVEN a YIELD `priority of the candidate` s AT MOST `priority of the candidate` a) available
+         LEST  BREACH BY `the person responsible for substitutions` BECAUSE "2.1.8 א(5): the substitute is sent from the list by priority"
 
 DECLARE `who watches the children` IS ONE OF
     `the other teacher of the double kindergarten, with both assistants`
@@ -609,6 +616,10 @@ DECIDE `pay of an assistant's substitute` `the assistants' pay rates for the wor
 @ref akn:chp_2__sec_2_1__ssec_2_1_9/p2
 DECLARE `celebration` IS ONE OF Hanukkah, Purim, `end of the school year`, `other occasion`
 
+-- F-2.1-a: a Purim celebrated both in the morning in costume and with
+-- parents in the afternoon falls under both sentences, 11:00 and 11:30; the
+-- reading adopted lets the costumed-morning sentence, the specific one,
+-- govern.
 GIVEN c IS A `celebration`, `with parents in the afternoon` IS A BOOLEAN, `a costumed Purim morning` IS A BOOLEAN
 GIVETH A MAYBE NUMBER
 DECIDE `earliest end of the day` c `with parents in the afternoon` `a costumed Purim morning` IS
@@ -750,3 +761,194 @@ ASSUME `the age-hours rules of section 1.23` IS A FUNCTION FROM NUMBER TO NUMBER
 #TRACE `claiming the compensation` 50 AT 0 WITH
     PARTY `the kindergarten assistant` DOES `claim the payment for being alone` TRUE AT 1
     PARTY `a takanon party` `the local authority or owning body` DOES `pay the assistant's daily compensation` 50 AT 2
+
+§§ `Property checks`
+
+-- The section's rules over their whole finite space: every weekday, 0 to 6
+-- working days, every kind of substitute and every list of up to two
+-- available, every celebration with and without parents or costumes, 0 to
+-- 6 extra hours, parents' meetings of up to 10, and a grid of positions.
+
+`every weekday` MEANS LIST Sunday, Monday, Tuesday, Wednesday, Thursday, Friday, Saturday
+`every kind of substitute` MEANS
+    LIST `an unplaced kindergarten teacher`, `an unplaced teacher`
+       , `a kindergarten teacher from an accelerated course`
+       , `a kindergarten-teachers' seminar student`
+       , `a twelfth-grade graduate after a colloquium`
+       , `a candidate from the additional list`
+`both booleans` MEANS LIST TRUE, FALSE
+
+-- 2.1.1: the five Sunday-to-Thursday mornings hold the unit's 27 teaching
+-- hours (27:05 open against 27:00); the kindergarten is shut on Saturday
+-- and open on the other six days.
+`the five weekday mornings hold the unit's teaching hours` MEANS
+    sum (map `minutes the kindergarten is open` (LIST Sunday, Monday, Tuesday, Wednesday, Thursday))
+    AT LEAST `weekly teaching hours in a unit` TIMES 60
+#ASSERT `the five weekday mornings hold the unit's teaching hours`
+#ASSERT count (filter (GIVEN d YIELD `minutes the kindergarten is open` d GREATER THAN 0) `every weekday`) EQUALS 6
+
+-- 2.1.1.3: a complementing teacher's position over 0 to 5 days (¶1: every
+-- kind of kindergarten teacher works five): never negative, never more for
+-- fewer days, and never above a full position.
+#ASSERT all (GIVEN n YIELD
+                    `position fraction of a complementing teacher` n 1 AT LEAST 0
+                AND `position fraction of a complementing teacher` n 1 AT MOST 1
+                AND `position fraction of a complementing teacher` n 1
+                    AT MOST `position fraction of a complementing teacher` (n PLUS 1) 1)
+            (range 0 5)
+
+-- 2.1.8 ¶1 over every quarter hour of the day and 0 to 2 of each worker:
+-- outside 8:00-12:30 any staffing will do; inside it, one of each at least.
+#ASSERT all (GIVEN m YIELD
+                all (GIVEN t YIELD
+                        all (GIVEN a YIELD
+                                `the class is properly staffed` t a m
+                                EQUALS (    (m LESS THAN 480 OR m GREATER THAN 750)
+                                        OR (t AT LEAST 1 AND a AT LEAST 1)))
+                            (range 0 2))
+                    (range 0 2))
+            (map (GIVEN q YIELD q TIMES 15) (range 24 64))
+
+-- 2.1.8 א(4): the order of priority is strict — no two kinds of candidate
+-- share a rank — and total: the six kinds take ranks 1 to 6, the
+-- additional list last.
+#ASSERT all (GIVEN s YIELD
+                all (GIVEN t YIELD
+                        s EQUALS t OR (NOT (`priority of the candidate` s EQUALS `priority of the candidate` t)))
+                    `every kind of substitute`)
+            `every kind of substitute`
+#ASSERT all (GIVEN k YIELD any (GIVEN s YIELD `priority of the candidate` s EQUALS k) `every kind of substitute`) (range 1 6)
+#ASSERT all (GIVEN s YIELD `priority of the candidate` s AT MOST `priority of the candidate` `a candidate from the additional list`)
+            `every kind of substitute`
+
+-- א(2): the assistant watches the children until the earliest of the
+-- three times, never past any of them.
+#ASSERT all (GIVEN e YIELD
+                all (GIVEN t YIELD
+                        all (GIVEN s YIELD
+                                    `the assistant watches the children until` e t s AT MOST e
+                                AND `the assistant watches the children until` e t s AT MOST t
+                                AND `the assistant watches the children until` e t s AT MOST s
+                                AND elem (`the assistant watches the children until` e t s) (LIST e, t, s))
+                            (LIST 540, 600, 750))
+                    (LIST 540, 600, 750))
+            (LIST 540, 600, 750)
+
+-- ד(1) over being alone or not and 0 to 6 extra hours: the compensation is
+-- the global sum or nothing, paid exactly to an assistant alone who works
+-- two hours or more beyond her day, and never less for more hours.
+#ASSERT all (GIVEN alone YIELD
+                all (GIVEN h YIELD
+                            (`daily compensation for being alone` alone h 50 EQUALS 50)
+                            EQUALS (alone AND h AT LEAST 2)
+                        AND elem (`daily compensation for being alone` alone h 50) (LIST 0, 50)
+                        AND `daily compensation for being alone` alone h 50
+                            AT MOST `daily compensation for being alone` alone (h PLUS 1) 50)
+                    (range 0 6))
+            `both booleans`
+
+-- ד(2): the substitute's hourly pay is the senior teacher's monthly salary
+-- over 120, plus 20%, which is a hundredth of it, for every salary.
+#ASSERT all (GIVEN m YIELD `hourly pay of a teacher's substitute` m EQUALS m DIVIDED BY 100)
+            (LIST 0, 4000, 9000, 12345)
+
+-- 2.1.9 ¶3 over meetings of 0 to 10 present: the date is agreed exactly by
+-- a majority of those present or with the committee, and one more vote in
+-- favour never undoes it.
+#ASSERT all (GIVEN p YIELD
+                all (GIVEN f YIELD
+                            ((NOT `the celebration's date is agreed` f p FALSE)
+                             OR `the celebration's date is agreed` (f PLUS 1) p FALSE)
+                        AND `the celebration's date is agreed` f p TRUE)
+                    (range 0 p))
+            (range 0 10)
+
+-- 2.1.9 ¶2: the two sentences on the day's end, apart. The first lets a
+-- teacher who celebrates Hanukkah, Purim or the end of the year with
+-- parents in the afternoon end at 11:00 ("ולגננות אלה בלבד"); the second
+-- ends a Purim celebrated in the morning in costume at 11:30.
+GIVEN c IS A `celebration`, afternoon IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `the afternoon sentence ends the day at 11:00 for` c afternoon IF
+    (NOT c EQUALS `other occasion`) AND afternoon
+
+GIVEN c IS A `celebration`, morning IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `the costumed-morning sentence ends the day at 11:30 for` c morning IF
+    c EQUALS Purim AND morning
+
+`every celebration` MEANS LIST Hanukkah, Purim, `end of the school year`, `other occasion`
+
+-- Over every celebration and every pair of booleans: an early end is given
+-- exactly where one sentence applies, and it is that sentence's hour; no
+-- other occasion ends early.
+#ASSERT all (GIVEN c YIELD
+                all (GIVEN a YIELD
+                        all (GIVEN m YIELD
+                                    (`earliest end of the day` c a m EQUALS NOTHING)
+                                    EQUALS (    (NOT `the afternoon sentence ends the day at 11:00 for` c a)
+                                            AND (NOT `the costumed-morning sentence ends the day at 11:30 for` c m))
+                                AND (    (NOT `the costumed-morning sentence ends the day at 11:30 for` c m)
+                                      OR `earliest end of the day` c a m EQUALS JUST 690)
+                                AND (    `the costumed-morning sentence ends the day at 11:30 for` c m
+                                      OR (NOT `the afternoon sentence ends the day at 11:00 for` c a)
+                                      OR `earliest end of the day` c a m EQUALS JUST 660))
+                            `both booleans`)
+                    `both booleans`)
+            `every celebration`
+
+-- F-2.1-a: the two sentences overlap on one case and on one only — a
+-- Purim celebrated in the morning in costume AND with parents in the
+-- afternoon — where they give two different hours.
+GIVEN c IS A `celebration`, a IS A BOOLEAN, m IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `both end-of-day sentences apply to` c a m IF
+        `the afternoon sentence ends the day at 11:00 for` c a
+    AND `the costumed-morning sentence ends the day at 11:30 for` c m
+
+`a Purim celebrated in costume in the morning and with parents in the afternoon ends at 11:00 and at 11:30` MEANS
+    `both end-of-day sentences apply to` Purim TRUE TRUE
+#ASSERT `a Purim celebrated in costume in the morning and with parents in the afternoon ends at 11:00 and at 11:30`
+#ASSERT all (GIVEN c YIELD
+                all (GIVEN a YIELD
+                        all (GIVEN m YIELD
+                                `both end-of-day sentences apply to` c a m
+                                EQUALS (c EQUALS Purim AND a AND m))
+                            `both booleans`)
+                    `both booleans`)
+            `every celebration`
+
+-- 2.1.12: a mother teacher may be absent at most 3 weekly hours, only in a
+-- full position and with an approved substitute.
+GIVEN f IS A NUMBER, approved IS A BOOLEAN, coordinating IS A BOOLEAN
+GIVETH A `mother kindergarten teacher`
+DECIDE `a checked mother teacher` f approved coordinating IS
+    `mother kindergarten teacher` WITH
+        `position fraction`                     IS f
+        `substitute approved by the supervision` IS approved
+        `a coordinating teacher required by her employer to work a full position` IS coordinating
+        `mother of a child up to 14`            IS TRUE
+        `entitled to age hours`                 IS FALSE
+
+#ASSERT all (GIVEN f YIELD
+                all (GIVEN approved YIELD
+                            `weekly hours she may be absent` (`a checked mother teacher` f approved FALSE) AT MOST 3
+                        AND (`weekly hours she may be absent` (`a checked mother teacher` f approved FALSE) GREATER THAN 0)
+                            EQUALS (f AT LEAST 1 AND approved))
+                    `both booleans`)
+            (LIST 0, 0.5, 0.79, 0.9, 1)
+
+-- 2.1.12.1 against the note of 2.1.12.2 and 2.1.1: the 3 weekly hours of
+-- absence are 10% of the 30-hour unit, and either way the note offers
+-- (absent a day in two weeks or not) is paid exactly 10% above the share
+-- worked.
+#ASSERT 3 DIVIDED BY `weekly hours in a kindergarten teacher's unit` EQUALS 1 MINUS `share of a position worked` TRUE
+#ASSERT all (GIVEN off YIELD `share of a position paid` off MINUS `share of a position worked` off EQUALS 0.1) `both booleans`
+
+-- 2.1.12.3א against the note: a coordinating mother required to work a
+-- full position works it all and is paid the position plus the 10%
+-- supplement, the note's 110% for a mother who is not absent.
+`a coordinating mother working in full is paid the note's 110%` MEANS
+    1 PLUS `mother supplement beyond the position` (`a checked mother teacher` 1 FALSE TRUE)
+    EQUALS `share of a position paid` FALSE
+#ASSERT `a coordinating mother working in full is paid the note's 110%`
