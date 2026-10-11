@@ -2,7 +2,35 @@
 // shows its code, which is the default the markup already carries.
 (function () {
   var KEY = "l4-view";
+  // The prose views are not in the page: each section's are fetched from its
+  // .prose.json (build_site.prose_json) the first time the reader asks.
+  var prose = {};
+  function loadProse() {
+    document.querySelectorAll(".view.rendered[data-s]:not([data-done])").forEach(function (el) {
+      el.setAttribute("data-done", "");
+      var sec = el.closest("[data-prose]");
+      var url = sec && sec.getAttribute("data-prose");
+      if (url && !prose[url]) {
+        prose[url] = fetch(url).then(function (r) {
+          if (!r.ok) throw new Error(r.status);
+          return r.json();
+        });
+      }
+      (url ? prose[url] : Promise.resolve({})).then(function (m) {
+        var h = m[el.getAttribute("data-s")];
+        if (h) { el.classList.add("l4-doc"); el.innerHTML = h; }
+        else {
+          el.classList.add("empty");
+          el.textContent = "אין לו פרוזה משלו: זהו טיפוס, בדיקה או חלק מכלל שמוצג ליד פסקה אחרת.";
+        }
+      }, function () {
+        el.classList.add("empty");
+        el.textContent = "הפרוזה לא נטענה.";
+      });
+    });
+  }
   function show(view) {
+    if (view === "rendered") loadProse();
     document.querySelectorAll(".view").forEach(function (el) {
       el.hidden = !el.classList.contains(view);
     });

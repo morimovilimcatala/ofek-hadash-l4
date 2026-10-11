@@ -203,19 +203,45 @@ TOKEN = re.compile(r"""
 """, re.VERBOSE)
 
 
+# a token kind -> its class inside `pre.code` (site.css). Short, because a
+# chapter page carries tens of thousands of them; an operator is not styled
+# and carries none.
+TOKEN_CLASS = {"comment": "c", "string": "s", "tick": "b", "annot": "a",
+               "directive": "a", "section": "a", "number": "n", "keyword": "w"}
+TRAILING = re.compile(r"[).:]+$")
+
+
+def text(s: str) -> str:
+    """Code as an HTML text node: only <, > and & need escaping there."""
+    return html.escape(s, quote=False)
+
+
+def _key_link(k: re.Match) -> str:
+    # a key cited in prose ("(akn:art_1/p2).") ends before its punctuation
+    key = k.group(1)
+    tail = TRAILING.search(key)
+    key, tail = (key[:tail.start()], tail.group()) if tail else (key, "")
+    return f'<a href="#{html.escape(key)}">akn:{text(key)}</a>{text(tail)}'
+
+
 def highlight(line: str) -> str:
     out, pos = [], 0
     for m in TOKEN.finditer(line):
-        out.append(html.escape(line[pos:m.start()]))
+        out.append(text(line[pos:m.start()]))
         kind = m.lastgroup
-        text = html.escape(m.group())
+        cls = TOKEN_CLASS.get(kind)
         if kind == "comment":
             # a marker's key is a link to the row it sits beside
-            text = KEY.sub(lambda k: f'<a class="k" href="#{html.escape(k.group(1))}">'
-                           f'akn:{html.escape(k.group(1))}</a>', html.escape(m.group()))
-        out.append(f'<span class="t-{kind}">{text}</span>')
+            parts, last = [], 0
+            for k in KEY.finditer(m.group()):
+                parts.append(text(m.group()[last:k.start()]) + _key_link(k))
+                last = k.end()
+            body = "".join(parts) + text(m.group()[last:])
+        else:
+            body = text(m.group())
+        out.append(f'<span class={cls}>{body}</span>' if cls else body)
         pos = m.end()
-    out.append(html.escape(line[pos:]))
+    out.append(text(line[pos:]))
     return "".join(out)
 
 
@@ -225,17 +251,22 @@ def code_html(lines: list[str], first: int) -> str:
 
 def numbered_html(numbered: list[tuple[int, str]]) -> str:
     """One element per line, so a long line wraps under itself (keeping its
-    indent) instead of running off the panel."""
+    indent) instead of running off the panel. The line numbers are a CSS
+    counter (site.css), set where the numbering starts and after a gap."""
     rows = []
     prev = None
     for n, line in numbered:
         if prev is not None and n != prev + 1:
-            rows.append('<span class="line skip"><span class="ln"></span><span class="lc">⋯</span></span>')
+            rows.append('<span class="l skip">⋯</span>')
         indent = len(line) - len(line.lstrip(" "))
-        rows.append(f'<span class="line" style="--i:{indent}"><span class="ln" data-n="{n}"></span>'
-                    f'<span class="lc">{highlight(line) or " "}</span></span>')
+        style = [f"--i:{indent}"] if indent else []
+        if prev is not None and n != prev + 1:
+            style.append(f"counter-set:ln {n}")
+        attr = f' style="{";".join(style)}"' if style else ""
+        rows.append(f'<span class=l{attr}>{highlight(line) or " "}</span>')
         prev = n
-    return '<pre class="code" dir="ltr"><code>' + "".join(rows) + "</code></pre>"
+    start = numbered[0][0] - 1 if numbered else 0
+    return f'<pre class="code" dir="ltr"><code style="counter-reset:ln {start}">' + "".join(rows) + "</code></pre>"
 
 
 def for_reading(lines: list[str], first: int) -> list[tuple[int, str]]:

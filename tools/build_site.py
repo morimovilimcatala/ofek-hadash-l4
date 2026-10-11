@@ -9,6 +9,7 @@ Pages, laid out like the corpus they encode:
   takanon/<doc>/chapter-<n>.html   one chapter: each section's text | L4, row by row
   takanon/<doc>/<num>.html         a redirect to the section on its chapter page
   takanon/<doc>/<num>.render.html  L4's own rendering of that section
+  takanon/<doc>/<num>.prose.json   that section's prose views, fetched on the switch
   <collection>/<doc>.html          a circular: its text | L4, row by row
   findings.html  findings.json     errors in the LAW that encoding exposed
   coverage.html                    how much of the corpus is encoded
@@ -771,7 +772,7 @@ def section_block(v: SectionView, here: str, headless: bool = False) -> str:
         return (f'<section class="tsec todo" id="{esc(sec.eid)}">{head}'
                 f'<div class="grid only-text">{rows}</div></section>')
 
-    prose = f' data-prose="{esc(rel(v.prose_href, here))}"' if rendered_for(v) else ""
+    prose_at = f' data-prose="{esc(rel(v.prose_href, here))}"' if rendered_for(v) else ""
     graphs = {n: rel(p, here) for n, p in state_graphs(v).items()}
     out = []
     for r in sec.rows:
@@ -812,7 +813,7 @@ def section_block(v: SectionView, here: str, headless: bool = False) -> str:
         appendix = ('<details class="appendix"><summary>הגדרות משותפות, דוגמאות ובדיקות '
                     f'<span class="meta">({len(v.appendix)})</span></summary>'
                     + "".join(segment_html(v, s, graphs) for s in v.appendix) + '</details>')
-    return (f'<section class="tsec" id="{esc(sec.eid)}"{prose}>{head}{unplaced}'
+    return (f'<section class="tsec" id="{esc(sec.eid)}"{prose_at}>{head}{unplaced}'
             f'<div class="grid">{"".join(out)}</div>{appendix}</section>')
 
 
