@@ -1887,3 +1887,163 @@ DECIDE `the equivalent grade` e IS
 #ASSERT `points` `a yeshiva graduate with eight years and five Gemara exams` EQUALS 39
 #ASSERT `the equivalent grade` `a yeshiva graduate with eight years and five Gemara exams` EQUALS `equivalent to BA`
 #ASSERT `points for a pre-2014 Torah-education certificate` TRUE FALSE EQUALS 0
+
+§§ `Property checks`
+
+-- The section's finite rules over their whole space: all seventeen grades,
+-- 0 to 40 years, a grid of school years, and every compulsory service of 0
+-- to 48 months for each sex, officer or not, begun the day before or on
+-- each date the period table names.
+
+`every salary grade` MEANS
+    LIST `academic grade, doctorate`, `academic grade, MA`, `academic grade, BA`
+       , `intermediate academic grade C`, `intermediate academic grade B`
+       , `intermediate academic grade A`, `academic intermediate supplement`
+       , `senior certified teacher`, `certified teacher`, `certified kindergarten teacher`
+       , `uncertified teacher or kindergarten teacher, stage AA`
+       , `uncertified teacher or kindergarten teacher, stage A+`
+       , `uncertified teacher or kindergarten teacher, stage A`
+       , `uncertified teacher or kindergarten teacher, stage B`
+       , `certified professional instructor`, `de facto certified professional instructor`
+       , `uncertified professional instructor`
+
+-- The order of 1.29.2.1(א), as the encoding ranks it: every grade has its
+-- own rank from 1 to 17, and the rank gives back the grade, so "the
+-- highest grade" of F-1.29-a's reading is always one grade.
+#ASSERT all (GIVEN g YIELD `the grade of rank` (`rank of` g) EQUALS g) `every salary grade`
+#ASSERT map `rank of` `every salary grade` EQUALS range 1 17
+
+-- (1)–(2): the increment is paid for at most 36 years, never for more
+-- than the seniority, and never less for more seniority.
+`the years checked` MEANS range 0 40
+#ASSERT all (GIVEN n YIELD
+                    `years the seniority increment is paid for` n AT MOST 36
+                AND `years the seniority increment is paid for` n AT MOST n)
+            `the years checked`
+#ASSERT and (zipWith (GIVEN a, b YIELD `years the seniority increment is paid for` a AT MOST `years the seniority increment is paid for` b)
+                     `the years checked` (drop 1 `the years checked`))
+
+-- (8) over 0 to 40 years at half seniority: never less than half and
+-- never a year more than half, never less for more years; and the rule as
+-- worded ("more than two years") parts from the examples on exactly one
+-- count, the 1 its first example gives (F-1.29-b over the space).
+#ASSERT all (GIVEN n YIELD
+                    `years recognised at half` n AT LEAST n DIVIDED BY 2
+                AND `years recognised at half` n LESS THAN n DIVIDED BY 2 PLUS 1)
+            `the years checked`
+#ASSERT and (zipWith (GIVEN a, b YIELD `years recognised at half` a AT MOST `years recognised at half` b)
+                     `the years checked` (drop 1 `the years checked`))
+`the counts the worded rule and the examples part on` MEANS
+    filter (GIVEN n YIELD NOT (`years recognised at half` n EQUALS `years recognised at half, the rule read as stated` n))
+           `the years checked`
+#ASSERT `the counts the worded rule and the examples part on` EQUALS LIST 1
+
+-- 1.29.3.2's opening over a grid of school years: a year qualifies only if
+-- one criterion alone holds six months — teaching (with the absences (3)
+-- counts) at a third of a position, or other work at half — never the two
+-- added together.
+GIVEN teaching IS A NUMBER, tf IS A NUMBER, other IS A NUMBER, of IS A NUMBER, sick IS A NUMBER
+GIVETH A `year of work`
+DECIDE `a checked year of work` teaching tf other of sick IS
+    `year of work` WITH
+        `months teaching`                     IS teaching
+        `teaching position fraction`          IS tf
+        `months in instruction or other work` IS other
+        `other work position fraction`        IS of
+        `months of paid sick leave`           IS sick
+        `months of maternity or accident leave paid by National Insurance` IS 0
+        `months of reserve duty`              IS 0
+        `suspended for legal proceedings`     IS FALSE
+        `paid without working at all`         IS FALSE
+        `the Ofek Hadash internship year`     IS FALSE
+
+`the months checked` MEANS LIST 0, 3, 5, 6, 10
+`the fractions checked` MEANS LIST 0, 0.3, 1/3, 0.5, 1
+
+GIVEN teaching IS A NUMBER, other IS A NUMBER, sick IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `a year qualifies only by one criterion alone at` teaching other sick IF
+    all (GIVEN tf YIELD
+            all (GIVEN of YIELD
+                    (NOT `the year qualifies` (`a checked year of work` teaching tf other of sick))
+                    OR (teaching PLUS sick AT LEAST 6 AND tf AT LEAST 1/3)
+                    OR (other AT LEAST 6 AND of AT LEAST 1/2))
+                `the fractions checked`)
+        `the fractions checked`
+
+#ASSERT all (GIVEN t YIELD
+                all (GIVEN o YIELD
+                        all (GIVEN s YIELD `a year qualifies only by one criterion alone at` t o s) (LIST 0, 3, 6))
+                    `the months checked`)
+            `the months checked`
+#ASSERT NOT `the year qualifies` (`a checked year of work` 3 1 3 1 0)
+
+-- Seniority on 1 September: never above 36, and one more qualifying year
+-- never lowers it.
+`a full teaching year` MEANS `a checked year of work` 10 1 0 0 0
+#ASSERT all (GIVEN n YIELD
+                    `seniority on 1 September` (replicate n `a full teaching year`) 0 EQUALS min n 36
+                AND `seniority on 1 September` (replicate n `a full teaching year`) 2 AT MOST 36)
+            `the years checked`
+
+-- 1.29.3.3 (10) and (8) over every service of 0 to 48 months, for each sex,
+-- officer or not, begun the day before or on each date the period table
+-- turns on: never negative, never more than served unless a disabled
+-- veteran, never past 36 months, never less for more months served; a
+-- man's cap steps from 30 to 36 exactly on 7.1.1968, a woman's from 12 to
+-- 24 the day after 13.2.1950.
+GIVEN who IS A `service sex`, began IS A DATE, months IS A NUMBER, officer IS A BOOLEAN
+GIVETH A `compulsory service`
+DECIDE `a checked service` who began months officer IS
+    `compulsory service` WITH
+        `served as`                                   IS who
+        `service began`                               IS began
+        `service ended`                               IS began
+        `months actually served`                      IS months
+        `an officer obliged to extra regular service as compulsory` IS officer
+        `a disabled veteran who could not complete it` IS FALSE
+        `full term of the period in months`           IS 36
+
+`the service starts checked` MEANS
+    LIST DATE_FROM_DMY 13 2 1950, DATE_FROM_DMY 14 2 1950, DATE_FROM_DMY 6 1 1968, DATE_FROM_DMY 7 1 1968, DATE_FROM_DMY 1 8 1995
+`the months served checked` MEANS range 0 48
+
+GIVEN who IS A `service sex`, began IS A DATE, officer IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `the IDF months are bounded and monotone for` who began officer IF
+        all (GIVEN m YIELD
+                    `months of IDF seniority` (`a checked service` who began m officer) AT LEAST 0
+                AND `months of IDF seniority` (`a checked service` who began m officer) AT MOST min m 36)
+            `the months served checked`
+    AND and (zipWith (GIVEN a, b YIELD `months of IDF seniority` (`a checked service` who began a officer)
+                                      AT MOST `months of IDF seniority` (`a checked service` who began b officer))
+                     `the months served checked` (drop 1 `the months served checked`))
+
+#ASSERT all (GIVEN who YIELD
+                all (GIVEN d YIELD
+                        all (GIVEN o YIELD `the IDF months are bounded and monotone for` who d o) (LIST TRUE, FALSE))
+                    `the service starts checked`)
+            (LIST `a man`, `a woman`)
+
+GIVEN who IS A `service sex`
+GIVETH A LIST OF NUMBER
+DECIDE `the most each start earns` who IS
+    map (GIVEN d YIELD `months of IDF seniority` (`a checked service` who d 48 FALSE)) `the service starts checked`
+#ASSERT `the most each start earns` `a man` EQUALS LIST 30, 30, 30, 36, 36
+#ASSERT `the most each start earns` `a woman` EQUALS LIST 12, 24, 24, 24, 24
+
+-- National service (ג–ד) over 0 to 36 months, at 39 and 40 weekly hours:
+-- nothing under 40 hours, never more than 24 months, never less for more
+-- months, and stepping exactly at 12 and 24.
+#ASSERT all (GIVEN h YIELD
+                    all (GIVEN m YIELD
+                                `months of seniority for national service` m h AT MOST 24
+                            AND (h AT LEAST 40 OR `months of seniority for national service` m h EQUALS 0))
+                        (range 0 36)
+                AND and (zipWith (GIVEN a, b YIELD `months of seniority for national service` a h AT MOST `months of seniority for national service` b h)
+                                 (range 0 36) (drop 1 (range 0 36))))
+            (LIST 39, 40)
+`the national-service months the seniority steps at` MEANS
+    filter (GIVEN m YIELD NOT (`months of seniority for national service` (m MINUS 1) 40 EQUALS `months of seniority for national service` m 40))
+           (range 1 36)
+#ASSERT `the national-service months the seniority steps at` EQUALS LIST 12, 24
