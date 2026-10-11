@@ -104,7 +104,16 @@ DECLARE `negligence report` HAS
     `copies of written warnings` IS A BOOLEAN
 
 -- Times in days from 1 September; 1 Tevet and the Passover vacation move
--- with the Hebrew calendar and are inputs.
+-- with the Hebrew calendar and are inputs. A Gregorian date in the school
+-- year that begins in `y` is counted from its 1 September (day 0), so that a
+-- date after a 29-day February falls a day later.
+GIVEN `day` IS A NUMBER, `month` IS A NUMBER, `y` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `days from 1 September to` `day` `month` `y` IS
+    IF `month` AT LEAST 9
+    THEN DATE_SERIAL (DATE_FROM_DMY `day` `month` `y`) MINUS DATE_SERIAL (DATE_FROM_DMY 1 9 `y`)
+    ELSE DATE_SERIAL (DATE_FROM_DMY `day` `month` (`y` PLUS 1)) MINUS DATE_SERIAL (DATE_FROM_DMY 1 9 `y`)
+
 @ref akn:chp_3__sec_3_5__hc_2__para_a__subpara_1
 GIVEN `day of 1 Tevet` IS A NUMBER
 GIVETH A DEONTIC `3.5 party` `dismissal action`
@@ -665,23 +674,25 @@ GIVETH A BOOLEAN
 DECIDE `an administrative proposal in its form` `on the treatment sheet form` IF
     `on the treatment sheet form`
 
--- ה.7: the district office, by 15 May (day 256 from 1 September); ה.8:
--- letters by 30 June (day 302) — the sender is not named, and the personnel
--- division, which receives the proposals, is read as it.
+-- ה.7: the district office, by 15 May; ה.8: letters by 30 June — the
+-- sender is not named, and the personnel division, which receives the
+-- proposals, is read as it.
 @ref akn:chp_3__sec_3_5__hc_2__para_e__subpara_7
+GIVEN `y` IS A NUMBER @desc the Gregorian year the school year begins in
 GIVETH A DEONTIC `3.5 party` `dismissal action`
-DECIDE `ה.7 proposals by 15 May` IS
+DECIDE `ה.7 proposals by 15 May` `y` IS
     PARTY `the district office`
     MUST  `send the administrative-dismissal proposals`
-    WITHIN 256
+    WITHIN `days from 1 September to` 15 5 `y`
     LEST  BREACH BY `the district office` BECAUSE "3.5ה.7: the district office's proposals reach the personnel division by 15 May"
 
 @ref akn:chp_3__sec_3_5__hc_2__para_e__subpara_8
+GIVEN `y` IS A NUMBER @desc the Gregorian year the school year begins in
 GIVETH A DEONTIC `3.5 party` `dismissal action`
-DECIDE `ה.8 letters by 30 June` IS
+DECIDE `ה.8 letters by 30 June` `y` IS
     PARTY `the personnel-in-teaching division`
     MAY   `send administrative dismissal letters`
-    WITHIN 302
+    WITHIN `days from 1 September to` 30 6 `y`
 
 -- ה.9: dismissed administratively with a positive opinion (3 and up): (א)
 -- may train in the joint programmes and sit the exams until the Passover
@@ -711,7 +722,9 @@ DECIDE `may apply again, to the same district` `supervision grade` `day all exam
 -- medium opinion, 4 years' seniority and last year's warning is protected by
 -- ה.2 ("will not be dismissed") and proposed for dismissal by ה.3. The
 -- reading adopted: ה.3, the narrower and more particular rule (warned,
--- seniority 4-5), governs its case; ה.2 governs the rest.
+-- seniority 4-5), governs its case; ה.2 governs the rest. F-3.5-c: ה.1
+-- excepts the graduates of Israeli teachers' seminaries and ה.3 names no
+-- exception; the reading adopted is ה.3 as printed, which reaches them.
 GIVEN t IS AN `uncertified teacher`
 GIVETH A BOOLEAN
 DECIDE `administratively dismissed` t IF
@@ -816,19 +829,20 @@ DECIDE `ז.3's case` `the district manager approves` `the supervisor recommended
 
 -- ז.5: a teacher proposed for dismissal who does not ask to return goes
 -- through the usual process, from the director-general's warning; ¶2: the
--- warning may be delivered until 30 June (day 302).
+-- warning may be delivered until 30 June.
 @ref akn:chp_3__sec_3_5__hc_2__para_g__subpara_5 akn:chp_3__sec_3_5__hc_2__para_g__subpara_5/p2
 GIVEN `proposed for dismissal` IS A BOOLEAN, `asks to return to the elementary school` IS A BOOLEAN
 GIVETH A BOOLEAN
 DECIDE `the usual process, from the director-general's warning, begins` `proposed for dismissal` `asks to return to the elementary school` IF
     `proposed for dismissal` AND NOT `asks to return to the elementary school`
 
--- ¶2: the warning may be delivered until 30 June (day 302).
+-- ¶2: the warning may be delivered until 30 June.
+GIVEN `y` IS A NUMBER @desc the Gregorian year the school year begins in
 GIVETH A DEONTIC `3.5 party` `dismissal action`
-DECIDE `ז.5 the director-general's warning` IS
+DECIDE `ז.5 the director-general's warning` `y` IS
     PARTY `the personnel-in-teaching division`
     MAY   `send the director-general's warning`
-    WITHIN 302
+    WITHIN `days from 1 September to` 30 6 `y`
 
 §§ `ז.2 and ז.3 together`
 
@@ -862,7 +876,172 @@ DECIDE `ז.2's case as printed` `the district manager approves` IF
 #ASSERT `the council's outcome` TRUE TRUE EQUALS `the district manager discusses dismissal`
 #ASSERT `administratively dismissed` `a warned general teacher owing two subjects`
 
-#TRACE `ה.7 proposals by 15 May` AT 0 WITH
+#TRACE `ה.7 proposals by 15 May` 2025 AT 0 WITH
     PARTY `the district office` DOES `send the administrative-dismissal proposals` AT 250
 #TRACE `3.5 the hearing` TRUE AT 0 WITH
     PARTY `a takanon party` `the district manager` DOES `hold a hearing` AT 5
+
+-- 15 May in a school year whose February has 29 days (2023-24) is day 257:
+-- proposals sent on it are in time.
+#TRACE `ה.7 proposals by 15 May` 2023 AT 0 WITH
+    PARTY `the district office` DOES `send the administrative-dismissal proposals` AT 257
+
+§§ `Property checks`
+
+-- The section's rules over their whole finite space: every uncertified
+-- teacher (every kind, graduate or not, certified or not, 0 to 4 subjects
+-- owed, Hebrew or not, opinion, 0 to 7 years, warned or not); the visits
+-- by count, 0 to 5 by the direct supervisor and 0 to 3 by another; three
+-- supervisors of 0 to 5 lessons each; every pair of the booleans of ב.3,
+-- א.12 and ז; positions 0 to 2 by quarters; and the school years 2023-24
+-- and 2025-26.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`every kind of teacher` MEANS LIST `general teacher`, `professional teacher`, `kindergarten teacher`
+
+GIVEN k IS A `kind of teacher`, grad IS A BOOLEAN, cert IS A BOOLEAN, owed IS A NUMBER, heb IS A BOOLEAN
+      op IS A BOOLEAN, yrs IS A NUMBER, warned IS A BOOLEAN
+GIVETH AN `uncertified teacher`
+DECIDE `a checked uncertified teacher` k grad cert owed heb op yrs warned IS
+    `uncertified teacher` WITH
+        `kind`                                     IS k
+        `a graduate of an Israeli teachers' seminary` IS grad
+        `certified by the Passover exams of the last probation year` IS cert
+        `subjects still owed`                      IS owed
+        `owes Hebrew, or the subject he teaches`   IS heb
+        `supervision opinion at least medium`      IS op
+        `years of seniority`                       IS yrs
+        `warned by the district manager last year` IS warned
+
+GIVEN prop IS A FUNCTION FROM `uncertified teacher` TO BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `holds for every uncertified teacher` prop IF
+    all (GIVEN k YIELD
+            all (GIVEN grad YIELD
+                    all (GIVEN cert YIELD
+                            all (GIVEN owed YIELD
+                                    all (GIVEN heb YIELD
+                                            all (GIVEN op YIELD
+                                                    all (GIVEN yrs YIELD
+                                                            all (GIVEN warned YIELD
+                                                                    prop (`a checked uncertified teacher` k grad cert owed heb op yrs warned))
+                                                                `both booleans`)
+                                                        (range 0 7))
+                                                `both booleans`)
+                                        `both booleans`)
+                                (range 0 4))
+                        `both booleans`)
+                `both booleans`)
+        `every kind of teacher`
+
+-- ה: one certified by the Passover exams is never dismissed
+-- administratively.
+GIVEN t IS AN `uncertified teacher`
+GIVETH A BOOLEAN
+DECIDE `the certified are never dismissed administratively` t IF
+    (NOT t's `certified by the Passover exams of the last probation year`) OR (NOT `administratively dismissed` t)
+#ASSERT `holds for every uncertified teacher` `the certified are never dismissed administratively`
+
+-- F-3.5-a over the whole space: ה.2 protects and ה.3 proposes the same
+-- teacher exactly when she owes exactly two subjects, neither Hebrew nor
+-- her own, has a medium opinion or better, 4 or 5 years and last year's
+-- warning, and is not certified.
+GIVEN t IS AN `uncertified teacher`
+GIVETH A BOOLEAN
+DECIDE `ה.2 and ה.3 meet exactly on their common case` t IF
+    (`protected by ה.2` t AND `proposed for administrative dismissal under ה.3` t)
+    EQUALS (    t's `subjects still owed` EQUALS 2
+            AND (NOT t's `owes Hebrew, or the subject he teaches`)
+            AND t's `supervision opinion at least medium`
+            AND (t's `years of seniority` EQUALS 4 OR t's `years of seniority` EQUALS 5)
+            AND t's `warned by the district manager last year`
+            AND (NOT t's `certified by the Passover exams of the last probation year`))
+#ASSERT `holds for every uncertified teacher` `ה.2 and ה.3 meet exactly on their common case`
+
+-- F-3.5-c over the whole space: a graduate of an Israeli teachers'
+-- seminary, whom ה.1 excepts, is dismissed administratively exactly where
+-- ה.3 proposes it.
+GIVEN t IS AN `uncertified teacher`
+GIVETH A BOOLEAN
+DECIDE `a seminary graduate is dismissed only under ה.3` t IF
+    (NOT t's `a graduate of an Israeli teachers' seminary`)
+    OR (`administratively dismissed` t EQUALS `proposed for administrative dismissal under ה.3` t)
+#ASSERT `holds for every uncertified teacher` `a seminary graduate is dismissed only under ה.3`
+
+`a seminary graduate of four years, warned and owing two subjects` MEANS
+    `a checked uncertified teacher` `general teacher` TRUE FALSE 2 FALSE FALSE 4 TRUE
+
+`ה.1 excepts a seminary graduate whom ה.3 proposes for dismissal` MEANS
+        NOT `liable to administrative dismissal under ה.1` `a seminary graduate of four years, warned and owing two subjects`
+    AND `proposed for administrative dismissal under ה.3` `a seminary graduate of four years, warned and owing two subjects`
+#ASSERT `ה.1 excepts a seminary graduate whom ה.3 proposes for dismissal`
+
+-- The visits, by count: whatever is enough to dismiss a probationer (א.6:
+-- 4 by the direct supervisor and 2 by another) is enough for a warning
+-- (ב.4: 2 and 2).
+GIVEN d IS A NUMBER, o IS A NUMBER
+GIVETH A LIST OF `visit`
+DECIDE `whole-lesson visits` d o IS
+    append (map (GIVEN k YIELD `visit` TRUE (100 PLUS k) TRUE) (range 1 d))
+           (map (GIVEN k YIELD `visit` FALSE (200 PLUS k) TRUE) (range 1 o))
+
+#ASSERT all (GIVEN d YIELD
+                all (GIVEN o YIELD
+                            ((NOT `enough visits for a probationer` (`whole-lesson visits` d o))
+                             OR `enough visits for a warning` (`whole-lesson visits` d o))
+                        AND `enough visits for a probationer` (`whole-lesson visits` d o)
+                            EQUALS (d AT LEAST 4 AND o AT LEAST 2))
+                    (range 0 3))
+            (range 0 5)
+
+-- ב.6א over three supervisors of 0 to 5 lessons each: enough exactly where
+-- one visited 4 or more and the other two 2 or more.
+#ASSERT all (GIVEN a YIELD
+                all (GIVEN b YIELD
+                        all (GIVEN c YIELD
+                                `enough visits for a tenured teacher` (LIST a, b, c)
+                                EQUALS (    maximum (LIST a, b, c) AT LEAST 4
+                                        AND minimum (LIST a, b, c) AT LEAST 2))
+                            (range 0 5))
+                    (range 0 5))
+            (range 0 5)
+
+-- ב.3: nothing without a finding of deficiency; with one, a warning or,
+-- after one, dismissal. ב.6ג: the tenured teachers' date always precedes
+-- the probationers'.
+#ASSERT all (GIVEN f YIELD
+                all (GIVEN w YIELD
+                            (`the council's outcome` f w EQUALS `nothing`) EQUALS (NOT f)
+                        AND (`the council's outcome` f w EQUALS `the district manager discusses dismissal`) EQUALS (f AND w))
+                    `both booleans`)
+            `both booleans`
+#ASSERT all (GIVEN d YIELD `the tenured teachers' date` d LESS THAN d) (LIST 150, 200, 250)
+
+-- ז.2 and ז.3 under the reading adopted: never both, and between them
+-- every case but a refusal the supervisor recommended. F-3.5-b over the
+-- whole space: as printed, they overlap exactly on an approval against
+-- the recommendation and leave exactly a recommended refusal.
+#ASSERT all (GIVEN a YIELD
+                all (GIVEN r YIELD
+                            (NOT ((a AND r) AND `ז.3's case` a r))
+                        AND ((a AND r) OR `ז.3's case` a r) EQUALS (a OR r)
+                        AND (`ז.2's case as printed` a AND `ז.3's case` a r) EQUALS (a AND (NOT r))
+                        AND ((NOT `ז.2's case as printed` a) AND (NOT `ז.3's case` a r)) EQUALS ((NOT a) AND (NOT r)))
+                    `both booleans`)
+            `both booleans`
+
+-- ו.2: the position splits into what the duty to dismiss covers and what
+-- ends with the school year, neither negative, the first at most one.
+#ASSERT all (GIVEN f YIELD
+                    `part of the position the duty to dismiss covers` f PLUS `part of the position that ends with the school year` f EQUALS f
+                AND `part of the position the duty to dismiss covers` f AT MOST 1
+                AND `part of the position that ends with the school year` f AT LEAST 0)
+            (map (GIVEN k YIELD k DIVIDED BY 4) (range 0 8))
+
+-- ה.7, ה.8 and ז.5 in a school year with a 29-day February and one
+-- without: the proposals' day comes before the letters', and each is the
+-- day the text names.
+#ASSERT all (GIVEN y YIELD `days from 1 September to` 15 5 y LESS THAN `days from 1 September to` 30 6 y)
+            (LIST 2023, 2025)
+#ASSERT `days from 1 September to` 15 5 2025 EQUALS 256 AND `days from 1 September to` 30 6 2025 EQUALS 302
+#ASSERT `days from 1 September to` 15 5 2023 EQUALS 257 AND `days from 1 September to` 1 11 2023 EQUALS 61
