@@ -65,3 +65,35 @@ DECIDE `young-division education allowance` g d `allowances' base` IS
 #ASSERT `young-division education allowance` `first grade` (DATE_FROM_DMY 1 10 2002) 10000 EQUALS 1150
 #ASSERT `young-division education allowance` `second grade` (DATE_FROM_DMY 1 10 2002) 10000 EQUALS 1000
 #ASSERT `young-division education allowance` `first grade` (DATE_FROM_DMY 1 8 2001) 10000 EQUALS 0
+
+§§ `Property checks`
+
+-- The section's rules over their whole finite space: both grades, the day
+-- before "תחולה: 1.9.01" and the day itself (and a later year), and a grid
+-- of bases.
+
+`every attached grade` MEANS LIST `first grade`, `second grade`
+`the days checked` MEANS LIST DATE_FROM_DMY 31 8 2001, DATE_FROM_DMY 1 9 2001, DATE_FROM_DMY 1 9 2024
+`the bases checked` MEANS LIST 0, 5000, 10000, 12345
+
+-- Both rates are shares between 0 and 1.
+#ASSERT all (GIVEN g YIELD
+                    `young-division education allowance rate` g AT LEAST 0
+                AND `young-division education allowance rate` g AT MOST 1)
+            `every attached grade`
+
+-- The date is a step with no hole: nothing under this section on
+-- 31.8.2001, the grade's rate of the base from 1.9.2001 on; the allowance
+-- is never negative and never more than the base.
+#ASSERT all (GIVEN g YIELD
+                all (GIVEN d YIELD
+                        all (GIVEN b YIELD
+                                    `young-division education allowance` g d b
+                                    EQUALS (IF DATE_SERIAL d AT LEAST DATE_SERIAL (DATE_FROM_DMY 1 9 2001)
+                                            THEN b TIMES `young-division education allowance rate` g
+                                            ELSE 0)
+                                AND `young-division education allowance` g d b AT LEAST 0
+                                AND `young-division education allowance` g d b AT MOST b)
+                            `the bases checked`)
+                    `the days checked`)
+            `every attached grade`
