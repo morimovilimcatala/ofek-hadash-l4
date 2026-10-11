@@ -364,6 +364,49 @@ def citations(sec: akn.Section) -> dict[str, str]:
     return out
 
 
+COUNTER = re.compile(r" (?:¶|table )\d+$")
+HEB_YEARS = {"tashsaz": 'תשס"ז', "tashsach": 'תשס"ח', "tashsat": 'תשס"ט', "tasha": 'תש"ע',
+             "tashaa": 'תשע"א', "tashab": 'תשע"ב', "tashag": 'תשע"ג', "tashad": 'תשע"ד',
+             "tashae": 'תשע"ה', "tashav": 'תשע"ו', "tashaz": 'תשע"ז', "tashach": 'תשע"ח',
+             "tashat": 'תשע"ט', "tashaf": 'תש"פ', "tashpa": 'תשפ"א', "tashpab": 'תשפ"ב',
+             "tashpag": 'תשפ"ג', "tashpad": 'תשפ"ד', "tashpah": 'תשפ"ה', "tashpo": 'תשפ"ו',
+             "tashsa": 'תשס"א'}
+
+
+def doc_label(doc: str) -> str:
+    """The document as a reader names it: "התקנון", "חוזר תשפ"ג/7",
+    "חוזר שכר 2023-1-8". Read off the corpus path, whose names are regular;
+    a path of no known shape falls back to the document's title."""
+    coll, stem = doc.split("/")[0], Path(doc).stem
+    if coll == "takanon":
+        return "התקנון"
+    m = re.fullmatch(r"[\d-]+_(?:tnai-sherut_)?([a-z]+)_(\d+)(_clarif)?(?:_.*)?", stem)
+    if coll in ("circulars", "circulars-tnai-sherut") and m and m[1] in HEB_YEARS:
+        name = f"{HEB_YEARS[m[1]]}/{int(m[2])}"
+        kind = "חוזר תנאי שירות" if coll == "circulars-tnai-sherut" else "חוזר"
+        return f"הבהרה לחוזר {name}" if m[3] else f"{kind} {name}"
+    m = re.fullmatch(r"[\d-]+_sachar_([\d]+-\d+-\d+)_.*", stem)
+    if coll == "circulars-sachar" and m:
+        return f"חוזר שכר {m[1]}"
+    return akn.title(doc)
+
+
+def clause(sec: akn.Section, key: str, fallback: str) -> str:
+    """The clause a row sits in, as the text numbers it: §1.15.4.5. An
+    unnumbered paragraph or table is cited by its clause alone -- the "¶150"
+    citations() appends is our own running count, which nothing on the page
+    prints, so it is no use to a reader."""
+    c = citations(sec).get(key)
+    return COUNTER.sub("", c) if c else fallback
+
+
+def cite_html(sec: akn.Section, key: str, fallback: str, doc: str | None = None) -> str:
+    """A clause label for a page, left to right; with `doc`, preceded by the
+    document's name, for a link read away from that document's own page."""
+    return ((f'<span class="cdoc">{esc(doc_label(doc))}</span> ' if doc else "")
+            + f'<bdi dir="ltr">{esc(clause(sec, key, fallback))}</bdi>')
+
+
 def tally(v: SectionView) -> dict[str, int]:
     """The section's text paragraphs by what the L4 does with them."""
     out = {"rule": 0, "note": 0, "missing": 0}
@@ -774,7 +817,7 @@ def segment_html(v: SectionView, s: l4src.Segment, graphs: dict[str, str] | None
     if s.note_only:
         return (f'<div class="seg note"><span class="note-label">ללא כלל</span>'
                 f'<span class="note-text" lang="en" dir="ltr">{esc(s.note)}</span></div>')
-    others = "".join(f'<a class="also" href="#{esc(k)}">מכסה גם <bdi dir="ltr">{esc(citations(v.section).get(k, k))}</bdi></a>'
+    others = "".join(f'<a class="also" href="#{esc(k)}">מכסה גם {cite_html(v.section, k, k)}</a>'
                      for k in s.keys[1:])
     # filled from the section's prose_json on the first switch to prose
     rend = f'<div class="view rendered" data-s="{s.start}" hidden></div>'
@@ -890,8 +933,8 @@ def section_block(v: SectionView, here: str, headless: bool = False) -> str:
             # on the whole preamble, a rule citing a list's head): say so
             # here, or the row reads as if nothing covered it
             at = v.covered_by[r.key]
-            cite = citations(v.section).get(at, "")
-            link = f'<a href="#{esc(at)}"><bdi dir="ltr">{esc(cite)}</bdi></a>' if cite else f'<a href="#{esc(at)}">למעלה</a>'
+            cite = at in citations(v.section)
+            link = f'<a href="#{esc(at)}">{cite_html(v.section, at, "")}</a>' if cite else f'<a href="#{esc(at)}">למעלה</a>'
             code = (f'<div class="seg cont note"><span class="note-label">ללא כלל</span>'
                     f'<span class="cont-text">כלול בהערה שליד {link}</span></div>'
                     if v.kind_of.get(r.key) == "note" else
@@ -1243,11 +1286,15 @@ def findings_page(findings, views_by_file, key_to_view) -> str:
                                      "rank": (WORK_COLLECTIONS.index(col) if col in WORK_COLLECTIONS else 99,
                                               order.get(id(v), 10**9) if col == "takanon" else 0, doc)})
         ev = evidence_result(f, views_by_file)
-        where = []
+        where, shown = [], set()
         for k in f.get("keys", []):
             kv = key_to_view.get((doc, k))
             if kv:
-                where.append(f'<a href="{kv.page}#{esc(k)}"><bdi dir="ltr">{esc(citations(kv.section).get(k, "§" + kv.section.num))}</bdi></a>')
+                # two paragraphs of one clause read the same; one link is enough
+                label = cite_html(kv.section, k, "§" + kv.section.num, kv.doc)
+                if label not in shown:
+                    shown.add(label)
+                    where.append(f'<a href="{kv.page}#{esc(k)}">{label}</a>')
         state = ('<span class="okay">ה־<bdi dir="ltr">#ASSERT</bdi> מתקיים: הפגם עדיין בטקסט</span>' if ev["held"] else
                  '<span class="notok">הראיה אינה מתקיימת — ראו בדיקות</span>')
         deps = "".join(f'<a href="#{esc(d)}"><bdi dir="ltr" class="fref">{esc(d)}</bdi></a> ' for d in f.get("depends_on", []) if d in by_id)
@@ -1370,7 +1417,7 @@ def calculator_page(all_views: dict[str, list["SectionView"]], findings: list[di
     evaluator compiled to WebAssembly (tools/calculator.py)."""
     here = "calculator.html"
     v = next(v for v in all_views[SALARY[0]] if v.section.num == SALARY[1])
-    s = calculator.spec(v.section, v.l4, citations(v.section))
+    s = calculator.spec(v.section, v.l4, {k: clause(v.section, k, k) for k in citations(v.section)})
     s = calculator.ship(s, v.l4, OUT / "assets")
     link = f'<a href="{v.href}"><bdi dir="ltr">§{esc(v.section.num)}</bdi> {esc(v.section.heading)}</a>'
     mine = [f for f in findings if f.get("l4") == str(v.l4.relative_to(ROOT))]
