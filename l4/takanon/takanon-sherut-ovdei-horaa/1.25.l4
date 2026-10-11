@@ -791,6 +791,8 @@ DECIDE `days a year for a child's illness` `age of the child` f IS
 
 -- akn:chp_1ב__sec_1_25__ssec_1_25_3_1/p19 Heading of clause 3א ("absence for a child's malignant illness").
 
+-- F-1.25-z: 3א raises to 110 for fewer circumstances than 3 and 3ב (no
+-- single parent, no self-employed spouse); encoded as printed.
 -- Clause 3א: a child under 18, after a year with the employer — up to 90 days
 -- a year (charged to sick leave or vacation, as the employee chooses); 110
 -- where the spouse works and did not take the absence or the child is in sole
@@ -1926,6 +1928,8 @@ DECIDE `weeks of maternity leave for the birth` `children born in the birth` IS
 -- exceeding 16 weeks in all) or split it, not counting up to 4 weeks of the
 -- stay. F-1.25-m: the 16-week ceiling is below the 17 weeks a mother of twins
 -- already has; read as capping only the extension, never cutting the leave.
+-- F-1.25-aa: on a 14-week leave the ceiling leaves at most 2 of the 4
+-- weeks; the ceiling is read as governing.
 DECLARE `choice on hospitalisation` IS ONE OF
     `extend the leave to the end of the hospital stay`
     `split the leave`
@@ -3608,3 +3612,202 @@ DECIDE `allowances for a selection-committee day` `meal allowance under regulati
 -- akn:chp_1ב__sec_1_25__ssec_1_25_15/p5 Source list: a civil-service regulation.
 
 #ASSERT `hours of absence on duty for a selection committee` 3 FALSE TRUE EQUALS 0
+
+§§ `Property checks`
+
+-- The section's numeric and dated rules over their whole finite space:
+-- every combination of the family flags of clauses 3–3ב, every birth of
+-- one to three children with every hospital stay up to 8 weeks, every
+-- birthday month, retirements over a grid of months served and days used,
+-- every share of a month's quota from 0 to 20% in half-percent steps, and
+-- every notice day from 20 March to 20 April.
+
+-- Clauses 3, 3א and 3ב of section 1.25.3.1 raise a parent's days for the
+-- same family circumstances, except where they do not. Over all sixteen
+-- combinations of the four circumstances (an employee spouse who did not
+-- take the absence, a self-employed spouse who did not leave the business,
+-- a single parent, sole custody): whenever 3ב opens its 15 additional days,
+-- 3א gives its 110 — except for a single parent or a parent whose spouse is
+-- self-employed, with neither an employee spouse nor sole custody, whom 3
+-- and 3ב raise and 3א leaves at 90 (F-1.25-z).
+GIVEN employee IS A BOOLEAN, `self-employed` IS A BOOLEAN, single IS A BOOLEAN, custody IS A BOOLEAN
+GIVETH A `family circumstances`
+DECIDE `a family where` employee `self-employed` single custody IS
+    `family circumstances` WITH
+        `the spouse is an employee who did not take this absence` IS employee
+        `the spouse is self-employed and did not leave the business for it` IS `self-employed`
+        `in the employee's sole custody`          IS custody
+        `a single parent`                         IS single
+        `years with this employer`                IS 3
+        `another person used the additional days for the same person` IS FALSE
+        `days already charged under clause 3`     IS 0
+        `days already charged under clauses 3 and 3a for the disabled child` IS 0
+
+GIVEN f IS A `family circumstances`
+GIVETH A BOOLEAN
+DECIDE `3ב raises the parent and 3א does not` f IF
+        `the additional disability days are open` f
+    AND `days left for a child's malignant illness` 10 f LESS THAN 110
+
+GIVEN employee IS A BOOLEAN, `self-employed` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `the clauses part as described for` employee `self-employed` IF
+    all (GIVEN single YIELD
+            all (GIVEN custody YIELD
+                    `3ב raises the parent and 3א does not` (`a family where` employee `self-employed` single custody)
+                    EQUALS ((`self-employed` OR single) AND NOT (employee OR custody)))
+                (LIST TRUE, FALSE))
+        (LIST TRUE, FALSE)
+
+#ASSERT all (GIVEN employee YIELD
+                all (GIVEN s YIELD `the clauses part as described for` employee s) (LIST TRUE, FALSE))
+            (LIST TRUE, FALSE)
+
+-- And clause 3 itself puts a single parent above a parent whose spouse
+-- works (16 days against 8), where 3א puts the single parent below (90
+-- against 110).
+`a single-parent family` MEANS `a family where` FALSE FALSE TRUE FALSE
+`a family whose spouse works` MEANS `a family where` TRUE FALSE FALSE FALSE
+
+`clause 3 favours the single parent and clause 3א the parent whose spouse works` MEANS
+        `days a year for a child's illness` 10 `a single-parent family` GREATER THAN `days a year for a child's illness` 10 `a family whose spouse works`
+    AND `days left for a child's malignant illness` 10 `a single-parent family` LESS THAN `days left for a child's malignant illness` 10 `a family whose spouse works`
+    AND `the additional disability days are open` `a single-parent family`
+#ASSERT `clause 3 favours the single parent and clause 3א the parent whose spouse works`
+
+-- Section 1.25.5, maternity 2א over births of one to three children and
+-- every hospital stay of 0 to 8 weeks: extending never cuts the leave,
+-- never adds more than the stay or 4 weeks, and — since the leave is
+-- already 14 weeks — never adds more than 2: the 4 weeks the paragraph
+-- allows are reached by no mother (F-1.25-aa; for twins and more it adds
+-- nothing, F-1.25-m).
+`the hospital stays checked` MEANS range 0 8
+
+GIVEN children IS A NUMBER, weeks IS A NUMBER
+GIVETH A NUMBER
+DECIDE `weeks the extension adds for` children weeks IS
+    `weeks of leave after a hospital stay` weeks (`weeks of maternity leave for the birth` children) `extend the leave to the end of the hospital stay`
+    MINUS `weeks of maternity leave for the birth` children
+
+#ASSERT all (GIVEN children YIELD
+                all (GIVEN weeks YIELD
+                            `weeks the extension adds for` children weeks AT LEAST 0
+                        AND `weeks the extension adds for` children weeks AT MOST min weeks 4
+                        AND `weeks the extension adds for` children weeks AT MOST 2
+                        AND (children EQUALS 1 OR `weeks the extension adds for` children weeks EQUALS 0))
+                    `the hospital stays checked`)
+            (LIST 1, 2, 3)
+
+`the most any extension adds` MEANS
+    maximum (concat (map (GIVEN c YIELD map (GIVEN w YIELD `weeks the extension adds for` c w) `the hospital stays checked`)
+                         (LIST 1, 2, 3)))
+
+`no mother can extend her maternity leave by the 4 weeks 2א allows` MEANS
+    `the most any extension adds` LESS THAN 4
+#ASSERT `no mother can extend her maternity leave by the 4 weeks 2א allows`
+#ASSERT `the most any extension adds` EQUALS 2
+
+-- Splitting (2ב) never shortens the leave either, and never moves more
+-- than 4 weeks of the stay out of it.
+#ASSERT all (GIVEN children YIELD
+                all (GIVEN weeks YIELD
+                            `weeks of leave after a hospital stay` weeks (`weeks of maternity leave for the birth` children) `split the leave`
+                            AT LEAST `weeks of maternity leave for the birth` children
+                        AND `weeks of leave after a hospital stay` weeks (`weeks of maternity leave for the birth` children) `split the leave`
+                            AT MOST `weeks of maternity leave for the birth` children PLUS 4)
+                    `the hospital stays checked`)
+            (LIST 1, 2, 3)
+
+-- Maternity 12 over 0 to 40 months worked and 3 to 12 months from the
+-- birth: the extension is never negative, never more than a quarter of the
+-- months worked, and never past 12 months from the birth.
+#ASSERT all (GIVEN worked YIELD
+                all (GIVEN since YIELD
+                            `months of extension under paragraph 12` worked since AT LEAST 0
+                        AND `months of extension under paragraph 12` worked since AT MOST worked DIVIDED BY 4
+                        AND `months of extension under paragraph 12` worked since PLUS since AT MOST max since 12)
+                    (range 3 12))
+            (range 0 40)
+
+-- Section 1.25.3.2 2א (F-1.25-i over every birthday month): the nearest
+-- 1 September comes after the birthday exactly for April to August.
+#ASSERT filter `the nearest 1 September is after the birthday` (range 1 12) EQUALS range 4 8
+
+-- Compensation for unused sick leave over 0 to 400 months served and every
+-- tenth of them used: the rate is always 0, 6 or 8; never negative; never
+-- more for more days used, nor less for more months served; whole blocks
+-- never pay more than the pro rata reading, and the two part exactly where
+-- the balance is not a whole number of 30-day blocks and the rate is not 0
+-- (F-1.25-j over the space).
+GIVEN months IS A NUMBER, used IS A NUMBER
+GIVETH A `retirement case`
+DECIDE `a retiree of 60 with` months `months and` used `days used` IS
+    `retirement case` `retirement on pension` 60 30 TRUE months used 1 25000 0
+
+GIVEN months IS A NUMBER
+GIVETH A LIST OF NUMBER
+DECIDE `the days used checked for` months IS
+    map (GIVEN k YIELD k TIMES 2.5 TIMES months DIVIDED BY 20) (range 0 20)
+
+`the months served checked` MEANS LIST 0, 12, 40, 120, 240, 400
+
+#ASSERT all (GIVEN m YIELD
+                all (GIVEN u YIELD
+                            elem (`days' pay for every 30 days of balance` (`a retiree of 60 with` m `months and` u `days used`)) (LIST 0, 6, 8)
+                        AND `compensation for unused sick leave` (`a retiree of 60 with` m `months and` u `days used`) FALSE AT LEAST 0
+                        AND `days' pay on the other reading, whole blocks of 30` (`a retiree of 60 with` m `months and` u `days used`)
+                            AT MOST `days' pay of compensation` (`a retiree of 60 with` m `months and` u `days used`))
+                    (`the days used checked for` m))
+            `the months served checked`
+
+#ASSERT all (GIVEN m YIELD
+                and (zipWith (GIVEN u, v YIELD
+                                `compensation for unused sick leave` (`a retiree of 60 with` m `months and` v `days used`) FALSE
+                                AT MOST `compensation for unused sick leave` (`a retiree of 60 with` m `months and` u `days used`) FALSE)
+                             (`the days used checked for` m) (drop 1 (`the days used checked for` m))))
+            `the months served checked`
+
+#ASSERT all (GIVEN u YIELD
+                and (zipWith (GIVEN m, n YIELD
+                                `compensation for unused sick leave` (`a retiree of 60 with` m `months and` u `days used`) FALSE
+                                AT MOST `compensation for unused sick leave` (`a retiree of 60 with` n `months and` u `days used`) FALSE)
+                             `the months served checked` (drop 1 `the months served checked`)))
+            (LIST 0, 30, 100, 300)
+
+#ASSERT all (GIVEN m YIELD
+                all (GIVEN u YIELD
+                        (NOT (`days' pay on the other reading, whole blocks of 30` (`a retiree of 60 with` m `months and` u `days used`)
+                              EQUALS `days' pay of compensation` (`a retiree of 60 with` m `months and` u `days used`)))
+                        EQUALS (    `days' pay for every 30 days of balance` (`a retiree of 60 with` m `months and` u `days used`) GREATER THAN 0
+                                AND NOT (TRUNC (`sick days that count for compensation` (`a retiree of 60 with` m `months and` u `days used`) DIVIDED BY 30) 0
+                                         EQUALS `sick days that count for compensation` (`a retiree of 60 with` m `months and` u `days used`) DIVIDED BY 30)))
+                    (`the days used checked for` m))
+            `the months served checked`
+
+-- Clause 1ב: the days credited at the year's end are never negative and
+-- never more than the year's 30, which a year with no absence earns in full.
+#ASSERT all (GIVEN base YIELD
+                all (GIVEN extent YIELD
+                        all (GIVEN absent YIELD
+                                    `sick days credited at the year's end` (`sick-hours year` base extent absent) AT LEAST 0
+                                AND `sick days credited at the year's end` (`sick-hours year` base extent absent) AT MOST `sick-leave days a year`
+                                AND (absent GREATER THAN 0 OR extent EQUALS 0
+                                     OR `sick days credited at the year's end` (`sick-hours year` base extent absent) EQUALS `sick-leave days a year`))
+                            (LIST 0, 10, 60, 120, 200))
+                    (LIST 0, 0.5, 1, 1.4))
+            (LIST 24, 30)
+
+-- Section 1.25.14 2 (F-1.25-x over every half-percent from 0 to 20%):
+-- exactly 10% is the ONLY share in neither band.
+`the absence shares checked` MEANS map (GIVEN k YIELD k DIVIDED BY 200) (range 0 40)
+`the absence shares in neither band` MEANS
+    filter (GIVEN s YIELD `what the text deducts from` s EQUALS `not stated`) `the absence shares checked`
+#ASSERT `the absence shares in neither band` EQUALS LIST 0.1
+
+-- Section 1.25.7 (F-1.25-v over every notice day from 20 March to 20
+-- April): the two deadlines part exactly on 1 to 15 April.
+`the notice days checked` MEANS append (range 320 331) (range 401 420)
+`the notice days the two deadlines part on` MEANS
+    filter (GIVEN d YIELD NOT (`gives up the post in official education` d EQUALS `treated as resigning in post-primary` d))
+           `the notice days checked`
+#ASSERT `the notice days the two deadlines part on` EQUALS range 401 415
