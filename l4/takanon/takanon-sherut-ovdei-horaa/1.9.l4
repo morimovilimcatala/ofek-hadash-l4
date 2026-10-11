@@ -49,11 +49,20 @@ DECLARE `commuting month` HAS
 
 §§§ `1.9.1.1א Where a free monthly pass operates`
 
-@ref akn:chp_1א___sec_1_9__ssec_1_9_1__para_1__subpara_a akn:chp_1א___sec_1_9__ssec_1_9_1__para_1__subpara_a/p2 akn:chp_1א___sec_1_9__ssec_1_9_1__para_1__subpara_a/p3 akn:chp_1א___sec_1_9__ssec_1_9_1__para_1__subpara_a/p4
+-- 1א ¶4: one employed one or two days a week is paid real expenses "בכל
+-- מקרה" — in any case, whatever else 1א or the clauses its note brings in
+-- would pay.
+@ref akn:chp_1א___sec_1_9__ssec_1_9_1__para_1__subpara_a/p4
+GIVEN m IS A `commuting month`
+GIVETH A BOOLEAN
+DECIDE `paid real expenses in any case` m IF
+    m's `days employed a week` AT MOST 2
+
+@ref akn:chp_1א___sec_1_9__ssec_1_9_1__para_1__subpara_a akn:chp_1א___sec_1_9__ssec_1_9_1__para_1__subpara_a/p2 akn:chp_1א___sec_1_9__ssec_1_9_1__para_1__subpara_a/p3
 GIVEN m IS A `commuting month`
 GIVETH A NUMBER
 DECIDE `allowance where a pass operates` m IS
-    IF m's `days employed a week` AT MOST 2
+    IF `paid real expenses in any case` m
     THEN m's `real travel expenses of the month`
     ELSE m's `price of a monthly pass` TIMES min (m's `passes the journey needs`) 2
 
@@ -61,11 +70,17 @@ DECIDE `allowance where a pass operates` m IS
 -- F-1.9-a: no clause of §1.9.1 bears those numbers; the reading adopted is
 -- 1ב.3, 1ב.5 and 1ב.6 — journeys made, a long absence, and leave, stoppage
 -- or summer.
+-- "בכל מקרה" puts 1א ¶4 ahead of the per-journey rule (1ב.3): a teacher
+-- employed one or two days a week attends on some days only, and is paid
+-- her real expenses, not the published allowance per journey. The bars of
+-- 1ב.5–6 still come first: a month they bar has no journey to pay for.
 @ref akn:chp_1א___sec_1_9__ssec_1_9_1__para_1__subpara_a/p5
 GIVEN m IS A `commuting month`
 GIVETH A NUMBER
 DECIDE `pass user's allowance` m IS
     BRANCH IF `no allowance this month` m THEN 0
+           IF `paid real expenses in any case` m
+              THEN m's `real travel expenses of the month`
            IF m's `required to attend only some days`
               THEN m's `published allowance per journey` TIMES m's `journeys made`
            OTHERWISE `allowance where a pass operates` m
@@ -650,6 +665,28 @@ DECIDE `owners' half-yearly accounting` IS
         `a month of the summer break`             IS FALSE
 
 #ASSERT `commuting allowance` `a pass user on unpaid leave` EQUALS 0
+
+-- 1א ¶4 "בכל מקרה": two days a week, attending on those days only, is paid
+-- real expenses (90), not 8 journeys at the published allowance (48).
+`a two-day pass user who attends on those days only` MEANS
+    `commuting month` WITH
+        `a free monthly pass operates where the employee lives` IS TRUE
+        `passes the journey needs`                IS 1
+        `price of a monthly pass`                 IS 200
+        `days employed a week`                    IS 2
+        `real travel expenses of the month`       IS 90
+        `needs transport to reach work`           IS TRUE
+        `published allowance for a full month`    IS 250
+        `published allowance per journey`         IS 6
+        `required to attend only some days`       IS TRUE
+        `journeys made`                           IS 8
+        `in a month after the first of a continuous paid absence longer than a month` IS FALSE
+        `in a month after the first of reserve duty longer than a month` IS FALSE
+        `on unpaid leave`                         IS FALSE
+        `work temporarily stopped`                IS FALSE
+        `a month of the summer break`             IS FALSE
+
+#ASSERT `commuting allowance` `a two-day pass user who attends on those days only` EQUALS 90
 #ASSERT `allowance where a pass operates` `a pass user on unpaid leave` EQUALS 400
 #ASSERT `may claim for the second bus` 2 3 FALSE
 #ASSERT `duty-travel compensation` (DATE_FROM_DMY 1 1 1985) `works in an educational institution` FALSE 400 90 0 EQUALS 100
