@@ -228,6 +228,12 @@ class SectionView:
         return f"{self.dir}.render.html" if self.whole else f"{self.dir}/{self.section.num}.render.html"
 
     @property
+    def prose_href(self) -> str:
+        """The section's prose views, fetched when the reader first asks for
+        them (prose_json; site.js), not carried hidden in every page."""
+        return self.render_href.removesuffix(".render.html") + ".prose.json"
+
+    @property
     def text_rows(self):
         return [r for r in self.section.rows if r.kind == "text"]
 
@@ -479,6 +485,20 @@ def rendered_for(v: SectionView) -> dict[int, str]:
     return out
 
 
+def prose_json(v: SectionView) -> str:
+    """segment start line -> its prose view, for the page that shows the
+    section. A rendered term links to its definition; where that is not in
+    this section's own views it is on the section's render page."""
+    frags = rendered_for(v)
+    ids = {i for f in frags.values() for i in re.findall(r'\bid="([^"]*)"', f)}
+    out_page = rel(v.render_href, v.page)
+
+    def link(m):
+        return m.group(0) if html.unescape(m.group(1)) in ids else f'href="{esc(out_page)}#{m.group(1)}"'
+    return json.dumps({str(k): re.sub(r'href="#([^"]*)"', link, f) for k, f in frags.items()},
+                      ensure_ascii=False, separators=(",", ":"))
+
+
 # ------------------------------------------------------------------ pages
 
 def rel(target: str, here: str) -> str:
@@ -650,18 +670,15 @@ def results_html(seg: l4src.Segment) -> str:
     return '<ul class="results">' + "".join(items) + "</ul>"
 
 
-def segment_html(v: SectionView, s: l4src.Segment, rendered: dict[int, str],
-                 graphs: dict[str, str] | None = None) -> str:
+def segment_html(v: SectionView, s: l4src.Segment, graphs: dict[str, str] | None = None) -> str:
     gh = f"{REPO}/blob/main/{v.l4.relative_to(ROOT)}#L{s.start}-L{s.end}"
     if s.note_only:
         return (f'<div class="seg note"><span class="note-label">ללא כלל</span>'
                 f'<span class="note-text" lang="en" dir="ltr">{esc(s.note)}</span></div>')
     others = "".join(f'<a class="also" href="#{esc(k)}">מכסה גם <bdi dir="ltr">{esc(citations(v.section).get(k, k))}</bdi></a>'
                      for k in s.keys[1:])
-    r = rendered.get(s.start)
-    rend = (f'<div class="view rendered l4-doc" hidden>{r}</div>' if r else
-            '<div class="view rendered empty" hidden>אין לו פרוזה משלו: זהו טיפוס, בדיקה '
-            'או חלק מכלל שמוצג ליד פסקה אחרת.</div>')
+    # filled from the section's prose_json on the first switch to prose
+    rend = f'<div class="view rendered" data-s="{s.start}" hidden></div>'
     notes = "".join(f'<div class="seg note"><span class="note-label">ללא כלל</span>'
                     f'<span class="note-text" lang="en" dir="ltr">{esc(n)}</span></div>' for n in l4src.lead_notes(s.lines))
     # an obligation (MUST / MAY / SHANT) as L4 draws it: `l4 state-graph`
@@ -754,7 +771,7 @@ def section_block(v: SectionView, here: str, headless: bool = False) -> str:
         return (f'<section class="tsec todo" id="{esc(sec.eid)}">{head}'
                 f'<div class="grid only-text">{rows}</div></section>')
 
-    rendered = rendered_for(v)
+    prose = f' data-prose="{esc(rel(v.prose_href, here))}"' if rendered_for(v) else ""
     graphs = {n: rel(p, here) for n, p in state_graphs(v).items()}
     out = []
     for r in sec.rows:
@@ -766,7 +783,7 @@ def section_block(v: SectionView, here: str, headless: bool = False) -> str:
             cls.append("covered")
         if segs and all(s.note_only for s in segs):
             cls.append("noted")
-        code = "".join(segment_html(v, s, rendered, graphs) for s in segs)
+        code = "".join(segment_html(v, s, graphs) for s in segs)
         if "covered" in cls and v.covered_by.get(r.key, r.key) != r.key:
             # covered by a segment that sits beside an earlier row (a note
             # on the whole preamble, a rule citing a list's head): say so
@@ -794,8 +811,8 @@ def section_block(v: SectionView, here: str, headless: bool = False) -> str:
     if v.appendix:
         appendix = ('<details class="appendix"><summary>הגדרות משותפות, דוגמאות ובדיקות '
                     f'<span class="meta">({len(v.appendix)})</span></summary>'
-                    + "".join(segment_html(v, s, rendered, graphs) for s in v.appendix) + '</details>')
-    return (f'<section class="tsec" id="{esc(sec.eid)}">{head}{unplaced}'
+                    + "".join(segment_html(v, s, graphs) for s in v.appendix) + '</details>')
+    return (f'<section class="tsec" id="{esc(sec.eid)}"{prose}>{head}{unplaced}'
             f'<div class="grid">{"".join(out)}</div>{appendix}</section>')
 
 
@@ -822,25 +839,27 @@ def render_page(v: SectionView) -> str:
 
 
 def progress(vs: list[SectionView]) -> str:
-    """A thin bar of the paragraphs by what the L4 does with them, and a
-    legend saying so: unlabelled, a green-and-grey bar beside "110 of 110"
-    reads as 77% done when it means 77% carry a rule."""
-    t = {"rule": 0, "note": 0, "missing": 0, "todo": 0}
+    """How much of the text is encoded, and only while something is not:
+    "77% carry a rule, 23% carry none" told the reader nothing they could use
+    (the client, 2026-10-11), and a finished collection's "N of N" line says
+    all there is. A paragraph read and given a note counts as encoded."""
+    t = {"done": 0, "missing": 0, "todo": 0}
     for v in vs:
         if v.src is None:
             t["todo"] += len(v.text_rows)
         else:
             for k, n in tally(v).items():
-                t[k] += n
+                t["done" if k in ("rule", "note") else k] += n
+    if not (t["missing"] or t["todo"]):
+        return ""
     total = max(sum(t.values()), 1)
-    names = {"rule": "קובעות כלל", "note": "ללא כלל לקודד (כותרות, פרטי מכתב, רשימות אסמכתא, הערות)",
-             "missing": "לא צוטטו", "todo": "טרם קודדו"}
-    pct = {k: round(t[k] * 100 / total) for k in t}
-    legend = " · ".join(f'<span><i class="sw {k}"></i>{pct[k]}% {names[k]}</span>'
-                        for k in ("rule", "note", "missing", "todo") if t[k])
+    names = {"done": "מקודדות", "missing": "לא צוטטו", "todo": "טרם קודדו"}
+    cls = {"done": "rule", "missing": "missing", "todo": "todo"}   # the sheet's colours
+    legend = " · ".join(f'<span><i class="sw {cls[k]}"></i>{round(t[k] * 100 / total)}% {names[k]}</span>'
+                        for k in ("done", "missing", "todo") if t[k])
     return ('<span class="pbar">' + "".join(
-        f'<i class="{k}" style="width:{t[k] * 100 / total:.3f}%"></i>' for k in ("rule", "note", "missing") if t[k])
-        + f'</span><span class="plegend">{"כל הפסקאות נקראו" if not (t["missing"] or t["todo"]) else "פסקאות"}: {legend}</span>')
+        f'<i class="{cls[k]}" style="width:{t[k] * 100 / total:.3f}%"></i>' for k in ("done", "missing") if t[k])
+        + f'</span><span class="plegend">פסקאות: {legend}</span>')
 
 
 def chapters_of(views: list[SectionView]) -> list[list[SectionView]]:
@@ -1409,6 +1428,7 @@ def build() -> int:
             (OUT / v.page).write_text(single_page(doc, v), encoding="utf-8")
             if v.src is not None:
                 (OUT / v.render_href).write_text(render_page(v), encoding="utf-8")
+                (OUT / v.prose_href).write_text(prose_json(v), encoding="utf-8")
             continue
         d.mkdir(parents=True, exist_ok=True)
         chapters = chapters_of(views)
@@ -1432,6 +1452,7 @@ def build() -> int:
             (OUT / v.old_href).write_text(redirect_page(v.old_href, v.href, f"§{v.section.num}"), encoding="utf-8")
             if v.src is not None:
                 (OUT / v.render_href).write_text(render_page(v), encoding="utf-8")
+                (OUT / v.prose_href).write_text(prose_json(v), encoding="utf-8")
     flat = [v for vs in all_views.values() for v in vs]
     by_file = {str(v.l4.relative_to(ROOT)): v for v in flat if v.l4}
     key_to_view = {}

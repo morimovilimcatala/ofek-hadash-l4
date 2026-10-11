@@ -13,11 +13,22 @@ SKIPS elsewhere, saying so.
 """
 import hashlib
 import os
+import subprocess
 import tomllib
 import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+
+
+def committed(repo: Path, path: str) -> bytes | None:
+    """The file as the corpus repository has COMMITTED it: a session at work
+    there has uncommitted edits, and those are not the corpus yet."""
+    r = subprocess.run(["git", "-C", str(repo), "show", f"HEAD:{path}"], capture_output=True)
+    if r.returncode == 0:
+        return r.stdout
+    there = repo / path
+    return there.read_bytes() if there.exists() and not (repo / ".git").exists() else None
 
 
 def checkout() -> Path | None:
@@ -38,10 +49,10 @@ class CorpusIsCurrent(unittest.TestCase):
     def test_every_vendored_file_is_the_corpus_file(self):
         stale = []
         for f in self.source["file"]:
-            there = self.repo / f["path"]
-            if not there.exists():
+            data = committed(self.repo, f["path"])
+            if data is None:
                 stale.append(f"{f['path']}: gone from the corpus")
-            elif hashlib.sha256(there.read_bytes()).hexdigest() != f["sha256"]:
+            elif hashlib.sha256(data).hexdigest() != f["sha256"]:
                 stale.append(f"{f['path']}: changed in the corpus")
         self.assertEqual([], stale, "corpus/ is behind the corpus repository: "
                          "run tools/sync_corpus.py, then make l4 && make test")
@@ -51,8 +62,9 @@ class CorpusIsCurrent(unittest.TestCase):
         corpus added or dropped must show there."""
         import json
         listed = {d["path"] for d in json.loads((ROOT / "corpus/manifest.json").read_text(encoding="utf-8"))["documents"]}
-        there = {str(p.relative_to(self.repo / "akn")) for p in (self.repo / "akn").rglob("*.xml")
-                 if "schema" not in p.relative_to(self.repo / "akn").parts}
+        ls = subprocess.run(["git", "-C", str(self.repo), "ls-tree", "-r", "--name-only", "HEAD", "akn/"],
+                            capture_output=True, text=True).stdout.split()
+        there = {p.removeprefix("akn/") for p in ls if p.endswith(".xml") and "/schema/" not in p}
         self.assertEqual(([], []), (sorted(there - listed), sorted(listed - there)),
                          "(added, dropped) since the last sync: run tools/sync_corpus.py")
 
