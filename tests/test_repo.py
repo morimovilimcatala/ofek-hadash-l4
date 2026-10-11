@@ -114,6 +114,17 @@ class Findings(unittest.TestCase):
                     self.assertIn((site_mod.finding_doc(f), k), self.keys)
                 self.assertTrue((ROOT / f["l4"]).exists(), f["l4"])
 
+    def test_findings_are_written_in_hebrew(self):
+        """The client, 2026-10-11: a finding shown in English "should be
+        Hebrew". Its title, body and reading are Hebrew; an L4 identifier in
+        backticks stays English and does not count. A sequence arrow points
+        left, because the page is right to left."""
+        for f in self.findings:
+            for field in ("title", "body", "reading"):
+                with self.subTest(finding=f["id"], field=field):
+                    self.assertTrue(site_mod.is_hebrew(f[field]), "written in English")
+                    self.assertNotIn("→", site_mod.IDENT.sub("", f[field]))
+
     def test_every_finding_is_asserted_in_its_file(self):
         for f in self.findings:
             with self.subTest(finding=f["id"]):
