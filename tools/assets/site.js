@@ -81,12 +81,43 @@
 
     // an alias (an element cited by eId, shown on its first paragraph)
     // marks the row it lives in when the page opens on it
+    settleOnHash();
     if (location.hash) {
       var t = document.getElementById(decodeURIComponent(location.hash.slice(1)));
       var row = t && t.closest(".row");
       if (row && row !== t) row.classList.add("hit");
     }
   });
+
+  // Rows off the screen are not laid out (content-visibility in site.css):
+  // each is a box of an estimated height until the reader nears it. Jumping
+  // to an anchor lays out the rows around it, which moves it, so the jump is
+  // repeated until the target holds still at the place the browser aimed it
+  // at — and abandoned the moment the reader scrolls.
+  function settle(el) {
+    if (!el) return;
+    var frames = 0, still = 0, stop = false;
+    function cancel() { stop = true; }
+    ["wheel", "touchstart", "keydown", "mousedown"].forEach(function (t) {
+      window.addEventListener(t, cancel, { once: true, passive: true });
+    });
+    (function step() {
+      if (stop || frames++ > 90) return;
+      var want = parseFloat(getComputedStyle(el).scrollMarginTop) || 0;
+      var y = window.scrollY;
+      if (Math.abs(el.getBoundingClientRect().top - want) > 1) el.scrollIntoView({ block: "start" });
+      // held still, or already as far as the page scrolls
+      if (window.scrollY === y) { if (++still >= 6) return; } else still = 0;
+      requestAnimationFrame(step);
+    })();
+  }
+  function settleOnHash() {
+    if (!location.hash) return;
+    var el = document.getElementById(decodeURIComponent(location.hash.slice(1)));
+    if (el && !el.matches("details.finding")) settle(el);
+  }
+  window.addEventListener("hashchange", settleOnHash);
+  window.addEventListener("load", settleOnHash);
 
   // Long pages: an "On this page" outline of the headed rows, under the
   // current entry of the sidebar, and a back-to-top button. On the takanon's
