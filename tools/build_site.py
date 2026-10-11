@@ -104,9 +104,49 @@ def he(text: str) -> str:
 
 
 def en(text: str) -> str:
-    """Our own English (a note, a finding) inside the Hebrew site: isolated,
-    so its punctuation and numbers keep their order."""
+    """Our own English (a note) inside the Hebrew site: isolated, so its
+    punctuation and numbers keep their order."""
     return f'<bdi lang="en" dir="ltr">{esc(text)}</bdi>'
+
+
+HEB = re.compile(r"[\u05d0-\u05ea]")
+LAT = re.compile(r"[A-Za-z]")
+IDENT = re.compile(r"`[^`]*`")
+LTR_RUN = re.compile(r"`[^`]*`|§[0-9][0-9A-Za-z\u05d0-\u05ea.()]*[0-9A-Za-z\u05d0-\u05ea)]|§[0-9]|#[A-Z]+")
+
+
+def is_hebrew(text: str) -> bool:
+    """A finding's prose is Hebrew when Hebrew letters outnumber Latin ones
+    outside the L4 identifiers (`…`) it names."""
+    bare = IDENT.sub("", text)
+    return len(HEB.findall(bare)) > len(LAT.findall(bare))
+
+
+def prose(text: str) -> str:
+    """A finding's own words, in whichever language they are written. In
+    Hebrew prose an L4 identifier, a section number ("§1.1ב") and a keyword
+    ("#ASSERT") stay left to right, isolated."""
+    if not is_hebrew(text):
+        return en(text)
+    out, last = [], 0
+    for m in LTR_RUN.finditer(text):
+        out.append(esc(text[last:m.start()]))
+        run = m.group(0)
+        out.append(f'<bdi dir="ltr" lang="en"><code>{esc(run[1:-1])}</code></bdi>' if run.startswith("`")
+                   else f'<bdi dir="ltr">{esc(run)}</bdi>')
+        last = m.end()
+    out.append(esc(text[last:]))
+    return f'<span lang="he" dir="rtl">{"".join(out)}</span>'
+
+
+READ_BY = {"Claude (L4 encoder)": "Claude (מקודד ה־L4)"}
+
+
+def who(read_by: str) -> str:
+    """Whose reading a finding is, in Hebrew where the site knows the name."""
+    if read_by in READ_BY:
+        return f'<span lang="he" dir="rtl">{esc(READ_BY[read_by])}</span>'
+    return prose(read_by)
 
 
 # ----------------------------------------------------------------- model
@@ -610,7 +650,7 @@ def section_block(v: SectionView, here: str, headless: bool = False) -> str:
     if found:
         head += ('<div class="sec-findings"><h3>ממצאים בחלק זה</h3><ul>'
                  + "".join(f'<li><a href="{rel("findings.html", here)}#{esc(f["id"])}"><span class="kind-tag {f["kind"]}">'
-                           f'{esc(KINDS[f["kind"]][0])}</span>{en(f["title"])}</a></li>' for f in found)
+                           f'{esc(KINDS[f["kind"]][0])}</span>{prose(f["title"])}</a></li>' for f in found)
                  + "</ul></div>")
 
     def flags(r):
@@ -919,23 +959,27 @@ def findings_page(findings, views_by_file, key_to_view) -> str:
                 v = key_to_view.get((finding_doc(f), k))
                 if v:
                     where.append(f'<a href="{v.href}#{esc(k)}"><bdi dir="ltr">{esc(citations(v.section).get(k, "§" + v.section.num))}</bdi></a>')
-            state = ('<span class="okay">ה-#ASSERT מתקיים: הפגם עדיין בטקסט</span>' if ev["held"] else
+            state = ('<span class="okay">ה־<bdi dir="ltr">#ASSERT</bdi> מתקיים: הפגם עדיין בטקסט</span>' if ev["held"] else
                      '<span class="notok">הראיה אינה מתקיימת — ראו בדיקות</span>')
             deps = "".join(f'<a href="#{esc(d)}">{esc(d)}</a> ' for d in f.get("depends_on", []) if d in by_id)
             stage, sgloss = STAGES[f["stage"]]
+            paras = f["body"].strip().split("\n\n")
+            body = (f'<div class="fbody" lang="he" dir="rtl">{"".join(f"<p>{prose(p)}</p>" for p in paras)}</div>'
+                    if is_hebrew(f["body"]) else
+                    f'<div class="fbody" lang="en" dir="ltr">{"".join(f"<p>{esc(p)}</p>" for p in paras)}</div>')
             quote = (f'<blockquote lang="he" dir="rtl">{esc(f["quote"])}</blockquote>' if f.get("quote") else "")
             cards.append(
                 f'<article class="finding" id="{esc(f["id"])}">'
-                f'<h3><span class="fid" dir="ltr">{esc(f["id"])}</span> {en(f["title"])}</h3>'
+                f'<h3><span class="fid" dir="ltr">{esc(f["id"])}</span> {prose(f["title"])}</h3>'
                 f'<p class="fmeta"><span class="stage" title="{esc(sgloss)}">נתגלה {esc(stage)}</span> · '
                 f'{" · ".join(where)}</p>{quote}'
-                f'<div class="fbody" lang="en" dir="ltr">{"".join(f"<p>{esc(p)}</p>" for p in f["body"].strip().split(chr(10) + chr(10)))}</div>'
-                f'<p class="reading"><strong>הקריאה שהקידוד מאמץ:</strong> {en(f["reading"])}</p>'
+                f'{body}'
+                f'<p class="reading"><strong>הקריאה שהקידוד מאמץ:</strong> {prose(f["reading"])}</p>'
                 + (f'<p class="deps">תלוי בקריאות של: {deps}</p>' if deps else "")
                 + (f'<p class="ev"><a href="{ev["url"]}">הראיה ב-L4</a> · {state}</p>'
-                   + "".join(f'<pre class="msg">{esc(m)}</pre>' for m in ev["messages"])
+                   + "".join(f'<pre class="msg" dir="ltr">{esc(m)}</pre>' for m in ev["messages"])
                    if ev["url"] else "")
-                + f'<p class="who">נקרא על ידי {en(f["read_by"])} · {esc(REVIEW[f["review"]])}</p>'
+                + f'<p class="who">נקרא על ידי {who(f["read_by"])} · {esc(REVIEW[f["review"]])}</p>'
                 + "</article>")
         if cards:
             groups.append(f'<section id="k-{kind}"><h2>{esc(label)} <small>— {esc(gloss)}</small></h2>{"".join(cards)}</section>')

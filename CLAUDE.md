@@ -45,10 +45,11 @@ with `HENCE`/`LEST`), not booleans standing in for them.
   covered by a segment that cites it or an ancestor:
   - `@ref akn:<key>` on the declaration that encodes it, or
   - `-- akn:<key> <why this carries no rule>` — a source list, an amendment
-    note, a pointer to a section encoded elsewhere. One line. Notes and
-    findings are written in English for now; the site itself is in Hebrew
-    and shows them as isolated English (the client, 2026-10-10: "besides for
-    the L4-to-English, the website should be in Hebrew").
+    note, a pointer to a section encoded elsewhere. One line, in English:
+    a note is part of the L4 source, as the identifiers are. The site
+    itself is in Hebrew (the client, 2026-10-10: "besides for the
+    L4-to-English, the website should be in Hebrew"), and so are the
+    findings (2026-10-11: a finding shown in English "should be Hebrew").
   `<key>` is a row key from `tools/akn.py`: an eId, or `<eId>/p<N>` for the
   N-th paragraph an element holds without an eId of its own. The tests fail
   on a key that is not in the section and on a text row nobody cites.
@@ -71,6 +72,8 @@ not from the Catala proofs, the corpus's ambiguity ledger or its sic kinds:
   stands), `compiling`, `examples` (the rules contradict a worked example or
   table the text itself states), `verification`. The tool's message is the
   evidence, not the category.
+- `title`, `body` and `reading` are written in HEBREW; an L4 identifier
+  inside them stays in backticks, in English, and the site isolates it.
 - `keys` — the rows it is about; `title` — one line; `body`; `quote` — the
   Hebrew words at issue, verbatim from the corpus;
   `reading` — the reading the encoding adopts to get past it;

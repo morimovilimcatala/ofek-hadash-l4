@@ -60,7 +60,8 @@ DECIDE `a name that reads like the rule` … IS/IF …
   `ASSUME` with an `@desc` naming the section) — sections do not import
   each other yet.
 - **English identifiers and notes**; Hebrew only inside `§` titles,
-  comments quoting the text, and finding quotes.
+  comments quoting the text, and the findings (their title, body and
+  reading are written in Hebrew, their quote is the corpus's).
 
 ## Findings
 
