@@ -24,6 +24,7 @@ import re
 import shutil
 import subprocess
 import sys
+import textwrap
 import tomllib
 from dataclasses import dataclass, field
 from html.parser import HTMLParser
@@ -387,6 +388,19 @@ GRAPH_LABEL = re.compile(r'graph \[[^\]]*?label=(?:"((?:[^"\\]|\\.)*)"|([^\s,\]]
 GRAPHS = OUT / "assets" / "graphs"
 
 
+EDGE_LABEL = re.compile(r'(\d+ -> \d+ \[label=")((?:[^"\\]|\\.)*)(")')
+
+
+def wrap_edge_labels(dot: str, width: int = 34) -> str:
+    """An action's label is one long line, so a diagram of three moves comes
+    out a metre wide; wrapping the labels is presentation only."""
+    def wrap(m):
+        text = m.group(2).replace("\\n", " ")
+        lines = textwrap.wrap(text, width, break_long_words=False, break_on_hyphens=False) or [text]
+        return m.group(1) + "\\n".join(lines) + m.group(3)
+    return EDGE_LABEL.sub(wrap, dot)
+
+
 def state_graphs(v: "SectionView") -> dict[str, str]:
     """rule name -> the site path of its state diagram (an SVG drawn by
     GraphViz from `l4 state-graph`, which l4run.py keeps beside the run).
@@ -402,7 +416,7 @@ def state_graphs(v: "SectionView") -> dict[str, str]:
         lab = GRAPH_LABEL.search(m.group(0))
         if not lab:
             continue
-        src = m.group(0)
+        src = wrap_edge_labels(m.group(0))
         name = hashlib.sha1(src.encode()).hexdigest()[:16] + ".svg"
         svg = GRAPHS / name
         if not svg.exists():
