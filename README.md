@@ -12,6 +12,13 @@ service regulations), the one corpus document whose text is complete. Every
 section is encoded, not only pay: eligibility, definitions, procedures, and
 obligations as L4 regulative rules.
 
+The takanon collection also holds the conditions-of-service department's web
+pages. They are not part of the takanon and are encoded as what they are:
+the ministry's questions and answers as checks run against the takanon's
+L4 (an answer the takanon contradicts, or a rule it adds where the takanon
+is silent, is a finding), the introduction's precedence rule as a rule, and
+the navigation pages as notes.
+
 ## Layout
 
 | Path | What |
@@ -26,7 +33,9 @@ obligations as L4 regulative rules.
 ## Site
 
 - **Documents** — documents → chapters → sections. The takanon has a
-  contents page and a page per chapter; a circular is one page. Each section
+  contents page and a page per chapter; a circular is one page, and so is
+  each of the department's web pages, listed under the takanon as a group of
+  their own (in the sidebar, on the contents page and on the coverage page). Each section
   is a two-column comparison, paragraph by paragraph: the text, and the L4
   that encodes it (switchable to `l4 render`'s natural-language rendering). The
   results of the file's `#EVAL`/`#ASSERT`/`#TRACE` sit under the code they test.

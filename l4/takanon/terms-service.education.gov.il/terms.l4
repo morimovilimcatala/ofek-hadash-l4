@@ -1,0 +1,175 @@
+-- תחום תנאי שירות עובדי הוראה — תקנון שירות עובדי הוראה (the introduction)
+-- The department's page introducing the takanon. Its rule is one of
+-- precedence: the takanon is being updated, so where it does not match a
+-- collective agreement, the law, a director-general's circular, a ministry
+-- procedure or a more recent circular to the owners, those prevail. It also
+-- says that the binding text is that of the sources the takanon cites, that
+-- its amounts are not kept up to date, and how "% of the combined salary"
+-- is read. The rest describes the takanon.
+
+IMPORT prelude
+
+§ `תקנון שירות עובדי הוראה — מבוא`
+
+-- akn:hc_1 The portal's breadcrumb and the page title; no rule.
+
+§§ `Precedence over the takanon`
+
+DECLARE `kind of source` IS ONE OF
+    `a collective agreement`
+    `a provision of law`
+    `a director-general's circular`
+    `a Ministry of Education procedure`
+    `a circular to the owning bodies`
+    `another source`
+
+@desc A source whose words do not match the takanon on a point.
+DECLARE `conflicting source` HAS
+    `source kind`   IS A `kind of source`
+    `source issued` IS A DATE @desc the date the source was issued or signed
+
+-- hc_2 ¶1–2: "the takanon is being updated; therefore wherever the takanon
+-- does not match collective agreements, the provisions of the law,
+-- director-general's circulars, procedures of the Ministry of Education or
+-- more recent circulars to the owning bodies, what they say prevails".
+-- F-terms-a: "עדכניים יותר" is read with the nearest noun, the circulars to
+-- the owning bodies; the other four prevail whatever their date.
+-- F-terms-b: "more recent" than the takanon, whose sections carry dates of
+-- their own amendments and the whole none: the date the provision at issue
+-- was last amended is an input.
+@ref akn:hc_2 akn:hc_2/p2
+GIVEN s IS A `conflicting source`
+      `date the takanon's provision was last amended` IS A DATE @desc the amendment date the provision's own section prints ("סעיף זה תוקן ב…"); the text names no date of the takanon as a whole
+GIVETH A BOOLEAN
+DECIDE `prevails over the takanon` s `date the takanon's provision was last amended` IF
+    CONSIDER s's `source kind`
+    WHEN `a circular to the owning bodies` THEN
+        s's `source issued` `is after` `date the takanon's provision was last amended`
+    WHEN `another source` THEN FALSE
+    OTHERWISE TRUE
+
+DECLARE `governing text` IS ONE OF
+    `the takanon's own words`
+    `the words of the prevailing sources` HAS `prevailing sources` IS A LIST OF `conflicting source`
+
+@export default Which text governs a point on which the takanon and other sources do not match, under the department's introduction to the takanon
+GIVEN sources IS A LIST OF `conflicting source` @desc the sources whose words do not match the takanon on the point
+      `date the takanon's provision was last amended` IS A DATE @desc the amendment date of the takanon provision at issue
+GIVETH A `governing text`
+DECIDE `the text that governs` sources `date the takanon's provision was last amended` IS
+    LET prevailing MEANS filter (GIVEN s YIELD `prevails over the takanon` s `date the takanon's provision was last amended`) sources
+    IN IF null prevailing
+       THEN `the takanon's own words`
+       ELSE `the words of the prevailing sources` prevailing
+
+GIVEN d IS A DATE, e IS A DATE
+GIVETH A BOOLEAN
+DECIDE d `is after` e IF
+    DATE_SERIAL d GREATER THAN DATE_SERIAL e
+
+-- akn:hc_3 The heading "with the publication of the takanon"; the paragraphs follow.
+-- akn:hc_3/p1 Who prepared the takanon and what it covers; a description, no rule.
+-- akn:hc_3/p2 akn:hc_3/p3 akn:hc_3/p4 akn:hc_3/p5 What the takanon contains and whom it may help, as questions and answers; a description, no rule.
+-- akn:hc_3/p6 The heading "the takanon's legal force"; the paragraph follows.
+
+§§ `The takanon's legal force`
+
+DECLARE `wording of a provision` IS ONE OF
+    `the takanon's wording`
+    `the wording of the sources the takanon cites`
+
+-- hc_3 ¶7: "the binding wording, application and scope of the takanon's
+-- provisions are those of the sources it cites"; its amounts are not
+-- updated, "because of the frequency of the changes"; for current amounts,
+-- one applies to the office.
+@ref akn:hc_3/p7
+`the binding wording of a takanon provision` MEANS `the wording of the sources the takanon cites`
+
+@ref akn:hc_3/p7
+`an amount printed in the takanon is kept current` MEANS FALSE
+
+DECLARE `amount action` IS ONE OF
+    `apply to the office for the current amounts`
+
+@ref akn:hc_3/p7
+GIVETH A DEONTIC `reader of the takanon` `amount action`
+DECIDE `asking the office for the amounts` IS
+    PARTY `a reader`
+    MAY   `apply to the office for the current amounts`
+
+DECLARE `reader of the takanon` IS ONE OF
+    `a reader`
+
+-- hc_3 ¶8: "% of the combined salary" means every component that forms the
+-- base of the allowances, unless the text says in terms that the combined
+-- salary alone is meant. (This is how section 1.11's L4 reads the split
+-- allowance's "5% מהשכר המשולב", F-1.11-d.)
+DECLARE `percentage wording` IS ONE OF
+    `a percentage of the combined salary`
+    `a percentage of the combined salary alone, said in terms`
+
+DECLARE `base meant` IS ONE OF
+    `every component that forms the base of the allowances`
+    `the combined salary alone`
+
+@ref akn:hc_3/p8
+GIVEN w IS A `percentage wording`
+GIVETH A `base meant`
+DECIDE `the base a percentage is taken of` w IS
+    CONSIDER w
+    WHEN `a percentage of the combined salary` THEN `every component that forms the base of the allowances`
+    WHEN `a percentage of the combined salary alone, said in terms` THEN `the combined salary alone`
+
+-- akn:hc_3/p9 The signature: the officer in charge of teaching employees' conditions of service; no rule.
+
+§§ `Worked examples`
+
+-- The dates are placeholders; 12.1.2004 is the amendment date section 1.11
+-- prints, 19.11.2002 the review date section 1.9.1 prints.
+`a 1989 collective agreement` MEANS `conflicting source` `a collective agreement` (DATE_FROM_DMY 15 5 1989)
+`a 2003 circular to the owners` MEANS `conflicting source` `a circular to the owning bodies` (DATE_FROM_DMY 1 6 2003)
+`a 2010 circular to the owners` MEANS `conflicting source` `a circular to the owning bodies` (DATE_FROM_DMY 1 9 2010)
+
+#ASSERT `prevails over the takanon` `a 1989 collective agreement` (DATE_FROM_DMY 12 1 2004)
+#ASSERT `prevails over the takanon` `a 2010 circular to the owners` (DATE_FROM_DMY 12 1 2004)
+#ASSERT NOT `prevails over the takanon` `a 2003 circular to the owners` (DATE_FROM_DMY 12 1 2004)
+#ASSERT `the text that governs` EMPTY (DATE_FROM_DMY 12 1 2004) EQUALS `the takanon's own words`
+#ASSERT `the base a percentage is taken of` `a percentage of the combined salary` EQUALS `every component that forms the base of the allowances`
+
+-- F-terms-a's evidence: an agreement older than the provision it conflicts
+-- with prevails if "more recent" qualifies the circulars alone, and does not
+-- if it qualifies every source in the list.
+GIVEN s IS A `conflicting source`, d IS A DATE
+GIVETH A BOOLEAN
+DECIDE `prevails if every source must be more recent` s d IF
+    (NOT (s's `source kind` EQUALS `another source`)) AND (s's `source issued` `is after` d)
+
+`the two readings of "more recent" part on an older agreement` MEANS
+        `prevails over the takanon` `a 1989 collective agreement` (DATE_FROM_DMY 12 1 2004)
+    AND (NOT `prevails if every source must be more recent` `a 1989 collective agreement` (DATE_FROM_DMY 12 1 2004))
+#ASSERT `the two readings of "more recent" part on an older agreement`
+
+-- F-terms-b's evidence: a circular of June 2003 is more recent than section
+-- 1.9.1 (reviewed 19.11.2002) and older than section 1.11 (amended
+-- 12.1.2004): "the takanon" has no one date to be more recent than.
+`a circular of June 2003 is newer than one section and older than another` MEANS
+        `prevails over the takanon` `a 2003 circular to the owners` (DATE_FROM_DMY 19 11 2002)
+    AND (NOT `prevails over the takanon` `a 2003 circular to the owners` (DATE_FROM_DMY 12 1 2004))
+#ASSERT `a circular of June 2003 is newer than one section and older than another`
+
+-- F-terms-c's evidence: an agreement and a newer circular both depart from
+-- the takanon on one point; both prevail over it, and the rule does not say
+-- which of the two governs.
+`two prevailing sources` MEANS
+    `the text that governs` (LIST `a 1989 collective agreement`, `a 2010 circular to the owners`) (DATE_FROM_DMY 12 1 2004)
+
+GIVEN g IS A `governing text`
+GIVETH A NUMBER
+DECIDE `sources that govern` g IS
+    CONSIDER g
+    WHEN `the takanon's own words` THEN 1
+    WHEN `the words of the prevailing sources` ps THEN count ps
+
+`the rule leaves two sources governing one point` MEANS
+    `sources that govern` `two prevailing sources` EQUALS 2
+#ASSERT `the rule leaves two sources governing one point`

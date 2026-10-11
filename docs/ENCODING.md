@@ -58,7 +58,8 @@ DECIDE `a name that reads like the rule` … IS/IF …
   use round placeholder figures and say so.
 - **Cross-references** to another section are a named input (`GIVEN` /
   `ASSUME` with an `@desc` naming the section) — sections do not import
-  each other yet.
+  each other yet. (A document that is checked AGAINST the takanon does
+  import it: see "Checks against the takanon" below.)
 - **English identifiers and notes**; Hebrew only inside `§` titles,
   comments quoting the text, and the findings (their title, body and
   reading are written in Hebrew, their quote is the corpus's).
@@ -152,3 +153,28 @@ collection directory is a link to the takanon's, so `IMPORT common` works.
   the month the circular names, with a `#TRACE`.
 - Each circular is encoded on its own words. Do not import another circular;
   name what it relies on as an input with an `@desc` saying where it comes from.
+
+## Checks against the takanon (the department's web pages)
+
+The takanon collection's other documents are the conditions-of-service
+department's web pages, each a whole document (`akn.SECTIONED` names the one
+sectioned document), encoded at `l4/takanon/terms-service.education.gov.il/`
+and `l4/takanon/terms-service.education.gov.il.l4`.
+
+- **The Q&A is checked against the takanon, not encoded as law.** Each
+  answer the takanon's L4 can decide is an `#ASSERT` over the takanon's own
+  rules, IMPORTed and never copied. Where it agrees, the assert holds; where
+  the takanon contradicts the answer, or is silent and the answer adds a
+  rule, the answer is encoded beside it as the ministry's reading and the
+  finding's boolean (TRUE while the two part) is asserted. The takanon's
+  encoding is never changed to make an answer pass.
+- **IMPORT across directories goes through a link.** L4 resolves a module by
+  bare name in the importing file's directory, and a section's file name has
+  a dot in it, so the page's directory holds `takanon-<section>.l4` links
+  (`takanon-1-11.l4` → `../takanon-sherut-ovdei-horaa/1.11.l4`) and a
+  `common.l4` link for their own import. `tools/l4run.py` runs a link's
+  target where it lives, and the cache key of every file in the directory
+  covers the linked files' bytes.
+- **Navigation pages** (lists of circulars, procedures and tables, contact
+  details) are notes on an ancestor key, which covers its rows.
+
