@@ -733,13 +733,14 @@ def progress(vs: list[SectionView]) -> str:
             for k, n in tally(v).items():
                 t[k] += n
     total = max(sum(t.values()), 1)
-    names = {"rule": "עם כלל", "note": "נקראו, ללא כלל", "missing": "לא צוטטו", "todo": "טרם קודדו"}
+    names = {"rule": "קובעות כלל", "note": "ללא כלל לקודד (כותרות, פרטי מכתב, רשימות אסמכתא, הערות)",
+             "missing": "לא צוטטו", "todo": "טרם קודדו"}
     pct = {k: round(t[k] * 100 / total) for k in t}
     legend = " · ".join(f'<span><i class="sw {k}"></i>{pct[k]}% {names[k]}</span>'
                         for k in ("rule", "note", "missing", "todo") if t[k])
     return ('<span class="pbar">' + "".join(
         f'<i class="{k}" style="width:{t[k] * 100 / total:.3f}%"></i>' for k in ("rule", "note", "missing") if t[k])
-        + f'</span><span class="plegend">פסקאות: {legend}</span>')
+        + f'</span><span class="plegend">{"כל הפסקאות נקראו" if not (t["missing"] or t["todo"]) else "פסקאות"}: {legend}</span>')
 
 
 def document_page(doc: str, views: list[SectionView]) -> str:
