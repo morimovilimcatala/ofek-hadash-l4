@@ -138,10 +138,22 @@ DECIDE `is above 79%, as the clause of 1.9.93 words it` share IF
 @ref akn:chp_1א___sec_1_13__ssec_1_13/p10
 `the mother supplement rate` MEANS 10%
 
+-- The salary "including the supplement" is the position and the supplement
+-- actually paid: under section 1.13.4 that is 10% of the share at the owner
+-- (or owners) reaching 79%, not of the whole position; under 1.13.5, of all
+-- of it.
+GIVEN y IS A `mother-teacher year`
+GIVETH A NUMBER
+DECIDE `the share the supplement is paid on` y IS
+    IF any (GIVEN h YIELD `reaches 79%` (`counted share` h)) (y's `hours with each owner`)
+    THEN sum (map `paid share` (filter (GIVEN h YIELD `reaches 79%` (`counted share` h)) (y's `hours with each owner`)))
+    ELSE `paid position` y
+
 GIVEN y IS A `mother-teacher year`
 GIVETH A BOOLEAN
 DECIDE `within the cap` y IF
-    `paid position` y TIMES (1 PLUS `the mother supplement rate`) AT MOST `the cap on salary with the supplement` y
+    `paid position` y PLUS `the mother supplement rate` TIMES `the share the supplement is paid on` y
+    AT MOST `the cap on salary with the supplement` y
 
 -- The clause of 1.9.93 asks that the employee work at the EMPLOYER'S demand.
 GIVEN y IS A `mother-teacher year`
@@ -175,7 +187,9 @@ DECIDE `the cap on salary with the supplement` y IS
 
 -- §1.13.4: one owner at 79% or more pays the supplement on its own salary,
 -- and the others nothing. §1.13.5: where no owner reaches 79% but all of
--- them together do, each pays on its own share.
+-- them together do, each pays on its own share. F-1.13-d: ¶10 gives the
+-- 10% on her combined salary, all of it; the reading adopted is §1.13.4 as
+-- printed, so hours at the other owners earn nothing.
 @ref akn:chp_1א___sec_1_13__ssec_1_13/p15 akn:chp_1א___sec_1_13__ssec_1_13/p16
 GIVEN y IS A `mother-teacher year`
 GIVETH A LIST OF NUMBER
@@ -421,3 +435,164 @@ DECIDE `is a custodial father by the letter of "עובד נשוי"` y IF
 
 -- akn:chp_1א___sec_1_13__ssec_1_13/p29 The heading of the section's sources (אסמכתא).
 -- akn:chp_1א___sec_1_13__ssec_1_13/p30 akn:chp_1א___sec_1_13__ssec_1_13/p31 akn:chp_1א___sec_1_13__ssec_1_13/p32 akn:chp_1א___sec_1_13__ssec_1_13/p33 akn:chp_1א___sec_1_13__ssec_1_13/p34 akn:chp_1א___sec_1_13__ssec_1_13/p35 akn:chp_1א___sec_1_13__ssec_1_13/p36 akn:chp_1א___sec_1_13__ssec_1_13/p37 akn:chp_1א___sec_1_13__ssec_1_13/p38 akn:chp_1א___sec_1_13__ssec_1_13/p39 akn:chp_1א___sec_1_13__ssec_1_13/p40 The sources themselves: circulars, agreements and the takshir.
+
+§§ `Property checks`
+
+-- The section's rules over their whole finite space: every child by
+-- relation and every age from 0 to 16, every foster placement from 0 to 12
+-- years of age and 0 to 12 months; every pair of owners holding shares from
+-- 0 to 120% (on a grid that includes each side of 79%), with and without
+-- guidance; and every pair of months of a year for the request.
+
+-- §1.13.2 over every age on 1 September and every age later in the year:
+-- a child counts exactly when it was under 14 on 1 September.
+GIVEN r IS A `relation to the child`, sept IS A NUMBER, now IS A NUMBER
+GIVETH A `child`
+DECIDE `a checked child` r sept now IS
+    `child` WITH
+        `relation to the employee`        IS r
+        `age on 1 September`              IS sept
+        `age now`                         IS now
+        `age when taken into foster care` IS 0
+        `months in foster care`           IS 0
+
+#ASSERT all (GIVEN sept YIELD
+                all (GIVEN now YIELD
+                        `is a child up to 14 this year` (`a checked child` `own child` sept now) EQUALS (sept LESS THAN 14))
+                    (LIST sept, sept PLUS 1))
+            (range 0 16)
+
+-- §1.13.1 ¶5–8 over every age at fostering and every length of it, by an
+-- approved foster parent and by one who is not: a foster child counts
+-- exactly on all three conditions; any other child always counts.
+GIVEN approved IS A BOOLEAN
+GIVETH A `mother-teacher year`
+DECIDE `a parent's year` approved IS
+    `mother-teacher year` WITH
+        `is a woman teaching employee or instructor`                                 IS TRUE
+        `has custody of his children under a divorce agreement or judgment`          IS FALSE
+        `is married now`                                                             IS FALSE
+        `is a foster parent approved by the Welfare Minister's delegate`             IS approved
+        `children`                                                                   IS EMPTY
+        `the other parent is also a teaching employee`                               IS FALSE
+        `the couple chose this parent`                                               IS FALSE
+        `hours with each owner`                                                      IS EMPTY
+        `works at the employer's demand`                                             IS TRUE
+        `asked by the Ministry to work beyond a position`                            IS FALSE
+        `is a coordinating kindergarten teacher required to work a full position`    IS FALSE
+        `full-position combined salary`                                              IS 10000
+
+GIVEN age IS A NUMBER, months IS A NUMBER
+GIVETH A `child`
+DECIDE `a foster child taken at` age `for` months IS
+    `child` WITH
+        `relation to the employee`        IS `foster child`
+        `age on 1 September`              IS 5
+        `age now`                         IS 5
+        `age when taken into foster care` IS age
+        `months in foster care`           IS months
+
+#ASSERT all (GIVEN approved YIELD
+                all (GIVEN age YIELD
+                        all (GIVEN months YIELD
+                                `is a child of the employee for section 1.13` (`a parent's year` approved) (`a foster child taken at` age `for` months)
+                                EQUALS (approved AND age LESS THAN 10 AND months AT LEAST 6))
+                            (range 0 12))
+                    (range 0 12))
+            (LIST TRUE, FALSE)
+#ASSERT all (GIVEN r YIELD
+                `is a child of the employee for section 1.13` (`a parent's year` FALSE) (`a checked child` r 5 5))
+            (LIST `own child`, `adopted child`, `stepchild`)
+
+-- Two owners over the grid of shares, without guidance.
+`the owner shares checked` MEANS
+    LIST 0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.75, 0.78, 0.79, 0.8, 0.9, 1, 1.2
+
+GIVEN a IS A NUMBER, b IS A NUMBER
+GIVETH A `mother-teacher year`
+DECIDE `a mother with` a `and` b IS
+    `a mother's year with` (LIST `hours of` a 0, `hours of` b 0)
+
+-- §§1.13.4–5: for every pair whose shares come to 79% or more, exactly one
+-- of the two paragraphs applies (one owner reaches 79%, or none does).
+#ASSERT all (GIVEN a YIELD
+                all (GIVEN b YIELD
+                        (NOT `reaches 79%` (a PLUS b))
+                        OR ((`reaches 79%` a OR `reaches 79%` b)
+                            EQUALS (NOT ((a LESS THAN 0.79) AND (b LESS THAN 0.79)))))
+                    `the owner shares checked`)
+            `the owner shares checked`
+
+-- ¶10's cap, as its words put it: the salary WITH the supplement it pays
+-- is at most 150%. Over every pair: the supplement is 10% of the share it
+-- is paid on, never negative, and it is paid exactly where the total
+-- reaches 79% and the position with the supplement actually paid stays
+-- within 150%.
+#ASSERT all (GIVEN a YIELD
+                all (GIVEN b YIELD
+                            `mother supplement` (`a mother with` a `and` b) AT LEAST 0
+                        AND (    `mother supplement` (`a mother with` a `and` b) EQUALS 0
+                             OR  `mother supplement` (`a mother with` a `and` b)
+                                 EQUALS 10% TIMES 10000 TIMES `the share the supplement is paid on` (`a mother with` a `and` b))
+                        AND (`mother supplement` (`a mother with` a `and` b) GREATER THAN 0)
+                            EQUALS (    `reaches 79%` (a PLUS b)
+                                    AND a PLUS b PLUS 10% TIMES `the share the supplement is paid on` (`a mother with` a `and` b)
+                                        AT MOST 1.5))
+                    `the owner shares checked`)
+            `the owner shares checked`
+
+-- ¶12 with guidance, over every pair of teaching shares and 10% to 30% of
+-- guidance: teaching, guidance and the supplement paid never pass 100%
+-- unless the Ministry asked for more than a position.
+#ASSERT all (GIVEN a YIELD
+                all (GIVEN g YIELD
+                        (`mother supplement` (`a mother's year with` (LIST `hours of` a g)) EQUALS 0)
+                        OR a PLUS g PLUS `mother supplement` (`a mother's year with` (LIST `hours of` a g)) DIVIDED BY 10000
+                           AT MOST 1)
+                    (LIST 0.1, 0.2, 0.3))
+            `the owner shares checked`
+
+-- ¶10 against §1.13.4 (F-1.13-d): ¶10 gives 10% "on her combined salary";
+-- §1.13.4 pays it only on the share at the owner that reaches 79%, and
+-- §1.13.5 on all of it where none does. Over every two pairs of shares of
+-- 0 to 100% either side of 79%, within
+-- §1.13.5 alone, a larger total never earns a smaller supplement (short of
+-- the cap); and wherever a larger total does earn less, the larger total
+-- has an owner at 79% or more, whose other hours earn nothing. 78% and
+-- 22% earn 10% of a full position; 80% and 22%, only 10% of 80%.
+GIVEN a IS A NUMBER, b IS A NUMBER, c IS A NUMBER, d IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `more position earns less supplement for` a b `than` c d IF
+        c PLUS d GREATER THAN a PLUS b
+    AND `mother supplement` (`a mother with` c `and` d) LESS THAN `mother supplement` (`a mother with` a `and` b)
+    AND `mother supplement` (`a mother with` c `and` d) GREATER THAN 0
+
+`the owner shares compared` MEANS LIST 0, 0.2, 0.4, 0.6, 0.78, 0.79, 0.8, 1
+
+`every pair of owner shares` MEANS
+    concat (map (GIVEN a YIELD map (GIVEN b YIELD LIST a, b) `the owner shares compared`) `the owner shares compared`)
+
+`every case where more position earns less` MEANS
+    concat (map (GIVEN p YIELD
+                    map (GIVEN q YIELD LIST at p 0, at p 1, at q 0, at q 1)
+                        (filter (GIVEN q YIELD `more position earns less supplement for` (at p 0) (at p 1) `than` (at q 0) (at q 1))
+                                `every pair of owner shares`))
+                `every pair of owner shares`)
+
+#ASSERT all (GIVEN r YIELD `reaches 79%` (at r 2) OR `reaches 79%` (at r 3)) `every case where more position earns less`
+#ASSERT NOT null `every case where more position earns less`
+
+`a mother at 80% and 22% earns less than one at 78% and 22%` MEANS
+        `mother supplement` (`a mother with` 0.78 `and` 0.22) EQUALS 1000
+    AND `mother supplement` (`a mother with` 0.8 `and` 0.22) EQUALS 800
+#ASSERT `a mother at 80% and 22% earns less than one at 78% and 22%`
+
+-- Execution instruction 1 over every pair of months of a year: payment
+-- never starts before entitlement, and a late request starts the month
+-- after it.
+#ASSERT all (GIVEN e YIELD
+                all (GIVEN r YIELD
+                            `first month paid` e r AT LEAST e
+                        AND (r AT MOST e OR `first month paid` e r EQUALS r PLUS 1))
+                    (range 1 12))
+            (range 1 12)

@@ -115,3 +115,68 @@ DECIDE `day-care supplement` c IS
     PARTY `the teaching employee` DOES `take the employer's discount` AT 1
 
 -- akn:chp_1א___sec_1_14__hc_3 The section's sources (אסמכתא): the circulars it rests on.
+
+§§ `Property checks`
+
+-- The section's rules over their whole finite space: either kind of
+-- parent, no children or one or two of any age from 0 to 7, positions from
+-- 0 to 150% in steps of 10%, and every combination of discount offered and
+-- chosen. The supplement of 100 is a placeholder.
+GIVEN mother IS A BOOLEAN, father IS A BOOLEAN, ages IS A LIST OF NUMBER
+      fraction IS A NUMBER, offered IS A BOOLEAN, chose IS A BOOLEAN
+GIVETH A `day-care claimant`
+DECIDE `a checked claimant` mother father ages fraction offered chose IS
+    `day-care claimant` WITH
+        `is a woman teaching employee who is a mother`          IS mother
+        `is a widower or divorcé whose children live with him`  IS father
+        `children's ages in completed years`                    IS ages
+        `position fraction held`                                IS fraction
+        `employer gives a day-care discount`                    IS offered
+        `chose the employer's discount`                         IS chose
+        `full-position supplement`                              IS 100
+
+`the child ages checked` MEANS range 0 7
+`every family checked for day care` MEANS
+    append (LIST EMPTY)
+           (append (map (GIVEN a YIELD LIST a) `the child ages checked`)
+                   (concat (map (GIVEN a YIELD map (GIVEN b YIELD LIST a, b) `the child ages checked`) `the child ages checked`)))
+`the day-care positions checked` MEANS map (GIVEN k YIELD k DIVIDED BY 10) (range 0 15)
+
+GIVEN mother IS A BOOLEAN, father IS A BOOLEAN, offered IS A BOOLEAN, chose IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `the day-care supplement holds for` mother father offered chose IF
+    all (GIVEN ages YIELD
+            all (GIVEN f YIELD
+                        `day-care supplement` (`a checked claimant` mother father ages f offered chose) AT LEAST 0
+                    AND `day-care supplement` (`a checked claimant` mother father ages f offered chose) AT MOST 100
+                    AND (`day-care supplement` (`a checked claimant` mother father ages f offered chose) GREATER THAN 0)
+                        EQUALS (    (mother OR father)
+                                AND any (GIVEN a YIELD a LESS THAN 5) ages
+                                AND f GREATER THAN 0
+                                AND NOT (offered AND chose))
+                    AND `day-care supplement` (`a checked claimant` mother father ages f offered chose)
+                        AT MOST `day-care supplement` (`a checked claimant` mother father ages (f PLUS 0.1) offered chose))
+                `the day-care positions checked`)
+        `every family checked for day care`
+
+-- 1.14.1–1.14.4 over the whole space: never negative, never more than the
+-- full-position supplement; paid exactly to a mother (or a widower or
+-- divorcé with his children) of a child under 5 with some position who did
+-- not take the discount instead; and never less for a larger position.
+#ASSERT all (GIVEN mother YIELD
+                all (GIVEN father YIELD
+                        all (GIVEN offered YIELD
+                                all (GIVEN chose YIELD `the day-care supplement holds for` mother father offered chose)
+                                    (LIST TRUE, FALSE))
+                            (LIST TRUE, FALSE))
+                    (LIST TRUE, FALSE))
+            (LIST TRUE, FALSE)
+
+-- "לילד או לילדים": one supplement however many children under 5.
+#ASSERT all (GIVEN a YIELD
+                all (GIVEN b YIELD
+                        (b AT LEAST 5)
+                        OR `day-care supplement` (`a checked claimant` TRUE FALSE (LIST a, b) 1 FALSE FALSE)
+                           EQUALS `day-care supplement` (`a checked claimant` TRUE FALSE (LIST b) 1 FALSE FALSE))
+                    `the child ages checked`)
+            `the child ages checked`
