@@ -336,11 +336,20 @@ def citations(sec: akn.Section) -> dict[str, str]:
         num = r.num.strip().rstrip(".)").lstrip("(")
         # a label that restates the section's own number adds nothing
         stack.append("" if r.num.startswith(sec.num) else num)
-        parts = [p for p in stack if p]
+        # a level that prints its whole path ("2.1" under "2", "1.א.3" under
+        # "1.א") restates its parent, so the parent is dropped, not repeated
+        parts: list[str] = []
+        for p in (p for p in stack if p):
+            if parts and p.startswith(parts[-1] + "."):
+                parts[-1] = p
+            else:
+                parts.append(p)
+        # a number continues the path with a dot, whether it is one level
+        # ("2") or several printed together ("4.5"): §1.15.4.5, not §1.154.5
         if sec.chapter_eid:
-            cite = "§" + sec.num + "".join(("." if p.isdigit() else "") + p for p in parts)
+            cite = "§" + sec.num + "".join(("." if p[0].isdigit() else "") + p for p in parts)
         else:   # a whole document: its clauses are cited from its own numbering
-            cite = "§" + "".join(("." if p.isdigit() and i else "") + p for i, p in enumerate(parts))
+            cite = "§" + "".join(("." if p[0].isdigit() and i else "") + p for i, p in enumerate(parts))
             if cite == "§":
                 cite = {"preamble": "פתיח", "conclusions": "חתימה",
                         "attachments": "נספחים"}.get(r.key.split("/")[0].split("__")[0], "§")
