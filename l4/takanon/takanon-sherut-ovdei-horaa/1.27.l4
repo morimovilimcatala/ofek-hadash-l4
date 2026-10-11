@@ -447,13 +447,17 @@ DECIDE `the post in the sending district is lost` t IF
 
 §§ `1.27.1.8 תקופת המעבר`
 
+-- "Did not notify ... as set out in section 6" (read as 1.27.1.7, F-1.27-a):
+-- a notice after 5 August is not a notice as set out there, so it does not
+-- take the employee out of the transition period.
 @ref akn:chp_1ב__sec_1_27__ssec_1_27_1__para_8/p1
 GIVEN t IS A `conditional transferee`
 GIVETH A BOOLEAN
 DECIDE `the wait until placement counts as unpaid leave` t IF
         (NOT t's `placed in the receiving district by 1 August`)
     AND t's `not placed through no fault of his own`
-    AND (NOT (t's `day the wish to stay was notified` GREATER THAN 0))
+    AND (NOT (    t's `day the wish to stay was notified` GREATER THAN 0
+              AND t's `day the wish to stay was notified` AT MOST `5 August`))
 
 @ref akn:chp_1ב__sec_1_27__ssec_1_27_1__para_8/p2
 GIVEN t IS A `conditional transferee`
@@ -940,3 +944,216 @@ DECIDE `when the district manager will not employ the teacher` `the teacher refu
 #TRACE `the notice of a new-year initiated transfer` AT 0 WITH
     PARTY `the district manager` DOES `send the transfer notice by registered mail` 171 AT 171
     PARTY `the district manager` DOES `send a copy to the local union branch` AT 172
+
+§§ `Property checks`
+
+-- The section's rules over their whole finite space: every day of the
+-- year for the request and its answer; every combination of the eight
+-- bars and of the five grounds; 0 to 10 years of service; 0 to 20 weeks to
+-- a pregnant transferee's delivery; every conditional transferee by offer,
+-- placement, notice (none, by 5 August, after it) and fault; every
+-- initiated transfer by its seven conditions, 0, 30 or 31 km and position;
+-- and every stream request, approved or not.
+
+GIVEN n IS A NUMBER
+GIVETH A LIST OF (LIST OF BOOLEAN)
+DECIDE `every row of transfer flags of length` n IS
+    IF n AT MOST 0
+    THEN LIST EMPTY
+    ELSE concat (map (GIVEN r YIELD LIST (TRUE FOLLOWED BY r), (FALSE FOLLOWED BY r))
+                     (`every row of transfer flags of length` (n MINUS 1)))
+
+-- 1.27.1.1: a request is in time exactly up to 31 March (day 90).
+GIVEN d IS A NUMBER
+GIVETH A `transfer request`
+DECIDE `a request submitted on day` d IS
+    `transfer request` WITH
+        `submitted on day`                         IS d
+        `is reasoned`                              IS TRUE
+        `is from an official institution in one district to an official institution in another` IS TRUE
+        `is on the request form of the district office` IS TRUE
+        `attaches the documents needed`            IS TRUE
+        `is filed as an original and two copies`   IS TRUE
+
+#ASSERT all (GIVEN d YIELD `the request was filed in time` (`a request submitted on day` d) EQUALS (d AT MOST 90))
+            (range 1 365)
+
+-- 1.27.1.2 over every combination of the bars, with 0 to 10 years in the
+-- district: an employee is barred exactly when one bar holds; certification
+-- and permanence bar only together; the years bar exactly below 3.
+GIVEN years IS A NUMBER, r IS A LIST OF BOOLEAN
+GIVETH A `transfer applicant`
+DECIDE `an applicant with` years `years and bars` r IS
+    `transfer applicant` WITH
+        `is certified`                                    IS NOT at r 0
+        `is permanent`                                    IS NOT at r 1
+        `has delivered the medical clearance`             IS NOT at r 2
+        `completed years of service in this district`     IS years
+        `years of service`                                IS years
+        `is on unpaid leave`                              IS at r 3
+        `supervision rates the work average or below`     IS at r 4
+        `is proposed for pedagogical dismissal or a director-general warning` IS at r 5
+        `is in negotiations to end the service`           IS at r 6
+        `has unfinished conditional-loan obligations`     IS at r 7
+        `permanent residence on the identity card is outside the district` IS FALSE
+        `is a married woman whose husband lives in or moved for work to another district` IS FALSE
+        `is a married woman whose husband is moved to another district by the army, police or security forces` IS FALSE
+        `has delivered official confirmation of the husband's move` IS FALSE
+        `pleads health or decisive family circumstances` IS FALSE
+        `has the district health bureau's recommendation` IS FALSE
+        `asks for a development town`                     IS FALSE
+        `lives in a development town`                     IS FALSE
+
+#ASSERT all (GIVEN r YIELD
+                all (GIVEN y YIELD
+                        `the applicant is barred from transfer` (`an applicant with` y `years and bars` r)
+                        EQUALS (    (at r 0 AND at r 1)
+                                OR  at r 2 OR at r 3 OR at r 4 OR at r 5 OR at r 6 OR at r 7
+                                OR  y LESS THAN 3))
+                    (LIST 0, 2, 3, 10))
+            (`every row of transfer flags of length` 8)
+
+-- 1.27.1.3: each ground is enough alone; the residence ground needs five
+-- years of service, and each of the others its confirmation (the husband's
+-- move confirmed, the health bureau's recommendation, not living in a
+-- development town already).
+GIVEN g IS A NUMBER, confirmed IS A BOOLEAN, years IS A NUMBER
+GIVETH A `transfer applicant`
+DECIDE `an applicant on ground` g `with confirmation` confirmed `and years` years IS
+    `transfer applicant` WITH
+        `is certified`                                    IS TRUE
+        `is permanent`                                    IS TRUE
+        `has delivered the medical clearance`             IS TRUE
+        `completed years of service in this district`     IS years
+        `years of service`                                IS years
+        `is on unpaid leave`                              IS FALSE
+        `supervision rates the work average or below`     IS FALSE
+        `is proposed for pedagogical dismissal or a director-general warning` IS FALSE
+        `is in negotiations to end the service`           IS FALSE
+        `has unfinished conditional-loan obligations`     IS FALSE
+        `permanent residence on the identity card is outside the district` IS g EQUALS 1
+        `is a married woman whose husband lives in or moved for work to another district` IS g EQUALS 2
+        `is a married woman whose husband is moved to another district by the army, police or security forces` IS g EQUALS 3
+        `has delivered official confirmation of the husband's move` IS confirmed
+        `pleads health or decisive family circumstances` IS g EQUALS 4
+        `has the district health bureau's recommendation` IS confirmed
+        `asks for a development town`                     IS g EQUALS 5
+        `lives in a development town`                     IS NOT confirmed
+
+#ASSERT all (GIVEN g YIELD
+                all (GIVEN c YIELD
+                        all (GIVEN y YIELD
+                                `the request rests on an admissible ground` (`an applicant on ground` g `with confirmation` c `and years` y)
+                                EQUALS (g GREATER THAN 0 AND (IF g EQUALS 1 THEN y AT LEAST 5 ELSE c)))
+                            (LIST 3, 4, 5, 10))
+                    (LIST TRUE, FALSE))
+            (range 0 5)
+
+-- 1.27.1.3ה's note over 0 to 20 weeks: a pregnant transferee is held back
+-- from placement exactly when the delivery is within six weeks.
+#ASSERT filter `a pregnant transferee is not placed at the start of the year` (range 0 20) EQUALS range 0 6
+
+-- 1.27.1.7–1.27.1.8 over every conditional transferee (placed only where
+-- offered, at fault only where offered): staying, losing the post and the
+-- transition leave never overlap; and the transferees none of them
+-- reaches are exactly those offered work and not placed who either are at
+-- fault or gave notice by 5 August (F-1.27-b over the space): the leave of
+-- 1.27.1.8 takes the rest of them.
+GIVEN offered IS A BOOLEAN, placed IS A BOOLEAN, notice IS A NUMBER, nofault IS A BOOLEAN
+GIVETH A `conditional transferee`
+DECIDE `a checked transferee` offered placed notice nofault IS
+    `conditional transferee` WITH
+        `day the conditional transfer was approved`          IS 110
+        `offered work in the receiving district by 1 August` IS offered
+        `placed in the receiving district by 1 August`       IS placed
+        `day the wish to stay was notified`                  IS notice
+        `not placed through no fault of his own`             IS nofault
+
+`every checked transferee` MEANS
+    concat (map (GIVEN o YIELD
+                    concat (map (GIVEN p YIELD
+                                    concat (map (GIVEN n YIELD
+                                                    map (GIVEN f YIELD `a checked transferee` o p n f)
+                                                        (IF o THEN LIST TRUE, FALSE ELSE LIST TRUE))
+                                                (LIST 0, 200, 230)))
+                                (IF o THEN LIST TRUE, FALSE ELSE LIST FALSE)))
+                (LIST TRUE, FALSE))
+
+GIVEN t IS A `conditional transferee`
+GIVETH A LIST OF STRING
+DECIDE `what becomes of` t IS
+    concat (LIST (IF `may stay in the permanent post` t THEN LIST "stays" ELSE EMPTY)
+               , (IF `the post in the sending district is lost` t THEN LIST "post lost" ELSE EMPTY)
+               , (IF `the wait until placement counts as unpaid leave` t THEN LIST "transition leave" ELSE EMPTY))
+
+#ASSERT all (GIVEN t YIELD count (`what becomes of` t) AT MOST 1) `every checked transferee`
+#ASSERT all (GIVEN t YIELD
+                null (`what becomes of` t)
+                EQUALS (    t's `offered work in the receiving district by 1 August`
+                        AND (NOT t's `placed in the receiving district by 1 August`)
+                        AND (   (NOT t's `not placed through no fault of his own`)
+                             OR (    t's `day the wish to stay was notified` GREATER THAN 0
+                                 AND t's `day the wish to stay was notified` AT MOST `5 August`))))
+            `every checked transferee`
+
+-- 1.27.2.1 over every initiated transfer: the in-year and the new-year
+-- rules never both allow one; neither moves an employee more than 30 km
+-- away, to another stream, or above the permanent position or a full one.
+GIVEN km IS A NUMBER, new IS A NUMBER, permanent IS A NUMBER, r IS A LIST OF BOOLEAN
+GIVETH A `initiated transfer`
+DECIDE `an initiated transfer of` km new permanent r IS
+    `initiated transfer` WITH
+        `during the school year`                 IS at r 0
+        `a class or stream was closed or the standard reduced` IS at r 1
+        `the transfer saves travel and travel expenses` IS at r 2
+        `the employee was appointed principal, deputy principal or coordinator` IS at r 3
+        `the employee is surplus`                IS at r 4
+        `the transfer completes the employee's position` IS at r 5
+        `km from the new post to the residence`  IS km
+        `to an official institution of the same stream` IS at r 6
+        `new position fraction`                  IS new
+        `permanent position fraction`            IS permanent
+
+#ASSERT all (GIVEN r YIELD
+                all (GIVEN km YIELD
+                        all (GIVEN new YIELD
+                                all (GIVEN p YIELD
+                                        LET t MEANS `an initiated transfer of` km new p r
+                                        IN      (NOT (`the in-year initiated transfer is allowed` t AND `the new-year initiated transfer is allowed` t))
+                                            AND ((NOT (`the in-year initiated transfer is allowed` t OR `the new-year initiated transfer is allowed` t))
+                                                 OR (km AT MOST 30 AND at r 6 AND new AT MOST min p 1)))
+                                    (LIST 0.5, 1, 1.2))
+                            (LIST 0.5, 1, 1.2))
+                    (LIST 0, 30, 31))
+            (`every row of transfer flags of length` 7)
+
+-- F-1.27-c over every combination of the three cases: the two readings of
+-- 1.27.2.1ב part exactly where there is no appointment and exactly one of
+-- the closure and the saving in travel — the travel-only transfer the
+-- finding names, and, the other way round, a closure that saves no travel,
+-- which the condition reading leaves without a case.
+#ASSERT all (GIVEN r YIELD
+                LET t MEANS `an initiated transfer of` 10 1 1 r
+                IN  (NOT (`a case for a new-year initiated transfer` t
+                          EQUALS `a case for a new-year initiated transfer, travel read as a condition` t))
+                    EQUALS ((NOT at r 3) AND (NOT (at r 1 EQUALS at r 2))))
+            (`every row of transfer flags of length` 7)
+
+-- 1.27.3.7 (F-1.27-d over every request): as written and as read, an
+-- approved request lands in the stream asked for; they part exactly on a
+-- refused request out of the state-religious stream.
+`every stream` MEANS LIST `state`, `state-religious`
+#ASSERT all (GIVEN a YIELD
+                all (GIVEN b YIELD
+                        all (GIVEN ok YIELD
+                                LET q MEANS `stream transfer request` WITH
+                                                `from stream`                         IS a
+                                                `to stream`                           IS b
+                                                `in writing to the district office`   IS TRUE
+                                                `with the declaration of the placement queue` IS TRUE
+                                IN      ((NOT ok) OR `the stream placed in` q ok EQUALS b)
+                                    AND (NOT (`the stream placed in, as written` q ok EQUALS `the stream placed in` q ok))
+                                        EQUALS ((NOT ok) AND a EQUALS `state-religious`))
+                            (LIST TRUE, FALSE))
+                    `every stream`)
+            `every stream`

@@ -417,12 +417,24 @@ DECIDE `the regular units ceiling on` `date` IS
 -- "In any case not more than 21.75" (F-1.26-a). Read as the ceiling of the
 -- regime the sentence was written in (13 regular units), which moves with
 -- the regular ceiling as the introduction (1.26.1.0ח-י) moves it.
+-- On a date one of the introduction's regimes covers (from 1.10.87), the
+-- units are that regime's: its regular ceiling and its double-degree and
+-- intermediate units. From 1.9.94 they are this clause's own (13, then 14,
+-- 15 and 16; 8.75 and 4). From 1.9.84 to 30.9.87 (1.26.1.0ב) there were
+-- no double-degree or intermediate units and at most 12 new ones; before
+-- 1.9.84 the allowance was a fixed sum, not units (1.26.1.0א).
 @ref akn:chp_1ב__sec_1_26__ssec_1_26_1_1__para_3__subpara_c
 GIVEN `date` IS A NUMBER, `regular` IS A NUMBER, `has the double-degree allowance` IS A BOOLEAN, `has the intermediate allowance` IS A BOOLEAN
 GIVETH A NUMBER
 DECIDE `allowance units` `date` `regular` `has the double-degree allowance` `has the intermediate allowance` IS
-         min `regular` (`the regular units ceiling on` `date`)
-    PLUS `units of the double-degree or intermediate allowance` `has the double-degree allowance` `has the intermediate allowance`
+    CONSIDER `the regime on` `date`
+    WHEN r FOLLOWED BY rest THEN
+             min `regular` (r's `regular units ceiling`)
+        PLUS (BRANCH IF `has the double-degree allowance` THEN r's `regime double-degree units`
+                     IF `has the intermediate allowance` THEN r's `regime intermediate units`
+                     OTHERWISE 0)
+    OTHERWISE
+        IF `date` AT LEAST 19840901 THEN min `regular` 12 ELSE 0
 
 GIVEN `has the double-degree allowance` IS A BOOLEAN, `has the intermediate allowance` IS A BOOLEAN
 GIVETH A NUMBER
@@ -438,8 +450,12 @@ GIVEN `date` IS A NUMBER @desc the date, as year-month-day (e.g. 19980901)
       `has the intermediate allowance` IS A BOOLEAN @desc the intermediate allowance (4 units) was approved
 GIVETH A NUMBER
 DECIDE `training allowance percent` `date` `regular` `has the double-degree allowance` `has the intermediate allowance` IS
-    `allowance units` `date` `regular` `has the double-degree allowance` `has the intermediate allowance`
-        TIMES `percent of the combined salary per unit`
+    CONSIDER `the regime on` `date`
+    WHEN r FOLLOWED BY rest THEN
+        `allowance units` `date` `regular` `has the double-degree allowance` `has the intermediate allowance`
+            TIMES r's `percent per unit`
+    OTHERWISE
+        IF `date` AT LEAST 19840901 THEN `percent of the combined salary in 1984-1987` `regular` ELSE 0
 
 -- F-1.26-a: the "in any case" ceiling of 21.75 against the raised regular
 -- ceiling: from 5758, 16 regular units and a double degree make 24.75.
@@ -2626,3 +2642,141 @@ DECIDE `a short-track saver may withdraw` `years saved on the short track` IS
     PARTY `the teacher` DOES `appeal the repayment` AT 40
 #TRACE `working on after the training` AT 0 WITH
     PARTY `the teacher` DOES `leave the teaching service` 20 AT 20
+
+§§ `Property checks`
+
+-- The section's rules over their whole finite space: the eight regimes of
+-- the introduction on their first and last days, 0 to 20 regular units with
+-- either allowance or none; the bands of courses for 0 to 2,000 learners;
+-- weekly study hours from 0 to 20; doctoral writing hours asked and granted
+-- before from 0 to 5; every year saved from 0 to 10; and every day of a
+-- year for an hours-grant request.
+
+-- A date written YYYYMMDD, as a day of the calendar.
+GIVEN n IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the day number of` n IS
+    DATE_SERIAL (DATE_FROM_DMY (n MODULO 100) ((TRUNC (n DIVIDED BY 100) 0) MODULO 100) (TRUNC (n DIVIDED BY 10000) 0))
+
+-- 1.26.1.0ג-י: the regimes follow one another with no gap and no overlap;
+-- no ceiling, unit count or percent per unit ever goes down; and the most
+-- a regime pays never goes down either.
+#ASSERT and (zipWith (GIVEN r, q YIELD
+                            `the day number of` (q's `regime from`) EQUALS `the day number of` (r's `regime until`) PLUS 1
+                        AND r's `regular units ceiling` AT MOST q's `regular units ceiling`
+                        AND r's `regime double-degree units` AT MOST q's `regime double-degree units`
+                        AND r's `regime intermediate units` AT MOST q's `regime intermediate units`
+                        AND r's `percent per unit` AT MOST q's `percent per unit`
+                        AND `the most percent of a regime` r AT MOST `the most percent of a regime` q)
+                     `the allowance regimes` (drop 1 `the allowance regimes`))
+
+-- Each regime's first and last day has that regime, and only it.
+#ASSERT all (GIVEN r YIELD
+                    `the regime on` (r's `regime from`) EQUALS LIST r
+                AND `the regime on` (r's `regime until`) EQUALS LIST r)
+            `the allowance regimes`
+
+-- F-1.26-a over the regimes: the ones whose most units pass "in any case
+-- not more than 21.75" are exactly those from 1.9.95.
+`the regimes past 21.75 units` MEANS
+    map (GIVEN r YIELD r's `regime from`)
+        (filter (GIVEN r YIELD `the most units of a regime` r GREATER THAN 21.75) `the allowance regimes`)
+#ASSERT `the regimes past 21.75 units` EQUALS LIST 19950901, 19960901, 19970901
+
+-- The allowance against the introduction and against 1.26.1.1(3)ג, on each
+-- regime's first and last day and 0 to 20 regular units: it is never
+-- negative, never more than the regime's most, never less for one more
+-- unit; it is the regime's own reckoning; and from 1.9.94, where both
+-- speak, it is also 1.26.1.1(3)ג's (13 to 16 units, 8.75 or 4 more, 1.2%
+-- each).
+`the regime days checked` MEANS
+    concat (map (GIVEN r YIELD LIST r's `regime from`, r's `regime until`) `the allowance regimes`)
+
+GIVEN d IS A NUMBER, u IS A NUMBER, dd IS A BOOLEAN, im IS A BOOLEAN
+GIVETH A NUMBER
+DECIDE `1.26.1.1(3)ג's own percent on` d u dd im IS
+    (min u (`the regular units ceiling on` d) PLUS `units of the double-degree or intermediate allowance` dd im)
+        TIMES `percent of the combined salary per unit`
+
+GIVEN d IS A NUMBER, dd IS A BOOLEAN, im IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `the allowance agrees on` d dd im IF
+    all (GIVEN u YIELD
+                `training allowance percent` d u dd im AT LEAST 0
+            AND all (GIVEN r YIELD `training allowance percent` d u dd im AT MOST `the most percent of a regime` r)
+                    (`the regime on` d)
+            AND `training allowance percent` d u dd im AT MOST `training allowance percent` d (u PLUS 1) dd im
+            AND (d LESS THAN 19940901
+                 OR `training allowance percent` d u dd im EQUALS `1.26.1.1(3)ג's own percent on` d u dd im))
+        (range 0 20)
+
+#ASSERT all (GIVEN d YIELD
+                all (GIVEN dd YIELD all (GIVEN im YIELD `the allowance agrees on` d dd im) (LIST TRUE, FALSE))
+                    (LIST TRUE, FALSE))
+            `the regime days checked`
+
+-- 1.26.1.0ב (1.9.84 to 30.9.87): never more than 9%, 1% for each of the
+-- first 6, never less for one more.
+#ASSERT all (GIVEN u YIELD
+                    `percent of the combined salary in 1984-1987` u AT MOST 9
+                AND (u GREATER THAN 6 OR `percent of the combined salary in 1984-1987` u EQUALS u)
+                AND `percent of the combined salary in 1984-1987` u AT MOST `percent of the combined salary in 1984-1987` (u PLUS 1))
+            (range 0 20)
+
+-- 4א(12) (F-1.26-b over 0 to 2,000 learners): the bands give two numbers of
+-- courses exactly at 1,000, none below 500, and one everywhere else.
+`the learners checked` MEANS append (map (GIVEN k YIELD k TIMES 50) (range 0 40)) (LIST 499, 999, 1001)
+#ASSERT all (GIVEN n YIELD
+                count (`the courses the bands give for` n)
+                EQUALS (BRANCH IF n EQUALS 1000 THEN 2 IF n LESS THAN 500 THEN 0 OTHERWISE 1))
+            `the learners checked`
+
+-- 1.26.2, 1.7–1.9: the table of tuition shares (one hour a quarter, two a
+-- half, three three quarters, four a whole) is a quarter for every hour,
+-- and the career ceiling of 12 hours is the three tuitions it says.
+#ASSERT all (GIVEN h YIELD `share of a tuition the hours are worth` h EQUALS h DIVIDED BY 4) (range 0 16)
+#ASSERT `share of a tuition the hours are worth` (`career ceiling in grant hours` FALSE) EQUALS 3
+
+-- 2.1.4 over 0 to 20 weekly study hours: what a teacher is entitled to is
+-- never more than may be approved, which is never more than 4 and never
+-- less for more hours.
+#ASSERT all (GIVEN w YIELD
+                    `grant hours the teacher is entitled to` w AT MOST `grant hours that may be approved within the budget` w
+                AND `grant hours that may be approved within the budget` w AT MOST 4
+                AND `grant hours that may be approved within the budget` w
+                    AT MOST `grant hours that may be approved within the budget` (w PLUS 1))
+            (range 0 20)
+
+-- 2.1.4.5 over 0 to 5 hours asked and granted before: never negative, never
+-- more than 2 a year, never past 4 in all.
+#ASSERT all (GIVEN a YIELD
+                all (GIVEN b YIELD
+                            `doctoral writing hours that may be approved` a b AT LEAST 0
+                        AND `doctoral writing hours that may be approved` a b AT MOST 2
+                        AND (b GREATER THAN 4 OR b PLUS `doctoral writing hours that may be approved` a b AT MOST 4))
+                    (range 0 5))
+            (range 0 5)
+
+-- 1.26.3, 4ב over 0 to 10 years saved: one of the three printed rates,
+-- never less for a longer saving.
+#ASSERT all (GIVEN y YIELD
+                    elem (`training grant percent of the salary` y) (LIST 66.66, 77.77, 88.88)
+                AND `training grant percent of the salary` y AT MOST `training grant percent of the salary` (y PLUS 1))
+            (range 0 10)
+
+-- 5.2.1 (F-1.26-f over every day of a year, deadline day 135, second week
+-- ending day 300): a request is never both in time and returned, and is
+-- neither exactly from day 136 to day 300.
+GIVEN d IS A NUMBER
+GIVETH A `hours-grant request`
+DECIDE `a request arriving on day` d IS
+    `hours-grant request` WITH
+        `day it arrived`                    IS d
+        `the published deadline`            IS 135
+        `end of the second week of studies` IS 300
+
+#ASSERT all (GIVEN d YIELD
+                    NOT (`the request is in time` (`a request arriving on day` d) AND `the request is returned unhandled` (`a request arriving on day` d))
+                AND (NOT (`the request is in time` (`a request arriving on day` d) OR `the request is returned unhandled` (`a request arriving on day` d)))
+                    EQUALS (d GREATER THAN 135 AND d AT MOST 300))
+            (range 1 365)
