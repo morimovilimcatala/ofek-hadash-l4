@@ -33,6 +33,11 @@ obligations as L4 regulative rules.
   Each obligation (`MUST`/`MAY`/`SHANT`) carries its state diagram, drawn by
   `l4 state-graph` and GraphViz (`dot`, which `make site` needs installed to
   draw them; without it the pages are built with no diagrams).
+- **The sidebar** follows the page: on a document, its own chapter or year
+  first and open, with an outline of the page, and the other collections
+  closed below; on the findings page, every section and circular that has
+  findings, with its count, following the filters; elsewhere, every
+  collection.
 - **L4 findings** — what encoding found wrong in the law itself, by kind and
   by the stage that caught it (`findings.json` for machines), grouped by
   section or circular, folded to a title, and filterable by kind, stage,

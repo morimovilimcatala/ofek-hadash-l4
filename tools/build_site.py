@@ -511,70 +511,153 @@ def rel(target: str, here: str) -> str:
 NAV_VIEWS: dict[str, list[SectionView]] = {}
 
 
-def nav_html(here: str) -> str:
-    """The sidebar: every encoded document, grouped as the corpus groups them.
-    The group, year and chapter holding the current page start open; on a
-    takanon chapter page that chapter's sections link to their anchors, so
-    the scrollspy in site.js can mark the one in view."""
-    if not NAV_VIEWS:
-        return ""
+def coll_docs(coll: str) -> list[str]:
+    return [d for d in NAV_VIEWS if d.split("/")[0] == coll]
+
+
+def coll_hub(coll: str) -> str:
+    docs = coll_docs(coll)
+    return f"{coll}.html" if akn.is_whole(docs[0]) else f"{docs[0].removesuffix('.xml')}.html"
+
+
+def coll_count(coll: str) -> int:
+    """Documents in a collection; sections for the takanon, its one document."""
+    docs = coll_docs(coll)
+    return len(docs) if akn.is_whole(docs[0]) else len(NAV_VIEWS[docs[0]])
+
+
+def sec_li(v: SectionView, href: str) -> str:
+    return (f'<li><a href="{href}" title="{esc(v.section.heading)}"><span class="secnum" dir="ltr">{esc(v.section.num)}</span>'
+            f'<span class="sh" lang="he" dir="rtl">{esc(v.section.heading)}</span></a></li>')
+
+
+def doc_li(v: SectionView, here: str) -> str:
+    cur = ' aria-current="page"' if here == v.page else ""
+    num = Path(v.doc).stem.split("_", 1)[-1] if v.doc.startswith("circulars/") else Path(v.doc).stem[:10]
+    return (f'<li><a href="{rel(v.page, here)}" title="{esc(v.section.heading)}"{cur}>'
+            f'<span class="secnum" dir="ltr">{esc(num)}</span>'
+            f'<span class="sh" lang="he" dir="rtl">{esc(v.section.heading)}</span></a></li>')
+
+
+def chapter_label(s: akn.Section) -> str:
+    return (f'<span class="ch" lang="he" dir="rtl">פרק {esc(s.chapter_num)} · {esc(s.chapter_heading)}</span>')
+
+
+def group_html(coll: str, label: str, here: str, items: list[str], open_: bool) -> str:
+    return (f'<li class="sn-group"><details{" open" if open_ else ""}>'
+            f'<summary>{esc(label.split(" — ")[0])}<span class="n">{coll_count(coll)}</span></summary>'
+            f'<a class="sn-hub" href="{rel(coll_hub(coll), here)}">סקירה</a>'
+            f'<ul>{"".join(items)}</ul></details></li>')
+
+
+def tree_nav(here: str) -> str:
+    """Every encoded document, grouped as the corpus groups them: the
+    sidebar of a page that is not a document (the home page, coverage,
+    diagnostics, about, a collection's overview)."""
     groups = []
     for coll, label in COLLECTIONS:
-        docs = [d for d in NAV_VIEWS if d.split("/")[0] == coll]
+        docs = coll_docs(coll)
         if not docs:
             continue
-        hub = f"{coll}.html" if akn.is_whole(docs[0]) else f"{docs[0].removesuffix('.xml')}.html"
         here_in = any(here.startswith(d.removesuffix(".xml")) for d in docs) or here == f"{coll}.html"
         items = []
         if not akn.is_whole(docs[0]):
             for d in docs:
-                chapters: dict[str, list[SectionView]] = {}
-                for v in NAV_VIEWS[d]:
-                    chapters.setdefault(v.section.chapter_eid, []).append(v)
-                for vs in chapters.values():
-                    s0 = vs[0].section
-                    on_page = here == vs[0].page
-                    lis = "".join(
-                        f'<li><a href="{"#" + esc(v.section.eid) if on_page else rel(v.href, here)}" '
-                        f'title="{esc(v.section.heading)}"><span class="secnum" dir="ltr">{esc(v.section.num)}</span>'
-                        f'<span class="sh" lang="he" dir="rtl">{esc(v.section.heading)}</span></a></li>' for v in vs)
-                    items.append(f'<li class="toc-ch"><details{" open" if on_page else ""}><summary><span class="ch" lang="he" dir="rtl">'
-                                 f'פרק {esc(s0.chapter_num)} · {esc(s0.chapter_heading)}</span>'
-                                 f'<span class="n">{len(vs)}</span></summary>'
-                                 f'<ul>{lis}</ul></details></li>')
+                for vs in chapters_of(NAV_VIEWS[d]):
+                    lis = "".join(sec_li(v, rel(v.href, here)) for v in vs)
+                    items.append(f'<li class="toc-ch"><details><summary>{chapter_label(vs[0].section)}'
+                                 f'<span class="n">{len(vs)}</span></summary><ul>{lis}</ul></details></li>')
         else:
             by_year: dict[str, list[SectionView]] = {}
             for d in docs:
                 by_year.setdefault(school_year(d) if coll == "circulars" else "", []).extend(NAV_VIEWS[d])
-
-            def doc_li(v):
-                cur = ' aria-current="page"' if here == v.page else ""
-                num = Path(v.doc).stem.split("_", 1)[-1] if coll == "circulars" else Path(v.doc).stem[:10]
-                return (f'<li><a href="{rel(v.page, here)}" title="{esc(v.section.heading)}"{cur}>'
-                        f'<span class="secnum" dir="ltr">{esc(num)}</span>'
-                        f'<span class="sh" lang="he" dir="rtl">{esc(v.section.heading)}</span></a></li>')
             for year in sorted(by_year, reverse=True):
                 vs = sorted(by_year[year], key=lambda v: v.doc)
-                lis = "".join(doc_li(v) for v in vs)
-                if not year:
-                    items.append(lis)
-                    continue
-                open_ = " open" if any(here == v.page for v in vs) else ""
-                items.append(f'<li class="toc-ch"><details{open_}><summary>{esc(year)}'
+                lis = "".join(doc_li(v, here) for v in vs)
+                items.append(lis if not year else
+                             f'<li class="toc-ch"><details><summary>{esc(year)}'
                              f'<span class="n">{len(vs)}</span></summary><ul>{lis}</ul></details></li>')
-        groups.append(f'<li class="sn-group"><details{" open" if here_in else ""}>'
-                      f'<summary>{esc(label.split(" — ")[0])}<span class="n">{len(docs) if akn.is_whole(docs[0]) else len(NAV_VIEWS[docs[0]])}</span></summary>'
-                      f'<a class="sn-hub" href="{rel(hub, here)}">סקירה</a>'
-                      f'<ul>{"".join(items)}</ul></details></li>')
+        groups.append(group_html(coll, label, here, items, here_in))
+    return "".join(groups)
+
+
+def doc_of(here: str) -> str | None:
+    """The encoded document a page belongs to: its own page, a takanon
+    chapter, or a section's rendering."""
+    for d in NAV_VIEWS:
+        base = d.removesuffix(".xml")
+        if here in (f"{base}.html", f"{base}.render.html") or here.startswith(base + "/"):
+            return d
+    return None
+
+
+def doc_nav(here: str, doc: str) -> str:
+    """A document page's sidebar: its own place first and open — the
+    takanon's chapters with the current one's sections, or a circular among
+    the circulars of its year — and the other collections closed below it.
+    On a chapter page its sections link to their anchors, so the scrollspy
+    in site.js can mark the one in view; site.js hangs the outline of the
+    headed paragraphs under the current entry."""
+    coll = doc.split("/")[0]
+    label = dict(COLLECTIONS)[coll]
+    items = []
+    if not akn.is_whole(doc):
+        for vs in chapters_of(NAV_VIEWS[doc]):
+            on_page = here == vs[0].page
+            if on_page or any(here == v.render_href for v in vs):
+                lis = "".join(sec_li(v, "#" + esc(v.section.eid) if on_page else rel(v.href, here)) for v in vs)
+                items.append(f'<li class="toc-ch"><details open><summary>{chapter_label(vs[0].section)}'
+                             f'<span class="n">{len(vs)}</span></summary><ul>{lis}</ul></details></li>')
+            else:
+                items.append(f'<li class="toc-ch"><a class="sn-leaf" href="{rel(vs[0].page, here)}">'
+                             f'{chapter_label(vs[0].section)}<span class="n">{len(vs)}</span></a></li>')
+    else:
+        by_year: dict[str, list[SectionView]] = {}
+        for d in coll_docs(coll):
+            by_year.setdefault(school_year(d) if coll == "circulars" else "", []).extend(NAV_VIEWS[d])
+        mine = school_year(doc) if coll == "circulars" else ""
+        for year in sorted(by_year, reverse=True):
+            vs = sorted(by_year[year], key=lambda v: v.doc)
+            if year == mine:
+                lis = "".join(doc_li(v, here) for v in vs)
+                items.append(lis if not year else
+                             f'<li class="toc-ch"><details open><summary>{esc(year)}'
+                             f'<span class="n">{len(vs)}</span></summary><ul>{lis}</ul></details></li>')
+            else:
+                items.append(f'<li class="toc-ch"><a class="sn-leaf" href="{rel(coll + ".html", here)}#y-{esc(year)}">'
+                             f'<span dir="ltr">{esc(year)}</span><span class="n">{len(vs)}</span></a></li>')
+    groups = [group_html(coll, label, here, items, True)]
+    for c, lab in COLLECTIONS:
+        if c != coll and coll_docs(c):
+            groups.append(other_group(c, lab, here))
+    return "".join(groups)
+
+
+def other_group(coll: str, label: str, here: str) -> str:
+    """A collection the page is not in: one closed line, to its overview."""
+    return (f'<li class="sn-group"><a class="sn-leaf" href="{rel(coll_hub(coll), here)}">'
+            f'{esc(label.split(" — ")[0])}<span class="n">{coll_count(coll)}</span></a></li>')
+
+
+def nav_html(here: str, inner: str | None = None) -> str:
+    """The sidebar. What it shows depends on the page (the client,
+    2026-10-11: "adapt the content, not the size"): a document page's own
+    place (doc_nav), the findings page's own index (findings_nav), and
+    elsewhere every collection (tree_nav)."""
+    if not NAV_VIEWS:
+        return ""
+    if inner is None:
+        doc = doc_of(here)
+        inner = doc_nav(here, doc) if doc else tree_nav(here)
     return (f'<aside class="sidenav" id="sidenav" aria-label="עיון במסמכים">'
             f'<div class="sn-head"><span>עיון</span>'
             f'<button type="button" class="sn-close" aria-label="סגירה">×</button></div>'
-            f'<ul class="sn-tree">{"".join(groups)}</ul></aside>'
+            f'<ul class="sn-tree">{inner}</ul></aside>'
             f'<div class="sn-scrim" hidden></div>')
 
 
 def page(here: str, title: str, body: str, *, tab: str = "", desc: str = "",
-         wide: bool = False) -> str:
+         wide: bool = False, sidebar: str | None = None) -> str:
     nav = [("index.html", "מסמכים", "docs"),
            ("findings.html", "ממצאים", "findings"),
            ("coverage.html", "כיסוי", "coverage"),
@@ -610,7 +693,7 @@ def page(here: str, title: str, body: str, *, tab: str = "", desc: str = "",
   </div>
 </header>
 <div class="shell">
-{nav_html(here)}
+{nav_html(here, sidebar)}
 <main class="{'wide' if wide else ''}">
 {body}
 </main>
@@ -1020,7 +1103,7 @@ def collection_page(coll: str, views: list[SectionView]) -> str:
             f'<li class="{v.status}"><a href="{rel(v.href, here)}">{dot(v.status)}'
             f'<span class="secnum" dir="ltr">{esc(Path(v.doc).stem.split("_", 1)[-1])}</span>'
             f'<span class="sh" lang="he">{esc(v.section.heading)}</span></a></li>' for v in vs)
-        parts.append(f'<section class="chapter" dir="rtl"><div class="chapter-head"><h2 dir="ltr">{esc(year)}</h2>'
+        parts.append(f'<section class="chapter" id="y-{esc(year)}" dir="rtl"><div class="chapter-head"><h2 dir="ltr">{esc(year)}</h2>'
                      f'<span class="ccount" dir="ltr">{sum(v.status == "done" for v in vs)} מתוך {len(vs)} מקודדים</span></div>'
                      f'<ul class="secs docs">{lis}</ul></section>')
     return page(here, f"{coll_name(coll)} — {TITLE}", "".join(parts), tab="docs")
@@ -1131,10 +1214,15 @@ def findings_page(findings, views_by_file, key_to_view) -> str:
         if v is not None and not v.whole:
             gkey = (doc, v.section.num)
             label, href = f"§{v.section.num} {v.section.heading}", v.href
+            num, short, gid = v.section.num, v.section.heading, f"in-{v.section.eid}"
         else:
             gkey = (doc,)
             label, href = akn.title(doc), f"{doc.removesuffix('.xml')}.html"
+            stem = Path(doc).stem
+            num = stem.split("_", 1)[-1] if col == "circulars" else stem[:10]
+            short, gid = (v.section.heading if v is not None else label), f"in-{stem}"
         g = groups.setdefault(gkey, {"label": label, "href": href, "col": col, "cards": [],
+                                     "num": num, "short": short, "id": gid,
                                      "rank": (WORK_COLLECTIONS.index(col) if col in WORK_COLLECTIONS else 99,
                                               order.get(id(v), 10**9) if col == "takanon" else 0, doc)})
         ev = evidence_result(f, views_by_file)
@@ -1165,10 +1253,25 @@ def findings_page(findings, views_by_file, key_to_view) -> str:
                if ev["url"] else "")
             + f'<p class="who">נקרא על ידי {who(f["read_by"])} · {esc(REVIEW[f["review"]])}</p>'
             + "</div></details>")
+    ordered = sorted(groups.values(), key=lambda g: g["rank"])
     sections = "".join(
-        f'<section class="fgroup" data-col="{g["col"]}"><h2><a href="{g["href"]}" lang="he" dir="rtl">{esc(g["label"])}</a>'
+        f'<section class="fgroup" id="{esc(g["id"])}" data-col="{g["col"]}"><h2><a href="{g["href"]}" lang="he" dir="rtl">{esc(g["label"])}</a>'
         f' <small class="gcount">{len(g["cards"])}</small></h2>{"".join(g["cards"])}</section>'
-        for g in sorted(groups.values(), key=lambda g: g["rank"]))
+        for g in ordered)
+    # the sidebar here is this page's own index: every section and circular
+    # that has findings, with its count, by collection (site.js keeps the
+    # counts and the list in step with the filters)
+    side = []
+    for c in WORK_COLLECTIONS:
+        gs = [g for g in ordered if g["col"] == c]
+        if not gs:
+            continue
+        lis = "".join(
+            f'<li><a href="#{esc(g["id"])}" title="{esc(g["label"])}"><span class="secnum" dir="ltr">{esc(g["num"])}</span>'
+            f'<span class="sh" lang="he" dir="rtl">{esc(g["short"])}</span><span class="n">{len(g["cards"])}</span></a></li>'
+            for g in gs)
+        side.append(f'<li class="sn-group" data-col="{c}"><details open><summary>{esc(cols.get(c, c))}'
+                    f'<span class="n">{sum(len(g["cards"]) for g in gs)}</span></summary><ul>{lis}</ul></details></li>')
 
     def chips(dim, items):
         return (f'<div class="chips" data-dim="{dim}" role="group">'
@@ -1202,7 +1305,7 @@ def findings_page(findings, views_by_file, key_to_view) -> str:
     body = (intro + matrix + bar
             + (f'<div class="findings">{sections}</div><p class="empty fnone" hidden>אין ממצאים שמתאימים לסינון.</p>'
                if sections else '<p class="empty">אין עדיין ממצאים.</p>'))
-    return page("findings.html", f"ממצאי L4 — {TITLE}", body, tab="findings")
+    return page("findings.html", f"ממצאי L4 — {TITLE}", body, tab="findings", sidebar="".join(side))
 
 
 def findings_json(findings, views_by_file, key_to_view) -> str:

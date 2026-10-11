@@ -271,6 +271,23 @@
         var s = g.querySelector(".gcount");
         if (s) s.textContent = v;
       });
+      // the sidebar's index of the groups follows the filter
+      var side = {};
+      groups.forEach(function (g) {
+        var a = g.id && document.querySelector('.sidenav a[href="#' + g.id + '"]');
+        if (!a) return;
+        var v = g.hidden ? 0 : +((g.querySelector(".gcount") || {}).textContent || 0);
+        a.parentNode.hidden = !v;
+        var c = a.querySelector(".n");
+        if (c) c.textContent = v;
+        side[g.dataset.col] = (side[g.dataset.col] || 0) + v;
+      });
+      document.querySelectorAll(".sidenav .sn-group[data-col]").forEach(function (li) {
+        var v = side[li.dataset.col] || 0;
+        li.hidden = !v;
+        var c = li.querySelector("summary .n");
+        if (c) c.textContent = v;
+      });
       if (shown) shown.textContent = n;
       if (none) none.hidden = n > 0;
       document.querySelectorAll(".ffilter .chips").forEach(function (box) {
