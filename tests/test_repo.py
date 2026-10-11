@@ -125,6 +125,18 @@ class Findings(unittest.TestCase):
                     self.assertTrue(site_mod.is_hebrew(f[field]), "written in English")
                     self.assertNotIn("→", site_mod.IDENT.sub("", f[field]))
 
+    def test_findings_never_cite_a_paragraph_by_our_count(self):
+        """A "¶41" is the builder's running count of the unnumbered
+        paragraphs in a clause (the /pN of a row key); nothing on the page
+        prints it, so a reader cannot find it. A finding names the clause as
+        the site labels it and quotes the paragraph's opening words instead.
+        (An #ASSERT name in `evidence` is an L4 identifier and is not checked
+        here.)"""
+        for f in self.findings:
+            for field in ("title", "body", "reading"):
+                with self.subTest(finding=f["id"], field=field):
+                    self.assertNotIn("¶", f[field], "a ¶N reader cannot find on the page")
+
     def test_every_finding_is_asserted_in_its_file(self):
         for f in self.findings:
             with self.subTest(finding=f["id"]):
