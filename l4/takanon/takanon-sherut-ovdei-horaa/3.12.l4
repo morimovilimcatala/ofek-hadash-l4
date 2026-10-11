@@ -703,3 +703,170 @@ DECIDE `guidance and training` IS
     AND NOT `a candidate certified only abroad`'s `teaching certificate from a recognised Israeli training institution`
     AND NOT `a candidate certified only abroad`'s `certified-teacher or certified-kindergarten-teacher certificate from the Ministry`
 #ASSERT `a certificate from abroad counts as a teaching certification "from Israel, as in 2(b)"`
+
+§§ `Property checks`
+
+-- The section's rules over their whole finite space. The candidates: a
+-- counselling master's, a counselling bachelor's and an academic degree in
+-- counselling, each held or not; a teaching certification of none, or one
+-- of the four of 2(b); 0 to 2 years as a counsellor, employed as one now or
+-- not; a second-year master's student, a third-year bachelor's or
+-- second-year master's student, certificate studies, an MA in a related
+-- field, the supplementary courses and the senior counsellor's
+-- recommendation, each or not — 15,360 candidates, on the transition's
+-- last day (31.8.2004) and the day after it. Then 0 to 30 counselling
+-- hours, the position's shares in twelfths, every licence and date of
+-- 3.12.7(1), and 0 to 5 years of a temporary licence.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`every kind of licence` MEANS LIST `a permanent counselling licence`, `a temporary counselling licence`, `no counselling licence`
+`the shares checked` MEANS map (GIVEN k YIELD k DIVIDED BY 12) (range 0 12)
+
+GIVEN ms IS A BOOLEAN, ba IS A BOOLEAN, acad IS A BOOLEAN, cert IS A NUMBER, yrs IS A NUMBER, emp IS A BOOLEAN,
+      stm IS A BOOLEAN, stb IS A BOOLEAN, certst IS A BOOLEAN, ma IS A BOOLEAN, supp IS A BOOLEAN, rec IS A BOOLEAN
+GIVETH A `licence candidate`
+DECIDE `a checked candidate` ms ba acad cert yrs emp stm stb certst ma supp rec IS
+    `licence candidate` WITH
+        `master's degree in educational counselling, recognised institution` IS ms
+        `at least a bachelor's degree in educational counselling, recognised institution` IS ba
+        `an academic degree in counselling, recognised in Israel` IS acad
+        `teaching certificate from a recognised Israeli training institution` IS cert EQUALS 1
+        `certified-teacher or certified-kindergarten-teacher certificate from the Ministry` IS cert EQUALS 2
+        `permanent teaching licence`                         IS cert EQUALS 3
+        `recognised foreign teaching certificate or licence, Hebrew education and full certification completed in Israel` IS cert EQUALS 4
+        `years employed as a counsellor under שפ"י, to its satisfaction` IS yrs
+        `employed as a counsellor under שפ"י, to its satisfaction` IS emp
+        `regular student of a counselling master's, second year, in Israel` IS stm
+        `regular student of a counselling bachelor's, third year, or a counselling master's, second year` IS stb
+        `certificate studies in counselling at an institution once approved for them` IS certst
+        `MA in psychology, social work, behavioural sciences or special education` IS ma
+        `completed supplementary counselling courses and approved by שפ"י` IS supp
+        `recommended by the senior counsellor`               IS rec
+
+-- Candidate n, for n from 0 to 15,359, is read off n's digits in a mixed
+-- base: one digit per boolean, five values for the certification (none,
+-- then the four of 2(b) in order) and three for the years.
+GIVEN n IS A NUMBER, place IS A NUMBER, base IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the digit of` n `at` place `in base` base IS
+    FLOOR (n DIVIDED BY place) MODULO base
+
+GIVEN n IS A NUMBER
+GIVETH A `licence candidate`
+DECIDE `candidate number` n IS
+    `a checked candidate`
+        (`the digit of` n `at` 1 `in base` 2 EQUALS 1)
+        (`the digit of` n `at` 2 `in base` 2 EQUALS 1)
+        (`the digit of` n `at` 4 `in base` 2 EQUALS 1)
+        (`the digit of` n `at` 8 `in base` 5)
+        (`the digit of` n `at` 40 `in base` 3)
+        (`the digit of` n `at` 120 `in base` 2 EQUALS 1)
+        (`the digit of` n `at` 240 `in base` 2 EQUALS 1)
+        (`the digit of` n `at` 480 `in base` 2 EQUALS 1)
+        (`the digit of` n `at` 960 `in base` 2 EQUALS 1)
+        (`the digit of` n `at` 1920 `in base` 2 EQUALS 1)
+        (`the digit of` n `at` 3840 `in base` 2 EQUALS 1)
+        (`the digit of` n `at` 7680 `in base` 2 EQUALS 1)
+
+GIVEN prop IS A FUNCTION FROM `licence candidate` TO BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `holds for every candidate` prop IF
+    all (GIVEN n YIELD prop (`candidate number` n)) (range 0 15359)
+
+GIVEN l IS A `kind of licence`
+GIVETH A NUMBER
+DECIDE `the standing of` l IS
+    CONSIDER l
+    WHEN `a permanent counselling licence` THEN 2
+    WHEN `a temporary counselling licence` THEN 1
+    WHEN `no counselling licence`          THEN 0
+
+-- 2 and 4 across the step: the licence a candidate may be granted the day
+-- after the transition is never higher than on its last day.
+GIVEN c IS A `licence candidate`
+GIVETH A BOOLEAN
+DECIDE `the transition only ever widens the licence` c IF
+    `the standing of` (`the licence that may be granted` c (Date 1 9 2004))
+    AT MOST `the standing of` (`the licence that may be granted` c (Date 31 8 2004))
+#ASSERT `holds for every candidate` `the transition only ever widens the licence`
+
+-- F-3.12-a over the whole space: after the transition no candidate who
+-- has not worked as a counsellor (no years, not employed as one) can be
+-- granted any licence, whatever else she holds; and 5(c): the branch
+-- issues a licence exactly to those who may be granted one.
+GIVEN c IS A `licence candidate`
+GIVETH A BOOLEAN
+DECIDE `after the transition only a counsellor can be licensed` c IF
+       c's `years employed as a counsellor under שפ"י, to its satisfaction` GREATER THAN 0
+    OR c's `employed as a counsellor under שפ"י, to its satisfaction`
+    OR `the licence that may be granted` c (Date 1 9 2004) EQUALS `no counselling licence`
+#ASSERT `holds for every candidate` `after the transition only a counsellor can be licensed`
+
+-- 2(b) is required by every route but certificate studies (4(a)(2)) and
+-- two years' counselling (4(a)(4)): one without a teaching certification
+-- gets a licence only on those two routes, and only in the transition.
+GIVEN c IS A `licence candidate`
+GIVETH A BOOLEAN
+DECIDE `no teaching certification, no licence but on 4(a)(2) or 4(a)(4)` c IF
+       `holds a teaching certification as in 2(b)` c
+    OR (    `the licence that may be granted` c (Date 1 9 2004) EQUALS `no counselling licence`
+        AND (`the licence that may be granted` c (Date 31 8 2004) EQUALS `no counselling licence`)
+            EQUALS (    NOT c's `certificate studies in counselling at an institution once approved for them`
+                    AND c's `years employed as a counsellor under שפ"י, to its satisfaction` LESS THAN 2))
+#ASSERT `holds for every candidate` `no teaching certification, no licence but on 4(a)(2) or 4(a)(4)`
+
+-- 1(c) against 3.12.7(1) and 1(a), on every licence, with posts hard to
+-- fill or not, on the eve of 1.9.86, on it, and in 2010: whoever 1(c)
+-- lets be employed holds a licence, which 3.12.7(1) requires from 1.9.86;
+-- without a licence no one serves from that day.
+#ASSERT all (GIVEN l YIELD
+                all (GIVEN hard YIELD
+                        all (GIVEN d YIELD
+                                    ((NOT `may be employed as a counsellor` hard l) OR `may serve as a counsellor from 1.9.86` l d)
+                                AND (`may serve as a counsellor from 1.9.86` l d
+                                     EQUALS ((d LESS THAN `the day 3.12.7(1)-(2) apply from`) OR NOT (l EQUALS `no counselling licence`))))
+                            (LIST Date 31 8 1986, Date 1 9 1986, Date 1 9 2010))
+                    `both booleans`)
+            `every kind of licence`
+
+-- The temporary licence's length, three ways: 1(c) (2-3 years at most, the
+-- deadline of 3 years), 3's note (three years at most) and 4(b)'s note
+-- (two years, extendable to a third). Over 0 to 5 years, extended or not,
+-- a transitional temporary licence is never in force past the three years,
+-- and in the third only if extended.
+#ASSERT all (GIVEN y YIELD
+                all (GIVEN ext YIELD
+                            ((NOT `the transitional temporary licence is in force` y ext)
+                             OR y AT MOST `years a temporary licence may be approved for, at most`)
+                        AND `the transitional temporary licence is in force` y ext
+                            EQUALS (y AT MOST 2 OR (y EQUALS 3 AND ext)))
+                    `both booleans`)
+            (range 0 5)
+
+-- 3.12.1(1) against 3.12.7(2): over a position split in twelfths, the
+-- split is lawful exactly when the counsellor teaches at least a third.
+#ASSERT all (GIVEN t YIELD
+                `the counselling-teaching split is lawful` (1 MINUS t) t EQUALS `teaches at least a third of a position` t)
+            `the shares checked`
+
+-- 3.12.1(2) over 0 to 30 counselling hours: the share they make is never
+-- negative and grows with the hours; in a school of grades 1-8, reckoned
+-- partly by 24, it is never less than in a school of grades 1-6 only.
+#ASSERT all (GIVEN h YIELD
+                    `position share of counselling hours in a primary school` `a primary school of grades 1-6 only` h AT LEAST 0
+                AND `position share of counselling hours in a primary school` `a primary school of grades 1-8` (h PLUS 1)
+                    GREATER THAN `position share of counselling hours in a primary school` `a primary school of grades 1-8` h
+                AND `position share of counselling hours in a primary school` `a primary school of grades 1-6 only` (h PLUS 1)
+                    GREATER THAN `position share of counselling hours in a primary school` `a primary school of grades 1-6 only` h
+                AND `position share of counselling hours in a primary school` `a primary school of grades 1-8` h
+                    AT LEAST `position share of counselling hours in a primary school` `a primary school of grades 1-6 only` h)
+            (range 0 30)
+
+-- 8(d)-(e) over every recipient, with the parents' approval or not: the
+-- new school's counsellor or psychologist always, no one else in the new
+-- school ever, and a body outside the school exactly with the approval.
+#ASSERT all (GIVEN a YIELD
+                    `the material may be passed on` `the counsellor or psychologist of the pupil's new school` a
+                AND NOT `the material may be passed on` `another person in the pupil's new school` a
+                AND `the material may be passed on` `a body outside the pupil's school` a EQUALS a)
+            `both booleans`
