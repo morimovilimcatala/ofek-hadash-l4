@@ -245,6 +245,20 @@ GIVETH A MAYBE NUMBER
 DECIDE `days a week with age hours` `age hours` `she accepts` IS
     IF `age hours` EQUALS 4 AND `she accepts` THEN JUST 5 ELSE NOTHING
 
+-- F-2.7-e: with 4 age hours her position is still above 3/4 (24 of 28
+-- hours, or a full position paid), where 2.7.1.2 sets five days with no
+-- consent; 2.7.7 employs her five days only "if she accepts". The reading
+-- adopted: 2.7.7, the specific rule, governs her — without her acceptance
+-- she is not employed five days, so at most four.
+GIVEN f IS A NUMBER, `age hours` IS A NUMBER, days IS A NUMBER
+      `she agrees to more splitting` IS A BOOLEAN, `she accepts five days` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `the split is allowed, with age hours` f `age hours` days `she agrees to more splitting` `she accepts five days` IF
+        `the split is allowed` f days `she agrees to more splitting`
+    AND (    (NOT `age hours` EQUALS 4)
+          OR days AT MOST 4
+          OR `days a week with age hours` `age hours` `she accepts five days` EQUALS JUST 5)
+
 @ref akn:chp_2__sec_2_7__ssec_2_7_7__para_2
 `age hours apply to integration teachers from` MEANS DATE_FROM_DMY 1 9 1981
 
@@ -261,3 +275,128 @@ DECIDE `days a week with age hours` `age hours` `she accepts` IS
 #ASSERT `weekly hours with pupils after age hours` 4 EQUALS 24
 #ASSERT `monthly travel allowance with a car` 2 0.5 1 EQUALS 200
 #ASSERT `monthly travel allowance without a car` 300 200 EQUALS 200
+
+§§ `Property checks`
+
+-- The section's rules over their whole finite space: every position
+-- fraction from 0 to 5/4 in 24ths, 1 to 7 days, every weekly load from 0
+-- to 28 hours, 0, 2 or 4 age hours, every consent, 0 to 6 kindergartens,
+-- and a grid of travel inputs.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`the fractions checked` MEANS map (GIVEN k YIELD k DIVIDED BY 24) (range 0 30)
+
+-- 2.7.1.2: no fraction falls in two bands, and the bands leave exactly the
+-- fractions above 1/3 up to 1/2 (and no position at all) without a
+-- maximum — F-2.7-a over every 24th of a position.
+#ASSERT all (GIVEN f YIELD
+                    count (`most days the table gives` f) AT MOST 1
+                AND (null (`most days the table gives` f))
+                    EQUALS (f EQUALS 0 OR (f GREATER THAN 1/3 AND f AT MOST 1/2)))
+            `the fractions checked`
+
+-- Where the table gives a maximum, a larger position is never allowed
+-- fewer days.
+GIVEN m IS A MAYBE NUMBER
+GIVETH A NUMBER
+DECIDE `the maximum or none` m IS
+    CONSIDER m
+    WHEN JUST n THEN n
+    WHEN NOTHING THEN 0
+
+#ASSERT all (GIVEN f YIELD
+                all (GIVEN g YIELD
+                        (`most days a week` f EQUALS NOTHING)
+                        OR (`most days a week` g EQUALS NOTHING)
+                        OR f GREATER THAN g
+                        OR `the maximum or none` (`most days a week` f) AT MOST `the maximum or none` (`most days a week` g))
+                    `the fractions checked`)
+            `the fractions checked`
+
+-- 2.7.1.2 ¶5: consent always allows the split; without it, the split is
+-- allowed exactly within the band's maximum (or anywhere in the gap).
+#ASSERT all (GIVEN f YIELD
+                all (GIVEN d YIELD
+                            `the split is allowed` f d TRUE
+                        AND `the split is allowed` f d FALSE
+                            EQUALS `within the maximum` (`most days a week` f) d)
+                    (range 1 7))
+            `the fractions checked`
+
+-- 2.7.6.3's key as printed, row by row: from, to, hours of preparation.
+DECLARE `key row` HAS
+    `key from`   IS A NUMBER
+    `key to`     IS A NUMBER
+    `key hours`  IS A NUMBER
+
+`the key as printed` MEANS
+    LIST `key row` 1 10 0, `key row` 11 19 1, `key row` 20 28 2
+
+-- Every whole weekly load the key prints, 1 to 28, falls in exactly one
+-- row, and the encoding gives that row's hours; more hours never get fewer
+-- preparation hours.
+#ASSERT all (GIVEN h YIELD
+                    count (filter (GIVEN r YIELD h AT LEAST r's `key from` AND h AT MOST r's `key to`) `the key as printed`) EQUALS 1
+                AND all (GIVEN r YIELD
+                            (NOT (h AT LEAST r's `key from` AND h AT MOST r's `key to`))
+                            OR `preparation hours` h EQUALS r's `key hours`)
+                        `the key as printed`
+                AND `preparation hours` h AT MOST `preparation hours` (h PLUS 1))
+            (range 1 28)
+
+-- 2.7.7 against 2.7.6.3 and 2.7.1.1: with 0, 2 or 4 age hours, the hours
+-- with pupils (28, 26, 24) earn the key's two preparation hours — the
+-- "(+ 2 ש"ש הכנה)" 2.7.7 prints and the 2 of the unit.
+#ASSERT all (GIVEN a YIELD
+                    `preparation hours` (`weekly hours with pupils after age hours` a) EQUALS 2
+                AND `preparation hours` (`weekly hours with pupils after age hours` a) EQUALS `weekly guidance hours in a full position`)
+            (LIST 0, 2, 4)
+
+-- F-2.7-e over 0, 2 and 4 age hours, either way of measuring her position
+-- (her hours over 28, or the full position she is paid), 1 to 5 days and
+-- either acceptance: 2.7.1.2 alone and 2.7.7 part exactly on a teacher
+-- with four age hours, not accepting, split over five days.
+GIVEN a IS A NUMBER, f IS A NUMBER, d IS A NUMBER, accepts IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `2.7.1.2 and 2.7.7 part on` a f d accepts IF
+    NOT (    `the split is allowed` f d FALSE
+         EQUALS `the split is allowed, with age hours` f a d FALSE accepts)
+
+#ASSERT all (GIVEN a YIELD
+                all (GIVEN d YIELD
+                        all (GIVEN accepts YIELD
+                                all (GIVEN f YIELD
+                                        `2.7.1.2 and 2.7.7 part on` a f d accepts
+                                        EQUALS (a EQUALS 4 AND d EQUALS 5 AND (NOT accepts)))
+                                    (LIST (28 MINUS a) DIVIDED BY 28, 1))
+                            `both booleans`)
+                    (range 1 5))
+            (LIST 0, 2, 4)
+
+`a teacher with four age hours who does not accept may be split over five days by the table and not by 2.7.7` MEANS
+        `the split is allowed` (24/28) 5 FALSE
+    AND NOT (`days a week with age hours` 4 FALSE EQUALS JUST 5)
+#ASSERT `a teacher with four age hours who does not accept may be split over five days by the table and not by 2.7.7`
+
+-- 2.7.6.1 over a grid: the car-owner's sum is never negative, never more
+-- than 200 km a month at the rate, and never less for a larger position;
+-- without a car she is paid at most that sum, whatever she reports.
+#ASSERT all (GIVEN f YIELD
+                all (GIVEN t YIELD
+                        all (GIVEN r YIELD
+                                    `monthly travel allowance with a car` 2 f t AT LEAST 0
+                                AND `monthly travel allowance with a car` 2 f t AT MOST 200 TIMES 2
+                                AND `monthly travel allowance with a car` 2 f t AT MOST `monthly travel allowance with a car` 2 (f PLUS 0.25) t
+                                AND `monthly travel allowance without a car` r (`monthly travel allowance with a car` 2 f t)
+                                    AT MOST `monthly travel allowance with a car` 2 f t)
+                            (LIST 0, 50, 150, 500))
+                    (LIST 0, 0.5, 1))
+            (LIST 0, 0.25, 0.5, 0.75, 1)
+
+-- 2.7.6.2 against 2.7.1.3: a full position works in 3 to 5 kindergartens,
+-- so every full-position caseload is entitled to the over-splitting
+-- allowance; and the allowance starts at three.
+#ASSERT all (GIVEN k YIELD
+                    (NOT `a full position's caseload` 12 k) OR `entitled to the over-splitting allowance` k)
+            (range 0 6)
+#ASSERT all (GIVEN k YIELD `entitled to the over-splitting allowance` k EQUALS (k AT LEAST 3)) (range 0 6)
