@@ -64,7 +64,10 @@ DECIDE `counts as a class under 2א` g IF
 
 -- 2ב: in grades 1–4 only a whole class counts for physical education; from
 -- grade 5 groups formed from different classes count too. In force from
--- 1.9.1995.
+-- 1.9.1995. F-1.11-g: 2א counts every grouping with no date, so before
+-- 1.9.1995 a physical-education grouping counts under 2א and, by 2ב's
+-- date, not under 2ב; the reading adopted is 2ב's, the particular rule:
+-- before that day only a whole class counts in physical education.
 @ref akn:chp_1א___sec_1_11__hc_2__para_2__subpara_b akn:chp_1א___sec_1_11__hc_2__para_2__subpara_b/p2 akn:chp_1א___sec_1_11__hc_2__para_2__subpara_b/p3
 GIVEN g IS A `taught group`, starts IS A DATE
 GIVETH A BOOLEAN
@@ -389,3 +392,211 @@ DECIDE `a teacher's year with` groups fraction institutions IS
     PARTY `the local authority or owning body` DOES `notify the other owner of the payment` AT 1
 
 -- akn:chp_1א___sec_1_11__hc_3 The section's sources (אסמכתא): the agreements and circulars it rests on.
+
+§§ `Property checks`
+
+-- The section's rules over their whole finite space: 0 to 15 classes, 0 to
+-- 4 institutions and health institutions, positions from 50% to 120% in
+-- steps of 1%, every kind of group in every grade on the day before and
+-- the day of 1.9.1995, and every split of the mother tongue's hours among
+-- up to three teachers.
+
+GIVEN classes IS A NUMBER, fraction IS A NUMBER, institutions IS A NUMBER
+      nursing IS A NUMBER, school IS A BOOLEAN, principal IS A BOOLEAN
+GIVETH A `split year`
+DECIDE `a checked split year` classes fraction institutions nursing school principal IS
+    `split year` WITH
+        `year starts`                                               IS DATE_FROM_DMY 1 9 2003
+        `works in a primary or post-primary school or kindergarten` IS school
+        `is a principal`                                            IS principal
+        `groups taught with the employer`                           IS replicate classes `an eighth-grade class`
+        `educational institutions with the employer`                IS institutions
+        `position fraction for the split`                           IS fraction
+        `separate health institutions, as a nursing teacher`        IS nursing
+        `classes taught the whole mother tongue in, in one school`  IS 0
+        `classes taught a foreign language in`                      IS 0
+        `classes taught part of the mother tongue in`               IS 0
+        `own hours of the mother tongue in those classes`           IS 0
+        `all hours of the mother tongue in those classes`           IS 0
+        `works shifts in a boarding school or pedagogic centre`     IS FALSE
+        `shift days a week`                                         IS 0
+        `hours between shifts`                                      IS 0
+        `base of the percentage allowances`                         IS 10000
+
+`the class counts checked for a split` MEANS range 0 15
+`the split positions checked` MEANS map (GIVEN k YIELD k DIVIDED BY 100) (range 50 120)
+
+-- 1א over every class count, institution count and health-institution
+-- count, in a school and not: the rate is 0, 5%, 6% or 7%; it is paid
+-- exactly where 1א says; and the three bands of its second paragraph
+-- (6–7, 8–10, 11 or more) give every count from 6 one rate, never less for
+-- more classes or more institutions.
+#ASSERT all (GIVEN school YIELD
+                all (GIVEN i YIELD
+                        all (GIVEN h YIELD
+                                    all (GIVEN c YIELD
+                                                elem (`rate under 1א` (`a checked split year` c 1 i h school FALSE)) (LIST 0, 5%, 6%, 7%)
+                                            AND (`rate under 1א` (`a checked split year` c 1 i h school FALSE) GREATER THAN 0)
+                                                EQUALS ((school AND (c AT LEAST 6 OR i AT LEAST 3)) OR h AT LEAST 3)
+                                            AND `rate under 1א` (`a checked split year` c 1 i h school FALSE)
+                                                AT MOST `rate under 1א` (`a checked split year` (c PLUS 1) 1 i h school FALSE)
+                                            AND `rate under 1א` (`a checked split year` c 1 i h school FALSE)
+                                                AT MOST `rate under 1א` (`a checked split year` c 1 (i PLUS 1) h school FALSE))
+                                        `the class counts checked for a split`)
+                                (range 0 4))
+                        (range 0 4))
+            (LIST TRUE, FALSE)
+
+-- 1ב over every position from 50% to 120% and every class count: 3%
+-- exactly from 79% to 95% with 5 classes or more. It is a band, not a
+-- floor: by its words a 96% position with 5 classes earns nothing under
+-- it, where a 95% one earns 3%.
+#ASSERT all (GIVEN f YIELD
+                all (GIVEN c YIELD
+                        `rate under 1ב` (`a checked split year` c f 0 0 TRUE FALSE)
+                        EQUALS (IF f AT LEAST 0.79 AND f AT MOST 0.95 AND c AT LEAST 5 THEN 3% ELSE 0))
+                    `the class counts checked for a split`)
+            `the split positions checked`
+
+`the boundary positions of 1ב` MEANS LIST 0.5, 0.78, 0.79, 0.85, 0.95, 0.96, 1, 1.2
+
+-- 5א with F-1.11-a's reading, over the positions either side of 1ב's
+-- bounds, and every class count and
+-- institution count: one rate, never above 7% nor below any one clause's,
+-- nothing for a principal, and never less for one more class.
+#ASSERT all (GIVEN f YIELD
+                all (GIVEN c YIELD
+                        all (GIVEN i YIELD
+                                    `split-position rate` (`a checked split year` c f i 0 TRUE FALSE) AT MOST 7%
+                                AND all (GIVEN r YIELD r AT MOST `split-position rate` (`a checked split year` c f i 0 TRUE FALSE))
+                                        (`the rates the clauses give` (`a checked split year` c f i 0 TRUE FALSE))
+                                AND `split-position rate` (`a checked split year` c f i 0 TRUE TRUE) EQUALS 0
+                                AND `split-position rate` (`a checked split year` c f i 0 TRUE FALSE)
+                                    AT MOST `split-position rate` (`a checked split year` (c PLUS 1) f i 0 TRUE FALSE))
+                            (range 0 4))
+                    `the class counts checked for a split`)
+            `the boundary positions of 1ב`
+
+-- 5ב: the allowance is the full one on every position (the base is the
+-- full position's, whatever share is held).
+#ASSERT all (GIVEN f YIELD
+                `split-position allowance` (`a checked split year` 8 f 0 0 TRUE FALSE) EQUALS 600)
+            (filter (GIVEN f YIELD f AT LEAST 0.33) `the split positions checked`)
+
+-- 3ג–ד over every split of 12 hours of the mother tongue among one, two or
+-- three teachers: each share is between 0 and 5%, and the shares come to
+-- the one allowance of 5%, never more.
+GIVEN own IS A NUMBER, total IS A NUMBER
+GIVETH A `split year`
+DECIDE `a teacher of part of the mother tongue with` own `of` total IS
+    `split year` WITH
+        `year starts`                                               IS DATE_FROM_DMY 1 9 2003
+        `works in a primary or post-primary school or kindergarten` IS TRUE
+        `is a principal`                                            IS FALSE
+        `groups taught with the employer`                           IS EMPTY
+        `educational institutions with the employer`                IS 1
+        `position fraction for the split`                           IS 1
+        `separate health institutions, as a nursing teacher`        IS 0
+        `classes taught the whole mother tongue in, in one school`  IS 0
+        `classes taught a foreign language in`                      IS 0
+        `classes taught part of the mother tongue in`               IS 4
+        `own hours of the mother tongue in those classes`           IS own
+        `all hours of the mother tongue in those classes`           IS total
+        `works shifts in a boarding school or pedagogic centre`     IS FALSE
+        `shift days a week`                                         IS 0
+        `hours between shifts`                                      IS 0
+        `base of the percentage allowances`                         IS 10000
+
+`every split of 12 hours among up to three teachers` MEANS
+    append (LIST (LIST 12))
+           (append (map (GIVEN a YIELD LIST a, 12 MINUS a) (range 1 11))
+                   (concat (map (GIVEN a YIELD
+                                    map (GIVEN b YIELD LIST a, b, 12 MINUS a MINUS b) (range 1 (11 MINUS a)))
+                                (range 1 10))))
+
+#ASSERT all (GIVEN hs YIELD
+                    sum (map (GIVEN h YIELD `rate for part of the mother tongue` (`a teacher of part of the mother tongue with` h `of` 12)) hs)
+                    EQUALS `the rate for languages`
+                AND all (GIVEN h YIELD
+                                `rate for part of the mother tongue` (`a teacher of part of the mother tongue with` h `of` 12) AT LEAST 0
+                            AND `rate for part of the mother tongue` (`a teacher of part of the mother tongue with` h `of` 12) AT MOST `the rate for languages`)
+                        hs)
+            `every split of 12 hours among up to three teachers`
+
+-- 2א–2ג over every kind of group, in every grade from 1 to 12, physical
+-- education or not, on 31.8.1995 and on 1.9.1995. What 2א alone counts
+-- (every whole class and grouping, and a technological group of 20) and
+-- what the section counts part exactly on physical-education groups that
+-- are not a whole class (a grouping, or a technological group of 20): in
+-- every grade before 1.9.1995, and in grades 1–4 from it. From 1.9.1995
+-- that is 2ב's own exception; before it, 2ב is not yet in force and 2א
+-- counts every grouping without a date (F-1.11-g).
+`every kind of taught group` MEANS
+    LIST `a whole class`, `a grouping of pupils from two classes or more`, `a technological work group`
+       , `a crafts group`, `another part of a class`
+
+GIVEN k IS A `kind of taught group`, pe IS A BOOLEAN, grade IS A NUMBER
+GIVETH A `taught group`
+DECIDE `a checked group` k pe grade IS
+    `taught group` WITH
+        `kind of group`              IS k
+        `is physical education`      IS pe
+        `grade of the group`         IS grade
+        `pupils in the group`        IS 25
+        `taught in overtime`         IS FALSE
+        `prepared for matriculation` IS FALSE
+
+GIVEN g IS A `taught group`, d IS A DATE
+GIVETH A BOOLEAN
+DECIDE `2א and the section part on` g d IF
+    NOT (`counts as a class under 2א` g EQUALS `counts as a class` g d)
+
+GIVEN d IS A DATE
+GIVETH A BOOLEAN
+DECIDE `they part exactly on the PE groupings expected on` d IF
+    all (GIVEN k YIELD
+            all (GIVEN pe YIELD
+                    all (GIVEN grade YIELD
+                            `2א and the section part on` (`a checked group` k pe grade) d
+                            EQUALS (    (pe AND NOT (k EQUALS `a whole class`))
+                                    AND (grade AT MOST 4 OR NOT (d `is on or after` (DATE_FROM_DMY 1 9 1995)))))
+                        (range 1 12))
+                (LIST TRUE, FALSE))
+        (LIST `a whole class`, `a grouping of pupils from two classes or more`, `a technological work group`)
+
+#ASSERT `they part exactly on the PE groupings expected on` (DATE_FROM_DMY 31 8 1995)
+#ASSERT `they part exactly on the PE groupings expected on` (DATE_FROM_DMY 1 9 1995)
+
+`a grade-6 PE grouping before 1.9.1995 counts under 2א and not under 2ב's date` MEANS
+        `counts as a class under 2א` (`a checked group` `a grouping of pupils from two classes or more` TRUE 6)
+    AND (NOT `counts as a class` (`a checked group` `a grouping of pupils from two classes or more` TRUE 6) (DATE_FROM_DMY 31 8 1995))
+    AND `counts as a class` (`a checked group` `a grouping of pupils from two classes or more` TRUE 6) (DATE_FROM_DMY 1 9 1995)
+#ASSERT `a grade-6 PE grouping before 1.9.1995 counts under 2א and not under 2ב's date`
+
+-- 2ג's date step: a crafts group counts from 1.9.1995 in every grade, and
+-- not on the day before.
+#ASSERT all (GIVEN grade YIELD
+                    `counts as a class` (`a checked group` `a crafts group` FALSE grade) (DATE_FROM_DMY 1 9 1995)
+                AND (NOT `counts as a class` (`a checked group` `a crafts group` FALSE grade) (DATE_FROM_DMY 31 8 1995)))
+            (range 1 12)
+
+-- 5ג: overtime teaching is never counted, whatever the group or date.
+#ASSERT all (GIVEN k YIELD
+                all (GIVEN d YIELD
+                        NOT `counts as a class` (`taught group` WITH
+                                                    `kind of group`              IS k
+                                                    `is physical education`      IS FALSE
+                                                    `grade of the group`         IS 8
+                                                    `pupils in the group`        IS 25
+                                                    `taught in overtime`         IS TRUE
+                                                    `prepared for matriculation` IS FALSE) d)
+                    (LIST DATE_FROM_DMY 31 8 1995, DATE_FROM_DMY 1 9 1995))
+            `every kind of taught group`
+
+-- 5ו (F-1.11-e over every split of 0 to 20 hours): one owner pays, the one
+-- with more hours, except on a tie, where both are named.
+#ASSERT all (GIVEN a YIELD
+                all (GIVEN b YIELD
+                        (count (`the owners who pay in a six-year school` a b) EQUALS 2) EQUALS (a EQUALS b))
+                    (range 0 20))
+            (range 0 20)

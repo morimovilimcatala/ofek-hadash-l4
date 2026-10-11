@@ -668,6 +668,8 @@ DECIDE `the measure under 2ד` `the injury is listed and the table usable` IS
 
 -- 2א ¶2 and 2ב: "the insured sum" is the one in the insurance confirmation;
 -- read with 1ב's 30,000 dollars for death and full disability, that is it.
+-- F-1.10-l: 1ב sets no time for the death or disability, 2א–ב 12 months
+-- from the accident; the reading adopted is the cover's own 12 months.
 @ref akn:chp_1א___sec_1_10__ssec_1_10_1__para_2 akn:chp_1א___sec_1_10__ssec_1_10_1__para_2__subpara_a akn:chp_1א___sec_1_10__ssec_1_10_1__para_2__subpara_a/p2 akn:chp_1א___sec_1_10__ssec_1_10_1__para_2__subpara_b
 GIVEN a IS A `trip accident`, `insured sum` IS A NUMBER
 GIVETH A NUMBER
@@ -857,3 +859,296 @@ DECIDE `trip-accident compensation` a IS
     PARTY `the insured or his representative` DOES `notify the insurer in writing` AT 5
 #TRACE `the report follows the notice` AT 5 WITH
     PARTY `the insured or his representative` DOES `send the accident report and doctor's certificate` AT 12
+
+§§ `Property checks`
+
+-- The section's rules over their whole finite space: every day outing from
+-- the morning ending on any half hour from 12:00 to 2:00, every detached
+-- outing starting on the hour from 12:00 to 23:00 and ending on any later
+-- half hour to 2:00, outings of one to three nights; every number of hours
+-- taught from 0 to 8; every principal; every craft, place, period and
+-- voyage from 0 to 4 days in each period; and every outcome of an accident.
+
+`the half hours checked` MEANS map (GIVEN k YIELD k DIVIDED BY 2) (range 24 52)
+
+GIVEN morning IS A BOOLEAN, start IS A NUMBER, end IS A NUMBER
+GIVETH AN `outing`
+DECIDE `a day outing` morning start end IS
+    `outing` WITH
+        `starts in the morning`     IS morning
+        `start hour`                IS start
+        `end hour`                  IS end
+        `nights`                    IS 0
+        `end hour of the last day`  IS end
+
+`every day outing checked` MEANS
+    append (map (GIVEN e YIELD `a day outing` TRUE 8 e) `the half hours checked`)
+           (concat (map (GIVEN s YIELD
+                            map (GIVEN e YIELD `a day outing` FALSE s e)
+                                (filter (GIVEN e YIELD e GREATER THAN s) `the half hours checked`))
+                        (range 12 23)))
+
+-- Table א against table ג: wherever an outing fits one row, its units are
+-- that row's; where it fits two, the larger (the row that opens at the
+-- hour, F-1.10-a's reading); where none, nothing. Never negative, never
+-- more than the 5 units of the longest day without lodging.
+#ASSERT all (GIVEN o YIELD
+                    `activity units` o
+                    EQUALS (IF null (`the kinds the outing fits as printed` o)
+                            THEN 0
+                            ELSE maximum (map `units for` (`the kinds the outing fits as printed` o)))
+                AND `activity units` o AT LEAST 0
+                AND `activity units` o AT MOST 5)
+            `every day outing checked`
+
+-- F-1.10-a over every half hour: a day from the morning fits two rows
+-- exactly when it ends at 15:00, 18:00 or 21:00, and never three.
+`the end hours that fit two rows` MEANS
+    filter (GIVEN e YIELD count (`the kinds the outing fits as printed` (`a day outing` TRUE 8 e)) EQUALS 2)
+           `the half hours checked`
+#ASSERT `the end hours that fit two rows` EQUALS LIST 15, 18, 21
+#ASSERT all (GIVEN o YIELD count (`the kinds the outing fits as printed` o) AT MOST 2) `every day outing checked`
+
+-- F-1.10-b over the space: the day outings that fit no row are exactly
+-- those from the morning that end before 14:00 or after midnight, and the
+-- detached ones that start before 16:00 or end after midnight.
+#ASSERT all (GIVEN o YIELD
+                null (`the kinds the outing fits as printed` o)
+                EQUALS (IF o's `starts in the morning`
+                        THEN o's `end hour` LESS THAN 14 OR o's `end hour` GREATER THAN 24
+                        ELSE o's `start hour` LESS THAN 16 OR o's `end hour` GREATER THAN 24))
+            `every day outing checked`
+
+-- From the morning, a later return never earns fewer units up to midnight;
+-- the one step down is past it, where F-1.10-b leaves the outing unpaid.
+`the morning hours to midnight` MEANS filter (GIVEN e YIELD e AT MOST 24) `the half hours checked`
+#ASSERT and (zipWith (GIVEN e, f YIELD
+                        `activity units` (`a day outing` TRUE 8 e) AT MOST `activity units` (`a day outing` TRUE 8 f))
+                     `the morning hours to midnight` (drop 1 `the morning hours to midnight`))
+#ASSERT `activity units` (`a day outing` TRUE 8 24.5) LESS THAN `activity units` (`a day outing` TRUE 8 24)
+
+-- Outings with lodging (ד, with F-1.10-d's reading): never fewer units for
+-- one more night, nor for a later return on the last day, and always at
+-- least 7 a night.
+GIVEN n IS A NUMBER, e IS A NUMBER
+GIVETH AN `outing`
+DECIDE `an outing of` n `nights home at` e IS
+    `outing` WITH `starts in the morning` IS TRUE, `start hour` IS 8, `end hour` IS e, `nights` IS n, `end hour of the last day` IS e
+
+#ASSERT all (GIVEN n YIELD
+                    all (GIVEN e YIELD
+                                `activity units` (`an outing of` n `nights home at` e) AT LEAST 7 TIMES n
+                            AND `activity units` (`an outing of` n `nights home at` e)
+                                AT MOST `activity units` (`an outing of` (n PLUS 1) `nights home at` e))
+                        `the morning hours to midnight`
+                AND and (zipWith (GIVEN e, f YIELD
+                                    `activity units` (`an outing of` n `nights home at` e)
+                                    AT MOST `activity units` (`an outing of` n `nights home at` f))
+                                 `the morning hours to midnight` (drop 1 `the morning hours to midnight`)))
+            (LIST 1, 2, 3)
+
+-- ב: a unit is never worth more than 0.7% of one full position, and a
+-- larger position never makes it worth less.
+`the positions checked for a unit` MEANS LIST 0, 0.25, 0.5, 0.75, 1, 1.25
+#ASSERT all (GIVEN f YIELD `value of an activity unit` 10000 f AT MOST 70) `the positions checked for a unit`
+#ASSERT and (zipWith (GIVEN f, g YIELD `value of an activity unit` 10000 f AT MOST `value of an activity unit` 10000 g)
+                     `the positions checked for a unit` (drop 1 `the positions checked for a unit`))
+
+-- ח: a של"ח teacher is paid nothing under the units, whatever the outing.
+#ASSERT all (GIVEN o YIELD `outing pay` o 10000 1 100 TRUE EQUALS 0) `every day outing checked`
+
+-- ט (F-1.10-f over 0 to 8 hours taught): never negative, never more than
+-- 4, and nothing from 4 hours; the one place where one more hour taught
+-- earns MORE extra hours is from 1 to 2, the row F-1.10-f names.
+#ASSERT all (GIVEN h YIELD
+                    `extra hours for accompanying on a rest or non-teaching day` h AT LEAST 0
+                AND `extra hours for accompanying on a rest or non-teaching day` h AT MOST 4
+                AND (h LESS THAN 4 OR `extra hours for accompanying on a rest or non-teaching day` h EQUALS 0))
+            (range 0 8)
+`the hours taught after which one more earns more` MEANS
+    filter (GIVEN h YIELD
+                `extra hours for accompanying on a rest or non-teaching day` h
+                LESS THAN `extra hours for accompanying on a rest or non-teaching day` (h PLUS 1))
+           (range 0 7)
+#ASSERT `the hours taught after which one more earns more` EQUALS LIST 1
+
+-- י (F-1.10-g over every principal): the two paragraphs part on one case
+-- only, the class educator who does not coordinate.
+#ASSERT all (GIVEN c YIELD
+                all (GIVEN e YIELD
+                        (NOT (`a principal is paid for the trip` c e EQUALS `a principal is paid under ¶42 as printed` c))
+                        EQUALS ((NOT c) AND e))
+                    (LIST TRUE, FALSE))
+            (LIST TRUE, FALSE)
+
+-- 2ב over every craft, place and period: the lead is paid at least what a
+-- second accompanier is, a smaller craft never less than a larger one, a
+-- day in vacation exactly 100 points more than one in the study period.
+`every craft` MEANS LIST `a boat`, `a ship`, `a navy vessel`, `a large vessel`
+`every place aboard` MEANS LIST `sole or lead accompanier`, `second or further accompanier`
+#ASSERT all (GIVEN c YIELD
+                all (GIVEN s YIELD
+                            `voyage rate` c `sole or lead accompanier` s AT LEAST `voyage rate` c `second or further accompanier` s
+                        AND all (GIVEN p YIELD
+                                        `voyage rate` c p FALSE EQUALS `voyage rate` c p TRUE PLUS 100
+                                    AND `voyage rate` `a boat` p s AT LEAST `voyage rate` c p s
+                                    AND `voyage rate` c p s AT LEAST `voyage rate` `a large vessel` p s
+                                    AND `voyage rate` `a ship` p s EQUALS `voyage rate` `a navy vessel` p s)
+                                `every place aboard`)
+                    (LIST TRUE, FALSE))
+            `every craft`
+
+-- F-1.10-h over 1 to 5 accompaniers: row (1) as printed takes the lead of a
+-- boat exactly when there are one or two aboard.
+GIVEN n IS A NUMBER
+GIVETH A `voyage`
+DECIDE `the lead of a boat with` n IS
+    `voyage` WITH
+        `craft sailed`                IS `a boat`
+        `place`                       IS `sole or lead accompanier`
+        `accompaniers aboard`         IS n
+        `voyage days in study period` IS 1
+        `voyage days in vacation, Sabbaths and holidays` IS 0
+        `in charge of 3 craft or more` IS FALSE
+        `is a class educator`         IS FALSE
+        `voyage days already sailed this year` IS 0
+`the boats row (1) takes the lead of` MEANS
+    filter (GIVEN n YIELD `row (1) as printed takes the lead of this boat` (`the lead of a boat with` n)) (range 1 5)
+#ASSERT `the boats row (1) takes the lead of` EQUALS LIST 1, 2
+
+-- ג–ד over every voyage of 0 to 4 days in each period, for an educator who
+-- has sailed 0 to 4 days already and for one who is not: the pay is never
+-- negative, never more for an educator than for the same voyage without
+-- the free days, never less for one more day of either kind; and the two
+-- readings of the free days (F-1.10-k) part exactly where the free days
+-- left outrun the days in the study period and the voyage has days in
+-- vacation.
+GIVEN educator IS A BOOLEAN, sailed IS A NUMBER, study IS A NUMBER, vacation IS A NUMBER
+GIVETH A `voyage`
+DECIDE `a checked voyage` educator sailed study vacation IS
+    `voyage` WITH
+        `craft sailed`                IS `a ship`
+        `place`                       IS `sole or lead accompanier`
+        `accompaniers aboard`         IS 1
+        `voyage days in study period` IS study
+        `voyage days in vacation, Sabbaths and holidays` IS vacation
+        `in charge of 3 craft or more` IS TRUE
+        `is a class educator`         IS educator
+        `voyage days already sailed this year` IS sailed
+
+GIVEN educator IS A BOOLEAN, sailed IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `the voyage pay holds for` educator sailed IF
+    all (GIVEN study YIELD
+            all (GIVEN vacation YIELD
+                        `voyage pay` (`a checked voyage` educator sailed study vacation) 100 AT LEAST 0
+                    AND `voyage pay` (`a checked voyage` educator sailed study vacation) 100
+                        AT MOST `voyage pay` (`a checked voyage` FALSE sailed study vacation) 100
+                    AND `voyage pay` (`a checked voyage` educator sailed study vacation) 100
+                        AT MOST `voyage pay` (`a checked voyage` educator sailed (study PLUS 1) vacation) 100
+                    AND `voyage pay` (`a checked voyage` educator sailed study vacation) 100
+                        AT MOST `voyage pay` (`a checked voyage` educator sailed study (vacation PLUS 1)) 100
+                    AND (NOT (`voyage pay` (`a checked voyage` educator sailed study vacation) 100
+                              EQUALS `voyage pay with the free days taken from any voyage days` (`a checked voyage` educator sailed study vacation) 100))
+                        EQUALS (educator AND max 0 (3 MINUS sailed) GREATER THAN study AND vacation GREATER THAN 0))
+                (range 0 4))
+        (range 0 4)
+
+#ASSERT all (GIVEN educator YIELD all (GIVEN sailed YIELD `the voyage pay holds for` educator sailed) (range 0 4))
+            (LIST TRUE, FALSE)
+
+-- "A voyage day" (2א): every hour from 1 to 96 is a whole number of days,
+-- at least one, and never fewer for more hours.
+#ASSERT all (GIVEN h YIELD `voyage days` h AT LEAST 1 AND `voyage days` h TIMES 24 AT LEAST h) (range 1 96)
+#ASSERT and (zipWith (GIVEN g, h YIELD `voyage days` g AT MOST `voyage days` h) (range 1 96) (drop 1 (range 1 96)))
+
+-- 1.10.1 over every outcome of an accident: death or disability, within 12
+-- months of the accident or after, at every tenth of disability, with and
+-- without each bar to the cover.
+DECLARE `outcome of an accident` IS ONE OF
+    `death within 12 months`, `death after 12 months`
+    `disability within 12 months`, `disability after 12 months`
+
+`every outcome of an accident` MEANS
+    LIST `death within 12 months`, `death after 12 months`
+       , `disability within 12 months`, `disability after 12 months`
+
+`the disability percents checked` MEANS map (GIVEN k YIELD k TIMES 10) (range 0 10)
+
+GIVEN outcome IS AN `outcome of an accident`, percent IS A NUMBER, weeks IS A NUMBER
+      excluded IS A BOOLEAN, other IS A BOOLEAN
+GIVETH A `trip accident`
+DECIDE `an accident with` outcome percent weeks excluded other IS
+    `trip accident` WITH
+        `covered by the Ministry's instructions`   IS TRUE
+        `on a trip, tour or journey in the course of school work` IS TRUE
+        `between leaving home and coming straight back` IS TRUE
+        `covered by the road-accident or hostile-action laws` IS FALSE
+        `excluded cause`                            IS excluded
+        `insured by another insurer`                IS other
+        `died of it within 12 months`               IS outcome EQUALS `death within 12 months`
+        `disability percent`                        IS percent
+        `disabled within 12 months`                 IS outcome EQUALS `disability within 12 months`
+        `weeks unfit for work`                      IS weeks
+        `national-insurance payments stopped at 26 weeks` IS TRUE
+        `months unfit within the first 26 weeks`    IS min 6 (weeks DIVIDED BY 4)
+        `notice reached the insurer within 6 months` IS TRUE
+
+GIVEN outcome IS AN `outcome of an accident`
+GIVETH A BOOLEAN
+DECIDE `is a death` outcome IF
+    outcome EQUALS `death within 12 months` OR outcome EQUALS `death after 12 months`
+
+-- Part 2 alone never pays more than the insured sum, so 2ה, read as
+-- capping only the lump sum of 2א–ד (F-1.10-j's reading), never binds;
+-- the cap that binds is the one the reading does not adopt.
+#ASSERT all (GIVEN o YIELD
+                all (GIVEN p YIELD
+                        `lump sum` (`an accident with` o p 0 FALSE FALSE) `the sum for death or full disability, in dollars`
+                        EQUALS `capped lump sum` (`an accident with` o p 0 FALSE FALSE) `the sum for death or full disability, in dollars`)
+                    `the disability percents checked`)
+            `every outcome of an accident`
+
+-- An excluded cause or another insurer pays nothing; the weekly sum is
+-- nothing before week 27 and never more than 26 weeks of 450 dollars.
+#ASSERT all (GIVEN o YIELD
+                all (GIVEN w YIELD
+                            `trip-accident compensation` (`an accident with` o 100 w TRUE FALSE) EQUALS 0
+                        AND `trip-accident compensation` (`an accident with` o 100 w FALSE TRUE) EQUALS 0
+                        AND `weekly compensation in dollars` (`an accident with` o 100 w FALSE FALSE) AT MOST 450 TIMES 26
+                        AND (w GREATER THAN 26 OR `weekly compensation in dollars` (`an accident with` o 100 w FALSE FALSE) EQUALS 0))
+                    (range 0 60))
+            `every outcome of an accident`
+
+-- 1ב against 2א–ב (F-1.10-l): 1ב pays the 30,000 dollars on death and its
+-- share on partial disability, at whatever time they come; 2א and 2ב pay
+-- only a disability or a death within 12 months of the accident. Over every
+-- outcome and every tenth of disability, the two agree exactly where the
+-- death or disability came within 12 months, or there is nothing to pay.
+GIVEN o IS AN `outcome of an accident`, p IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `1ב and 2 part on` o p IF
+    NOT (`compensation under 1ב in dollars` (`is a death` o) p
+         EQUALS `lump sum` (`an accident with` o p 0 FALSE FALSE) `the sum for death or full disability, in dollars`)
+
+#ASSERT all (GIVEN o YIELD
+                all (GIVEN p YIELD
+                        `1ב and 2 part on` o p
+                        EQUALS (    (o EQUALS `death after 12 months`)
+                                OR  (o EQUALS `disability after 12 months` AND p GREATER THAN 0)))
+                    `the disability percents checked`)
+            `every outcome of an accident`
+
+`1ב pays a death after 12 months that part 2 does not` MEANS
+        `1ב and 2 part on` `death after 12 months` 0
+    AND `trip-accident compensation` (`an accident with` `death after 12 months` 0 0 FALSE FALSE) EQUALS 0
+#ASSERT `1ב pays a death after 12 months that part 2 does not`
+
+-- 1ה: the committee's increase is never more than a tenth of what is owed,
+-- the special compensation never more than 450 dollars, and what the
+-- government or employer still owes after the cover (5) never negative.
+#ASSERT all (GIVEN x YIELD
+                    `committee increase allowed` 1000 x AT MOST 100
+                AND `special compensation for a far accident` x AT MOST 450
+                AND `still owed by the government or employer` 1000 x AT LEAST 0)
+            (LIST 0, 50, 100, 450, 1000, 5000)
