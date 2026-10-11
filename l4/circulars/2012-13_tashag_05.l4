@@ -66,27 +66,48 @@ DECIDE `sick days accrued in a year` `position held` `cap` IS
     `sick days a year` TIMES min `position held` `cap`
 
 -- 1ג: under Oz LeTmura the position for which days accumulate is capped.
--- The corpus prints the full-implementation teacher's cap as "125%( 100%
--- באישור מיוחד)" and the תשע"ד partial cap as "128%( 114% באישור מיוחד)":
--- digit runs reordered against the Hebrew (the corpus marks this text
--- bidi-damaged). Read as printed, "special approval" would LOWER the cap,
--- which it cannot; the principal's line ("100% - באישור מיוחד עבור מקרים
--- חריגים – 117%") shows the shape. The encoding reads: full 100% (125% with
--- special approval), תשע"ד partial 114% (128% with special approval).
+-- Partial implementation: 130% for a teacher in תשע"ב and 131% in תשע"ג.
+-- Three lines give a cap and a cap "באישור מיוחד", and the corpus prints
+-- each with its figures and brackets reordered against the Hebrew
+-- (MMS-426): the full-implementation teacher "125%( 100%באישור מיוחד)", the
+-- תשע"ד partial teacher "128%( 114%באישור מיוחד)", the principal "מנהל(
+-- 100% -באישור מיוחד עבור מקרים חריגים – )117%". Which figure is the cap
+-- and which the cap with special approval is not something the corpus text
+-- says, so each pair is a named input until the corpus is fixed and
+-- re-synced.
+@desc A cap on the position for which sick days accumulate, and the cap that applies with special approval.
+DECLARE `approval caps` HAS
+    `cap without approval`       IS A NUMBER
+    `cap with special approval`  IS A NUMBER
+
+@desc Circular 2012-13/5, section 1ג second paragraph: the full-implementation teacher's cap and the cap with special approval. The corpus prints this line scrambled (MMS-426), so the values are supplied from outside until the corpus is fixed and re-synced.
+ASSUME `the full-implementation teacher's caps` IS AN `approval caps`
+
+@desc Circular 2012-13/5, section 1ג sixth paragraph: the partial-implementation teacher's cap in school year 2013/14 and the cap with special approval. The corpus prints this line scrambled (MMS-426), so the values are supplied from outside until the corpus is fixed and re-synced.
+ASSUME `the 2013/14 partial-implementation teacher's caps` IS AN `approval caps`
+
+@desc Circular 2012-13/5, section 1ג seventh paragraph: the principal's cap under the reform and the cap with special approval "for exceptional cases". The corpus prints this line scrambled (MMS-426), so the values are supplied from outside until the corpus is fixed and re-synced.
+ASSUME `the principal's caps under the reform` IS AN `approval caps`
+
+GIVEN caps IS AN `approval caps`, `special approval` IS A BOOLEAN
+GIVETH A NUMBER
+DECIDE `the cap that applies` caps `special approval` IS
+    IF `special approval` THEN caps's `cap with special approval` ELSE caps's `cap without approval`
+
 @ref akn:art_1__para_c akn:art_1__para_c/p2 akn:art_1__para_c/p3 akn:art_1__para_c/p4 akn:art_1__para_c/p5 akn:art_1__para_c/p6 akn:art_1__para_c/p7
 GIVEN r IS A `sick-day role`, i IS AN `implementation`, y IS A `school year`, `special approval` IS A BOOLEAN
 GIVETH A NUMBER
 DECIDE `the accumulable position` r i y `special approval` IS
     IF r EQUALS `a principal` AND NOT i EQUALS `not under the reform`
-    THEN IF `special approval` THEN 117% ELSE 100%
+    THEN `the cap that applies` `the principal's caps under the reform` `special approval`
     ELSE CONSIDER i
          WHEN `not under the reform`  THEN `the accumulable position before the reform` r
-         WHEN `full implementation`   THEN IF `special approval` THEN 125% ELSE 100%
+         WHEN `full implementation`   THEN `the cap that applies` `the full-implementation teacher's caps` `special approval`
          WHEN `partial implementation` THEN
              CONSIDER y
              WHEN `תשע"ב` THEN 130%
              WHEN `תשע"ג` THEN 131%
-             WHEN `תשע"ד` THEN IF `special approval` THEN 128% ELSE 114%
+             WHEN `תשע"ד` THEN `the cap that applies` `the 2013/14 partial-implementation teacher's caps` `special approval`
              WHEN `a year before תשע"ב` THEN `the accumulable position before the reform` r
 
 -- 1ג ¶8-¶13: a teacher entitled to a mother's position adds to these caps:
@@ -363,8 +384,7 @@ DECIDE `age hours off the base` r `frontal hours in class` `age` IS
 #ASSERT `sick-day hours a year` 40 1 `תשע"ג` EQUALS 173.2
 #ASSERT `sick-day hours a year` 36 0.5 `תשע"ד` EQUALS 77.94
 #ASSERT `the accumulable position with the mother's addition` `a teacher` `partial implementation` `תשע"ג` FALSE TRUE EQUALS 139.3%
-#ASSERT `the accumulable position` `a principal` `full implementation` `תשע"ג` TRUE EQUALS 117%
-#ASSERT `sick days accrued in a year` 1.4 (`the accumulable position` `a teacher` `full implementation` `תשע"ג` FALSE) EQUALS 30
+#ASSERT `sick days accrued in a year` 1.4 (`the accumulable position` `a teacher` `partial implementation` `תשע"ג` FALSE) EQUALS 39.3
 #ASSERT `sick hours deducted for the day` 4 1 2 TRUE EQUALS 7
 #ASSERT `hours as days` 86.6 40 `תשע"ג` EQUALS 15
 #ASSERT `days carried from before תשע"ב` 48 24 EQUALS 15
