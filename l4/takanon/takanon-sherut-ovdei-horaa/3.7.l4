@@ -249,8 +249,14 @@ GIVEN `the only school in the locality` IS A BOOLEAN
 GIVETH A DEONTIC `3.7 party` `educator's act`
 DECIDE `3.7.3.24א private lessons` `the only school in the locality` IS
     PARTY `a takanon party` `the teaching employee`
-    SHANT `give paid private lessons to pupils of her school` `the supervisor approved` PROVIDED (NOT `the only school in the locality`) OR (NOT `the supervisor approved`)
+    SHANT `give paid private lessons to pupils of her school` `the supervisor approved` PROVIDED `24א forbids the lessons` `the only school in the locality` `the supervisor approved`
     LEST  BREACH BY `a takanon party` `the teaching employee` BECAUSE "3.7.3.24א: no paid private lessons to pupils of her school"
+
+-- The prohibition reaches every case but the one 24ב permits.
+GIVEN `the only school in the locality` IS A BOOLEAN, `the supervisor approved` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `24א forbids the lessons` `the only school in the locality` `the supervisor approved` IF
+    (NOT `the only school in the locality`) OR (NOT `the supervisor approved`)
 
 @ref akn:chp_3__sec_3_7__ssec_3_7_3__para_24__subpara_b
 GIVEN `the only school in the locality` IS A BOOLEAN
@@ -258,8 +264,13 @@ GIVETH A DEONTIC `3.7 party` `educator's act`
 DECIDE `3.7.3.24ב the only school in the locality` `the only school in the locality` IS
     IF `the only school in the locality`
     THEN PARTY `a takanon party` `the teaching employee`
-         MAY   `give paid private lessons to pupils of her school` `the supervisor approved` PROVIDED `the supervisor approved`
+         MAY   `give paid private lessons to pupils of her school` `the supervisor approved` PROVIDED `24ב permits the lessons` `the only school in the locality` `the supervisor approved`
     ELSE FULFILLED
+
+GIVEN `the only school in the locality` IS A BOOLEAN, `the supervisor approved` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `24ב permits the lessons` `the only school in the locality` `the supervisor approved` IF
+    `the only school in the locality` AND `the supervisor approved`
 
 @ref akn:chp_3__sec_3_7__ssec_3_7_3__para_24__subpara_c
 GIVETH A DEONTIC `3.7 party` `educator's act`
@@ -371,3 +382,100 @@ DECIDE `a manager-educator's minimum teaching hours` `minimum teaching hours of 
     PARTY `a takanon party` `the teaching employee` DOES `invite each pupil's parents` AT 1
 #TRACE `3.7.3.2 accepting the post` 9 7 TRUE AT 0 WITH
     PARTY `a takanon party` `the teaching employee` DOES `accept the post of class educator` AT 0
+
+§§ `Property checks`
+
+-- The section's rules over their whole finite space: 0 to 30 lessons a
+-- week in the school and 0 up to that many in the class, under each of the
+-- two thresholds "6 to 8" can mean; grades 0 to 9 and every boolean the
+-- rules take; and every month from January 1994 to December 2003, which
+-- holds the three dates 3.7.6.1 names and the month before each.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`the months checked` MEANS map (GIVEN k YIELD 1994 TIMES 12 PLUS k) (range 1 120)
+
+-- 2 over every teacher: one teaching 10 lessons or more in the school is
+-- never exempt, whichever threshold; the threshold of 6 exempts no one the
+-- threshold of 8 does not; and (F-3.7-a over the whole space) the two part
+-- exactly on a teacher of under 10 lessons who teaches the class 6 or 7.
+#ASSERT all (GIVEN s YIELD
+                all (GIVEN c YIELD
+                            ((s LESS THAN 10)
+                             OR ((NOT `exempt from the educator's post` s c 6) AND (NOT `exempt from the educator's post` s c 8)))
+                        AND ((NOT `exempt from the educator's post` s c 6) OR `exempt from the educator's post` s c 8)
+                        AND (NOT (`exempt from the educator's post` s c 6 EQUALS `exempt from the educator's post` s c 8))
+                            EQUALS (s LESS THAN 10 AND c AT LEAST 6 AND c AT MOST 7))
+                    (range 0 s))
+            (range 0 30)
+
+-- 3: a teacher not full-time in two schools may always be made an
+-- educator; one who is, only where she teaches most of her hours.
+#ASSERT all (GIVEN two YIELD
+                all (GIVEN most YIELD
+                        `may be made an educator in this school` two most EQUALS ((NOT two) OR most))
+                    `both booleans`)
+            `both booleans`
+
+-- 5 over grades 1 to 8: in grades 1-2 a departure from one teacher is
+-- right only with the supervisor's approval; grades 3-4 bind nothing
+-- (the wish is checked apart, and only there); from grade 5 what counts
+-- is the educator's share of her class's lessons.
+#ASSERT all (GIVEN g YIELD
+                all (GIVEN every YIELD
+                        all (GIVEN approved YIELD
+                                all (GIVEN most YIELD
+                                            (`the lessons are rightly assigned` g every approved most
+                                             EQUALS (   (g AT MOST 2 AND (every OR approved))
+                                                     OR (g AT LEAST 3 AND g AT MOST 4)
+                                                     OR (g AT LEAST 5 AND most)))
+                                        AND (`grades 3-4 as desired` g every EQUALS ((NOT (g AT LEAST 3 AND g AT MOST 4)) OR every)))
+                                    `both booleans`)
+                            `both booleans`)
+                    `both booleans`)
+            (range 1 8)
+
+-- 24א and 24ב: for every locality and approval, the paid private lessons
+-- are either forbidden by 24א or permitted by 24ב, never both and never
+-- neither; permitted exactly in a one-school locality with approval.
+#ASSERT all (GIVEN only YIELD
+                all (GIVEN approved YIELD
+                            (NOT (`24א forbids the lessons` only approved EQUALS `24ב permits the lessons` only approved))
+                        AND `24ב permits the lessons` only approved EQUALS (only AND approved))
+                    `both booleans`)
+            `both booleans`
+
+-- 3.7.6.1 over grades 0 to 9 and every month checked: the rate is 11.5%
+-- (grade 1) or 10% (grades 2 to 8) or nothing, never negative; it never
+-- falls from one month to the next; and each grade's rate begins in
+-- exactly the month the text names.
+#ASSERT all (GIVEN g YIELD
+                all (GIVEN m YIELD
+                            (   `class-education allowance rate` g m EQUALS 0
+                             OR `class-education allowance rate` g m EQUALS 0.10
+                             OR `class-education allowance rate` g m EQUALS 0.115)
+                        AND `class-education allowance rate` g (m PLUS 1) AT LEAST `class-education allowance rate` g m
+                        AND (`class-education allowance rate` g m GREATER THAN 0)
+                            EQUALS (   (g EQUALS 1 AND m AT LEAST 1994 TIMES 12 PLUS 9)
+                                    OR (g AT LEAST 2 AND g AT MOST 6 AND m AT LEAST 2001 TIMES 12 PLUS 1)
+                                    OR (g AT LEAST 7 AND g AT MOST 8 AND m AT LEAST 1995 TIMES 12 PLUS 6)))
+                    `the months checked`)
+            (range 0 9)
+
+-- The allowance is the rate on the combined salary: nothing on a salary of
+-- nothing, and never more than the salary.
+#ASSERT all (GIVEN g YIELD
+                all (GIVEN m YIELD
+                            `class-education allowance` g m 0 EQUALS 0
+                        AND `class-education allowance` g m 10000 AT MOST 10000
+                        AND `class-education allowance` g m 10000 AT LEAST 0)
+                    (LIST 1994 TIMES 12 PLUS 8, 1994 TIMES 12 PLUS 9, 1995 TIMES 12 PLUS 6, 2001 TIMES 12 PLUS 1))
+            (range 1 8)
+
+-- 3.7.6.2 over grades 0 to 9: 3 educator's hours exactly in grades 1 to 6;
+-- a principal, deputy or coordinator who educates gets the same, and his
+-- minimum teaching hours are the post's, whatever the grade.
+#ASSERT all (GIVEN g YIELD
+                    (`educator's hours` g EQUALS 3) EQUALS (g AT LEAST 1 AND g AT MOST 6)
+                AND `educator's hours of a principal, deputy or coordinator educating a class` g EQUALS `educator's hours` g
+                AND `a manager-educator's minimum teaching hours` 20 g EQUALS 20)
+            (range 0 9)
