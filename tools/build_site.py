@@ -36,6 +36,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import akn      # noqa: E402
 import l4src    # noqa: E402
+import rule_graph  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "build" / "site"
@@ -660,6 +661,7 @@ def page(here: str, title: str, body: str, *, tab: str = "", desc: str = "",
          wide: bool = False, sidebar: str | None = None) -> str:
     nav = [("index.html", "מסמכים", "docs"),
            ("findings.html", "ממצאים", "findings"),
+           ("salary.html", "מבנה השכר", "salary"),
            ("coverage.html", "כיסוי", "coverage"),
            ("diagnostics.html", "בדיקות", "diagnostics"),
            ("about.html", "אודות", "about")]
@@ -815,6 +817,8 @@ def section_block(v: SectionView, here: str, headless: bool = False) -> str:
             if f not in found:
                 found.append(f)
     links = [f'<a href="{corpus}">בקורפוס ↗</a>']
+    if (v.doc, v.section.num) == SALARY:
+        links.append(f'<a href="{rel("salary.html", here)}">מבנה השכר</a>')
     if v.l4:
         links += [f'<a href="{REPO}/blob/main/{v.l4.relative_to(ROOT)}">קוד מקור ↗</a>',
                   f'<a href="{rel(v.render_href, here)}">כפרוזה</a>']
@@ -1308,6 +1312,41 @@ def findings_page(findings, views_by_file, key_to_view) -> str:
     return page("findings.html", f"ממצאי L4 — {TITLE}", body, tab="findings", sidebar="".join(side))
 
 
+# The salary as the L4 computes it: §1.1's rule and what it is made of.
+SALARY = ("takanon/takanon-sherut-ovdei-horaa.xml", "1.1")
+SALARY_RULE = "salary of a teaching employee"
+
+
+def salary_page(all_views: dict[str, list["SectionView"]]) -> str:
+    """What the salary is made of, drawn from the L4 itself (tools/rule_graph.py):
+    every rule §1.1's salary calls is a box, every input it leaves to the case
+    an oval. Not an example: no figure is in it."""
+    here = "salary.html"
+    v = next((v for v in all_views.get(SALARY[0], []) if v.section.num == SALARY[1]), None)
+    drawing = ""
+    if v is not None and v.l4 is not None:
+        src = rule_graph.dot(rule_graph.declarations(v.l4), SALARY_RULE,
+                             rule_graph.clause_labeller(v.section, citations(v.section)))
+        svg = rule_graph.svg(src)
+        if svg:
+            (OUT / "assets").mkdir(parents=True, exist_ok=True)
+            (OUT / "assets" / "salary.svg").write_text(svg, encoding="utf-8")
+            drawing = ('<div class="salary-box"><a href="assets/salary.svg" target="_blank" rel="noopener" '
+                       'title="פתיחה בגודל מלא"><img src="assets/salary.svg" alt="מבנה השכר"></a></div>')
+    sec = (f'<a href="{v.href}"><bdi dir="ltr">§{esc(v.section.num)}</bdi> {esc(v.section.heading)}</a>'
+           if v is not None else "§1.1")
+    body = ('<h1>מבנה השכר</h1>'
+            f'<p class="lede">ממה מורכב שכרו של עובד הוראה, כפי שהקוד של {sec} מחשב אותו. '
+            'הציור נגזר מן הקוד עצמו: כל תיבה היא כלל, והחצים מובילים מכל רכיב אל מה שהוא חלק ממנו, '
+            'עד השכר שבצד ימין. בכל תיבה: מילות הסעיף שהכלל מקודד ומספרו, ומתחתיהן שם הכלל ב־L4. '
+            'האליפסות הן הנתונים שהטקסט משאיר לנסיבות של העובד — השכר המשולב למשרה מלאה, החודש, '
+            'היקף המשרה, הגמולים שהוא מחזיק — וכל אחת מחוברת למקום שבו נדרשת לראשונה.</p>'
+            '<p>אין בציור סכומים: הוא מראה את המבנה, לא חישוב. כלל עזר שאינו מצטט סעיף משלו מופיע בשמו ב־L4 בלבד. '
+            'הציור רחב; גוללים בו שמאלה, ולחיצה פותחת אותו בגודל מלא.</p>'
+            + (drawing or '<p class="empty">הציור דורש GraphViz בעת הבנייה.</p>'))
+    return page(here, f"מבנה השכר — {TITLE}", body, tab="salary")
+
+
 def findings_json(findings, views_by_file, key_to_view) -> str:
     rows = []
     for f in findings:
@@ -1569,6 +1608,7 @@ def build() -> int:
             (OUT / f"{coll}.html").write_text(collection_page(coll, vs), encoding="utf-8")
     (OUT / "index.html").write_text(index_page(all_views, findings), encoding="utf-8")
     (OUT / "findings.html").write_text(findings_page(findings, by_file, key_to_view), encoding="utf-8")
+    (OUT / "salary.html").write_text(salary_page(all_views), encoding="utf-8")
     (OUT / "findings.json").write_text(findings_json(findings, by_file, key_to_view), encoding="utf-8")
     (OUT / "index.json").write_text(index_json(flat), encoding="utf-8")
     (OUT / "coverage.html").write_text(coverage_page(all_views), encoding="utf-8")
