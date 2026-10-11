@@ -281,6 +281,16 @@ def ship(s: dict, l4: Path, assets: Path) -> dict:
     return {**s, "source": f"calc/{l4.name}", "files": files}
 
 
+HEB = re.compile(r"([\u05d0-\u05ea])")
+
+
+def cite_text(cite: str) -> str:
+    """A citation as plain text that keeps its order inside Hebrew: each
+    one isolated left to right (LRI…PDI), and a left-to-right mark after
+    each Hebrew letter, so "§1.1ה ¶2" does not reorder to "§1.12¶ ה"."""
+    return " · ".join("\u2066" + HEB.sub("\\1\u200e", c) + "\u2069" for c in cite.split(" · "))
+
+
 def form_html(s: dict) -> str:
     """The form, server-rendered: one control per field of the record, in
     the record's order, and the list of allowances."""
@@ -288,7 +298,7 @@ def form_html(s: dict) -> str:
     for f in s["fields"]:
         fid = "f-" + re.sub(r"\W+", "-", f["name"]).strip("-")
         name = esc(f["name"])
-        meta = (f'<span class="cite" dir="ltr">{esc(f["cite"])}</span>'
+        meta = (f'<span class="cite">{esc(cite_text(f["cite"]))}</span>'
                 f'<code class="l4n" dir="ltr">{name}</code>')
         hint = f'<span class="hint">{esc(f["hint"])}</span>' if f["hint"] else ""
         if f["name"] == "in a population whose 5% step was postponed":
@@ -303,11 +313,12 @@ def form_html(s: dict) -> str:
         out.append(f'<div class="fld"><label for="{fid}">{esc(f["label"])}</label>{meta}'
                    f'<input id="{fid}" {attrs} data-field="{name}">{hint}</div>')
     a = s["allowance"]
-    opts = "".join(f'<option value="{esc(k["name"])}">{esc(k["label"])} — {esc(k["cite"])}</option>'
+    opts = "".join(f'<option value="{esc(k["name"])}">{esc(k["label"])} — {esc(cite_text(k["cite"]))}</option>'
                    for k in a["kinds"])
     out.append(
-        '<fieldset class="allow"><legend>תוספות אחוזיות <span class="cite" dir="ltr">§1.1ו</span>'
-        f'<code class="l4n" dir="ltr">{esc(a["record"])}</code></legend>'
+        '<fieldset class="allow"><legend>תוספות אחוזיות</legend>'
+        f'<span class="cite">{esc(cite_text(next(c["cite"] for c in s["components"] if c["name"] == "percentage allowances")))}</span>'
+        f'<code class="l4n" dir="ltr">{esc(a["record"])}</code>'
         '<p class="hint">כל תוספת שהעובד מחזיק בחודש, ושיעורה — שנקבע בסעיף של התוספת עצמה ואינו מקודד כאן.</p>'
         '<ol class="allow-list"></ol>'
         f'<template id="allow-row"><li class="arow"><select aria-label="התוספת">{opts}</select>'
