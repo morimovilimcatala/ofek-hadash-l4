@@ -116,3 +116,73 @@ DECIDE `keeping the management allowance` `years with the management allowance` 
 #ASSERT `an integrated kindergarten` `nine integrated among 24`
 #ASSERT NOT `an integrated kindergarten` `five sensory-impaired and two other integrated children among 20`
 #ASSERT `keeping the management allowance` 5 EQUALS `goes to the exceptions committee`
+
+§§ `Property checks`
+
+-- The section's rules over their whole finite space: 0 to 12 integrated
+-- children, every number of them sensory-impaired, 14 to 26 pupils in all,
+-- and 0 to 12 years with the management allowance.
+
+GIVEN n IS A NUMBER, s IS A NUMBER, p IS A NUMBER
+GIVETH A `kindergarten class`
+DECIDE `a checked class` n s p IS
+    `kindergarten class` WITH
+        `integrated children placed on the placement committee's recommendation` IS n
+        `of them sensory-impaired`                                               IS s
+        `pupils in all`                                                          IS p
+
+`the pupil counts checked` MEANS range 14 26
+
+-- 2.10.6.1: a class with no integrated child is never integrated, and one
+-- more pupil never takes the status away.
+#ASSERT all (GIVEN n YIELD
+                all (GIVEN s YIELD
+                        all (GIVEN p YIELD
+                                    (n GREATER THAN 0 OR (NOT `an integrated kindergarten` (`a checked class` n s p)))
+                                AND ((NOT `an integrated kindergarten` (`a checked class` n s p))
+                                     OR `an integrated kindergarten` (`a checked class` n s (p PLUS 1))))
+                            `the pupil counts checked`)
+                    (range 0 n))
+            (range 0 12)
+
+-- The two rules agree with the clause where it speaks: a group with no
+-- sensory-impaired child is integrated exactly at 8-10 among 22 or more,
+-- and a wholly sensory-impaired group exactly at 6-8 among 18 or more.
+#ASSERT all (GIVEN n YIELD
+                all (GIVEN p YIELD
+                            `an integrated kindergarten` (`a checked class` n 0 p)
+                            EQUALS (n AT LEAST 8 AND n AT MOST 10 AND p AT LEAST 22)
+                        AND (    n EQUALS 0
+                              OR `an integrated kindergarten` (`a checked class` n n p)
+                                 EQUALS (n AT LEAST 6 AND n AT MOST 8 AND p AT LEAST 18)))
+                    `the pupil counts checked`)
+            (range 0 12)
+
+-- F-2.10-a over every partly sensory-impaired group: the two rules part on
+-- 6-7 integrated children among 18 or more, on 8 among 18-21, and on 9-10
+-- among 22 or more — so the case the clause does not address is decisive
+-- across that whole range, not at one count.
+GIVEN n IS A NUMBER, p IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `the two rules part on` n p IF
+    NOT (    `integrated under the sensory rule` (`a checked class` n 1 p)
+         EQUALS `integrated under the general rule` (`a checked class` n 1 p))
+
+#ASSERT all (GIVEN n YIELD
+                all (GIVEN p YIELD
+                        `the two rules part on` n p
+                        EQUALS (    (n AT LEAST 6 AND n AT MOST 7 AND p AT LEAST 18)
+                                 OR (n EQUALS 8 AND p AT LEAST 18 AND p AT MOST 21)
+                                 OR (n AT LEAST 9 AND n AT MOST 10 AND p AT LEAST 22)))
+                    `the pupil counts checked`)
+            (range 2 12)
+
+-- 2.10.6 ¶2 over 0 to 12 years: she keeps the allowance exactly from eight
+-- years, and more years never send her back to the committee; the
+-- committee's chair is one of its members.
+#ASSERT all (GIVEN y YIELD
+                    (`keeping the management allowance` y EQUALS `keeps the management allowance`) EQUALS (y AT LEAST 8)
+                AND (    `keeping the management allowance` y EQUALS `goes to the exceptions committee`
+                      OR `keeping the management allowance` (y PLUS 1) EQUALS `keeps the management allowance`))
+            (range 0 12)
+#ASSERT elem `the exceptions committee's chair` `the exceptions committee`
