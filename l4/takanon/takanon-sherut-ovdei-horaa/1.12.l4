@@ -331,7 +331,8 @@ DECIDE `entitled to class education` e d IF
     WHEN `someone else` THEN FALSE
     OTHERWISE d `is on or after` (DATE_FROM_DMY 1 11 1983)
 
--- ¶34: 10% from 1.1.01; ¶36: twice for two classes.
+-- ¶34: 10% from 1.1.01; ¶36: twice for two classes. F-1.12-j: the text
+-- states no rate for three; the reading adopted caps it at twice.
 @ref akn:chp_1א___sec_1_12__ssec_1_12/p34 akn:chp_1א___sec_1_12__ssec_1_12/p36
 GIVEN `classes educated` IS A NUMBER
 GIVETH A NUMBER
@@ -434,14 +435,16 @@ DECIDE `coordinators paid per school` k IS
 @ref akn:chp_1א___sec_1_12__ssec_1_12/p56
 `social coordination rate` MEANS 6%
 
--- ¶57: in a post-primary school one coordinator takes it all; two or three
--- share it; beyond that the others take none. F-1.12-c: the share is not
+-- ¶55: primary and post-primary schools only. ¶57: in a post-primary
+-- school one coordinator takes it all; two or three share it; beyond that
+-- the others take none. F-1.12-c: the share is not
 -- stated; the reading adopted divides the one allowance equally.
 @ref akn:chp_1א___sec_1_12__ssec_1_12/p57
 GIVEN k IS A `kind of school`, coordinators IS A NUMBER
 GIVETH A NUMBER
 DECIDE `social coordination rate of each` k coordinators IS
     BRANCH IF coordinators LESS THAN 1 THEN 0
+           IF `coordinators paid per school` k EQUALS 0 THEN 0
            IF (NOT (k EQUALS `post-primary`)) THEN `social coordination rate`
            IF coordinators AT MOST 3 THEN `social coordination rate` DIVIDED BY coordinators
            OTHERWISE `social coordination rate` DIVIDED BY 3
@@ -803,3 +806,232 @@ DECIDE `extra pay for concentrated training` `trains on a regular basis` IS
 -- akn:chp_1א___sec_1_12__ssec_1_12/p112 The heading of the section's sources (אסמכתא).
 -- akn:chp_1א___sec_1_12__ssec_1_12/p113 akn:chp_1א___sec_1_12__ssec_1_12/p114 akn:chp_1א___sec_1_12__ssec_1_12/p115 akn:chp_1א___sec_1_12__ssec_1_12/p116 akn:chp_1א___sec_1_12__ssec_1_12/p117 akn:chp_1א___sec_1_12__ssec_1_12/p118 akn:chp_1א___sec_1_12__ssec_1_12/p119 akn:chp_1א___sec_1_12__ssec_1_12/p120 akn:chp_1א___sec_1_12__ssec_1_12/p121 akn:chp_1א___sec_1_12__ssec_1_12/p122 akn:chp_1א___sec_1_12__ssec_1_12/p123 The sources themselves (1–11).
 -- akn:chp_1א___sec_1_12__ssec_1_12/p124 akn:chp_1א___sec_1_12__ssec_1_12/p125 akn:chp_1א___sec_1_12__ssec_1_12/p126 akn:chp_1א___sec_1_12__ssec_1_12/p127 akn:chp_1א___sec_1_12__ssec_1_12/p128 akn:chp_1א___sec_1_12__ssec_1_12/p129 akn:chp_1א___sec_1_12__ssec_1_12/p130 akn:chp_1א___sec_1_12__ssec_1_12/p131 akn:chp_1א___sec_1_12__ssec_1_12/p132 akn:chp_1א___sec_1_12__ssec_1_12/p133 The sources themselves (12–21).
+
+§§ `Property checks`
+
+-- The section's rules over their whole finite space: every role, every
+-- kind of school, institutions of 1 to 40 classes, counselling hours from
+-- 0 to 40, every trainee mix up to the limit, and a grid of positions.
+
+`every role allowance` MEANS
+    LIST `class education`, `subject and qualifications`, `subject coordination`
+       , `grade-level, track, stream or class-group coordination`
+       , `social coordination`, `laboratory coordination`, `teacher-counsellor`
+       , `boarding-school supervision`, `security officer`
+       , `technical coordination in vocational centres`, `training`
+       , `guidance coordination`, `road-safety coordination`
+
+`every kind of school` MEANS LIST `primary`, `post-primary`, `other school`
+`the class counts checked` MEANS range 1 40
+`the positions checked` MEANS LIST 0, 0.25, 1/3, 0.5, 1, 1.25
+
+-- The security rows in shekels (F-1.12-a) over every institution from 1 to
+-- 40 classes: 15 is the ONLY size both rows take, none is taken by neither,
+-- and wherever one row takes it the adopted row is that one.
+#ASSERT all (GIVEN c YIELD
+                (c EQUALS 15) EQUALS (count (`the security rows that take` c) EQUALS 2))
+            `the class counts checked`
+#ASSERT all (GIVEN c YIELD
+                    c EQUALS 15
+                OR `the security rows that take` c EQUALS LIST (`the security shekel row for` c))
+            `the class counts checked`
+
+-- ¶23: one full position for every allowance but subject and
+-- qualifications, which follows the actual position; the factor is never
+-- negative, and nothing is paid to one who no longer fills the role (¶21).
+GIVEN r IS A `role allowance`, f IS A NUMBER
+GIVETH A `role-holder`
+DECIDE `a checked role-holder` r f IS
+    `role-holder` WITH
+        `allowance held`            IS r
+        `fills the role now`        IS TRUE
+        `actual position fraction`  IS f
+        `full-position base`        IS 10000
+        `allowance rate`            IS 6%
+
+GIVEN r IS A `role-holder`
+GIVETH A `role-holder`
+DECIDE `the same holder out of the role` r IS
+    `role-holder` WITH
+        `allowance held`            IS r's `allowance held`
+        `fills the role now`        IS FALSE
+        `actual position fraction`  IS r's `actual position fraction`
+        `full-position base`        IS r's `full-position base`
+        `allowance rate`            IS r's `allowance rate`
+
+#ASSERT all (GIVEN r YIELD
+                all (GIVEN f YIELD
+                            `position factor for` r f
+                            EQUALS (IF r EQUALS `subject and qualifications` THEN f ELSE 1)
+                        AND `role allowance amount` (`the same holder out of the role` (`a checked role-holder` r f)) EQUALS 0
+                        AND `role allowance amount` (`a checked role-holder` r f) AT LEAST 0)
+                    `the positions checked`)
+            `every role allowance`
+
+-- ¶22 against ¶35 and ¶42: from 1.11.83 the allowances that are salary
+-- for every purpose are the same two, whichever clause is asked.
+#ASSERT all (GIVEN r YIELD
+                all (GIVEN d YIELD `is salary under ¶22` r FALSE EQUALS `is salary for every purpose` r d)
+                    (LIST DATE_FROM_DMY 1 11 1983, DATE_FROM_DMY 1 1 2001, DATE_FROM_DMY 1 9 2024))
+            `every role allowance`
+
+-- ¶37 and ¶39 agree: whoever holds class education is not entitled to
+-- subject and qualifications, unless section 8.1.6.1 entitles a guidance
+-- teacher, who holds no class education.
+`every other allowance held` MEANS
+    LIST `kindergarten coordination`, `class education held`, `management`
+       , `teacher-instructor`, `guidance`, `supervision`, `none of these`
+#ASSERT NOT `entitled to subject and qualifications` `class education held` FALSE
+#ASSERT all (GIVEN o YIELD `entitled to subject and qualifications` o FALSE EQUALS (o EQUALS `none of these`))
+            `every other allowance held`
+
+-- Class education (¶34, ¶36): monotone in the classes educated and never
+-- more than twice the rate of one.
+#ASSERT and (zipWith (GIVEN m, n YIELD `class-education rate` m AT MOST `class-education rate` n)
+                     (range 0 4) (drop 1 (range 0 4)))
+#ASSERT all (GIVEN n YIELD `class-education rate` n AT MOST 2 TIMES `class-education rate` 1) (range 0 4)
+
+-- Totality of ¶32–36 (F-1.12-j): the text states a rate for one class
+-- (¶34) and for two (¶36), and none for three; the encoding's cap at two
+-- is a reading, not a rate the text gives.
+`the numbers of classes the text gives a class-education rate for` MEANS LIST 1, 2
+GIVEN n IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `the text states a class-education rate for` n IF
+    elem n `the numbers of classes the text gives a class-education rate for`
+
+`an educator of three classes has no rate in the text` MEANS
+        (NOT `the text states a class-education rate for` 3)
+    AND `class-education rate` 3 GREATER THAN 0
+#ASSERT `an educator of three classes has no rate in the text`
+
+-- ¶14 makes three classes possible: the district manager may allow more
+-- than two roles, and a principal (¶15) is held to one class.
+`an appointment to educate a third class` MEANS
+    `appointment` WITH
+        `role`                                      IS `class education`
+        `made by the principal`                     IS TRUE
+        `approved by the general supervisor`        IS TRUE
+        `the subject supervisor was consulted`      IS TRUE
+        `position fraction of the appointee`        IS 1
+        `roles the appointee already holds`         IS LIST `class education`, `class education`
+        `the district manager found an essential need` IS TRUE
+        `the appointee is a principal`              IS FALSE
+        `classes the principal would educate`       IS 0
+        `the appointee is a vice-principal`         IS FALSE
+#ASSERT `may be appointed` `an appointment to educate a third class`
+
+-- Social coordination (F-1.12-i): in a post-primary school with two or
+-- three coordinators, ¶55 (the one-coordinator rule) pays one coordinator
+-- and ¶57 (the sharing rule) pays each of them a share. Over every number
+-- of coordinators from 1 to 6 and every kind of school, the two clauses
+-- part exactly there: a post-primary school with two or more.
+GIVEN k IS A `kind of school`, c IS A NUMBER
+GIVETH A NUMBER
+DECIDE `social coordinators paid under the sharing rule` k c IS
+    IF `social coordination rate of each` k c GREATER THAN 0
+    THEN (IF k EQUALS `post-primary` THEN min c 3 ELSE min c (`coordinators paid per school` k))
+    ELSE 0
+
+GIVEN k IS A `kind of school`, c IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `the one-coordinator rule and the sharing rule part on` k c IF
+    (NOT (min c (`coordinators paid per school` k) EQUALS min c (`social coordinators paid under the sharing rule` k c)))
+
+`the one-coordinator rule pays one social coordinator where the sharing rule pays three` MEANS
+    `the one-coordinator rule and the sharing rule part on` `post-primary` 3
+
+#ASSERT `the one-coordinator rule pays one social coordinator where the sharing rule pays three`
+#ASSERT all (GIVEN k YIELD
+                all (GIVEN c YIELD
+                        (`the one-coordinator rule and the sharing rule part on` k c)
+                        EQUALS (k EQUALS `post-primary` AND c AT LEAST 2))
+                    (range 1 6))
+            `every kind of school`
+
+-- ¶55's "primary and post-primary only": no other school pays a social
+-- coordinator anything, however many it has.
+#ASSERT all (GIVEN c YIELD `social coordination rate of each` `other school` c EQUALS 0) (range 0 6)
+
+-- What the school pays in all under ¶57 (with F-1.12-c's equal shares) is
+-- the one allowance of 6%, never more, in a post-primary school; and each
+-- coordinator's share is a share of it.
+#ASSERT all (GIVEN c YIELD
+                    `social coordination rate of each` `post-primary` c TIMES min c 3 EQUALS `social coordination rate`
+                AND `social coordination rate of each` `post-primary` c AT MOST `social coordination rate`)
+            (range 1 6)
+
+-- Laboratory coordination (¶60–61): a larger institution never gets a
+-- smaller rate.
+#ASSERT and (zipWith (GIVEN m, n YIELD `laboratory coordination rate` m AT MOST `laboratory coordination rate` n)
+                     `the class counts checked` (drop 1 `the class counts checked`))
+
+-- Counselling (¶67–71) over every whole number of weekly hours from 0 to
+-- 40: never negative, never above the full rate, never less for more
+-- hours, nothing under 4, the full rate from 12.
+GIVEN h IS A NUMBER
+GIVETH A `counsellor`
+DECIDE `a counsellor working weekly hours` h IS
+    `counsellor` WITH
+        `holds a counselling licence`            IS TRUE
+        `weekly counselling hours`               IS h
+        `full rate for the years of counselling` IS 10%
+
+`the counselling hours checked` MEANS range 0 40
+
+#ASSERT all (GIVEN h YIELD
+                    `counselling rate` (`a counsellor working weekly hours` h) AT LEAST 0
+                AND `counselling rate` (`a counsellor working weekly hours` h) AT MOST 10%
+                AND (h AT LEAST 4 OR `counselling rate` (`a counsellor working weekly hours` h) EQUALS 0)
+                AND (h LESS THAN 12 OR `counselling rate` (`a counsellor working weekly hours` h) EQUALS 10%))
+            `the counselling hours checked`
+#ASSERT and (zipWith (GIVEN g, h YIELD `counselling rate` (`a counsellor working weekly hours` g) AT MOST `counselling rate` (`a counsellor working weekly hours` h))
+                     `the counselling hours checked` (drop 1 `the counselling hours checked`))
+
+-- Training (¶105–108): within the limit of three trainees the rate is at
+-- most 6%, and one more trainee never lowers it.
+`every trainee` MEANS
+    LIST `a pupil of a carer-educator track`, `a first- or second-year college student`, `a third-year college student`
+
+`pairs of trainees` MEANS
+    concat (map (GIVEN a YIELD map (GIVEN b YIELD LIST a, b) `every trainee`) `every trainee`)
+
+`every group of up to three trainees` MEANS
+    append (LIST EMPTY)
+           (append (map (GIVEN a YIELD LIST a) `every trainee`)
+                   (append `pairs of trainees`
+                           (concat (map (GIVEN g YIELD map (GIVEN c YIELD c FOLLOWED BY g) `every trainee`) `pairs of trainees`))))
+
+#ASSERT count `every group of up to three trainees` EQUALS 40
+#ASSERT all (GIVEN g YIELD
+                    `within the limit of trainees` g
+                AND `training rate` g AT MOST 6%
+                AND `training rate` g AT LEAST 0)
+            `every group of up to three trainees`
+#ASSERT all (GIVEN g YIELD
+                all (GIVEN t YIELD `training rate` g AT MOST `training rate` (t FOLLOWED BY g)) `every trainee`)
+            `every group of up to three trainees`
+
+-- A shorter training period (¶109) is a share of the year's allowance,
+-- never more than all of it.
+#ASSERT all (GIVEN m YIELD
+                    `share of the training allowance` m 10 AT LEAST 0
+                AND `share of the training allowance` m 10 AT MOST 1)
+            (range 0 12)
+
+-- ¶85 and ¶91 against ¶15: a principal who fills the security officer's
+-- role because none was appointed is paid nothing for it, so it adds no
+-- allowance-bearing role to the one class ¶15 allows him.
+#ASSERT `the principal fills the security officer's role` FALSE
+#ASSERT `percentage for a security role` `a principal filling the role himself` EQUALS 0
+
+-- Every security role is paid a share between 0 and 6%, and the officer
+-- is paid at least as much as either assistant.
+`every security role` MEANS
+    LIST `security officer`, `assistant in a boarding school`
+       , `assistant in a boarding school outside a local authority`
+       , `a principal filling the role himself`
+#ASSERT all (GIVEN r YIELD
+                    `percentage for a security role` r AT LEAST 0
+                AND `percentage for a security role` r AT MOST `percentage for a security role` `security officer`)
+            `every security role`
