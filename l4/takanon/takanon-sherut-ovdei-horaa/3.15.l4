@@ -212,6 +212,8 @@ DECIDE `deemed an uncertified teacher` t IF
 -- (b) covers every teacher not entitled to the certified grade; the
 -- teacher (a) deems uncertified is one of them, and her grade by education
 -- is the uncertified teacher's grade (a) names, so (a) is applied first.
+-- F-3.15-b: (a) names no exception for a teacher entitled under (1); the
+-- reading adopted is that (1) governs her, as (b)'s own words say of (2).
 @ref akn:chp_3__sec_3_15__ssec_3_15_3__para_2__subpara_b
 GIVEN t IS A `rhythmics teacher record`
 GIVETH A `rhythmics grade`
@@ -225,7 +227,9 @@ DECIDE `rhythmics salary grade` t IS
 -- F-3.15-a: (a) counts full seniority for work in supervised institutions
 -- of at least 10 weekly hours, (b) half for work in institutions not under
 -- supervision; work in supervised institutions under 10 hours is in
--- neither. The reading adopted counts it for nothing.
+-- neither. The reading adopted counts it for nothing. F-3.15-c: (a) asks
+-- for confirmations and (b) does not; the reading adopted is as printed,
+-- so unconfirmed work counts under (b) and not under (a).
 @ref akn:chp_3__sec_3_15__ssec_3_15_3__para_3__subpara_a akn:chp_3__sec_3_15__ssec_3_15_3__para_3__subpara_b
 GIVEN p IS A `past work period`
 GIVETH A NUMBER
@@ -373,3 +377,173 @@ DECIDE `instrument fee` y IS
 `supervised work of 8 weekly hours is under neither sub-clause` MEANS
     NOT `a sub-clause of 3.15.3(3) governs the period` (`past work period` WITH `length in years` IS 3, `in institutions under Ministry supervision` IS TRUE, `weekly hours` IS 8, `confirmed by the supervision or owner` IS TRUE)
 #ASSERT `supervised work of 8 weekly hours is under neither sub-clause`
+
+§§ `Property checks`
+
+-- The section's rules over their whole finite space: every rhythmics
+-- teacher (a graduate of a music teachers' seminary or not, twelve years
+-- of schooling on entering a seminary or not, a seminary or track finished
+-- by תשכ"ח or not, certified or not, a seminary graduate or not, a
+-- Dalcroze course never, by תשכ"ח or from it on, matriculation or not,
+-- twelve years of schooling or not, 0 to 10 years teaching rhythmics —
+-- 4,224 teachers); every past period of 0 to 5 years, under supervision
+-- or not, of 0 to 30 weekly hours, confirmed or not; 0 to 10 years of work;
+-- 0 to 5 workplaces; positions of 0 to 2 by quarters, with a fee of 100 (a
+-- placeholder), in the summer break or not.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`the positions checked` MEANS map (GIVEN k YIELD k DIVIDED BY 4) (range 0 8)
+
+-- A Dalcroze course: 0 never, 1 finished by תשכ"ח, 2 from תשכ"ח on. The
+-- course fields follow from it, so no teacher holds a course "by תשכ"ח"
+-- she never finished.
+GIVEN music IS A BOOLEAN, entering IS A BOOLEAN, track IS A BOOLEAN, certified IS A BOOLEAN,
+      seminary IS A BOOLEAN, dalcroze IS A NUMBER, matric IS A BOOLEAN, twelve IS A BOOLEAN, yrs IS A NUMBER
+GIVETH A `rhythmics teacher record`
+DECIDE `a checked rhythmics teacher` music entering track certified seminary dalcroze matric twelve yrs IS
+    `rhythmics teacher record` WITH
+        `graduate of a teachers' seminary for music`          IS music
+        `twelve years of schooling on entering the seminary`  IS entering
+        `finished a music-educators' seminary or rhythmics track by תשכ"ח` IS track
+        `certified teacher or certified kindergarten teacher` IS certified
+        `seminary graduate with a Dalcroze course from תשכ"ח on` IS seminary AND dalcroze EQUALS 2
+        `matriculation`                                       IS matric
+        `twelve years of schooling`                           IS twelve
+        `finished a Dalcroze course by תשכ"ח`                 IS dalcroze EQUALS 1
+        `finished a Dalcroze course`                          IS dalcroze AT LEAST 1
+        `years teaching rhythmics`                            IS yrs
+
+GIVEN prop IS A FUNCTION FROM `rhythmics teacher record` TO BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `holds for every rhythmics teacher` prop IF
+    all (GIVEN music YIELD
+            all (GIVEN entering YIELD
+                    all (GIVEN track YIELD
+                            all (GIVEN certified YIELD
+                                    all (GIVEN seminary YIELD
+                                            all (GIVEN dalcroze YIELD
+                                                    all (GIVEN matric YIELD
+                                                            all (GIVEN twelve YIELD
+                                                                    all (GIVEN yrs YIELD
+                                                                            prop (`a checked rhythmics teacher` music entering track certified seminary dalcroze matric twelve yrs))
+                                                                        (range 0 10))
+                                                                `both booleans`)
+                                                        `both booleans`)
+                                                (range 0 2))
+                                        `both booleans`)
+                                `both booleans`)
+                        `both booleans`)
+                `both booleans`)
+        `both booleans`
+
+-- 1(d) and 2(a) never meet: the one needs 7 years and more, the other
+-- fewer. 3(c): the seniority of a teacher under 1(d) is never negative and
+-- never more than her years, and is 3 less wherever she has 3.
+GIVEN t IS A `rhythmics teacher record`
+GIVETH A BOOLEAN
+DECIDE `1(d) and 2(a) are apart, and 3(c) is bounded` t IF
+        NOT (`route 1(d)` t AND `deemed an uncertified teacher` t)
+    AND all (GIVEN w YIELD
+                    `seniority of a teacher under 1(d)` t w AT LEAST 0
+                AND `seniority of a teacher under 1(d)` t w AT MOST w
+                AND ((NOT `route 1(d)` t) OR w LESS THAN 3
+                     OR `seniority of a teacher under 1(d)` t w EQUALS w MINUS 3))
+            (range 0 10)
+#ASSERT `holds for every rhythmics teacher` `1(d) and 2(a) are apart, and 3(c) is bounded`
+
+-- F-3.15-b: (1) and 2(a) both decide a teacher exactly when she is
+-- entitled to the certified grade and also has matriculation, a Dalcroze
+-- course and fewer than 7 years; the grade then follows (1).
+GIVEN t IS A `rhythmics teacher record`
+GIVETH A BOOLEAN
+DECIDE `(1) and 2(a) meet exactly on a certified-grade teacher 2(a) also describes` t IF
+        (`entitled to the grade of a certified teacher` t AND `deemed an uncertified teacher` t)
+        EQUALS (    (`route 1(a)` t OR `route 1(b)` t OR `route 1(c)` t)
+                AND t's `matriculation`
+                AND t's `finished a Dalcroze course`
+                AND t's `years teaching rhythmics` LESS THAN 7)
+    AND ((NOT `entitled to the grade of a certified teacher` t)
+         OR `rhythmics salary grade` t EQUALS `the grade of a certified teacher`)
+#ASSERT `holds for every rhythmics teacher` `(1) and 2(a) meet exactly on a certified-grade teacher 2(a) also describes`
+
+`a certified teacher with a Dalcroze course from תשכ"ח on, matriculation and 5 years` MEANS
+    `a checked rhythmics teacher` FALSE FALSE FALSE TRUE TRUE 2 TRUE TRUE 5
+
+`(1) gives the certified grade to a teacher 2(a) deems uncertified` MEANS
+        `route 1(c)` `a certified teacher with a Dalcroze course from תשכ"ח on, matriculation and 5 years`
+    AND `deemed an uncertified teacher` `a certified teacher with a Dalcroze course from תשכ"ח on, matriculation and 5 years`
+#ASSERT `(1) gives the certified grade to a teacher 2(a) deems uncertified`
+
+-- 3 over every past period: the seniority is never negative and never
+-- more than the period. Against monotonicity, the same work counts for
+-- less under the Ministry's supervision than outside it exactly where the
+-- period has any length and is under 10 weekly hours (F-3.15-a) or not
+-- confirmed (F-3.15-c).
+GIVEN len IS A NUMBER, sup IS A BOOLEAN, hours IS A NUMBER, conf IS A BOOLEAN
+GIVETH A `past work period`
+DECIDE `a checked past period` len sup hours conf IS
+    `past work period` WITH
+        `length in years`                      IS len
+        `in institutions under Ministry supervision` IS sup
+        `weekly hours`                         IS hours
+        `confirmed by the supervision or owner` IS conf
+
+#ASSERT all (GIVEN len YIELD
+                all (GIVEN hours YIELD
+                        all (GIVEN conf YIELD
+                                    all (GIVEN sup YIELD
+                                                `seniority for a past period` (`a checked past period` len sup hours conf) AT LEAST 0
+                                            AND `seniority for a past period` (`a checked past period` len sup hours conf) AT MOST len
+                                            AND (NOT `a sub-clause of 3.15.3(3) governs the period` (`a checked past period` len sup hours conf))
+                                                EQUALS (sup AND hours LESS THAN 10))
+                                        `both booleans`
+                                AND (   `seniority for a past period` (`a checked past period` len TRUE hours conf)
+                                     LESS THAN `seniority for a past period` (`a checked past period` len FALSE hours conf))
+                                    EQUALS (len GREATER THAN 0 AND (hours LESS THAN 10 OR NOT conf)))
+                            `both booleans`)
+                    (range 0 30))
+            (range 0 5)
+
+`four unconfirmed years of 12 weekly hours` MEANS `a checked past period` 4 TRUE 12 FALSE
+`the same four years outside supervision` MEANS `a checked past period` 4 FALSE 12 FALSE
+
+`an unconfirmed period counts for more outside supervision than under it` MEANS
+        `seniority for a past period` `four unconfirmed years of 12 weekly hours` EQUALS 0
+    AND `seniority for a past period` `the same four years outside supervision` EQUALS 2
+#ASSERT `an unconfirmed period counts for more outside supervision than under it`
+
+-- 3.15.1(3): the preparation is part of the lesson, never more than it.
+#ASSERT all (GIVEN k YIELD
+                `minutes of the lesson given to preparation and arrangements` k AT MOST `minutes of a rhythmics lesson`)
+            `both booleans`
+
+-- 3.15.6.1: the split allowance never lapses as the workplaces grow.
+#ASSERT all (GIVEN n YIELD
+                    `entitled to the split allowance for over-splitting` (`rhythmics year` WITH `workplaces` IS n, `position fraction` IS 1, `uses her own accordion or organ` IS FALSE, `monthly fee for one position` IS 100, `the month is in the summer break` IS FALSE)
+                    EQUALS (n AT LEAST 3))
+            (range 0 5)
+
+-- 3.15.6.3 over every position, instrument and month: the fee is never
+-- negative, never more than one position's, nothing in the summer break or
+-- without her own instrument, and never less for a larger position.
+GIVEN f IS A NUMBER, own IS A BOOLEAN, summer IS A BOOLEAN
+GIVETH A `rhythmics year`
+DECIDE `a checked rhythmics month` f own summer IS
+    `rhythmics year` WITH
+        `workplaces`                IS 1
+        `position fraction`         IS f
+        `uses her own accordion or organ` IS own
+        `monthly fee for one position` IS 100
+        `the month is in the summer break` IS summer
+
+#ASSERT all (GIVEN f YIELD
+                all (GIVEN own YIELD
+                        all (GIVEN summer YIELD
+                                    `instrument fee` (`a checked rhythmics month` f own summer) AT LEAST 0
+                                AND `instrument fee` (`a checked rhythmics month` f own summer) AT MOST 100
+                                AND ((own AND NOT summer) OR `instrument fee` (`a checked rhythmics month` f own summer) EQUALS 0)
+                                AND `instrument fee` (`a checked rhythmics month` (f PLUS 0.25) own summer)
+                                    AT LEAST `instrument fee` (`a checked rhythmics month` f own summer))
+                            `both booleans`)
+                    `both booleans`)
+            `the positions checked`
