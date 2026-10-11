@@ -1769,3 +1769,229 @@ DECIDE `abandonment after weighing the special` a `the court finds the special c
     PARTY `the ownership` DOES `open talks with the teachers' unions` 95 AT 95
 #TRACE `talks before closing a school` AT 0 WITH
     PARTY `the ownership` DOES `open talks with the teachers' unions` 160 AT 160
+
+§§ `Property checks`
+
+-- The section's rules over their whole finite space: 0 to 5 years or
+-- seasons of service; every break in work and 0 to 12 months of a severing
+-- one; 300 to 500 months of service at ages 55 to 70 on either side of
+-- 1.4.80; every severance basis on a grid of years, salaries and shares;
+-- 0 to 120 days late; every protected situation; every relocation ground
+-- with distances, months and flags either side of their bounds.
+
+-- 1.28.2.2: a year of work (two seasons for a seasonal worker) and a
+-- dismissal earn severance; more of either never takes it away.
+#ASSERT all (GIVEN seasonal YIELD
+                all (GIVEN n YIELD
+                        LET s MEANS `service record` WITH
+                                        `years of continuous work with the employer` IS n
+                                        `is a seasonal worker`                    IS seasonal
+                                        `seasons worked in two consecutive years` IS n
+                                        `was dismissed`                           IS TRUE
+                        IN  `a dismissed employee is entitled to severance` s
+                            EQUALS (n AT LEAST (IF seasonal THEN 2 ELSE 1)))
+                    (range 0 5))
+            (LIST TRUE, FALSE)
+
+-- Item 2 over every break: a severing break keeps continuity exactly up to
+-- three months; full career service that failed its conditions and any
+-- other break never do; every break the item names otherwise does.
+`every break in work` MEANS
+    LIST `military service or partial service`, `full service under a career undertaking that failed its conditions`
+       , `reserve duty or service by order`, `weekly rest, a holiday not worked, or 1 May`, `annual leave`
+       , `paid leave or vacation`, `unpaid leave or vacation`, `strike or lockout`, `accident or illness`
+       , `days of mourning not worked`, `a temporary break without severing the relationship`
+       , `a break severing the relationship`, `training for emergency labour service`, `another break`
+
+#ASSERT all (GIVEN b YIELD
+                all (GIVEN m YIELD
+                        `the break keeps continuity` b m
+                        EQUALS (BRANCH IF b EQUALS `a break severing the relationship` THEN m AT MOST 3
+                                       IF b EQUALS `full service under a career undertaking that failed its conditions` THEN FALSE
+                                       IF b EQUALS `another break` THEN FALSE
+                                       OTHERWISE TRUE))
+                    (range 0 12))
+            `every break in work`
+
+-- 8(1)–(4) over 300 to 500 months, ages 55 to 70, the day before 1.4.80
+-- and the day itself: the months beyond 35 years are never negative,
+-- nothing below 420 months, before 60 or before 1.4.80, never fewer for
+-- more service; and their severance never less for more months.
+#ASSERT all (GIVEN d YIELD
+                all (GIVEN age YIELD
+                        all (GIVEN m YIELD
+                                    `months beyond 35 years` m age d AT LEAST 0
+                                AND `months beyond 35 years` m age d
+                                    EQUALS (IF age AT LEAST 60 AND d AT LEAST 19800401 THEN max 0 (m MINUS 420) ELSE 0)
+                                AND `months beyond 35 years` m age d AT MOST `months beyond 35 years` (m PLUS 1) age d
+                                AND `severance for service beyond 35 years` (`months beyond 35 years` m age d) 12000
+                                    AT MOST `severance for service beyond 35 years` (`months beyond 35 years` (m PLUS 1) age d) 12000)
+                            (map (GIVEN k YIELD k TIMES 10) (range 30 50)))
+                    (range 55 70))
+            (LIST 19800331, 19800401)
+
+-- 1.28.2.3, 1(א) and 3 over 0 to 30 years after 1964, 0 to 20 before,
+-- monthly or weekly pay and the agreement's share from 0 to 1: never
+-- negative, never less for a year more on either side, and a year before
+-- 1964 never worth less than 80% of one after it.
+GIVEN monthly IS A BOOLEAN, after IS A NUMBER, before IS A NUMBER, share IS A NUMBER
+GIVETH A `severance basis`
+DECIDE `a checked severance basis` monthly after before share IS
+    `severance basis` WITH
+        `paid monthly`                    IS monthly
+        `last monthly salary`             IS 10000
+        `last weekly wage`                IS 2500
+        `years after 1 January 1964`      IS after
+        `years before 1 January 1964`     IS before
+        `share of the last salary for the years before 1964` IS share
+
+#ASSERT all (GIVEN monthly YIELD
+                all (GIVEN a YIELD
+                        all (GIVEN b YIELD
+                                all (GIVEN sh YIELD
+                                            `severance pay` (`a checked severance basis` monthly a b sh) AT LEAST 0
+                                        AND `severance pay` (`a checked severance basis` monthly a b sh)
+                                            AT MOST `severance pay` (`a checked severance basis` monthly (a PLUS 1) b sh)
+                                        AND `severance pay` (`a checked severance basis` monthly a b sh)
+                                            AT MOST `severance pay` (`a checked severance basis` monthly a (b PLUS 1) sh)
+                                        AND `severance pay` (`a checked severance basis` monthly 0 1 sh)
+                                            AT LEAST 0.8 TIMES `severance pay` (`a checked severance basis` monthly 1 0 sh))
+                                    (LIST 0, 0.5, 0.8, 0.9, 1))
+                            (LIST 0, 1, 10, 20))
+                    (LIST 0, 1, 10, 30))
+            (LIST TRUE, FALSE)
+
+-- Payment 2(ב) over 0 to 120 days late: nothing for 15 days, indexation
+-- alone to day 30, never negative and never less for a day more.
+#ASSERT all (GIVEN d YIELD
+                    `late-payment compensation` 100000 d 500 AT LEAST 0
+                AND `late-payment compensation` 100000 d 500 AT MOST `late-payment compensation` 100000 (d PLUS 1) 500
+                AND (d GREATER THAN 15 OR `late-payment compensation` 100000 d 500 EQUALS 0)
+                AND (d LESS THAN 16 OR d GREATER THAN 30 OR `late-payment compensation` 100000 d 500 EQUALS 500))
+            (range 0 120)
+
+-- The date for paying is never before the end of the relationship, and a
+-- written demand never brings it earlier.
+#ASSERT all (GIVEN x YIELD
+                all (GIVEN y YIELD
+                        LET s MEANS `severance dates` 100 x y 0 0
+                        IN      `the date for paying severance` s AT LEAST 100
+                            AND all (GIVEN e YIELD
+                                        all (GIVEN dem YIELD `the date for paying after a demand` e (`the date for paying severance` s) dem
+                                                             AT LEAST `the date for paying severance` s)
+                                            (LIST 50, 150, 300))
+                                    (LIST TRUE, FALSE))
+                    (LIST 0, 120, 200))
+            (LIST 0, 90, 150)
+
+-- 26: wages and severance with priority never pass what is owed or 150% of
+-- the wage ceiling.
+#ASSERT all (GIVEN w YIELD
+                all (GIVEN s YIELD
+                            `wages and severance with priority` w s 10000 AT MOST w PLUS s
+                        AND `wages and severance with priority` w s 10000 AT MOST 15000)
+                    (LIST 0, 5000, 20000))
+            (LIST 0, 5000, 20000)
+
+-- 1.28.2.1ט over every protected situation (the twelve flags, 5 or 6
+-- months with the employer): (2) bars absolutely, permit or none; (3) and
+-- (4) give way to the minister's permit; (1) to the permit unless the
+-- minister connects the dismissal to the pregnancy; and nothing bars a
+-- dismissal where no flag is set.
+GIVEN n IS A NUMBER
+GIVETH A LIST OF (LIST OF BOOLEAN)
+DECIDE `every row of protection flags of length` n IS
+    IF n AT MOST 0
+    THEN LIST EMPTY
+    ELSE concat (map (GIVEN r YIELD LIST (TRUE FOLLOWED BY r), (FALSE FOLLOWED BY r))
+                     (`every row of protection flags of length` (n MINUS 1)))
+
+GIVEN months IS A NUMBER, r IS A LIST OF BOOLEAN
+GIVETH A `protected situation`
+DECIDE `a situation of` months `months and flags` r IS
+    `protected situation` WITH
+        `pregnant and not yet on maternity leave`   IS at r 0
+        `months with this employer`                 IS months
+        `the minister thinks the dismissal is connected to the pregnancy` IS at r 1
+        `on maternity leave`                        IS at r 2
+        `absent after maternity leave on a doctor's certificate, up to 6 months` IS at r 3
+        `within 45 days after the leave or absence` IS at r 4
+        `a dismissal notice is for a date in the periods of (2)` IS at r 5
+        `absent on extended leave to care for the baby` IS at r 6
+        `within 45 days after the extended leave`   IS at r 7
+        `a dismissal notice is for a date in the periods of (3)` IS at r 8
+        `absent by law for fertility treatment towards a first or second child` IS at r 9
+        `within 150 days after that absence`        IS at r 10
+        `has the minister of labour's permit`       IS at r 11
+
+#ASSERT all (GIVEN months YIELD
+                all (GIVEN r YIELD
+                        `the dismissal is barred` (`a situation of` months `months and flags` r)
+                        EQUALS (    (at r 0 AND months AT LEAST 6 AND ((NOT at r 11) OR at r 1))
+                                OR  at r 2 OR at r 3 OR at r 4 OR at r 5
+                                OR  ((at r 6 OR at r 7 OR at r 8 OR at r 9 OR at r 10) AND NOT at r 11)))
+                    (`every row of protection flags of length` 12))
+            (LIST 5, 6)
+
+-- 1.28.2.2's moves of home over every ground, 0, 39, 40 or 100 km, 0, 5, 6
+-- or 12 months and every flag: a longer distance or a longer stay never
+-- takes a resignation out of counting as a dismissal; and a move with no
+-- ground never counts. F-1.28-c over the space: the two readings of (ב)
+-- part exactly where one of its conditions holds and not the other.
+`every relocation ground` MEANS
+    LIST `no relocation ground`, `marriage, to the spouse's town`, `to an agricultural or development town`
+       , `a career-army spouse's posting`, `to an approved settlement or outpost`
+       , `a police or prison-service spouse's posting`, `joining a spouse on a mission abroad`, `divorce`
+
+GIVEN g IS A `relocation ground`, km IS A NUMBER, months IS A NUMBER, f IS A BOOLEAN
+GIVETH A `move of home`
+DECIDE `a checked move` g km months f IS
+    `move of home` WITH
+        `ground`                                  IS g
+        `km between the old and the new home`     IS km
+        `the new home is farther from work`       IS f
+        `months lived in the new place`           IS months
+        `resigned meaning to settle there`        IS f
+        `moved to an agricultural town from a town that is not` IS f
+        `moved to a development town from a town that is not` IS FALSE
+        `the place is on the linked list`         IS f
+        `the mission lasts over 6 months`         IS f
+        `the mission is for the state, the Zionist Organisation, the Jewish Agency, Keren Kayemeth or Keren Hayesod` IS f
+        `the employer refused unpaid leave for the mission` IS f
+
+#ASSERT all (GIVEN g YIELD
+                all (GIVEN f YIELD
+                        and (zipWith (GIVEN k, l YIELD
+                                        all (GIVEN m YIELD
+                                                    ((NOT `a move of home makes the resignation a dismissal` (`a checked move` g k m f))
+                                                     OR `a move of home makes the resignation a dismissal` (`a checked move` g l m f))
+                                                AND ((NOT `a move of home makes the resignation a dismissal` (`a checked move` g k m f))
+                                                     OR `a move of home makes the resignation a dismissal` (`a checked move` g k (m PLUS 1) f)))
+                                            (LIST 0, 5, 6, 12))
+                                     (LIST 0, 39, 40) (LIST 39, 40, 100)))
+                    (LIST TRUE, FALSE))
+            `every relocation ground`
+#ASSERT all (GIVEN k YIELD
+                all (GIVEN f YIELD NOT `a move of home makes the resignation a dismissal` (`a checked move` `no relocation ground` k 12 f))
+                    (LIST TRUE, FALSE))
+            (LIST 0, 40, 100)
+
+#ASSERT all (GIVEN m YIELD
+                all (GIVEN settle YIELD
+                        LET mv MEANS `move of home` WITH
+                                        `ground`                                  IS `to an agricultural or development town`
+                                        `km between the old and the new home`     IS 25
+                                        `the new home is farther from work`       IS TRUE
+                                        `months lived in the new place`           IS m
+                                        `resigned meaning to settle there`        IS settle
+                                        `moved to an agricultural town from a town that is not` IS TRUE
+                                        `moved to a development town from a town that is not` IS FALSE
+                                        `the place is on the linked list`         IS FALSE
+                                        `the mission lasts over 6 months`         IS FALSE
+                                        `the mission is for the state, the Zionist Organisation, the Jewish Agency, Keren Kayemeth or Keren Hayesod` IS FALSE
+                                        `the employer refused unpaid leave for the mission` IS FALSE
+                        IN  (NOT (`the conditions of a move to an agricultural or development town` mv
+                                  EQUALS `the conditions of a move to an agricultural or development town, read as alternatives` mv))
+                            EQUALS (NOT ((m AT LEAST 6) EQUALS settle)))
+                    (LIST TRUE, FALSE))
+            (range 0 12)
