@@ -299,3 +299,171 @@ DECIDE `payment with June's salary` y IS
     PARTY `the employer` DOES `pay the allowance` 1200 AT 10
 #TRACE `payment with June's salary` `a full year at a full position, year 22` AT 0 WITH
     PARTY `the employer` DOES `pay the allowance` 600 AT 10
+
+§§ `Property checks`
+
+-- The section's rules over their whole finite space: every year of service
+-- from 0 to 60, months of salary from 0 to 12, unpaid periods of every
+-- kind from 0 to 60 days, a grid of positions, and both values of every
+-- flag. The daily cost of 100 is the placeholder of the worked examples.
+
+`the years of service checked` MEANS range 0 60
+`the months checked` MEANS range 0 12
+`the positions checked` MEANS LIST 0, 0.25, 0.5, 1, 1.5
+`the period lengths checked` MEANS LIST 0, 1, 15, 29, 30, 31, 45, 60
+
+`every kind of period` MEANS
+    LIST `unpaid leave`, `reserve duty`
+       , `maternity leave with national-insurance maternity pay`
+       , `sick leave without pay`
+       , `work-accident absence with national-insurance injury pay`
+       , `other period without salary`
+
+-- F-1.7-a and the table over every year from 1 to 60: year 25 is the ONLY
+-- year the printed rows give two answers, no year from 1 on is given none,
+-- and wherever the table answers once the adopted reading agrees with it.
+#ASSERT all (GIVEN n YIELD
+                    n EQUALS 0
+                OR (n EQUALS 25) EQUALS (count (`the days the table gives for year` n) EQUALS 2))
+            `the years of service checked`
+#ASSERT all (GIVEN n YIELD
+                    n EQUALS 0
+                OR count (`the days the table gives for year` n) AT LEAST 1)
+            `the years of service checked`
+#ASSERT all (GIVEN n YIELD
+                    n EQUALS 25
+                OR `the days the table gives for year` n EQUALS LIST (`recuperation days` n)
+                OR (n EQUALS 0 AND `recuperation days` n EQUALS 0))
+            `the years of service checked`
+
+-- Monotone in seniority: a later year never gives fewer days, and the
+-- adopted reading of year 25 (13) is one of the two answers it is given.
+#ASSERT and (zipWith (GIVEN n, m YIELD `recuperation days` n AT MOST `recuperation days` m)
+                     `the years of service checked`
+                     (drop 1 `the years of service checked`))
+#ASSERT elem (`recuperation days` 25) (`the days the table gives for year` 25)
+
+GIVEN n IS A NUMBER, position IS A NUMBER, late IS A BOOLEAN, months IS A NUMBER
+      periods IS A LIST OF `period without salary`
+      retired IS A BOOLEAN
+GIVETH A `recuperation year`
+DECIDE `a checked recuperation year` n position late months periods retired IS
+    `recuperation year` WITH
+        `year of service`                      IS n
+        `position fraction`                    IS position
+        `started after 1 September`            IS late
+        `months for which salary was received` IS months
+        `periods without salary`               IS periods
+        `whole months salary was payable`      IS months
+        `retired on pension during the year`   IS retired
+        `daily recuperation cost`              IS 100
+
+GIVEN p IS A FUNCTION FROM `recuperation year` TO BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `holds in every checked recuperation year` p IF
+    all (GIVEN n YIELD `holds at every position for year` n p)
+        (LIST 0, 1, 3, 4, 24, 25, 26)
+
+GIVEN n IS A NUMBER, p IS A FUNCTION FROM `recuperation year` TO BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `holds at every position for year` n p IF
+    all (GIVEN position YIELD
+            all (GIVEN late YIELD
+                    all (GIVEN months YIELD `holds for every period and retirement` n position late months p)
+                        (LIST 0, 6, 11, 12))
+                (LIST TRUE, FALSE))
+        `the positions checked`
+
+GIVEN n IS A NUMBER, position IS A NUMBER, late IS A BOOLEAN, months IS A NUMBER
+      p IS A FUNCTION FROM `recuperation year` TO BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `holds for every period and retirement` n position late months p IF
+    all (GIVEN k YIELD
+            all (GIVEN days YIELD
+                    all (GIVEN retired YIELD
+                            p (`a checked recuperation year` n position late months
+                                  (LIST `period without salary` k days) retired))
+                        (LIST TRUE, FALSE))
+                `the period lengths checked`)
+        `every kind of period`
+
+-- Bounds: the months share and the position share are shares of one; the
+-- allowance is never negative and never more than the full-year,
+-- full-position amount; a year 0 employee gets nothing.
+GIVEN y IS A `recuperation year`
+GIVETH A BOOLEAN
+DECIDE `the recuperation allowance is within its bounds` y IF
+        `months share` y AT LEAST 0
+    AND `months share` y AT MOST 1
+    AND `position share` y AT LEAST 0
+    AND `position share` y AT MOST 1
+    AND `recuperation allowance` y AT LEAST 0
+    AND `recuperation allowance` y AT MOST `full-year allowance` y
+    AND (`entitled to the recuperation allowance` y OR `recuperation allowance` y EQUALS 0)
+
+#ASSERT `holds in every checked recuperation year` `the recuperation allowance is within its bounds`
+
+-- A retiree's months are not pro-rated (1.7.6): a retiree is never paid
+-- less than the same year without retirement.
+GIVEN y IS A `recuperation year`
+GIVETH A BOOLEAN
+DECIDE `retirement never lowers the allowance` y IF
+    `recuperation allowance` (`a checked recuperation year` (y's `year of service`) (y's `position fraction`)
+                                 (y's `started after 1 September`) (y's `months for which salary was received`)
+                                 (y's `periods without salary`) FALSE)
+    AT MOST
+    `recuperation allowance` (`a checked recuperation year` (y's `year of service`) (y's `position fraction`)
+                                 (y's `started after 1 September`) (y's `months for which salary was received`)
+                                 (y's `periods without salary`) TRUE)
+
+#ASSERT `holds in every checked recuperation year` `retirement never lowers the allowance`
+
+-- Monotone in the time paid: more months of salary never pays less, and a
+-- longer period without salary never pays more.
+GIVEN late IS A BOOLEAN, k IS A `kind of period`, days IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the allowance of year 10 at a full position with` late k days IS
+    `recuperation allowance`
+        (`a checked recuperation year` 10 1 late 11 (LIST `period without salary` k days) FALSE)
+
+#ASSERT all (GIVEN late YIELD
+                all (GIVEN k YIELD
+                        and (zipWith (GIVEN d, e YIELD
+                                        `the allowance of year 10 at a full position with` late k e
+                                        AT MOST `the allowance of year 10 at a full position with` late k d)
+                                     `the period lengths checked`
+                                     (drop 1 `the period lengths checked`)))
+                    `every kind of period`)
+            (LIST TRUE, FALSE)
+#ASSERT all (GIVEN late YIELD
+                and (zipWith (GIVEN m, n YIELD
+                                `recuperation allowance` (`a checked recuperation year` 10 1 late m (LIST) FALSE)
+                                AT MOST `recuperation allowance` (`a checked recuperation year` 10 1 late n (LIST) FALSE))
+                             `the months checked`
+                             (drop 1 `the months checked`)))
+            (LIST TRUE, FALSE)
+
+-- 1.7.5's second paragraph: a period of a kind that counts as paid never
+-- reduces the allowance, however long.
+#ASSERT all (GIVEN k YIELD
+                (NOT (`counts as paid` (`period without salary` k 60)))
+                OR all (GIVEN d YIELD `the allowance of year 10 at a full position with` FALSE k d
+                                      EQUALS `the allowance of year 10 at a full position with` FALSE k 0)
+                       `the period lengths checked`)
+            `every kind of period`
+
+-- F-1.7-c over every length of unpaid leave and every number of months
+-- paid below twelve: 1.7.4 and 1.7.5 part on every leave of 30 days or less
+-- and on no longer one.
+GIVEN days IS A NUMBER, months IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `1.7.4 and 1.7.5 part on` days `days of unpaid leave with` months `months paid` IF
+    LET y MEANS `a checked recuperation year` 10 1 FALSE months (LIST `period without salary` `unpaid leave` days) FALSE
+    IN NOT (`unpaid-leave share under §1.7.4` y TRUE EQUALS `share under §1.7.5` y)
+
+#ASSERT all (GIVEN days YIELD
+                all (GIVEN months YIELD
+                        (`1.7.4 and 1.7.5 part on` days `days of unpaid leave with` months `months paid`)
+                        EQUALS (days AT MOST 30))
+                    (range 0 11))
+            (LIST 1, 15, 29, 30, 31, 45, 60)
