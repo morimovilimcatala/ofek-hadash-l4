@@ -169,6 +169,7 @@ class SectionView:
     anchors: dict = field(default_factory=dict)    # row key -> [segments]
     covered: set = field(default_factory=set)      # row keys covered
     kind_of: dict = field(default_factory=dict)    # row key -> "rule" | "note"
+    covered_by: dict = field(default_factory=dict) # row key -> the row its segment sits beside
     unplaced: list = field(default_factory=list)   # segments citing no row
     appendix: list = field(default_factory=list)   # code no paragraph is cited by
 
@@ -285,6 +286,7 @@ def build_view(doc: str, sec: akn.Section) -> SectionView:
                     v.covered.add(r.key)
                     if v.kind_of.get(r.key) != "rule":
                         v.kind_of[r.key] = "note" if s.note_only else "rule"
+                        v.covered_by[r.key] = where[first].key
     return v
 
 
@@ -685,6 +687,17 @@ def section_block(v: SectionView, here: str, headless: bool = False) -> str:
         if segs and all(s.note_only for s in segs):
             cls.append("noted")
         code = "".join(segment_html(v, s, rendered) for s in segs)
+        if "covered" in cls and v.covered_by.get(r.key, r.key) != r.key:
+            # covered by a segment that sits beside an earlier row (a note
+            # on the whole preamble, a rule citing a list's head): say so
+            # here, or the row reads as if nothing covered it
+            at = v.covered_by[r.key]
+            cite = citations(v.section).get(at, "")
+            link = f'<a href="#{esc(at)}"><bdi dir="ltr">{esc(cite)}</bdi></a>' if cite else f'<a href="#{esc(at)}">למעלה</a>'
+            code = (f'<div class="seg cont note"><span class="note-label">ללא כלל</span>'
+                    f'<span class="cont-text">כלול בהערה שליד {link}</span></div>'
+                    if v.kind_of.get(r.key) == "note" else
+                    f'<div class="seg cont"><span class="cont-text">מקודד בכלל שליד {link}</span></div>')
         if "gap" in cls:
             code = '<div class="seg missing">לא קודד — אין כלל שמצטט פסקה זו.</div>'
         alias = "".join(f'<span id="{esc(a)}"></span>' for a in r.aliases)
