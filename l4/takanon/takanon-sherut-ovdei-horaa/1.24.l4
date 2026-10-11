@@ -536,3 +536,109 @@ DECIDE `the arrangement changes` a m IF FALSE
     PARTY `the employer` DOES `deposit to the provident fund` 600 AT 1
     PARTY `the teaching employee` DOES `deposit to the provident fund` 600 AT 1
     PARTY `the employer` DOES `deposit to the special fund` 1000 AT 1
+
+§§ `Property checks`
+
+-- The section's rules over their whole finite space: full positions from 18
+-- to 36 weekly hours, 0 to 60 hours worked, every approver with every
+-- combination of its conditions, and grids of pay and fund balances.
+
+`the full positions checked` MEANS range 18 36
+`the hours worked checked` MEANS range 0 60
+
+GIVEN full IS A NUMBER, worked IS A NUMBER
+GIVETH AN `overtime case`
+DECIDE `a checked overtime case` full worked IS
+    `overtime case` `a teaching employee in general` full worked FALSE 10000 100
+
+-- The two definitions agree: an employee works overtime exactly when
+-- employed above one full position, the overtime is never negative and
+-- never more than the hours worked.
+GIVEN full IS A NUMBER, worked IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `the definitions agree on` full worked IF
+    CONSIDER `weekly overtime hours` (`a checked overtime case` full worked)
+    WHEN JUST o THEN
+        CONSIDER `position fraction employed` (`a checked overtime case` full worked)
+        WHEN JUST f THEN
+                (o GREATER THAN 0) EQUALS (f GREATER THAN 1)
+            AND o AT LEAST 0
+            AND o AT MOST worked
+        WHEN NOTHING THEN FALSE
+    WHEN NOTHING THEN FALSE
+
+#ASSERT all (GIVEN full YIELD all (GIVEN w YIELD `the definitions agree on` full w) `the hours worked checked`)
+            `the full positions checked`
+
+-- 2ב against 2א: the principal's six hours go only to a teacher with no
+-- other approval, so at most one full position; on every full position
+-- from 18 hours, six more hours stay inside the 140% cap.
+#ASSERT all (GIVEN full YIELD
+                (full PLUS 6) DIVIDED BY full AT MOST `the cap on employment, as a fraction of a position`)
+            `the full positions checked`
+
+-- 2ג–ה over every approver, both opinions, 0 to 10 weekly hours, 0 to 2
+-- school years, remedial or not: an approval is valid exactly when the
+-- opinion came first, it runs at most a year, and either the district
+-- approved it or the principal did, for at most six remedial hours.
+`every approver of overtime` MEANS
+    LIST `the school principal under paragraph (b)`, `the district manager or a designee`, `someone else`
+
+GIVEN who IS AN `approver of overtime`, opinion IS A BOOLEAN, hours IS A NUMBER, years IS A NUMBER, remedial IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `validity is as the three paragraphs say for` who opinion hours years remedial IF
+    `the overtime approval is valid` (`overtime approval` who opinion hours years remedial)
+    EQUALS (    opinion
+            AND years AT MOST 1
+            AND (   who EQUALS `the district manager or a designee`
+                 OR (who EQUALS `the school principal under paragraph (b)` AND remedial AND hours AT MOST 6)))
+
+GIVEN who IS AN `approver of overtime`, opinion IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `validity is as the paragraphs say for every term of` who opinion IF
+    all (GIVEN hours YIELD
+            all (GIVEN years YIELD
+                    all (GIVEN remedial YIELD `validity is as the three paragraphs say for` who opinion hours years remedial)
+                        (LIST TRUE, FALSE))
+                (range 0 2))
+        (range 0 10)
+
+#ASSERT all (GIVEN who YIELD
+                all (GIVEN opinion YIELD `validity is as the paragraphs say for every term of` who opinion) (LIST TRUE, FALSE))
+            `every approver of overtime`
+
+-- 2ט and 2.2ה: the date steps. Casual substitution leaves the hourly rule
+-- exactly from 1.9.84; deposits to the 13⅓% fund are owed exactly to
+-- 31.8.84.
+#ASSERT all (GIVEN d YIELD
+                    (`pay for an hour of overtime` (`a checked overtime case` 24 30) TRUE d 7 EQUALS 7)
+                    EQUALS (d AT LEAST 19840901)
+                AND `deposits to the 13⅓% fund are owed on` d EQUALS (d LESS THAN 19840901))
+            (LIST 19840831, 19840901, 19900101)
+
+-- 1.24.2.1: the three deposits are never negative and come to 18⅓% of the
+-- pay, on every pay.
+#ASSERT all (GIVEN pay YIELD
+                    `the employer's provident-fund rate` TIMES pay PLUS `the employee's provident-fund rate` TIMES pay
+                        PLUS `the employer's special-fund rate` TIMES pay
+                    EQUALS 55 DIVIDED BY 3 TIMES 1% TIMES pay
+                AND `the employer's special-fund rate` TIMES pay AT LEAST 0)
+            (LIST 0, 1000, 12000, 30000)
+
+-- 1.24.2.2ד (F-1.24-c over a grid of pays and revaluations): where the
+-- employer deposited 13⅓% of the pay, the special payment is never
+-- negative, and the difference is positive exactly when the value of the
+-- pay exceeds 1.6 times the pay deposited on — measured nominally (a
+-- revaluation of 1), never.
+GIVEN pay IS A NUMBER, revaluation IS A NUMBER
+GIVETH A `13⅓% history`
+DECIDE `a history of` pay `revalued by` revaluation IS
+    `13⅓% history` FALSE (`13⅓%` TIMES pay) TRUE (pay TIMES revaluation) 0 FALSE
+
+#ASSERT all (GIVEN pay YIELD
+                all (GIVEN r YIELD
+                            `the special payment` (`a history of` pay `revalued by` r) AT LEAST 0
+                        AND (`the difference the special payment is measured by` (`a history of` pay `revalued by` r) GREATER THAN 0)
+                            EQUALS (r GREATER THAN 1.6))
+                    (LIST 1, 1.2, 1.6, 1.7, 3))
+            (LIST 1000, 5000, 20000)
