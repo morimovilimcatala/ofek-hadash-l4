@@ -205,8 +205,14 @@ BREADCRUMB = re.compile(r"^תחום תנאי שירות עובדי הוראה ת
 WHOLE_PARTS = ("preamble", "mainBody", "body", "conclusions", "attachments")
 
 
+# The documents divided into chapters and sections. Every other document is
+# whole — a circular, and the department's web pages that the corpus files
+# in the takanon collection beside the takanon itself.
+SECTIONED = {"takanon/takanon-sherut-ovdei-horaa.xml"}
+
+
 def is_whole(relative: str) -> bool:
-    return not relative.startswith("takanon/")
+    return relative not in SECTIONED
 
 
 def whole_section(relative: str) -> Section:

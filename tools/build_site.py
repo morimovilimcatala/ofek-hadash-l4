@@ -62,12 +62,36 @@ def _documents() -> list[str]:
     docs = json.loads((Path(__file__).resolve().parent.parent / "corpus" / "manifest.json")
                       .read_text(encoding="utf-8"))["documents"]
     out = ["takanon/takanon-sherut-ovdei-horaa.xml"]
+    # the department's web pages, which the corpus files beside the takanon
+    out += sorted(d["path"] for d in docs
+                  if d["collection"] == "takanon" and d["path"] not in out)
     out += sorted(d["path"] for d in docs
                   if d["collection"] in WORK_COLLECTIONS[1:])
     return out
 
 
 DOCUMENTS = _documents()
+
+# The takanon collection holds the takanon and the conditions-of-service
+# department's web pages (its home page, the Q&A, the takanon's
+# introduction, lists of circulars and procedures). They are not part of the
+# takanon: each is a whole document, shown and counted as a group of its own
+# under the collection.
+SITE_GROUP = "דפי האתר של תחום תנאי שירות"
+SITE_ANCHOR = "site-pages"
+
+
+def is_site_page(doc: str) -> bool:
+    return doc.split("/")[0] == "takanon" and akn.is_whole(doc)
+
+
+def doc_num(doc: str) -> str:
+    """The short number a list shows beside a whole document's title: a
+    circular's number; none for a site page, whose title is its name."""
+    stem = Path(doc).stem
+    if doc.startswith("circulars/"):
+        return stem.split("_", 1)[-1]
+    return "" if is_site_page(doc) else stem[:10]
 
 # the corpus's collections, so the reader sees what is not started as well
 COLLECTIONS = [
@@ -352,7 +376,7 @@ def citations(sec: akn.Section) -> dict[str, str]:
             cite = "§" + "".join(("." if p[0].isdigit() and i else "") + p for i, p in enumerate(parts))
             if cite == "§":
                 cite = {"preamble": "פתיח", "conclusions": "חתימה",
-                        "attachments": "נספחים"}.get(r.key.split("/")[0].split("__")[0], "§")
+                        "attachments": "נספחים"}.get(r.key.split("/")[0].split("__")[0], "")
         for k in [r.key, *r.aliases]:
             out.setdefault(k, cite)
     for k in list(out):
@@ -379,7 +403,7 @@ def doc_label(doc: str) -> str:
     a path of no known shape falls back to the document's title."""
     coll, stem = doc.split("/")[0], Path(doc).stem
     if coll == "takanon":
-        return "התקנון"
+        return f"דף האתר: {akn.title(doc)}" if is_site_page(doc) else "התקנון"
     m = re.fullmatch(r"[\d-]+_(?:tnai-sherut_)?([a-z]+)_(\d+)(_clarif)?(?:_.*)?", stem)
     if coll in ("circulars", "circulars-tnai-sherut") and m and m[1] in HEB_YEARS:
         name = f"{HEB_YEARS[m[1]]}/{int(m[2])}"
@@ -405,6 +429,17 @@ def cite_html(sec: akn.Section, key: str, fallback: str, doc: str | None = None)
     document's name, for a link read away from that document's own page."""
     return ((f'<span class="cdoc">{esc(doc_label(doc))}</span> ' if doc else "")
             + f'<bdi dir="ltr">{esc(clause(sec, key, fallback))}</bdi>')
+
+
+def row_label(sec: akn.Section, key: str) -> str:
+    """A link's label for a row of the same page: its clause, or where the
+    text numbers nothing, the row's first words in quotation marks."""
+    if clause(sec, key, ""):
+        return cite_html(sec, key, "")
+    words = next((r.text for r in sec.rows if r.key == key or key in r.aliases), "").split()
+    if not words:
+        return "למעלה"
+    return f'<bdi lang="he" dir="rtl">{esc("«" + " ".join(words[:5]) + ("…" if len(words) > 5 else "") + "»")}</bdi>'
 
 
 def tally(v: SectionView) -> dict[str, int]:
@@ -572,14 +607,26 @@ def coll_docs(coll: str) -> list[str]:
 
 
 def coll_hub(coll: str) -> str:
-    docs = coll_docs(coll)
-    return f"{coll}.html" if akn.is_whole(docs[0]) else f"{docs[0].removesuffix('.xml')}.html"
+    """A collection's overview: the contents page of its sectioned document
+    (the takanon's), or the collection's own page."""
+    sectioned = [d for d in coll_docs(coll) if not akn.is_whole(d)]
+    return f"{sectioned[0].removesuffix('.xml')}.html" if sectioned else f"{coll}.html"
 
 
 def coll_count(coll: str) -> int:
-    """Documents in a collection; sections for the takanon, its one document."""
-    docs = coll_docs(coll)
-    return len(docs) if akn.is_whole(docs[0]) else len(NAV_VIEWS[docs[0]])
+    """What a collection lists: a sectioned document's sections, and each
+    whole document once."""
+    return sum(len(NAV_VIEWS[d]) for d in coll_docs(coll))
+
+
+def site_group_li(here: str, open_: bool) -> str:
+    """The takanon collection's site pages, as one group of the sidebar."""
+    vs = [v for d in coll_docs("takanon") if is_site_page(d) for v in NAV_VIEWS[d]]
+    if not vs:
+        return ""
+    return (f'<li class="toc-ch"><details{" open" if open_ else ""}><summary>'
+            f'<span class="ch" lang="he" dir="rtl">{esc(SITE_GROUP)}</span>'
+            f'<span class="n">{len(vs)}</span></summary><ul>{"".join(doc_li(v, here) for v in vs)}</ul></details></li>')
 
 
 def sec_li(v: SectionView, href: str) -> str:
@@ -589,9 +636,9 @@ def sec_li(v: SectionView, href: str) -> str:
 
 def doc_li(v: SectionView, here: str) -> str:
     cur = ' aria-current="page"' if here == v.page else ""
-    num = Path(v.doc).stem.split("_", 1)[-1] if v.doc.startswith("circulars/") else Path(v.doc).stem[:10]
-    return (f'<li><a href="{rel(v.page, here)}" title="{esc(v.section.heading)}"{cur}>'
-            f'<span class="secnum" dir="ltr">{esc(num)}</span>'
+    num = doc_num(v.doc)
+    secnum = f'<span class="secnum" dir="ltr">{esc(num)}</span>' if num else ""
+    return (f'<li><a href="{rel(v.page, here)}" title="{esc(v.section.heading)}"{cur}>{secnum}'
             f'<span class="sh" lang="he" dir="rtl">{esc(v.section.heading)}</span></a></li>')
 
 
@@ -617,12 +664,15 @@ def tree_nav(here: str) -> str:
             continue
         here_in = any(here.startswith(d.removesuffix(".xml")) for d in docs) or here == f"{coll}.html"
         items = []
-        if not akn.is_whole(docs[0]):
+        if any(not akn.is_whole(d) for d in docs):
             for d in docs:
+                if akn.is_whole(d):
+                    continue
                 for vs in chapters_of(NAV_VIEWS[d]):
                     lis = "".join(sec_li(v, rel(v.href, here)) for v in vs)
                     items.append(f'<li class="toc-ch"><details><summary>{chapter_label(vs[0].section)}'
                                  f'<span class="n">{len(vs)}</span></summary><ul>{lis}</ul></details></li>')
+            items.append(site_group_li(here, False))
         else:
             by_year: dict[str, list[SectionView]] = {}
             for d in docs:
@@ -642,7 +692,10 @@ def doc_of(here: str) -> str | None:
     chapter, or a section's rendering."""
     for d in NAV_VIEWS:
         base = d.removesuffix(".xml")
-        if here in (f"{base}.html", f"{base}.render.html") or here.startswith(base + "/"):
+        if here in (f"{base}.html", f"{base}.render.html"):
+            return d
+    for d in NAV_VIEWS:
+        if not akn.is_whole(d) and here.startswith(d.removesuffix(".xml") + "/"):
             return d
     return None
 
@@ -657,8 +710,9 @@ def doc_nav(here: str, doc: str) -> str:
     coll = doc.split("/")[0]
     label = dict(COLLECTIONS)[coll]
     items = []
-    if not akn.is_whole(doc):
-        for vs in chapters_of(NAV_VIEWS[doc]):
+    sectioned = [d for d in coll_docs(coll) if not akn.is_whole(d)]
+    if sectioned:
+        for vs in [vs for d in sectioned for vs in chapters_of(NAV_VIEWS[d])]:
             on_page = here == vs[0].page
             if on_page or any(here == v.render_href for v in vs):
                 lis = "".join(sec_li(v, "#" + esc(v.section.eid) if on_page else rel(v.href, here)) for v in vs)
@@ -667,6 +721,7 @@ def doc_nav(here: str, doc: str) -> str:
             else:
                 items.append(f'<li class="toc-ch"><a class="sn-leaf" href="{rel(vs[0].page, here)}">'
                              f'{chapter_label(vs[0].section)}<span class="n">{len(vs)}</span></a></li>')
+        items.append(site_group_li(here, is_site_page(doc)))
     else:
         by_year: dict[str, list[SectionView]] = {}
         for d in coll_docs(coll):
@@ -817,7 +872,7 @@ def segment_html(v: SectionView, s: l4src.Segment, graphs: dict[str, str] | None
     if s.note_only:
         return (f'<div class="seg note"><span class="note-label">ללא כלל</span>'
                 f'<span class="note-text" lang="en" dir="ltr">{esc(s.note)}</span></div>')
-    others = "".join(f'<a class="also" href="#{esc(k)}">מכסה גם {cite_html(v.section, k, k)}</a>'
+    others = "".join(f'<a class="also" href="#{esc(k)}">מכסה גם {row_label(v.section, k)}</a>'
                      for k in s.keys[1:])
     # filled from the section's prose_json on the first switch to prose
     rend = f'<div class="view rendered" data-s="{s.start}" hidden></div>'
@@ -859,7 +914,11 @@ def finding_doc(f: dict) -> str:
     l4/<doc>/<section>.l4 for a sectioned document, l4/<doc>.l4 for a whole one."""
     rel_ = Path(f["l4"]).relative_to("l4")
     parent = rel_.parent.as_posix() + ".xml"
-    return parent if (akn.CORPUS / parent).exists() else rel_.with_suffix(".xml").as_posix()
+    # the department's home page is "…gov.il.xml" and its other pages sit in
+    # "…gov.il/": a parent that exists is the document only if it is sectioned
+    if (akn.CORPUS / parent).exists() and not akn.is_whole(parent):
+        return parent
+    return rel_.with_suffix(".xml").as_posix()
 
 
 def section_block(v: SectionView, here: str, headless: bool = False) -> str:
@@ -933,8 +992,7 @@ def section_block(v: SectionView, here: str, headless: bool = False) -> str:
             # on the whole preamble, a rule citing a list's head): say so
             # here, or the row reads as if nothing covered it
             at = v.covered_by[r.key]
-            cite = at in citations(v.section)
-            link = f'<a href="#{esc(at)}">{cite_html(v.section, at, "")}</a>' if cite else f'<a href="#{esc(at)}">למעלה</a>'
+            link = f'<a href="#{esc(at)}">{row_label(v.section, at)}</a>'
             code = (f'<div class="seg cont note"><span class="note-label">ללא כלל</span>'
                     f'<span class="cont-text">כלול בהערה שליד {link}</span></div>'
                     if v.kind_of.get(r.key) == "note" else
@@ -1065,6 +1123,14 @@ def contents_page(doc: str, views: list[SectionView]) -> str:
             + f'<a class="fcount" href="{rel("findings.html", here)}"><b>{nfind}</b> ממצאים</a>'
             f'<a href="{CORPUS_SITE}/{doc.removesuffix(".xml")}.html">בקורפוס ↗</a></div>'
             f'{progress(views)}</header>')
+    pages = [v for d in NAV_VIEWS if is_site_page(d) for v in NAV_VIEWS[d]]
+    if pages:
+        lis = "".join(
+            f'<li class="{v.status}"><a href="{rel(v.href, here)}">{dot(v.status)}'
+            f'<span class="sh" lang="he">{esc(v.section.heading)}</span></a></li>' for v in pages)
+        parts.append(f'<section class="chapter" id="{SITE_ANCHOR}" dir="rtl"><div class="chapter-head"><h2>{esc(SITE_GROUP)}</h2>'
+                     f'<span class="ccount">{sum(v.status == "done" for v in pages)} מתוך {len(pages)} מקודדים</span></div>'
+                     f'<p class="meta">{SITE_GROUP_LEDE}</p><ul class="secs docs">{lis}</ul></section>')
     return page(here, f"{akn.title(doc)} — {TITLE}", old_anchor_script(doc, views) + head + "".join(parts),
                 tab="docs", desc="תקנון שירות עובדי הוראה: הפרקים והסעיפים, כל פסקה ליד קידוד ה-L4 שלה")
 
@@ -1129,17 +1195,27 @@ def single_page(doc: str, v: SectionView) -> str:
         links += [f'<a href="{REPO}/blob/main/{v.l4.relative_to(ROOT)}">קוד מקור ↗</a>',
                   f'<a href="{rel(v.render_href, here)}">המסמך כולו כפרוזה</a>']
     switch = SWITCH
+    site = is_site_page(doc)
+    group = (f'<span>/</span><a href="{rel(coll_hub(coll), here)}#{SITE_ANCHOR}">{esc(SITE_GROUP)}</a>'
+             if site else "")
     head = (f'<header class="sec-head"><nav class="crumbs"><a href="{rel("index.html", here)}">מסמכים</a><span>/</span>'
-            f'<a href="{rel(coll + ".html", here)}">{esc(coll_name(coll))}</a></nav>'
+            f'<a href="{rel(coll_hub(coll), here)}">{esc(coll_name(coll))}</a>{group}</nav>'
             f'<div class="title-row"><h1 lang="he" dir="rtl">{esc(v.section.heading)}</h1>{badge(v.status)}</div>'
-            f'<p class="meta"><span class="docid" dir="ltr">{esc(v.section.num)}</span>'
-            + (f' · {esc(meta["date"])}' if meta.get("date") else "") + '</p>'
+            + (f'<p class="lede">{SITE_LEDE}</p>' if site else "")
+            + f'<p class="meta"><span class="docid" dir="ltr">{esc(v.section.num)}</span>'
+            + (f' · {"צולם ב־" if site else ""}{esc(meta["date"])}' if meta.get("date") else "") + '</p>'
             f'<div class="links">{"".join(links)}</div></header>')
     toolbar = (f'<div class="doc-toolbar"><span class="tb-label">הצגת ה-L4:</span>{switch}'
                f'<span class="tb-where"></span><span class="tb-cols"></span></div>')
     body = head + toolbar + section_block(v, here, headless=True)
     return page(here, f"{v.section.heading} — {TITLE}", body, tab="docs", wide=True,
-                desc=f"{v.section.heading}: נוסח החוזר ליד קידוד ה-L4 שלו")
+                desc=f"{v.section.heading}: נוסח המסמך ליד קידוד ה-L4 שלו")
+
+
+SITE_LEDE = ("דף מאתר תחום תנאי שירות עובדי הוראה במשרד החינוך, כפי שהקורפוס צילם אותו. "
+             "הוא אינו חלק מהתקנון ואינו מחייב: תשובות, ניווט ופרטי קשר.")
+SITE_GROUP_LEDE = ("דפים מאתר תחום תנאי שירות עובדי הוראה במשרד החינוך, כפי שהקורפוס צילם אותם. "
+                   "הם אינם חלק מהתקנון ואינם מחייבים: תשובות, ניווט ופרטי קשר.")
 
 
 def school_year(doc: str) -> str:
@@ -1181,13 +1257,19 @@ def index_page(all_views: dict[str, list[SectionView]], findings: list[dict]) ->
                          f'<span class="cstate">טרם התחיל</span></li>')
             continue
         if coll == "takanon":
-            for d in docs:
+            pages = [v for d in docs if is_site_page(d) for v in all_views[d]]
+            for d in [d for d in docs if not is_site_page(d)]:
                 vs = all_views[d]
                 n = sum(v.status == "done" for v in vs)
                 cards.append(f'<li class="coll live wide"><a href="{d.removesuffix(".xml")}.html">'
                              f'<span class="cname">{esc(name)}</span>'
                              f'<span class="ctitle" lang="he" dir="rtl">{esc(akn.title(d))}</span>'
                              f'{progress(vs)}<span class="cstate">{n} מתוך {len(vs)} סעיפים מקודדים</span></a></li>')
+            if pages:
+                n = sum(v.status == "done" for v in pages)
+                cards.append(f'<li class="coll live"><a href="{coll_hub(coll)}#{SITE_ANCHOR}">'
+                             f'<span class="cname">{esc(SITE_GROUP)}</span>'
+                             f'{progress(pages)}<span class="cstate">{n} מתוך {len(pages)} דפים מקודדים</span></a></li>')
             continue
         vs = [v for d in docs for v in all_views[d]]
         n = sum(v.status == "done" for v in vs)
@@ -1279,7 +1361,7 @@ def findings_page(findings, views_by_file, key_to_view) -> str:
             gkey = (doc,)
             label, href = akn.title(doc), f"{doc.removesuffix('.xml')}.html"
             stem = Path(doc).stem
-            num = stem.split("_", 1)[-1] if col == "circulars" else stem[:10]
+            num = doc_num(doc)
             short, gid = (v.section.heading if v is not None else label), f"in-{stem}"
         g = groups.setdefault(gkey, {"label": label, "href": href, "col": col, "cards": [],
                                      "num": num, "short": short, "id": gid,
@@ -1555,6 +1637,13 @@ def coverage_page(all_views: dict[str, list[SectionView]]) -> str:
             rows.append(f'<div class="strip-row"><div class="strip-name">פרק <bdi>{esc(s0.chapter_num)}</bdi> · '
                         f'{he(s0.chapter_heading)}</div><div class="strip">{"".join(cell(v) for v in cvs)}</div></div>')
         parts.append(f'<div class="strips">{"".join(rows)}</div>')
+        coll = doc.split("/")[0]
+        pages = [v for d, pvs in all_views.items() if d.split("/")[0] == coll and is_site_page(d) for v in pvs]
+        if pages:
+            parts.append(f'<h3 class="cov-group" id="{SITE_ANCHOR}">{esc(SITE_GROUP)}</h3>'
+                         '<p class="meta">אינם חלק מהתקנון: תא לכל דף, ורוחבו כמספר פסקאות הדף.</p>'
+                         f'<div class="strips"><div class="strip-row"><div class="strip-name">{esc(SITE_GROUP)}</div>'
+                         f'<div class="strip">{"".join(cell(v) for v in pages)}</div></div></div>')
     for coll in WORK_COLLECTIONS[1:]:
         cvs_all = [v for d, vs in all_views.items() if d.startswith(coll + "/") for v in vs]
         if not cvs_all:
@@ -1581,13 +1670,17 @@ def coverage_page(all_views: dict[str, list[SectionView]]) -> str:
         n_enc = sum(all(v.status == "done" for v in all_views[d["path"]]) for d in working)
         share = sum(sum(v.status == "done" for v in all_views[d["path"]]) / max(len(all_views[d["path"]]), 1)
                     for d in working) / len(docs)
-        lis = "".join(
-            f'<li class="{"work" if d["path"] in all_views else ""}">'
-            + (f'<a href="{d["path"].removesuffix(".xml")}.html">{he(d["title"])}</a>'
-               if d["path"] in all_views else
-               f'<a href="{CORPUS_SITE}/{esc(d["path"].removesuffix(".xml"))}.html">{he(d["title"])}</a>')
-            + f' <span class="date">{esc(d["date"] or "")}</span></li>'
-            for d in sorted(docs, key=lambda d: (d["path"] not in all_views, d["date"] or "", d["path"])))
+        def li(d):
+            return (f'<li class="{"work" if d["path"] in all_views else ""}">'
+                    + (f'<a href="{d["path"].removesuffix(".xml")}.html">{he(d["title"])}</a>'
+                       if d["path"] in all_views else
+                       f'<a href="{CORPUS_SITE}/{esc(d["path"].removesuffix(".xml"))}.html">{he(d["title"])}</a>')
+                    + f' <span class="date">{esc(d["date"] or "")}</span></li>')
+        order = sorted(docs, key=lambda d: (d["path"] not in all_views, d["date"] or "", d["path"]))
+        lis = "".join(li(d) for d in order if not is_site_page(d["path"]))
+        site_lis = "".join(li(d) for d in order if is_site_page(d["path"]))
+        if site_lis:
+            lis += (f'</ul><p class="doclist-group">{esc(SITE_GROUP)}</p><ul class="doclist">{site_lis}')
         parts.append(
             f'<details class="coll-row"><summary><span class="cname">{esc(names.get(coll, coll))}</span>'
             f'<span class="bar"><i class="rule" style="width:{share * 100:.2f}%"></i></span>'

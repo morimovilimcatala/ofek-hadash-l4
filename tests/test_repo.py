@@ -56,7 +56,7 @@ class Alignment(unittest.TestCase):
         known = {site_mod.l4_path(doc, s.num) for doc in site_mod.DOCUMENTS
                  for s in akn.sections(doc)}
         for f in (ROOT / "l4").rglob("*.l4"):
-            if f.name == "common.l4" or f.parent.name == "lib":
+            if f.name == "common.l4" or f.parent.name == "lib" or f.is_symlink():
                 continue
             self.assertIn(f, known, f"{f.relative_to(ROOT)} encodes no corpus section")
 
@@ -223,6 +223,44 @@ class FindingPlacement(unittest.TestCase):
                          "circulars/2019-20_tashaf_01.xml")
         self.assertEqual(site_mod.finding_doc({"l4": "l4/takanon/takanon-sherut-ovdei-horaa/1.7.l4"}),
                          "takanon/takanon-sherut-ovdei-horaa.xml")
+        # the department's home page is "…gov.il.xml" and its other pages
+        # sit in "…gov.il/": a finding on the Q&A is the Q&A's, not the home page's
+        self.assertEqual(site_mod.finding_doc(
+            {"l4": "l4/takanon/terms-service.education.gov.il/questions-and-answers.l4"}),
+            "takanon/terms-service.education.gov.il/questions-and-answers.xml")
+
+
+class SitePages(unittest.TestCase):
+    """The takanon collection's other documents are the department's web
+    pages: whole documents, read row by row, and a group of their own."""
+
+    def pages(self):
+        return [d for d in site_mod.DOCUMENTS if site_mod.is_site_page(d)]
+
+    def test_the_collection_is_in_work_whole(self):
+        takanon = {d["path"] for d in site_mod.MANIFEST_DOCS if d["collection"] == "takanon"}
+        self.assertEqual(takanon, {d for d in site_mod.DOCUMENTS if d.startswith("takanon/")})
+        self.assertEqual(akn.SECTIONED & takanon, {"takanon/takanon-sherut-ovdei-horaa.xml"})
+        self.assertTrue(self.pages())
+        for d in self.pages():
+            self.assertTrue(akn.is_whole(d), d)
+
+    def test_every_page_reads_into_text_rows_with_unique_keys(self):
+        for d in self.pages():
+            with self.subTest(doc=d):
+                (sec,) = akn.sections(d)
+                text = [r for r in sec.rows if r.kind == "text"]
+                self.assertTrue(text)
+                keys = [r.key for r in sec.rows]
+                self.assertEqual(len(keys), len(set(keys)))
+
+    def test_a_page_is_its_own_document_not_the_home_page(self):
+        site_mod.NAV_VIEWS.clear()
+        site_mod.NAV_VIEWS.update({d: [site_mod.build_view(d, s) for s in akn.sections(d)]
+                                   for d in site_mod.DOCUMENTS if d.startswith("takanon/")})
+        for d in self.pages():
+            self.assertEqual(site_mod.doc_of(d.removesuffix(".xml") + ".html"), d)
+        self.assertEqual(site_mod.coll_hub("takanon"), "takanon/takanon-sherut-ovdei-horaa.html")
 
 
 class Citations(unittest.TestCase):
