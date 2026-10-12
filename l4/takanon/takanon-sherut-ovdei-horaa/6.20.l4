@@ -8,6 +8,7 @@
 -- 4.4 of annex א, as headings; they are encoded as far as they go.
 
 IMPORT prelude
+IMPORT daydate
 IMPORT common
 
 § `6.20 שאילה והשאלת מורים`
@@ -417,15 +418,33 @@ DECIDE `the special committee handles the teacher` `covered by the agreement` `t
 -- 11: a dispute between the parties over the agreement's application,
 -- meaning or performance, or anything else arising from it, is settled in a
 -- joint committee of the parties to it, which meets within a month of
--- either one's request. Time in days from the request.
+-- either one's request. Time in days from the request; the month is a
+-- calendar month, to the same day of the next month (or its last day,
+-- where it is shorter), so its length follows the request's date.
 @ref akn:chp_6__sec_6_20/p58
-GIVEN `a party to the dispute requested it` IS A BOOLEAN
+GIVEN `request day` IS A NUMBER, `request month` IS A NUMBER, `request year` IS A NUMBER
+GIVETH A DATE
+DECIDE `a month after the request` `request day` `request month` `request year` IS
+    IF `request month` EQUALS 12
+    THEN Date `request day` 1 (`request year` PLUS 1)
+    ELSE Date (min `request day` (`Days in month` (`request month` PLUS 1) `request year`)) (`request month` PLUS 1) `request year`
+
+@ref akn:chp_6__sec_6_20/p58
+GIVEN `request day` IS A NUMBER, `request month` IS A NUMBER, `request year` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `days in a month from the request` `request day` `request month` `request year` IS
+    DATE_SERIAL (`a month after the request` `request day` `request month` `request year`)
+    MINUS DATE_SERIAL (Date `request day` `request month` `request year`)
+
+@ref akn:chp_6__sec_6_20/p58
+GIVEN `a party to the dispute requested it` IS A BOOLEAN,
+      `request day` IS A NUMBER, `request month` IS A NUMBER, `request year` IS A NUMBER
 GIVETH A DEONTIC `6.20 party` `6.20 action`
-DECIDE `a dispute between the parties` `a party to the dispute requested it` IS
+DECIDE `a dispute between the parties` `a party to the dispute requested it` `request day` `request month` `request year` IS
     IF `a party to the dispute requested it`
     THEN PARTY `a joint committee of the parties in dispute`
          MUST  `convene the joint committee`
-         WITHIN 30
+         WITHIN `days in a month from the request` `request day` `request month` `request year`
          LEST  BREACH BY `a joint committee of the parties in dispute` BECAUSE "clause 11: the joint committee convenes within a month of a party's request"
     ELSE FULFILLED
 
@@ -473,7 +492,135 @@ DECIDE `inviting employers to join` IS
 #ASSERT `years examined` `hired by both together, 0.7 and 0.3` EQUALS 2
 #ASSERT `owed to the lending employer` 120 50 EQUALS 6000
 
-#TRACE `a dispute between the parties` TRUE AT 0 WITH
+#TRACE `a dispute between the parties` TRUE 15 3 2026 AT 0 WITH
     PARTY `a joint committee of the parties in dispute` DOES `convene the joint committee` AT 20
 #TRACE `the accounting does not touch the teachers' rights` `party B` AT 0 WITH
     PARTY `party B` DOES `delay or impair a teacher's rights over the accounting` AT 3
+
+§§ `Property checks`
+
+-- The agreement's rules over their whole finite space: every teacher
+-- (permanent with A, with B, both or neither; employed first by A, by B or
+-- by both together; each position with A and with B in twentieths of a
+-- position); the lender's present hours in twelfths; every request day of
+-- 2024 (a 29-day February) and 2025; the day before and the day of
+-- 1.9.1982; and 0 to 6 copies of an accession letter.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`every twentieth of a position` MEANS map (GIVEN k YIELD k DIVIDED BY 20) (range 0 20)
+`every first employer` MEANS LIST (JUST `party A`), (JUST `party B`), NOTHING
+
+GIVEN pa IS A BOOLEAN, pb IS A BOOLEAN, fe IS A MAYBE `6.20 party`, a IS A NUMBER, b IS A NUMBER
+GIVETH A `six-year teacher`
+DECIDE `a checked teacher` pa pb fe a b IS
+    `six-year teacher` WITH
+        `permanent with party A`                IS pa
+        `permanent with party B`                IS pb
+        `employed first by`                     IS fe
+        `position with party A over the period` IS a
+        `position with party B over the period` IS b
+        `years since starting work`             IS 6
+
+GIVEN d IS A `lending determination`
+GIVETH A `lending determination`
+DECIDE `with A and B swapped` d IS
+    CONSIDER d
+    WHEN `lent by` e THEN IF e EQUALS `party A` THEN `lent by` `party B` ELSE IF e EQUALS `party B` THEN `lent by` `party A` ELSE d
+    OTHERWISE d
+
+GIVEN m IS A MAYBE `6.20 party`
+GIVETH A MAYBE `6.20 party`
+DECIDE `the other first employer` m IS
+    CONSIDER m
+    WHEN JUST e THEN IF e EQUALS `party A` THEN JUST `party B` ELSE JUST `party A`
+    WHEN NOTHING THEN NOTHING
+
+-- 4.1-4.2 over every teacher: the lender is party A or party B, or the
+-- teacher chooses, or (neither permanent) the agreement does not apply;
+-- a teacher permanent with one employer only is lent by that one, one
+-- permanent with neither is outside it; the rule treats A and B alike —
+-- swapping them swaps the lender; and more position with A, the rest
+-- unchanged, never moves a teacher hired by both together from A to B.
+-- F-6.20-a over the same space: the two measures of "10 percent" part
+-- exactly where the positions differ by at most a tenth of a position and
+-- by more than a tenth of the larger.
+#ASSERT all (GIVEN pa YIELD
+                all (GIVEN pb YIELD
+                        all (GIVEN fe YIELD
+                                all (GIVEN a YIELD
+                                        all (GIVEN b YIELD
+                                                LET t MEANS `a checked teacher` pa pb fe a b
+                                                    d MEANS `the lending employer` t
+                                                IN      elem d (LIST `lent by` `party A`, `lent by` `party B`, `the teacher chooses either employer`, `the agreement does not apply`)
+                                                    AND ((NOT (pa AND NOT pb)) OR d EQUALS `lent by` `party A`)
+                                                    AND ((NOT (pb AND NOT pa)) OR d EQUALS `lent by` `party B`)
+                                                    AND (d EQUALS `the agreement does not apply`) EQUALS (NOT (pa OR pb))
+                                                    AND `the lending employer` (`a checked teacher` pb pa (`the other first employer` fe) b a)
+                                                        EQUALS `with A and B swapped` d
+                                                    AND ((NOT (d EQUALS `lent by` `party A`))
+                                                         OR (NOT (`the lending employer` (`a checked teacher` pa pb fe (a PLUS 1/20) b) EQUALS `lent by` `party B`))))
+                                            `every twentieth of a position`)
+                                    `every twentieth of a position`)
+                            `every first employer`)
+                    `both booleans`)
+            `both booleans`
+#ASSERT all (GIVEN a YIELD
+                all (GIVEN b YIELD
+                        LET t MEANS `a checked teacher` TRUE TRUE NOTHING a b
+                        IN  (NOT (`the positions are equal or within 10 points` t EQUALS `the positions are equal or within 10 percent of the larger` t))
+                            EQUALS (    max (a MINUS b) (b MINUS a) AT MOST 1/10
+                                    AND max (a MINUS b) (b MINUS a) GREATER THAN max a b DIVIDED BY 10))
+                    `every twentieth of a position`)
+            `every twentieth of a position`
+
+-- 4.3 over the lender's present hours in twelfths: a determination by A
+-- stands exactly from a third of a position; by B, exactly from half of
+-- the school hours or where they fell for the school's needs; more hours
+-- never unsettle it. F-6.20-b over the same space: the text answers
+-- nothing exactly where neither holds, and never for another party.
+#ASSERT all (GIVEN k YIELD
+                all (GIVEN f YIELD
+                        LET x MEANS k DIVIDED BY 12
+                        IN      `the determination stands` `party A` x x f EQUALS (IF x AT LEAST 1/3 THEN JUST TRUE ELSE NOTHING)
+                            AND `the determination stands` `party B` x x f EQUALS (IF x AT LEAST 1/2 OR f THEN JUST TRUE ELSE NOTHING)
+                            AND ((NOT (`the determination stands` `party A` x x f EQUALS JUST TRUE))
+                                 OR `the determination stands` `party A` (x PLUS 1/12) (x PLUS 1/12) f EQUALS JUST TRUE)
+                            AND `the determination stands` `party C` x x f EQUALS NOTHING)
+                    `both booleans`)
+            (range 0 12)
+
+-- Clause 11 over every request day of 2024 and 2025: the joint committee
+-- has a calendar month, to the same day of the next month or that month's
+-- last day — 28 to 31 days.
+#ASSERT all (GIVEN y YIELD
+                all (GIVEN m YIELD
+                        all (GIVEN d YIELD
+                                    `days in a month from the request` d m y AT LEAST 28
+                                AND `days in a month from the request` d m y AT MOST 31
+                                AND `days in a month from the request` d m y
+                                    EQUALS DATE_SERIAL (`a month after the request` d m y) MINUS DATE_SERIAL (Date d m y))
+                            (range 1 (`Days in month` m y)))
+                    (range 1 12))
+            (LIST 2024, 2025)
+#ASSERT `days in a month from the request` 31 1 2025 EQUALS 28 AND `days in a month from the request` 31 1 2024 EQUALS 29
+
+-- A request on 31 January 2025: the month runs to 28 February, so a
+-- meeting on day 28 is in time and on day 29 late.
+#TRACE `a dispute between the parties` TRUE 31 1 2025 AT 0 WITH
+    PARTY `a joint committee of the parties in dispute` DOES `convene the joint committee` AT 28
+#TRACE `a dispute between the parties` TRUE 31 1 2025 AT 0 WITH
+    PARTY `a joint committee of the parties in dispute` DOES `convene the joint committee` AT 29
+
+-- 9.1 the day before and the day of 1.9.1982: the agreement applies from
+-- that day to every teacher, and before it only to one whose salary was
+-- unified, from the day it was; ¶4: an owner that did not sign is included
+-- exactly from four copies of the accession letter, and more never undo it.
+#ASSERT all (GIVEN u YIELD
+                    `the agreement applies to the teacher on` (Date 1 9 1982) u (Date 1 9 1980)
+                AND `the agreement applies to the teacher on` (Date 31 8 1982) u (Date 1 9 1980) EQUALS u
+                AND NOT `the agreement applies to the teacher on` (Date 31 8 1982) u (Date 1 9 1982))
+            `both booleans`
+#ASSERT all (GIVEN n YIELD
+                    `the owner is included in the agreement` FALSE TRUE n EQUALS (n AT LEAST 4)
+                AND `the owner is included in the agreement` TRUE FALSE n)
+            (range 0 6)
