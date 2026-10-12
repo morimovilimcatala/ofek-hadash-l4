@@ -209,12 +209,16 @@ DECIDE `hours count from` `clock-in` `start set by the principal` IS
 GIVEN `start set by the principal` IS A NUMBER, d IS A `working day`
 GIVETH A NUMBER
 DECIDE `the day ends earlier at` `start set by the principal` d IS
-    `the day ends at` d MINUS max 0 (`the day starts at` MINUS `start set by the principal`)
+    `the day ends at` d MINUS `support hours before eight` `start set by the principal`
 
+-- Only a start (ב2) allows, from 7:00 to before 8:00, moves hours before
+-- 8:00; 0 stands for none set.
 GIVEN `start set by the principal` IS A NUMBER
 GIVETH A NUMBER
 DECIDE `support hours before eight` `start set by the principal` IS
-    max 0 (`the day starts at` MINUS `start set by the principal`)
+    IF `start set by the principal` AT LEAST 7 AND `start set by the principal` LESS THAN `the day starts at`
+    THEN `the day starts at` MINUS `start set by the principal`
+    ELSE 0
 
 @ref akn:art_b__para_5__subpara_b__cls_b/p5
 GIVEN `the teacher asked before the year or half-year` IS A BOOLEAN
@@ -841,3 +845,115 @@ DECIDE `no step against a teacher who acted by the agreement` `acted by the agre
     PARTY `the local authority or owning body` DOES `join a school to Oz LeTmura` AT 1
 #TRACE `the principal may set an earlier start` TRUE AT 0 WITH
     PARTY `the school principal` DOES `set an earlier start of the working day` 7.5 AT 0
+
+§§ `Property checks`
+
+-- The circular over a finite space: every combination of the scope's
+-- three conditions; dates on either side of the agreement's period; school
+-- years תשע"ב to תשע"ז and one after; every implementation flag, consent
+-- share in tenths and Ministry threshold; clock-in times and starts in
+-- quarter hours from 6:30 to 9:00; grant years over positions, months and
+-- leave; hours missed and made up 0 to 15.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`years checked` MEANS range 2012 2018
+`quarter hours checked` MEANS map (GIVEN k YIELD 6.5 PLUS k DIVIDED BY 4) (range 0 10)
+
+-- א over every combination: the agreement applies exactly where all three
+-- conditions hold; its period runs from its signature to 31.8.2017.
+#ASSERT all (GIVEN g YIELD
+                all (GIVEN r YIELD
+                        all (GIVEN u YIELD
+                                `the agreement applies to` (`employee in scope` g r u) EQUALS (g AND r AND u))
+                            `both booleans`)
+                    `both booleans`)
+            `both booleans`
+#ASSERT all (GIVEN d YIELD
+                `within the agreement's period` d EQUALS (d AT LEAST 20140715 AND d AT MOST 20170831))
+            (LIST 20130901, 20140714, 20140715, 20160101, 20170831, 20170901)
+
+-- ב.1-ב.4 over every year and flag: from תשע"ז every school is in full
+-- implementation and every existing teacher, grade 13-14 and all, is under
+-- the reform; partial implementation exists only before תשע"ה, and only in
+-- a school implementing it that asked for it; the consent threshold binds
+-- only in תשע"ה and תשע"ו, at 60% or the Ministry's lower share; section
+-- 8's substitute rules run exactly to תשע"ו.
+#ASSERT all (GIVEN y YIELD
+                all (GIVEN i YIELD
+                        all (GIVEN q YIELD
+                                LET imp MEANS `the school's implementation` y i q
+                                IN      (y LESS THAN `תשע"ז` OR imp EQUALS `full implementation`)
+                                    AND (imp EQUALS `partial implementation`) EQUALS (y LESS THAN `תשע"ה` AND i AND q)
+                                    AND (imp EQUALS `not implemented`) EQUALS (y LESS THAN `תשע"ז` AND NOT i))
+                            `both booleans`)
+                    `both booleans`)
+            `years checked`
+#ASSERT all (GIVEN y YIELD
+                all (GIVEN k YIELD
+                        LET share MEANS k DIVIDED BY 10
+                        IN      `the consent threshold is met` y share 0.6
+                                EQUALS ((NOT (y EQUALS `תשע"ה` OR y EQUALS `תשע"ו`)) OR share AT LEAST 0.6)
+                            AND ((NOT `the consent threshold is met` y share 0.6) OR `the consent threshold is met` y share 0.4))
+                    (range 0 10))
+            `years checked`
+#ASSERT all (GIVEN y YIELD
+                    `section 8's substitute rules apply` y EQUALS (y AT MOST `תשע"ו`)
+                AND `grades 13-14 are under the reform` y EQUALS (y AT LEAST `תשע"ז`)
+                AND ((y LESS THAN `תשע"ז`) OR `an existing teacher is employed under the reform` y FALSE FALSE TRUE FALSE EQUALS JUST TRUE)
+                AND ((y AT LEAST `תשע"ז`) OR `an existing teacher is employed under the reform` y FALSE FALSE TRUE FALSE EQUALS JUST FALSE))
+            `years checked`
+
+-- ב.5 over clock-in times and starts: hours never count from before 7:00,
+-- nor from before 7:45 unless the principal set an earlier start; the
+-- support hours before 8:00 are exactly the time between a set start and
+-- 8:00, and the day ends that much earlier.
+#ASSERT all (GIVEN c YIELD
+                all (GIVEN s YIELD
+                        LET h MEANS `hours count from` c s
+                            early MEANS s AT LEAST 7 AND s LESS THAN 8
+                        IN      h AT LEAST 7
+                            AND h AT LEAST c
+                            AND (h AT LEAST 7.75 OR early)
+                            AND `support hours before eight` s EQUALS (IF early THEN 8 MINUS s ELSE 0)
+                            AND `the day ends earlier at` s `a long day` EQUALS 15.5 MINUS `support hours before eight` s)
+                    (append (LIST 0) `quarter hours checked`))
+            `quarter hours checked`
+
+-- Section 7 over positions in tenths, months 0 to 10 and leave 0 to 12:
+-- the grant is never negative, never above 666, nothing beyond six months'
+-- leave or for a substitute only, and never falls with a larger position or
+-- another month.
+#ASSERT all (GIVEN p YIELD
+                all (GIVEN m YIELD
+                        all (GIVEN l YIELD
+                                all (GIVEN sub YIELD
+                                        LET g MEANS `grant year` TRUE sub l p m
+                                            x MEANS `the one-time grant` g
+                                        IN      x AT LEAST 0
+                                            AND x AT MOST `the grant for a full position`
+                                            AND ((NOT (sub OR l GREATER THAN 6)) OR x EQUALS 0)
+                                            AND x AT MOST `the one-time grant` (`grant year` TRUE sub l (p PLUS 0.1) m)
+                                            AND x AT MOST `the one-time grant` (`grant year` TRUE sub l p (m PLUS 1)))
+                                    `both booleans`)
+                            (range 0 12))
+                    (range 0 10))
+            (map (GIVEN k YIELD k DIVIDED BY 10) (range 0 15))
+
+-- 9(ג): the external examination's 70% and the assessment's 30% together
+-- give the full preparation allowance, over study units' allowances.
+#ASSERT all (GIVEN f YIELD
+                LET a MEANS `the preparation allowance paid this year` f `the external examination only`
+                    b MEANS `the preparation allowance paid this year` f `the school assessment only`
+                IN      a's `weekly hours part` PLUS b's `weekly hours part` EQUALS f's `weekly hours part`
+                    AND a's `percentage part` PLUS b's `percentage part` EQUALS f's `percentage part`)
+            (LIST `preparation allowance` 1.5 (2%), `preparation allowance` 3 (4%), `preparation allowance` 4.5 (6%))
+
+-- Section 10 over hours missed and made up 0 to 15: no deduction exactly
+-- once the lower of the hours missed and 11 is made up, and making up more
+-- never brings a deduction back.
+#ASSERT all (GIVEN miss YIELD
+                all (GIVEN made YIELD
+                            `no deduction for the measures` miss made EQUALS (made AT LEAST min miss 11)
+                        AND ((NOT `no deduction for the measures` miss made) OR `no deduction for the measures` miss (made PLUS 1)))
+                    (range 0 15))
+            (range 0 15)

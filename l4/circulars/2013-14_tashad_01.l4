@@ -322,11 +322,14 @@ DECIDE `employed under the reform by 3.2.1` t IF
 -- signing; until signed, not joined. The form is annex א; it goes to the
 -- district personnel office. 3.3.2: a non-academic with 28 years and more
 -- need not sign and is employed under the reform in any case.
+-- The reading adopted for the bounds (F-2013-14_tashad_01-d), as
+-- F-2012-13_tashag_03-d reads the same words: 3.3.1's band runs up to
+-- 3.3.2's, so "up to 27 years (inclusive)" is read as "below 28".
 @ref akn:art_3__para_3-3__subpara_3-3-1
 GIVEN t IS A `junior-high teacher`
 GIVETH A BOOLEAN
 DECIDE `must sign the undertaking` t IF
-    (NOT t's `academic`) AND t's `seniority years` AT MOST 27
+    (NOT t's `academic`) AND t's `seniority years` LESS THAN 28
 
 -- Until signed, not joined; a non-academic of 28 years and more (3.3.2,
 -- below) joins without it.
@@ -996,3 +999,184 @@ DECIDE `pay and deduct by the clock` IS
     PARTY `the local authority or owning body` DOES `pay salary by the grade from joining` AT 4
 #TRACE `pay and deduct by the clock` AT 0 WITH
     PARTY `the local authority or owning body` DOES `pay and deduct by the clock reports` AT 1
+
+§§ `Property checks`
+
+-- The circular over a finite space: every role; new or existing; academic
+-- or not; seniority on either side of 27 and 28; signed or not; positions
+-- in tenths; one to three schools; ages 45 to 70; paramedical or not; every
+-- combination of 4.2.2's criteria and hours up to and past its limits;
+-- every complexity level.
+
+`every role` MEANS LIST `a teacher`, `an intern`, `a principal`, `a first deputy principal`, `a second or later deputy`
+`both booleans` MEANS LIST TRUE, FALSE
+`tenths to 1.5` MEANS map (GIVEN k YIELD k DIVIDED BY 10) (range 0 15)
+`seniority checked` MEANS LIST 0, 1, 10, 27, 27.5, 28, 30
+
+GIVEN r IS A `role in the junior high`
+      n IS A BOOLEAN
+      a IS A BOOLEAN
+      s IS A NUMBER
+      g IS A BOOLEAN
+      p IS A NUMBER
+      age IS A NUMBER
+      para IS A BOOLEAN
+GIVETH A `junior-high teacher`
+DECIDE `a checked teacher` r n a s g p age para IS
+    `junior-high teacher` WITH
+        `role`                               IS r
+        `prior teaching seniority recognised` IS NOT n
+        `seniority years`                    IS s
+        `academic`                           IS a
+        `teaching certificate`               IS TRUE
+        `completed internship successfully`  IS TRUE
+        `signed the undertaking`             IS g
+        `junior-high position`               IS p
+        `total position`                     IS p
+        `number of schools`                  IS 1
+        `age`                                IS age
+        `paramedical`                        IS para
+        `entitled to a mother's position`    IS FALSE
+        `school in the reform`               IS TRUE
+        `substitute in weekly hours`         IS FALSE
+        `placed in the placement system`     IS TRUE
+
+-- 3.1-3.3 over every combination: every teacher is new or existing and not
+-- both; a non-academic must sign exactly below 28 years and joins exactly
+-- from 28 years or having signed. F-2013-14_tashad_01-d over the seniority checked: only
+-- 27.5 falls in neither printed band ("עד 27 שנים (כולל)", "28 שנים ומעלה").
+-- F-2013-14_tashad_01-b over the same space: 3.2.1 and 3.3 part on a non-academic exactly
+-- where 3.3 joins them.
+#ASSERT all (GIVEN n YIELD
+                all (GIVEN a YIELD
+                        all (GIVEN s YIELD
+                                all (GIVEN g YIELD
+                                        LET t MEANS `a checked teacher` `a teacher` n a s g 1 45 FALSE
+                                        IN      (`a new teacher` t EQUALS NOT `an existing teacher` t)
+                                            AND `must sign the undertaking` t EQUALS ((NOT a) AND s LESS THAN 28)
+                                            AND ((a) OR `a non-academic joins` t EQUALS (s AT LEAST 28 OR g))
+                                            AND ((a) OR (NOT (`employed under the reform by 3.2.1` t EQUALS `a non-academic joins` t))
+                                                        EQUALS `a non-academic joins` t))
+                                    `both booleans`)
+                            `seniority checked`)
+                    `both booleans`)
+            `both booleans`
+#ASSERT all (GIVEN s YIELD (NOT (s AT MOST 27 OR s AT LEAST 28)) EQUALS (s EQUALS 27.5)) `seniority checked`
+
+-- 3.4-3.5 over every role, newness and position: the reform governs the
+-- whole junior-high position in a school in the reform; an internship year
+-- counts exactly for an intern at a third or more; it counts for tenure, the
+-- jubilee grant and recuperation and for nothing else.
+#ASSERT all (GIVEN r YIELD
+                all (GIVEN n YIELD
+                        all (GIVEN p YIELD
+                                LET t MEANS `a checked teacher` r n TRUE 10 FALSE p 45 FALSE
+                                IN      `the position the reform governs` t EQUALS p
+                                    AND `the internship year is recognised` t EQUALS (r EQUALS `an intern` AND p AT LEAST 1 DIVIDED BY 3))
+                            `tenths to 1.5`)
+                    `both booleans`)
+            `every role`
+#ASSERT all (GIVEN q YIELD
+                `the internship counts for` q EQUALS elem q (LIST `tenure`, `jubilee grant`, `recuperation`))
+            (LIST `salary seniority`, `minimum time to promotion`, `tenure`, `jubilee grant`, `recuperation`)
+
+-- 4.1 over positions and both kinds of teacher: a full week is 36 hours,
+-- a part position takes each kind in proportion, a mother's week is 34; the
+-- minimum position is 50% for a new teacher and 33% otherwise, and the
+-- period counts towards promotion exactly from a third of a position.
+#ASSERT all (GIVEN n YIELD
+                all (GIVEN para YIELD
+                        all (GIVEN p YIELD
+                                LET t MEANS `a checked teacher` `a teacher` n TRUE 10 FALSE p 45 para
+                                IN      `total hours` (`the full-position work week` t) EQUALS 36
+                                    AND `total hours` (`the work week for the position` t) EQUALS 36 TIMES p
+                                    AND `total hours` (`the mother's work week` t) EQUALS 34
+                                    AND `the minimum position` t EQUALS (IF n THEN 50% ELSE 33%)
+                                    AND `the period counts towards promotion` t EQUALS (p AT LEAST 1 DIVIDED BY 3))
+                            `tenths to 1.5`)
+                    `both booleans`)
+            `both booleans`
+
+-- 4.2 over every combination of the five criteria and hours: an approval
+-- with every criterion cumulative is always one with the first three as
+-- alternatives; F-2013-14_tashad_01-f over the same space: the two part
+-- exactly where one or two of the first three hold and the limits are kept;
+-- above 42 hours a week the head of the senior division approves.
+GIVEN d IS A BOOLEAN, h IS A BOOLEAN, m IS A BOOLEAN, f IS A BOOLEAN, day IS A NUMBER, week IS A NUMBER
+GIVETH AN `extra-hours request`
+DECIDE `a checked request` d h m f day week IS
+    `extra-hours request` WITH
+        `subject in demand`       IS d
+        `shortage in the area`    IS h
+        `remote locality`         IS m
+        `extra hours all frontal` IS f
+        `hours a day`             IS day
+        `hours a week`            IS week
+
+#ASSERT all (GIVEN d YIELD
+                all (GIVEN h YIELD
+                        all (GIVEN m YIELD
+                                all (GIVEN f YIELD
+                                        all (GIVEN pair YIELD
+                                                LET t MEANS `a checked teacher` `a teacher` FALSE TRUE 10 FALSE 1 45 FALSE
+                                                    q MEANS `a checked request` d h m f (at pair 0) (at pair 1)
+                                                    some MEANS count (filter (GIVEN b YIELD b) (LIST d, h, m))
+                                                    kept MEANS f AND at pair 0 AT MOST 8.5 AND at pair 1 AT MOST 42
+                                                IN      ((NOT `may be approved with every criterion of 4.2.2 cumulative` t q) OR `may be approved above a full position` t q)
+                                                    AND (NOT (`may be approved with every criterion of 4.2.2 cumulative` t q EQUALS `may be approved above a full position` t q))
+                                                        EQUALS (kept AND some AT LEAST 1 AND some AT MOST 2)
+                                                    AND (`who approves` q EQUALS `the head of the senior personnel division`) EQUALS (at pair 1 GREATER THAN 42))
+                                            (LIST (LIST 8, 40), (LIST 8.5, 42), (LIST 9, 42), (LIST 8, 43)))
+                                    `both booleans`)
+                            `both booleans`)
+                    `both booleans`)
+            `both booleans`
+#ASSERT all (GIVEN r YIELD
+                NOT `may be approved above a full position` (`a checked teacher` r FALSE TRUE 10 FALSE 1 45 FALSE) (`a checked request` TRUE TRUE TRUE TRUE 8 40))
+            (LIST `a principal`, `a first deputy principal`)
+
+-- 4.4 over ages 45 to 70 and both kinds of teacher: the hours off are none
+-- below 50, two from 50, four from 55 for an existing teacher; the base
+-- after them is 36, 34 or 32. F-2013-14_tashad_01-a over the same ages: at 55 every
+-- teacher is in two printed bands, and only for an existing one do they
+-- give different hours off (2 and 4).
+#ASSERT all (GIVEN n YIELD
+                all (GIVEN age YIELD
+                        LET t MEANS `a checked teacher` `a teacher` n TRUE 10 FALSE 1 age FALSE
+                            off MEANS `total hours` (`the age-hours reduction` t)
+                        IN      off EQUALS (IF age LESS THAN 50 THEN 0 ELSE IF age AT LEAST 55 AND NOT n THEN 4 ELSE 2)
+                            AND elem (36 MINUS off) (LIST 36, 34, 32)
+                            AND (count (`the age bands for` t) EQUALS 2) EQUALS (age EQUALS 55)
+                            AND (NOT (map (GIVEN b YIELD b's `frontal off` PLUS b's `individual off`) (`the age bands for` t)
+                                      EQUALS LIST 2, 4))
+                                EQUALS (n OR NOT age EQUALS 55))
+                    (range 45 70))
+            `both booleans`
+
+-- 4.4.6-4.4.8 over every complexity: the frontal hours never rise with the
+-- school's complexity, and a first deputy's are never below a principal's.
+#ASSERT all (GIVEN c YIELD
+                    `the principal's frontal hours` (c PLUS 1) AT MOST `the principal's frontal hours` c
+                AND `the first deputy's frontal hours` (c PLUS 1) AT MOST `the first deputy's frontal hours` c
+                AND `the principal's frontal hours` c AT MOST `the first deputy's frontal hours` c)
+            (LIST 1, 2, 3)
+
+-- Section 5 over every role: every role is in some row, exactly one but an
+-- intern's two (F-2013-14_tashad_01-c, whole space), and the rate adopted is one of the
+-- rows'; the advance is that rate on the components in the base.
+#ASSERT all (GIVEN r YIELD
+                LET rows MEANS `the advance rates the rows give` r
+                    t MEANS `a checked teacher` r FALSE TRUE 10 FALSE 1 45 FALSE
+                IN      count rows AT LEAST 1
+                    AND (count rows EQUALS 2) EQUALS (r EQUALS `an intern`)
+                    AND elem (`the advance rate` r) rows
+                    AND `the Ofek Hadash advance` t (LIST `component paid` `combined salary` 1000, `component paid` `another component` 500)
+                        EQUALS `the advance rate` r TIMES 1000)
+            `every role`
+
+-- Section 6: hours never count from before 7:45, nor from before the
+-- clock-in, over quarter hours from 6:30 to 9:00.
+#ASSERT all (GIVEN k YIELD
+                LET c MEANS 6.5 PLUS k DIVIDED BY 4
+                IN  `hours count from` c AT LEAST 7.75 AND `hours count from` c AT LEAST c)
+            (range 0 10)

@@ -580,3 +580,124 @@ DECIDE `the position for the thresholds` `position in grades 12 and below` `posi
     PARTY `the employer` DOES `contribute to the training fund on the transition supplement` 75 AT 1
 #ASSERT `the position under the reform` `תשע"ד` 0.6 0.2 EQUALS 0.6
 #ASSERT `the special-education position` 6 24 EQUALS 0.25
+
+§§ `Property checks`
+
+-- The circular over a finite space: positions in twelfths, every truth
+-- table of the joining conditions, clock-in times and starts in quarter
+-- hours from 6:30 to 9:00, age hours 0 to 6, every role, credit role and
+-- rank, frontal hours in the work-week table 0 to 24, every school year.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`twelfths to 1` MEANS map (GIVEN k YIELD k DIVIDED BY 12) (range 0 12)
+`quarter hours checked` MEANS map (GIVEN k YIELD 6.5 PLUS k DIVIDED BY 4) (range 0 10)
+`every role` MEANS
+    LIST `counsellor`, `deputy principal`, `homeroom teacher`, `grade coordinator`, `subject coordinator`,
+         `social-education coordinator`, `learning-adjustments coordinator`, `assessment coordinator`, `any other role-holder`
+`every year` MEANS LIST `תשע"ב`, `תשע"ג`, `תשע"ד`, `תשע"ה`, `a later year`
+
+-- Section 1 over every pair of positions: the threshold is met by a third
+-- this year, or by a third the year before for an existing teacher, and is
+-- never lost by holding more.
+#ASSERT all (GIVEN e YIELD
+                all (GIVEN p YIELD
+                        all (GIVEN q YIELD
+                                    `meets the third-of-a-position threshold` e p q
+                                    EQUALS (p AT LEAST 1 DIVIDED BY 3 OR (e AND q AT LEAST 1 DIVIDED BY 3))
+                                AND ((NOT `meets the third-of-a-position threshold` e p q)
+                                     OR `meets the third-of-a-position threshold` e (p PLUS 1 DIVIDED BY 12) q))
+                            `twelfths to 1`)
+                    `twelfths to 1`)
+            `both booleans`
+
+-- Sections 2-4 over every truth table: the licence condition, an intern's
+-- 90% (never above the value), a doctor's subjects, and the certificate
+-- route needing all three of its steps.
+#ASSERT all (GIVEN a YIELD
+                all (GIVEN b YIELD
+                        all (GIVEN c YIELD
+                                    `meets the licence condition` a b c EQUALS (c OR (a AND b))
+                                AND `may join while completing the certificate` a b c EQUALS (a AND b AND c)
+                                AND `the supplement paid` 200 a AT MOST 200
+                                AND `a doctor joins` a "פיסיקה" EQUALS a
+                                AND NOT `a doctor joins` a "היסטוריה")
+                            `both booleans`)
+                    `both booleans`)
+            `both booleans`
+
+-- Section 6(1) over clock-in times and starts: hours never count from
+-- before 7:00, nor from before 7:45 unless the principal set an earlier
+-- start; the support hours before 8:00 are at most one.
+#ASSERT all (GIVEN c YIELD
+                all (GIVEN s YIELD
+                        LET h MEANS `hours count from` c s
+                        IN      h AT LEAST 7
+                            AND h AT LEAST c
+                            AND (h AT LEAST 7.75 OR (s AT LEAST 7 AND s LESS THAN 8))
+                            AND `support hours before eight` h AT MOST 1)
+                    (append (LIST 0) `quarter hours checked`))
+            `quarter hours checked`
+
+-- Section 6(ב): (א)(1)-(3) take effect in תשע"ב, (א)(4) in תשע"ג, never
+-- before.
+#ASSERT all (GIVEN p YIELD
+                `year number` (`the year the paragraph takes effect` p)
+                EQUALS (IF p EQUALS `(א)(4)` THEN 2 ELSE 1))
+            (LIST `(א)(1)`, `(א)(2)`, `(א)(3)`, `(א)(4)`)
+
+-- Section 7 over age hours 0 to 6: the hour value rises as age hours cut
+-- the denominator, and outside the reform (a 24-hour base) it is above the
+-- reform's (40).
+#ASSERT all (GIVEN a YIELD
+                    `the hour value` 17320 TRUE a LESS THAN `the hour value` 17320 TRUE (a PLUS 1)
+                AND `the hour value` 17320 TRUE a LESS THAN `the hour value` 17320 FALSE a)
+            (range 0 5)
+
+-- Section 9 over every role and the frontal hours of the work-week table
+-- up to a full position's 24: the minimum for a part position never falls
+-- below its floor, never passes the full position's minimum, and never
+-- falls with more frontal hours.
+#ASSERT all (GIVEN r YIELD
+                all (GIVEN h YIELD
+                        LET m MEANS `the minimum frontal hours` r FALSE h
+                        IN      m AT LEAST (`the minimum row` r)'s `part-position floor`
+                            AND m AT MOST `the minimum frontal hours` r TRUE h
+                            AND m AT MOST `the minimum frontal hours` r FALSE (h PLUS 1))
+                    (range 0 23))
+            `every role`
+
+-- Section 11 over every credit role and rank: points are never negative and
+-- never rise from a higher rank to a lower one; F-2013-14_tashad_02-a over
+-- the same space: the table prints a figure exactly for the three columns
+-- in the top two ranks.
+#ASSERT all (GIVEN r YIELD
+                    `credit points` r `the next 15%` AT MOST `credit points` r `the highest 15%`
+                AND `credit points` r `below them` AT MOST `credit points` r `the next 15%`
+                AND `credit points` r `below them` AT LEAST 0
+                AND all (GIVEN k YIELD
+                            isJust (`the points the table prints` r k)
+                            EQUALS ((NOT r EQUALS `another role-holder`) AND NOT k EQUALS `below them`))
+                        (LIST `the highest 15%`, `the next 15%`, `below them`))
+            (LIST `a homeroom teacher`, `a coordinator`, `a teacher with no role`, `another role-holder`)
+
+-- Sections 14-15 over every year and approval: both tables have a figure
+-- exactly for תשע"ב-תשע"ד; the mother's is above the teacher's, and the
+-- approval never lowers either.
+#ASSERT all (GIVEN y YIELD
+                all (GIVEN a YIELD
+                        LET m MEANS `a mother's maximum position in partial implementation` y a
+                            n MEANS `the maximum position in partial implementation` y a
+                        IN      isJust m EQUALS isJust n
+                            AND isJust n EQUALS (`year number` y AT MOST 3)
+                            AND fromMaybe 0 m AT LEAST fromMaybe 0 n
+                            AND fromMaybe 0 n AT MOST fromMaybe 0 (`the maximum position in partial implementation` y TRUE))
+                    `both booleans`)
+            `every year`
+
+-- Section 12: the transition supplement's base holds every named component
+-- and nothing else; the '87 transition supplement is half the '87 one for a
+-- principal under the reform and nothing otherwise.
+#ASSERT all (GIVEN c YIELD `in the transition supplement's base` c EQUALS NOT (c EQUALS `another component`))
+            (LIST `combined salary`, `the '94 supplement`, `the 2001 supplement`, `the 2008 supplement`,
+                  `the 2011 supplement`, `the 2011 erosion supplement`, `another component`)
+#ASSERT all (GIVEN p YIELD `the '87 transition supplement` 200 p EQUALS (IF p THEN 100 ELSE 0)) `both booleans`
