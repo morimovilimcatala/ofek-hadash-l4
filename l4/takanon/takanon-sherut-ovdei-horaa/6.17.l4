@@ -591,7 +591,8 @@ DECIDE `is non-certified A` s IF
 
 -- (6): every guide the definitions above do not include is B. The
 -- definitions are tried in the text's order, so a certified guide who also
--- holds a matriculation certificate is certified, not "non-certified A".
+-- holds a matriculation certificate is certified, not "non-certified A"
+-- (F-6.17-h: the definitions of (3), (4) and (5) overlap).
 @ref akn:chp_6__sec_6_17__ssec_6_17_5__hc_1__para_6
 GIVEN s IS A `guide schooling`
 GIVETH A `guide grade`
@@ -671,7 +672,9 @@ DECIDE `a regular guide's pay for an overnight activity` g `hours owed that day 
     g's `monthly salary` DIVIDED BY 120 TIMES max (14 MINUS `hours owed that day by the roster`) 0 TIMES (1 PLUS 24%)
 
 -- 1.2–1.6 count hours but give no rate for them (F-6.17-d); the rate is an
--- input here.
+-- input here. F-6.17-g: 1.2's hours "less the hours owed that day" go
+-- below zero where the roster owes more than the hours counted; the
+-- reading adopted pays nothing then, and deducts nothing.
 @ref akn:chp_6__sec_6_17__ssec_6_17_7/p15 akn:chp_6__sec_6_17__ssec_6_17_7/p16
 GIVEN `hours worked` IS A NUMBER, `hours owed that day by the roster` IS A NUMBER, `is a field day` IS A BOOLEAN
 GIVETH A NUMBER
@@ -861,7 +864,7 @@ DECIDE `has priority in the queue for work in the new district` `transfer betwee
 -- needed, before a pedagogical committee on his fitness to teach; not fit,
 -- the Ministry applies to the Civil Service Commission. The text does not
 -- say who puts him before the committee; the Ministry, which acts in the
--- next sentence, is read as the one.
+-- next sentence, is read as the one (F-6.17-i).
 @ref akn:chp_6__sec_6_17__ssec_6_17_12__para_1
 GIVEN `permanent and physically unable to do his duties as a guide` IS A BOOLEAN
       `needed` IS A BOOLEAN
@@ -953,3 +956,279 @@ DECIDE `the continuity of the rights accrued as a guide, seniority included, is 
 #TRACE `appealing the equipment assessment` AT 0 WITH
     PARTY `the Shelach guide` DOES `appeal the equipment assessment by a reasoned request to the coordinating supervisor` AT 3
     PARTY `the coordinating supervisor` DOES `set up a parity committee to examine the matter` AT 10
+
+§§ `Property checks`
+
+-- The section's rules over their whole finite space: guides at a half, a
+-- full and a position and a quarter, with 0 to 12 frontal hours of 12, 24
+-- or 30 weekly hours, reporting 0 to 6 preparation hours, the day before
+-- and the day of 1.9.94; every schooling (9 to 12 years, the eight
+-- booleans, 0 to 2 exams owed — 3,072 cases); 0 to 6 years of probation
+-- and of work at every grade; 0 to 14 hours worked and owed; and every
+-- mother (the four booleans, a child of 0, ½, 1, 1½, 2, 3 or 14 years).
+
+`both booleans` MEANS LIST TRUE, FALSE
+`every guide grade` MEANS
+    LIST `certified teacher or higher`, `certified Shelach guide`, `non-certified Shelach guide, stage AA`,
+         `non-certified Shelach guide A`, `non-certified Shelach guide B`
+
+GIVEN f IS A NUMBER, fr IS A NUMBER, w IS A NUMBER, gr IS A `guide grade`
+GIVETH A `Shelach guide`
+DECIDE `a checked guide` f fr w gr IS
+    `Shelach guide` WITH
+        `position fraction`      IS f
+        `frontal teaching hours` IS fr
+        `weekly hours`           IS w
+        `is on probation`        IS FALSE
+        `is permanent`           IS TRUE
+        `grade`                  IS gr
+        `monthly salary`         IS 9000
+
+-- 6.17.2.2ב over every guide and report, the day before and the day of
+-- 1.9.94: the surplus hours are never negative, never more than 4 or than
+-- the hours reported, none before 1.9.94 or below a full position, and a
+-- larger report never accumulates fewer. F-6.17-b over the same space:
+-- the composed full position's 6 frontal hours of 24 never meet the third,
+-- and 8 do.
+#ASSERT all (GIVEN f YIELD
+                all (GIVEN fr YIELD
+                        all (GIVEN w YIELD
+                                all (GIVEN r YIELD
+                                        LET g MEANS `a checked guide` f fr w `certified Shelach guide`
+                                            a MEANS `surplus hours accumulated this week` g r (Date 1 9 1994)
+                                        IN      a AT LEAST 0
+                                            AND a AT MOST 4
+                                            AND a AT MOST r
+                                            AND `surplus hours accumulated this week` g r (Date 31 8 1994) EQUALS 0
+                                            AND (f AT LEAST 1 OR a EQUALS 0)
+                                            AND `surplus hours accumulated this week` g (r PLUS 1) (Date 1 9 1994) AT LEAST a)
+                                    (range 0 6))
+                            (LIST 12, 24, 30))
+                    (range 0 12))
+            (LIST 1/2, 1, 5/4)
+`the third is met from 8 frontal hours of 24, not at 6` MEANS
+        (NOT `field-day preparation hours count as surplus hours for the Dafna fund` (`a checked guide` 1 6 24 `certified Shelach guide`))
+    AND `field-day preparation hours count as surplus hours for the Dafna fund` (`a checked guide` 1 8 24 `certified Shelach guide`)
+#ASSERT `the third is met from 8 frontal hours of 24, not at 6`
+
+-- 6.17.3 over every position fraction in quarters up to a position and a
+-- half: a guide owes the full quota from a full position and a share of it
+-- below, never more, never less with a larger position; the full-position
+-- list binds exactly from a full position, and its IDF march and briefings
+-- ask nothing of a part-time guide.
+#ASSERT all (GIVEN k YIELD
+                LET f MEANS k DIVIDED BY 4
+                    g MEANS `a checked guide` f 6 24 `certified Shelach guide`
+                IN      `monthly field-day hours owed` g 100 AT LEAST 0
+                    AND `monthly field-day hours owed` g 100 AT MOST 100
+                    AND `monthly field-day hours owed` (`a checked guide` (f PLUS 1/4) 6 24 `certified Shelach guide`) 100
+                        AT LEAST `monthly field-day hours owed` g 100
+                    AND `the full-position list binds the guide` g EQUALS (k AT LEAST 4)
+                    AND (`the full-position list binds the guide` g
+                         OR (`6.17.3 א(4) the IDF march` g EQUALS FULFILLED AND `6.17.3 א(8) briefings and training` g EQUALS FULFILLED)))
+            (range 0 6)
+
+-- 6.17.3 א(5) and ה over 0 to 20 days: the two clauses set the national
+-- service at the same 14 days; the supervision's enterprises keep to 10
+-- days and 5 of vacation, and fewer days never break the limits; a field
+-- day is 6 hours, and longer days, once approved, fill exactly the quota.
+#ASSERT all (GIVEN d YIELD
+                    `the national service demanded is within 14 days` d EQUALS `the national service enterprise is as set` d TRUE
+                AND `the national service demanded is within 14 days` d EQUALS (d AT MOST 14)
+                AND all (GIVEN v YIELD
+                                (NOT `the enterprises demanded are within the limits` d v)
+                             OR (    d AT MOST 10
+                                 AND v AT MOST 5
+                                 AND `the enterprises demanded are within the limits` (max 0 (d MINUS 1)) (max 0 (v MINUS 1))))
+                        (range 0 d))
+            (range 0 20)
+#ASSERT all (GIVEN h YIELD
+                    `the month's field days are in order` FALSE h 10 60 EQUALS (h EQUALS 6)
+                AND `the month's field days are in order` TRUE h 5 60 EQUALS (h TIMES 5 EQUALS 60))
+            (range 4 14)
+
+-- 6.17.4 over 0 to 6 years of probation and of work at every grade: tenure
+-- always needs the supervision's finding; a certified guide or higher may
+-- have it after 2 to 4 years of probation; any grade after 5 consecutive
+-- years; and another year of work never takes it away.
+#ASSERT all (GIVEN gr YIELD
+                all (GIVEN p YIELD
+                        all (GIVEN y YIELD
+                                LET g MEANS `a checked guide` 1 6 24 gr
+                                IN      NOT `entitled to tenure` g p y FALSE
+                                    AND `entitled to tenure` g p y TRUE
+                                        EQUALS (   (elem gr (LIST `certified Shelach guide`, `certified teacher or higher`) AND p AT LEAST 2 AND p AT MOST 4)
+                                                OR y AT LEAST 5)
+                                    AND ((NOT `entitled to tenure` g p y TRUE) OR `entitled to tenure` g p (y PLUS 1) TRUE))
+                            (range 0 6))
+                    (range 0 6))
+            `every guide grade`
+
+-- 6.17.5 over every schooling: the grade a guide is given is never lower
+-- than another definition he meets would give, and passing one more exam,
+-- or owing one fewer, never lowers it. F-6.17-h over the same space:
+-- guides meet two definitions — certified and "non-certified A", "stage
+-- AA" and "non-certified A".
+GIVEN gr IS A `guide grade`
+GIVETH A NUMBER
+DECIDE `the rank of` gr IS
+    CONSIDER gr
+    WHEN `certified teacher or higher`           THEN 4
+    WHEN `certified Shelach guide`               THEN 3
+    WHEN `non-certified Shelach guide, stage AA` THEN 2
+    WHEN `non-certified Shelach guide A`         THEN 1
+    WHEN `non-certified Shelach guide B`         THEN 0
+
+GIVEN y IS A NUMBER, mt IS A BOOLEAN, sm IS A BOOLEAN, gd IS A BOOLEAN, sh IS A BOOLEAN, ps IS A BOOLEAN, hb IS A BOOLEAN, ev IS A BOOLEAN, ow IS A NUMBER, os IS A BOOLEAN
+GIVETH A `guide schooling`
+DECIDE `a checked schooling` y mt sm gd sh ps hb ev ow os IS
+    `guide schooling` WITH
+        `years of schooling`                     IS y
+        `has a Hebrew matriculation certificate` IS mt
+        `finished the Gadna guides' seminar`     IS sm
+        `passed Gadna and its teaching`          IS gd
+        `passed Shelach and its teaching`        IS sh
+        `passed psychology`                      IS ps
+        `passed Hebrew language`                 IS hb
+        `positive supervision assessment for a year or more` IS ev
+        `exams of the 1962 booklet still owed`   IS ow
+        `the one exam owed is Shelach and its teaching` IS os
+
+GIVEN prop IS A FUNCTION FROM `guide schooling` TO BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `holds for every schooling` prop IF
+    all (GIVEN y YIELD
+            all (GIVEN mt YIELD
+                    all (GIVEN sm YIELD
+                            all (GIVEN gd YIELD
+                                    all (GIVEN sh YIELD
+                                            all (GIVEN ps YIELD
+                                                    all (GIVEN hb YIELD
+                                                            all (GIVEN ev YIELD
+                                                                    all (GIVEN ow YIELD
+                                                                            all (GIVEN os YIELD prop (`a checked schooling` y mt sm gd sh ps hb ev ow os))
+                                                                                `both booleans`)
+                                                                        (range 0 2))
+                                                                `both booleans`)
+                                                        `both booleans`)
+                                                `both booleans`)
+                                        `both booleans`)
+                                `both booleans`)
+                        `both booleans`)
+                `both booleans`)
+        (range 9 12)
+
+GIVEN s IS A `guide schooling`
+GIVETH A NUMBER
+DECIDE `definitions met by` s IS
+    count (filter (GIVEN b YIELD b) (LIST `is a certified Shelach guide` s, `is stage AA` s, `is non-certified A` s))
+
+GIVEN s IS A `guide schooling`
+GIVETH A BOOLEAN
+DECIDE `6.17.5, for every schooling` s IF
+        ((NOT `is a certified Shelach guide` s) OR `grade of the guide` s EQUALS `certified Shelach guide`)
+    AND ((NOT `is stage AA` s) OR `the rank of` (`grade of the guide` s) AT LEAST 2)
+    AND ((NOT `is non-certified A` s) OR `the rank of` (`grade of the guide` s) AT LEAST 1)
+    AND (`definitions met by` s AT LEAST 1 OR `grade of the guide` s EQUALS `non-certified Shelach guide B`)
+    AND `the rank of` (`grade of the guide` (`a checked schooling` (s's `years of schooling`) (s's `has a Hebrew matriculation certificate`) (s's `finished the Gadna guides' seminar`) (s's `passed Gadna and its teaching`) TRUE (s's `passed psychology`) (s's `passed Hebrew language`) (s's `positive supervision assessment for a year or more`) (s's `exams of the 1962 booklet still owed`) (s's `the one exam owed is Shelach and its teaching`)))
+        AT LEAST `the rank of` (`grade of the guide` s)
+    AND `the rank of` (`grade of the guide` (`a checked schooling` (s's `years of schooling`) (s's `has a Hebrew matriculation certificate`) (s's `finished the Gadna guides' seminar`) (s's `passed Gadna and its teaching`) (s's `passed Shelach and its teaching`) TRUE TRUE (s's `positive supervision assessment for a year or more`) (s's `exams of the 1962 booklet still owed`) (s's `the one exam owed is Shelach and its teaching`)))
+        AT LEAST `the rank of` (`grade of the guide` s)
+#ASSERT `holds for every schooling` `6.17.5, for every schooling`
+
+`a matriculated certified guide is also "non-certified A"` MEANS
+        `is a certified Shelach guide` `a matriculated certified guide`
+    AND `is non-certified A` `a matriculated certified guide`
+
+`an 11-year guide owing Hebrew alone` MEANS
+    `a checked schooling` 11 FALSE FALSE FALSE TRUE TRUE FALSE FALSE 1 FALSE
+
+`the grade definitions of (3) to (5) overlap` MEANS
+        `a matriculated certified guide is also "non-certified A"`
+    AND `is stage AA` `an 11-year guide owing Hebrew alone`
+    AND `is non-certified A` `an 11-year guide owing Hebrew alone`
+#ASSERT `the grade definitions of (3) to (5) overlap`
+
+-- 6.17.7 over 0 to 14 hours worked and owed: an outside worker is paid for
+-- at most 10 hours and never less for more; a regular guide's overnight
+-- pay never negative and never more for more hours owed; a sortie of 24
+-- hours or more pays at most 20 hours, a shorter one none; a field day is
+-- no special activity; the overnight reward is nothing before 1.9.98.
+#ASSERT all (GIVEN h YIELD
+                    `an outside worker's pay for an overnight activity` 12000 h AT MOST `an outside worker's pay for an overnight activity` 12000 10
+                AND `an outside worker's pay for an overnight activity` 12000 (h PLUS 1) AT LEAST `an outside worker's pay for an overnight activity` 12000 h
+                AND `a regular guide's pay for an overnight activity` `a guide in the composed full position` h AT LEAST 0
+                AND `a regular guide's pay for an overnight activity` `a guide in the composed full position` (h PLUS 1)
+                    AT MOST `a regular guide's pay for an overnight activity` `a guide in the composed full position` h
+                AND `hours paid for a sortie` (h PLUS 10) h AT MOST 20
+                AND `hours paid for a sortie` 23 h EQUALS 0
+                AND `hours paid for a day activity` h 0 TRUE EQUALS 0)
+            (range 0 14)
+#ASSERT `overnight reward` (Date 31 8 1998) TRUE 56.84 EQUALS 0 AND `overnight reward` (Date 1 9 1998) TRUE 56.84 EQUALS 56.84
+
+-- F-6.17-g over 0 to 14 hours worked and 0 to 10 owed: 1.2's formula as
+-- printed, the hours worked up to 10 less the hours owed, falls below zero
+-- exactly where the roster owes more than that; the encoding pays nothing
+-- then, and otherwise exactly the printed hours.
+GIVEN w IS A NUMBER, o IS A NUMBER
+GIVETH A NUMBER
+DECIDE `1.2's hours as printed` w o IS min w 10 MINUS o
+
+#ASSERT all (GIVEN w YIELD
+                all (GIVEN o YIELD
+                            (`1.2's hours as printed` w o LESS THAN 0) EQUALS (o GREATER THAN min w 10)
+                        AND `hours paid for a day activity` w o FALSE EQUALS max (`1.2's hours as printed` w o) 0)
+                    (range 0 10))
+            (range 0 14)
+
+`an activity of 4 hours on a day the roster owes 6 is negative as printed` MEANS
+        `1.2's hours as printed` 4 6 LESS THAN 0
+    AND `hours paid for a day activity` 4 6 FALSE EQUALS 0
+#ASSERT `an activity of 4 hours on a day the roster owes 6 is negative as printed`
+
+-- 6.17.7 clothing over every position in quarters: never more than a full
+-- position's (2 suits, a windbreaker in its year, a pair of boots), and
+-- never less for a larger position.
+#ASSERT all (GIVEN k YIELD
+                LET f MEANS k DIVIDED BY 4
+                    c MEANS `clothing for the year` (`a checked guide` f 6 24 `certified Shelach guide`) TRUE
+                    d MEANS `clothing for the year` (`a checked guide` (f PLUS 1/4) 6 24 `certified Shelach guide`) TRUE
+                IN      c's `suits` AT MOST 2 AND c's `windbreakers` AT MOST 1 AND c's `pairs of paratrooper boots` AT MOST 1
+                    AND d's `suits` AT LEAST c's `suits`
+                    AND d's `windbreakers` AT LEAST c's `windbreakers`
+                    AND d's `pairs of paratrooper boots` AT LEAST c's `pairs of paratrooper boots`
+                    AND (`clothing for the year` (`a checked guide` f 6 24 `certified Shelach guide`) FALSE)'s `windbreakers` EQUALS 0)
+            (range 0 6)
+
+-- 6.17.8 over every mother: whoever is released from treks is released
+-- from national service too; physical work is released exactly in
+-- pregnancy; the pay rule of (5) holds exactly to a child under 14.
+#ASSERT all (GIVEN pr YIELD
+                all (GIVEN gb YIELD
+                        all (GIVEN mo YIELD
+                                all (GIVEN nu YIELD
+                                        all (GIVEN a YIELD
+                                                LET m MEANS `guide mother` WITH `is pregnant` IS pr, `gave birth` IS gb, `is a mother` IS mo,
+                                                                            `child's age in years` IS a, `is nursing, with a medical certificate` IS nu
+                                                IN      ((NOT (`released from` m)'s `treks`) OR (`released from` m)'s `national service`)
+                                                    AND (`released from` m)'s `physical work` EQUALS pr
+                                                    AND `pay computed as for teacher mothers of children under 14` m EQUALS (mo AND a LESS THAN 14))
+                                            (LIST 0, 1/2, 1, 3/2, 2, 3, 14))
+                                    `both booleans`)
+                            `both booleans`)
+                    `both booleans`)
+            `both booleans`
+
+-- F-6.17-i's evidence: what 6.17.12.1's two sentences say, read off the
+-- text. The first, putting the guide before the committee, names no one;
+-- the second names the Ministry.
+DECLARE `6.17.12.1 sentence` HAS
+    `sentence`        IS A NUMBER
+    `names who acts`  IS A BOOLEAN
+
+`the sentences of 6.17.12.1` MEANS
+    LIST `6.17.12.1 sentence` 1 FALSE, `6.17.12.1 sentence` 2 TRUE
+
+`6.17.12.1 names no one to put the guide before the committee` MEANS
+    NOT (at `the sentences of 6.17.12.1` 0)'s `names who acts`
+#ASSERT `6.17.12.1 names no one to put the guide before the committee`
