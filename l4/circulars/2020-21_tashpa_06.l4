@@ -327,3 +327,69 @@ DECIDE `the documents to attach` `in the civil service under budgetary pension` 
     PARTY `the employer` DOES `employ the retiree` 0.5 TRUE AT 6
 #TRACE `no replacement before the approval letter` FALSE AT 0 WITH
     PARTY `the employer` DOES `place another teacher in the post` AT 150
+
+§§ `Property checks`
+
+-- The circular over a finite space: both sexes; ages 45 to 70; every
+-- combination of the four conditions; both kinds of fund.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`both sexes` MEANS LIST `woman`, `man`
+
+GIVEN s IS A `sex`, a IS A NUMBER, o IS A BOOLEAN, r IS A BOOLEAN, f IS A BOOLEAN, x IS A BOOLEAN
+GIVETH AN `early-retirement candidate`
+DECIDE `a checked candidate` s a o r f x IS
+    `early-retirement candidate` WITH
+        `employee sex`                              IS s
+        `age at retirement`                         IS a
+        `employed by an owner of a post-primary institution` IS o
+        `in official education`                     IS r
+        `insured in a funded pension fund`          IS f
+        `fund`                                      IS `a new pension fund`
+        `receives an early pension from any source` IS x
+
+GIVEN s IS A `sex`
+GIVETH A NUMBER
+DECIDE `the oldest age printed for` s IS
+    IF s EQUALS `woman` THEN 62 ELSE 67
+
+-- The tracks over every age: a candidate may retire exactly within the
+-- arrangement, from 50 to the oldest printed age, with no other early
+-- pension; then on exactly one track, track B at the boundary age (finding
+-- a), and track A below it.
+#ASSERT all (GIVEN s YIELD
+                all (GIVEN a YIELD
+                        all (GIVEN o YIELD
+                                all (GIVEN r YIELD
+                                        all (GIVEN f YIELD
+                                                all (GIVEN x YIELD
+                                                        LET c MEANS `a checked candidate` s a o r f x
+                                                        IN      `may retire early` c
+                                                                EQUALS (o AND f AND (NOT r) AND (NOT x) AND a AT LEAST 50 AND a AT MOST `the oldest age printed for` s)
+                                                            AND ((NOT `may retire early` c) OR count (`the track for` c) EQUALS 1))
+                                                    `both booleans`)
+                                            `both booleans`)
+                                    `both booleans`)
+                            `both booleans`)
+                    (range 45 70))
+            `both sexes`
+#ASSERT `the track for` (`a checked candidate` `woman` 55 TRUE FALSE TRUE FALSE) EQUALS LIST `track B, קפ"מ the early pension fund`
+#ASSERT `the track for` (`a checked candidate` `man` 57 TRUE FALSE TRUE FALSE) EQUALS LIST `track A, the additional track`
+
+-- Who pays: the veteran fund for a veteran fund, the last employer for a
+-- new one, and nothing else.
+`a veteran fund pays its own pension` MEANS
+    `the pension is paid by` (`early-retirement candidate` `woman` 55 TRUE FALSE TRUE `a veteran fund (מבטחים, ק.ג.מ, גלעד, מקפת)` FALSE)
+        EQUALS `the veteran fund itself`
+#ASSERT `a veteran fund pays its own pension`
+
+-- The annex over every combination: two documents always, and one, two or
+-- one more for each condition that adds them.
+#ASSERT all (GIVEN b YIELD
+                all (GIVEN n YIELD
+                        all (GIVEN e YIELD
+                                count (`the documents to attach` b n e)
+                                EQUALS 2 PLUS (IF b THEN 1 ELSE 0) PLUS (IF n THEN 2 ELSE 0) PLUS (IF e THEN 1 ELSE 0))
+                            `both booleans`)
+                    `both booleans`)
+            `both booleans`

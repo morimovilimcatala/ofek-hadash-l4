@@ -1299,3 +1299,123 @@ DECIDE `matches the printed percent` `percent` `share` IF
     PARTY `the local authority or owning body` DOES `file the academic-studies commitment` AT 50
 #TRACE `no placement above 126% or 42 hours` AT 0 WITH
     PARTY `the local authority or owning body` DOES `place a kindergarten teacher above the ceiling` 1.2 43 AT 10
+
+§§ `Property checks`
+
+-- The circular over finite spaces, section by section.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`hundredths to 1` MEANS map (GIVEN k YIELD k DIVIDED BY 100) (range 0 100)
+`positions checked` MEANS LIST 0.25, 1 DIVIDED BY 3, 0.4, 0.5, 0.75, 1
+`every age band` MEANS LIST `under 50`, `50 to 55, not including 55`, `55 and over, a new teacher`, `55 and over, an existing teacher`
+`both posts` MEANS LIST `the kindergarten's managing teacher`, `a complementary teacher`
+
+GIVEN y IS A NUMBER, s IS A NUMBER, a IS A BOOLEAN, c IS A BOOLEAN, p IS A NUMBER, d IS A BOOLEAN, x IS A BOOLEAN, i IS A BOOLEAN, h IS A BOOLEAN, age IS A NUMBER
+GIVETH A `kindergarten teacher`
+DECIDE `a checked teacher` y s a c p d x i h age IS
+    `kindergarten teacher` WITH
+        `recognised years of actual teaching` IS y
+        `seniority in teaching`              IS s
+        `academic`                           IS a
+        `certified to teach`                 IS c
+        `position fraction`                  IS p
+        `signed the academic-studies commitment` IS d
+        `approved as an exception`           IS x
+        `an intern`                          IS i
+        `a health professional`              IS h
+        `a cluster manager`                  IS FALSE
+        `age on 31 December`                 IS age
+
+-- §3.2.1 and §3.4 over every flag and position: an existing academic joins
+-- exactly from a third of a position, certified or by exception; a new one
+-- exactly from a third, academic and certified (finding e: §5.2 may still
+-- not employ her below half).
+#ASSERT all (GIVEN c YIELD
+                all (GIVEN x YIELD
+                        all (GIVEN p YIELD
+                                    `an existing academic joins` (`a checked teacher` 5 5 TRUE c p FALSE x FALSE FALSE 40)
+                                    EQUALS (p AT LEAST 1 DIVIDED BY 3 AND (c OR x))
+                                AND `joins under 3.4` (`a checked teacher` 0 0 TRUE c p FALSE x FALSE FALSE 30)
+                                    EQUALS (p AT LEAST 1 DIVIDED BY 3 AND c))
+                            `positions checked`)
+                    `both booleans`)
+            `both booleans`
+
+-- §3.3 over seniority 20 to 35: an existing non-academic joins exactly from
+-- 28 years, or on signing.
+#ASSERT all (GIVEN s YIELD
+                all (GIVEN d YIELD
+                        `an existing non-academic joins` (`a checked teacher` 5 s FALSE TRUE 1 d FALSE FALSE FALSE 50) EQUALS (s AT LEAST 28 OR d))
+                    `both booleans`)
+            (range 20 35)
+
+-- §4.1.1's table: one cell for every band and post; the managing teacher's
+-- base always 2.6 hours below the complementary teacher's; the base never
+-- rises with age, and the bands follow the age.
+#ASSERT all (GIVEN b YIELD
+                all (GIVEN q YIELD
+                            count (filter (GIVEN r YIELD r's `band of the row` EQUALS b AND r's `post of the row` EQUALS q) `the job base table`) EQUALS 1
+                        AND `job base` b `a complementary teacher` MINUS `job base` b `the kindergarten's managing teacher` GREATER THAN 2.59
+                        AND `job base` b `a complementary teacher` MINUS `job base` b `the kindergarten's managing teacher` LESS THAN 2.61)
+                    `both posts`)
+            `every age band`
+#ASSERT all (GIVEN n YIELD
+                all (GIVEN ex YIELD
+                        LET k MEANS `a checked teacher` (IF ex THEN 5 ELSE 0) 5 TRUE TRUE 1 FALSE FALSE FALSE FALSE n
+                        IN      `job base` (`the age band of` k) `the kindergarten's managing teacher`
+                                AT MOST `job base` (`the age band of` (`a checked teacher` (IF ex THEN 5 ELSE 0) 5 TRUE TRUE 1 FALSE FALSE FALSE FALSE (n MINUS 1))) `the kindergarten's managing teacher`
+                            AND `job base` (`the age band of` k) `the kindergarten's managing teacher` PLUS `age hours off the base` k EQUALS 30.8)
+                    `both booleans`)
+            (range 40 65)
+
+-- §5.2 over positions, intern or not, approved or not: employed exactly from
+-- half a position (a third for an intern), or with the division head's
+-- approval.
+#ASSERT all (GIVEN p YIELD
+                all (GIVEN i YIELD
+                        all (GIVEN ap YIELD
+                                `may be employed at that scope under 5.2` (`a checked teacher` 0 0 TRUE TRUE p FALSE FALSE i FALSE 30) ap
+                                EQUALS (ap OR p AT LEAST (IF i THEN 1 DIVIDED BY 3 ELSE 0.5)))
+                            `both booleans`)
+                    `both booleans`)
+            `positions checked`
+
+-- §7 over positions in hundredths and the months since leave: the nursing
+-- hours from 90% within four months, the mother's absence from a mother's
+-- position, and none otherwise.
+#ASSERT all (GIVEN f YIELD
+                all (GIVEN mp YIELD
+                        all (GIVEN m YIELD
+                                LET r MEANS `the mother's reduction` mp f m
+                                IN      (r EQUALS `five nursing hours a week off the stay hours`) EQUALS (f AT LEAST 0.9 AND m LESS THAN 4)
+                                    AND (r EQUALS `none`) EQUALS ((NOT (f AT LEAST 0.9 AND m LESS THAN 4)) AND NOT mp))
+                            (LIST 1, 3, 4, 99))
+                    `both booleans`)
+            `hundredths to 1`
+
+-- §8 over ages and positions: the age hours are 0, 2 or 4 at a full
+-- position, never falling with age, and a part position takes its share
+-- (finding j's reading).
+#ASSERT all (GIVEN n YIELD
+                all (GIVEN ex YIELD
+                        all (GIVEN p YIELD
+                                LET k MEANS `a checked teacher` (IF ex THEN 5 ELSE 0) 5 TRUE TRUE p FALSE FALSE FALSE FALSE n
+                                IN      elem (`age hours off the base` k) (LIST 0, 2, 4)
+                                    AND `age hours off the base` k AT MOST `age hours off the base` (`a checked teacher` (IF ex THEN 5 ELSE 0) 5 TRUE TRUE p FALSE FALSE FALSE FALSE (n PLUS 1))
+                                    AND `age hours off a part position` k EQUALS `age hours off the base` k TIMES min p 1)
+                            `positions checked`)
+                    `both booleans`)
+            (range 40 65)
+
+-- §10.2.2 over seniority 20 to 30: it both bars and exempts exactly at 25
+-- (finding d); an uncertified academic may advance exactly from 25.
+#ASSERT all (GIVEN s YIELD
+                    (`barred under 10.2.2` s AND `exempt under 10.2.2` s) EQUALS (s EQUALS 25)
+                AND `may advance in grades` (`a checked teacher` 5 s TRUE FALSE 1 FALSE FALSE FALSE FALSE 50) FALSE EQUALS (s AT LEAST 25))
+            (range 20 30)
+
+-- §12: every advance rate between 0 and 17%; a non-academic who neither has
+-- 28 years nor signed gets none.
+#ASSERT all (GIVEN k YIELD
+                `advance rate` k AT LEAST 0 AND `advance rate` k AT MOST 0.17)
+            (LIST `an academic kindergarten teacher`, `an academic health professional`, `an intern, kindergarten teacher or health professional`, `a non-academic of 28 years or more, or who signed the commitment`, `a non-academic who neither has 28 years nor signed`)

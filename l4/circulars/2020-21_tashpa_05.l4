@@ -254,3 +254,67 @@ DECIDE `counselling allowance rate` n m IS
     PARTY `the employer` DOES `pay the 2016 shekel supplement` 1363.98 AT 1
 #TRACE `paying the updated supplement` `an upper-secondary teacher under עוז לתמורה` (`month of` 2021 3) AT 0 WITH
     PARTY `the employer` DOES `pay the 2016 shekel supplement` 1282.69 AT 1
+
+§§ `Property checks`
+
+-- The circular over a finite space: every month from December 2020 to
+-- December 2022; every combination of the employee's five flags; years in
+-- counselling 0 to 12, before and after 1.1.2021.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`every month checked` MEANS map (GIVEN k YIELD `month of` 2020 12 PLUS k) (range 0 24)
+
+GIVEN g IS A BOOLEAN, o IS A BOOLEAN, u IS A BOOLEAN, p IS A BOOLEAN, z IS A BOOLEAN
+GIVETH AN `upper-secondary employee`
+DECIDE `a checked employee` g o u p z IS
+    `upper-secondary employee` WITH
+        `graded in the teaching-employees grading`      IS g
+        `employed by an owner the Ministry supervises` IS o
+        `employed in upper secondary or grades 13-14`  IS u
+        `a principal`                                  IS p
+        `employed under עוז לתמורה`                     IS z
+        `years of seniority in counselling`            IS 0
+
+-- א over every month from January 2021 and every group: exactly one printed
+-- amount, never falling from one month to the next; before January 2021 the
+-- circular prints none.
+#ASSERT all (GIVEN m YIELD
+                all (GIVEN gr YIELD
+                            count (`the amounts printed for` gr `in month` m) EQUALS (IF m AT LEAST `month of` 2021 1 THEN 1 ELSE 0)
+                        AND sum (`the amounts printed for` gr `in month` m) AT MOST sum (`the amounts printed for` gr `in month` (m PLUS 1)))
+                    (LIST `teachers under עוז לתמורה`, `teachers not under עוז לתמורה, and principals`))
+            `every month checked`
+
+-- א over every employee: the supplement is paid exactly to one the circular
+-- covers, from January 2021; a teacher under עוז לתמורה gets more than one
+-- not under it; a principal is paid the second row however he is employed
+-- (finding a).
+#ASSERT all (GIVEN g YIELD
+                all (GIVEN o YIELD
+                        all (GIVEN u YIELD
+                                all (GIVEN p YIELD
+                                        all (GIVEN z YIELD
+                                                LET e MEANS `a checked employee` g o u p z
+                                                    s MEANS `2016 shekel supplement` e (`month of` 2021 3)
+                                                IN      (s GREATER THAN 0) EQUALS (g AND o AND u)
+                                                    AND ((NOT (g AND o AND u AND p)) OR s EQUALS 1147.12)
+                                                    AND ((NOT (g AND o AND u AND z AND NOT p)) OR s EQUALS 1363.98))
+                                            `both booleans`)
+                                    `both booleans`)
+                            `both booleans`)
+                    `both booleans`)
+            `both booleans`
+`from September 2021 a teacher under עוז לתמורה still gets more` MEANS
+    `2016 shekel supplement` (`a checked employee` TRUE TRUE TRUE FALSE TRUE) (`month of` 2021 9)
+        GREATER THAN `2016 shekel supplement` (`a checked employee` TRUE TRUE TRUE FALSE FALSE) (`month of` 2021 9)
+#ASSERT `from September 2021 a teacher under עוז לתמורה still gets more`
+
+-- ב over years in counselling: one row from the first year on, none for
+-- year 0; the rate never falls with more years, and the 2021 rate is above
+-- the 2020 one in every year.
+#ASSERT all (GIVEN n YIELD
+                    (`counselling allowance rate` n (`month of` 2021 1) GREATER THAN 0) EQUALS (n AT LEAST 1)
+                AND `counselling allowance rate` n (`month of` 2021 1) AT MOST `counselling allowance rate` (n PLUS 1) (`month of` 2021 1)
+                AND `counselling allowance rate` n (`month of` 2020 12) AT MOST `counselling allowance rate` (n PLUS 1) (`month of` 2020 12)
+                AND ((NOT (n AT LEAST 1)) OR `counselling allowance rate` n (`month of` 2021 1) GREATER THAN `counselling allowance rate` n (`month of` 2020 12)))
+            (range 0 12)

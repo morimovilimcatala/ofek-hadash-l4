@@ -23,8 +23,8 @@ DECLARE `clothing year` HAS
     `graded in the teaching-employees grading`  IS A BOOLEAN
     `employed by an owner the Ministry supervises` IS A BOOLEAN
     `position fraction at this employer`        IS A NUMBER  @desc the share of a full position held at this employer (1 = 100%)
-    `a physical-education teacher`              IS A BOOLEAN
-    `technological profession`                  IS A STRING  @desc the profession taught in technological education, as the lists print it; "" for none
+    `physical-education position fraction`      IS A NUMBER  @desc the share of a full position spent teaching physical education (0 for none)
+    `technological professions`                 IS A LIST OF STRING @desc the professions taught in technological education, as the lists print them; empty for none
 
 DECLARE `clothing action` IS ONE OF
     `pay the clothing allowance` HAS `clothing paid` IS A NUMBER
@@ -172,22 +172,45 @@ DECIDE `the physical-education amounts at` f IS
 #ASSERT all (GIVEN f YIELD count (`the physical-education amounts at` f) EQUALS 1)
             (LIST 0.1, 0.33, 1 DIVIDED BY 3, 0.4, 0.5, 0.51, 1, 1.2)
 
+-- F-2020-21_tashpa_08-d: "שיעור העסקה" is not said to be the share of the position in
+-- physical education or the employee's whole position. The reading
+-- adopted, as F-2019-20_tashaf_11-c and its siblings read the same words:
+-- the share in physical education.
 GIVEN y IS A `clothing year`
 GIVETH A NUMBER
 DECIDE `physical-education allowance` y IS
-    IF `the clothing rules apply to` y AND y's `a physical-education teacher`
-    THEN sum (`the physical-education amounts at` (y's `position fraction at this employer`))
+    IF `the clothing rules apply to` y AND y's `physical-education position fraction` GREATER THAN 0
+    THEN sum (`the physical-education amounts at` (y's `physical-education position fraction`))
     ELSE 0
 
--- No month is printed for this payment, so the obligation carries no
--- deadline.
+`the two readings of the employment rate differ` MEANS
+    NOT (`the physical-education amounts at` 0.2 EQUALS `the physical-education amounts at` 1)
+#ASSERT `the two readings of the employment rate differ`
+
+-- F-2020-21_tashpa_08-e: no month is printed for this payment; §1א's July is under
+-- section 1's own heading. The reading adopted, as F-2019-20_tashaf_11-d:
+-- the extras are paid with the general allowance, with the July 2021
+-- salary.
 GIVEN y IS A `clothing year`
 GIVETH A DEONTIC Party `clothing action`
 DECIDE `paying the physical-education allowance` y IS
     PARTY `the employer`
     MUST  `pay the physical-education allowance` `amount`
           PROVIDED `amount` AT LEAST `physical-education allowance` y
-    LEST  BREACH BY `the employer` BECAUSE "circular 2020-21/8 2: the physical-education teacher's extra clothing allowance is paid for 2020-21"
+    WITHIN `month number` July
+    LEST  BREACH BY `the employer` BECAUSE "circular 2020-21/8 2: the physical-education teacher's extra clothing allowance, paid with the general allowance in July 2021"
+
+DECLARE `section of the circular` IS ONE OF `section 1`, `section 2`, `section 3`
+GIVEN x IS A `section of the circular`
+GIVETH A BOOLEAN
+DECIDE `names a payment month` x IF
+    CONSIDER x
+    WHEN `section 1` THEN TRUE
+    OTHERWISE FALSE
+
+`sections 2 and 3 name no payment month` MEANS
+    (NOT `names a payment month` `section 2`) AND NOT `names a payment month` `section 3`
+#ASSERT `sections 2 and 3 name no payment month`
 
 §§ `3 קצובת ביגוד בחינוך הטכנולוגי`
 
@@ -217,18 +240,26 @@ DECIDE `paying the physical-education allowance` y IS
 
 -- ¶1 and 3.2-3.3: for a teacher or vocational instructor in technological
 -- education, on top of the general allowance, pro-rated to the position and
--- for no more than one full position.
+-- for no more than one full position. F-2020-21_tashpa_08-c: a teacher of professions on
+-- both lists is given the shoes and robes AND the robes by the words; the
+-- reading adopted, as F-2019-20_tashaf_11-b: the higher item, once.
 @ref akn:art_3/p1 akn:art_3__para_2 akn:art_3__para_3
+GIVEN y IS A `clothing year`
+GIVETH A LIST OF NUMBER
+DECIDE `the items the lists give` y IS
+    append (IF any (GIVEN p YIELD elem p `the shoes-and-robes professions`) (y's `technological professions`)
+            THEN LIST `a pair of shoes and two robes` ELSE EMPTY)
+           (IF any (GIVEN p YIELD elem p `the two-robes professions`) (y's `technological professions`)
+            THEN LIST `two robes` ELSE EMPTY)
+
 GIVEN y IS A `clothing year`
 GIVETH A NUMBER
 DECIDE `technological-education allowance` y IS
     IF NOT `the clothing rules apply to` y
     THEN 0
-    ELSE IF elem (y's `technological profession`) `the shoes-and-robes professions`
-         THEN `a pair of shoes and two robes` TIMES `position share` y
-         ELSE IF elem (y's `technological profession`) `the two-robes professions`
-              THEN `two robes` TIMES `position share` y
-              ELSE 0
+    ELSE CONSIDER `the items the lists give` y
+         WHEN a FOLLOWED BY rest THEN a TIMES `position share` y
+         WHEN EMPTY THEN 0
 
 GIVEN y IS A `clothing year`
 GIVETH A DEONTIC Party `clothing action`
@@ -236,7 +267,8 @@ DECIDE `paying the technological-education allowance` y IS
     PARTY `the employer`
     MUST  `pay the technological-education allowance` `amount`
           PROVIDED `amount` AT LEAST `technological-education allowance` y
-    LEST  BREACH BY `the employer` BECAUSE "circular 2020-21/8 3: the technological-education clothing allowance is paid for 2020-21"
+    WITHIN `month number` July
+    LEST  BREACH BY `the employer` BECAUSE "circular 2020-21/8 3: the technological-education clothing allowance, paid with the general allowance in July 2021"
 
 -- akn:conclusions The contact line, signatures and copies list; no rule.
 
@@ -248,16 +280,16 @@ DECIDE `paying the technological-education allowance` y IS
         `graded in the teaching-employees grading`  IS TRUE
         `employed by an owner the Ministry supervises` IS TRUE
         `position fraction at this employer`        IS 1
-        `a physical-education teacher`              IS TRUE
-        `technological profession`                  IS ""
+        `physical-education position fraction`      IS 1
+        `technological professions`                 IS EMPTY
 
 `a 40% mechatronics instructor` MEANS
     `clothing year` WITH
         `graded in the teaching-employees grading`  IS TRUE
         `employed by an owner the Ministry supervises` IS TRUE
         `position fraction at this employer`        IS 0.4
-        `a physical-education teacher`              IS FALSE
-        `technological profession`                  IS "מכטרוניקה"
+        `physical-education position fraction`      IS 0
+        `technological professions`                 IS LIST "מכטרוניקה"
 
 #ASSERT `clothing allowance` `a full-time physical-education teacher` EQUALS 2148
 #ASSERT `physical-education allowance` `a full-time physical-education teacher` EQUALS 1368
@@ -265,9 +297,87 @@ DECIDE `paying the technological-education allowance` y IS
 #ASSERT `technological-education allowance` `a 40% mechatronics instructor` EQUALS 226.4
 #ASSERT `employment ceiling` `a principal not under a reform` EQUALS 1.50
 
+`a teacher of mechatronics and nursing` MEANS
+    `clothing year` WITH
+        `graded in the teaching-employees grading`  IS TRUE
+        `employed by an owner the Ministry supervises` IS TRUE
+        `position fraction at this employer`        IS 1
+        `physical-education position fraction`      IS 0
+        `technological professions`                 IS LIST "מכטרוניקה", "סיעוד"
+
+`a teacher of subjects on both lists is given two items` MEANS
+    `the items the lists give` `a teacher of mechatronics and nursing` EQUALS LIST 566, 352
+#ASSERT `a teacher of subjects on both lists is given two items`
+#ASSERT `technological-education allowance` `a teacher of mechatronics and nursing` EQUALS 566
+
 #TRACE `paying the clothing allowance with July's salary` `a full-time physical-education teacher` AT 0 WITH
     PARTY `the employer` DOES `pay the clothing allowance` 2148 AT 11
 #TRACE `paying the clothing allowance with July's salary` `a full-time physical-education teacher` AT 0 WITH
     PARTY `the employer` DOES `pay the clothing allowance` 2148 AT 12
 #TRACE `no employment beyond the ceiling` `a teacher under אופק חדש` FALSE AT 0 WITH
     PARTY `the employer` DOES `employ beyond the ceiling` 1.2 AT 2
+
+§§ `Property checks`
+
+-- The circular over a finite space: covered or not; positions and physical-
+-- education shares in twelfths and tenths from 0 to 1.5; one profession from
+-- each list, both, or none; every track of employment.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`tenths to 1.5` MEANS map (GIVEN k YIELD k DIVIDED BY 10) (range 0 15)
+`the shares checked` MEANS append `tenths to 1.5` (LIST 1 DIVIDED BY 3, 0.3333, 0.5001)
+`every profession list checked` MEANS
+    LIST EMPTY, (LIST "מכטרוניקה"), (LIST "סיעוד"), (LIST "אחר"), (LIST "מכטרוניקה", "סיעוד")
+`every track` MEANS LIST `a teaching employee not under a reform`, `a principal not under a reform`, `a teacher under עוז לתמורה in full implementation`, `a teacher under אופק חדש`
+
+GIVEN g IS A BOOLEAN, f IS A NUMBER, pe IS A NUMBER
+      l IS A LIST OF STRING
+GIVETH A `clothing year`
+DECIDE `a checked clothing year` g f pe l IS
+    `clothing year` WITH
+        `graded in the teaching-employees grading`  IS g
+        `employed by an owner the Ministry supervises` IS TRUE
+        `position fraction at this employer`        IS f
+        `physical-education position fraction`      IS pe
+        `technological professions`                 IS l
+
+-- §1 over coverage and position: level 4 pro rata to the position up to
+-- one, nothing outside the circular, never falling with a larger position.
+#ASSERT all (GIVEN g YIELD
+                all (GIVEN f YIELD
+                        LET a MEANS `clothing allowance` (`a checked clothing year` g f 0 EMPTY)
+                        IN      a EQUALS (IF g THEN 2148 TIMES min f 1 ELSE 0)
+                            AND a AT MOST `clothing allowance` (`a checked clothing year` g (f PLUS 0.1) 0 EMPTY))
+                    `tenths to 1.5`)
+            `both booleans`
+
+-- §1ו over every track: the ceiling adopted is one of those 1ו lays on the
+-- track, and 140% is among them (finding b).
+#ASSERT all (GIVEN t YIELD
+                    elem (`employment ceiling` t) (`the ceilings 1ו lays on` t)
+                AND elem 1.40 (`the ceilings 1ו lays on` t))
+            `every track`
+
+-- §2 over every share: exactly one band, no overlap at a third or a half,
+-- the amount never falling; finding d's reading: the share in physical
+-- education decides, the whole position does not.
+#ASSERT all (GIVEN s YIELD
+                    count (`the physical-education amounts at` s) EQUALS 1
+                AND `physical-education allowance` (`a checked clothing year` TRUE 1 s EMPTY)
+                    AT MOST `physical-education allowance` (`a checked clothing year` TRUE 1 (s PLUS 0.1) EMPTY)
+                AND `physical-education allowance` (`a checked clothing year` TRUE 1 s EMPTY)
+                    EQUALS `physical-education allowance` (`a checked clothing year` TRUE 0.5 s EMPTY))
+            `the shares checked`
+
+-- §3 over every list of professions and every position: one item at most
+-- is paid, the higher (finding c's reading), pro rata to the position up to
+-- one.
+#ASSERT all (GIVEN l YIELD
+                all (GIVEN f YIELD
+                        LET y MEANS `a checked clothing year` TRUE f 0 l
+                            t MEANS `technological-education allowance` y
+                        IN      t AT MOST 566 TIMES min f 1
+                            AND count (`the items the lists give` y) AT MOST 2
+                            AND t EQUALS (IF null (`the items the lists give` y) THEN 0 ELSE sum (take 1 (`the items the lists give` y)) TIMES min f 1))
+                    `tenths to 1.5`)
+            `every profession list checked`

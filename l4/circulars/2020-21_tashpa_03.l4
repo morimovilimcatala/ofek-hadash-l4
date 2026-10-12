@@ -382,3 +382,76 @@ DECIDE `declaring the indemnity passed on` IS
     PARTY `the local authority or owning body` DOES `apply for the indemnity` FALSE TRUE AT 1
 #TRACE `declaring the indemnity passed on` AT 0 WITH
     PARTY `the Ministry of Education` DOES `offset the indemnity from the owner's budgets` AT 50
+
+§§ `Property checks`
+
+-- The procedure over a finite space: every age in months from 49 to 66
+-- years; weighted positions in tenths from 0 to 1.5; with or without a
+-- section 22 grant of 0 to 250,000 in steps of 50,000; years at the
+-- colleges 9 to 11; reported shares in quarters; each yes-or-no condition
+-- both ways where it decides.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`tenths to 1.5` MEANS map (GIVEN k YIELD k DIVIDED BY 10) (range 0 15)
+`every age checked` MEANS range 588 792
+
+GIVEN age IS A NUMBER, f IS A NUMBER, s22 IS A BOOLEAN, paid IS A NUMBER, yrs IS A NUMBER, rep IS A NUMBER, ok IS A BOOLEAN
+GIVETH A `college leaver`
+DECIDE `a checked leaver` age f s22 paid yrs rep ok IS
+    `college leaver` WITH
+        `ended on or after 31 August 2015`                    IS ok
+        `ended as a result of the colleges' organisational changes` IS TRUE
+        `ended for administrative reasons`                    IS TRUE
+        `continuous years teaching at the colleges`           IS yrs
+        `entitled now or ever to Civil Service Commission retirement terms` IS FALSE
+        `age in months at the end of employment`              IS age
+        `weighted position fraction`                          IS f
+        `entitled to the section 22 retirement grant`         IS s22
+        `section 22 grant paid`                               IS paid
+        `actually teaching at the college`                    IS TRUE
+        `a state employee only`                               IS FALSE
+        `share of employment reported in the staff report`    IS rep
+        `working at the college as a pensioner of the same employer` IS FALSE
+        `official notice of termination by the competent body` IS TRUE
+
+-- ג's table over every age: one row from 50 to 65 years exactly (finding b
+-- for the last row's bound), none outside; the grant never rises with age.
+#ASSERT all (GIVEN a YIELD
+                    count (`the grants the table gives at` a) EQUALS (IF a AT LEAST 600 AND a AT MOST 780 THEN 1 ELSE 0)
+                AND ((NOT (a AT LEAST 600 AND a LESS THAN 780)) OR `table grant` (a PLUS 1) AT MOST `table grant` a))
+            `every age checked`
+
+-- ג-ז over ages, positions and section 22: the grant is never negative,
+-- never above the table's amount for the age, pays a position above 100%
+-- as one, never rises with age, and section 22's grant only lowers it; it
+-- is nothing for one ending before 31.8.2015 or with under 10 years.
+#ASSERT all (GIVEN a YIELD
+                all (GIVEN f YIELD
+                        all (GIVEN s YIELD
+                                LET l MEANS `a checked leaver` a f s 50000 10 1 TRUE
+                                    g MEANS `special grant` l
+                                IN      g AT LEAST 0
+                                    AND g AT MOST `table grant` a
+                                    AND g AT MOST `special grant` (`a checked leaver` a (f PLUS 0.1) s 50000 10 1 TRUE)
+                                    AND g AT MOST `special grant` (`a checked leaver` a f FALSE 0 10 1 TRUE)
+                                    AND ((NOT (a AT LEAST 600 AND a LESS THAN 780)) OR `special grant` (`a checked leaver` (a PLUS 1) f s 50000 10 1 TRUE) AT MOST g)
+                                    AND `special grant` (`a checked leaver` a f s 50000 10 1 FALSE) EQUALS 0
+                                    AND `special grant` (`a checked leaver` a f s 50000 9 1 TRUE) EQUALS 0)
+                            `both booleans`)
+                    `tenths to 1.5`)
+            (map (GIVEN k YIELD 588 PLUS 6 TIMES k) (range 0 34))
+
+-- ג(5): section 22's grant is set off, and the grant never goes below zero
+-- however large it is.
+#ASSERT all (GIVEN p YIELD
+                `special grant` (`a checked leaver` 696 1 TRUE (p TIMES 50000) 10 1 TRUE)
+                EQUALS max 0 (120000 MINUS p TIMES 50000))
+            (range 0 5)
+
+-- ד over reported shares in quarters: the indemnity is the grant times the
+-- reported share, nothing for a share of nothing, never above the grant.
+#ASSERT all (GIVEN q YIELD
+                LET l MEANS `a checked leaver` 696 0.8 FALSE 0 15 (q DIVIDED BY 4) TRUE
+                IN      `indemnity` l AT MOST `special grant` l
+                    AND `indemnity` l EQUALS (IF q EQUALS 0 THEN 0 ELSE `special grant` l TIMES (q DIVIDED BY 4)))
+            (range 0 4)

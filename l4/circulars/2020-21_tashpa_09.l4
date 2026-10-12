@@ -232,3 +232,51 @@ DECIDE `indemnifying the owners` IS
     PARTY `the employer` DOES `pay the achievement grant` 6332.39 AT 12
 #TRACE `pension contributions on the grant` `a full-time teacher at a grade-2 school` AT 0 WITH
     PARTY `the employer` DOES `contribute to a pension fund` 316.6195 316.6195 AT 12
+
+§§ `Property checks`
+
+-- The circular over a finite space: covered or not; every school grade;
+-- upper-secondary positions in tenths from 0 to 1.5; 0 to 12 months at the
+-- school with 0 to 3 of maternity leave; on a full year's leave or not.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`tenths to 1.5` MEANS map (GIVEN k YIELD k DIVIDED BY 10) (range 0 15)
+`every school grade` MEANS LIST `grade 1, the top 10%`, `grade 2, the next 10%`, `grade 3, the next 10% after that`, `grade 4, the next 10% after that`, `not ranked for a grant`
+
+GIVEN c IS A BOOLEAN, g IS A `school grade`, p IS A NUMBER, m IS A NUMBER, ml IS A NUMBER, s IS A BOOLEAN
+GIVETH AN `achievement year`
+DECIDE `a checked year` c g p m ml s IS
+    `achievement year` WITH
+        `graded in the teaching-employees grading`     IS c
+        `employed by a post-primary owner the Ministry supervises` IS TRUE
+        `teaching in upper secondary`                  IS TRUE
+        `school ranking`                               IS g
+        `upper-secondary position fraction`            IS p
+        `months employed at the school`                IS m
+        `months of maternity leave`                    IS ml
+        `on full sabbatical or unpaid leave all year`  IS s
+
+-- §2 over the whole space: the grant is never negative and never above the
+-- grade's full-time amount; it is something exactly for a covered teacher
+-- at a ranked school with a position and some months, not on a full year's
+-- leave; it never falls with a larger position or more months, and pays
+-- above a full position or a full year as one.
+#ASSERT all (GIVEN c YIELD
+                all (GIVEN g YIELD
+                        all (GIVEN p YIELD
+                                all (GIVEN m YIELD
+                                        all (GIVEN ml YIELD
+                                                all (GIVEN s YIELD
+                                                        LET a MEANS `achievement grant` (`a checked year` c g p m ml s)
+                                                        IN      a AT LEAST 0
+                                                            AND a AT MOST `full-time grant for` g
+                                                            AND (a GREATER THAN 0) EQUALS (c AND (NOT (g EQUALS `not ranked for a grant`)) AND p GREATER THAN 0 AND m PLUS ml GREATER THAN 0 AND NOT s)
+                                                            AND a AT MOST `achievement grant` (`a checked year` c g (p PLUS 0.1) m ml s)
+                                                            AND a AT MOST `achievement grant` (`a checked year` c g p (m PLUS 1) ml s)
+                                                            AND ((NOT (p AT LEAST 1 AND m PLUS ml AT LEAST 12 AND c AND NOT s)) OR a EQUALS `full-time grant for` g))
+                                                    `both booleans`)
+                                            (range 0 3))
+                                    (range 0 12))
+                            `tenths to 1.5`)
+                    `every school grade`)
+            `both booleans`

@@ -19,6 +19,8 @@ IMPORT common
 
 DECLARE `clothing action` IS ONE OF
     `pay the clothing allowance` HAS `clothing amount paid` IS A NUMBER
+    `pay the physical-education allowance` HAS `physical-education amount paid` IS A NUMBER
+    `pay the technological-education allowance` HAS `technological amount paid` IS A NUMBER
     `work at a total position with all employers` HAS `track worked` IS AN `employment track`, `total position worked` IS A NUMBER, `work permitted by the procedure` IS A BOOLEAN
     `employ at a total position with all employers` HAS `track employed` IS AN `employment track`, `total position employed` IS A NUMBER, `employment permitted by the procedure` IS A BOOLEAN
 
@@ -184,10 +186,43 @@ DECIDE `the amounts the table gives for` f IS
 -- whether that is the position with one employer or with all of them. The
 -- reading adopted: the position with the paying employer, each employer
 -- paying its own band (as §1ה does for the general allowance).
+-- F-2021-22_tashpab_07-e: "שיעור העסקה" is not said to be the share of the position in
+-- physical education or the employee's whole position. The reading
+-- adopted, as F-2019-20_tashaf_11-c and its siblings read the same words:
+-- the share in physical education, as the input below is named.
 GIVEN `position as a physical-education teacher` IS A NUMBER @desc the share of a full position held as a physical-education teacher with the paying employer
 GIVETH A NUMBER
 DECIDE `the additional physical-education allowance` `position as a physical-education teacher` IS
     sum (`the amounts the table gives for` `position as a physical-education teacher`)
+
+`the two readings of the employment rate differ` MEANS
+    NOT (`the amounts the table gives for` 0.2 EQUALS `the amounts the table gives for` 1)
+#ASSERT `the two readings of the employment rate differ`
+
+-- F-2021-22_tashpab_07-f: no month is printed for the physical-education or the
+-- technological-education allowance; §1א's July is under section 1's own
+-- heading. The reading adopted, as F-2019-20_tashaf_11-d: the extras are
+-- paid with the general allowance, with the July 2022 salary.
+GIVEN `position as a physical-education teacher` IS A NUMBER
+GIVETH A DEONTIC Party `clothing action`
+DECIDE `paying the physical-education allowance with July's salary` `position as a physical-education teacher` IS
+    PARTY `the employer`
+    MUST  `pay the physical-education allowance` paid
+          PROVIDED paid AT LEAST `the additional physical-education allowance` `position as a physical-education teacher`
+    WITHIN `month number` July
+    LEST BREACH BY `the employer` BECAUSE "תשפ\"ב/7 §2: the extra allowance is paid with the general allowance, in July 2022"
+
+DECLARE `section of the circular` IS ONE OF `section 1`, `section 2`, `section 3`
+GIVEN x IS A `section of the circular`
+GIVETH A BOOLEAN
+DECIDE `names a payment month` x IF
+    CONSIDER x
+    WHEN `section 1` THEN TRUE
+    OTHERWISE FALSE
+
+`sections 2 and 3 name no payment month` MEANS
+    (NOT `names a payment month` `section 2`) AND NOT `names a payment month` `section 3`
+#ASSERT `sections 2 and 3 name no payment month`
 
 `two employers at 40% each pay more than one employer at 80%` MEANS
     `the additional physical-education allowance` 0.4 PLUS `the additional physical-education allowance` 0.4
@@ -282,6 +317,38 @@ DECIDE `the full value for the profession` p IS
     ELSE IF elem p `the two-robes professions`
          THEN `the value of two robes`
          ELSE 0
+
+-- F-2021-22_tashpab_07-d: a teacher of professions on both lists is given the shoes and
+-- robes AND the robes by the words; the reading adopted, as
+-- F-2019-20_tashaf_11-b: the higher item, once, pro rata.
+GIVEN ps IS A LIST OF `technological profession`
+GIVETH A LIST OF NUMBER
+DECIDE `the items the lists give` ps IS
+    append (IF any (GIVEN p YIELD elem p `the shoes-and-robes professions`) ps THEN LIST `the value of shoes and two robes` ELSE EMPTY)
+           (IF any (GIVEN p YIELD elem p `the two-robes professions`) ps THEN LIST `the value of two robes` ELSE EMPTY)
+
+GIVEN ps IS A LIST OF `technological profession`
+      `position in technological education` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the technological-education allowance for the professions taught` ps `position in technological education` IS
+    CONSIDER `the items the lists give` ps
+    WHEN a FOLLOWED BY rest THEN a TIMES min `position in technological education` 1
+    WHEN EMPTY THEN 0
+
+`a teacher of subjects on both lists is given two items` MEANS
+    `the items the lists give` (LIST `mechatronics`, `nursing`) EQUALS LIST 589, 366
+#ASSERT `a teacher of subjects on both lists is given two items`
+#ASSERT `the technological-education allowance for the professions taught` (LIST `mechatronics`, `nursing`) 1 EQUALS 589
+
+GIVEN ps IS A LIST OF `technological profession`
+      `position in technological education` IS A NUMBER
+GIVETH A DEONTIC Party `clothing action`
+DECIDE `paying the technological-education allowance with July's salary` ps `position in technological education` IS
+    PARTY `the employer`
+    MUST  `pay the technological-education allowance` paid
+          PROVIDED paid AT LEAST `the technological-education allowance for the professions taught` ps `position in technological education`
+    WITHIN `month number` July
+    LEST BREACH BY `the employer` BECAUSE "תשפ\"ב/7 §3: the technological allowance is paid with the general allowance, in July 2022"
 
 -- §3.2: the allowance is in addition to the clothing allowance of all
 -- teaching employees.
