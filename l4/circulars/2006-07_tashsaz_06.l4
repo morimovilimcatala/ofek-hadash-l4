@@ -261,3 +261,81 @@ DECIDE `entitled to the jubilee grant` y IF
     PARTY `the employer` DOES `pay the recuperation allowance` 4615 AT 10
 #TRACE `the jubilee grant is paid with June's salary` `thirty years in March` AT 0 WITH
     PARTY `the employer` DOES `pay the jubilee grant` 6000 AT 10
+
+§§ `Property checks`
+
+-- The circular over its whole finite space: seniority years 1 to 60,
+-- positions in quarters from 0 to 1.5, 0 to 12 months of work, a career's
+-- teaching years on 1 June from 0 to 45, and shares of the year in
+-- quarters.
+
+`positions in quarters` MEANS map (GIVEN k YIELD k DIVIDED BY 4) (range 0 6)
+
+GIVEN n IS A NUMBER, f IS A NUMBER, m IS A NUMBER, t IS A NUMBER, s IS A NUMBER
+GIVETH AN `employee year`
+DECIDE `a checked year` n f m t s IS
+    `employee year` WITH
+        `year of teaching seniority`              IS n
+        `position fraction`                       IS f
+        `months of work`                          IS m
+        `salary determining for pension`          IS 10000
+        `seniority set last September`            IS t MINUS 1
+        `teaching years on 1 June`                IS t
+        `teaching years on 1 June a year earlier` IS t MINUS 1
+        `years of work in Israel on 1 June`       IS t
+        `share of the year employed`              IS s
+
+-- §1ג: every year of seniority from 1 to 60 is in exactly one band, and
+-- the days never fall as the seniority rises.
+#ASSERT all (GIVEN n YIELD
+                    count (filter (GIVEN b YIELD n AT LEAST b's `from year` AND n AT MOST b's `to year`) `the table of recuperation days`) EQUALS 1
+                AND `recuperation days` n AT MOST `recuperation days` (n PLUS 1))
+            (range 1 60)
+
+-- §1ב-1ה over every seniority band's first and last year, position and
+-- month count: the allowance is never negative, never above 13 days at
+-- 355, never above one full position's (§1ה), never falls with a larger
+-- position or a month more, and is the full allowance exactly for a full
+-- position worked ten months or more.
+#ASSERT all (GIVEN n YIELD
+                all (GIVEN f YIELD
+                        all (GIVEN m YIELD
+                                LET a MEANS `recuperation allowance` (`a checked year` n f m 20 1)
+                                    full MEANS `the price of a recuperation day` TIMES `recuperation days` n
+                                IN      a AT LEAST 0
+                                    AND a AT MOST `the price of a recuperation day` TIMES 13
+                                    AND a AT MOST full
+                                    AND a AT MOST `recuperation allowance` (`a checked year` n (f PLUS 0.25) m 20 1)
+                                    AND a AT MOST `recuperation allowance` (`a checked year` n f (m PLUS 1) 20 1)
+                                    AND (a EQUALS full) EQUALS (f AT LEAST 1 AND m AT LEAST 10))
+                            (range 0 12))
+                    `positions in quarters`)
+            (LIST 1, 3, 4, 10, 11, 15, 16, 19, 20, 24, 25, 60)
+
+-- §2 on the readings adopted (F-2006-07_tashsaz_06-b, -c, -d), over a
+-- career's teaching years on 1 June from 0 to 45, each a year above the
+-- last: the grant falls in exactly one year, the year the 30th is
+-- completed — the reading the sibling circulars of 2007-08 and 2008-09,
+-- which print the same words, also adopt. It is never above 60% of the
+-- determining salary, and never falls with a larger position or share of
+-- the year.
+#ASSERT count (filter (GIVEN t YIELD `entitled to the jubilee grant` (`a checked year` 12 1 10 t 1)) (range 0 45)) EQUALS 1
+#ASSERT all (GIVEN t YIELD `entitled to the jubilee grant` (`a checked year` 12 1 10 t 1) EQUALS (t EQUALS 30)) (range 0 45)
+#ASSERT all (GIVEN f YIELD
+                all (GIVEN s YIELD
+                        LET g MEANS `jubilee grant` (`a checked year` 12 f 10 30 s)
+                        IN      g AT LEAST 0
+                            AND g AT MOST 60% TIMES 10000
+                            AND g AT MOST `jubilee grant` (`a checked year` 12 (f PLUS 0.25) 10 30 s)
+                            AND g AT MOST `jubilee grant` (`a checked year` 12 f 10 30 (s PLUS 0.25)))
+                    (LIST 0, 0.25, 0.5, 0.75, 1))
+            `positions in quarters`
+
+-- F-2006-07_tashsaz_06-d over the same career: ¶2's "30 years and more"
+-- reaches every year from the 30th on, the reading adopted only the 30th;
+-- they part in exactly the years after it.
+#ASSERT all (GIVEN t YIELD
+                (NOT (`entitled by the seniority set last September` (`a checked year` 12 1 10 (t PLUS 1) 1)
+                      EQUALS `entitled to the jubilee grant` (`a checked year` 12 1 10 t 1)))
+                EQUALS (t GREATER THAN 30))
+            (range 0 45)

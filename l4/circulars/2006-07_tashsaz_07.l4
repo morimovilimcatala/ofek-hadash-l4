@@ -54,12 +54,20 @@ DECIDE `the amounts the table gives for seniority` n IS
         (filter (GIVEN b YIELD n AT LEAST b's `from seniority` AND n AT MOST b's `to seniority`)
                 `the general allowance table`)
 
--- F-2006-07_tashsaz_07-a: the table opens at year 1. The reading adopted:
--- an employee in the first year (0 completed years) takes the first row.
-GIVEN n IS A NUMBER
+-- F-2006-07_tashsaz_07-a: the table opens at year 1. The reading adopted,
+-- as for the same table in תשס"ח/7 and תשס"ט/10 (F-2007-08_tashsach_06-b,
+-- F-2008-09_tashsat_10-a): the year being served counts, so a first-year
+-- employee (0 completed years) is in year 1, and the top row begins in the
+-- 26th year (25 completed).
+GIVEN n IS A NUMBER @desc completed years of teaching seniority
 GIVETH A NUMBER
 DECIDE `full-position general allowance` n IS
-    IF n AT LEAST 26 THEN 1754 ELSE 1259
+    IF `the year being served` n AT LEAST 26 THEN 1754 ELSE 1259
+
+GIVEN n IS A NUMBER @desc completed years of teaching seniority
+GIVETH A NUMBER
+DECIDE `the year being served` n IS
+    n PLUS 1
 
 `a first-year employee has no row` MEANS
     `the amounts the table gives for seniority` 0 EQUALS EMPTY
@@ -98,11 +106,19 @@ DECIDE `the amounts the PE table gives for position` p IS
 
 -- F-2006-07_tashsaz_07-b: 0.3 and 0.5 each fall in two rows. The reading
 -- adopted: the row that OPENS at a boundary ("מ-") governs it.
+-- F-2006-07_tashsaz_07-d: "שיעור העסקה" is not said to be of what. The
+-- reading adopted, as F-2008-09_tashsat_10-c's: the position in physical
+-- education.
 GIVEN y IS AN `employee year`
 GIVETH A NUMBER
 DECIDE `additional physical-education allowance` y IS
-    BRANCH IF y's `physical-education position` AT LEAST 0.5 THEN 430
-           IF y's `physical-education position` AT LEAST 0.3 THEN 217
+    `the PE amount for an employment rate of` (y's `physical-education position`)
+
+GIVEN r IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the PE amount for an employment rate of` r IS
+    BRANCH IF r AT LEAST 0.5 THEN 430
+           IF r AT LEAST 0.3 THEN 217
            OTHERWISE 0
 
 `the PE table gives 0.3 and 0.5 two amounts each` MEANS
@@ -142,6 +158,10 @@ DECIDE `additional physical-education allowance` y IS
 `the value of two robes` MEANS 284
 
 -- ¶28–29: the allowance is paid by the list of professions.
+-- F-2006-07_tashsaz_07-e: one teaching professions on both lists meets
+-- both grants. The reading adopted, as F-2008-09_tashsat_10-e's: the
+-- larger grant, which holds the two robes the other grants; the record
+-- names one profession, and its list decides.
 @ref akn:hc_1/p28 akn:hc_1/p29
 GIVEN y IS AN `employee year`
 GIVETH A NUMBER
@@ -212,3 +232,92 @@ DECIDE `paid in full with July's salary` y IS
 
 #TRACE `paid in full with July's salary` `a full-time PE teacher, 30 years` AT 0 WITH
     PARTY `the employer` DOES `pay the clothing allowance` 2184 AT 11
+
+§§ `Property checks`
+
+-- The circular over its whole finite space: completed years 0 to 60,
+-- positions and physical-education positions in tenths from 0 to 1.5,
+-- every listed profession and none.
+
+`tenths to 1.5` MEANS map (GIVEN k YIELD k DIVIDED BY 10) (range 0 15)
+`every profession checked` MEANS "" FOLLOWED BY append `the shoes-and-robes professions` `the two-robes professions`
+
+GIVEN n IS A NUMBER, f IS A NUMBER, e IS A NUMBER, t IS A STRING
+GIVETH AN `employee year`
+DECIDE `a checked year` n f e t IS
+    `employee year` WITH
+        `completed years of teaching seniority` IS n
+        `position fraction`                     IS f
+        `physical-education position`           IS e
+        `technological profession`              IS t
+
+-- ¶15-19 on the reading adopted: every year served from 1 to 61 is in
+-- exactly one row, the amount is that row's, and it never falls with
+-- seniority.
+#ASSERT all (GIVEN n YIELD
+                    count (`the amounts the table gives for seniority` (`the year being served` n)) EQUALS 1
+                AND `the amounts the table gives for seniority` (`the year being served` n) EQUALS LIST (`full-position general allowance` n)
+                AND `full-position general allowance` n AT MOST `full-position general allowance` (n PLUS 1))
+            (range 0 60)
+
+-- ¶21-26 over physical-education positions in tenths: every one is in some
+-- row, two rows exactly at 0.3 and 0.5 (F-2006-07_tashsaz_07-b over the
+-- whole space), the amount is one of those rows', and it never falls.
+#ASSERT all (GIVEN e YIELD
+                LET rows MEANS `the amounts the PE table gives for position` e
+                IN      count rows AT LEAST 1
+                    AND (count rows EQUALS 2) EQUALS (e EQUALS 0.3 OR e EQUALS 0.5)
+                    AND elem (`the PE amount for an employment rate of` e) rows
+                    AND `the PE amount for an employment rate of` e AT MOST `the PE amount for an employment rate of` (e PLUS 0.1))
+            `tenths to 1.5`
+
+-- ¶28-49: no profession is on both lists.
+#ASSERT all (GIVEN t YIELD NOT elem t `the two-robes professions`) `the shoes-and-robes professions`
+
+-- ¶20, ¶50-51 over every seniority band's edges, position, physical-
+-- education position and profession: the allowance is never negative, an
+-- employee with a position is paid, the whole never exceeds the three top
+-- amounts, and it never falls with a larger position, above one position
+-- paying as one.
+#ASSERT all (GIVEN n YIELD
+                all (GIVEN f YIELD
+                        all (GIVEN t YIELD
+                                LET a MEANS `clothing allowance` (`a checked year` n f 0.6 t)
+                                IN      a AT LEAST 0
+                                    AND (f EQUALS 0 OR a GREATER THAN 0)
+                                    AND a AT MOST 1754 PLUS 430 PLUS `the value of a pair of shoes and two robes`
+                                    AND a AT MOST `clothing allowance` (`a checked year` n (f PLUS 0.1) 0.6 t)
+                                    AND ((f LESS THAN 1) OR a EQUALS `clothing allowance` (`a checked year` n (f PLUS 0.5) 0.6 t)))
+                            `every profession checked`)
+                    `tenths to 1.5`)
+            (LIST 0, 24, 25, 60)
+
+-- F-2006-07_tashsaz_07-d: a full-position teacher with a fifth of it in
+-- physical education is paid nothing by the physical-education position
+-- and 430 by the whole position.
+`the two readings of the employment rate differ` MEANS
+    NOT (`the PE amount for an employment rate of` 0.2 EQUALS `the PE amount for an employment rate of` 1)
+#ASSERT `the two readings of the employment rate differ`
+
+-- F-2006-07_tashsaz_07-e: a teacher of mechatronics and of electronic
+-- systems is on both lists: added, the grants give shoes and four robes
+-- (459 + 284); the larger alone, shoes and two robes (459).
+GIVEN `professions` IS A LIST OF STRING
+GIVETH A NUMBER
+DECIDE `both lists' grants added` `professions` IS
+    (IF any (GIVEN t YIELD elem t `the shoes-and-robes professions`) `professions` THEN `the value of a pair of shoes and two robes` ELSE 0)
+    PLUS (IF any (GIVEN t YIELD elem t `the two-robes professions`) `professions` THEN `the value of two robes` ELSE 0)
+
+GIVEN `professions` IS A LIST OF STRING
+GIVETH A NUMBER
+DECIDE `the larger grant` `professions` IS
+    BRANCH IF any (GIVEN t YIELD elem t `the shoes-and-robes professions`) `professions` THEN `the value of a pair of shoes and two robes`
+           IF any (GIVEN t YIELD elem t `the two-robes professions`) `professions` THEN `the value of two robes`
+           OTHERWISE 0
+
+`a teacher on both technological lists meets two grants` MEANS
+        any (GIVEN t YIELD elem t `the shoes-and-robes professions`) (LIST "mechatronics", "electronic systems")
+    AND any (GIVEN t YIELD elem t `the two-robes professions`) (LIST "mechatronics", "electronic systems")
+    AND NOT (`both lists' grants added` (LIST "mechatronics", "electronic systems") EQUALS `the larger grant` (LIST "mechatronics", "electronic systems"))
+    AND `the larger grant` (LIST "mechatronics") EQUALS `full-position technological allowance` (`a checked year` 10 1 0 "mechatronics")
+#ASSERT `a teacher on both technological lists meets two grants`

@@ -436,12 +436,28 @@ DECIDE `the jubilee grant with June's salary` j IS
 -- year of unpaid leave for which pension rights were bought counts in the
 -- years of seniority. The reading adopted (F-2008-09_tashsat_09-c, -d):
 -- section 2's own measure, completed by section 2ב's day, 1 June of the year.
+-- F-2008-09_tashsat_09-e: "30 שנה ומעלה" or once, in the year the 30 are
+-- completed (2ב's "באותה שנה"). The reading adopted: once — seniority on
+-- 1 June within a year of 30 — as F-2006-07_tashsaz_06-d and
+-- F-2007-08_tashsach_05-c read the same words.
 @ref akn:art_2/p2 akn:art_2__para_a
 GIVEN j IS A `jubilee case`
 GIVETH A BOOLEAN
 DECIDE `entitled to the jubilee grant` j IF
+        `the years counted for the jubilee` j AT LEAST `the jubilee threshold`
+    AND `the years counted for the jubilee` j LESS THAN `the jubilee threshold` PLUS 1
+
+GIVEN j IS A `jubilee case`
+GIVETH A NUMBER
+DECIDE `the years counted for the jubilee` j IS
     j's `teaching seniority completed by 1 June 2009` PLUS j's `unpaid-leave years with pension rights bought`
-    AT LEAST `the jubilee threshold`
+
+-- Section 2 ¶2's own words, "30 שנה ומעלה", with no year named.
+@ref akn:art_2/p2
+GIVEN j IS A `jubilee case`
+GIVETH A BOOLEAN
+DECIDE `has the "30 years and more" section 2 names` j IF
+    `the years counted for the jubilee` j AT LEAST `the jubilee threshold`
 
 -- Section 2 ¶3 and 2ג: 60% of the determining salary for pension and
 -- severance, once-a-year payments such as clothing and recuperation
@@ -621,3 +637,170 @@ DECIDE `entitled by work in Israel completed by 1 June` j IF
     PARTY `the local authority or owning body` DOES `pay the withheld part after the determining period` AT 30
 #TRACE `the jubilee grant with June's salary` `a teacher who reaches 30 years in March 2009` AT 0 WITH
     PARTY `the local authority or owning body` DOES `pay the jubilee grant` 6000 AT 10
+
+§§ `Property checks`
+
+-- The circular over its whole finite space: seniority years 1 to 60,
+-- positions in quarters from 0 to 1.5, 0 to 12 months of work, day prices
+-- from 0 to 600 in steps of 50 with the 2009 price, both kinds of 2010
+-- payment's months, a retiree's share of the year in quarters, every
+-- population and computation, and a career's seniority on 1 June from 0 to
+-- 45 in quarter years.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`positions in quarters` MEANS map (GIVEN k YIELD k DIVIDED BY 4) (range 0 6)
+`shares in quarters` MEANS LIST 0, 0.25, 0.5, 0.75, 1
+`the day prices checked` MEANS `the 2009 day price before the cut` FOLLOWED BY map (GIVEN k YIELD k TIMES 50) (range 0 12)
+`every population` MEANS
+    LIST `State service in official education`, `recognised unofficial kindergartens, primary or middle schools`,
+         `colleges of teacher training`, `government post-primary schools`, `any other teaching employee of an owner`
+`every computation` MEANS
+    LIST `the sum paid to a provident fund, pension fund and study fund included`,
+         `income and tax on provident-fund payments in the determining period`, `budget-pension payments`,
+         `one-off payments on the end of employment`, `the determining salary for the 2% budget-pension deduction`,
+         `any other computation`
+
+GIVEN n IS A NUMBER, f IS A NUMBER, m IS A NUMBER, p IS A NUMBER, e IS A BOOLEAN, r IS A BOOLEAN, w IS A `teaching population`
+GIVETH A `recuperation case`
+DECIDE `a checked case` n f m p e r w IS
+    `recuperation case` WITH
+        `teaching seniority in years`           IS n
+        `position fraction`                     IS f
+        `months of work in the year`            IS m
+        `daily price without the cut`           IS p
+        `civil-service daily price without the cut` IS 383
+        `form of payment`                       IS `an annual payment`
+        `paid in 2009 before June's salary`     IS e
+        `budget-pension retiree entitled from the former employer` IS r
+        `population`                            IS w
+
+-- 1ח: the printed table is a function on years 1 to 60, the BRANCH agrees
+-- with it, and the days never fall as the seniority rises.
+#ASSERT all (GIVEN n YIELD
+                    `the days the table gives for year` n EQUALS LIST (`recuperation days` n)
+                AND `recuperation days` n AT MOST `recuperation days` (n PLUS 1))
+            (range 1 60)
+
+-- 1ב over the day prices: the cut is half the price and never more than
+-- 191.5, the price after it never negative and never falling as the price
+-- rises.
+#ASSERT all (GIVEN p YIELD
+                    `the cut of a day price` p AT MOST p TIMES `the cut rate`
+                AND `the cut of a day price` p AT MOST `the most the 2009 cut takes from a day`
+                AND `the day price after the cut` p AT LEAST 0
+                AND `the day price after the cut` p AT MOST `the day price after the cut` (p PLUS 50))
+            `the day prices checked`
+
+-- 1ב-1ז, 1ט-1י, 1יד over every band's first and last year, position,
+-- month count, early payment, pensioner and population: the 2009 pay is
+-- never negative, never above the uncut pay, cut exactly for an owner's
+-- other employee who is no budget pensioner and was not paid early, never
+-- falls with a larger position or a month more, and one full position
+-- gets as much as any above it.
+#ASSERT all (GIVEN n YIELD
+                all (GIVEN f YIELD
+                        all (GIVEN m YIELD
+                                all (GIVEN e YIELD
+                                        all (GIVEN r YIELD
+                                                all (GIVEN w YIELD
+                                                        LET c MEANS `a checked case` n f m 383 e r w
+                                                            a MEANS `recuperation pay in 2009` c
+                                                            u MEANS `recuperation pay at` 383 `for` c
+                                                        IN      a AT LEAST 0
+                                                            AND a AT MOST u
+                                                            AND (a LESS THAN u) EQUALS (u GREATER THAN 0 AND w EQUALS `any other teaching employee of an owner` AND (NOT r) AND (NOT e))
+                                                            AND a AT MOST `recuperation pay in 2009` (`a checked case` n (f PLUS 0.25) m 383 e r w)
+                                                            AND a AT MOST `recuperation pay in 2009` (`a checked case` n f (m PLUS 1) 383 e r w)
+                                                            AND `recuperation pay in 2009` (`a checked case` n (max f 1) m 383 e r w) EQUALS `recuperation pay in 2009` (`a checked case` n (max f 1 PLUS 0.5) m 383 e r w))
+                                                    `every population`)
+                                            `both booleans`)
+                                    `both booleans`)
+                            (LIST 0, 5, 9, 10, 11, 12))
+                    `positions in quarters`)
+            (LIST 1, 3, 4, 10, 11, 15, 16, 19, 20, 24, 25, 60)
+
+-- 1ו: the two routes agree. A retiree whose year is split before and after
+-- the retirement is paid, by 1ו(1), the cut pay for the part before and
+-- the full pay for the part after; by 1ו(2), the cut pay with June and the
+-- cut part of the time after refunded — the same sum, for every share and
+-- every band.
+#ASSERT all (GIVEN n YIELD
+                all (GIVEN b YIELD
+                        LET c MEANS `a checked case` n 1 10 383 FALSE FALSE `any other teaching employee of an owner`
+                        IN  `recuperation pay in 2009` c PLUS `the cut part for the period after retirement` c (1 MINUS b)
+                            EQUALS `recuperation pay for a retiree's year` c b)
+                    `shares in quarters`)
+            (LIST 1, 4, 11, 16, 20, 25)
+
+-- 1ג: the 2010 day price for one paid early is never negative and never
+-- above the uncut price. 1ד over 0 to 12 months employed in 2009 and each
+-- month of 2010: the share paid is nothing or half, never falls as 2010
+-- goes on, never rises with more months employed in 2009, and is nothing
+-- for one employed all of 2009 and half for one not employed then.
+#ASSERT all (GIVEN p YIELD
+                LET c MEANS `a checked case` 12 1 10 p TRUE FALSE `any other teaching employee of an owner`
+                IN      `the 2010 day price for one paid early in 2009` c AT LEAST 0
+                    AND `the 2010 day price for one paid early in 2009` c AT MOST p)
+            `the day prices checked`
+#ASSERT all (GIVEN e YIELD
+                all (GIVEN k YIELD
+                        LET x MEANS `share of the 2010 component paid` e k
+                        IN      (x EQUALS 0 OR x EQUALS 1 MINUS `the cut rate`)
+                            AND ((k EQUALS 12) OR x AT MOST `share of the 2010 component paid` e (k PLUS 1))
+                            AND ((e EQUALS 12) OR `share of the 2010 component paid` (e PLUS 1) k AT MOST x)
+                            AND ((NOT (e EQUALS 12)) OR x EQUALS 0)
+                            AND ((NOT (e EQUALS 0)) OR x EQUALS 1 MINUS `the cut rate`))
+                    (range 1 12))
+            (range 0 12)
+
+-- 1יא: every listed computation reckons the uncut pay, never less than
+-- what is paid; any other computation reckons what is paid.
+#ASSERT all (GIVEN o YIELD
+                LET c MEANS `a checked case` 22 1 10 383 FALSE FALSE `any other teaching employee of an owner`
+                IN      `recuperation pay reckoned` c o AT LEAST `recuperation pay in 2009` c
+                    AND (`recuperation pay reckoned` c o EQUALS `recuperation pay in 2009` c) EQUALS (o EQUALS `any other computation`))
+            `every computation`
+
+-- 2 on the readings adopted, over a career's seniority on 1 June from 0 to
+-- 45 in quarter years: the grant falls in the year the 30 are completed
+-- and no other, never above 60% of the determining salary, never falling
+-- with a larger position or share of the year.
+GIVEN t IS A NUMBER, f IS A NUMBER, s IS A NUMBER
+GIVETH A `jubilee case`
+DECIDE `a checked jubilee case` t f s IS
+    `jubilee case` WITH
+        `teaching seniority set in September 2008`       IS t MINUS 0.75
+        `teaching seniority completed by 1 June 2009`    IS t
+        `years of work in Israel completed by 1 June 2009` IS t
+        `unpaid-leave years with pension rights bought`  IS 0
+        `determining salary for pension and severance`   IS 10000
+        `jubilee position fraction`                      IS f
+        `share of the year employed`                     IS s
+
+#ASSERT all (GIVEN q YIELD
+                `entitled to the jubilee grant` (`a checked jubilee case` (q DIVIDED BY 4) 1 1)
+                EQUALS (q AT LEAST 120 AND q LESS THAN 124))
+            (range 0 180)
+#ASSERT all (GIVEN f YIELD
+                all (GIVEN s YIELD
+                        LET g MEANS `the jubilee grant` (`a checked jubilee case` 30 f s)
+                        IN      g AT LEAST 0
+                            AND g AT MOST `the jubilee rate` TIMES 10000
+                            AND g AT MOST `the jubilee grant` (`a checked jubilee case` 30 (f PLUS 0.25) s)
+                            AND g AT MOST `the jubilee grant` (`a checked jubilee case` 30 f (s PLUS 0.25)))
+                    `shares in quarters`)
+            `positions in quarters`
+
+-- F-2008-09_tashsat_09-e: over the same career, section 2's "30 שנה ומעלה"
+-- and the once-only reading part in exactly the years from the 31st on; a
+-- teacher in year 35 is in the one and not the other.
+#ASSERT all (GIVEN q YIELD
+                (NOT (`has the "30 years and more" section 2 names` (`a checked jubilee case` (q DIVIDED BY 4) 1 1)
+                      EQUALS `entitled to the jubilee grant` (`a checked jubilee case` (q DIVIDED BY 4) 1 1)))
+                EQUALS (q AT LEAST 124))
+            (range 0 180)
+
+`"30 years and more" reaches a 35-year teacher, the once-only reading does not` MEANS
+        `has the "30 years and more" section 2 names` (`a checked jubilee case` 35 1 1)
+    AND NOT `entitled to the jubilee grant` (`a checked jubilee case` 35 1 1)
+#ASSERT `"30 years and more" reaches a 35-year teacher, the once-only reading does not`

@@ -23,7 +23,7 @@ DECLARE `technological subject list` IS ONE OF
 @desc A teaching employee's 2007-08 year, as far as the clothing allowance asks about it.
 DECLARE `clothing year` HAS
     `on the teaching grading`         IS A BOOLEAN
-    `years of teaching seniority`     IS A NUMBER  @desc seniority in teaching, in years
+    `years of teaching seniority`     IS A NUMBER  @desc the year of teaching seniority being served (the first year is 1), as read for F-2007-08_tashsach_06-b
     `position fraction`               IS A NUMBER  @desc share of a full position (1 = 100%)
     `teaches physical education`      IS A BOOLEAN
     `physical-education position`     IS A NUMBER  @desc the share of a full position employed as a physical-education teacher
@@ -50,6 +50,10 @@ DECIDE `entitled to the clothing allowance` y IF
     y's `on the teaching grading`
 
 -- §א.3–4 and the table (¶2–4 under §א.5): by seniority.
+-- F-2007-08_tashsach_06-b: the table opens at year 1 and does not say how
+-- the seniority is counted. The reading adopted, as for the same table in
+-- תשס"ז/7 and תשס"ט/10 (F-2006-07_tashsaz_07-a, F-2008-09_tashsat_10-a):
+-- the year being served counts, so a first-year employee is in year 1.
 @ref akn:art_a__para_3 akn:art_a__para_4 akn:art_a__para_5/p2 akn:art_a__para_5/p3 akn:art_a__para_5/p4
 `the summary table` MEANS
     LIST `seniority row` 1  25  1328,
@@ -110,6 +114,9 @@ DECIDE `the physical-education amount for` share IS
            IF share AT LEAST 0.3 THEN 229
            OTHERWISE 0
 
+-- F-2007-08_tashsach_06-c: "שיעור העסקה" is not said to be of what. The
+-- reading adopted, as F-2008-09_tashsat_10-c's: the position in physical
+-- education.
 GIVEN y IS A `clothing year`
 GIVETH A NUMBER
 DECIDE `the physical-education allowance` y IS
@@ -144,6 +151,10 @@ DECIDE `the physical-education allowance` y IS
 
 -- §ג ¶1–2 and §ג.3: paid for 2007-08 by the subject list, pro-rated to at
 -- most one full position.
+-- F-2007-08_tashsach_06-d: one teaching subjects on both lists meets both
+-- grants. The reading adopted, as F-2008-09_tashsat_10-e's: the larger
+-- grant, which holds the two robes the other grants; the record names the
+-- one list, and the shoes-and-robes list is taken where both apply.
 @ref akn:art_c/p1 akn:art_c/p2
 GIVEN y IS A `clothing year`
 GIVETH A NUMBER
@@ -232,3 +243,86 @@ DECIDE `the allowance is paid with July's salary` y IS
 
 #TRACE `the allowance is paid with July's salary` `a full-time mechatronics instructor, year 10` AT 0 WITH
     PARTY `the employer` DOES `pay the clothing allowance` 1812 AT 11
+
+§§ `Property checks`
+
+-- The circular over its whole finite space: years served 0 to 61,
+-- positions and physical-education positions in tenths from 0 to 1.5,
+-- each subject list and none, on the teaching grading or not.
+
+`tenths to 1.5` MEANS map (GIVEN k YIELD k DIVIDED BY 10) (range 0 15)
+`both booleans` MEANS LIST TRUE, FALSE
+`every subject list` MEANS LIST `not a listed technological subject`, `a shoes-and-two-robes subject`, `a two-robes subject`
+
+GIVEN g IS A BOOLEAN, n IS A NUMBER, f IS A NUMBER, p IS A BOOLEAN, e IS A NUMBER, t IS A `technological subject list`
+GIVETH A `clothing year`
+DECIDE `a checked year` g n f p e t IS
+    `clothing year` WITH
+        `on the teaching grading`         IS g
+        `years of teaching seniority`     IS n
+        `position fraction`               IS f
+        `teaches physical education`      IS p
+        `physical-education position`     IS e
+        `technological subject`           IS t
+
+-- §א.4: every year served from 1 to 61 is in exactly one row, and the
+-- amount never falls with seniority. Year 0 is in none: on any count of
+-- the seniority that starts at 0, a first-year employee entitled by §א.2
+-- has no amount (F-2007-08_tashsach_06-b).
+#ASSERT all (GIVEN n YIELD
+                    count (filter (GIVEN r YIELD n AT LEAST r's `from seniority` AND n AT MOST r's `to seniority`) `the summary table`) EQUALS 1
+                AND `the full-position amount for seniority` n AT MOST `the full-position amount for seniority` (n PLUS 1))
+            (range 1 60)
+
+`a first-year employee has no row if seniority counts completed years` MEANS
+        `entitled to the clothing allowance` (`a checked year` TRUE 0 1 FALSE 0 `not a listed technological subject`)
+    AND `the general clothing allowance` (`a checked year` TRUE 0 1 FALSE 0 `not a listed technological subject`) EQUALS 0
+    AND `the general clothing allowance` (`a checked year` TRUE 1 1 FALSE 0 `not a listed technological subject`) EQUALS 1328
+#ASSERT `a first-year employee has no row if seniority counts completed years`
+
+-- §ב over physical-education positions in tenths: every one is in some
+-- row, two rows exactly at 0.3 and 0.5 (F-2007-08_tashsach_06-a over the
+-- whole space), the amount is one of those rows', and it never falls.
+#ASSERT all (GIVEN e YIELD
+                LET rows MEANS `the amounts the table gives for` e
+                IN      count rows AT LEAST 1
+                    AND (count rows EQUALS 2) EQUALS (e EQUALS 0.3 OR e EQUALS 0.5)
+                    AND elem (`the physical-education amount for` e) rows
+                    AND `the physical-education amount for` e AT MOST `the physical-education amount for` (e PLUS 0.1))
+            `tenths to 1.5`
+
+-- §§א-ג over every grading, band edge, position, subject list and
+-- physical-education share: the whole is never negative, nothing off the
+-- teaching grading but §ב's and §ג's additions, something for anyone on
+-- it with a position, never more than the three top amounts, never
+-- falling with a larger position, above one paying as one.
+#ASSERT all (GIVEN g YIELD
+                all (GIVEN n YIELD
+                        all (GIVEN f YIELD
+                                all (GIVEN t YIELD
+                                        LET a MEANS `the whole clothing allowance` (`a checked year` g n f TRUE 0.6 t)
+                                        IN      a AT LEAST 0
+                                            AND ((NOT g) OR f EQUALS 0 OR `the general clothing allowance` (`a checked year` g n f TRUE 0.6 t) GREATER THAN 0)
+                                            AND a AT MOST 1851 PLUS 454 PLUS `the value of shoes and two robes`
+                                            AND a AT MOST `the whole clothing allowance` (`a checked year` g n (f PLUS 0.1) TRUE 0.6 t)
+                                            AND ((f LESS THAN 1) OR a EQUALS `the whole clothing allowance` (`a checked year` g n (f PLUS 0.5) TRUE 0.6 t)))
+                                    `every subject list`)
+                            `tenths to 1.5`)
+                    (LIST 1, 25, 26, 60))
+            `both booleans`
+
+-- F-2007-08_tashsach_06-c: a full-position teacher with a fifth of it in
+-- physical education is paid nothing by the physical-education position
+-- and 454 by the whole position.
+`the two readings of the employment rate differ` MEANS
+    NOT (`the physical-education amount for` 0.2 EQUALS `the physical-education amount for` 1)
+#ASSERT `the two readings of the employment rate differ`
+
+-- F-2007-08_tashsach_06-d: a teacher of מכטרוניקה and of מערכות
+-- אלקטרוניות is on both lists: added, the grants give shoes and four robes
+-- (484 + 300); the larger alone, shoes and two robes (484).
+`a teacher on both technological lists meets two grants` MEANS
+        `the list a subject is on` "מכטרוניקה" EQUALS `a shoes-and-two-robes subject`
+    AND `the list a subject is on` "מערכות אלקטרוניות" EQUALS `a two-robes subject`
+    AND NOT (`the value of shoes and two robes` PLUS `the value of two robes` EQUALS `the value of shoes and two robes`)
+#ASSERT `a teacher on both technological lists meets two grants`
