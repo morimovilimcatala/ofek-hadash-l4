@@ -122,3 +122,57 @@ DECIDE `the December 2013 reimbursement` IS
 
 #TRACE `the December 2013 reimbursement` AT 0 WITH
     PARTY `the Ministry of Education` DOES `reimburse the owners at the new rate` 201309 AT 3
+
+§§ `Property checks`
+
+-- The circular over a finite space: every combination of the grade, the
+-- owner and the upper division; positions in twelfths from 0 to 1.5; work
+-- months 0 to 12; calendar months from 1/2013 to 12/2014.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`twelfths to 1.5` MEANS map (GIVEN k YIELD k DIVIDED BY 12) (range 0 18)
+`months checked` MEANS
+    append (map (GIVEN k YIELD 201300 PLUS k) (range 1 12)) (map (GIVEN k YIELD 201400 PLUS k) (range 1 12))
+
+GIVEN g IS A BOOLEAN, u IS A BOOLEAN, p IS A NUMBER, w IS A NUMBER, c IS A NUMBER
+GIVETH A `drinks month`
+DECIDE `a checked month` g u p w c IS
+    `drinks month` WITH
+        `graded as a teaching employee`  IS g
+        `employed by a supervised owner` IS TRUE
+        `in the upper division`          IS u
+        `position at the school`         IS p
+        `work month of the school year`  IS w
+        `month`                          IS c
+
+-- ¶15 and sections 1-2 over the whole space: the allowance is 10.42 or
+-- nothing; it is 10.42 exactly for an upper-division teaching employee at a
+-- third of a position or more, in one of the ten working months, from
+-- 3/2013; it does not grow with the position past the threshold.
+#ASSERT all (GIVEN g YIELD
+                all (GIVEN u YIELD
+                        all (GIVEN p YIELD
+                                all (GIVEN w YIELD
+                                        all (GIVEN c YIELD
+                                                LET a MEANS `the drinks allowance for the month` (`a checked month` g u p w c)
+                                                IN      (a EQUALS 0 OR a EQUALS 10.42)
+                                                    AND (a EQUALS 10.42)
+                                                        EQUALS (    g AND u AND p AT LEAST 1 DIVIDED BY 3
+                                                                AND w AT LEAST 1 AND w AT MOST 10
+                                                                AND c AT LEAST `March 2013`))
+                                            `months checked`)
+                                    (range 0 12))
+                            `twelfths to 1.5`)
+                    `both booleans`)
+            `both booleans`
+
+-- Over a school year at full time from 9/2013, ten months are paid and two
+-- are not.
+#ASSERT count (filter (GIVEN w YIELD `the drinks allowance for the month` (`a checked month` TRUE TRUE 1 w 201310) GREATER THAN 0) (range 1 12)) EQUALS 10
+
+-- F-2013-14_tashad_05-a over the calendar months: a month carries the new
+-- rate and is not reimbursed at it exactly from 3/2013 to 8/2013.
+#ASSERT all (GIVEN c YIELD
+                (isJust (`the drinks rate` c) AND NOT `the Ministry reimburses the month at the new rate` c)
+                EQUALS (c AT LEAST `March 2013` AND c LESS THAN `September 2013`))
+            `months checked`

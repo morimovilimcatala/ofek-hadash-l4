@@ -227,3 +227,92 @@ DECLARE `payment computed without the reduction` IS ONE OF
 
 #TRACE `no month in the period is paid unreduced` `a full-time upper-division teacher` 20140101 AT 0 WITH
     PARTY `the employer` DOES `pay the month's salary` 12702.098 AT 0
+
+§§ `Property checks`
+
+-- The circular over a finite space: every stage, the grade and the owner
+-- or not, every kind of pay component at 0 to 12,000, dates on either side
+-- of both ends of the reduction period, minimum wages of 0 and 4,300.
+
+`every stage` MEANS LIST `upper division`, `grades 13-14`, `another stage`
+`both booleans` MEANS LIST TRUE, FALSE
+`every terms` MEANS
+    LIST `not employed under a reform, or a principal under Oz LeTmura`,
+         `a non-principal in partial implementation of Oz LeTmura`,
+         `a non-principal in full implementation of Oz LeTmura`
+`both supplements` MEANS LIST `the '94 teaching-reinforcement supplement`, `the '87 agreement supplement`
+`every kind` MEANS
+    LIST `paid monthly, weekly or daily, or computed on other components`, `derived from the hour value, such as overtime`,
+         `paid otherwise and not computed on other components`, `recuperation, clothing or the like`,
+         `reimbursement of expenses`, `tax gross-up paid by the employer`, `completion up to the minimum wage`,
+         `not income from work paid in money`
+`dates checked` MEANS LIST 20130630, `1 July 2013`, 20140101, `31 December 2014`, 20150101
+
+GIVEN g IS A BOOLEAN, o IS A BOOLEAN, s IS A `stage of education`, k IS A `kind of pay component`, a IS A NUMBER, w IS A NUMBER
+GIVETH AN `upper-division employee`
+DECIDE `a checked employee` g o s k a w IS
+    `upper-division employee` WITH
+        `graded as a teaching employee`  IS g
+        `employed by a supervised owner` IS o
+        `stage`                          IS s
+        `terms`                          IS `not employed under a reform, or a principal under Oz LeTmura`
+        `pay components`                 IS LIST `pay component` `paid monthly, weekly or daily, or computed on other components` 8000,
+                                                 `pay component` k a
+        `minimum wage`                   IS w
+
+-- א: the rate is 7.25% exactly from 1.7.2013; each supplement never falls
+-- as the reform goes further, and the '87 one is above the '94 one.
+#ASSERT all (GIVEN d YIELD (`the 2011 supplement rate` d EQUALS 7.25%) EQUALS (d AT LEAST `1 July 2013`)) `dates checked`
+#ASSERT all (GIVEN s YIELD
+                all (GIVEN i YIELD
+                        `the shekel amount from 1.7.2013` (at `every terms` i) s AT MOST `the shekel amount from 1.7.2013` (at `every terms` (i PLUS 1)) s)
+                    (range 0 1))
+            `both supplements`
+#ASSERT all (GIVEN t YIELD
+                `the shekel amount from 1.7.2013` t `the '94 teaching-reinforcement supplement`
+                LESS THAN `the shekel amount from 1.7.2013` t `the '87 agreement supplement`)
+            `every terms`
+
+GIVEN e IS AN `upper-division employee`, g IS A BOOLEAN, o IS A BOOLEAN, s IS A `stage of education`, k IS A `kind of pay component`, a IS A NUMBER, w IS A NUMBER, d IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `section ג holds for` e g o s k a w d IF
+    LET total MEANS 8000 PLUS a
+        base MEANS 8000 PLUS (IF `in the determining base` k THEN a ELSE 0)
+        applies MEANS g AND o AND (s EQUALS `upper division` OR s EQUALS `grades 13-14`)
+        r MEANS `the reduction` e d
+    IN      `the determining base` e EQUALS base
+        AND `the determining base` e AT MOST total
+        AND r EQUALS (IF applies AND d AT LEAST `1 July 2013` AND d AT MOST `31 December 2014` THEN 0.009324 TIMES base ELSE 0)
+        AND `the salary after the reduction` e d AT LEAST w
+        AND ((total MINUS r LESS THAN w) OR `the salary after the reduction` e d EQUALS total MINUS r)
+        AND `the salary the payment is computed on` e `a one-time payment on termination` EQUALS total
+
+-- Section ג over the whole space: the determining base holds exactly the
+-- two kinds ג.1.ב counts and never more than the salary; the reduction is
+-- 0.9324% of it exactly within the period for an employee the circular
+-- applies to; the reduced salary is never below the minimum wage and is
+-- otherwise the salary less the reduction; ג.3's payments are computed on
+-- the salary before it.
+#ASSERT all (GIVEN g YIELD
+                all (GIVEN o YIELD
+                        all (GIVEN s YIELD
+                                all (GIVEN k YIELD
+                                        all (GIVEN a YIELD
+                                                all (GIVEN w YIELD
+                                                        all (GIVEN d YIELD
+                                                                `section ג holds for` (`a checked employee` g o s k a w) g o s k a w d)
+                                                            `dates checked`)
+                                                    (LIST 0, 4300))
+                                            (LIST 0, 3000, 12000))
+                                    `every kind`)
+                            `every stage`)
+                    `both booleans`)
+            `both booleans`
+
+-- The training-fund base is reduced exactly within the period, never
+-- raised.
+#ASSERT all (GIVEN d YIELD
+                    (`the training-fund base after the reduction` 10000 d LESS THAN 10000)
+                    EQUALS (d AT LEAST `1 July 2013` AND d AT MOST `31 December 2014`)
+                AND `the training-fund base after the reduction` 10000 d AT MOST 10000)
+            `dates checked`

@@ -214,3 +214,71 @@ DECIDE `payment in April or May 2013` IS
 
 #TRACE `payment in April or May 2013` AT 0 WITH
     PARTY `the local authority or owning body` DOES `pay the third instalment` 201305 AT 1
+
+§§ `Property checks`
+
+-- The circular over a finite space: every stage, the grade and the owner
+-- or not, dates on either side of 1.4.2013, table values and supplements
+-- from 0 to 12,000 in steps of 3,000.
+
+`every stage` MEANS LIST `kindergarten`, `primary`, `junior high`, `teacher-training college`, `upper division`, `grades 13-14`
+`both booleans` MEANS LIST TRUE, FALSE
+`dates checked` MEANS LIST `1 January 2011`, `1 January 2012`, 20130331, `1 April 2013`, 20130501, 20140101
+`amounts checked` MEANS LIST 0, 3000, 6000, 12000
+
+-- Section 1 over every stage and flag: each stage is governed by exactly
+-- one of this circular and תשע"ג/4, and this one governs a stage's salary
+-- exactly for a graded employee of a supervised owner in a covered stage.
+#ASSERT all (GIVEN s YIELD
+                all (GIVEN g YIELD
+                        all (GIVEN o YIELD
+                                    `this circular governs the salary for the stage`
+                                        (`teacher in the third instalment` WITH
+                                            `graded as a teaching employee`  IS g
+                                            `employed by a supervised owner` IS o
+                                            `employed under Ofek Hadash`     IS FALSE) s
+                                    EQUALS (g AND o AND `the circular that governs the stage` s EQUALS `this circular`))
+                            `both booleans`)
+                    `both booleans`)
+            `every stage`
+
+-- Sections 2א and 3 over every date and amount: a value exactly from
+-- 1.4.2013, and then 5.75% over the value before 1.1.2011, never smaller
+-- than it.
+#ASSERT all (GIVEN d YIELD
+                all (GIVEN v YIELD
+                        LET t MEANS `the Ofek Hadash table value under this circular` v d
+                        IN      isJust t EQUALS (d AT LEAST `1 April 2013`)
+                            AND isJust (`the 2011 supplement rate under 3(1)` d) EQUALS (d AT LEAST `1 April 2013`)
+                            AND ((NOT isJust t) OR t EQUALS JUST (v TIMES 1.0575))
+                            AND fromMaybe v t AT LEAST v)
+                    `amounts checked`)
+            `dates checked`
+
+-- Section 2ב over every pair of conditions and amount: a supplement is
+-- updated exactly when paid in December 2011 and still paid in April 2013,
+-- and the update never lowers it.
+#ASSERT all (GIVEN a YIELD
+                all (GIVEN b YIELD
+                        `a personal shekel supplement 2ב updates` a b EQUALS (a AND b))
+                    `both booleans`)
+            `both booleans`
+#ASSERT all (GIVEN v YIELD `the personal shekel supplement from 1.4.2013` v AT LEAST v) `amounts checked`
+
+-- F-2012-13_tashag_06-a over the four clauses: they name exactly two dates
+-- for the 5.75% level, the operative updates 1.4.2013 and the statements of
+-- the total 1.1.2012.
+`every clause naming a date` MEANS
+    LIST `section 2ב, the update`, `section 2ב, the parenthesis`, `section 3(1)`, `section 3(2)`
+#ASSERT all (GIVEN c YIELD
+                `the date the clause gives for the 5.75% level` c EQUALS `1 April 2013`
+                OR `the date the clause gives for the 5.75% level` c EQUALS `1 January 2012`)
+            `every clause naming a date`
+#ASSERT count (filter (GIVEN c YIELD `the date the clause gives for the 5.75% level` c EQUALS `1 April 2013`) `every clause naming a date`) EQUALS 2
+
+-- 3(2)'s printed amounts: the '87 supplement above the '94 one, each
+-- printed only from 1.4.2013.
+#ASSERT `the updated shekel amount` `the '94 agreement supplement (teaching reinforcement)` LESS THAN `the updated shekel amount` `the '87 agreement supplement`
+#ASSERT all (GIVEN d YIELD
+                isJust (`the shekel amount under this circular on` `the '87 agreement supplement` d) EQUALS (d AT LEAST `1 April 2013`))
+            `dates checked`

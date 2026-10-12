@@ -182,3 +182,74 @@ DECIDE `the owner reimbursed in the August payments` y IS
     PARTY `the employer` DOES `pay the grant` 8204.63 AT 12
 #TRACE `the owner reimbursed in the August payments` `a full-time teacher in a rank-1 school` AT 0 WITH
     PARTY `the Ministry of Education` DOES `reimburse the owner` 8204.63 AT 13
+
+§§ `Property checks`
+
+-- The circular over a finite space: every rank, the grade and the owner or
+-- not, upper-division fractions in tenths from 0 to 1.5, and 0 to 12
+-- months employed of a twelve-month year.
+
+`every rank` MEANS
+    LIST `rank 1, the highest 10%`, `rank 2, the next 10%`, `rank 3, the next 10%`, `rank 4, the next 10%`, `not ranked`
+`both booleans` MEANS LIST TRUE, FALSE
+`tenths to 1.5` MEANS map (GIVEN k YIELD k DIVIDED BY 10) (range 0 15)
+
+-- 2(ב)'s table: the amount falls with each rank, and the four stand as
+-- 8 : 6 : 4 : 3 to within half an agora — one index update applied to the
+-- four amounts alike.
+#ASSERT all (GIVEN i YIELD
+                `the grant for a full position` (at `every rank` (i PLUS 1)) LESS THAN `the grant for a full position` (at `every rank` i))
+            (range 0 3)
+#ASSERT all (GIVEN pair YIELD
+                LET r MEANS at `every rank` (at pair 0)
+                    share MEANS at pair 1
+                    target MEANS `the grant for a full position` `rank 1, the highest 10%` TIMES share
+                IN      `the grant for a full position` r MINUS target AT MOST 0.005
+                    AND target MINUS `the grant for a full position` r AT MOST 0.005)
+            (LIST (LIST 1, 6 DIVIDED BY 8), (LIST 2, 4 DIVIDED BY 8), (LIST 3, 3 DIVIDED BY 8))
+
+GIVEN g IS A BOOLEAN, o IS A BOOLEAN, r IS A `school rank`, f IS A NUMBER, m IS A NUMBER
+GIVETH AN `achievement year`
+DECIDE `a checked year` g o r f m IS
+    `achievement year` WITH
+        `graded as a teaching employee`  IS g
+        `employed by a supervised owner` IS o
+        `rank of the school`             IS r
+        `upper-division fraction`        IS f
+        `months employed in the school`  IS m
+        `months in the school year`      IS 12
+
+GIVEN y IS AN `achievement year`, g IS A BOOLEAN, o IS A BOOLEAN, r IS A `school rank`, f IS A NUMBER, m IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `section 2 holds for` y g o r f m IF
+    LET a MEANS `achievement grant` y
+    IN      a AT LEAST 0
+        AND a AT MOST `the grant for a full position` r
+        AND (a GREATER THAN 0) EQUALS (g AND o AND f GREATER THAN 0 AND m GREATER THAN 0 AND NOT r EQUALS `not ranked`)
+        AND a AT MOST `achievement grant` (`a checked year` g o r (f PLUS 0.1) m)
+        AND a AT MOST `achievement grant` (`a checked year` g o r f (m PLUS 1))
+        AND ((f LESS THAN 1) OR a EQUALS `achievement grant` (`a checked year` g o r (f PLUS 0.5) m))
+        AND `the employer's contribution on the grant` y EQUALS a TIMES 0.05
+
+-- Sections 1 and 2 over the whole space: the grant is never negative,
+-- never above its rank's full amount, something exactly for a graded
+-- employee of a supervised owner with an upper-division fraction and a
+-- month in a ranked school, never falling with a larger fraction or another
+-- month, paying above a full position as one (2(ד)), and carrying the
+-- employer's 5%.
+#ASSERT all (GIVEN g YIELD
+                all (GIVEN o YIELD
+                        all (GIVEN r YIELD
+                                all (GIVEN f YIELD
+                                        all (GIVEN m YIELD
+                                                `section 2 holds for` (`a checked year` g o r f m) g o r f m)
+                                            (range 0 12))
+                                    `tenths to 1.5`)
+                            `every rank`)
+                    `both booleans`)
+            `both booleans`
+
+-- 2(ו)-(ז): the grant counts for the pension contributions and for none of
+-- the other computations.
+#ASSERT all (GIVEN c YIELD `the grant counts for` c EQUALS (c EQUALS `provident-fund contributions for a pension`))
+            (LIST `the hour value`, `severance pay`, `percentage supplements`, `training-fund contributions`, `provident-fund contributions for a pension`)

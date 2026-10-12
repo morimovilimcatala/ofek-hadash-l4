@@ -175,3 +175,62 @@ DECIDE `owners act to set the grades` `a teacher's grade is not yet set` IS
 
 #TRACE `the retroactive top-up` 6400 3 AT 0 WITH
     PARTY `the local authority or owning body` DOES `pay the retroactive difference` 576 AT 1
+
+§§ `Property checks`
+
+-- The circular over a finite space: every role, dates on either side of
+-- 27.8.2013, every component, and bases of 0 to 12,000 in steps of 3,000.
+
+`every role` MEANS LIST `a teacher`, `an intern`, `a principal`, `a first deputy principal`
+`dates checked` MEANS LIST 20130801, 20130826, `27 August 2013`, 20131001, 20140601
+`every component` MEANS
+    LIST `combined salary`, `the '87 supplement`, `the '94 supplement`, `the 2001 supplement`, `the 2008 supplement`,
+         `split-day allowance`, `in-service training allowances`, `double-degree allowance`, `the 2011 supplement`, `another component`
+
+-- Section 1.1 over every role and date: every role is in some row, exactly
+-- one but an intern's two (F-2013-14_tashad_03-a, whole space), and the
+-- rate adopted is one of the rows'; the teachers' rate is 30% exactly from
+-- 27.8.2013; a principal's rate is never above a first deputy's, a first
+-- deputy's never above an intern's, an intern's never above a teacher's.
+#ASSERT all (GIVEN r YIELD
+                all (GIVEN d YIELD
+                        LET rows MEANS `the advance rates the rows give` r d
+                        IN      count rows AT LEAST 1
+                            AND (count rows EQUALS 2) EQUALS (r EQUALS `an intern`)
+                            AND elem (`the advance rate` r d) rows)
+                    `dates checked`)
+            `every role`
+#ASSERT all (GIVEN d YIELD
+                    (`the advance rate` `a teacher` d EQUALS 30%) EQUALS (d AT LEAST `27 August 2013`)
+                AND `the advance rate` `a principal` d AT MOST `the advance rate` `a first deputy principal` d
+                AND `the advance rate` `a first deputy principal` d AT MOST `the advance rate` `an intern` d
+                AND `the advance rate` `an intern` d AT MOST `the advance rate` `a teacher` d)
+            `dates checked`
+
+-- The advance over every role, date, component and amount: never
+-- negative, exactly the rate on the components in the base, and nothing on
+-- a component outside it.
+#ASSERT all (GIVEN r YIELD
+                all (GIVEN d YIELD
+                        all (GIVEN c YIELD
+                                all (GIVEN a YIELD
+                                        LET v MEANS `the Ofek Hadash advance` r d (LIST `component paid` c a)
+                                        IN      v AT LEAST 0
+                                            AND v EQUALS (IF `in the advance base` c THEN `the advance rate` r d TIMES a ELSE 0))
+                                    (LIST 0, 3000, 6000, 12000))
+                            `every component`)
+                    `dates checked`)
+            `every role`
+
+-- The retroactive top-up is never negative and grows with the months.
+#ASSERT all (GIVEN m YIELD
+                    `the retroactive difference` 6400 m AT LEAST 0
+                AND `the retroactive difference` 6400 m AT MOST `the retroactive difference` 6400 (m PLUS 1))
+            (range 0 12)
+
+-- ¶2: an advance is due exactly from the joining date while no grade is set.
+#ASSERT all (GIVEN d YIELD
+                all (GIVEN g YIELD
+                        `an advance is due` d 20130901 g EQUALS (d AT LEAST 20130901 AND NOT g))
+                    (LIST TRUE, FALSE))
+            `dates checked`

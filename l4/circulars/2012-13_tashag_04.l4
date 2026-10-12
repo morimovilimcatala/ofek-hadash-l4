@@ -164,3 +164,60 @@ DECIDE `the Ministry reimburses from January 2013` IS
     PARTY `the local authority or owning body` DOES `pay the raised supplements` 201301 AT 0
 #TRACE `the Ministry reimburses from January 2013` AT 0 WITH
     PARTY `the Ministry of Education` DOES `reimburse the owners` 201301 AT 1
+
+§§ `Property checks`
+
+-- The circular over a finite space: every employment terms and supplement,
+-- dates on either side of both ends of the window, the grade and the owner
+-- or not, and upper-division fractions in tenths from 0 to 1.5.
+
+`every terms` MEANS
+    LIST `not employed under a reform, or a principal under Oz LeTmura`,
+         `a non-principal in partial implementation of Oz LeTmura`,
+         `a non-principal in full implementation of Oz LeTmura`
+`both supplements` MEANS LIST `the '94 teaching-reinforcement supplement`, `the '87 agreement supplement`
+`dates checked` MEANS LIST 20121231, `1 January 2013`, 20130315, `30 June 2013`, 20130701, 20140101
+`both booleans` MEANS LIST TRUE, FALSE
+
+-- ב.1(ב): each supplement never falls as the reform goes further, and the
+-- '87 supplement is above the '94 one in every group.
+#ASSERT all (GIVEN s YIELD
+                all (GIVEN i YIELD
+                        `the shekel amount` (at `every terms` i) s AT MOST `the shekel amount` (at `every terms` (i PLUS 1)) s)
+                    (range 0 1))
+            `both supplements`
+#ASSERT all (GIVEN e YIELD
+                `the shekel amount` e `the '94 teaching-reinforcement supplement` LESS THAN `the shekel amount` e `the '87 agreement supplement`)
+            `every terms`
+
+-- ב.1 over every date checked: a rate and amounts exactly within
+-- 1.1.2013-30.6.2013 (F-2012-13_tashag_04-a, whole space), and then the
+-- printed ones.
+#ASSERT all (GIVEN d YIELD
+                LET inside MEANS d AT LEAST `1 January 2013` AND d AT MOST `30 June 2013`
+                IN      isJust (`the 2011 supplement rate under this circular on` d) EQUALS inside
+                    AND all (GIVEN e YIELD
+                                all (GIVEN s YIELD
+                                        `the shekel amount under this circular on` e s d
+                                        EQUALS (IF inside THEN JUST (`the shekel amount` e s) ELSE NOTHING))
+                                    `both supplements`)
+                            `every terms`)
+            `dates checked`
+
+-- Section א over every flag and fraction: the circular prices exactly the
+-- upper-division fraction of a graded employee of a supervised owner, and
+-- nothing else.
+#ASSERT all (GIVEN g YIELD
+                all (GIVEN o YIELD
+                        all (GIVEN f YIELD
+                                `the fraction this circular prices`
+                                    (`upper-division teacher` WITH
+                                        `graded as a teaching employee`  IS g
+                                        `employed by a supervised owner` IS o
+                                        `upper-division fraction`        IS f
+                                        `other-division fraction`        IS 0.3
+                                        `employment terms`               IS `a non-principal in full implementation of Oz LeTmura`)
+                                EQUALS (IF g AND o THEN f ELSE 0))
+                            (map (GIVEN k YIELD k DIVIDED BY 10) (range 0 15)))
+                    `both booleans`)
+            `both booleans`
