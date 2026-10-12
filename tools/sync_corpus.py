@@ -2,9 +2,12 @@
 
     python3 tools/sync_corpus.py /path/to/TeachersSalaryCatala
 
-Copies every file corpus/SOURCE.toml lists, rewrites the manifest of the
-corpus's documents, and records the checkout's commit and the copies'
-hashes. Nothing here edits a corpus file; a defect in one is fixed there.
+First records, in corpus/cited-rows.tsv, the words every cited row holds in
+the corpus being replaced (tools/cited_rows.py); then copies every file
+corpus/SOURCE.toml lists, rewrites the manifest of the corpus's documents,
+and records the checkout's commit and the copies' hashes. A cited row whose
+words the new corpus moved fails tests/test_sync.py, which names where they
+went: re-point the citation, then `python3 tools/cited_rows.py --write`. Nothing here edits a corpus file; a defect in one is fixed there.
 """
 from __future__ import annotations
 
@@ -45,6 +48,11 @@ def manifest(src: Path) -> list[dict]:
 
 def main(src_dir: str) -> int:
     src = Path(src_dir).resolve()
+    # Record the words every cited row holds in the corpus being REPLACED,
+    # so a row the new corpus renumbers is caught by tests/test_sync.py
+    # instead of resolving silently to its neighbour (MMS-470).
+    import cited_rows
+    print(f"recorded {cited_rows.write_record()} cited rows before the sync")
     source = tomllib.loads((ROOT / "corpus/SOURCE.toml").read_text(encoding="utf-8"))
     commit = subprocess.run(["git", "-C", str(src), "rev-parse", "HEAD"],
                             capture_output=True, text=True, check=True).stdout.strip()

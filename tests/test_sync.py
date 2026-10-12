@@ -14,6 +14,7 @@ SKIPS elsewhere, saying so.
 import hashlib
 import os
 import subprocess
+import sys
 import tomllib
 import unittest
 from pathlib import Path
@@ -67,6 +68,43 @@ class CorpusIsCurrent(unittest.TestCase):
         there = {p.removeprefix("akn/") for p in ls if p.endswith(".xml") and "/schema/" not in p}
         self.assertEqual(([], []), (sorted(there - listed), sorted(listed - there)),
                          "(added, dropped) since the last sync: run tools/sync_corpus.py")
+
+class CitedRowsKeepTheirWords(unittest.TestCase):
+    """A cited key must still name the words it was written against
+    (MMS-470). The alignment tests check that a cited key EXISTS; a re-sync
+    that inserts a row renumbers every `/pN` after it, every old key still
+    exists, and each one silently names its neighbour. tools/sync_corpus.py
+    records the cited rows' words before it copies the new corpus; this
+    fails on each cited key whose words moved, naming where they went.
+    Runs on the vendored corpus alone, so it needs no checkout."""
+
+    @classmethod
+    def setUpClass(cls):
+        sys.path.insert(0, str(ROOT / "tools"))
+        import cited_rows
+        cls.cr = cited_rows
+
+    def test_every_cited_row_names_the_words_it_was_recorded_with(self):
+        self.assertTrue(self.cr.RECORD.exists(), "corpus/cited-rows.tsv is missing: "
+                        "python3 tools/cited_rows.py --write")
+        self.assertEqual([], self.cr.moved(),
+                         "a cited row's words moved (a re-sync renumbered it?): re-point each "
+                         "citation to the row named, then python3 tools/cited_rows.py --write")
+
+    def test_a_shifted_row_is_named_where_its_words_went(self):
+        import akn
+        def section(texts):
+            rows = [akn.Row("x", 0, "label", "1")]
+            rows += [akn.Row(f"x/p{i}", 1, "text", runs=[akn.Run(t)]) for i, t in enumerate(texts, 1)]
+            return akn.Section("x", "x", "", "", "", "", rows)
+        before = self.cr.section_digests(section(["מדינת ישראל", "משרד החינוך"]))
+        after = self.cr.section_digests(section(["[הערת קריאה]", "מדינת ישראל", "משרד החינוך"]))
+        self.assertNotEqual(before["x/p1"], after["x/p1"])
+        self.assertEqual(before["x/p1"], after["x/p2"])
+        self.assertEqual(before["x/p2"], after["x/p3"])
+        # a key that heads others is held to everything under it
+        self.assertNotEqual(before["x"], after["x"])
+
 
 if __name__ == "__main__":
     unittest.main()
