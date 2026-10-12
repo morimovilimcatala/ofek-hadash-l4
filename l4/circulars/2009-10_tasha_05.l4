@@ -36,6 +36,10 @@ DECLARE `clothing action` IS ONE OF
 -- July 2010 salary; "במלואה" is read as one payment, not as setting aside
 -- section א.5's pro-rating, which the same section states in the same breath.
 -- Time is counted in school months of 2009/10 (common.l4: September = 1).
+-- F-2009-10_tasha_05-f: only section א, headed "כללי", names the month;
+-- sections ב and ג name none. The reading adopted, as F-2010-11_tashaa_03-e
+-- and F-2011-12_tashab_13-d read the same words: July applies to every
+-- allowance the circular gives, the additions of ב and ג included.
 @ref akn:art_a__para_1
 GIVEN y IS A `clothing year`
 GIVETH A DEONTIC Party `clothing action`
@@ -223,15 +227,29 @@ DECIDE `clothing allowance` y IS
 
 -- Section ג.3: the technological allowance is paid in proportion to the
 -- position, for no more than one full position. Each subparagraph grants on
--- its own words; an employee teaching on both lists meets both, and the
--- text grants both.
+-- its own words, and an employee teaching on both lists meets both
+-- (F-2009-10_tasha_05-e). The reading adopted, as F-2011-12_tashab_13-c and
+-- its siblings read the same words: the larger grant, which holds the two
+-- robes the other grants.
 @ref akn:art_c__para_3
 GIVEN y IS A `clothing year`
 GIVETH A NUMBER
 DECIDE `technological clothing allowance` y IS
-    (    `the shoes and two robes of section ג.1א, by value` y
-     PLUS `the two robes of section ג.1ב, by value` y)
-    TIMES `position share` y
+    `the larger technological grant` y TIMES `position share` y
+
+GIVEN y IS A `clothing year`
+GIVETH A NUMBER
+DECIDE `the larger technological grant` y IS
+    IF `teaches a profession on` `the professions granted shoes and two robes` y
+    THEN `the shoes and two robes of section ג.1א, by value` y
+    ELSE `the two robes of section ג.1ב, by value` y
+
+-- The other reading: both grants, added.
+GIVEN y IS A `clothing year`
+GIVETH A NUMBER
+DECIDE `both grants added` y IS
+    `the shoes and two robes of section ג.1א, by value` y
+    PLUS `the two robes of section ג.1ב, by value` y
 
 -- akn:art_d The contact line for questions (the conditions-of-service unit's telephone numbers); no rule.
 
@@ -314,3 +332,99 @@ DECIDE `technological clothing allowance` y IS
     PARTY `the local authority or owning body` DOES `pay the clothing allowance` 980.5 AT 11
 #TRACE `payment with July's salary` `a half-position teacher in year 30` AT 0 WITH
     PARTY `the local authority or owning body` DOES `pay the clothing allowance` 980.5 AT 12
+
+§§ `Property checks`
+
+-- The circular over its whole finite space: years served 0 to 61,
+-- positions and employment rates in tenths from 0 to 1.5, every profession
+-- of either list, none, and one of each, in technological education or
+-- not, in the teaching-staff grade or not; the value of two robes is a
+-- placeholder of 300, the circular printing none.
+
+`tenths to 1.5` MEANS map (GIVEN k YIELD k DIVIDED BY 10) (range 0 15)
+`both booleans` MEANS LIST TRUE, FALSE
+`every profession list checked` MEANS
+    EMPTY FOLLOWED BY (LIST "מכטרוניקה", "מערכות אלקטרוניות")
+          FOLLOWED BY map (GIVEN t YIELD LIST t) (append `the professions granted shoes and two robes` `the professions granted two robes`)
+
+GIVEN g IS A BOOLEAN, n IS A NUMBER, f IS A NUMBER, e IS A NUMBER, k IS A BOOLEAN, l IS A LIST OF STRING
+GIVETH A `clothing year`
+DECIDE `a checked year` g n f e k l IS
+    `clothing year` WITH
+        `in the teaching-staff grade`        IS g
+        `years of teaching seniority`        IS n
+        `position fraction`                  IS f
+        `teaches physical education`         IS TRUE
+        `physical-education employment rate` IS e
+        `in technological education`         IS k
+        `technological professions taught`   IS l
+        `value of two robes`                 IS 300
+
+-- א.4 on the reading adopted (F-2009-10_tasha_05-a): every year served
+-- from 1 to 61 is in exactly one row, the amount is that row's, and it
+-- never falls. ב over employment rates in tenths: every one is in some
+-- row, two exactly at 0.3 and 0.5 (F-2009-10_tasha_05-b, whole space), the
+-- amount is one of those rows', and it never falls. ג: no profession is on
+-- both lists.
+#ASSERT all (GIVEN n YIELD
+                    count (`the amounts the seniority table gives for` n) EQUALS 1
+                AND `the amounts the seniority table gives for` n EQUALS LIST (`full-position amount by seniority` (`a checked year` TRUE n 1 0 FALSE EMPTY))
+                AND `full-position amount by seniority` (`a checked year` TRUE n 1 0 FALSE EMPTY)
+                    AT MOST `full-position amount by seniority` (`a checked year` TRUE (n PLUS 1) 1 0 FALSE EMPTY))
+            (range 1 60)
+#ASSERT all (GIVEN e YIELD
+                LET rows MEANS `the amounts the physical-education table gives for` e
+                    a MEANS `physical-education allowance` (`a checked year` TRUE 10 1 e FALSE EMPTY)
+                IN      count rows AT LEAST 1
+                    AND (count rows EQUALS 2) EQUALS (e EQUALS 0.3 OR e EQUALS 0.5)
+                    AND elem a rows
+                    AND a AT MOST `physical-education allowance` (`a checked year` TRUE 10 1 (e PLUS 0.1) FALSE EMPTY))
+            `tenths to 1.5`
+#ASSERT all (GIVEN t YIELD NOT elem t `the professions granted two robes`) `the professions granted shoes and two robes`
+
+-- א-ג over every grade, band edge, position and profession list: the whole
+-- is never negative, something for anyone in the grade with a position,
+-- nothing technological outside technological education, never more than
+-- the three top amounts, never falling with a larger position, above one
+-- paying as one.
+#ASSERT all (GIVEN g YIELD
+                all (GIVEN n YIELD
+                        all (GIVEN f YIELD
+                                all (GIVEN k YIELD
+                                        all (GIVEN l YIELD
+                                                LET a MEANS `clothing allowance` (`a checked year` g n f 0.6 k l)
+                                                IN      a AT LEAST 0
+                                                    AND ((NOT g) OR f EQUALS 0 OR `general clothing allowance` (`a checked year` g n f 0.6 k l) GREATER THAN 0)
+                                                    AND (k OR `technological clothing allowance` (`a checked year` g n f 0.6 k l) EQUALS 0)
+                                                    AND a AT MOST 1961 PLUS 481 PLUS `the value of shoes and two robes`
+                                                    AND a AT MOST `clothing allowance` (`a checked year` g n (f PLUS 0.1) 0.6 k l)
+                                                    AND ((f LESS THAN 1) OR a EQUALS `clothing allowance` (`a checked year` g n (f PLUS 0.5) 0.6 k l)))
+                                            `every profession list checked`)
+                                    `both booleans`)
+                            `tenths to 1.5`)
+                    (LIST 1, 25, 26, 60))
+            `both booleans`
+
+-- F-2009-10_tasha_05-e: over every list checked, the two readings of a
+-- teacher on both lists part exactly for one on both; a teacher of
+-- מכטרוניקה and מערכות אלקטרוניות meets both subparagraphs.
+#ASSERT all (GIVEN l YIELD
+                LET y MEANS `a checked year` TRUE 10 1 0 TRUE l
+                IN  (NOT (`both grants added` y EQUALS `the larger technological grant` y))
+                    EQUALS (    `teaches a profession on` `the professions granted shoes and two robes` y
+                            AND `teaches a profession on` `the professions granted two robes` y))
+            `every profession list checked`
+
+`a teacher on both technological lists meets two grants` MEANS
+    LET y MEANS `a checked year` TRUE 10 1 0 TRUE (LIST "מכטרוניקה", "מערכות אלקטרוניות")
+    IN      `teaches a profession on` `the professions granted shoes and two robes` y
+        AND `teaches a profession on` `the professions granted two robes` y
+        AND NOT (`both grants added` y EQUALS `the larger technological grant` y)
+#ASSERT `a teacher on both technological lists meets two grants`
+
+-- F-2009-10_tasha_05-f: of the three sections, only א names the month the
+-- allowance is paid in.
+`the months sections ב and ג name for payment` MEANS EMPTY
+`sections ב and ג name no month of payment` MEANS
+    `the months sections ב and ג name for payment` EQUALS EMPTY
+#ASSERT `sections ב and ג name no month of payment`

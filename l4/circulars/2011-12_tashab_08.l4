@@ -129,9 +129,15 @@ GIVETH A DEONTIC Party `PE clothing action`
 DECIDE `paying the difference with December's salary` t IS
     PARTY `the local authority or owning body`
     MUST  `pay the difference` `amount`
-          PROVIDED `amount` AT LEAST max 0 (`the PE clothing allowance` t MINUS t's `amount already paid for 2010/11`)
+          PROVIDED `amount` AT LEAST `the difference owed` t
     WITHIN `month number` December
     LEST BREACH BY `the local authority or owning body` BECAUSE "section 3: the payments are made with the December 2011 salary"
+
+-- The difference: the new amount less what was paid in July 2011.
+GIVEN t IS A `PE teacher`
+GIVETH A NUMBER
+DECIDE `the difference owed` t IS
+    max 0 (`the PE clothing allowance` t MINUS t's `amount already paid for 2010/11`)
 
 -- akn:conclusions The contact line for questions, the sign-off and signature; no rule.
 
@@ -150,3 +156,65 @@ DECIDE `paying the difference with December's salary` t IS
     PARTY `the local authority or owning body` DOES `pay the difference` 801 AT 4
 #TRACE `paying the difference with December's salary` `a teacher at 0.6 of a position in PE` AT 0 WITH
     PARTY `the local authority or owning body` DOES `pay the difference` 801 AT 5
+
+§§ `Property checks`
+
+-- The circular over its whole finite space: employment rates in tenths
+-- from 0 to 1.5, employed by an owner or not, entitled under the existing
+-- rules or not, and amounts already paid from nothing to above the top
+-- band.
+
+`tenths to 1.5` MEANS map (GIVEN k YIELD k DIVIDED BY 10) (range 0 15)
+`both booleans` MEANS LIST TRUE, FALSE
+`amounts already paid checked` MEANS LIST 0, 252, 501, 652, 1000, 1301, 2000
+
+GIVEN o IS A BOOLEAN, e IS A BOOLEAN, r IS A NUMBER, paid IS A NUMBER
+GIVETH A `PE teacher`
+DECIDE `a checked teacher` o e r paid IS
+    `PE teacher` WITH
+        `employed by an owner of secondary education` IS o
+        `entitled to the extra PE clothing allowance under the existing rules` IS e
+        `PE employment rate`                 IS r
+        `amount already paid for 2010/11`    IS paid
+
+-- 2(ב) over employment rates in tenths: every rate is in some band, two
+-- exactly at 0.3 and 0.5 (F-2011-12_tashab_08-b, whole space), the amount
+-- is one of those bands', and it never falls with the rate. Section 1:
+-- nothing for a teacher outside the circular.
+#ASSERT all (GIVEN r YIELD
+                LET rows MEANS `the amounts the PE table gives for` r
+                    a MEANS `the PE clothing allowance` (`a checked teacher` TRUE TRUE r 0)
+                IN      count rows AT LEAST 1
+                    AND (count rows EQUALS 2) EQUALS (r EQUALS 0.3 OR r EQUALS 0.5)
+                    AND elem a rows
+                    AND a AT MOST `the PE clothing allowance` (`a checked teacher` TRUE TRUE (r PLUS 0.1) 0))
+            `tenths to 1.5`
+#ASSERT all (GIVEN o YIELD
+                all (GIVEN e YIELD
+                        all (GIVEN r YIELD
+                                (`this circular applies to` (`a checked teacher` o e r 0) EQUALS (o AND e))
+                                AND ((o AND e) OR `the PE clothing allowance` (`a checked teacher` o e r 0) EQUALS 0))
+                            `tenths to 1.5`)
+                    `both booleans`)
+            `both booleans`
+
+-- Section 3 over every rate and amount already paid: the difference owed
+-- is never negative, never more than the new amount, and nothing once the
+-- new amount has been paid.
+#ASSERT all (GIVEN r YIELD
+                all (GIVEN paid YIELD
+                        LET t MEANS `a checked teacher` TRUE TRUE r paid
+                        IN      `the difference owed` t AT LEAST 0
+                            AND `the difference owed` t AT MOST `the PE clothing allowance` t
+                            AND ((paid LESS THAN `the PE clothing allowance` t) OR `the difference owed` t EQUALS 0))
+                    `amounts already paid checked`)
+            `tenths to 1.5`
+
+-- F-2011-12_tashab_08-c: over the rates in tenths, the two readings of
+-- "שיעור העסקה" part for a full-position teacher exactly where the PE share
+-- is below 0.5.
+#ASSERT all (GIVEN r YIELD
+                (NOT (`the PE clothing allowance` (`a checked teacher` TRUE TRUE r 0)
+                      EQUALS `the PE clothing allowance` (`a checked teacher` TRUE TRUE 1 0)))
+                EQUALS (r LESS THAN 0.5))
+            `tenths to 1.5`

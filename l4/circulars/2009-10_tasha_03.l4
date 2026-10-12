@@ -395,9 +395,22 @@ DECIDE `entitled to the jubilee grant by clarification ב` j IF
 -- (F-2009-10_tasha_03-d): what is counted is section 5's own measure,
 -- accumulated teaching seniority with military service, completed by that
 -- date — as in every jubilee circular.
+-- F-2009-10_tasha_03-e: "30 שנה ומעלה" or once, in the year the 30 are
+-- completed (clarification ב's "באותה שנה"). The reading adopted: once —
+-- seniority on 1 June within a year of 30 — as F-2006-07_tashsaz_06-d,
+-- F-2007-08_tashsach_05-c and F-2008-09_tashsat_09-e read the same words.
 GIVEN j IS A `jubilee employee`
 GIVETH A BOOLEAN
 DECIDE `entitled to the jubilee grant` j IF
+        j's `teaching seniority on 1 June of the grant year` AT LEAST 30
+    AND j's `teaching seniority on 1 June of the grant year` LESS THAN 31
+
+-- Section 5 ¶2's own words, "30 שנה ומעלה", measured on 1 June, with no
+-- year named.
+@ref akn:art_5/p2
+GIVEN j IS A `jubilee employee`
+GIVETH A BOOLEAN
+DECIDE `has the "30 years and more" section 5 names` j IF
     j's `teaching seniority on 1 June of the grant year` AT LEAST 30
 
 -- akn:art_6 The contact line for questions; no rule.
@@ -478,3 +491,130 @@ DECIDE `entitled to the jubilee grant` j IF
     PARTY `the employer` DOES `pay the reduced part after retirement` 500 AT 75
 #TRACE `paying the jubilee grant with June's salary` `a teacher reaching 30 years between September and June` AT 0 WITH
     PARTY `the local authority or owning body` DOES `pay the jubilee grant` 6000 AT 10
+
+§§ `Property checks`
+
+-- The circular over its whole finite space: seniority years 1 to 60,
+-- positions in quarters from 0 to 1.5, 0 to 12 months; every population,
+-- represented or not, paid early or not, pensioner or not, with own day
+-- prices of 300 to 600, civil-service prices of 300 to 500 and its cut of
+-- 150 to 250 in steps of 50; and a career's seniority on 1 June from 0 to
+-- 45 in quarter years.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`positions in quarters` MEANS map (GIVEN k YIELD k DIVIDED BY 4) (range 0 6)
+`every population` MEANS
+    LIST `owners' secondary staff`, `state-employed staff in official education`,
+         `recognized unofficial kindergarten, primary and middle-school staff`,
+         `staff of teacher-training colleges`, `staff of government secondary schools`
+
+GIVEN w IS A `havraa population`, r IS A BOOLEAN, n IS A NUMBER, f IS A NUMBER, m IS A NUMBER, e IS A BOOLEAN, o IS A NUMBER, s IS A NUMBER, c IS A NUMBER, b IS A BOOLEAN
+GIVETH A `havraa employee`
+DECIDE `a checked employee` w r n f m e o s c b IS
+    `havraa employee` WITH
+        `population`                          IS w
+        `represented by the secondary teachers' organisation` IS r
+        `years of teaching seniority`         IS n
+        `position fraction`                   IS f
+        `months worked`                       IS m
+        `paid havraa in 2009 before the June 2009 salary` IS e
+        `day price for the employee in 2011`  IS o
+        `state day price in 2011`             IS s
+        `state reduction per day in 2011`     IS c
+        `budgetary-pension retiree entitled to havraa from the former employer` IS b
+
+-- 4ב: every year of seniority from 1 to 60 is in exactly one band, and
+-- the days never fall. 4ג-ד over every band's edges, position and month
+-- count: the 2010 allowance is never negative, never above 13 days at
+-- 395, never falls with a larger position or a month more, and is the
+-- band's full allowance exactly for a full position and ten months.
+#ASSERT all (GIVEN n YIELD
+                    count (filter (GIVEN b YIELD n AT LEAST b's `from havraa year` AND n AT MOST b's `to havraa year`) `the table of recuperation days`) EQUALS 1
+                AND `recuperation days for year` n AT MOST `recuperation days for year` (n PLUS 1))
+            (range 1 60)
+#ASSERT all (GIVEN n YIELD
+                all (GIVEN f YIELD
+                        all (GIVEN m YIELD
+                                LET a MEANS `the 2010 recuperation allowance` (`a checked employee` `owners' secondary staff` TRUE n f m FALSE 395 395 197.5 FALSE)
+                                    full MEANS `recuperation days for year` n TIMES 395
+                                IN      a AT LEAST 0
+                                    AND a AT MOST 13 TIMES 395
+                                    AND a AT MOST `the 2010 recuperation allowance` (`a checked employee` `owners' secondary staff` TRUE n (f PLUS 0.25) m FALSE 395 395 197.5 FALSE)
+                                    AND a AT MOST `the 2010 recuperation allowance` (`a checked employee` `owners' secondary staff` TRUE n f (m PLUS 1) FALSE 395 395 197.5 FALSE)
+                                    AND (a EQUALS full) EQUALS (f AT LEAST 1 AND m AT LEAST 10))
+                            (range 0 12))
+                    `positions in quarters`)
+            (LIST 1, 3, 4, 10, 11, 15, 16, 19, 20, 24, 25, 60)
+
+-- 1ד, 3ב-3ה, 3ז over every population, representation, early payment,
+-- pensioner and price: the 2011 day price is never negative and never
+-- above the employee's own; it is the own price exactly where the
+-- reduction does not apply; reduced, a teacher not paid early loses half
+-- the price or the civil service's cut, whichever is less; one paid early
+-- is paid at the difference over the civil service's price.
+#ASSERT all (GIVEN w YIELD
+                all (GIVEN r YIELD
+                        all (GIVEN e YIELD
+                                all (GIVEN b YIELD
+                                        all (GIVEN o YIELD
+                                                all (GIVEN s YIELD
+                                                        all (GIVEN c YIELD
+                                                                LET h MEANS `a checked employee` w r 12 1 10 e (o TIMES 50) (s TIMES 50) (c TIMES 50) b
+                                                                    d MEANS `the day price in 2011` h
+                                                                IN      d AT LEAST 0
+                                                                    AND d AT MOST o TIMES 50
+                                                                    AND `the 2011 reduction applies to` h EQUALS (r AND w EQUALS `owners' secondary staff` AND (NOT b))
+                                                                    AND ((`the 2011 reduction applies to` h) OR d EQUALS o TIMES 50)
+                                                                    AND ((NOT `the 2011 reduction applies to` h) OR e
+                                                                         OR d EQUALS o TIMES 50 MINUS min (o TIMES 25) (c TIMES 50))
+                                                                    AND ((NOT `the 2011 reduction applies to` h) OR (NOT e)
+                                                                         OR d EQUALS max 0 (o TIMES 50 MINUS s TIMES 50)))
+                                                            (range 3 5))
+                                                    (range 6 10))
+                                            (range 6 12))
+                                    `both booleans`)
+                            `both booleans`)
+                    `both booleans`)
+            `every population`
+
+-- Section 5 on the readings adopted, over a career's seniority on 1 June
+-- from 0 to 45 in quarter years: the grant falls in the year the 30 are
+-- completed and no other, never above 60% of the determining salary.
+GIVEN t IS A NUMBER, f IS A NUMBER, s IS A NUMBER
+GIVETH A `jubilee employee`
+DECIDE `a checked jubilee employee` t f s IS
+    `jubilee employee` WITH
+        `teaching seniority set in September before the grant` IS t MINUS 0.75
+        `teaching seniority on 1 June of the grant year`       IS t
+        `years of work in Israel on 1 June of the grant year`  IS t
+        `determining salary`                    IS 10000
+        `jubilee position fraction`             IS f
+        `share of the year employed`            IS s
+
+#ASSERT all (GIVEN q YIELD
+                `entitled to the jubilee grant` (`a checked jubilee employee` (q DIVIDED BY 4) 1 1)
+                EQUALS (q AT LEAST 120 AND q LESS THAN 124))
+            (range 0 180)
+#ASSERT all (GIVEN f YIELD
+                all (GIVEN s YIELD
+                        LET g MEANS `the jubilee grant` (`a checked jubilee employee` 30 f s)
+                        IN      g AT LEAST 0
+                            AND g AT MOST 6000
+                            AND g AT MOST `the jubilee grant` (`a checked jubilee employee` 30 (f PLUS 0.25) s)
+                            AND g AT MOST `the jubilee grant` (`a checked jubilee employee` 30 f (s PLUS 0.25)))
+                    (LIST 0, 0.25, 0.5, 0.75, 1))
+            `positions in quarters`
+
+-- F-2009-10_tasha_03-e: over the same career, section 5's "30 שנה ומעלה"
+-- and the once-only reading part in exactly the years from the 31st on; a
+-- teacher in year 35 is in the one and not the other.
+#ASSERT all (GIVEN q YIELD
+                (NOT (`has the "30 years and more" section 5 names` (`a checked jubilee employee` (q DIVIDED BY 4) 1 1)
+                      EQUALS `entitled to the jubilee grant` (`a checked jubilee employee` (q DIVIDED BY 4) 1 1)))
+                EQUALS (q AT LEAST 124))
+            (range 0 180)
+
+`"30 years and more" reaches a 35-year teacher, the once-only reading does not` MEANS
+        `has the "30 years and more" section 5 names` (`a checked jubilee employee` 35 1 1)
+    AND NOT `entitled to the jubilee grant` (`a checked jubilee employee` 35 1 1)
+#ASSERT `"30 years and more" reaches a 35-year teacher, the once-only reading does not`

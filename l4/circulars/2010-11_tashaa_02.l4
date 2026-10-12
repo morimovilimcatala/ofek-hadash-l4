@@ -182,12 +182,29 @@ DECIDE `entitled to the jubilee grant by clarification ב` j IF
 -- (F-2010-11_tashaa_02-c): what is counted is section 2's own measure,
 -- teaching seniority with military service (and clarification א's bought
 -- years), completed by that date — as in every jubilee circular.
+-- F-2010-11_tashaa_02-d: "30 שנה ומעלה" or once, in the year the 30 are
+-- completed (clarification ב's "באותה שנה"). The reading adopted: once —
+-- the years counted on 1 June within a year of 30 — as
+-- F-2006-07_tashsaz_06-d and its siblings read the same words.
 GIVEN j IS A `jubilee employee`
 GIVETH A BOOLEAN
 DECIDE `entitled to the jubilee grant` j IF
+        `the years counted on 1 June` j AT LEAST 30
+    AND `the years counted on 1 June` j LESS THAN 31
+
+GIVEN j IS A `jubilee employee`
+GIVETH A NUMBER
+DECIDE `the years counted on 1 June` j IS
     j's `teaching seniority on 1 June of the grant year`
     PLUS `unpaid leave counted toward the grant` j
-    AT LEAST 30
+
+-- Section 2's own words, "30 שנה ומעלה", measured on 1 June, with no year
+-- named.
+@ref akn:art_2/p1
+GIVEN j IS A `jubilee employee`
+GIVETH A BOOLEAN
+DECIDE `has the "30 years and more" section 2 names` j IF
+    `the years counted on 1 June` j AT LEAST 30
 
 -- Clarification ג: by the position fraction that year up to one position,
 -- and by the share of the year employed.
@@ -277,3 +294,100 @@ DECIDE `the jubilee share` j IS
     PARTY `the employer` DOES `pay the jubilee grant` 6000 AT 11
 #TRACE `the 140% limit` AT 0 WITH
     PARTY `the teaching employee` DOES `work beyond 140% of a position` AT 3
+
+§§ `Property checks`
+
+-- The circular over its whole finite space: seniority years 1 to 60,
+-- positions here and at all employers in tenths from 0 to 1.5, 0 to 12
+-- months, and a career's years on 1 June from 0 to 45 in quarter years.
+
+`tenths to 1.5` MEANS map (GIVEN k YIELD k DIVIDED BY 10) (range 0 15)
+
+GIVEN n IS A NUMBER, f IS A NUMBER, a IS A NUMBER, m IS A NUMBER
+GIVETH A `havraa year at an employer`
+DECIDE `a checked year` n f a m IS
+    `havraa year at an employer` WITH
+        `years of teaching seniority` IS n
+        `position at this employer`   IS f
+        `position at all employers`   IS a
+        `months worked`               IS m
+
+-- 1ג: every year of seniority from 1 to 60 is in exactly one band, and the
+-- days never fall.
+#ASSERT all (GIVEN n YIELD
+                    count (`the bands for year` n) EQUALS 1
+                AND `recuperation days for year` n AT MOST `recuperation days for year` (n PLUS 1))
+            (range 1 60)
+
+-- 1ד-1ו over every band edge, position here and month count: one employer
+-- pays never less than nothing, never above 13 days at 411, never more for
+-- a larger position or a month more, and the full allowance exactly for a
+-- full position here and ten months; above a full position here it pays as
+-- for one (1ה, at one employer). 1ה and 1ו never both apply: 1ה is for one
+-- employer and 1ו for more than one, as their own words say. Within 1ז's
+-- 140%, two employers together never pay more than 1.4 positions'.
+#ASSERT all (GIVEN n YIELD
+                all (GIVEN f YIELD
+                        all (GIVEN m YIELD
+                                LET a MEANS `the recuperation allowance` (`a checked year` n f f m)
+                                    full MEANS `recuperation days for year` n TIMES `the recuperation-day price`
+                                IN      a AT LEAST 0
+                                    AND a AT MOST 13 TIMES `the recuperation-day price`
+                                    AND a AT MOST `the recuperation allowance` (`a checked year` n (f PLUS 0.1) (f PLUS 0.1) m)
+                                    AND a AT MOST `the recuperation allowance` (`a checked year` n f f (m PLUS 1))
+                                    AND (a EQUALS full) EQUALS (f AT LEAST 1 AND m AT LEAST 10))
+                            (range 0 12))
+                    `tenths to 1.5`)
+            (LIST 1, 3, 4, 10, 11, 15, 16, 19, 20, 24, 25, 60)
+#ASSERT all (GIVEN f YIELD
+                all (GIVEN g YIELD
+                        LET h1 MEANS `a checked year` 12 f (f PLUS g) 10
+                            h2 MEANS `a checked year` 12 g (f PLUS g) 10
+                        IN  (NOT `within the 140% limit` h1)
+                            OR `the recuperation allowance` h1 PLUS `the recuperation allowance` h2
+                               AT MOST 1.4 TIMES `recuperation days for year` 12 TIMES `the recuperation-day price`)
+                    `tenths to 1.5`)
+            `tenths to 1.5`
+
+-- Section 2 on the readings adopted, over a career's years on 1 June from
+-- 0 to 45 in quarter years: the grant falls in the year the 30 are
+-- completed and no other, never above 60% of the determining salary.
+GIVEN t IS A NUMBER, f IS A NUMBER, s IS A NUMBER
+GIVETH A `jubilee employee`
+DECIDE `a checked jubilee employee` t f s IS
+    `jubilee employee` WITH
+        `teaching seniority set in September before the grant` IS t MINUS 0.75
+        `teaching seniority on 1 June of the grant year`       IS t
+        `years of work in Israel on 1 June of the grant year`  IS t
+        `unpaid-leave years with pension rights bought`        IS 0
+        `determining salary`                    IS 10000
+        `jubilee position fraction`             IS f
+        `share of the year employed`            IS s
+
+#ASSERT all (GIVEN q YIELD
+                `entitled to the jubilee grant` (`a checked jubilee employee` (q DIVIDED BY 4) 1 1)
+                EQUALS (q AT LEAST 120 AND q LESS THAN 124))
+            (range 0 180)
+#ASSERT all (GIVEN f YIELD
+                all (GIVEN s YIELD
+                        LET g MEANS `the jubilee grant` (`a checked jubilee employee` 30 f s)
+                        IN      g AT LEAST 0
+                            AND g AT MOST 6000
+                            AND g AT MOST `the jubilee grant` (`a checked jubilee employee` 30 (f PLUS 0.1) s)
+                            AND g AT MOST `the jubilee grant` (`a checked jubilee employee` 30 f (s PLUS 0.25)))
+                    (LIST 0, 0.25, 0.5, 0.75, 1))
+            `tenths to 1.5`
+
+-- F-2010-11_tashaa_02-d: over the same career, section 2's "30 שנה ומעלה"
+-- and the once-only reading part in exactly the years from the 31st on; a
+-- teacher in year 35 is in the one and not the other.
+#ASSERT all (GIVEN q YIELD
+                (NOT (`has the "30 years and more" section 2 names` (`a checked jubilee employee` (q DIVIDED BY 4) 1 1)
+                      EQUALS `entitled to the jubilee grant` (`a checked jubilee employee` (q DIVIDED BY 4) 1 1)))
+                EQUALS (q AT LEAST 124))
+            (range 0 180)
+
+`"30 years and more" reaches a 35-year teacher, the once-only reading does not` MEANS
+        `has the "30 years and more" section 2 names` (`a checked jubilee employee` 35 1 1)
+    AND NOT `entitled to the jubilee grant` (`a checked jubilee employee` 35 1 1)
+#ASSERT `"30 years and more" reaches a 35-year teacher, the once-only reading does not`

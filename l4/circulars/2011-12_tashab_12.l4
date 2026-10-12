@@ -228,12 +228,30 @@ DECIDE `entitled to the jubilee grant by clarification 2` j IF
 -- later and more specific clause, decides the date (1 June of the grant
 -- year); the measure is section 2's accumulated teaching seniority, which
 -- clarifications 3 and 4 call "ותק מצטבר, כהגדרתו לעיל".
+-- F-2011-12_tashab_12-e: "25 או 30 שנה ומעלה" or once, in the year the
+-- threshold is completed (clarification 2's "באותה שנה"). The reading
+-- adopted: once — the years counted on 1 June within a year of the
+-- threshold — as F-2006-07_tashsaz_06-d and its siblings read the same
+-- words.
 GIVEN j IS A `jubilee portion`
 GIVETH A BOOLEAN
 DECIDE `entitled to the jubilee grant` j IF
+        `the years counted on 1 June` j AT LEAST `the qualifying years for` j
+    AND `the years counted on 1 June` j LESS THAN `the qualifying years for` j PLUS 1
+
+GIVEN j IS A `jubilee portion`
+GIVETH A NUMBER
+DECIDE `the years counted on 1 June` j IS
     j's `teaching seniority completed on 1 June of the grant year`
     PLUS `unpaid leave counted toward the grant` j
-    AT LEAST `the qualifying years for` j
+
+-- Section 2's own words, "25 או 30 שנה ומעלה", measured on 1 June, with no
+-- year named.
+@ref akn:art_2/p2
+GIVEN j IS A `jubilee portion`
+GIVETH A BOOLEAN
+DECIDE `has the "25 or 30 years and more" section 2 names` j IF
+    `the years counted on 1 June` j AT LEAST `the qualifying years for` j
 
 `section 2 and clarification 2 date the seniority differently` MEANS
     NOT (`entitled to the jubilee grant by section 2` `an upper-division teacher reaching 25 years between September and June`
@@ -330,3 +348,93 @@ DECIDE `the jubilee share` j IS
     PARTY `the teaching employee` DOES `work at a total position of` 1.2 AT 3
 #TRACE `the position limit` `Oz LaTmura in full implementation` AT 0 WITH
     PARTY `the teaching employee` DOES `work at a total position of` 1.3 AT 3
+
+§§ `Property checks`
+
+-- The circular over its whole finite space: seniority years 1 to 60,
+-- positions here and at all employers in tenths from 0 to 1.5, 0 to 12
+-- months, every reform term; every stage, and a career's years on 1 June
+-- from 0 to 45 in quarter years.
+
+`tenths to 1.5` MEANS map (GIVEN k YIELD k DIVIDED BY 10) (range 0 15)
+`every reform term` MEANS LIST `not under the reform`, `Oz LaTmura in partial implementation`, `Oz LaTmura in full implementation`
+`every stage` MEANS LIST `a middle or upper division`, `another stage of education`
+
+GIVEN n IS A NUMBER, f IS A NUMBER, a IS A NUMBER, m IS A NUMBER, t IS A `reform terms`
+GIVETH A `havraa year at an employer`
+DECIDE `a checked year` n f a m t IS
+    `havraa year at an employer` WITH
+        `years of teaching seniority` IS n
+        `position at this employer`   IS f
+        `position at all employers`   IS a
+        `months worked`               IS m
+        `reform terms`                IS t
+
+-- Section 1's table: every year from 1 to 60 is in exactly one band, and
+-- the days never fall. Over every band edge, position here and month
+-- count: one employer pays never less than nothing, never above 13 days at
+-- 420, never less for a larger position or a month more, and the full
+-- allowance exactly for a full position and ten months.
+#ASSERT all (GIVEN n YIELD
+                    count (`the bands for year` n) EQUALS 1
+                AND `recuperation days for year` n AT MOST `recuperation days for year` (n PLUS 1))
+            (range 1 60)
+#ASSERT all (GIVEN n YIELD
+                all (GIVEN f YIELD
+                        all (GIVEN m YIELD
+                                LET a MEANS `the recuperation allowance` (`a checked year` n f f m `not under the reform`)
+                                    full MEANS `recuperation days for year` n TIMES `the recuperation-day price`
+                                IN      a AT LEAST 0
+                                    AND a AT MOST 13 TIMES `the recuperation-day price`
+                                    AND a AT MOST `the recuperation allowance` (`a checked year` n (f PLUS 0.1) (f PLUS 0.1) m `not under the reform`)
+                                    AND a AT MOST `the recuperation allowance` (`a checked year` n f f (m PLUS 1) `not under the reform`)
+                                    AND (a EQUALS full) EQUALS (f AT LEAST 1 AND m AT LEAST 10))
+                            (range 0 12))
+                    `tenths to 1.5`)
+            (LIST 1, 3, 4, 10, 11, 15, 16, 19, 20, 24, 25, 60)
+
+-- The position limits: never above 140%, lower the further the reform
+-- is implemented; a total position is within the limit exactly up to it.
+#ASSERT all (GIVEN t YIELD
+                    `the position limit for` t AT MOST 1.4
+                AND all (GIVEN a YIELD `within the position limit` (`a checked year` 12 1 a 10 t) EQUALS (a AT MOST `the position limit for` t)) `tenths to 1.5`)
+            `every reform term`
+`the limits fall as the reform goes further` MEANS
+        `the position limit for` `Oz LaTmura in full implementation` LESS THAN `the position limit for` `Oz LaTmura in partial implementation`
+    AND `the position limit for` `Oz LaTmura in partial implementation` LESS THAN `the position limit for` `not under the reform`
+#ASSERT `the limits fall as the reform goes further`
+
+-- Section 2 on the readings adopted, over every stage and a career's years
+-- on 1 June from 0 to 45 in quarter years: the grant falls in the year the
+-- stage's threshold is completed and no other, never above 60% of the
+-- determining salary; F-2011-12_tashab_12-e over the whole space: the
+-- words "ומעלה" and the once-only reading part in exactly the years past
+-- the threshold's first.
+GIVEN w IS AN `education stage`, t IS A NUMBER
+GIVETH A `jubilee portion`
+DECIDE `a checked portion` w t IS
+    `jubilee portion` WITH
+        `stage`                              IS w
+        `teaching seniority set in September before the grant` IS t MINUS 0.75
+        `teaching seniority completed on 1 June of the grant year` IS t
+        `years of work in Israel on 1 June of the grant year`  IS t
+        `unpaid-leave years with pension rights bought`        IS 0
+        `determining salary`                 IS 10000
+        `jubilee position fraction`          IS 1
+        `share of the year employed`         IS 1
+
+#ASSERT all (GIVEN w YIELD
+                all (GIVEN q YIELD
+                        LET j MEANS `a checked portion` w (q DIVIDED BY 4)
+                            y MEANS `the qualifying years for` j
+                        IN      `entitled to the jubilee grant` j EQUALS (q AT LEAST 4 TIMES y AND q LESS THAN 4 TIMES y PLUS 4)
+                            AND `the jubilee grant` j AT MOST 6000
+                            AND (NOT (`has the "25 or 30 years and more" section 2 names` j EQUALS `entitled to the jubilee grant` j))
+                                EQUALS (q AT LEAST 4 TIMES y PLUS 4))
+                    (range 0 180))
+            `every stage`
+
+`"25 or 30 years and more" reaches a 35-year teacher, the once-only reading does not` MEANS
+        `has the "25 or 30 years and more" section 2 names` (`a checked portion` `another stage of education` 35)
+    AND NOT `entitled to the jubilee grant` (`a checked portion` `another stage of education` 35)
+#ASSERT `"25 or 30 years and more" reaches a 35-year teacher, the once-only reading does not`

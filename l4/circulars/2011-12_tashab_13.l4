@@ -180,6 +180,16 @@ DECIDE `the extra PE clothing allowance` e IS
                 OTHERWISE 0
     ELSE 0
 
+-- F-2011-12_tashab_13-e: "שיעור העסקה" is not said to be the share of the
+-- position in physical education or the employee's whole position. The
+-- reading adopted, as F-2011-12_tashab_08-c and its siblings read the same
+-- words: the share in physical education, taken as the input
+-- `PE employment rate`.
+`the two readings of the employment rate differ` MEANS
+    NOT (`the amounts the PE table gives for` 0.2
+         EQUALS `the amounts the PE table gives for` 1)
+#ASSERT `the two readings of the employment rate differ`
+
 #ASSERT all (GIVEN r YIELD elem (`the extra PE clothing allowance` (`clothing year at an employer` WITH `in the teaching-staff grade` IS TRUE, `position at this employer` IS 1, `position at all employers` IS 1, `entitled to the extra PE allowance` IS TRUE, `PE employment rate` IS r, `in technological education` IS FALSE, `subjects taught` IS EMPTY))
                                   (`the amounts the PE table gives for` r))
             (LIST 0, 0.1, 0.3, 0.4, 0.5, 0.75, 1)
@@ -387,3 +397,100 @@ DECIDE `the clothing allowances` e IS
     PARTY `the employer` DOES `pay the clothing allowance` 2076 AT 12
 #TRACE `the 140% limit` AT 0 WITH
     PARTY `the teaching employee` DOES `work beyond 140% of a position` AT 3
+
+§§ `Property checks`
+
+-- The circular over its whole finite space: positions here and employment
+-- rates in tenths from 0 to 1.5, every subject of either list, the subject
+-- on neither, none, and one of each, entitled to the PE allowance or not,
+-- in technological education or not, in the teaching-staff grade or not.
+
+`tenths to 1.5` MEANS map (GIVEN k YIELD k DIVIDED BY 10) (range 0 15)
+`both booleans` MEANS LIST TRUE, FALSE
+`every subject list checked` MEANS
+    EMPTY FOLLOWED BY (LIST `mechatronics`, `electronic systems`)
+          FOLLOWED BY map (GIVEN t YIELD LIST t)
+                          (append `the shoes-and-coats subjects`
+                                  (append `the two-coats subjects` (LIST `a subject on neither list`)))
+
+GIVEN g IS A BOOLEAN, f IS A NUMBER, p IS A BOOLEAN, r IS A NUMBER, k IS A BOOLEAN, l IS A LIST OF `technology subject`
+GIVETH A `clothing year at an employer`
+DECIDE `a checked year` g f p r k l IS
+    `clothing year at an employer` WITH
+        `in the teaching-staff grade`        IS g
+        `position at this employer`          IS f
+        `position at all employers`          IS f
+        `entitled to the extra PE allowance` IS p
+        `PE employment rate`                 IS r
+        `in technological education`         IS k
+        `subjects taught`                    IS l
+
+-- ב over employment rates in tenths: every one is in some row, two exactly
+-- at 0.3 and 0.5 (F-2011-12_tashab_13-a, whole space), the amount is one
+-- of those rows', it never falls, and it is nothing for a teacher not
+-- entitled under circular תשע"ב/8. א.6: within the limit exactly up to 1.4.
+#ASSERT all (GIVEN r YIELD
+                LET rows MEANS `the amounts the PE table gives for` r
+                    a MEANS `the extra PE clothing allowance` (`a checked year` TRUE 1 TRUE r FALSE EMPTY)
+                IN      count rows AT LEAST 1
+                    AND (count rows EQUALS 2) EQUALS (r EQUALS 0.3 OR r EQUALS 0.5)
+                    AND elem a rows
+                    AND a AT MOST `the extra PE clothing allowance` (`a checked year` TRUE 1 TRUE (r PLUS 0.1) FALSE EMPTY)
+                    AND `the extra PE clothing allowance` (`a checked year` TRUE 1 FALSE r FALSE EMPTY) EQUALS 0
+                    AND (`within the 140% limit` (`a checked year` TRUE r FALSE 0 FALSE EMPTY)) EQUALS (r AT MOST 1.4))
+            `tenths to 1.5`
+
+-- ג: over every list checked, (א) grants a pair of shoes and two coats or
+-- nothing, (ב) two coats or nothing, and where both grant, (א)'s coats are
+-- as many as (ב)'s (the larger-grant reading of F-2011-12_tashab_13-c).
+#ASSERT all (GIVEN l YIELD
+                LET e MEANS `a checked year` TRUE 1 FALSE 0 TRUE l
+                    a MEANS `the items ג.1(א) grants a year` e
+                    b MEANS `the items ג.1(ב) grants a year` e
+                IN      (a EQUALS EMPTY OR a EQUALS LIST `a pair of shoes`, `a coat`, `a coat`)
+                    AND (b EQUALS EMPTY OR b EQUALS LIST `a coat`, `a coat`)
+                    AND (a EQUALS EMPTY OR b EQUALS EMPTY
+                         OR count (filter (GIVEN i YIELD i EQUALS `a coat`) a) EQUALS count b))
+            `every subject list checked`
+
+-- א-ג over every grade, position, PE entitlement and subject list: the
+-- whole one employer pays is never negative, something for anyone in the
+-- grade with a position, nothing technological outside technological
+-- education, never more than the three top amounts, never falling with a
+-- larger position, above one paying as one.
+#ASSERT all (GIVEN g YIELD
+                all (GIVEN f YIELD
+                        all (GIVEN p YIELD
+                                all (GIVEN k YIELD
+                                        all (GIVEN l YIELD
+                                                LET e MEANS `a checked year` g f p 0.6 k l
+                                                    a MEANS `the clothing allowances` e
+                                                IN      a AT LEAST 0
+                                                    AND ((NOT g) OR f EQUALS 0 OR `the general clothing allowance` e GREATER THAN 0)
+                                                    AND (g OR `the general clothing allowance` e EQUALS 0)
+                                                    AND (k OR `the technology clothing allowance` e EQUALS 0)
+                                                    AND a AT MOST `the level-4 clothing allowance` PLUS 1322 PLUS `the value of a pair of shoes and two coats`
+                                                    AND a AT MOST `the clothing allowances` (`a checked year` g (f PLUS 0.1) p 0.6 k l)
+                                                    AND ((f LESS THAN 1) OR a EQUALS `the clothing allowances` (`a checked year` g (f PLUS 0.5) p 0.6 k l)))
+                                            `every subject list checked`)
+                                    `both booleans`)
+                            `both booleans`)
+                    `tenths to 1.5`)
+            `both booleans`
+
+-- F-2011-12_tashab_13-c: over every list checked, the two readings part
+-- exactly for a teacher on both lists.
+#ASSERT all (GIVEN l YIELD
+                LET e MEANS `a checked year` TRUE 1 FALSE 0 TRUE l
+                IN  (NOT (`the two entitlements added` e EQUALS `the full-position technology allowance` e))
+                    EQUALS (`teaches a shoes-and-coats subject` e AND `teaches a two-coats subject` e))
+            `every subject list checked`
+
+-- F-2011-12_tashab_13-e: over the rates in tenths, the two readings of
+-- "שיעור העסקה" part for a full-position teacher exactly where the PE share
+-- is below 0.5.
+#ASSERT all (GIVEN r YIELD
+                (NOT (`the extra PE clothing allowance` (`a checked year` TRUE 1 TRUE r FALSE EMPTY)
+                      EQUALS `the extra PE clothing allowance` (`a checked year` TRUE 1 TRUE 1 FALSE EMPTY)))
+                EQUALS (r LESS THAN 0.5))
+            `tenths to 1.5`
