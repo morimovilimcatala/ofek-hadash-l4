@@ -171,3 +171,85 @@ DECIDE `classes for the management allowance` s IS
     NOT (`classes for the management allowance` `a school of both layers, 48 standard hours, at 24`
          EQUALS `classes for the management allowance` `the same school at 30`)
 #ASSERT `the two layer divisors give different class counts for a school of both layers`
+
+§§ `Property checks`
+
+-- The section's rules over their whole finite space: both kinds of school
+-- on the eve of each one's starting day, on it, and in 2000, split or not;
+-- every school population; and every school of 0 to 60 standard hours by
+-- fours, 0 to 10 visiting classes of each kind, and either divisor.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`both kinds of school` MEANS LIST `agricultural`, `maritime`
+`every school population` MEANS LIST `grades 1-6 only`, `grades 7-12`, `both grades 1-6 and grades 7-12`
+`the standard hours checked` MEANS map (GIVEN k YIELD k TIMES 4) (range 0 15)
+
+-- 3.19.6.1: from the day each kind of school's allowance applies, and
+-- never before it, exactly a teacher split by section 1.11's measures.
+#ASSERT all (GIVEN k YIELD
+                all (GIVEN split YIELD
+                            (NOT `entitled to the split allowance` k (`the split allowance applies from` k MINUS 1) split)
+                        AND `entitled to the split allowance` k (`the split allowance applies from` k) split EQUALS split
+                        AND `entitled to the split allowance` k (Date 1 1 2000) split EQUALS split)
+                    `both booleans`)
+            `both kinds of school`
+
+-- 3.19.6.2-3, F-3.19-a over every population: the subject coordinator's
+-- rules are undecided in exactly one population, and it is exactly the
+-- one where a layer coordinator may be appointed.
+#ASSERT all (GIVEN p YIELD
+                (`subject-coordination rules of an agricultural farm` p EQUALS `not decided by the text`)
+                EQUALS `a layer coordinator may be appointed on an agricultural farm` p)
+            `every school population`
+#ASSERT count (filter (GIVEN p YIELD `subject-coordination rules of an agricultural farm` p EQUALS `not decided by the text`) `every school population`) EQUALS 1
+
+GIVEN h IS A NUMBER, v2 IS A NUMBER, v3 IS A NUMBER, d IS A NUMBER
+GIVETH A `visiting-school case`
+DECIDE `a checked visiting school` h v2 v3 d IS
+    `visiting-school case` WITH
+        `standard hours`                       IS h
+        `visiting classes taught 2 hours`      IS v2
+        `visiting classes taught 3 hours`      IS v3
+        `weekly hours of the layer's position` IS d
+
+GIVEN prop IS A FUNCTION FROM NUMBER AND NUMBER AND NUMBER TO BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `holds for every visiting school` prop IF
+    all (GIVEN h YIELD
+            all (GIVEN v2 YIELD
+                    all (GIVEN v3 YIELD prop h v2 v3)
+                        (range 0 10))
+                (range 0 10))
+        `the standard hours checked`
+
+-- 3.19.7: the count (3) makes of both kinds agrees with formula (1) where
+-- no class is taught 3 hours and with formula (2) where none is taught 2;
+-- it is never negative, and never falls as visiting classes are added.
+-- F-3.19-c over the whole space: the divisor of 24 never gives fewer
+-- classes than that of 30. F-3.19-b over the whole space: the printed
+-- multiplier never gives fewer classes than the one read, and the two
+-- agree wherever no class is taught 3 hours.
+GIVEN h IS A NUMBER, v2 IS A NUMBER, v3 IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `the class count agrees with its formulas` h v2 v3 IF
+    all (GIVEN d YIELD
+                `classes for the management allowance` (`a checked visiting school` h v2 v3 d) AT LEAST 0
+            AND ((v3 GREATER THAN 0)
+                 OR `classes for the management allowance` (`a checked visiting school` h v2 v3 d)
+                    EQUALS CEILING (`classes by the 2-hour formula` (`a checked visiting school` h v2 v3 d)))
+            AND ((v2 GREATER THAN 0)
+                 OR `classes for the management allowance` (`a checked visiting school` h v2 v3 d)
+                    EQUALS CEILING (`classes by the 3-hour formula` (`a checked visiting school` h v2 v3 d) `the multiplier of the 3-hour formula`))
+            AND `classes for the management allowance` (`a checked visiting school` h (v2 PLUS 1) v3 d)
+                AT LEAST `classes for the management allowance` (`a checked visiting school` h v2 v3 d)
+            AND `classes for the management allowance` (`a checked visiting school` h v2 (v3 PLUS 1) d)
+                AT LEAST `classes for the management allowance` (`a checked visiting school` h v2 v3 d)
+            AND CEILING (`classes by the 3-hour formula` (`a checked visiting school` h 0 v3 d) `the multiplier as printed`)
+                AT LEAST CEILING (`classes by the 3-hour formula` (`a checked visiting school` h 0 v3 d) `the multiplier of the 3-hour formula`)
+            AND ((v3 GREATER THAN 0)
+                 OR `classes by the 3-hour formula` (`a checked visiting school` h 0 v3 d) `the multiplier as printed`
+                    EQUALS `classes by the 3-hour formula` (`a checked visiting school` h 0 v3 d) `the multiplier of the 3-hour formula`))
+        (LIST 24, 30)
+    AND `classes for the management allowance` (`a checked visiting school` h v2 v3 24)
+        AT LEAST `classes for the management allowance` (`a checked visiting school` h v2 v3 30)
+#ASSERT `holds for every visiting school` `the class count agrees with its formulas`
