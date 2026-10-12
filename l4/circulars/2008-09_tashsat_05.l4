@@ -199,3 +199,54 @@ DECIDE `the rule on 4.75% for a full final year` y IS
     PARTY `the local authority or owning body` DOES `pay the severance differences` 6350 AT 2
 #TRACE `the owning body may ask for indemnity` AT 0 WITH
     PARTY `the local authority or owning body` DOES `send an indemnity request on the form` `left in March 2004` AT 3
+
+§§ `Property checks`
+
+-- Chapter ה over its whole finite space: years ended 1998 to 2009, on
+-- pension or not, paid severance or not, and for each year from 2000 to
+-- 2006 every month of the final year at which the work ended.
+
+`both booleans` MEANS LIST TRUE, FALSE
+
+GIVEN y IS A NUMBER, m IS A NUMBER
+GIVETH A `leaver`
+DECIDE `a teacher who left after m months of y` y m IS
+    `leaver` WITH
+        `year the work ended`               IS y
+        `left on pension`                   IS FALSE
+        `paid severance`                    IS TRUE
+        `years active in 2000-2002`         IS min 3 (y MINUS 2000 PLUS m DIVIDED BY 12)
+        `years active in 2003-2006`         IS max 0 (min 4 (y MINUS 2003 PLUS m DIVIDED BY 12))
+        `statutory severance paid`          IS 100000
+        `severance paid beyond the statute` IS 0
+
+-- ¶12-13, ¶16-23, ¶26: chapter ה covers exactly a teacher who ended work
+-- in 2000-2007 on severance and not on pension; the computation has one
+-- row for each of those years; the addition lies between 0 and 10%; the
+-- indemnified differences are never negative and never above the
+-- statutory severance times 10%.
+#ASSERT all (GIVEN y YIELD
+                all (GIVEN p YIELD
+                        all (GIVEN s YIELD
+                                LET l MEANS `leaver` WITH `year the work ended` IS y, `left on pension` IS p, `paid severance` IS s, `years active in 2000-2002` IS 3, `years active in 2003-2006` IS 4, `statutory severance paid` IS 100000, `severance paid beyond the statute` IS 5000
+                                IN      `is covered by chapter ה` l EQUALS (y AT LEAST 2000 AND y AT MOST 2007 AND s AND (NOT p))
+                                    AND count (filter (GIVEN r YIELD r's `year ended` EQUALS y) `the computation`) EQUALS (IF y AT LEAST 2000 AND y AT MOST 2007 THEN 1 ELSE 0)
+                                    AND `the addition` l AT LEAST 0 AND `the addition` l AT MOST 10%
+                                    AND `the indemnified differences` l AT LEAST 0
+                                    AND `the indemnified differences` l AT MOST 100000 TIMES 10%)
+                            `both booleans`)
+                    `both booleans`)
+            (range 1998 2009)
+
+-- F-2008-09_tashsat_05-a and -b over the whole space: for a teacher who
+-- worked the whole of the final year, ¶14-15's rule (on 4.75%) and the
+-- computation agree in every year from 2000 to 2005 and part in 2006
+-- alone; and in every one of those years some part year makes them part.
+#ASSERT all (GIVEN y YIELD
+                    (`the rule's addition on base` `the full 2000-2002 addition` (`a teacher who left after m months of y` y 12)
+                     EQUALS `the computation's addition for` y)
+                    EQUALS NOT (y EQUALS 2006)
+                AND any (GIVEN m YIELD NOT (`the rule's addition on base` `the full 2000-2002 addition` (`a teacher who left after m months of y` y m)
+                                            EQUALS `the computation's addition for` y))
+                        (range 1 11))
+            (range 2000 2006)

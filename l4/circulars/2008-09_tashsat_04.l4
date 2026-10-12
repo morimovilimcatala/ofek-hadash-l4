@@ -491,3 +491,121 @@ DECIDE `the reward for` d IS
     PARTY `the employer` DOES `pay the reward` 50 AT 1
 #TRACE `the agreement is paid by February 2009` 1000 AT 0 WITH
     PARTY `the employer` DOES `pay under the agreement with differences from 1.9.2008` 1000 AT 5
+
+§§ `Property checks`
+
+-- The circular over its whole finite space: classes of 0 to 40 pupils,
+-- questionnaires 0 to 8, school years 2007 to 2010, both subjects; the
+-- telephone amounts 0 to 100 in tens, principal or not; every kind of
+-- accommodation for 1 to 3 pupils with each yes-or-no fact; grades 6 to 13.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`every accommodation` MEANS
+    LIST `extra time in the exam, in the teacher's presence`, `reading the questionnaire to the pupils`, `an oral exam`,
+         `taking down the exam answers dictated by the pupil`, `transcribing the pupil's exam answers`
+
+GIVEN y IS A NUMBER, q IS A NUMBER, n IS A NUMBER
+GIVETH A `prepared class`
+DECIDE `a checked class` y q n IS
+    `prepared class` WITH
+        `subject`               IS `mathematics`
+        `school year beginning` IS y
+        `questionnaire serial`  IS q
+        `pupils in the class`   IS n
+        `full-position base`    IS 10000
+
+-- §1ג.2: the class-size share is nothing, a quarter, a half or the whole,
+-- never falls with a pupil more, and is whole exactly from 10 pupils.
+#ASSERT all (GIVEN n YIELD
+                    elem (`the class-size share` n) (LIST 0, 25%, 50%, 1)
+                AND `the class-size share` n AT MOST `the class-size share` (n PLUS 1)
+                AND (`the class-size share` n EQUALS 1) EQUALS (n AT LEAST 10))
+            (range 0 40)
+
+-- §1ג.1: the table has one row for each questionnaire 1 to 7 and none
+-- else; the hours never fall with a later questionnaire. Over every year,
+-- questionnaire and class size: the 2% runs from 2008-09 and the hours
+-- from 2009-10 and not the year before; the supplement is never above 2%
+-- of the base. F-2008-09_tashsat_04-a over the whole space: the two
+-- readings of §1ג.2's reach part exactly where a class under 10 earns
+-- hours.
+#ASSERT all (GIVEN q YIELD
+                    count (filter (GIVEN r YIELD r's `serial on the questionnaire` EQUALS q) `the weekly-hours table`)
+                    EQUALS (IF q AT LEAST 1 AND q AT MOST 7 THEN 1 ELSE 0)
+                AND ((q EQUALS 8) OR `the additional weekly hours` (`a checked class` 2009 q 20) AT MOST `the additional weekly hours` (`a checked class` 2009 (q PLUS 1) 20) OR q EQUALS 7))
+            (range 0 8)
+#ASSERT all (GIVEN y YIELD
+                all (GIVEN q YIELD
+                        all (GIVEN n YIELD
+                                LET c MEANS `a checked class` y q n
+                                IN      (`the 2% supplement for one class and one questionnaire` c GREATER THAN 0) EQUALS (y AT LEAST 2008)
+                                    AND (`the additional weekly hours` c GREATER THAN 0) EQUALS (y AT LEAST 2009 AND q AT LEAST 1 AND q AT MOST 7)
+                                    AND `the matriculation supplement` c AT MOST 2% TIMES 10000
+                                    AND (NOT (`the additional weekly hours` c EQUALS `the additional weekly hours if §1ג.2 reaches them` c))
+                                        EQUALS (`the additional weekly hours` c GREATER THAN 0 AND n LESS THAN 10))
+                            (range 0 12))
+                    (range 0 8))
+            (range 2007 2010)
+
+-- §1ד: installation and upkeep are reimbursed exactly before 2008-09 and
+-- the group-8 amount from it; a principal or deputy never gets less than
+-- the group-8 amount or than the previous entitlement, anyone else exactly
+-- the group-8 amount.
+#ASSERT all (GIVEN y YIELD
+                    `installation and upkeep are reimbursed in` y EQUALS (y LESS THAN 2008)
+                AND (`the telephone reimbursement of every teaching employee` y 48.6 EQUALS 48.6) EQUALS (y AT LEAST 2008))
+            (range 2006 2010)
+#ASSERT all (GIVEN p YIELD
+                all (GIVEN g YIELD
+                            `the monthly telephone reimbursement` TRUE (p TIMES 10) (g TIMES 10) AT LEAST g TIMES 10
+                        AND `the monthly telephone reimbursement` TRUE (p TIMES 10) (g TIMES 10) AT LEAST p TIMES 10
+                        AND `the monthly telephone reimbursement` FALSE (p TIMES 10) (g TIMES 10) EQUALS g TIMES 10)
+                    (range 0 10))
+            (range 0 10)
+
+-- §2א over every kind, 1 to 3 pupils and each yes-or-no fact: the reward
+-- is 1 or 1.25 units of 0.5% of the base exactly where every condition of
+-- §§2א.1, 2א.6, 2א.7ד and 2ב holds and a group is allowed for the kind,
+-- and nothing otherwise; the deposit on it is 5% each side.
+GIVEN a IS AN `accommodation`, n IS A NUMBER, w IS A BOOLEAN, q IS A BOOLEAN, s IS A BOOLEAN, o IS A BOOLEAN
+GIVETH AN `accommodation done`
+DECIDE `a checked accommodation` a n w q s o IS
+    `accommodation done` WITH
+        `kind of accommodation`                    IS a
+        `pupils served`                            IS n
+        `done from 1.9.2008`                       IS w
+        `beyond the hours of the position`         IS w
+        `in the upper or middle division`          IS w
+        `an exam as the Ministry's guidelines define it` IS q
+        `pupil defined learning-disabled under the Ministry's procedures` IS q
+        `accommodation approved by the competent body` IS q
+        `teacher entitled to the special-education reward` IS s
+        `teacher employed under Ofek Hadash`       IS o
+        `salary base`                              IS 10000
+
+#ASSERT all (GIVEN a YIELD
+                all (GIVEN n YIELD
+                        all (GIVEN w YIELD
+                                all (GIVEN q YIELD
+                                        all (GIVEN s YIELD
+                                                all (GIVEN o YIELD
+                                                        LET d MEANS `a checked accommodation` a n w q s o
+                                                            r MEANS `the reward for` d
+                                                        IN      r EQUALS (IF w AND q AND (NOT s) AND (NOT o) AND (n EQUALS 1 OR `may be done for a group` a)
+                                                                          THEN `reward units for` a TIMES 50 ELSE 0)
+                                                            AND elem (`reward units for` a) (LIST 1, 1.25)
+                                                            AND `the provident-fund deposit on the reward` r EQUALS `provident deposit` (5% TIMES r) (5% TIMES r))
+                                                    `both booleans`)
+                                            `both booleans`)
+                                    `both booleans`)
+                            `both booleans`)
+                    (range 1 3))
+            `every accommodation`
+
+-- §2א.7א against §2א.1: a class has a yearly unit quota exactly in grades
+-- 7 to 12, the middle and upper divisions the arrangement covers, and the
+-- upper division's is the larger.
+#ASSERT all (GIVEN g YIELD
+                    (`the yearly unit quota of a class in grade` g GREATER THAN 0) EQUALS (g AT LEAST 7 AND g AT MOST 12)
+                AND ((NOT (g AT LEAST 10 AND g AT MOST 12)) OR `the yearly unit quota of a class in grade` g GREATER THAN `the yearly unit quota of a class in grade` 9))
+            (range 6 13)

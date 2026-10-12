@@ -238,3 +238,53 @@ DECIDE `the owning body finds and pays` l IS
 #TRACE `the owning body finds and pays` `left in 2004 with 100,000 severance` AT 0 WITH
     PARTY `the owning body` DOES `locate those paid severance` AT 1
     PARTY `the owning body` DOES `pay the severance differences` 6350 AT 2
+
+§§ `Property checks`
+
+-- The circular over its whole finite space: retirement and leaving years
+-- 1998 to 2009, budget-pension months of 1999 to 2003, each flag.
+
+`both booleans` MEANS LIST TRUE, FALSE
+
+-- Item 2's list: every year from 2003 to 2007 has exactly one row and no
+-- other year of 1998-2009 has one; F-2007-08_tashsach_08-a over the whole
+-- space: 2002, the second period's first year, is the one year of that
+-- period with none. The compensation rises by half a salary a year from
+-- 2003 to 2006.
+#ASSERT all (GIVEN y YIELD
+                count (`the pension salaries the list gives for` y) EQUALS (IF y AT LEAST 2003 AND y AT MOST 2007 THEN 1 ELSE 0))
+            (range 1998 2009)
+`the second period's years with no row` MEANS
+    filter (GIVEN y YIELD null (`the pension salaries the list gives for` y)) (range `the second period starts` `the second period ends`)
+#ASSERT `the second period's years with no row` EQUALS LIST 2002
+#ASSERT all (GIVEN y YIELD sum (`the pension salaries the list gives for` (y PLUS 1)) EQUALS sum (`the pension salaries the list gives for` y) PLUS 0.5)
+            (range 2003 2005)
+
+-- §4's list: every year from 2000 to 2007 has exactly one rate, between 0
+-- and 10%; the differences are never negative, nothing for one who left
+-- on pension or was not entitled to severance, and nothing for a year
+-- outside the list.
+#ASSERT all (GIVEN y YIELD
+                LET rates MEANS filter (GIVEN r YIELD r's `year work ended` EQUALS y) `the severance list`
+                IN      count rates EQUALS (IF y AT LEAST 2000 AND y AT MOST 2007 THEN 1 ELSE 0)
+                    AND all (GIVEN r YIELD r's `salary rise` GREATER THAN 0 AND r's `salary rise` AT MOST 10%) rates)
+            (range 1998 2009)
+#ASSERT all (GIVEN y YIELD
+                all (GIVEN p YIELD
+                        all (GIVEN e YIELD
+                                LET d MEANS `the severance differences` (`leaver` WITH `year the work ended` IS y, `left on pension` IS p, `was entitled to severance` IS e, `severance paid` IS 100000, `determining salary for severance` IS 10000)
+                                IN      d AT LEAST 0
+                                    AND (d EQUALS 0 OR (e AND (NOT p) AND y AT LEAST 2000 AND y AT MOST 2007)))
+                            `both booleans`)
+                    `both booleans`)
+            (range 1998 2009)
+
+-- §3א over pension months of 1999-2003: only a retiree before 2003 is
+-- compensated, only for 2000-2002, never above 3% of the pension paid.
+#ASSERT all (GIVEN b YIELD
+                all (GIVEN y YIELD
+                        LET c MEANS `the budget-pension compensation` b (LIST `pension month` WITH `pension year` IS y, `pension paid` IS 5000)
+                        IN      c AT MOST 3% TIMES 5000
+                            AND (c GREATER THAN 0) EQUALS (b AND y AT LEAST 2000 AND y AT MOST 2002))
+                    (range 1999 2003))
+            `both booleans`

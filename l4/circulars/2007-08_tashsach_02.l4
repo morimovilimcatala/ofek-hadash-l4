@@ -265,3 +265,80 @@ DECIDE `a 1999 month earns nothing` m IF
 
 #TRACE `the grant is paid with December 2007's salary` (LIST `January 2000, full month`) AT 0 WITH
     PARTY `the employer` DOES `pay the grant` 338.1 AT 1
+
+§§ `Property checks`
+
+-- The circular over its whole finite space: every month of 1999 to 2003,
+-- worked or not, on leave or not, with advances of 0 to 0.5%; and every
+-- row of the linkage table.
+
+`both booleans` MEANS LIST TRUE, FALSE
+
+GIVEN mo IS A NUMBER, yr IS A NUMBER, w IS A BOOLEAN, l IS A BOOLEAN, a IS A NUMBER
+GIVETH A `work month`
+DECIDE `a checked month` mo yr w l a IS
+    `work month` WITH
+        `month number of the year`      IS mo
+        `calendar year`                 IS yr
+        `actually worked`               IS w
+        `determining salary paid`       IS 10000
+        `advance paid`                  IS a
+        `on unpaid leave or sabbatical` IS l
+
+-- §1.6: the table gives exactly one coefficient for each month of
+-- 1.1.2000-31.12.2002 and none for any other month of 1999-2003; every
+-- coefficient is above 1, and a higher index never has the higher one.
+#ASSERT all (GIVEN yr YIELD
+                all (GIVEN mo YIELD
+                        count (`the coefficient the table gives` mo yr)
+                        EQUALS (IF `in the period` (`a checked month` mo yr TRUE FALSE 0) THEN 1 ELSE 0))
+                    (range 1 12))
+            (range 1999 2003)
+#ASSERT all (GIVEN r YIELD
+                    r's `linkage coefficient` GREATER THAN 1
+                AND all (GIVEN s YIELD (NOT (r's `price index` GREATER THAN s's `price index`)) OR r's `linkage coefficient` AT MOST s's `linkage coefficient`)
+                        `the linkage table`)
+            `the linkage table`
+
+-- The table's change column agrees with its indices: each printed change
+-- is within 0.06 points of the change the indices give. All but July 2002
+-- agree at the printed decimal; there the indices give 0.653 and the
+-- column prints 0.6. The column carries no rule — the coefficient is
+-- computed from the index — so the difference changes no amount.
+#ASSERT all (GIVEN r YIELD
+                all (GIVEN s YIELD
+                        (NOT ((s's `table year` TIMES 12 PLUS s's `table month`) EQUALS (r's `table year` TIMES 12 PLUS r's `table month` PLUS 1)))
+                        OR (    ((s's `price index` DIVIDED BY r's `price index` MINUS 1) TIMES 100 MINUS s's `monthly change`) AT MOST 0.06
+                            AND ((s's `price index` DIVIDED BY r's `price index` MINUS 1) TIMES 100 MINUS s's `monthly change`) AT LEAST -0.06))
+                    `the linkage table`)
+            `the linkage table`
+
+-- §§1.1, 1.2, 1.5 over every month of 1999-2003, worked or not, on leave or
+-- not, and advances of 0 to 0.5%: a month earns a linked grant exactly
+-- when worked in the period and not on leave or sabbatical; the grant is
+-- never negative and, with the 0.5% advance paid, is 3% linked; a 1999
+-- month never earns.
+#ASSERT all (GIVEN yr YIELD
+                all (GIVEN mo YIELD
+                        all (GIVEN w YIELD
+                                all (GIVEN l YIELD
+                                        all (GIVEN a YIELD
+                                                LET m MEANS `a checked month` mo yr w l a
+                                                    g MEANS `the month's linked grant` m
+                                                IN      g AT LEAST 0
+                                                    AND (g EQUALS 0 OR (`in the period` m AND w AND (NOT l)))
+                                                    AND ((NOT (`in the period` m AND w AND (NOT l) AND a EQUALS 50)) OR g EQUALS 300 TIMES sum (`the coefficient the table gives` mo yr))
+                                                    AND `a 1999 month earns nothing` m)
+                                            (LIST 0, 25, 50))
+                                    `both booleans`)
+                            `both booleans`)
+                    (range 1 12))
+            (range 1999 2003)
+
+-- §1.4: a retiree not active in the period gets nothing, an active one
+-- what an active teacher would for the same months.
+#ASSERT all (GIVEN yr YIELD
+                LET months MEANS map (GIVEN mo YIELD `a checked month` mo yr TRUE FALSE 50) (range 1 12)
+                IN      `a budget-pension retiree's grant` FALSE months EQUALS 0
+                    AND `a budget-pension retiree's grant` TRUE months EQUALS `the one-time grant` months)
+            (range 1999 2003)

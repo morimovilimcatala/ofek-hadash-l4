@@ -168,3 +168,69 @@ DECIDE `the differences are paid by July 2007` IS
     PARTY `the employer` DOES `start the current payments` AT 0
 #TRACE `the differences are paid by July 2007` AT 0 WITH
     PARTY `the employer` DOES `pay the differences` AT 1
+
+§§ `Property checks`
+
+-- The circular over its whole finite space: the rise's day and the day
+-- before; a month on each side of each end of the grant period, with
+-- advances of 0 to 0.5% of the salary; pension rates in tenths; the
+-- retirement years 1998 to 2004 with each flag.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`the months checked` MEANS LIST Date 1 12 1998, Date 1 1 1999, Date 1 6 2000, Date 1 12 2001, Date 1 1 2002
+
+-- §§1-2: a cell and a supplement rise by 4.75% from 1.1.2007 and not the
+-- day before, and never fall.
+`the rise runs from 1.1.2007` MEANS
+    all (GIVEN x YIELD
+                `salary table cell on` (Date 1 1 2007) x EQUALS x TIMES 1.0475
+            AND `salary table cell on` (Date 31 12 2006) x EQUALS x
+            AND `shekel supplement on` (Date 1 1 2007) x EQUALS x TIMES 1.0475
+            AND `shekel supplement on` (Date 31 12 2006) x EQUALS x
+            AND `salary table cell on` (Date 1 1 2007) x AT LEAST x)
+        (LIST 0, 100, 1000, 9999.99)
+#ASSERT `the rise runs from 1.1.2007`
+
+-- §3א over a month either side of each end of the period and advances of
+-- 0 to 0.5%: a month earns a grant exactly inside 1.1.1999-31.12.2001;
+-- the grant is never negative while the advance is at most the 0.5% the
+-- earlier circular paid, and is 3% exactly where the full advance was paid.
+#ASSERT all (GIVEN d YIELD
+                all (GIVEN a YIELD
+                        LET g MEANS `the one-time grant` (LIST `employed month` d 10000 (a TIMES 10000))
+                        IN      (g EQUALS 0 OR `falls in the grant period` (`employed month` d 10000 0))
+                            AND g AT LEAST 0
+                            AND ((NOT `falls in the grant period` (`employed month` d 10000 0))
+                                 OR (g EQUALS 300) EQUALS (a EQUALS `advance rate`)))
+                    (LIST 0, 0.25%, 0.5%))
+            `the months checked`
+#ASSERT all (GIVEN d YIELD `falls in the grant period` (`employed month` d 10000 0)
+                           EQUALS (d AT LEAST Date 1 1 1999 AND d AT MOST Date 31 12 2001))
+            `the months checked`
+
+-- §4א over pension rates in tenths: a retiree's amount is never above the
+-- active teacher's and never falls with the rate.
+#ASSERT all (GIVEN k YIELD
+                    `a budget-pension retiree's amount` 900 (k DIVIDED BY 10) AT MOST 900
+                AND `a budget-pension retiree's amount` 900 (k DIVIDED BY 10) AT MOST `a budget-pension retiree's amount` 900 ((k PLUS 1) DIVIDED BY 10))
+            (range 0 9)
+
+-- §4ב over retirement years 1998 to 2004 and each flag: the Ministry
+-- compensates exactly an old-fund teacher active in 1999-2001 who retired
+-- in 2000-2002.
+#ASSERT all (GIVEN o YIELD
+                all (GIVEN a YIELD
+                        all (GIVEN y YIELD
+                                `compensated by the Ministry through the old funds` o a y
+                                EQUALS (o AND a AND y AT LEAST 2000 AND y AT MOST 2002))
+                            (range 1998 2004))
+                    `both booleans`)
+            `both booleans`
+
+-- §5: the current payments and the differences share July 2007 as the
+-- last salary, and the grant's last salary (January 2008) is after it.
+`the deadlines are ordered` MEANS
+        `July 2007 salary` GREATER THAN `May 2007 salary`
+    AND `July 2007 salary` GREATER THAN `June 2007 salary`
+    AND `January 2008 salary` GREATER THAN `July 2007 salary`
+#ASSERT `the deadlines are ordered`

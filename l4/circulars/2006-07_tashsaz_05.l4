@@ -139,3 +139,51 @@ DECIDE `the Ministry offsets the strike` `budgeted hours of the striking institu
 
 #TRACE `the owning body deducts the strike salary` 100 `three Haifa hours on 13 May` AT 0 WITH
     PARTY `the local authority or owning body` DOES `deduct the salary` 200 AT 1
+
+§§ `Property checks`
+
+-- The circular over its whole finite space: every printed line; lesson
+-- hours from 8 to 14 o'clock on each printed date and the day after,
+-- grades 6 to 15, school covered or not, struck or not.
+
+`both booleans` MEANS LIST TRUE, FALSE
+
+-- The last date circular תשס"ז/3 printed (11.3.2007), as evidence only:
+-- the lines here follow it, but for 22.2.2007, which this circular says
+-- was omitted from that one by mistake.
+`the last date circular 3 printed` MEANS Date 11 3 2007
+
+-- ¶15-38: every line is a weekday of school year 2006-07, its grades run
+-- from ז' upward with the lowest no higher than the highest and the top no
+-- higher than יד', its start hour is 0 or within the school day; no date
+-- has two lines; and every line but the one marked omitted comes after
+-- circular 3's last date.
+#ASSERT all (GIVEN l YIELD
+                    l's `strike date` AT LEAST Date 1 9 2006 AND l's `strike date` AT MOST Date 31 8 2007
+                AND NOT (`Weekday of` (l's `strike date`) EQUALS Saturday)
+                AND l's `lowest grade` AT LEAST 7 AND l's `lowest grade` AT MOST l's `highest grade` AND l's `highest grade` AT MOST 14
+                AND (l's `from hour` EQUALS 0 OR (l's `from hour` AT LEAST 8 AND l's `from hour` AT MOST 14))
+                AND count (filter (GIVEN k YIELD k's `strike date` EQUALS l's `strike date`) `the further strike lines`) EQUALS 1
+                AND (l's `strike date` GREATER THAN `the last date circular 3 printed` OR l's `where` EQUALS "all districts (omitted by mistake from circular 3)"))
+            `the further strike lines`
+
+-- ¶13-14, ¶39 over lesson hours 8 to 14 on each printed date and the day
+-- after, grades 6 to 15, covered or not, struck or not: an hour is
+-- deducted exactly when struck, on a line's date, in a covered school, in
+-- the line's grades, from its hour on; an hour before the line's hour or
+-- outside its grades is never deducted.
+#ASSERT all (GIVEN l YIELD
+                all (GIVEN n YIELD
+                        all (GIVEN h YIELD
+                                all (GIVEN g YIELD
+                                        all (GIVEN c YIELD
+                                                all (GIVEN s YIELD
+                                                        LET x MEANS `timetable hour` WITH `lesson date` IS Date (Day (l's `strike date`) PLUS n), `lesson starts at` IS h, `grade taught` IS g, `school is covered` IS c, `the teacher struck it` IS s
+                                                        IN  `the hour is deducted` x
+                                                            EQUALS (s AND c AND n EQUALS 0 AND g AT LEAST l's `lowest grade` AND g AT MOST l's `highest grade` AND h AT LEAST l's `from hour`))
+                                                    `both booleans`)
+                                            `both booleans`)
+                                    (range 6 15))
+                            (range 8 14))
+                    (LIST 0, 1))
+            (filter (GIVEN l YIELD NOT any (GIVEN k YIELD Day (k's `strike date`) EQUALS Day (l's `strike date`) PLUS 1) `the further strike lines`) `the further strike lines`)

@@ -110,3 +110,41 @@ DECIDE `the Ministry offsets the strike` `budgeted hours of the striking institu
     PARTY `the local authority or owning body` DOES `deduct the salary` 900 AT 1
 #TRACE `the Ministry offsets the strike` 40 AT 0 WITH
     PARTY `the Ministry of Education` DOES `offset the owning body's payments` 40 AT 1
+
+§§ `Property checks`
+
+-- The circular over its whole finite space: every printed date, the day
+-- before and after each, and timetable days with 0 to 8 hours, struck or
+-- not.
+
+`both booleans` MEANS LIST TRUE, FALSE
+
+GIVEN d IS A DATE, n IS A NUMBER
+GIVETH A DATE
+DECIDE `days after` d n IS
+    Date (Day d PLUS n)
+
+-- ¶12: the dates are distinct, in school year 2006-07, and none is a
+-- Saturday; the day before and after a strike date is one only when it is
+-- itself printed.
+#ASSERT all (GIVEN d YIELD
+                    count (filter (GIVEN e YIELD e EQUALS d) `the strike dates`) EQUALS 1
+                AND d AT LEAST Date 1 9 2006 AND d AT MOST Date 31 8 2007
+                AND NOT (`Weekday of` d EQUALS Saturday)
+                AND `is a strike date` (`days after` d (0 MINUS 1)) EQUALS elem (`days after` d (0 MINUS 1)) `the strike dates`
+                AND `is a strike date` (`days after` d 1) EQUALS elem (`days after` d 1) `the strike dates`)
+            `the strike dates`
+
+-- ¶13-15 over every printed date and the day after, 0 to 8 hours, struck
+-- or not: salary is deducted exactly for a struck hour on a strike date,
+-- never more than the day's hours at the value of one hour, never less
+-- than nothing.
+#ASSERT all (GIVEN d YIELD
+                all (GIVEN h YIELD
+                        all (GIVEN p YIELD
+                                LET t MEANS `teacher record` WITH `days of the timetable` IS (LIST (`timetable day` d h p)), `value of one hour` IS 100
+                                IN      `salary to deduct` t EQUALS (IF p AND `is a strike date` d THEN h TIMES 100 ELSE 0)
+                                    AND `salary to deduct` t AT LEAST 0)
+                            `both booleans`)
+                    (range 0 8))
+            (append `the strike dates` (map (GIVEN d YIELD `days after` d 1) `the strike dates`))
