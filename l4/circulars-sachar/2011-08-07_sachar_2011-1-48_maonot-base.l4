@@ -436,3 +436,185 @@ DECIDE `the existing arrangement applies to the child` `child is 5 or over` `an 
     PARTY `the employer` DOES `pay the childcare supplement` 500 AT 0
 #TRACE `no receipts are demanded` AT 0 WITH
     PARTY `the employer` DOES `demand receipts for the childcare costs` AT 0
+
+§§ `Property checks`
+
+-- The circular's rules over their whole finite space: every parent
+-- status, 0 to 4 children under 5, positions of 0, a half, one and 1.2,
+-- each of the three yes-or-no conditions (an employer that signed, a
+-- Histadrut grading, salary from the employer), every general arrangement
+-- paying 250, 300, 301 or 350 for one child and 450, 500, 501 or 550 for
+-- two, and the days the circular names and the day before each.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`every parent status` MEANS LIST `a mother`, `a widower or divorcé with the children in his custody`, `a father the Equal Employment Opportunities Law entitles`, `another employee`
+`the positions checked` MEANS LIST 0, 0.5, 1, 1.2
+
+GIVEN s IS A `parent status`, n IS A NUMBER, f IS A NUMBER, a IS A BOOLEAN, g IS A BOOLEAN, w IS A BOOLEAN
+GIVETH AN `employee month`
+DECIDE `a checked month` s n f a g w IS
+    `employee month` WITH
+        `employed by an employer that signed the agreement` IS a
+        `graded in a Histadrut-represented grading paid by collective agreements` IS g
+        `parent status`                IS s
+        `children under 5`             IS n
+        `position fraction`            IS f
+        `entitled to salary from the employer and at its expense` IS w
+
+GIVEN p IS A FUNCTION FROM `employee month` TO BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `holds for every checked month` p IF
+    all (GIVEN s YIELD
+            all (GIVEN n YIELD
+                    all (GIVEN f YIELD
+                            all (GIVEN a YIELD
+                                    all (GIVEN g YIELD
+                                            all (GIVEN w YIELD p (`a checked month` s n f a g w))
+                                                `both booleans`)
+                                        `both booleans`)
+                                `both booleans`)
+                        `the positions checked`)
+                (range 0 4))
+        `every parent status`
+
+-- 2א, 2ב, 2ג: at most one of the three routes admits an employee, and
+-- together they admit exactly an employee of a signing employer, in a
+-- Histadrut grading, with a child under 5, who is a mother, a widower or
+-- divorcé with custody, or a father the law entitles.
+GIVEN e IS AN `employee month`
+GIVETH A NUMBER
+DECIDE `routes that admit` e IS
+    count (filter id (LIST `the supplement applies to a mother` e,
+                           `the supplement applies to a widower or divorcé` e,
+                           `section 4(a) of the law extends the supplement to the employee` e))
+
+GIVEN e IS AN `employee month`
+GIVETH A BOOLEAN
+DECIDE `the routes admit exactly the employees section 2 names, each by one route` e IF
+        `routes that admit` e AT MOST 1
+    AND `entitled to the childcare supplement` e
+        EQUALS (    e's `employed by an employer that signed the agreement`
+                AND e's `graded in a Histadrut-represented grading paid by collective agreements`
+                AND e's `children under 5` AT LEAST 1
+                AND NOT (e's `parent status` EQUALS `another employee`))
+#ASSERT `holds for every checked month` `the routes admit exactly the employees section 2 names, each by one route`
+
+-- 3ג-3ז: the supplement is never negative and never above 300 + 200; it
+-- is nothing in a month without salary from the employer; a third or later
+-- child adds nothing; and it never falls with more children or with a
+-- larger position.
+GIVEN e IS AN `employee month`
+GIVETH A BOOLEAN
+DECIDE `the supplement is within 0 and 500, nothing without salary, for at most two children` e IF
+        `the monthly childcare supplement` e AT LEAST 0
+    AND `the monthly childcare supplement` e AT MOST `the monthly amount for one or a first child` PLUS `the monthly amount for a second child`
+    AND (e's `entitled to salary from the employer and at its expense` OR `the monthly childcare supplement` e EQUALS 0)
+    AND `children paid for` e AT MOST 2
+#ASSERT `holds for every checked month` `the supplement is within 0 and 500, nothing without salary, for at most two children`
+#ASSERT all (GIVEN s YIELD
+                all (GIVEN n YIELD
+                        all (GIVEN f YIELD
+                                    `the monthly childcare supplement` (`a checked month` s n f TRUE TRUE TRUE)
+                                    AT MOST `the monthly childcare supplement` (`a checked month` s (n PLUS 1) f TRUE TRUE TRUE)
+                                AND `the monthly childcare supplement` (`a checked month` s n f TRUE TRUE TRUE)
+                                    AT MOST `the monthly childcare supplement` (`a checked month` s n (f PLUS 0.5) TRUE TRUE TRUE))
+                            `the positions checked`)
+                    (range 0 4))
+            `every parent status`
+
+-- 3 and 3ו: the circular's amounts run from 1.9.2011, not the day before,
+-- until the first yearly update (a January 1, here 1.1.2012) and not on it.
+`the circular's amounts run from 1.9.2011 to the first update` MEANS
+        `this circular's amounts are in force` (Date 1 9 2011) (Date 1 1 2012)
+    AND NOT `this circular's amounts are in force` (Date 31 8 2011) (Date 1 1 2012)
+    AND `this circular's amounts are in force` (Date 31 12 2011) (Date 1 1 2012)
+    AND NOT `this circular's amounts are in force` (Date 1 1 2012) (Date 1 1 2012)
+    AND `the amounts are updated in the month` (Date 1 1 2012)
+    AND NOT `the amounts are updated in the month` (Date 31 12 2011)
+#ASSERT `the circular's amounts run from 1.9.2011 to the first update`
+
+`every benefit for one child`  MEANS LIST 250, 300, 301, 350
+`every benefit for two children` MEANS LIST 450, 500, 501, 550
+
+GIVEN u IS A BOOLEAN, `general` IS A BOOLEAN, `pays` IS A BOOLEAN, b1 IS A NUMBER, b2 IS A NUMBER
+GIVETH AN `other childcare arrangement`
+DECIDE `a checked arrangement` u `general` `pays` b1 b2 IS
+    `other childcare arrangement` WITH
+        `for a child under 5`           IS u
+        `a general arrangement`         IS `general`
+        `pays another benefit towards childcare` IS `pays`
+        `monthly benefit for one or a first child` IS b1
+        `monthly benefit for two or more children` IS b2
+
+GIVEN p IS A FUNCTION FROM `other childcare arrangement` TO BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `holds for every checked arrangement` p IF
+    all (GIVEN u YIELD
+            all (GIVEN `general` YIELD
+                    all (GIVEN `pays` YIELD
+                            all (GIVEN b1 YIELD
+                                    all (GIVEN b2 YIELD p (`a checked arrangement` u `general` `pays` b1 b2))
+                                        `every benefit for two children`)
+                                `every benefit for one child`)
+                        `both booleans`)
+                `both booleans`)
+        `both booleans`
+
+-- The arrangement's benefit for a mother of n children: the one-child
+-- figure for one, the two-or-more figure for more.
+GIVEN a IS AN `other childcare arrangement`, n IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the arrangement's benefit for` a n IS
+    IF n AT MOST 1
+    THEN a's `monthly benefit for one or a first child`
+    ELSE a's `monthly benefit for two or more children`
+
+-- Second 3, items א and ב: an arrangement for a child under 5 survives
+-- from 1.9.2011 exactly where it is kept (and section 29 permits it),
+-- and every arrangement survives the day before. A kept arrangement is
+-- kept exactly from more than 300 and more than 500, as 3ב(2) says, and
+-- pays every full-time mother of 1 to 4 children more than the supplement
+-- it displaces: 3ב's thresholds are this circular's own amounts.
+GIVEN a IS AN `other childcare arrangement`
+GIVETH A BOOLEAN
+DECIDE `the replacing and keeping are as the second section 3 says` a IF
+        `the general arrangement is kept` a
+        EQUALS (    a's `a general arrangement`
+                AND a's `pays another benefit towards childcare`
+                AND a's `monthly benefit for one or a first child` AT LEAST 301
+                AND a's `monthly benefit for two or more children` AT LEAST 501)
+    AND all (GIVEN s29 YIELD
+                    `the other arrangement survives` a (Date 31 8 2011) s29
+                AND `the other arrangement survives` a (Date 1 9 2011) s29
+                    EQUALS ((NOT a's `for a child under 5`) OR (`the general arrangement is kept` a AND s29)))
+            `both booleans`
+    AND ((NOT `the general arrangement is kept` a)
+         OR all (GIVEN n YIELD `the arrangement's benefit for` a n GREATER THAN `the monthly childcare supplement` (`a checked month` `a mother` n 1 TRUE TRUE TRUE))
+                (range 1 4))
+#ASSERT `holds for every checked arrangement` `the replacing and keeping are as the second section 3 says`
+
+-- F-2011-08-07_sachar_2011-1-48_maonot-base-a over every arrangement and
+-- every full-time mother of 0 to 4 children, with and without salary: the
+-- two readings of "section 3 א'" part exactly where the arrangement is
+-- kept and a supplement is due.
+GIVEN a IS AN `other childcare arrangement`
+GIVETH A BOOLEAN
+DECIDE `the readings of 3 א' part exactly where a kept arrangement meets a supplement due` a IF
+    all (GIVEN n YIELD
+            all (GIVEN w YIELD
+                    LET e MEANS `a checked month` `a mother` n 1 TRUE TRUE w
+                    IN  (NOT (`the supplement beside the arrangement under` `the payment section's item א` a e
+                              EQUALS `the supplement beside the arrangement under` `the replacing section's item א` a e))
+                        EQUALS (`the general arrangement is kept` a AND `the monthly childcare supplement` e GREATER THAN 0))
+                `both booleans`)
+        (range 0 4)
+#ASSERT `holds for every checked arrangement` `the readings of 3 א' part exactly where a kept arrangement meets a supplement due`
+
+-- F-2011-08-07_sachar_2011-1-48_maonot-base-b over positions above full
+-- from 1.05 to 1.5: 3ד decides none of them, and the reading adopted pays
+-- each the full-position amount.
+#ASSERT all (GIVEN k YIELD
+                LET f MEANS 1 PLUS k DIVIDED BY 20
+                IN      NOT `3ד decides the position` f
+                    AND `the position share paid` f EQUALS 1)
+            (range 1 10)

@@ -117,3 +117,68 @@ DECIDE `the employer pays the updated supplement` c `month` IS
     PARTY `the employer` DOES `pay the childcare supplement` 312 AT 0
 #TRACE `the employer pays the updated supplement` `an only child of three` (Date 1 2 2017) AT 0 WITH
     PARTY `the employer` DOES `pay the childcare supplement` 262 AT 0
+
+§§ `Property checks`
+
+-- The update over its whole finite space: a child up to 5 or not, at
+-- places 0 to 4 among the children, on the day before the update takes
+-- effect, on that day and on the last day of its year.
+
+`both booleans` MEANS LIST TRUE, FALSE
+
+`the days checked` MEANS
+    LIST Date (Day `the update takes effect` MINUS 1),
+         `the update takes effect`,
+         Date 31 12 (DATE_YEAR `the update takes effect`)
+
+-- An amount is given exactly for a child up to 5 who is an only, first or
+-- second child, from the day the update takes effect and not the day
+-- before: no child the update prints an amount for is left without one,
+-- and none it prints nothing for is given one.
+#ASSERT all (GIVEN u YIELD
+                all (GIVEN p YIELD
+                        all (GIVEN d YIELD
+                                isJust (`the monthly childcare supplement under this update` (`child for the childcare supplement` WITH `up to age 5` IS u, `place among the children` IS p) d)
+                                EQUALS (u AND (p EQUALS 1 OR p EQUALS 2) AND d AT LEAST `the update takes effect`))
+                            `the days checked`)
+                    (range 0 4))
+            `both booleans`
+
+-- The two printed amounts: both positive, and the second child's below
+-- the first's, as in the base circular's 300 and 200.
+`both amounts are positive and the second is the smaller` MEANS
+        `the monthly amount for a second child` GREATER THAN 0
+    AND `the monthly amount for a second child` LESS THAN `the monthly amount for an only or first child`
+#ASSERT `both amounts are positive and the second is the smaller`
+
+-- The amounts in force before this update, as circular 2016-1-7 prints them
+-- (corpus circulars-sachar/2016-01_sachar_2016-1-7_maonot, ¶¶1–2). They are used here only to
+-- check the printed amounts, never as a rule of this circular.
+`the amount in force for an only or first child` MEANS 313
+`the amount in force for a second child`         MEANS 210
+
+-- This circular prints the new amounts and no index change. The base
+-- circular's item ו updates the supplement once a year by one method, so
+-- one change moves both amounts: some single factor, applied to both
+-- amounts in force, gives both printed amounts at the printed step
+-- (a whole shekel). Each printed amount allows a range of factors; the ranges
+-- overlap.
+`half the printed step` MEANS 0.5
+
+GIVEN `before` IS A NUMBER, `after` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the lowest factor that prints` `before` `after` IS
+    (`after` MINUS `half the printed step`) DIVIDED BY `before`
+
+GIVEN `before` IS A NUMBER, `after` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the highest factor that prints` `before` `after` IS
+    (`after` PLUS `half the printed step`) DIVIDED BY `before`
+
+`one change moves both amounts` MEANS
+    max (`the lowest factor that prints` `the amount in force for an only or first child` `the monthly amount for an only or first child`)
+        (`the lowest factor that prints` `the amount in force for a second child` `the monthly amount for a second child`)
+    AT MOST
+    min (`the highest factor that prints` `the amount in force for an only or first child` `the monthly amount for an only or first child`)
+        (`the highest factor that prints` `the amount in force for a second child` `the monthly amount for a second child`)
+#ASSERT `one change moves both amounts`
