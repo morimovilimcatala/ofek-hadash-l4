@@ -396,3 +396,145 @@ DECIDE `jubilee grant paid with June's salary` y IS
     PARTY `the employer` DOES `pay the jubilee grant` 6000 AT 10
 #TRACE `no employment above the cap` `a full-time teacher in year 22` AT 0 WITH
     PARTY `the employer` DOES `employ at a position with all employers` 1 AT 1
+
+§§ `Property checks`
+
+-- The circular over a finite space: years of service 1 to 60; positions in
+-- tenths from 0 to 1.5 with one employer, or two at every pair in fifths to
+-- 1; 0 to 12 months worked; every terms of employment; seniority on 1 June
+-- in quarter years from 0 to 45, and in September three quarters less;
+-- every stage, and the stage fractions of a full position split two ways.
+
+`tenths to 1.5` MEANS map (GIVEN k YIELD k DIVIDED BY 10) (range 0 15)
+`fifths to 1` MEANS map (GIVEN k YIELD k DIVIDED BY 5) (range 0 5)
+`years checked` MEANS LIST 1, 3, 4, 10, 11, 15, 16, 19, 20, 24, 25, 40
+`every stage` MEANS LIST `junior high`, `upper division`, `kindergarten`, `primary`, `teacher-training college`
+`every terms` MEANS LIST `not under a reform`, `Oz LeTmura, partial implementation`, `Oz LeTmura, full implementation`, `Ofek Hadash`
+
+GIVEN n IS A NUMBER
+      ps IS A LIST OF NUMBER
+      m IS A NUMBER
+      j IS A NUMBER
+      fs IS A LIST OF `fraction by stage`
+GIVETH A `recuperation and jubilee year`
+DECIDE `a checked year` n ps m j fs IS
+    `recuperation and jubilee year` WITH
+        `year of service`                    IS n
+        `position fraction`                  IS sum ps
+        `months worked`                      IS m
+        `employments`                        IS map (GIVEN p YIELD `employment with one employer` p) ps
+        `terms`                              IS `not under a reform`
+        `seniority on 1 June`                IS j
+        `seniority set the September before` IS j MINUS 0.75
+        `determining salary`                 IS 10000
+        `jubilee fractions`                  IS fs
+        `period fraction`                    IS 1
+
+-- 1ג: every year of service from 1 to 60 has exactly one row, and the days
+-- never fall as the years grow.
+#ASSERT all (GIVEN n YIELD
+                    count (`the days the table gives for year` n) EQUALS 1
+                AND `recuperation days` n AT MOST `recuperation days` (n PLUS 1))
+            (range 1 60)
+
+-- 1ב-1ה with one employer over every year, position and month count: the
+-- allowance is never negative, never more than a full position's thirteen
+-- days, never falls with a larger position, more months or another year,
+-- pays above a full position as one, and pays eleven or twelve months as
+-- ten (the reading of F-2012-13_tashag_07-b).
+GIVEN n IS A NUMBER, p IS A NUMBER, m IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `section 1 holds for` n p m IF
+    LET a MEANS `recuperation allowance` (`a checked year` n (LIST p) m 0 EMPTY)
+    IN      a AT LEAST 0
+        AND a AT MOST `the payment per recuperation day` TIMES 13
+        AND a AT MOST `recuperation allowance` (`a checked year` n (LIST (p PLUS 0.1)) m 0 EMPTY)
+        AND a AT MOST `recuperation allowance` (`a checked year` n (LIST p) (m PLUS 1) 0 EMPTY)
+        AND a AT MOST `recuperation allowance` (`a checked year` (n PLUS 1) (LIST p) m 0 EMPTY)
+        AND ((p LESS THAN 1) OR a EQUALS `recuperation allowance` (`a checked year` n (LIST (p PLUS 0.5)) m 0 EMPTY))
+        AND ((m LESS THAN 10) OR a EQUALS `recuperation allowance` (`a checked year` n (LIST p) 10 0 EMPTY))
+
+#ASSERT all (GIVEN n YIELD
+                all (GIVEN p YIELD
+                        all (GIVEN m YIELD `section 1 holds for` n p m)
+                            (range 0 12))
+                    `tenths to 1.5`)
+            `years checked`
+
+-- 1ו with two employers over every pair in fifths: together they pay more
+-- than one full position's allowance exactly where the positions add to
+-- more than one (F-2012-13_tashag_07-a, whole space).
+#ASSERT all (GIVEN p YIELD
+                all (GIVEN q YIELD
+                        (`recuperation allowance` (`a checked year` 12 (LIST p, q) 10 0 EMPTY)
+                         GREATER THAN `recuperation allowance` (`a checked year` 12 (LIST 1) 10 0 EMPTY))
+                        EQUALS (p PLUS q GREATER THAN 1))
+                    `fifths to 1`)
+            `fifths to 1`
+
+-- 2ה(2) and 2ב on the reading adopted (F-2012-13_tashag_07-d) over every
+-- stage and seniority in quarter years: entitled exactly in the year from
+-- the stage's threshold; over a career of whole years, exactly once.
+-- F-2012-13_tashag_07-c over the same space: 2ד and 2ה(2) part exactly
+-- where 1 June is at the threshold or up to three quarters past it.
+#ASSERT all (GIVEN s YIELD
+                LET t MEANS `the qualifying seniority for the stage` s
+                IN      all (GIVEN q YIELD
+                                LET y MEANS `a checked year` 1 (LIST 1) 10 (q DIVIDED BY 4) EMPTY
+                                    j MEANS q DIVIDED BY 4
+                                IN      `entitled to the jubilee grant for the stage` y s
+                                        EQUALS (j AT LEAST t AND j LESS THAN t PLUS 1)
+                                    AND (NOT (`qualifies by the September seniority` y s EQUALS `qualifies by the 1 June seniority` y s))
+                                        EQUALS (j AT LEAST t AND j LESS THAN t PLUS 0.75))
+                            (range 0 180)
+                    AND count (filter (GIVEN n YIELD `entitled to the jubilee grant for the stage` (`a checked year` 1 (LIST 1) 10 n EMPTY) s) (range 0 45))
+                        EQUALS 1)
+            `every stage`
+
+-- 2ג-2ה(4) over every pair of stages splitting a full position and every
+-- seniority: the grant is never negative, never more than 60% of the
+-- determining salary, and is 60% of it times the fractions held in stages
+-- whose threshold is crossed this year.
+#ASSERT all (GIVEN s YIELD
+                all (GIVEN u YIELD
+                        all (GIVEN j YIELD
+                                LET fs MEANS LIST `fraction by stage` s 0.6, `fraction by stage` u 0.4
+                                    y MEANS `a checked year` 1 (LIST 1) 10 j fs
+                                    g MEANS `jubilee grant` y
+                                IN      g AT LEAST 0
+                                    AND g AT MOST 0.6 TIMES 10000
+                                    AND g EQUALS 0.6 TIMES 10000 TIMES
+                                            ((IF `entitled to the jubilee grant for the stage` y s THEN 0.6 ELSE 0)
+                                             PLUS (IF `entitled to the jubilee grant for the stage` y u THEN 0.4 ELSE 0)))
+                            (LIST 24, 25, 25.5, 26, 29, 30, 30.5, 31))
+                    `every stage`)
+            `every stage`
+
+-- 1ז-1ח over every terms of employment and position in tenths: the caps
+-- fall as the reform goes further, and a position is within the cap
+-- exactly up to it.
+#ASSERT all (GIVEN i YIELD
+                `the cap on the position with all employers` (at `every terms` (i PLUS 1))
+                AT MOST `the cap on the position with all employers` (at `every terms` i))
+            (range 0 2)
+GIVEN t IS A `terms of employment`, p IS A NUMBER
+GIVETH A `recuperation and jubilee year`
+DECIDE `a year under` t p IS
+    `recuperation and jubilee year` WITH
+        `year of service`                    IS 12
+        `position fraction`                  IS p
+        `months worked`                      IS 10
+        `employments`                        IS LIST `employment with one employer` p
+        `terms`                              IS t
+        `seniority on 1 June`                IS 12
+        `seniority set the September before` IS 11
+        `determining salary`                 IS 10000
+        `jubilee fractions`                  IS EMPTY
+        `period fraction`                    IS 1
+
+#ASSERT all (GIVEN t YIELD
+                all (GIVEN p YIELD
+                        `the position is within the cap` (`a year under` t p)
+                        EQUALS (p AT MOST `the cap on the position with all employers` t))
+                    `tenths to 1.5`)
+            `every terms`

@@ -27,7 +27,7 @@ DECLARE `clothing year` HAS
     `positions`                       IS A LIST OF NUMBER @desc the position held with each employer (1 = a full position), one entry per employer
     `teaches physical education`      IS A BOOLEAN
     `physical-education position`     IS A NUMBER @desc the share of a position in physical education
-    `technological subject`           IS A STRING @desc the subject taught in technological education or as a vocational instructor, as the lists print it; "" for none
+    `technological subjects`          IS A LIST OF STRING @desc the subjects taught in technological education or as a vocational instructor, as the lists print them; empty for none
 
 GIVEN y IS A `clothing year`
 GIVETH A NUMBER
@@ -90,7 +90,7 @@ DECIDE `the total all employers pay under א.5` y IS
         `positions`                      IS LIST 0.7, 0.6
         `teaches physical education`     IS FALSE
         `physical-education position`    IS 0
-        `technological subject`          IS ""
+        `technological subjects`         IS EMPTY
 
 `א.4 and א.5 give different allowances for two employers above a full position` MEANS
     NOT (`the total all employers pay under א.5` `seventy and sixty percent with two employers`
@@ -110,6 +110,10 @@ DECIDE `general clothing allowance` y IS
 
 -- א.1: paid in full with the salary of July 2013. Time in school months
 -- (September 2012 = 1, July 2013 = 11).
+-- F-2012-13_tashag_08-e: only section א, headed "כללי", names the month of
+-- payment; sections ב and ג name none. The reading adopted, as
+-- F-2010-11_tashaa_03-e and its siblings read the same words: July applies
+-- to the whole allowance.
 @ref akn:art_a__para_1
 GIVEN y IS A `clothing year`
 GIVETH A DEONTIC Party `clothing action`
@@ -174,6 +178,16 @@ DECIDE `the physical-education amount` p IS
 #ASSERT all (GIVEN p YIELD `the amounts the table gives for position` p EQUALS LIST (`the physical-education amount` p))
             (LIST 0, 0.1, 0.29, 0.31, 0.4, 0.49, 0.51, 0.8, 1)
 
+-- F-2012-13_tashag_08-d: "שיעור העסקה" is not said to be the share of the
+-- position in physical education or the employee's whole position. The
+-- reading adopted, as F-2011-12_tashab_08-c and its siblings read the same
+-- words: the share in physical education, the input
+-- `physical-education position`.
+`the two readings of the employment rate differ` MEANS
+    NOT (`the amounts the table gives for position` 0.2
+         EQUALS `the amounts the table gives for position` 1)
+#ASSERT `the two readings of the employment rate differ`
+
 GIVEN y IS A `clothing year`
 GIVETH A NUMBER
 DECIDE `physical-education allowance` y IS
@@ -209,19 +223,43 @@ DECIDE `physical-education allowance` y IS
 #ASSERT count `the shoes-and-coats subjects` EQUALS 13
 #ASSERT count `the two-coats subjects` EQUALS 13
 
+GIVEN subjects IS A LIST OF STRING
+      y IS A `clothing year`
+GIVETH A BOOLEAN
+DECIDE `teaches a subject on` subjects y IF
+    any (GIVEN t YIELD elem t subjects) (y's `technological subjects`)
+
 -- ג.2: in addition to the general allowance; ג.3: pro-rated to the
 -- position, no more than one full position.
+-- F-2012-13_tashag_08-c: a teacher of subjects on both lists meets ג.1(א)
+-- and ג.1(ב). The reading adopted, as F-2011-12_tashab_13-c and its siblings
+-- read the same words: the larger grant, which holds the two coats the
+-- other grants.
 @ref akn:art_c__para_2 akn:art_c__para_3
 GIVEN y IS A `clothing year`
 GIVETH A NUMBER
 DECIDE `technological clothing allowance` y IS
     IF NOT `entitled to the clothing allowance` y
     THEN 0
-    ELSE BRANCH IF elem (y's `technological subject`) `the shoes-and-coats subjects`
+    ELSE BRANCH IF `teaches a subject on` `the shoes-and-coats subjects` y
                 THEN `the value of a pair of shoes and two coats` TIMES `the position share under א.4` y
-                IF elem (y's `technological subject`) `the two-coats subjects`
+                IF `teaches a subject on` `the two-coats subjects` y
                 THEN `the value of two coats` TIMES `the position share under א.4` y
                 OTHERWISE 0
+
+-- The other reading: both grants, added, for a full position.
+GIVEN y IS A `clothing year`
+GIVETH A NUMBER
+DECIDE `both grants added` y IS
+    (IF `teaches a subject on` `the shoes-and-coats subjects` y THEN `the value of a pair of shoes and two coats` ELSE 0)
+    PLUS (IF `teaches a subject on` `the two-coats subjects` y THEN `the value of two coats` ELSE 0)
+
+GIVEN y IS A `clothing year`
+GIVETH A NUMBER
+DECIDE `the larger grant` y IS
+    BRANCH IF `teaches a subject on` `the shoes-and-coats subjects` y THEN `the value of a pair of shoes and two coats`
+           IF `teaches a subject on` `the two-coats subjects` y THEN `the value of two coats`
+           OTHERWISE 0
 
 -- akn:art_d The contact line for questions; no rule.
 -- akn:conclusions The signature and the list of copies; no rule.
@@ -237,7 +275,7 @@ DECIDE `technological clothing allowance` y IS
         `positions`                      IS LIST 1
         `teaches physical education`     IS TRUE
         `physical-education position`    IS 0.6
-        `technological subject`          IS ""
+        `technological subjects`         IS EMPTY
 
 `a half-time mechatronics teacher` MEANS
     `clothing year` WITH
@@ -247,7 +285,7 @@ DECIDE `technological clothing allowance` y IS
         `positions`                      IS LIST 0.5
         `teaches physical education`     IS FALSE
         `physical-education position`    IS 0
-        `technological subject`          IS "מכטרוניקה"
+        `technological subjects`         IS LIST "מכטרוניקה"
 
 #ASSERT `general clothing allowance` `a full-time PE teacher` EQUALS 2095
 #ASSERT `physical-education allowance` `a full-time PE teacher` EQUALS 1334
@@ -259,3 +297,113 @@ DECIDE `technological clothing allowance` y IS
     PARTY `the employer` DOES `pay the clothing allowance in full` 3429 AT 11
 #TRACE `no employment above 140%` `a full-time PE teacher` AT 0 WITH
     PARTY `the employer` DOES `employ above the cap` 1.5 AT 3
+
+§§ `Property checks`
+
+-- The circular over a finite space: one employer at positions in tenths
+-- from 0 to 1.5, or two at every pair in fifths to 1; physical-education
+-- shares in tenths; every subject of either list, none, a subject on
+-- neither, and one of each list; in the grade or not.
+
+`tenths to 1.5` MEANS map (GIVEN k YIELD k DIVIDED BY 10) (range 0 15)
+`fifths to 1` MEANS map (GIVEN k YIELD k DIVIDED BY 5) (range 0 5)
+`both booleans` MEANS LIST TRUE, FALSE
+`every subject list checked` MEANS
+    append (LIST EMPTY, (LIST "מכטרוניקה", "מערכות אלקטרוניות"), (LIST "נושא אחר"))
+           (map (GIVEN t YIELD LIST t) (append `the shoes-and-coats subjects` `the two-coats subjects`))
+
+GIVEN g IS A BOOLEAN
+      ps IS A LIST OF NUMBER
+      e IS A BOOLEAN
+      r IS A NUMBER
+      l IS A LIST OF STRING
+GIVETH A `clothing year`
+DECIDE `a checked year` g ps e r l IS
+    `clothing year` WITH
+        `graded as a teaching employee`  IS g
+        `employed by a supervised owner` IS TRUE
+        `stage`                          IS `upper division`
+        `positions`                      IS ps
+        `teaches physical education`     IS e
+        `physical-education position`    IS r
+        `technological subjects`         IS l
+
+-- ב over shares in tenths: every share is in some row, two exactly at 0.3
+-- and 0.5 (F-2012-13_tashag_08-b, whole space), the amount is one of those
+-- rows', it never falls, and it is nothing for a teacher of no physical
+-- education. F-2012-13_tashag_08-d over the same shares: the two readings
+-- part for a full-position teacher exactly below 0.5.
+#ASSERT all (GIVEN r YIELD
+                LET rows MEANS `the amounts the table gives for position` r
+                    a MEANS `physical-education allowance` (`a checked year` TRUE (LIST 1) TRUE r EMPTY)
+                IN      count rows AT LEAST 1
+                    AND (count rows EQUALS 2) EQUALS (r EQUALS 0.3 OR r EQUALS 0.5)
+                    AND elem a rows
+                    AND a AT MOST `physical-education allowance` (`a checked year` TRUE (LIST 1) TRUE (r PLUS 0.1) EMPTY)
+                    AND `physical-education allowance` (`a checked year` TRUE (LIST 1) FALSE r EMPTY) EQUALS 0
+                    AND (NOT (a EQUALS `physical-education allowance` (`a checked year` TRUE (LIST 1) TRUE 1 EMPTY)))
+                        EQUALS (r LESS THAN 0.5))
+            `tenths to 1.5`
+
+GIVEN y IS A `clothing year`
+      g IS A BOOLEAN
+      p IS A NUMBER
+      l IS A LIST OF STRING
+GIVETH A BOOLEAN
+DECIDE `one employer holds for` y g p l IF
+    LET a MEANS `general clothing allowance` y PLUS `technological clothing allowance` y
+    IN      a AT LEAST 0
+        AND a AT MOST `the level-4 allowance` PLUS `the value of a pair of shoes and two coats`
+        AND (g OR a EQUALS 0)
+        AND ((NOT g) OR p EQUALS 0 OR `general clothing allowance` y GREATER THAN 0)
+        AND ((p LESS THAN 1) OR a EQUALS `general clothing allowance` (`a checked year` g (LIST (p PLUS 0.5)) FALSE 0 l)
+                                       PLUS `technological clothing allowance` (`a checked year` g (LIST (p PLUS 0.5)) FALSE 0 l))
+        AND a AT MOST `general clothing allowance` (`a checked year` g (LIST (p PLUS 0.1)) FALSE 0 l)
+                      PLUS `technological clothing allowance` (`a checked year` g (LIST (p PLUS 0.1)) FALSE 0 l)
+
+-- א and ג with one employer over every grade, position and subject list:
+-- never negative, never above level 4 and the larger technological grant,
+-- nothing outside the grade, something in it with a position, never falling
+-- with a larger position, above one paying as one.
+#ASSERT all (GIVEN g YIELD
+                all (GIVEN p YIELD
+                        all (GIVEN l YIELD
+                                `one employer holds for` (`a checked year` g (LIST p) FALSE 0 l) g p l)
+                            `every subject list checked`)
+                    `tenths to 1.5`)
+            `both booleans`
+
+-- א.5 with two employers over every pair of positions in fifths: each pays
+-- its own share, and together they pay more than one position's allowance
+-- exactly where the positions add to more than one (F-2012-13_tashag_08-a,
+-- whole space).
+#ASSERT all (GIVEN p YIELD
+                all (GIVEN q YIELD
+                        LET y MEANS `a checked year` TRUE (LIST p, q) FALSE 0 EMPTY
+                        IN      `general clothing allowance` y EQUALS `the level-4 allowance` TIMES (p PLUS q)
+                            AND (`general clothing allowance` y GREATER THAN `the level-4 allowance`) EQUALS (p PLUS q GREATER THAN 1))
+                    `fifths to 1`)
+            `fifths to 1`
+
+-- ג: no subject is on both lists; F-2012-13_tashag_08-c over every list
+-- checked: the two readings part exactly for a teacher on both lists.
+#ASSERT all (GIVEN t YIELD NOT elem t `the two-coats subjects`) `the shoes-and-coats subjects`
+#ASSERT all (GIVEN l YIELD
+                LET y MEANS `a checked year` TRUE (LIST 1) FALSE 0 l
+                IN  (NOT (`both grants added` y EQUALS `the larger grant` y))
+                    EQUALS (`teaches a subject on` `the shoes-and-coats subjects` y AND `teaches a subject on` `the two-coats subjects` y))
+            `every subject list checked`
+
+`a teacher on both technological lists meets two grants` MEANS
+    LET y MEANS `a checked year` TRUE (LIST 1) FALSE 0 (LIST "מכטרוניקה", "מערכות אלקטרוניות")
+    IN      `teaches a subject on` `the shoes-and-coats subjects` y
+        AND `teaches a subject on` `the two-coats subjects` y
+        AND NOT (`both grants added` y EQUALS `the larger grant` y)
+#ASSERT `a teacher on both technological lists meets two grants`
+
+-- F-2012-13_tashag_08-e: of the three sections, only א names the month the
+-- allowance is paid in.
+`the months sections ב and ג name for payment` MEANS EMPTY
+`sections ב and ג name no month of payment` MEANS
+    `the months sections ב and ג name for payment` EQUALS EMPTY
+#ASSERT `sections ב and ג name no month of payment`
