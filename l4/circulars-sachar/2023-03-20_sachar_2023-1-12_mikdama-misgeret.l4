@@ -287,6 +287,9 @@ DECIDE `deducting the advance` `the month the grant is paid` IS
 -- when the advance is paid, is paid it with the first salary after
 -- returning to work, and no later than the next one — provided that date
 -- comes before the deduction of §3.
+-- F-2023-03-20_sachar_2023-1-12_mikdama-misgeret-d: "the said date" is
+-- the first salary after the return or the next one. Reading adopted: the
+-- first, the date the sentence sets for the payment.
 @ref akn:hc_1__para_4
 GIVEN e IS AN `advance employee`, `the first salary after return` IS A NUMBER, `the month the grant is paid` IS A NUMBER
 GIVETH A DEONTIC `advance party` `advance action`
@@ -586,3 +589,232 @@ DECIDE `the illustrated months` `January's share` IS
     PARTY `the State as employer` DOES `make provident-fund contributions on the advance` AT 1
 #TRACE `notifying the Wage Controller` `a local authority signing the agreement` AT 0 WITH
     PARTY `a public-sector body` DOES `notify the Wage Controller in writing of the payment` AT 0
+
+§§ `Property checks`
+
+-- The circular's rules over their whole finite space: each of the seven
+-- yes-or-no facts of section 1(א); 0 to 30 whole months of each kind at a
+-- quarter to a full position; the months the coronavirus exception names
+-- and the month before and after each; hourly and daily averages up to a
+-- full position; the first salary after a return and the grant's payment
+-- at 0 to 8 months from 1.3.2023; and every public body.
+
+`both booleans` MEANS LIST TRUE, FALSE
+
+`every kind of month` MEANS
+    LIST `month worked`, `month of paid absence`, `month of reserve duty, birth and parenthood or sick leave`,
+         `month as an employee in arrangement`, `month of unpaid leave`
+
+`positions in quarters` MEANS LIST 0.25, 0.5, 0.75, 1
+
+GIVEN e1 IS A BOOLEAN, q IS A BOOLEAN, e0 IS A BOOLEAN, l IS A BOOLEAN, g IS A BOOLEAN, u IS A BOOLEAN, c IS A BOOLEAN
+GIVETH AN `advance employee`
+DECIDE `a checked employee` e1 q e0 l g u c IS
+    `advance employee` WITH
+        `employed in the State service on 1.3.2023`                IS e1
+        `paid under the agreements of a qualifying grade`          IS q
+        `employed in the State service on 1.6.2022`                IS e0
+        `left the service between 1.6.2022 and 28.2.2023`          IS l
+        `in qualifying grades throughout 1.6.2022 to 28.2.2023`    IS g
+        `on unpaid leave in the qualifying period`                 IS u
+        `the grade sent employees on unpaid leave for the coronavirus` IS c
+        `months of the calculation period`                         IS `the illustrated months` 1
+
+GIVEN p IS A FUNCTION FROM `advance employee` TO BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `holds for every checked employee` p IF
+    all (GIVEN e1 YIELD
+            all (GIVEN q YIELD
+                    all (GIVEN e0 YIELD
+                            all (GIVEN l YIELD
+                                    all (GIVEN g YIELD
+                                            all (GIVEN u YIELD
+                                                    all (GIVEN c YIELD p (`a checked employee` e1 q e0 l g u c))
+                                                        `both booleans`)
+                                                `both booleans`)
+                                        `both booleans`)
+                                `both booleans`)
+                        `both booleans`)
+                `both booleans`)
+        `both booleans`
+
+-- §1(א): an employee exactly where (1) and (2) hold with no unpaid leave;
+-- the reading adopted never admits one the other reading refuses; and
+-- F-2023-03-20_sachar_2023-1-12_mikdama-misgeret-c over the whole space:
+-- the two readings part exactly for an employee otherwise continuous who
+-- was on unpaid leave. Nobody who is not an employee is paid.
+GIVEN e IS AN `advance employee`
+GIVETH A BOOLEAN
+DECIDE `section 1(א) is decided as it reads` e IF
+        `an employee for the advance` e
+        EQUALS (    e's `employed in the State service on 1.3.2023`
+                AND e's `paid under the agreements of a qualifying grade`
+                AND e's `employed in the State service on 1.6.2022`
+                AND (NOT e's `left the service between 1.6.2022 and 28.2.2023`)
+                AND e's `in qualifying grades throughout 1.6.2022 to 28.2.2023`
+                AND (NOT e's `on unpaid leave in the qualifying period`))
+    AND ((NOT `employed continuously, unpaid leave breaking it` e) OR `employed continuously, unpaid leave skipped` e)
+    AND (NOT (`employed continuously, unpaid leave breaking it` e EQUALS `employed continuously, unpaid leave skipped` e))
+        EQUALS (`employed continuously, unpaid leave skipped` e AND e's `on unpaid leave in the qualifying period`)
+    AND (`an employee for the advance` e OR `the advance` e EQUALS 0)
+#ASSERT `holds for every checked employee` `section 1(א) is decided as it reads`
+
+-- §1(ב) over 0 to 30 whole months of each kind at a quarter to a full
+-- position, in a grade sent on coronavirus leave or not, all after the
+-- coronavirus window: B and C lie between 0 and 1, M between 0 and A,
+-- M never falls with a month more, and a month of unpaid leave counts for
+-- neither B nor C.
+GIVEN n IS A NUMBER, k IS A `kind of month`, p IS A NUMBER, c IS A BOOLEAN
+GIVETH AN `advance employee`
+DECIDE `an employee of n months` n k p c IS
+    `advance employee` WITH
+        `employed in the State service on 1.3.2023`                IS TRUE
+        `paid under the agreements of a qualifying grade`          IS TRUE
+        `employed in the State service on 1.6.2022`                IS TRUE
+        `left the service between 1.6.2022 and 28.2.2023`          IS FALSE
+        `in qualifying grades throughout 1.6.2022 to 28.2.2023`    IS TRUE
+        `on unpaid leave in the qualifying period`                 IS FALSE
+        `the grade sent employees on unpaid leave for the coronavirus` IS c
+        `months of the calculation period`                         IS map (GIVEN j YIELD `calculation month` (Date 1 1 2022) 1 k p) (range 1 n)
+
+#ASSERT all (GIVEN n YIELD
+                all (GIVEN k YIELD
+                        all (GIVEN p YIELD
+                                all (GIVEN c YIELD
+                                        LET e MEANS `an employee of n months` n k p c
+                                        IN      `B` e AT LEAST 0 AND `B` e AT MOST 1
+                                            AND `C` e AT LEAST 0 AND `C` e AT MOST 1
+                                            AND `the advance` e AT LEAST 0 AND `the advance` e AT MOST `A`
+                                            AND ((n EQUALS 30) OR `the advance` e AT MOST `the advance` (`an employee of n months` (n PLUS 1) k p c))
+                                            AND (`B` e EQUALS 0) EQUALS (n EQUALS 0 OR k EQUALS `month of unpaid leave`))
+                                    `both booleans`)
+                            `positions in quarters`)
+                    `every kind of month`)
+            (range 0 30)
+
+-- §1(ב)(2) on the months it names and those either side: a month of
+-- unpaid leave counts for B exactly in a coronavirus grade and from
+-- October 2020 to June 2021 — not September 2020, not July 2021 — and
+-- never for C; any other month counts for both, in any grade.
+`the months either side of the window` MEANS
+    LIST Date 1 9 2020, Date 1 10 2020, Date 1 6 2021, Date 1 7 2021
+
+#ASSERT all (GIVEN d YIELD
+                all (GIVEN c YIELD
+                        all (GIVEN k YIELD
+                                LET m MEANS `calculation month` d 1 k 1
+                                    e MEANS `a checked employee` TRUE TRUE TRUE FALSE TRUE FALSE c
+                                IN      `counted for B` e m
+                                        EQUALS ((NOT (k EQUALS `month of unpaid leave`))
+                                                OR (c AND d AT LEAST Date 1 10 2020 AND d AT MOST Date 1 6 2021))
+                                    AND `counted for B and C` m EQUALS (NOT (k EQUALS `month of unpaid leave`)))
+                            `every kind of month`)
+                    `both booleans`)
+            `the months either side of the window`
+
+-- "יעוגל לשקל החדש השלם הקרוב" over B in thirtieths and C in quarters: M is
+-- a whole shekel within half a shekel of A × B × C.
+#ASSERT all (GIVEN b YIELD
+                all (GIVEN c YIELD
+                        LET x MEANS `A` TIMES (b DIVIDED BY 30) TIMES c
+                        IN      `M for` (b DIVIDED BY 30) c EQUALS FLOOR (`M for` (b DIVIDED BY 30) c)
+                            AND `M for` (b DIVIDED BY 30) c AT LEAST x MINUS 0.5
+                            AND `M for` (b DIVIDED BY 30) c AT MOST x PLUS 0.5)
+                    `positions in quarters`)
+            (range 0 30)
+
+-- §1(ב)(3): an average up to 182 hours, 20.83 days (five-day week) or 25
+-- days (six-day week) a month gives an auxiliary fraction between 0 and 1,
+-- reaching 1 exactly at those figures.
+`the auxiliary fractions stay within a position` MEANS
+        all (GIVEN h YIELD `the auxiliary position fraction for hourly pay` h AT MOST 1) (map (GIVEN k YIELD k TIMES 7) (range 0 26))
+    AND all (GIVEN d YIELD `the auxiliary position fraction for daily pay` d 6 AT MOST 1) (range 0 25)
+    AND all (GIVEN d YIELD `the auxiliary position fraction for daily pay` d 5 AT MOST 1) (range 0 20)
+    AND `the auxiliary position fraction for hourly pay` 182 EQUALS 1
+    AND `the auxiliary position fraction for daily pay` 25 6 EQUALS 1
+    AND `the auxiliary position fraction for daily pay` 20.83 5 EQUALS 1
+#ASSERT `the auxiliary fractions stay within a position`
+
+-- §3 over the grant paid 0 to 8 months from 1.3.2023: the deduction is
+-- with the June 2023 salary (month 4) or the grant, whichever is earlier,
+-- and never later than June's.
+#ASSERT all (GIVEN g YIELD
+                    `the deduction month` g EQUALS min 4 g
+                AND `the deduction month` g AT MOST `the month the June 2023 salary is paid`)
+            (range 0 8)
+
+-- §4's proviso, "ובלבד שהמועד האמור קודם למועד ניכוי המקדמה". "The said
+-- date" is the first salary after the return (the reading adopted) or the
+-- next one, the latest the sentence allows.
+GIVEN f IS A NUMBER, g IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `§4 pays the advance, the said date read as the first salary` f g IF
+    f LESS THAN `the deduction month` g
+
+GIVEN f IS A NUMBER, g IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `§4 pays the advance, the said date read as the next salary` f g IF
+    f PLUS 1 LESS THAN `the deduction month` g
+
+-- Over a first salary after the return 0 to 8 months from 1.3.2023 and
+-- the grant 0 to 8: the next-salary reading never pays where the
+-- first-salary one does not, and the two part exactly where the first
+-- salary after the return is the one before the deduction — where, on
+-- the reading adopted, the advance falls due by the very salary it is
+-- deducted from.
+GIVEN f IS A NUMBER, g IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `§4's readings part exactly a salary before the deduction` f g IF
+        ((NOT `§4 pays the advance, the said date read as the next salary` f g) OR `§4 pays the advance, the said date read as the first salary` f g)
+    AND (NOT (`§4 pays the advance, the said date read as the first salary` f g EQUALS `§4 pays the advance, the said date read as the next salary` f g))
+        EQUALS (f PLUS 1 EQUALS `the deduction month` g)
+
+#ASSERT all (GIVEN f YIELD all (GIVEN g YIELD `§4's readings part exactly a salary before the deduction` f g) (range 0 8)) (range 0 8)
+
+-- F-2023-03-20_sachar_2023-1-12_mikdama-misgeret-d: such a case exists —
+-- back at work with the May 2023 salary (month 3), the grant not yet paid
+-- (month 6): the first-salary reading pays the advance by the June salary
+-- (month 4), the salary §3 deducts it from; the next-salary reading does
+-- not pay it under §4 at all.
+`the readings of §4's "said date" part a salary before the deduction` MEANS
+        any (GIVEN f YIELD any (GIVEN g YIELD f PLUS 1 EQUALS `the deduction month` g) (range 0 8)) (range 0 8)
+    AND `§4 pays the advance, the said date read as the first salary` 3 6
+    AND NOT `§4 pays the advance, the said date read as the next salary` 3 6
+    AND 3 PLUS 1 EQUALS `the deduction month` 6
+#ASSERT `the readings of §4's "said date" part a salary before the deduction`
+
+-- §6 over every public body: a body that will not sign or join, or has an
+-- agreement for the whole of 2020-2027, has no approval; one with an
+-- agreement for part of it, or paying non-qualifying grades, a specific
+-- approval; the general approval is left exactly to a signing body with
+-- no other agreement paying qualifying grades alone. §6(ג)'s "לגבי כל
+-- התקופה" read either way — no agreement covering all of the period, or
+-- none covering any of it — gives every body the same approval, because
+-- ¶2 takes the bodies with an agreement for part of it either way.
+`every other agreement` MEANS
+    LIST `no other agreement settling pay rises for 2020-2027`,
+         `another agreement for part of 1.1.2020-31.12.2027`,
+         `another agreement for the whole of 1.1.2020-31.12.2027`
+
+GIVEN p IS A `public body`
+GIVETH AN `approval for a body`
+DECIDE `the approval with §6(ג) read as no agreement for all of the period` p IS
+    BRANCH IF (NOT p's `will sign or join the framework agreement`) THEN `no approval under this circular`
+           IF p's `its other agreement` EQUALS `another agreement for part of 1.1.2020-31.12.2027` THEN `a specific approval in advance and in writing`
+           IF p's `pays grades the Histadrut represents that are not qualifying`
+              AND (NOT (p's `its other agreement` EQUALS `another agreement for the whole of 1.1.2020-31.12.2027`))
+                                                                                                THEN `a specific approval in advance and in writing`
+           IF (NOT (p's `its other agreement` EQUALS `another agreement for the whole of 1.1.2020-31.12.2027`))
+                                                                                                THEN `the general approval, with written notice on payment`
+           OTHERWISE `no approval under this circular`
+
+#ASSERT all (GIVEN s YIELD
+                all (GIVEN n YIELD
+                        all (GIVEN a YIELD
+                                LET p MEANS `public body` WITH `will sign or join the framework agreement` IS s, `pays grades the Histadrut represents that are not qualifying` IS n, `its other agreement` IS a
+                                IN      `the approval a body has` p EQUALS `the approval with §6(ג) read as no agreement for all of the period` p
+                                    AND (`the approval a body has` p EQUALS `the general approval, with written notice on payment`)
+                                        EQUALS (s AND (NOT n) AND a EQUALS `no other agreement settling pay rises for 2020-2027`))
+                            `every other agreement`)
+                    `both booleans`)
+            `both booleans`

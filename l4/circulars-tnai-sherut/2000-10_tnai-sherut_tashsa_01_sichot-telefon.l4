@@ -223,3 +223,67 @@ DECLARE `paragraph source` IS ONE OF
     PARTY `the employer` DOES `pay the telephone amount` 36.45 AT 0
 #TRACE `the employer pays the telephone amount` `a principal on a full position` (Date 1 5 2000) AT 0 WITH
     PARTY `the employer` DOES `pay the telephone amount` 12.15 AT 0
+
+§§ `Property checks`
+
+-- The circular over its whole finite space: every post, shares of a
+-- position in quarters from 0 to 1.5, with and without a private
+-- telephone, on 31.3.2000 and on 1.4.2000; and every row of the table.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`every post` MEANS LIST `school principal`, `deputy principal`, `rank-and-file teaching employee`
+`shares in quarters` MEANS map (GIVEN k YIELD k DIVIDED BY 4) (range 0 6)
+`the days checked` MEANS LIST Date 31 3 2000, Date 1 4 2000
+
+-- ¶¶1-3: a principal's quota is above a deputy's, and a deputy's above a
+-- teacher's. ¶4's table: no quota has two rows, and an amount never falls
+-- as the quota rises. Every post's quota has a row.
+`the quotas and the table are ordered` MEANS
+        `the monthly call quota for one full position` `school principal` GREATER THAN `the monthly call quota for one full position` `deputy principal`
+    AND `the monthly call quota for one full position` `deputy principal` GREATER THAN `the monthly call quota for one full position` `rank-and-file teaching employee`
+    AND all (GIVEN r YIELD count (filter (GIVEN s YIELD s's `quota the amount replaces` EQUALS r's `quota the amount replaces`) `the conversion table`) EQUALS 1)
+            `the conversion table`
+    AND all (GIVEN r YIELD
+                all (GIVEN s YIELD
+                        (NOT (r's `quota the amount replaces` LESS THAN s's `quota the amount replaces`))
+                        OR r's `amount instead of the quota` LESS THAN s's `amount instead of the quota`)
+                    `the conversion table`)
+            `the conversion table`
+    AND all (GIVEN p YIELD isJust (`the amount the table gives instead of a quota of` (`the monthly call quota for one full position` p))) `every post`
+#ASSERT `the quotas and the table are ordered`
+
+-- ¶4 on the readings adopted, over every post, share, telephone and day:
+-- an amount is paid exactly from 1.4.2000 to a holder of a private
+-- telephone; it is never negative, never above the post's full amount,
+-- never falls with a larger share, and never puts a lower post above a
+-- higher one at the same share.
+#ASSERT all (GIVEN p YIELD
+                all (GIVEN f YIELD
+                        all (GIVEN t YIELD
+                                all (GIVEN d YIELD
+                                        LET a MEANS `the monthly telephone amount` (`telephone case` WITH `post` IS p, `share of a full position` IS f, `has a private telephone` IS t) d
+                                            b MEANS `the monthly telephone amount` (`telephone case` WITH `post` IS p, `share of a full position` IS f PLUS 0.25, `has a private telephone` IS t) d
+                                            full MEANS `the amount the table gives instead of a quota of` (`the monthly call quota for one full position` p)
+                                        IN      isJust a EQUALS (t AND d AT LEAST `the conversion takes effect`)
+                                            AND fromMaybe 0 a AT LEAST 0
+                                            AND fromMaybe 0 a AT MOST fromMaybe 0 full
+                                            AND fromMaybe 0 a AT MOST fromMaybe 0 b)
+                                    `the days checked`)
+                            `both booleans`)
+                    `shares in quarters`)
+            `every post`
+#ASSERT all (GIVEN f YIELD
+                LET pr MEANS fromMaybe 0 (`the monthly telephone amount` (`telephone case` WITH `post` IS `school principal`, `share of a full position` IS f, `has a private telephone` IS TRUE) (Date 1 4 2000))
+                    dp MEANS fromMaybe 0 (`the monthly telephone amount` (`telephone case` WITH `post` IS `deputy principal`, `share of a full position` IS f, `has a private telephone` IS TRUE) (Date 1 4 2000))
+                    te MEANS fromMaybe 0 (`the monthly telephone amount` (`telephone case` WITH `post` IS `rank-and-file teaching employee`, `share of a full position` IS f, `has a private telephone` IS TRUE) (Date 1 4 2000))
+                IN  te AT MOST dp AND dp AT MOST pr)
+            `shares in quarters`
+
+-- F-2000-10_tnai-sherut_tashsa_01_sichot-telefon-c over every post and
+-- every share below one position in quarters: the quota pro-rated to the
+-- share is one the table has no row for.
+#ASSERT all (GIVEN p YIELD
+                all (GIVEN f YIELD
+                        `the amount the table gives instead of a quota of` (`the monthly call quota for one full position` p TIMES f) EQUALS NOTHING)
+                    (LIST 0.25, 0.5, 0.75))
+            `every post`

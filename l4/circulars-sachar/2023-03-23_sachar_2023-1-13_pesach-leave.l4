@@ -246,3 +246,98 @@ DECIDE `the approval a body has for the extra day` b IS
     PARTY `the public-sector employer` DOES `notify the employees of the additional leave day` AT 7
 #TRACE `the director-general's notice` `a hospital that must serve the public` AT 0 WITH
     PARTY `the employer's director-general` DOES `notify the Wage Controller that the leave cannot be extended` AT 2
+
+§§ `Property checks`
+
+-- The circular's rules over their whole finite space: every workplace
+-- with each of the four yes-or-no facts and an arrangement charging the
+-- employee 0, a quarter, a half, three quarters or a whole day; every
+-- question about the day; and every public body.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`the charges checked` MEANS LIST 0, 0.25, 0.5, 0.75, 1
+
+GIVEN p IS A FUNCTION FROM `workplace` TO BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `holds for every checked workplace` p IF
+    all (GIVEN c YIELD
+            all (GIVEN h YIELD
+                    all (GIVEN n YIELD
+                            all (GIVEN a YIELD
+                                    all (GIVEN x YIELD
+                                            p (`workplace` WITH
+                                                   `has a concentrated Pesach leave in 5783`             IS c
+                                                   `management holds the leave cannot be extended`       IS h
+                                                   `the director-general notified the Wage Controller`   IS n
+                                                   `an approved arrangement makes 13.4.2023 a leave day` IS a
+                                                   `that arrangement's charge to the employee`           IS x))
+                                        `the charges checked`)
+                                `both booleans`)
+                        `both booleans`)
+                `both booleans`)
+        `both booleans`
+
+-- §1(א) and §1(ה): the leave includes the day exactly where a concentrated
+-- leave is customary and the workplace is not excepted, and an excepted
+-- workplace never includes it. §1(ב): the employee is charged nothing
+-- where the day is not included, never more than half a day, never more
+-- than a favourable arrangement charges, and half a day exactly where no
+-- arrangement charges less. §1(ג): every question about an included day
+-- is answered, the charge by §1(ב) and every other one as for the other
+-- intermediate days.
+GIVEN w IS A `workplace`
+GIVETH A BOOLEAN
+DECIDE `the day and its charge are as section 1 says` w IF
+        `the leave includes the additional day` w
+        EQUALS (w's `has a concentrated Pesach leave in 5783` AND (NOT `excepted under §1(ה)` w))
+    AND ((NOT `excepted under §1(ה)` w) OR (NOT `the leave includes the additional day` w))
+    AND `the charge to the employee's leave balance` w AT LEAST 0
+    AND `the charge to the employee's leave balance` w AT MOST `the employee's half`
+    AND (`the leave includes the additional day` w OR `the charge to the employee's leave balance` w EQUALS 0)
+    AND ((NOT (`the leave includes the additional day` w AND w's `an approved arrangement makes 13.4.2023 a leave day`))
+         OR `the charge to the employee's leave balance` w AT MOST w's `that arrangement's charge to the employee`)
+    AND ((NOT `the leave includes the additional day` w)
+         OR (`the charge to the employee's leave balance` w EQUALS `the employee's half`)
+            EQUALS (    (NOT w's `an approved arrangement makes 13.4.2023 a leave day`)
+                     OR w's `that arrangement's charge to the employee` AT LEAST `the employee's half`))
+    AND ((NOT `the leave includes the additional day` w)
+         OR (    `how the additional day is treated` w `the charge to the leave balance` EQUALS `as §1(ב) charges it`
+             AND `how the additional day is treated` w `any other question` EQUALS `as the other intermediate days of the concentrated leave`))
+#ASSERT `holds for every checked workplace` `the day and its charge are as section 1 says`
+
+-- §3 over every body: a body that will not sign or join, or has an
+-- agreement for the whole of 2020-2027, has no approval; one with an
+-- agreement for part of it, a specific approval; the general approval is
+-- left exactly to a signing body with no other agreement. §3(ב)'s "לגבי
+-- כל התקופה" read either way — no agreement covering all of the period,
+-- or none covering any of it — gives every body the same approval,
+-- because ¶2 takes the bodies with an agreement for part of it either way.
+`every other pay agreement` MEANS
+    LIST `no other agreement settling pay for 2020-2027`,
+         `another agreement for part of 1.1.2020-31.12.2027`,
+         `another agreement for the whole of 1.1.2020-31.12.2027`
+
+GIVEN b IS A `public-sector body`
+GIVETH AN `approval for the extra day`
+DECIDE `the approval with §3(ב) read as no agreement for all of the period` b IS
+    BRANCH IF (NOT b's `will sign or join the framework agreement`) THEN `no approval under this circular`
+           IF b's `its other pay agreement` EQUALS `another agreement for part of 1.1.2020-31.12.2027` THEN `a specific approval in advance`
+           IF (NOT (b's `its other pay agreement` EQUALS `another agreement for the whole of 1.1.2020-31.12.2027`)) THEN `the Wage Controller's general approval`
+           OTHERWISE `no approval under this circular`
+
+#ASSERT all (GIVEN s YIELD
+                all (GIVEN a YIELD
+                        LET b MEANS `public-sector body` WITH `will sign or join the framework agreement` IS s, `its other pay agreement` IS a
+                        IN      `the approval a body has for the extra day` b EQUALS `the approval with §3(ב) read as no agreement for all of the period` b
+                            AND (`the approval a body has for the extra day` b EQUALS `the Wage Controller's general approval`)
+                                EQUALS (s AND a EQUALS `no other agreement settling pay for 2020-2027`))
+                    `every other pay agreement`)
+            `both booleans`
+
+-- §1(ד) and §1(ה): the employees' notice and the director-general's
+-- notice share one deadline, 28.3.2023, five days from the circular, and
+-- the additional day falls after it.
+`both notices fall due before the day` MEANS
+        `days from the circular to` `the notice deadline` EQUALS 5
+    AND `the notice deadline` LESS THAN `the additional leave day`
+#ASSERT `both notices fall due before the day`

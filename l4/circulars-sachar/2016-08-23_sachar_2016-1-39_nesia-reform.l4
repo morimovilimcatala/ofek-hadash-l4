@@ -263,6 +263,10 @@ DECIDE `treated as new after moving employer under §2ח as read` t IF
 -- before §2א; a move (§§2ה-2ז) before the pre-reform position; then §2א and
 -- §1א. An existing employee in none of them is a case the circular does not
 -- decide (F-2016-08-23_sachar_2016-1-39_nesia-reform-b).
+-- F-2016-08-23_sachar_2016-1-39_nesia-reform-e: a Modiin or Beit Shemesh
+-- resident who moved is in both §2ב and §2ו, and the text does not rank
+-- them. Reading adopted: §2ב first, its "כחריג" read as the exception for
+-- every existing resident it names, a mover included.
 GIVEN t IS A `traveller`
 GIVETH A `travel-allowance rule`
 DECIDE `the rule the circular writes` t IS
@@ -284,12 +288,20 @@ DECIDE `the rule the circular writes` t IS
 GIVEN t IS A `traveller` @desc the employee
 GIVETH A `travel-allowance rule`
 DECIDE `the travel-allowance rule` t IS
-    IF `treated as new after moving employer under §2ח as written` t
-       AND NOT `treated as new after moving employer under §2ח as read` t
-    THEN `the rule the circular writes` (`as not having moved employer` t)
-    ELSE CONSIDER `the rule the circular writes` t
-         WHEN `a rule the circular does not give` THEN `the urban monthly free pass at the reform's updated tariffs`
-         OTHERWISE `the rule the circular writes` t
+    CONSIDER `the rule the circular writes` (`the traveller as §2ח is read` t)
+    WHEN `a rule the circular does not give` THEN `the urban monthly free pass at the reform's updated tariffs`
+    OTHERWISE `the rule the circular writes` (`the traveller as §2ח is read` t)
+
+-- F-2016-08-23_sachar_2016-1-39_nesia-reform-c's reading first: an
+-- employee who came from another employer before 1.1.2016 is taken as
+-- not having moved employer, and F-…-b's reading then applies to them too.
+GIVEN t IS A `traveller`
+GIVETH A `traveller`
+DECIDE `the traveller as §2ח is read` t IS
+    IF      `treated as new after moving employer under §2ח as written` t
+        AND (NOT `treated as new after moving employer under §2ח as read` t)
+    THEN `as not having moved employer` t
+    ELSE t
 
 GIVEN t IS A `traveller`
 GIVETH A `traveller`
@@ -516,3 +528,212 @@ DECIDE `an official trip paid at single-trip tariffs` o IF
     PARTY `the public-sector employer` DOES `deduct the advances in the payslip` AT 1
 #TRACE `the periodic declaration` 12 AT 0 WITH
     PARTY `the travelling employee` DOES `sign the periodic declaration that the refund reflects the expense` AT 2
+
+§§ `Property checks`
+
+-- The circular's rules over their whole finite space: every traveller
+-- hired on 31.12.2015 or on 1.1.2016 with each of the seven yes-or-no
+-- facts, kept to the travellers the facts allow (a Modiin or Beit Shemesh
+-- resident working in Jerusalem travels between cities, and so does one
+-- paid for intercity days to 31.12.2015 who has not moved since); 0 to 23
+-- days worked and one or two fares a day; the days the circular names and
+-- the day before each; and every official trip.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`the hiring days checked` MEANS LIST Date 31 12 2015, Date 1 1 2016
+
+GIVEN h IS A DATE, u IS A BOOLEAN, i IS A BOOLEAN, m IS A BOOLEAN, v IS A BOOLEAN, x IS A BOOLEAN, e IS A BOOLEAN
+GIVETH A `traveller`
+DECIDE `a checked traveller` h u i m v x e IS
+    `traveller` WITH
+        `day hired by the current employer`                         IS h
+        `received the urban monthly free pass up to 31.12.2015`     IS u
+        `received an individual intercity allowance up to 31.12.2015` IS i
+        `lives in Modiin or Beit Shemesh and works in Jerusalem`    IS m
+        `moved workplace within the employer or moved home`         IS v
+        `travels between cities to work`                            IS x
+        `moved from another employer`                               IS e
+        `days actually worked in the month`                         IS 20
+
+GIVEN t IS A `traveller`
+GIVETH A BOOLEAN
+DECIDE `the facts allow` t IF
+        ((NOT t's `lives in Modiin or Beit Shemesh and works in Jerusalem`) OR t's `travels between cities to work`)
+    AND ((NOT t's `received an individual intercity allowance up to 31.12.2015`)
+         OR t's `moved workplace within the employer or moved home`
+         OR t's `travels between cities to work`)
+
+GIVEN p IS A FUNCTION FROM `traveller` TO BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `holds for every traveller the facts allow` p IF
+    all (GIVEN h YIELD
+            all (GIVEN u YIELD
+                    all (GIVEN i YIELD
+                            all (GIVEN m YIELD
+                                    all (GIVEN v YIELD
+                                            all (GIVEN x YIELD
+                                                    all (GIVEN e YIELD
+                                                            (NOT `the facts allow` (`a checked traveller` h u i m v x e))
+                                                            OR p (`a checked traveller` h u i m v x e))
+                                                        `both booleans`)
+                                                `both booleans`)
+                                        `both booleans`)
+                                `both booleans`)
+                        `both booleans`)
+                `both booleans`)
+        `the hiring days checked`
+
+GIVEN p IS A FUNCTION FROM `traveller` TO BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `holds for some traveller the facts allow` p IF
+    NOT `holds for every traveller the facts allow` (GIVEN t YIELD NOT p t)
+
+-- §1א, §1ב: an employee is existing exactly when hired before 1.1.2016;
+-- no one is both §1א's and §1ב's; and §1 takes in exactly the existing
+-- holders of an urban pass and every new employee.
+GIVEN t IS A `traveller`
+GIVETH A BOOLEAN
+DECIDE `section 1 sorts the employee once` t IF
+        `an existing employee` t EQUALS (t's `day hired by the current employer` LESS THAN Date 1 1 2016)
+    AND NOT (`paid the updated urban monthly pass under §1א` t AND `paid under the reform's rules as a new employee under §1ב` t)
+    AND `the reform's rules apply in full under §1` t
+        EQUALS ((`an existing employee` t AND t's `received the urban monthly free pass up to 31.12.2015`) OR NOT `an existing employee` t)
+#ASSERT `holds for every traveller the facts allow` `section 1 sorts the employee once`
+
+-- Under the readings adopted, every traveller has a rule; a new employee
+-- has the reform's; §2ט asks a declaration only of an existing intercity
+-- traveller.
+GIVEN t IS A `traveller`
+GIVETH A BOOLEAN
+DECIDE `the adopted rule decides every traveller` t IF
+        NOT (`the travel-allowance rule` t EQUALS `a rule the circular does not give`)
+    AND ((`an existing employee` t) OR `the travel-allowance rule` t EQUALS `the reform's rules and tariffs`)
+    AND ((NOT `must sign the periodic declaration under §2ט` t)
+         OR (`an existing employee` t AND t's `travels between cities to work`))
+#ASSERT `holds for every traveller the facts allow` `the adopted rule decides every traveller`
+
+-- F-2016-08-23_sachar_2016-1-39_nesia-reform-b over the whole space: the
+-- rule the circular writes is missing exactly for an existing employee
+-- who came from no other employer, had neither an urban pass nor an
+-- intercity allowance to 31.12.2015, is not a Modiin or Beit Shemesh
+-- resident, and is not a mover now travelling between cities.
+GIVEN t IS A `traveller`
+GIVETH A BOOLEAN
+DECIDE `the circular gives no rule exactly to an existing employee with no pre-reform allowance` t IF
+    (`the rule the circular writes` t EQUALS `a rule the circular does not give`)
+    EQUALS (    `an existing employee` t
+            AND NOT t's `moved from another employer`
+            AND NOT t's `received the urban monthly free pass up to 31.12.2015`
+            AND NOT t's `received an individual intercity allowance up to 31.12.2015`
+            AND NOT t's `lives in Modiin or Beit Shemesh and works in Jerusalem`
+            AND NOT (t's `moved workplace within the employer or moved home` AND t's `travels between cities to work`))
+#ASSERT `holds for every traveller the facts allow` `the circular gives no rule exactly to an existing employee with no pre-reform allowance`
+
+-- F-2016-08-23_sachar_2016-1-39_nesia-reform-c over the whole space: §2ח
+-- as written and as read part exactly for an existing employee who came
+-- from another employer.
+GIVEN t IS A `traveller`
+GIVETH A BOOLEAN
+DECIDE `§2ח's readings part exactly for an existing employee from another employer` t IF
+    (NOT (`treated as new after moving employer under §2ח as written` t EQUALS `treated as new after moving employer under §2ח as read` t))
+    EQUALS (`an existing employee` t AND t's `moved from another employer`)
+#ASSERT `holds for every traveller the facts allow` `§2ח's readings part exactly for an existing employee from another employer`
+
+-- §2ב and §§2ה-2ו: the clauses an existing employee can fall under at
+-- once, and the rule each gives on its own. §2ב's "כחריג" makes it the
+-- exception to §2א; nothing in the text ranks it against a move.
+GIVEN t IS A `traveller`
+GIVETH A BOOLEAN
+DECIDE `§2ב and §2ו both apply` t IF
+        `paid a daily free pass under §2ב` t
+    AND `begins single intercity trips after a move under §2ו` t
+
+-- They meet exactly for an existing Modiin or Beit Shemesh resident
+-- working in Jerusalem who moved home or workplace.
+GIVEN t IS A `traveller`
+GIVETH A BOOLEAN
+DECIDE `§2ב and §2ו meet exactly for a Modiin or Beit Shemesh resident who moved` t IF
+    `§2ב and §2ו both apply` t
+    EQUALS (    `an existing employee` t
+            AND t's `lives in Modiin or Beit Shemesh and works in Jerusalem`
+            AND t's `moved workplace within the employer or moved home`)
+#ASSERT `holds for every traveller the facts allow` `§2ב and §2ו meet exactly for a Modiin or Beit Shemesh resident who moved`
+
+-- F-2016-08-23_sachar_2016-1-39_nesia-reform-e: there is such an
+-- employee, and the two clauses give them different rules — a daily free
+-- pass for each day worked, or a single-trip fare for each day worked. A
+-- Jerusalem employee on the urban pass who moved home to Modiin in 2016:
+`a Jerusalem employee who moved home to Modiin` MEANS
+    `a checked traveller` (Date 31 12 2015) TRUE FALSE TRUE TRUE TRUE FALSE
+
+`§2ב and §2ו both apply and give different rules` MEANS
+        `holds for some traveller the facts allow` `§2ב and §2ו both apply`
+    AND `§2ב and §2ו both apply` `a Jerusalem employee who moved home to Modiin`
+    AND NOT (`a daily free pass for each day actually worked` EQUALS `a single-trip intercity tariff for each day actually worked`)
+    AND `the travel-allowance rule` `a Jerusalem employee who moved home to Modiin` EQUALS `a daily free pass for each day actually worked`
+#ASSERT `§2ב and §2ו both apply and give different rules`
+
+-- §2א over 0 to 23 days worked and one or two fares a day, on the
+-- placeholder tariffs: never below the two monthly passes, never falling
+-- with more days; F-2016-08-23_sachar_2016-1-39_nesia-reform-a over the
+-- whole space: a return each day pays more than one fare exactly on a day
+-- worked.
+#ASSERT all (GIVEN d YIELD
+                LET t MEANS `traveller` WITH
+                                `day hired by the current employer`                         IS Date 1 9 2010
+                                `received the urban monthly free pass up to 31.12.2015`     IS TRUE
+                                `received an individual intercity allowance up to 31.12.2015` IS TRUE
+                                `lives in Modiin or Beit Shemesh and works in Jerusalem`    IS FALSE
+                                `moved workplace within the employer or moved home`         IS FALSE
+                                `travels between cities to work`                            IS TRUE
+                                `moved from another employer`                               IS FALSE
+                                `days actually worked in the month`                         IS d
+                    s MEANS `traveller` WITH
+                                `day hired by the current employer`                         IS Date 1 9 2010
+                                `received the urban monthly free pass up to 31.12.2015`     IS TRUE
+                                `received an individual intercity allowance up to 31.12.2015` IS TRUE
+                                `lives in Modiin or Beit Shemesh and works in Jerusalem`    IS FALSE
+                                `moved workplace within the employer or moved home`         IS FALSE
+                                `travels between cities to work`                            IS TRUE
+                                `moved from another employer`                               IS FALSE
+                                `days actually worked in the month`                         IS d PLUS 1
+                IN  all (GIVEN f YIELD
+                                `the monthly allowance under §2א` t `placeholder tariffs` f AT LEAST 400
+                            AND `the monthly allowance under §2א` t `placeholder tariffs` f AT MOST `the monthly allowance under §2א` s `placeholder tariffs` f)
+                        (LIST `single-trip fares for each day worked as the circular writes it`, `single-trip fares for each day worked as read`)
+                    AND (`the monthly allowance under §2א` t `placeholder tariffs` `single-trip fares for each day worked as read`
+                         GREATER THAN `the monthly allowance under §2א` t `placeholder tariffs` `single-trip fares for each day worked as the circular writes it`)
+                        EQUALS (d GREATER THAN 0))
+            (range 0 23)
+
+-- §2ב's daily pass by day: nothing before 1.1.2016, 31 from that day, 26.5
+-- from 1.2.2016 and not the day before; it never rises.
+`the daily pass steps on the days §2ב names` MEANS
+        `the cost of a daily free pass` (Date 31 12 2015) EQUALS 0
+    AND `the cost of a daily free pass` (Date 1 1 2016) EQUALS 31
+    AND `the cost of a daily free pass` (Date 31 1 2016) EQUALS 31
+    AND `the cost of a daily free pass` (Date 1 2 2016) EQUALS 26.5
+    AND `the cost of a daily free pass` (Date 1 2 2016) LESS THAN `the cost of a daily free pass` (Date 31 1 2016)
+    AND `the cost of a daily free pass` (Date 31 12 2016) EQUALS 26.5
+#ASSERT `the daily pass steps on the days §2ב names`
+
+-- §1א: an employee hired on 31.12.2015 is existing, one hired on 1.1.2016
+-- is new, and §2ג's retroactive cancellation runs from the reform's day.
+`existing and new meet at 1.1.2016` MEANS
+        `an existing employee` (`a checked traveller` (Date 31 12 2015) FALSE FALSE FALSE FALSE FALSE FALSE)
+    AND NOT `an existing employee` (`a checked traveller` (Date 1 1 2016) FALSE FALSE FALSE FALSE FALSE FALSE)
+    AND `the advances are cancelled from` EQUALS `the reform's changes take effect`
+#ASSERT `existing and new meet at 1.1.2016`
+
+-- §3 over every official trip: paid at single-trip tariffs exactly outside
+-- the city, for an employee past a service car's quota or with no car
+-- entitlement.
+#ASSERT all (GIVEN q YIELD
+                all (GIVEN n YIELD
+                        all (GIVEN o YIELD
+                                `an official trip paid at single-trip tariffs`
+                                    (`official trip` WITH `the employee has a service car and is past the kilometre quota` IS q, `the employee has no car entitlement` IS n, `outside the city` IS o)
+                                EQUALS ((q OR n) AND o))
+                            `both booleans`)
+                    `both booleans`)
+            `both booleans`

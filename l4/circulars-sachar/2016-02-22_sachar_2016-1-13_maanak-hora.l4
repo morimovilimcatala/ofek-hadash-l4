@@ -456,3 +456,145 @@ DECIDE `qualifies by section 11's words` t IF
         `the one-time grant` `a teacher at 120%` EQUALS 1000
     AND `the grant uncapped` `a teacher at 120%` EQUALS 1200
 #ASSERT `the two readings of section 2 differ above a full position`
+
+§§ `Property checks`
+
+-- The circular's rules over their whole finite space: every absence kind
+-- and every list of up to two of them, every use of the grant, 0 to 10
+-- salaried months in a row with and without a day more, 0 to 12 months
+-- employed in 1.12.2014-30.11.2015, positions in quarters from 0 to 1.5,
+-- salary months of return 0 to 8, and each yes-or-no condition.
+
+`both booleans` MEANS LIST TRUE, FALSE
+
+`every absence kind` MEANS
+    LIST `maternity leave`, `reserve duty`, `sick leave under 1.25.3`, `sick leave without salary`,
+         `paid absence with the employer's approval`, `unpaid leave or an absence treated as one`
+
+`every list of up to two absences` MEANS
+    EMPTY FOLLOWED BY append (map (GIVEN k YIELD LIST k) `every absence kind`)
+                             (concat (map (GIVEN k YIELD map (GIVEN j YIELD LIST k, j) `every absence kind`) `every absence kind`))
+
+`every use of the grant` MEANS
+    LIST `salary for any purpose`, `severance pay`, `the hourly value of extra work`,
+         `provident-fund contributions`, `topping up to the minimum wage`, `the salary base of the integrated tables`
+
+`positions in quarters` MEANS map (GIVEN k YIELD k DIVIDED BY 4) (range 0 6)
+
+GIVEN `absences`      IS A LIST OF `absence kind`
+      `run`           IS A NUMBER
+      `day more`      IS A BOOLEAN
+      `months`        IS A NUMBER
+      `position`      IS A NUMBER
+      `salary before` IS A BOOLEAN
+GIVETH A `teaching employee for the grant`
+DECIDE `a checked teacher` `absences` `run` `day more` `months` `position` `salary before` IS
+    `teaching employee for the grant` WITH
+        `a teaching employee in the state service`        IS TRUE
+        `employed throughout 1.9.2015 to 1.1.2016 but for absences` IS TRUE
+        `absences in the qualifying period`               IS `absences`
+        `full salaried months in a row, 1.9.2015 to 30.6.2016` IS `run`
+        `and at least one salaried day more`              IS `day more`
+        `any salary due from 1.12.2014 to 30.11.2015`     IS `salary before`
+        `months employed from 1.12.2014 to 30.11.2015`    IS `months`
+        `average position over the months employed, 1.12.2014 to 30.11.2015` IS `position`
+        `average position from 1.12.2015 to 30.11.2016`   IS `position`
+
+-- 6-13: every absence kind is decided, and once: either exactly one of
+-- sections 6, 10, 11 and 12 keeps the continuity through it, or it takes
+-- the teacher to section 13's route — never both, never neither.
+GIVEN k IS AN `absence kind`
+GIVETH A NUMBER
+DECIDE `sections that keep the continuity through` k IS
+    count (filter id (LIST `section 6 keeps the continuity through` k,
+                           `section 10 keeps the continuity through` k,
+                           `section 11 keeps the continuity through` k,
+                           `section 12 keeps the continuity through` k))
+
+#ASSERT all (GIVEN k YIELD
+                LET r MEANS `takes the unpaid-leave route` (`a checked teacher` (LIST k) 10 FALSE 12 1 TRUE)
+                IN  (`sections that keep the continuity through` k EQUALS 1) EQUALS (NOT r)
+                    AND `sections that keep the continuity through` k AT MOST 1)
+            `every absence kind`
+
+-- 1 and 13: over every list of up to two absences, the teacher takes
+-- section 13's route exactly where an absence is one no section keeps the
+-- continuity through; on the other route, section 1 qualifies them.
+#ASSERT all (GIVEN l YIELD
+                LET t MEANS `a checked teacher` l 0 FALSE 12 1 TRUE
+                IN      `takes the unpaid-leave route` t EQUALS (NOT all `leaves the continuity unbroken` l)
+                    AND (`takes the unpaid-leave route` t OR `qualifies for the grant` t))
+            `every list of up to two absences`
+
+-- 13א(1) over 0 to 10 months in a row, with and without a day more: the
+-- route's test is met exactly from 4 months and a day, and never lost
+-- with a longer run.
+#ASSERT all (GIVEN m YIELD
+                all (GIVEN d YIELD
+                            `qualifies under section 13` (`a checked teacher` (LIST `unpaid leave or an absence treated as one`) m d 12 1 TRUE)
+                            EQUALS (m AT LEAST 5 OR (m EQUALS 4 AND d))
+                        AND ((NOT `qualifies under section 13` (`a checked teacher` (LIST `unpaid leave or an absence treated as one`) m d 12 1 TRUE))
+                             OR `qualifies under section 13` (`a checked teacher` (LIST `unpaid leave or an absence treated as one`) (m PLUS 1) d 12 1 TRUE)))
+                    `both booleans`)
+            (range 0 10)
+
+-- 2 over both routes and positions in quarters from 0 to 1.5: the grant is
+-- never negative, never above 1,000, never falls with a larger position,
+-- and is 1,000 exactly from a full position.
+#ASSERT all (GIVEN l YIELD
+                all (GIVEN b YIELD
+                        all (GIVEN p YIELD
+                                LET g MEANS `the one-time grant` (`a checked teacher` l 5 FALSE 12 p b)
+                                IN      g AT LEAST 0
+                                    AND g AT MOST `the grant for a full position`
+                                    AND g AT MOST `the one-time grant` (`a checked teacher` l 5 FALSE 12 (p PLUS 0.25) b)
+                                    AND (g EQUALS `the grant for a full position`) EQUALS (p AT LEAST 1))
+                            `positions in quarters`)
+                    `both booleans`)
+            (LIST (LIST `reserve duty`), (LIST `unpaid leave or an absence treated as one`))
+
+-- 3-5: every use the circular names is excluded by exactly one of its
+-- sections, so the grant counts for none of them.
+#ASSERT all (GIVEN u YIELD
+                    count (filter id (LIST `section 3 leaves the grant out of` u, `section 4 leaves the grant out of` u, `section 5 leaves the grant out of` u)) EQUALS 1
+                AND NOT `the grant counts for` u)
+            `every use of the grant`
+
+-- 1, 6, 13א(4) over salary months of return 0 to 8: the last salary
+-- month for the grant is never before the February salary's payment
+-- (month 1), and for a teacher back from leave is the salary after the
+-- first one after the return; on section 13's route it is the July 2016
+-- salary (month 5) whatever the return.
+#ASSERT all (GIVEN r YIELD
+                    `the last salary month for the grant` (`a checked teacher` (LIST `maternity leave`) 10 FALSE 12 1 TRUE) r EQUALS max 1 (r PLUS 1)
+                AND `the last salary month for the grant` (`a checked teacher` (LIST `maternity leave`) 10 FALSE 12 1 TRUE) r AT LEAST 1
+                AND `the last salary month for the grant` (`a checked teacher` (LIST `unpaid leave or an absence treated as one`) 10 FALSE 12 1 TRUE) r EQUALS 5)
+            (range 0 8)
+
+-- F-2016-02-22_sachar_2016-1-13_maanak-hora-b over a full-timer employed
+-- 1 to 12 months of 1.12.2014-30.11.2015: the two readings of section 2
+-- part exactly where the months fall short of twelve.
+#ASSERT all (GIVEN m YIELD
+                LET t MEANS `a checked teacher` (LIST `reserve duty`) 10 FALSE m 1 TRUE
+                IN  (NOT (`the one-time grant` t EQUALS `the grant averaged over the whole twelve months` t)) EQUALS (m LESS THAN 12))
+            (range 1 12)
+
+-- F-2016-02-22_sachar_2016-1-13_maanak-hora-d over 0 to 10 months in a
+-- row, with and without a day more: for a teacher on sick leave without
+-- salary, section 11's words and section 13's test part exactly where the
+-- run falls short of 13א(1)'s four months and a day.
+#ASSERT all (GIVEN m YIELD
+                all (GIVEN d YIELD
+                        LET t MEANS `a checked teacher` (LIST `sick leave without salary`) m d 12 1 TRUE
+                        IN  (`qualifies by section 11's words` t AND NOT `qualifies for the grant` t)
+                            EQUALS NOT (m AT LEAST 5 OR (m EQUALS 4 AND d)))
+                    `both booleans`)
+            (range 0 10)
+
+-- F-2016-02-22_sachar_2016-1-13_maanak-hora-e over positions in quarters
+-- from 0 to 1.5: capped and proportional part exactly above a full
+-- position.
+#ASSERT all (GIVEN p YIELD
+                LET t MEANS `a checked teacher` (LIST `reserve duty`) 10 FALSE 12 p TRUE
+                IN  (NOT (`the one-time grant` t EQUALS `the grant uncapped` t)) EQUALS (p GREATER THAN 1))
+            `positions in quarters`
