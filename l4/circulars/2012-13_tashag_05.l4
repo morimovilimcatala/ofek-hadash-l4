@@ -395,3 +395,95 @@ DECIDE `age hours off the base` r `frontal hours in class` `age` IS
 #TRACE `reimbursement of redeemed days` AT 0 WITH
     PARTY `the local authority or owning body` DOES `submit a reimbursement request` AT 3
     PARTY `the Ministry of Education` DOES `examine the request under the reimbursement procedure` AT 4
+
+§§ `Property checks`
+
+-- The circular over a finite space: every role, implementation and year
+-- whose cap the text states, job bases 24 to 40, positions in tenths from 0
+-- to 1.5, ages 40 to 65, frontal hours 0 to 24.
+
+`every role` MEANS LIST `a teacher`, `a deputy principal`, `a principal`
+`every year` MEANS LIST `a year before תשע"ב`, `תשע"ב`, `תשע"ג`, `תשע"ד`
+`tenths to 1.5` MEANS map (GIVEN k YIELD k DIVIDED BY 10) (range 0 15)
+
+-- 2א-2ב over every year, base and position: the hours are the base times 4
+-- before תשע"ב and times 4.33 from it, times the position; they never fall
+-- with a larger base or position; and 3ב.1's conversion back to days gives
+-- 30 days a year for the position, whatever the base.
+#ASSERT all (GIVEN y YIELD
+                all (GIVEN b YIELD
+                        all (GIVEN p YIELD
+                                LET h MEANS `sick-day hours a year` b p y
+                                IN      h EQUALS b TIMES (IF y EQUALS `a year before תשע"ב` THEN 4 ELSE 4.33) TIMES p
+                                    AND h AT MOST `sick-day hours a year` (b PLUS 1) p y
+                                    AND h AT MOST `sick-day hours a year` b (p PLUS 0.1) y
+                                    AND `hours as days` h b y EQUALS 30 TIMES p)
+                            `tenths to 1.5`)
+                    (range 24 40))
+            `every year`
+
+-- 1ב-1ג where the text states the cap (outside the reform, and partial
+-- implementation in תשע"ב and תשע"ג): a principal's cap outside the reform
+-- is above a teacher's; partial implementation's rises from תשע"ב to תשע"ג;
+-- the days accrued never pass 30 times the cap and never fall with a larger
+-- position; 1ג's mother's addition in partial implementation falls from year
+-- to year and is nothing outside the reform.
+`a principal's cap outside the reform is above a teacher's` MEANS
+    `the accumulable position` `a teacher` `not under the reform` `תשע"ג` FALSE
+    LESS THAN `the accumulable position` `a principal` `not under the reform` `תשע"ג` FALSE
+#ASSERT `a principal's cap outside the reform is above a teacher's`
+`the partial-implementation cap rises from תשע"ב to תשע"ג` MEANS
+    `the accumulable position` `a teacher` `partial implementation` `תשע"ב` FALSE
+    LESS THAN `the accumulable position` `a teacher` `partial implementation` `תשע"ג` FALSE
+#ASSERT `the partial-implementation cap rises from תשע"ב to תשע"ג`
+#ASSERT all (GIVEN r YIELD
+                all (GIVEN p YIELD
+                        LET cap MEANS `the accumulable position` r `not under the reform` `תשע"ג` FALSE
+                            d MEANS `sick days accrued in a year` p cap
+                        IN      d AT MOST 30 TIMES cap
+                            AND d AT MOST `sick days accrued in a year` (p PLUS 0.1) cap)
+                    `tenths to 1.5`)
+            `every role`
+`the mother's addition falls from year to year and is nothing outside the reform` MEANS
+        `the mother's addition` `partial implementation` `תשע"ד` LESS THAN `the mother's addition` `partial implementation` `תשע"ג`
+    AND `the mother's addition` `partial implementation` `תשע"ג` LESS THAN `the mother's addition` `partial implementation` `תשע"ב`
+    AND all (GIVEN y YIELD `the mother's addition` `not under the reform` y EQUALS 0) `every year`
+#ASSERT `the mother's addition falls from year to year and is nothing outside the reform`
+
+-- 2ה and 3ב.2 over hours and positions: a justified day deducts its hours
+-- and an unjustified one none; the hours up to and above a full position
+-- add up to the whole, and above a full position there are none at 100% or
+-- less.
+#ASSERT all (GIVEN f YIELD
+                all (GIVEN j YIELD
+                        `sick hours deducted for the day` f 1 2 j EQUALS (IF j THEN f PLUS 3 ELSE 0))
+                    (LIST TRUE, FALSE))
+            (range 0 8)
+#ASSERT all (GIVEN p YIELD
+                    `hours up to a full position` 120 p PLUS `hours above a full position` 120 p EQUALS 120
+                AND (`hours above a full position` 120 p EQUALS 0) EQUALS (p AT MOST 1))
+            (LIST 0.5, 1, 1.2, 1.4)
+
+-- The tables: each row is its role's, and within each table the hours
+-- never fall as the base grows.
+#ASSERT all (GIVEN pair YIELD
+                LET rows MEANS at pair 0
+                IN  all (GIVEN i YIELD (at rows i)'s `row hours` AT MOST (at rows (i PLUS 1))'s `row hours`)
+                        (range 0 (count rows MINUS 2)))
+            (LIST (LIST `the first table (deputy rows)`), (LIST `the principal table`), (LIST `the third table (teacher rows)`))
+
+-- The age notes over every role, age and frontal load: the age hours are
+-- none below 50 and never more than the full entitlement (4 above 55, 2
+-- above 50); a principal has half of it, a teacher all of it, and a deputy
+-- all of it exactly from two thirds of 24 frontal hours.
+#ASSERT all (GIVEN r YIELD
+                all (GIVEN a YIELD
+                        all (GIVEN f YIELD
+                                LET h MEANS `age hours off the base` r f a
+                                    full MEANS IF a LESS THAN 50 THEN 0 ELSE IF a GREATER THAN 55 THEN 4 ELSE 2
+                                IN      h AT MOST full
+                                    AND h EQUALS (IF r EQUALS `a principal` OR (r EQUALS `a deputy principal` AND f LESS THAN 16)
+                                                  THEN full DIVIDED BY 2 ELSE full))
+                            (range 0 24))
+                    (range 40 65))
+            `every role`

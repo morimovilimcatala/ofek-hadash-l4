@@ -346,3 +346,81 @@ DECIDE `the transition settlement` t IS
     PARTY `the employer` DOES `offset the extra vacation days` 2000 AT 12
 #TRACE `paying a teacher who left August in full` `a teacher who retired in June` AT 0 WITH
     PARTY `the employer` DOES `pay the August salary` 9000 AT 12
+
+§§ `Property checks`
+
+-- The circular over a finite space: every day of school year 2011/12 as a
+-- date of leaving; every situation, with or without a change, maternity
+-- leave and hiring from August; day rates of 0 to 400 in steps of 100.
+
+`the days of 2011/12` MEANS map (GIVEN n YIELD Date (Day (Date 1 9 2011) PLUS n)) (range 0 365)
+
+-- Section 3's table over every day of 2011/12: every day is in some row,
+-- two exactly on 20.12.2011 (F-2012-13_tashag_01-a, whole year), the days
+-- adopted are one of the rows', and they never fall with a later date.
+#ASSERT all (GIVEN i YIELD
+                LET d MEANS at `the days of 2011/12` i
+                    rows MEANS `the days the table offsets for leaving on` d
+                IN      count rows AT LEAST 1
+                    AND (count rows EQUALS 2) EQUALS (d EQUALS Date 20 12 2011)
+                    AND elem (`the vacation days offset for leaving on` d) rows
+                    AND `the vacation days offset for leaving on` d
+                        AT MOST `the vacation days offset for leaving on` (at `the days of 2011/12` (i PLUS 1)))
+            (range 0 364)
+
+`every situation` MEANS LIST `continuing with the same employer`, `new with the employer in 2012/13`, `left or retired from 2011/12`
+`both booleans` MEANS LIST TRUE, FALSE
+`rates checked` MEANS LIST 0, 100, 200, 400
+
+GIVEN s IS A `transition situation`, c IS A BOOLEAN, m IS A BOOLEAN, h IS A BOOLEAN, a IS A NUMBER, b IS A NUMBER
+GIVETH A `transition teacher`
+DECIDE `a checked teacher` s c m h a b IS
+    `transition teacher` WITH
+        `situation`                          IS s
+        `August salary on the 2011/12 basis` IS 8000
+        `day rate in August 2012`            IS a
+        `day rate in September 2012`         IS b
+        `position, grade, seniority or allowances changed` IS c
+        `on maternity leave from 27.8.2012`  IS m
+        `hired from the August 2012 salary`  IS h
+        `date of leaving`                    IS Date 30 6 2012
+
+GIVEN t IS A `transition teacher`, s IS A `transition situation`, c IS A BOOLEAN, m IS A BOOLEAN, h IS A BOOLEAN, a IS A NUMBER, b IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `sections 1 to 4 hold for` t s c m h a b IF
+        `the August salary` t EQUALS (IF s EQUALS `new with the employer in 2012/13` THEN 0 ELSE 8000)
+    AND `the September difference` t
+        EQUALS (IF s EQUALS `continuing with the same employer`
+                THEN (IF c THEN (b MINUS a) TIMES 5 ELSE 0) MINUS (IF m THEN a TIMES 5 ELSE 0)
+                ELSE 0)
+    AND `the five extra days` t EQUALS (IF s EQUALS `new with the employer in 2012/13` AND NOT h THEN b TIMES 5 ELSE 0)
+    AND `the vacation offset` t EQUALS (IF s EQUALS `left or retired from 2011/12` THEN 5 TIMES a ELSE 0)
+    AND `the five extra days` t AT LEAST 0
+    AND `the vacation offset` t AT LEAST 0
+
+-- Sections 1 to 4 over every situation, flag and pair of day rates: the
+-- August salary is paid in full to the continuing and to those who left;
+-- only a continuing teacher has a September difference, the rate
+-- difference for five days less five days for maternity leave; only a new
+-- teacher not taken on from August is owed five days at the September rate;
+-- only a teacher who left is offset, here five days at the August rate.
+#ASSERT all (GIVEN s YIELD
+                all (GIVEN c YIELD
+                        all (GIVEN m YIELD
+                                all (GIVEN h YIELD
+                                        all (GIVEN a YIELD
+                                                all (GIVEN b YIELD
+                                                        `sections 1 to 4 hold for` (`a checked teacher` s c m h a b) s c m h a b)
+                                                    `rates checked`)
+                                            `rates checked`)
+                                    `both booleans`)
+                            `both booleans`)
+                    `both booleans`)
+            `every situation`
+
+-- ¶10: every day before 27.8.2012 is paid as 2011/12, every day from it as
+-- 2012/13, over the year and the four days after it.
+#ASSERT all (GIVEN i YIELD
+                LET d MEANS Date (Day (Date 1 9 2011) PLUS i)
+                IN  (`the salary year of the day` d EQUALS `2012/13`) EQUALS (d AT LEAST Date 27 8 2012))
+            (range 0 370)

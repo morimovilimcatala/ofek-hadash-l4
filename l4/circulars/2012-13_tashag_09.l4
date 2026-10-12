@@ -41,7 +41,7 @@ DECLARE `teacher outside the upper division` HAS
     `seniority years`                IS A NUMBER
     `teaches physical education`     IS A BOOLEAN
     `physical-education position`    IS A NUMBER
-    `technological subject`          IS A STRING @desc the subject taught in technological education, as the lists print it; "" for none
+    `technological subjects`         IS A LIST OF STRING @desc the subjects taught in technological education, as the lists print them; empty for none
 
 @ref akn:preamble/p19
 GIVEN t IS A `teacher outside the upper division`
@@ -187,7 +187,7 @@ DECIDE `the total all employers pay under ז` t IS
         `seniority years`                IS 10
         `teaches physical education`     IS FALSE
         `physical-education position`    IS 0
-        `technological subject`          IS ""
+        `technological subjects`         IS EMPTY
 
 -- F-2012-13_tashag_09-a: ה caps at one position, ז pays each employer's
 -- share uncapped.
@@ -209,6 +209,10 @@ DECIDE `general clothing allowance` t IS
                 ELSE `the reduced allowance` TIMES `the position share under ה` t)
 
 -- ב.1(א): paid with the salary of July 2013. School months (July = 11).
+-- F-2012-13_tashag_09-e: only ב.1, headed "כללי", names the month of
+-- payment; ב.2 and ב.3 name none. The reading adopted, as
+-- F-2010-11_tashaa_03-e and its siblings read the same words: July applies
+-- to the whole allowance.
 @ref akn:art_b__para_1__subpara_a
 GIVEN t IS A `teacher outside the upper division`
 GIVETH A DEONTIC Party `clothing action`
@@ -268,6 +272,16 @@ DECIDE `the physical-education amount` p IS
 #ASSERT all (GIVEN p YIELD `the amounts the table gives for position` p EQUALS LIST (`the physical-education amount` p))
             (LIST 0, 0.1, 0.29, 0.31, 0.4, 0.49, 0.51, 0.8, 1)
 
+-- F-2012-13_tashag_09-d: "שיעור העסקה" is not said to be the share of the
+-- position in physical education or the employee's whole position. The
+-- reading adopted, as F-2011-12_tashab_08-c and its siblings read the same
+-- words: the share in physical education, the input
+-- `physical-education position`.
+`the two readings of the employment rate differ` MEANS
+    NOT (`the amounts the table gives for position` 0.2
+         EQUALS `the amounts the table gives for position` 1)
+#ASSERT `the two readings of the employment rate differ`
+
 GIVEN t IS A `teacher outside the upper division`
 GIVETH A NUMBER
 DECIDE `physical-education allowance` t IS
@@ -297,19 +311,39 @@ DECIDE `physical-education allowance` t IS
 @ref akn:art_b__para_3__subpara_3-1__cls_b/p2
 `the value of two coats` MEANS 341
 
+GIVEN subjects IS A LIST OF STRING
+      t IS A `teacher outside the upper division`
+GIVETH A BOOLEAN
+DECIDE `teaches a subject on` subjects t IF
+    any (GIVEN s YIELD elem s subjects) (t's `technological subjects`)
+
 -- ב.3.2: in addition to the general allowance; ב.3.3: pro-rated to the
 -- position, no more than one position.
+-- F-2012-13_tashag_09-c: a teacher of subjects on both lists meets ב.3.1(א)
+-- and ב.3.1(ב). The reading adopted, as F-2011-12_tashab_13-c and its
+-- siblings read the same words: the larger grant, which holds the two coats
+-- the other grants.
 @ref akn:art_b__para_3__subpara_3-2 akn:art_b__para_3__subpara_3-3
 GIVEN t IS A `teacher outside the upper division`
 GIVETH A NUMBER
 DECIDE `technological clothing allowance` t IS
     IF NOT `entitled to the clothing allowance` t
     THEN 0
-    ELSE BRANCH IF elem (t's `technological subject`) `the shoes-and-coats subjects`
-                THEN `the value of a pair of shoes and two coats` TIMES `the position share under ה` t
-                IF elem (t's `technological subject`) `the two-coats subjects`
-                THEN `the value of two coats` TIMES `the position share under ה` t
-                OTHERWISE 0
+    ELSE `the larger grant` t TIMES `the position share under ה` t
+
+GIVEN t IS A `teacher outside the upper division`
+GIVETH A NUMBER
+DECIDE `the larger grant` t IS
+    BRANCH IF `teaches a subject on` `the shoes-and-coats subjects` t THEN `the value of a pair of shoes and two coats`
+           IF `teaches a subject on` `the two-coats subjects` t THEN `the value of two coats`
+           OTHERWISE 0
+
+-- The other reading: both grants, added, for a full position.
+GIVEN t IS A `teacher outside the upper division`
+GIVETH A NUMBER
+DECIDE `both grants added` t IS
+    (IF `teaches a subject on` `the shoes-and-coats subjects` t THEN `the value of a pair of shoes and two coats` ELSE 0)
+    PLUS (IF `teaches a subject on` `the two-coats subjects` t THEN `the value of two coats` ELSE 0)
 
 -- akn:conclusions The contact line, the signature and the list of copies; no rule.
 
@@ -327,7 +361,7 @@ DECIDE `technological clothing allowance` t IS
         `seniority years`                IS 10
         `teaches physical education`     IS FALSE
         `physical-education position`    IS 0
-        `technological subject`          IS ""
+        `technological subjects`         IS EMPTY
 
 #ASSERT `general clothing allowance` `a full-time primary teacher` EQUALS 1877
 #ASSERT `the clothing amount the payment is computed on` `budgetary pension` EQUALS 2095
@@ -339,3 +373,144 @@ DECIDE `technological clothing allowance` t IS
 
 #TRACE `the clothing allowance paid with July's salary` `a full-time primary teacher` AT 0 WITH
     PARTY `the employer` DOES `pay the clothing allowance` 1877 AT 11
+
+§§ `Property checks`
+
+-- The circular over a finite space: every stage, the grade and the owner
+-- or not, in a salary union at a junior-high share in fifths or not; one
+-- employer at positions in tenths from 0 to 1.5 or two at every pair in
+-- fifths; physical-education shares in tenths; every subject of either
+-- list, none, a subject on neither and one of each list; every kind of
+-- payment and dates on either side of every date the circular names.
+
+`every stage` MEANS LIST `kindergarten`, `primary`, `junior high`, `teacher-training college`, `upper division`
+`both booleans` MEANS LIST TRUE, FALSE
+`tenths to 1.5` MEANS map (GIVEN k YIELD k DIVIDED BY 10) (range 0 15)
+`fifths to 1` MEANS map (GIVEN k YIELD k DIVIDED BY 5) (range 0 5)
+`every kind of payment` MEANS
+    LIST `salary or any other payment`, `contribution to a pension provident fund`, `budgetary pension`,
+         `one-time payment by the State on termination`, `bridging pension`
+`dates checked` MEANS LIST 20130630, `1 July 2013`, 20140101, `31 December 2014`, `1 January 2015`, 20160101
+`every subject list checked` MEANS
+    append (LIST EMPTY, (LIST "מכטרוניקה", "מערכות אלקטרוניות"), (LIST "נושא אחר"))
+           (map (GIVEN s YIELD LIST s) (append `the shoes-and-coats subjects` `the two-coats subjects`))
+
+GIVEN g IS A BOOLEAN
+      st IS A `stage of education`
+      u IS A BOOLEAN
+      j IS A NUMBER
+      ps IS A LIST OF NUMBER
+      e IS A BOOLEAN
+      r IS A NUMBER
+      l IS A LIST OF STRING
+GIVETH A `teacher outside the upper division`
+DECIDE `a checked teacher` g st u j ps e r l IS
+    `teacher outside the upper division` WITH
+        `graded as a teaching employee`  IS g
+        `employed by a supervised owner` IS TRUE
+        `stage`                          IS st
+        `in a salary union`              IS u
+        `owner junior-high share`        IS j
+        `positions`                      IS ps
+        `seniority years`                IS 10
+        `teaches physical education`     IS e
+        `physical-education position`    IS r
+        `technological subjects`         IS l
+
+-- Section א over every kind of payment and date: the salary pays 5.75% until
+-- 1.1.2015 and 6.35% from it; the four pension-related kinds are computed
+-- at 6.35% from 1.7.2013; the Ofek Hadash factor follows the same dates;
+-- no payment is ever computed below what the salary pays.
+#ASSERT all (GIVEN k YIELD
+                all (GIVEN d YIELD
+                            `the 2011 supplement rate paid in salary` d EQUALS (IF d AT LEAST `1 January 2015` THEN 6.35% ELSE 5.75%)
+                        AND `the 2011 supplement rate for the payment` k d
+                            EQUALS (IF (`computed as if the raise were on time` k AND d AT LEAST `1 July 2013`) OR d AT LEAST `1 January 2015` THEN 6.35% ELSE 5.75%)
+                        AND `the 2011 supplement rate for the payment` k d AT LEAST `the 2011 supplement rate paid in salary` d
+                        AND `the Ofek Hadash table factor for the payment` k d AT LEAST `the Ofek Hadash table factor paid in salary` d
+                        AND `computed as if the raise were on time` k EQUALS NOT (k EQUALS `salary or any other payment`))
+                    `dates checked`)
+            `every kind of payment`
+
+-- ב.1(ד): every pension-related kind is computed on 2095, the salary on 1877.
+#ASSERT all (GIVEN k YIELD
+                `the clothing amount the payment is computed on` k
+                EQUALS (IF k EQUALS `salary or any other payment` THEN `the reduced allowance` ELSE `the published allowance`))
+            `every kind of payment`
+
+-- ב.1 with one employer over every stage, grade, salary union and position:
+-- the allowance is never negative, never above 1,877, nothing in the upper
+-- division or outside the grade, the covered share of the reduced amount
+-- pro-rated to at most one position, never falling with a larger position.
+#ASSERT all (GIVEN g YIELD
+                all (GIVEN st YIELD
+                        all (GIVEN u YIELD
+                                all (GIVEN j YIELD
+                                        all (GIVEN p YIELD
+                                                LET t MEANS `a checked teacher` g st u j (LIST p) FALSE 0 EMPTY
+                                                    a MEANS `general clothing allowance` t
+                                                IN      a AT LEAST 0
+                                                    AND a AT MOST `the reduced allowance`
+                                                    AND a EQUALS (IF g AND NOT st EQUALS `upper division`
+                                                                  THEN (IF u THEN j ELSE 1) TIMES `the reduced allowance` TIMES min p 1
+                                                                  ELSE 0)
+                                                    AND a AT MOST `general clothing allowance` (`a checked teacher` g st u j (LIST (p PLUS 0.1)) FALSE 0 EMPTY))
+                                            `tenths to 1.5`)
+                                    `fifths to 1`)
+                            `both booleans`)
+                    `every stage`)
+            `both booleans`
+
+-- ב.1(ז) with two employers over every pair in fifths: together more than
+-- one position's allowance exactly where the positions add to more than one
+-- (F-2012-13_tashag_09-a, whole space).
+#ASSERT all (GIVEN p YIELD
+                all (GIVEN q YIELD
+                        (`general clothing allowance` (`a checked teacher` TRUE `primary` FALSE 0 (LIST p, q) FALSE 0 EMPTY)
+                         GREATER THAN `the reduced allowance`)
+                        EQUALS (p PLUS q GREATER THAN 1))
+                    `fifths to 1`)
+            `fifths to 1`
+
+-- ב.2 over shares in tenths: every share is in some row, two exactly at 0.3
+-- and 0.5 (F-2012-13_tashag_09-b, whole space), the amount is one of those
+-- rows', it never falls, and it is nothing for a teacher of no physical
+-- education. F-2012-13_tashag_09-d over the same shares: the two readings
+-- part for a full-position teacher exactly below 0.5.
+#ASSERT all (GIVEN r YIELD
+                LET rows MEANS `the amounts the table gives for position` r
+                    a MEANS `physical-education allowance` (`a checked teacher` TRUE `primary` FALSE 0 (LIST 1) TRUE r EMPTY)
+                IN      count rows AT LEAST 1
+                    AND (count rows EQUALS 2) EQUALS (r EQUALS 0.3 OR r EQUALS 0.5)
+                    AND elem a rows
+                    AND a AT MOST `physical-education allowance` (`a checked teacher` TRUE `primary` FALSE 0 (LIST 1) TRUE (r PLUS 0.1) EMPTY)
+                    AND `physical-education allowance` (`a checked teacher` TRUE `primary` FALSE 0 (LIST 1) FALSE r EMPTY) EQUALS 0
+                    AND (NOT (a EQUALS `physical-education allowance` (`a checked teacher` TRUE `primary` FALSE 0 (LIST 1) TRUE 1 EMPTY)))
+                        EQUALS (r LESS THAN 0.5))
+            `tenths to 1.5`
+
+-- ב.3 over every subject list: never negative, never above the larger
+-- grant; no subject is on both lists; F-2012-13_tashag_09-c: the two
+-- readings part exactly for a teacher on both lists.
+#ASSERT all (GIVEN s YIELD NOT elem s `the two-coats subjects`) `the shoes-and-coats subjects`
+#ASSERT all (GIVEN l YIELD
+                LET t MEANS `a checked teacher` TRUE `primary` FALSE 0 (LIST 1) FALSE 0 l
+                IN      `technological clothing allowance` t AT LEAST 0
+                    AND `technological clothing allowance` t AT MOST `the value of a pair of shoes and two coats`
+                    AND (NOT (`both grants added` t EQUALS `the larger grant` t))
+                        EQUALS (`teaches a subject on` `the shoes-and-coats subjects` t AND `teaches a subject on` `the two-coats subjects` t))
+            `every subject list checked`
+
+`a teacher on both technological lists meets two grants` MEANS
+    LET t MEANS `a checked teacher` TRUE `primary` FALSE 0 (LIST 1) FALSE 0 (LIST "מכטרוניקה", "מערכות אלקטרוניות")
+    IN      `teaches a subject on` `the shoes-and-coats subjects` t
+        AND `teaches a subject on` `the two-coats subjects` t
+        AND NOT (`both grants added` t EQUALS `the larger grant` t)
+#ASSERT `a teacher on both technological lists meets two grants`
+
+-- F-2012-13_tashag_09-e: of section ב's three parts, only ב.1 names the
+-- month the allowance is paid in.
+`the months ב.2 and ב.3 name for payment` MEANS EMPTY
+`ב.2 and ב.3 name no month of payment` MEANS
+    `the months ב.2 and ב.3 name for payment` EQUALS EMPTY
+#ASSERT `ב.2 and ב.3 name no month of payment`
