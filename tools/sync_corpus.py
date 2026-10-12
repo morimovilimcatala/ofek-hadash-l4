@@ -14,7 +14,6 @@ from __future__ import annotations
 import datetime
 import hashlib
 import json
-import shutil
 import subprocess
 import sys
 import tomllib
@@ -25,12 +24,32 @@ ROOT = Path(__file__).resolve().parent.parent
 AKN = "{http://docs.oasis-open.org/legaldocml/ns/akn/3.0}"
 
 
+def committed(src: Path, path: str) -> bytes:
+    """A file as the corpus repository has COMMITTED it. A session at work
+    in the checkout has uncommitted edits, and those are not the corpus yet;
+    tests/test_sync.py compares against the same commit."""
+    if (src / ".git").exists():
+        return subprocess.run(["git", "-C", str(src), "show", f"HEAD:{path}"],
+                              capture_output=True, check=True).stdout
+    return (src / path).read_bytes()
+
+
+def committed_documents(src: Path) -> list[str]:
+    if (src / ".git").exists():
+        ls = subprocess.run(["git", "-C", str(src), "ls-tree", "-r", "--name-only", "HEAD", "akn/"],
+                            capture_output=True, text=True, check=True).stdout.split()
+    else:
+        ls = [p.relative_to(src).as_posix() for p in (src / "akn").rglob("*.xml")]
+    # in the order the manifest has always listed them: by path component
+    return sorted((p for p in ls if p.endswith(".xml") and "/schema/" not in p),
+                  key=lambda p: Path(p).parts)
+
+
 def manifest(src: Path) -> list[dict]:
     out = []
-    for p in sorted((src / "akn").rglob("*.xml")):
-        if "schema" in p.relative_to(src / "akn").parts:
-            continue
-        doc = ET.parse(p).getroot()[0]
+    for path in committed_documents(src):
+        p = Path(path)
+        doc = ET.fromstring(committed(src, path))[0]
         title = None
         for tag in ("docTitle", "longTitle", "shortTitle"):
             e = doc.find(f".//{AKN}{tag}")
@@ -38,7 +57,7 @@ def manifest(src: Path) -> list[dict]:
                 title = " ".join("".join(e.itertext()).split())
                 break
         d = doc.find(f".//{AKN}FRBRWork/{AKN}FRBRdate")
-        rel = p.relative_to(src / "akn")
+        rel = p.relative_to("akn")
         out.append({"path": str(rel), "collection": rel.parts[0],
                     "title": title or p.stem,
                     "date": d.get("date") if d is not None else None,
@@ -63,7 +82,7 @@ def main(src_dir: str) -> int:
     for f in source["file"]:
         dst = ROOT / "corpus" / f["path"]
         dst.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy(src / f["path"], dst)
+        dst.write_bytes(committed(src, f["path"]))
         digest = hashlib.sha256(dst.read_bytes()).hexdigest()
         lines += ["[[file]]", f'path = "{f["path"]}"', f'sha256 = "{digest}"', ""]
         print(("changed " if digest != f["sha256"] else "same    ") + f["path"])
