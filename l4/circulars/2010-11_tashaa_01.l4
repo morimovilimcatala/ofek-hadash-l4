@@ -271,3 +271,79 @@ DECIDE `no additional budget for the contributions` IS
     PARTY `the local authority or owning body` DOES `pay the compensation` 113.85 AT 20
 #TRACE `paying the compensation` `a current employee with two excess deductions` AT 0 WITH
     PARTY `the local authority or owning body` DOES `pay the compensation` 113.85 AT 40
+
+§§ `Property checks`
+
+-- The circular over a finite space: every combination of employed now,
+-- employed in the past and insured in a veteran fund; deductions on either
+-- side of every end of both periods; payment delays from 0 to 71 months.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`days checked` MEANS
+    LIST `1 January 2004` MINUS 1, `1 January 2004`, `30 September 2009`, `30 September 2009` PLUS 1,
+         `30 November 2009`, `30 November 2009` PLUS 1, 0
+
+GIVEN n IS A BOOLEAN, p IS A BOOLEAN, v IS A BOOLEAN, ds IS A LIST OF `excess deduction`
+GIVETH A `veteran-fund employee`
+DECIDE `a checked employee` n p v ds IS
+    `veteran-fund employee` WITH
+        `employed by the owner of a secondary school now` IS n
+        `employed by such an owner in the past`       IS p
+        `insured in a veteran pension fund`           IS v
+        `excess deductions`                           IS ds
+
+-- Section 3(א)-(ב) over every flag: the compensation is owed exactly to a
+-- veteran-fund employee of an owner, now or in the past, and never
+-- negative; the deadline is 23/11/10 for one employed now and 23/12/10
+-- otherwise, both after the circular's date.
+#ASSERT all (GIVEN n YIELD
+                all (GIVEN p YIELD
+                        all (GIVEN v YIELD
+                                LET e MEANS `a checked employee` n p v (LIST `excess deduction` (0 MINUS 380) 100 12 100 110)
+                                IN      `the one-off compensation` e AT LEAST 0
+                                    AND (`the one-off compensation` e GREATER THAN 0) EQUALS (v AND (n OR p))
+                                    AND `the payment deadline for` e EQUALS (IF n THEN `23 November 2010` ELSE `23 December 2010`)
+                                    AND `the payment deadline for` e GREATER THAN 0)
+                            `both booleans`)
+                    `both booleans`)
+            `both booleans`
+
+-- Section 3 over deductions on either side of every period end: never
+-- negative, something exactly inside 01/01/04 – 30/11/09, and with no delay
+-- and no change in the index exactly the amount deducted. F-2010-11_tashaa_01-a
+-- over the same days: the ruling's period lies inside the instruction's, and
+-- they part exactly after 30/09/09 and up to 30/11/09.
+#ASSERT all (GIVEN d YIELD
+                all (GIVEN n YIELD
+                        LET x MEANS `excess deduction` d 100 n 100 110
+                            x0 MEANS `excess deduction` d 100 0 100 100
+                        IN      `compensation for the deduction` x AT LEAST 0
+                            AND (`compensation for the deduction` x GREATER THAN 0)
+                                EQUALS (d AT LEAST `1 January 2004` AND d AT MOST `30 November 2009`)
+                            AND ((NOT `a deduction that earns compensation` x0) OR `compensation for the deduction` x0 EQUALS 100)
+                            AND ((NOT `a deduction in the ruling's period` x) OR `a deduction that earns compensation` x)
+                            AND (`a deduction that earns compensation` x AND NOT `a deduction in the ruling's period` x)
+                                EQUALS (d GREATER THAN `30 September 2009` AND d AT MOST `30 November 2009`))
+                    (LIST 0, 1, 12, 71))
+            `days checked`
+
+-- Sections 3(א)(2), 3(ב)(2): the interest factor is at least one and rises
+-- every month, over six years of months.
+#ASSERT all (GIVEN n YIELD
+                    `interest factor for` n AT LEAST 1
+                AND `interest factor for` (n PLUS 1) GREATER THAN `interest factor for` n)
+            (range 0 71)
+
+-- Section 2(ב): with no other agreement the split is the ruling's whatever
+-- split is proposed; an agreed split is recorded as agreed.
+`splits checked` MEANS LIST `employer contribution split` 0.15 0.075 0.075, `employer contribution split` 0.15 0.1 0.05, `employer contribution split` 0.15 0.06 0.09
+#ASSERT all (GIVEN s YIELD
+                    `the split Mivtachim HaVatika records` FALSE s EQUALS `the split the ruling sets`
+                AND `the split Mivtachim HaVatika records` TRUE s EQUALS s)
+            `splits checked`
+
+-- Sections 3(א)(5), 3(ב)(5): excluded from exactly the hourly value and
+-- contributions.
+#ASSERT all (GIVEN u YIELD
+                `the compensation is excluded from` u EQUALS (NOT (u EQUALS `any other use`)))
+            (LIST `the hourly value`, `contributions`, `any other use`)

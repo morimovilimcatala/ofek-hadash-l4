@@ -162,3 +162,52 @@ DECIDE `the strike deduction` s IS
 -- Deducting the wrong amount does not discharge the duty: it stays owed.
 #TRACE `deducting for the strike` `a month with 20% absence` AT 0 WITH
     PARTY `the local authority or owning body` DOES `deduct from the salary` 1600 AT 1
+
+§§ `Property checks`
+
+-- The circular over a finite space: absence shares in hundredths from 0 to
+-- 1, three mixes of pay for working hours, education hours and role
+-- additions, taking part or not; timetables of 0 to 40 hours.
+
+`hundredths to 1` MEANS map (GIVEN k YIELD k DIVIDED BY 100) (range 0 100)
+`pay mixes checked` MEANS LIST (LIST 8000, 1000, 1000), (LIST 6000, 0, 0), (LIST 0, 2000, 500)
+
+GIVEN t IS A BOOLEAN, a IS A NUMBER, m IS A LIST OF NUMBER
+GIVETH A `strike month`
+DECIDE `a checked month` t a m IS
+    `strike month` WITH
+        `took part in the strike or sanctions` IS t
+        `absence share`                        IS a
+        `pay for actual working hours`         IS at m 0
+        `pay for education and matriculation-preparation hours` IS at m 1
+        `percentage additions for roles`       IS at m 2
+
+-- Sections 1 and 2 over every share and pay mix: exactly one section
+-- governs every share but 10% (F-2009-10_tasha_04-a, whole space), which
+-- neither does; the deduction is never negative, never more than the
+-- month's pay, never smaller with more absence, never more under section 1
+-- than section 2 would take, and nothing for a teacher who did not take
+-- part.
+#ASSERT all (GIVEN m YIELD
+                all (GIVEN a YIELD
+                        LET s MEANS `a checked month` TRUE a m
+                            d MEANS `the strike deduction` s
+                            governing MEANS count (filter (GIVEN b YIELD b) (LIST `section 1 governs` s, `section 2 governs` s))
+                        IN      (governing EQUALS 1) EQUALS (NOT (a EQUALS 0.1))
+                            AND d AT LEAST 0
+                            AND d AT MOST sum m
+                            AND d AT MOST `the strike deduction` (`a checked month` TRUE (a PLUS 0.01) m)
+                            AND `the deduction under section 1` s AT MOST `the deduction under section 2` s
+                            AND `the strike deduction` (`a checked month` FALSE a m) EQUALS 0)
+                    `hundredths to 1`)
+            `pay mixes checked`
+
+-- The fixed-timetable share over every timetable to 40 hours and every
+-- number of its hours missed: between 0 and 1, and 0 for an empty
+-- timetable.
+#ASSERT all (GIVEN h YIELD
+                all (GIVEN x YIELD
+                        LET r MEANS `the absence share by the fixed timetable` x h
+                        IN  r AT LEAST 0 AND r AT MOST 1 AND (h GREATER THAN 0 OR r EQUALS 0))
+                    (range 0 h))
+            (range 0 40)

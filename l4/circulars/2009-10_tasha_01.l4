@@ -368,3 +368,119 @@ DECIDE `the employer's cost is unchanged for` e IF
     PARTY `the local authority or owning body` DOES `pay the compensation` 92.03 AT 20
 #TRACE `the month's contribution` `a new-fund teacher` AT 8 WITH
     PARTY `the local authority or owning body` DOES `contribute and deduct` 1000 400 AT 30
+
+§§ `Property checks`
+
+-- The circular over a finite space: pensionable and gross salaries from 0
+-- to 20,000 in steps of 2,500, both fund kinds, employed by an owner or
+-- not; over-deducted months on either side of both ends of the window, at
+-- the 12% / 5.5% rates and at others, paid from 0 to 71 months later.
+
+`salaries checked` MEANS map (GIVEN k YIELD k TIMES 2500) (range 0 8)
+`both fund kinds` MEANS LIST `a new pension fund`, `a veteran pension fund`
+`both booleans` MEANS LIST TRUE, FALSE
+
+GIVEN o IS A BOOLEAN, k IS A `pension fund kind`, p IS A NUMBER, g IS A NUMBER, ms IS A LIST OF `over-deducted month`
+GIVETH A `pension employee`
+DECIDE `a checked employee` o k p g ms IS
+    `pension employee` WITH
+        `employed by the owner of a secondary school` IS o
+        `fund kind`            IS k
+        `pensionable salary`   IS p
+        `gross salary`         IS g
+        `over-deducted months` IS ms
+
+-- Section 2's principle under section 3's instructions, over every salary:
+-- in a new fund the employer pays 12.5% and the 1% addition, 13.5% as
+-- before, and the teacher gains 1% and loses 5%, 4% as before; in a
+-- veteran fund the rates are section 2(ד)'s, 1.5% above the old on each
+-- side as that law sets.
+#ASSERT all (GIVEN p YIELD
+                LET e MEANS `a checked employee` TRUE `a new pension fund` p p EMPTY
+                    v MEANS `a checked employee` TRUE `a veteran pension fund` p p EMPTY
+                    r MEANS `the contribution rates from 30.11.09` `a new pension fund`
+                    w MEANS `the contribution rates from 30.11.09` `a veteran pension fund`
+                IN      p TIMES r's `employer contribution rate` PLUS `the 1% addition` e
+                        EQUALS p TIMES `the rates customary before the ruling`'s `employer contribution rate`
+                    AND `the 1% addition` e MINUS p TIMES r's `employee deduction rate`
+                        EQUALS 0 MINUS p TIMES `the rates customary before the ruling`'s `employee deduction rate`
+                    AND `the 1% addition` v EQUALS 0
+                    AND w's `employer contribution rate` EQUALS `the rates customary before the ruling`'s `employer contribution rate` PLUS 0.015
+                    AND w's `employee deduction rate` EQUALS `the rates customary before the ruling`'s `employee deduction rate` PLUS 0.015)
+            `salaries checked`
+
+-- Section 3(ב) over every owner flag, fund and salary: the addition is
+-- paid exactly to a new-fund teacher of an owner, and is never negative.
+#ASSERT all (GIVEN o YIELD
+                all (GIVEN k YIELD
+                        all (GIVEN p YIELD
+                                LET e MEANS `a checked employee` o k p p EMPTY
+                                IN      `the 1% addition` e AT LEAST 0
+                                    AND `entitled to the 1% addition` e EQUALS (o AND k EQUALS `a new pension fund`)
+                                    AND (`entitled to the 1% addition` e OR `the 1% addition` e EQUALS 0))
+                            `salaries checked`)
+                    `both fund kinds`)
+            `both booleans`
+
+-- F-2009-10_tasha_01-a over every pair of salaries: the 1% on the gross
+-- salary, as section 2(ב) reports the ruling, keeps the employer's cost
+-- unchanged exactly where the gross salary is the pensionable one; section
+-- 3(ב)'s 1% on the pensionable salary keeps it everywhere.
+#ASSERT all (GIVEN p YIELD
+                all (GIVEN g YIELD
+                        LET e MEANS `a checked employee` TRUE `a new pension fund` p g EMPTY
+                        IN      ((p TIMES 0.125 PLUS `the 1% addition as the ruling states it` e EQUALS p TIMES 0.135)
+                                 EQUALS (g EQUALS p))
+                            AND `the employer's cost is unchanged for` e)
+                    `salaries checked`)
+            `salaries checked`
+
+-- Section 3(ג)(2): the interest factor is at least one and rises every
+-- month, over six years of months.
+#ASSERT all (GIVEN n YIELD
+                    `interest factor for` n AT LEAST 1
+                AND `interest factor for` (n PLUS 1) GREATER THAN `interest factor for` n)
+            (range 0 71)
+
+-- Section 3(ג)(1) over months on either side of both ends of the window,
+-- at the 12% / 5.5% rates and two others, and payment delays: the
+-- compensation is never negative, is something exactly for a month in the
+-- window at those rates, and with no delay and no change in the index is
+-- 1.5% of that month's salary.
+`days checked` MEANS LIST (`1 January 2004` MINUS 1), `1 January 2004`, 0 MINUS 365, `30 November 2009`, `30 November 2009` PLUS 1
+`rates checked` MEANS LIST `contribution rates` 0.12 0.055, `contribution rates` 0.135 0.04, `contribution rates` 0.12 0.04, `contribution rates` 0.125 0.05
+
+#ASSERT all (GIVEN d YIELD
+                all (GIVEN r YIELD
+                        all (GIVEN n YIELD
+                                LET m MEANS `over-deducted month` 6000 n 100 110 (r's `employer contribution rate`) (r's `employee deduction rate`) d
+                                    m0 MEANS `over-deducted month` 6000 0 100 100 (r's `employer contribution rate`) (r's `employee deduction rate`) d
+                                    inside MEANS     d AT LEAST `1 January 2004` AND d AT MOST `30 November 2009`
+                                                 AND r EQUALS `the rates many owners moved to`
+                                IN      `compensation for the month` m AT LEAST 0
+                                    AND (`compensation for the month` m GREATER THAN 0) EQUALS inside
+                                    AND ((NOT inside) OR `compensation for the month` m0 EQUALS 6000 TIMES 0.015))
+                            (LIST 0, 1, 12, 71))
+                    `rates checked`)
+            `days checked`
+
+-- The compensation is owed only to a new-fund teacher of an owner.
+#ASSERT all (GIVEN o YIELD
+                all (GIVEN k YIELD
+                        LET e MEANS `a checked employee` o k 8000 8000 (LIST `over-deducted month` 6000 12 100 100 0.12 0.055 (0 MINUS 365))
+                        IN  (`the compensation` e GREATER THAN 0) EQUALS (o AND k EQUALS `a new pension fund`))
+                    `both fund kinds`)
+            `both booleans`
+
+-- Sections 3(ב) and 3(ג)(5) over every use: neither payment enters the
+-- hourly value or bears contributions, and the 1% addition is not in the
+-- base of percentage additions.
+`every salary use` MEANS
+    LIST `the minimum-wage top-up`, `payment for paid absence`, `severance pay under the Severance Pay Law`,
+         `the base of percentage additions`, `the hourly value`, `pension and other contributions`
+#ASSERT all (GIVEN u YIELD
+                    ((NOT `the 1% addition counts toward` u) OR NOT `the compensation is excluded from` u)
+                AND (`the compensation is excluded from` u OR NOT (u EQUALS `the hourly value` OR u EQUALS `pension and other contributions`))
+                AND ((NOT `the 1% addition counts toward` u)
+                     OR NOT (u EQUALS `the base of percentage additions` OR u EQUALS `the hourly value` OR u EQUALS `pension and other contributions`)))
+            `every salary use`
