@@ -173,3 +173,83 @@ DECIDE `retroactive approval of the supplement` a IS
 #TRACE `retroactive approval of the supplement` (`retroactive application` WITH `in official (state) education` IS TRUE, `years back claimed` IS 9) AT 0 WITH
     PARTY `the teaching employee` DOES `apply to the committee` `the personnel department of the district office` AT 1
     PARTY `the Ministry of Education` DOES `approve retroactively` 7 AT 2
+
+§§ `Property checks`
+
+-- The section's rules over their whole finite space: every post (recognised
+-- framework or not, integration kindergarten teacher or not, integration
+-- teacher or not, each framework, certified or not — 48 posts) at a
+-- placeholder combined salary of 10000 (not from a payslip).
+
+`both booleans` MEANS LIST TRUE, FALSE
+`every special-education framework` MEANS LIST `a special-education setting`, `integration in regular education`, `no special-education framework`
+
+GIVEN rec IS A BOOLEAN, ikg IS A BOOLEAN, it IS A BOOLEAN, f IS A `special-education framework`, cert IS A BOOLEAN
+GIVETH A `special-education post`
+DECIDE `a checked post` rec ikg it f cert IS
+    `special-education post` WITH
+        `employed in a framework the supervision recognised as special education` IS rec
+        `an integration kindergarten teacher`         IS ikg
+        `an integration teacher`                      IS it
+        `framework`                                   IS f
+        `certified for special education`             IS cert
+        `combined salary`                             IS 10000
+
+GIVEN prop IS A FUNCTION FROM `special-education post` TO BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `holds for every post` prop IF
+    all (GIVEN rec YIELD
+            all (GIVEN ikg YIELD
+                    all (GIVEN it YIELD
+                            all (GIVEN f YIELD
+                                    all (GIVEN cert YIELD
+                                            prop (`a checked post` rec ikg it f cert))
+                                        `both booleans`)
+                                `every special-education framework`)
+                        `both booleans`)
+                `both booleans`)
+        `both booleans`
+
+-- 4.6.2-4.6.3 over every post: the rate is one of the four the text
+-- prints, or nothing; it is never above 14% nor below 0; certification
+-- never pays less, and a special-education setting never less than
+-- integration; a special-education teaching employee in either framework
+-- the rates name is always paid; one who is not is paid nothing.
+GIVEN p IS A `special-education post`
+GIVETH A BOOLEAN
+DECIDE `the rates, for every post` p IF
+        elem (`special-education supplement rate` p) (LIST 0, 14%, 9%, 8.5%, 5.5%)
+    AND `special-education supplement` p AT LEAST 0
+    AND `special-education supplement` p AT MOST 14% TIMES p's `combined salary`
+    AND `special-education supplement rate` (`a checked post` (p's `employed in a framework the supervision recognised as special education`) (p's `an integration kindergarten teacher`) (p's `an integration teacher`) (p's `framework`) TRUE)
+        AT LEAST `special-education supplement rate` p
+    AND `special-education supplement rate` (`a checked post` (p's `employed in a framework the supervision recognised as special education`) (p's `an integration kindergarten teacher`) (p's `an integration teacher`) `a special-education setting` (p's `certified for special education`))
+        AT LEAST `special-education supplement rate` (`a checked post` (p's `employed in a framework the supervision recognised as special education`) (p's `an integration kindergarten teacher`) (p's `an integration teacher`) `integration in regular education` (p's `certified for special education`))
+    AND ((NOT `a special-education teaching employee` p)
+         OR p's `framework` EQUALS `no special-education framework`
+         OR `special-education supplement rate` p GREATER THAN 0)
+    AND (`a special-education teaching employee` p
+         OR `special-education supplement rate` p EQUALS 0)
+#ASSERT `holds for every post` `the rates, for every post`
+
+-- F-4.6-a over every post: as the definition prints it, an integration
+-- teacher of a school who is neither employed in a recognised framework nor
+-- an integration kindergarten teacher is never a special-education teaching
+-- employee, though 4.6.2(b) and 4.6.3(b) name her; under the reading she is
+-- paid in the integration framework whether certified or not.
+GIVEN p IS A `special-education post`
+GIVETH A BOOLEAN
+DECIDE `the definition and the rates part on the integration teacher` p IF
+        (NOT (    p's `an integration teacher`
+              AND (NOT p's `employed in a framework the supervision recognised as special education`)
+              AND (NOT p's `an integration kindergarten teacher`)))
+    OR (    (NOT `a special-education teaching employee as the definition prints it` p)
+        AND ((NOT (p's `framework` EQUALS `integration in regular education`))
+             OR `special-education supplement rate` p GREATER THAN 0))
+#ASSERT `holds for every post` `the definition and the rates part on the integration teacher`
+
+-- 4.6.4 at its bound: seven years back is within the committee's power,
+-- eight is not.
+#TRACE `retroactive approval of the supplement` (`retroactive application` WITH `in official (state) education` IS FALSE, `years back claimed` IS 8) AT 0 WITH
+    PARTY `the teaching employee` DOES `apply to the committee` `the owner` AT 1
+    PARTY `the Ministry of Education` DOES `approve retroactively` 8 AT 2
