@@ -61,7 +61,7 @@ DECLARE `7.3 action` IS ONE OF
 -- §7.3.1(1): a deputy teaches at least 12 hours in grades 1–14, or 10 in an
 -- independent middle school, or 4 in a teacher training institution. An
 -- independent middle school's grades are within 1–14; its own figure (10)
--- is read as the rule for it.
+-- is read as the rule for it (F-7.3-c).
 @ref akn:chp_7__sec_7_3/p4
 GIVEN k IS A `kind of institution`
 GIVETH A NUMBER
@@ -108,7 +108,8 @@ DECIDE `turning management hours into teaching hours is a worsening of condition
 
 -- (2)ב, in force from 1.9.69: a principal or deputy of a primary school aged
 -- 50 or more on the day of the reform keeps his management hours and his
--- teaching hours.
+-- teaching hours. "תחולה 1.9.69" is read as the day of the reform: a
+-- reform carried out before it is not protected (F-7.3-e).
 @ref akn:chp_7__sec_7_3/p9
 GIVEN m IS A `reform-affected manager`
 GIVETH A BOOLEAN
@@ -198,13 +199,26 @@ DECIDE `classes counted for deputies` `all classes` `young division classes` IS
 -- What survives of the selection procedure (the numbered lines the corpus
 -- keeps as headings). The committee of 2.2.2 is the internal selection
 -- committee of the paragraph before it, which the corpus does not keep.
--- Time in days from 1 March: the end of March's third week is day 21.
+-- Time in days from 1 March (day 0). "The third week of March" is read
+-- as 15–21 March, the third seven days counted from the 1st, so the
+-- recommendations are due by 21 March, day 20, in every year (F-7.3-d).
+@ref akn:chp_7__sec_7_3__ssec_2_2_2
+GIVEN y IS A NUMBER
+GIVETH A DATE
+DECIDE `the last day of March's third week` y IS
+    DATE_FROM_DMY 21 3 y
+
+@ref akn:chp_7__sec_7_3__ssec_2_2_2
+GIVETH A NUMBER
+DECIDE `days from 1 March to the end of its third week` IS
+    DATE_SERIAL (`the last day of March's third week` 2026) MINUS DATE_SERIAL (DATE_FROM_DMY 1 3 2026)
+
 @ref akn:chp_7__sec_7_3__ssec_2_2_2
 GIVETH A DEONTIC `7.3 party` `7.3 action`
 DECIDE `the internal committee's recommendations` IS
     PARTY `the selection committee`
     MUST  `submit recommendations to the district manager`
-    WITHIN 21
+    WITHIN `days from 1 March to the end of its third week`
     LEST  BREACH BY `the selection committee` BECAUSE "section 7.3.2, 2.2.2: recommendations by the third week of March"
 
 @ref akn:chp_7__sec_7_3__ssec_2_3_2
@@ -291,3 +305,228 @@ DECIDE `section 3.5 names no one to give the notice` IF
 
 #TRACE `the internal committee's recommendations` AT 0 WITH
     PARTY `the selection committee` DOES `submit recommendations to the district manager` AT 18
+-- 2.2.2: the recommendations are in time on 21 March (day 20) and late on
+-- 22 March.
+#TRACE `the internal committee's recommendations` AT 0 WITH
+    PARTY `the selection committee` DOES `submit recommendations to the district manager` AT 20
+#TRACE `the internal committee's recommendations` AT 0 WITH
+    PARTY `the selection committee` DOES `submit recommendations to the district manager` AT 21
+
+§§ `Property checks`
+
+-- The section's rules over their whole finite space: every kind of
+-- institution; work units of 0 to 40 hours split every way between
+-- teaching and management; every reform-affected manager (classes lost or
+-- not, aged 49 to 51, reformed the day before or the day of 1.9.69, 0 to 6
+-- management hours before and 0 to 6 that the reduced school gives); the
+-- day before and the day of 1.9.92; 0 to 60 classes with 0 to 4 of them in
+-- the young division; and every March from 2020 to 2030.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`every kind of institution` MEANS LIST `primary school`, `post-primary school including a middle school`, `independent middle school`, `special education school`, `teacher training institution`
+
+GIVEN k IS A `kind of institution`, u IS A NUMBER, t IS A NUMBER
+GIVETH A `deputy post`
+DECIDE `a checked post` k u t IS
+    `deputy post` WITH
+        `institution`                            IS k
+        `teacher's work unit in the institution` IS u
+        `teaching hours`                         IS t
+        `management hours`                       IS u MINUS t
+
+GIVEN l IS A BOOLEAN, d IS A DATE, a IS A NUMBER, mb IS A NUMBER, mr IS A NUMBER
+GIVETH A `reform-affected manager`
+DECIDE `a checked manager` l d a mb mr IS
+    `reform-affected manager` WITH
+        `classes lost to the middle school`         IS l
+        `day of the reform`                         IS d
+        `age on the day of the reform`              IS a
+        `management hours before`                   IS mb
+        `teaching hours before`                     IS 14
+        `management hours the reduced school gives` IS mr
+
+`every reform day checked` MEANS LIST DATE_FROM_DMY 1 9 1968, DATE_FROM_DMY 31 8 1969, DATE_FROM_DMY 1 9 1969
+
+-- 7.3.1(1) over every kind and every split of a 0–40 hour unit: the
+-- minimum is 12, 10 or 4; a post is made up as required exactly when it
+-- teaches at least that minimum; and then its management hours never pass
+-- the maximum of (1)'s second paragraph, which is never negative where the
+-- unit holds the minimum.
+#ASSERT all (GIVEN k YIELD
+                    elem (`minimum teaching hours of a deputy` k) (LIST 12, 10, 4)
+                AND all (GIVEN u YIELD
+                            all (GIVEN t YIELD
+                                    LET d MEANS `a checked post` k u t
+                                    IN      `the deputy's work unit is made up as required` d
+                                            EQUALS (t AT LEAST `minimum teaching hours of a deputy` k)
+                                        AND ((NOT `the deputy's work unit is made up as required` d)
+                                             OR (    d's `management hours` AT MOST `maximum management hours` d
+                                                 AND `maximum management hours` d AT LEAST 0)))
+                                (range 0 u))
+                        (range 0 40))
+            `every kind of institution`
+
+-- (2)א–ב over every manager: management hours never rise and never go
+-- below zero; teaching hours never fall; what management loses teaching
+-- gains, hour for hour; one whose classes were not lost, or whom (2)ב
+-- protects, keeps both.
+#ASSERT all (GIVEN l YIELD
+                all (GIVEN d YIELD
+                        all (GIVEN a YIELD
+                                all (GIVEN mb YIELD
+                                        all (GIVEN mr YIELD
+                                                LET m MEANS `a checked manager` l d a mb mr
+                                                IN      `management hours after the reform` m AT MOST mb
+                                                    AND `management hours after the reform` m AT LEAST 0
+                                                    AND `teaching hours after the reform` m AT LEAST 14
+                                                    AND `management hours after the reform` m PLUS `teaching hours after the reform` m
+                                                        EQUALS mb PLUS 14
+                                                    AND ((l AND NOT `(2)ב protects his management and teaching hours` m)
+                                                         OR `management hours after the reform` m EQUALS mb))
+                                            (range 0 6))
+                                    (range 0 6))
+                            (LIST 49, 50, 51))
+                    `every reform day checked`)
+            `both booleans`
+
+-- 7.3.2(1)'s printed rows meet with no hole and no overlap: each row's
+-- upper bound is one below the next row's lower bound, which is the
+-- threshold the table encodes (primary 12–20, 21–29; post-primary and
+-- special education 10–18, 19–27; teacher training 7–13, 14–20).
+`the printed rows meet with no hole and no overlap` MEANS
+        (`thresholds for` `primary school`)'s `classes for a second deputy` EQUALS 20 PLUS 1
+        AND (`thresholds for` `primary school`)'s `classes for a third deputy` EQUALS 29 PLUS 1
+        AND (`thresholds for` `post-primary school including a middle school`)'s `classes for a second deputy` EQUALS 18 PLUS 1
+        AND (`thresholds for` `post-primary school including a middle school`)'s `classes for a third deputy` EQUALS 27 PLUS 1
+        AND (`thresholds for` `special education school`)'s `classes for a second deputy` EQUALS 18 PLUS 1
+        AND (`thresholds for` `special education school`)'s `classes for a third deputy` EQUALS 27 PLUS 1
+        AND (`thresholds for` `teacher training institution`)'s `classes for a second deputy` EQUALS 13 PLUS 1
+        AND (`thresholds for` `teacher training institution`)'s `classes for a third deputy` EQUALS 20 PLUS 1
+#ASSERT `the printed rows meet with no hole and no overlap`
+
+-- 7.3.2(1) over every kind and 0 to 60 classes: the printed rows give 0
+-- to 3 deputies; neither they nor the adopted reading of "וכן הלאה" ever
+-- give fewer deputies for more classes; the reading agrees with the rows
+-- wherever they give fewer than three, and never gives fewer than they do.
+-- F-7.3-a over the same space: the rows give three from the third
+-- threshold on, so they leave every school past the third step without
+-- an answer for a fourth deputy, in every kind of institution.
+#ASSERT all (GIVEN k YIELD
+                all (GIVEN n YIELD
+                            `deputies the printed rows allow` k n AT LEAST 0
+                        AND `deputies the printed rows allow` k n AT MOST 3
+                        AND `deputies the printed rows allow` k n AT MOST `deputies the printed rows allow` k (n PLUS 1)
+                        AND `deputies the institution may have` k n AT MOST `deputies the institution may have` k (n PLUS 1)
+                        AND `deputies the institution may have` k n AT LEAST `deputies the printed rows allow` k n
+                        AND ((`deputies the printed rows allow` k n EQUALS 3)
+                             OR `deputies the institution may have` k n EQUALS `deputies the printed rows allow` k n))
+                    (range 0 60))
+            `every kind of institution`
+#ASSERT all (GIVEN k YIELD
+                LET t MEANS `thresholds for` k
+                    step MEANS t's `classes for a third deputy` MINUS t's `classes for a second deputy`
+                IN      `deputies the printed rows allow` k (t's `classes for a third deputy` PLUS step) EQUALS 3
+                    AND `deputies the institution may have` k (t's `classes for a third deputy` PLUS step) EQUALS 4)
+            `every kind of institution`
+
+-- The note to (1)א over 0 to 60 classes with 0 to 4 in the young division:
+-- the classes counted are never negative and never more than the school's;
+-- a larger young division never gives the school more deputies.
+#ASSERT all (GIVEN n YIELD
+                all (GIVEN y YIELD
+                            `classes counted for deputies` (n PLUS y) y EQUALS n
+                        AND `classes counted for deputies` (n PLUS y) y AT MOST n PLUS y
+                        AND `deputies the institution may have` `primary school` (`classes counted for deputies` (n PLUS 4) (y PLUS 1))
+                            AT MOST `deputies the institution may have` `primary school` (`classes counted for deputies` (n PLUS 4) y))
+                    (range 0 3))
+            (range 0 60)
+
+-- (2)ג the day before and the day of 1.9.92: the position base is kept
+-- exactly from that day, for one aged 50 or more whose classes moved.
+#ASSERT all (GIVEN l YIELD
+                all (GIVEN a YIELD
+                            `keeps his position base in teaching and management hours as before the move` (`a checked manager` l (DATE_FROM_DMY 1 9 1970) a 10 6) (DATE_FROM_DMY 1 9 1992)
+                            EQUALS (l AND a AT LEAST 50)
+                        AND NOT `keeps his position base in teaching and management hours as before the move` (`a checked manager` l (DATE_FROM_DMY 1 9 1970) a 10 6) (DATE_FROM_DMY 31 8 1992))
+                    (LIST 49, 50, 51))
+            `both booleans`
+
+-- F-7.3-c: 7.3.1(1) gives a figure to "grades 1–14" and another to an
+-- independent middle school, whose grades (7–9) are among them. Over every
+-- kind of institution, the one the two figures both reach is the
+-- independent middle school, and they differ there.
+GIVEN k IS A `kind of institution`
+GIVETH A BOOLEAN
+DECIDE `its grades are among grades 1 to 14` k IF
+    NOT (k EQUALS `teacher training institution`)
+
+GIVEN k IS A `kind of institution`
+GIVETH A BOOLEAN
+DECIDE `7.3.1(1) names a figure of its own for it` k IF
+    k EQUALS `independent middle school` OR k EQUALS `teacher training institution`
+
+`the 12-hour and the 10-hour rule both reach an independent middle school` MEANS
+        `its grades are among grades 1 to 14` `independent middle school`
+    AND `7.3.1(1) names a figure of its own for it` `independent middle school`
+    AND NOT (`minimum teaching hours of a deputy` `independent middle school` EQUALS 12)
+#ASSERT `the 12-hour and the 10-hour rule both reach an independent middle school`
+#ASSERT filter (GIVEN k YIELD `its grades are among grades 1 to 14` k AND `7.3.1(1) names a figure of its own for it` k) `every kind of institution` EQUALS LIST `independent middle school`
+
+-- F-7.3-d: "the third week of March". Read as the third seven days from
+-- the 1st, it ends on 21 March every year; read as the third calendar week
+-- (Sunday to Saturday, the first being the week that holds 1 March), it
+-- ends on the third Saturday, 21 March less the weekday of 1 March. Over
+-- every March from 2020 to 2030 the two agree exactly in the years 1 March
+-- is a Sunday (2020, 2026) and part in the other nine.
+GIVEN y IS A NUMBER
+GIVETH A DATE
+DECIDE `the last day of March's third calendar week` y IS
+    DATE_FROM_SERIAL (DATE_SERIAL (DATE_FROM_DMY 21 3 y) MINUS (DATE_SERIAL (DATE_FROM_DMY 1 3 y) MODULO 7))
+
+#ASSERT all (GIVEN y YIELD
+                    (`the last day of March's third calendar week` y EQUALS `the last day of March's third week` y)
+                    EQUALS (DATE_SERIAL (DATE_FROM_DMY 1 3 y) MODULO 7 EQUALS 0)
+                AND DATE_SERIAL (`the last day of March's third calendar week` y) AT LEAST DATE_SERIAL (DATE_FROM_DMY 15 3 y)
+                AND DATE_SERIAL (`the last day of March's third calendar week` y) AT MOST DATE_SERIAL (`the last day of March's third week` y))
+            (range 2020 2030)
+#ASSERT count (filter (GIVEN y YIELD NOT (`the last day of March's third calendar week` y EQUALS `the last day of March's third week` y)) (range 2020 2030)) EQUALS 9
+
+`in 2025 the third calendar week of March ends on the 15th, not the 21st` MEANS
+        `the last day of March's third calendar week` 2025 EQUALS DATE_FROM_DMY 15 3 2025
+    AND NOT (`the last day of March's third week` 2025 EQUALS DATE_FROM_DMY 15 3 2025)
+#ASSERT `in 2025 the third calendar week of March ends on the 15th, not the 21st`
+
+-- F-7.3-e: "(תחולה 1.9.69)" read as the day of the reform, against read as
+-- the month the hours are paid for (as (2)ג's 1.9.92 is read). Over every
+-- manager and the months 31.8.69, 1.9.69 and 1.9.70, the readings part
+-- exactly for one aged 50 or more whose classes were lost in a reform
+-- carried out before 1.9.69, in a month from 1.9.69 on.
+GIVEN m IS A `reform-affected manager`, `the month` IS A DATE
+GIVETH A BOOLEAN
+DECIDE `(2)ב protects him in the month, read as the rule's commencement` m `the month` IF
+        m's `classes lost to the middle school`
+    AND m's `age on the day of the reform` AT LEAST 50
+    AND (`the month` `is on or after` (DATE_FROM_DMY 1 9 1969))
+
+#ASSERT all (GIVEN l YIELD
+                all (GIVEN d YIELD
+                        all (GIVEN a YIELD
+                                all (GIVEN mo YIELD
+                                        LET m MEANS `a checked manager` l d a 10 6
+                                        IN  (NOT (    (`(2)ב protects his management and teaching hours` m AND (mo `is on or after` d))
+                                                  EQUALS (`(2)ב protects him in the month, read as the rule's commencement` m mo AND (mo `is on or after` d))))
+                                            EQUALS (    l
+                                                    AND a AT LEAST 50
+                                                    AND NOT (d `is on or after` (DATE_FROM_DMY 1 9 1969))
+                                                    AND (mo `is on or after` (DATE_FROM_DMY 1 9 1969))
+                                                    AND (mo `is on or after` d)))
+                                    (LIST DATE_FROM_DMY 31 8 1969, DATE_FROM_DMY 1 9 1969, DATE_FROM_DMY 1 9 1970))
+                            (LIST 49, 50, 51))
+                    `every reform day checked`)
+            `both booleans`
+
+`a manager aged 52 reformed in 1968 is protected in 1970 on one reading only` MEANS
+    LET m MEANS `a checked manager` TRUE (DATE_FROM_DMY 1 9 1968) 52 10 6
+    IN      `(2)ב protects him in the month, read as the rule's commencement` m (DATE_FROM_DMY 1 9 1970)
+        AND NOT `(2)ב protects his management and teaching hours` m
+#ASSERT `a manager aged 52 reformed in 1968 is protected in 1970 on one reading only`

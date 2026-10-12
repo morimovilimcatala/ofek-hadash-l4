@@ -215,3 +215,88 @@ DECIDE `young division coordinator's management reward` d `deputy's reward from 
 #ASSERT `the coordinators' training is held as (ח) says` 1 TRUE
 #ASSERT NOT `the coordinators' training is held as (ח) says` 0 TRUE
 #ASSERT NOT `the table is in force on` (Date 31 8 1995)
+
+§§ `Property checks`
+
+-- The section's rules over their whole finite space: young divisions of 0
+-- to 10 classes (kindergarten classes included), every set of the five
+-- things 7.1.2.1 asks before an appointment, the day before and the day of
+-- the table's 1.9.95, and 0 to 3 training sessions a month, at home or away.
+
+`both booleans` MEANS LIST TRUE, FALSE
+
+GIVEN n IS A NUMBER
+GIVETH A `young division`
+DECIDE `a checked division` n IS
+    `young division` WITH
+        `classes in the division including kindergarten classes` IS n
+        `management hours`    IS 12
+        `assistance hours`    IS 6
+        `teaching hours`      IS 12
+        `hours of her position worked outside the division` IS 0
+
+GIVEN c IS A BOOLEAN, p IS A BOOLEAN, s IS A BOOLEAN, k IS A BOOLEAN, y IS A BOOLEAN
+GIVETH A `young division appointment`
+DECIDE `a checked appointment` c p s k y IS
+    `young division appointment` WITH
+        `meets the appointment conditions of deputy principals`            IS c
+        `the principal consents`                                           IS p
+        `coordinated with the school's supervisor`                         IS s
+        `coordinated with the supervisor of the division's kindergartens`  IS k
+        `coordinated with the supervisor of young divisions`               IS y
+
+-- 7.1.1 over 0 to 10 classes: 3 hours a class, never above 12 and never
+-- negative; more classes never give fewer hours; the cap binds exactly from
+-- the fourth class. The management reward's class basis (7.1.6.1) is the
+-- same count the hours are given for.
+#ASSERT all (GIVEN n YIELD
+                LET d MEANS `a checked division` n
+                IN      `coordination hours` d AT LEAST 0
+                    AND `coordination hours` d AT MOST 12
+                    AND `coordination hours` d AT MOST `coordination hours` (`a checked division` (n PLUS 1))
+                    AND (`coordination hours` d EQUALS 12) EQUALS (n AT LEAST 4)
+                    AND `classes the deputy's reward is based on` d EQUALS n)
+            (range 0 10)
+
+-- 7.1.2.1 over every set of the five: an appointment may be made exactly
+-- when all five were done; any one missing bars it.
+#ASSERT all (GIVEN c YIELD
+                all (GIVEN p YIELD
+                        all (GIVEN s YIELD
+                                all (GIVEN k YIELD
+                                        all (GIVEN y YIELD
+                                                `the appointment may be made` (`a checked appointment` c p s k y)
+                                                EQUALS (c AND p AND s AND k AND y))
+                                            `both booleans`)
+                                    `both booleans`)
+                            `both booleans`)
+                    `both booleans`)
+            `both booleans`
+
+-- 7.1.2.2: of the section's parties, one is responsible for the division's
+-- affairs and one is whom she answers to, and they are not the same.
+#ASSERT count (filter `responsible for the young division's affairs` (LIST `the district manager`, `the district`, `the young division coordinator`, `the principal`)) EQUALS 1
+#ASSERT count (filter `the young division head answers directly to` (LIST `the district manager`, `the district`, `the young division coordinator`, `the principal`)) EQUALS 1
+
+-- 7.1.3 (ח) over 0 to 3 sessions, at home or away: held as (ח) says
+-- exactly from one session away from home, and more never undo it.
+#ASSERT all (GIVEN n YIELD
+                all (GIVEN a YIELD
+                            `the coordinators' training is held as (ח) says` n a EQUALS (a AND n AT LEAST 1)
+                        AND ((NOT `the coordinators' training is held as (ח) says` n a)
+                             OR `the coordinators' training is held as (ח) says` (n PLUS 1) a))
+                    `both booleans`)
+            (range 0 3)
+
+-- 7.1.6.1: the table is in force from 1.9.95 and not the day before.
+#ASSERT `the table is in force on` (Date 1 9 1995) AND NOT `the table is in force on` (Date 31 8 1995)
+
+-- 7.1.6.1-2 over 0 to 10 classes, for any table that does not fall with
+-- classes (here 50 a class, a placeholder): the reward never falls with
+-- classes and the seniority supplement only adds to it.
+#ASSERT all (GIVEN n YIELD
+                    `young division coordinator's management reward` (`a checked division` n) (GIVEN m YIELD 50 TIMES m) 10
+                    AT MOST `young division coordinator's management reward` (`a checked division` (n PLUS 1)) (GIVEN m YIELD 50 TIMES m) 10
+                AND `young division coordinator's management reward` (`a checked division` n) (GIVEN m YIELD 50 TIMES m) 10
+                    EQUALS `young division coordinator's management reward` (`a checked division` n) (GIVEN m YIELD 50 TIMES m) 0 PLUS 10)
+            (range 0 10)
