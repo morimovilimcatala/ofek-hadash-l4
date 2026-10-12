@@ -55,8 +55,8 @@ DECLARE `circular 2 action` IS ONE OF
     `reimburse the owner`
     `monitor the undertakings to complete an academic degree`
     `submit a request to the exceptions committee`
-    `install an attendance clock`
     `report working hours by the attendance clock`
+    `report working hours manually`
     `pay and deduct by the attendance reports`
     `pay the Ofek Hadash advance` HAS `advance paid` IS A NUMBER
     `check each employee's conditions and decide the joining`
@@ -920,15 +920,18 @@ DECLARE `advance group` IS ONE OF
 
 §§ `16 שעון הנוכחות בביה"ס`
 
--- 16.1-16.4: an attendance clock is installed and employees report by it;
+-- 16.1-16.4: an attendance clock "is installed" (no one is named:
+-- F-2022-23_tashpag_02-l) and employees report by it;
 -- hours count from clocking in, not before 7:45; manual reports until it is
 -- installed; the owner pays and deducts by the reports, after checking
 -- justified absences.
 @ref akn:art_16__para_16-1 akn:art_16__para_16-3 akn:art_16__para_16-4
+GIVEN `the clock is installed` IS A BOOLEAN
 GIVETH A DEONTIC Party `circular 2 action`
-DECIDE `the attendance clock` IS
-         (PARTY `the employer` MUST `install an attendance clock`)
-    RAND (PARTY `the teaching employee` MUST `report working hours by the attendance clock`)
+DECIDE `the attendance clock` `the clock is installed` IS
+         (IF `the clock is installed`
+          THEN PARTY `the teaching employee` MUST `report working hours by the attendance clock`
+          ELSE PARTY `the teaching employee` MUST `report working hours manually`)
     RAND (PARTY `the employer` MUST `pay and deduct by the attendance reports`)
 
 @ref akn:art_16__para_16-2
@@ -1265,3 +1268,265 @@ DECIDE `the grade coordinator is given two rates and no rule to choose` IF
     PARTY `the employer` DOES `submit the owner's undertaking through the portal` AT 8
 #TRACE `the owner's undertaking` AT 0 WITH
     PARTY `the employer` DOES `submit the owner's undertaking through the portal` AT 20
+
+-- F-2022-23_tashpag_02-l: "בביה"ס יותקן שעון נוכחות" names no one to install it and no
+-- date. The reading adopted, as F-2021-22_tashpab_02-n's: no duty to install
+-- is encoded; whether the clock is installed decides only how the teachers
+-- report.
+GIVETH A LIST OF Party
+DECIDE `the parties §16.1 names to install the clock` IS EMPTY
+`§16.1 names no one to install the clock` MEANS
+    `the parties §16.1 names to install the clock` EQUALS EMPTY
+#ASSERT `§16.1 names no one to install the clock`
+
+-- F-2022-23_tashpag_02-m: the advance rows as printed. An intern is a teaching employee
+-- who is not a principal or a first deputy, so in each stage two rows price
+-- the intern (27% and 22% post-primary, 17% and 14% primary). The reading
+-- adopted, as F-2021-22_tashpab_02-m's: the row that names interns governs
+-- them, as the advance rate above is encoded.
+DECLARE `printed post-primary advance row` IS ONE OF
+    `teachers who are not principals or first deputies`, `interns`, `first deputies`, `principals`
+DECLARE `role for the printed rows` IS ONE OF `a teacher`, `an intern`, `a first deputy`, `a principal`
+GIVEN row IS A `printed post-primary advance row`
+GIVETH A NUMBER
+DECIDE `the rate the printed row gives` row IS
+    CONSIDER row
+    WHEN `teachers who are not principals or first deputies` THEN 0.27
+    WHEN `interns` THEN 0.22
+    WHEN `first deputies` THEN 0.20
+    WHEN `principals` THEN 0.15
+GIVEN row IS A `printed post-primary advance row`, r IS A `role for the printed rows`
+GIVETH A BOOLEAN
+DECIDE `the printed row covers` row r IF
+    CONSIDER row
+    WHEN `teachers who are not principals or first deputies` THEN NOT (r EQUALS `a first deputy` OR r EQUALS `a principal`)
+    WHEN `interns` THEN r EQUALS `an intern`
+    WHEN `first deputies` THEN r EQUALS `a first deputy`
+    WHEN `principals` THEN r EQUALS `a principal`
+`a post-primary intern has two advance rates` MEANS
+    map (GIVEN row YIELD `the rate the printed row gives` row)
+        (filter (GIVEN row YIELD `the printed row covers` row `an intern`)
+                (LIST `teachers who are not principals or first deputies`, `interns`, `first deputies`, `principals`))
+    EQUALS LIST 0.27, 0.22
+#ASSERT `a post-primary intern has two advance rates`
+
+-- F-2022-23_tashpag_02-n: §6.2's first three criteria are needs (a required subject, a
+-- shortage in the area, a remote locality) and the list does not say
+-- whether they are cumulative. The reading adopted, as
+-- F-2021-22_tashpab_02-b's: alternatives, any one of them grounding the
+-- request (the input `a criterion of 6.2 is met`).
+GIVEN `required subject` IS A BOOLEAN, `shortage in the area` IS A BOOLEAN, `remote locality` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `6.2's needs, read as alternatives` `required subject` `shortage in the area` `remote locality` IF
+    `required subject` OR `shortage in the area` OR `remote locality`
+GIVEN `required subject` IS A BOOLEAN, `shortage in the area` IS A BOOLEAN, `remote locality` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `6.2's needs, read together` `required subject` `shortage in the area` `remote locality` IF
+    `required subject` AND `shortage in the area` AND `remote locality`
+`the two readings of the criteria decide one request differently` MEANS
+        `6.2's needs, read as alternatives` TRUE FALSE FALSE
+    AND (NOT `6.2's needs, read together` TRUE FALSE FALSE)
+#ASSERT `the two readings of the criteria decide one request differently`
+
+-- F-2022-23_tashpag_02-o: 3.3.1 binds "up to 27 years (inclusive)" and 3.3.2 frees "28
+-- years and above"; seniority of 27 and a half years is in neither as
+-- printed. The reading adopted, as F-2021-22_tashpab_02-l's: whole years —
+-- one who has not completed 28 is "up to 27" and must sign, as the joining
+-- rule above is encoded.
+GIVEN s IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `in 3.3.1's printed band` s IF s AT MOST 27
+GIVEN s IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `in 3.3.2's printed band` s IF s AT LEAST 28
+`a non-academic teacher of 27 and a half years is in neither rule` MEANS
+    (NOT `in 3.3.1's printed band` 27.5) AND NOT `in 3.3.2's printed band` 27.5
+#ASSERT `a non-academic teacher of 27 and a half years is in neither rule`
+
+-- F-2022-23_tashpag_02-p: 2.1(2)(ב) has unreported employees open a file "urgently" and
+-- names no day. The reading adopted, as F-2024-25_tashpah_01-n's: the duty
+-- is encoded without a deadline.
+GIVETH A MAYBE NUMBER
+DECIDE `the days 2.1(2)(ב) gives for "urgently"` IS NOTHING
+
+`"urgently" names no deadline` MEANS
+    `the days 2.1(2)(ב) gives for "urgently"` EQUALS NOTHING
+#ASSERT `"urgently" names no deadline`
+
+§§ `Property checks`
+
+-- The circular over finite spaces, section by section.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`hundredths to 1` MEANS map (GIVEN k YIELD k DIVIDED BY 100) (range 0 100)
+`positions checked` MEANS LIST 0.25, 1 DIVIDED BY 3, 0.4, 0.5, 0.75, 1
+`every week kind` MEANS LIST `special-education primary teacher`, `special-education primary health professional`, `special-education post-primary teacher`, `special-education post-primary health professional`
+`every level table` MEANS LIST `the principal's frontal hours by level`, `the primary first deputy's frontal hours by level`, `the post-primary first deputy's frontal hours by level`, `the multi-stage first deputy's frontal hours by level`
+
+GIVEN y IS A NUMBER, a IS A BOOLEAN, c IS A BOOLEAN, p IS A NUMBER, d IS A BOOLEAN, x IS A BOOLEAN, r IS A BOOLEAN
+GIVETH A `school employee`
+DECIDE `a checked employee` y a c p d x r IS
+    `school employee` WITH
+        `recognized teaching seniority`              IS y
+        `academic`                                   IS a
+        `teaching certificate`                       IS c
+        `employee's position fraction`               IS p
+        `signed the academic-completion undertaking` IS d
+        `approved by the exceptions committee`       IS x
+        `in regular education`                       IS r
+        `health professions or arts therapist`       IS FALSE
+
+-- §3.2.1 and §3.4 over every flag and position: an existing academic joins
+-- exactly from a third, certified or by exception; a new one exactly from a
+-- third (half in regular education) and certified.
+#ASSERT all (GIVEN c YIELD
+                all (GIVEN x YIELD
+                        all (GIVEN r YIELD
+                                all (GIVEN p YIELD
+                                            `joins Ofek Hadash` (`a checked employee` 5 TRUE c p FALSE x r)
+                                            EQUALS (p AT LEAST 1 DIVIDED BY 3 AND (c OR x))
+                                        AND `joins Ofek Hadash` (`a checked employee` 0 TRUE c p FALSE x r)
+                                            EQUALS (p AT LEAST (IF r THEN 0.5 ELSE 1 DIVIDED BY 3) AND c))
+                                    `positions checked`)
+                            `both booleans`)
+                    `both booleans`)
+            `both booleans`
+
+-- §3.3 and §12.2.3 over seniority 20 to 35: an existing non-academic joins,
+-- and is promoted, exactly from 28 years or on signing (or the degree).
+#ASSERT all (GIVEN s YIELD
+                all (GIVEN d YIELD
+                            `joins Ofek Hadash` (`a checked employee` s FALSE TRUE 1 d FALSE FALSE) EQUALS (s AT LEAST 28 OR d)
+                        AND `a non-academic may be promoted` (`a checked employee` s FALSE TRUE 1 FALSE FALSE FALSE) d EQUALS (s AT LEAST 28 OR d))
+                    `both booleans`)
+            (range 20 35)
+
+-- §4 over every week kind and position: the week is 36 hours and adds up;
+-- a part position is the full week's share; the primary week is the one of
+-- a primary school and of grades 1-6.
+#ASSERT all (GIVEN k YIELD
+                all (GIVEN p YIELD
+                        LET w MEANS `the part-time work week of` k p
+                        IN      (`the work week of` k)'s `week hours` EQUALS 36
+                            AND (`the work week of` k)'s `frontal hours` PLUS (`the work week of` k)'s `individual hours` PLUS (`the work week of` k)'s `stay hours` EQUALS 36
+                            AND w's `frontal hours` PLUS w's `individual hours` PLUS w's `stay hours` EQUALS 36 TIMES p)
+                    `positions checked`)
+            `every week kind`
+#ASSERT all (GIVEN g YIELD
+                    `on the primary work week` TRUE g
+                AND `on the primary work week` FALSE g EQUALS (g AT MOST 6))
+            (range 1 12)
+
+-- §5.4-§6 over positions in hundredths: a period counts exactly from a
+-- third; 5.4 permits at most two schools and 100%; section 6 approves above
+-- 100% only on a criterion, frontal, within 8.5 a day and 42 a week, and
+-- above 117% only with headquarters.
+#ASSERT all (GIVEN f YIELD
+                    `the period counts for promotion` f EQUALS (f AT LEAST 1 DIVIDED BY 3)
+                AND all (GIVEN n YIELD
+                            `within 5.4` n (f PLUS 0.5) FALSE EQUALS (n AT MOST 2 AND f PLUS 0.5 AT MOST 1))
+                        (range 1 4))
+            `hundredths to 1`
+#ASSERT all (GIVEN t YIELD
+                all (GIVEN cr YIELD
+                        all (GIVEN hq YIELD
+                                `the position may be approved` (t DIVIDED BY 100) FALSE cr TRUE 8 40 hq
+                                EQUALS (t AT MOST 100 OR (cr AND (t AT MOST 117 OR hq))))
+                            `both booleans`)
+                    `both booleans`)
+            (range 90 140)
+
+-- §7 over positions in hundredths: the nursing hours exactly from 90%
+-- within four months, the mother's reduction from 79% otherwise, both
+-- clauses only at exactly 90% (finding e).
+#ASSERT all (GIVEN f YIELD
+                all (GIVEN m YIELD
+                        all (GIVEN w YIELD
+                                LET r MEANS `the weekly reduction` m f w
+                                IN      (r's `stay reduced` EQUALS 5) EQUALS (w AND f AT LEAST 0.9)
+                                    AND (r's `frontal reduced` EQUALS 1) EQUALS ((NOT (w AND f AT LEAST 0.9)) AND m AND f AT LEAST 0.79))
+                            `both booleans`)
+                    `both booleans`)
+            `hundredths to 1`
+#ASSERT all (GIVEN f YIELD (`in 7.3's range` f AND `in 7.4's range` f) EQUALS (f EQUALS 0.9)) `hundredths to 1`
+
+-- §8 over ages 45 to 65: the base is 32, 34 or 36, never rising with age,
+-- never higher for an existing teacher; two bases only at 55 for an
+-- existing teacher (finding f).
+#ASSERT all (GIVEN n YIELD
+                all (GIVEN ex YIELD
+                            elem (`the position base for age` n ex) (LIST 32, 34, 36)
+                        AND `the position base for age` (n PLUS 1) ex AT MOST `the position base for age` n ex
+                        AND `the position base for age` n TRUE AT MOST `the position base for age` n FALSE
+                        AND (count (nub (`the bases the clauses give` n ex)) EQUALS 2) EQUALS (ex AND n EQUALS 55))
+                    `both booleans`)
+            (range 45 65)
+
+-- §9 over computed levels 0 to 10: the level is 3 to 8; every table names
+-- each level 3 to 8 once and never gives more frontal hours at a higher
+-- level; the reductions for a mother and age are 0, 2 or 4.
+#ASSERT all (GIVEN l YIELD
+                LET v MEANS `the complexity level of a special-education school` l
+                IN v AT LEAST 3 AND v AT MOST 8)
+            (range 0 10)
+#ASSERT all (GIVEN t YIELD
+                all (GIVEN l YIELD
+                            count (filter (GIVEN r YIELD r's `level` EQUALS l) t) EQUALS 1
+                        AND all (GIVEN r YIELD
+                                    all (GIVEN q YIELD
+                                            (NOT (r's `level` LESS THAN q's `level`)) OR q's `level hours` AT MOST r's `level hours`)
+                                        t)
+                                t)
+                    (range 3 8))
+            `every level table`
+#ASSERT all (GIVEN mo YIELD
+                all (GIVEN n YIELD elem (`a principal's non-frontal hours reduced` mo n) (LIST 0, 2, 4)) (range 40 65))
+            `both booleans`
+
+-- §10 over hours per purpose: within the caps exactly when each purpose is
+-- within its own (4, 8, 6), and those add up to the half-year's 18.
+#ASSERT all (GIVEN a YIELD
+                all (GIVEN b YIELD
+                        all (GIVEN c YIELD
+                                `a half-year's activity hours are within the caps` a b c EQUALS (a AT MOST 4 AND b AT MOST 8 AND c AT MOST 6))
+                            (range 0 7))
+                    (range 0 9))
+            (range 0 5)
+
+-- §12.2.2 over seniority 20 to 30: two answers exactly at 25 (finding b);
+-- an uncertified existing academic may be promoted exactly from 25, and is
+-- barred by §3.2.1 exactly below it.
+#ASSERT all (GIVEN s YIELD
+                    (count (`what 12.2.2's two groups say of seniority` s) EQUALS 2) EQUALS (s EQUALS 25)
+                AND `an uncertified academic may be promoted` (`a checked employee` s TRUE FALSE 1 FALSE TRUE FALSE) EQUALS (s AT LEAST 25)
+                AND `cannot be promoted until certified under 3.2.1` (`a checked employee` s TRUE FALSE 1 FALSE TRUE FALSE) EQUALS (s LESS THAN 25))
+            (range 20 30)
+
+-- §13: a counselor of a full position always needs 4 teaching hours; the
+-- allowance needs 7 counselling hours.
+#ASSERT all (GIVEN h YIELD
+                all (GIVEN pj YIELD
+                        (NOT `a counselor teaches enough` h 36 pj) OR h AT LEAST 4)
+                    `both booleans`)
+            (range 0 10)
+#ASSERT all (GIVEN h YIELD
+                all (GIVEN l YIELD (`the counseling allowance rate` h l GREATER THAN 0) EQUALS (h AT LEAST 7)) `both booleans`)
+            (range 0 12)
+
+-- §14.5 over quarter grades; §15.2: every advance rate between 14% and
+-- 27%, interns below teachers in both stages.
+#ASSERT all (GIVEN k YIELD
+                `a grade the conversion may give` (k DIVIDED BY 4) EQUALS (FLOOR (k DIVIDED BY 2) TIMES 2 EQUALS k))
+            (range 0 40)
+#ASSERT all (GIVEN g YIELD `the advance rate of` g AT LEAST 0.14 AND `the advance rate of` g AT MOST 0.27)
+            (LIST `primary teacher`, `primary intern`, `post-primary teacher`, `post-primary intern`, `first deputy`, `principal`)
+`interns are advanced less than teachers` MEANS
+        `the advance rate of` `primary intern` LESS THAN `the advance rate of` `primary teacher`
+    AND `the advance rate of` `post-primary intern` LESS THAN `the advance rate of` `post-primary teacher`
+#ASSERT `interns are advanced less than teachers`
+
+-- §16.2 over clock-ins from 6:00 to 9:00: work never counts before 7:45.
+#ASSERT all (GIVEN t YIELD
+                    `work counts from` t AT LEAST 465
+                AND (`work counts from` t EQUALS t) EQUALS (t AT LEAST 465))
+            (range 360 540)
