@@ -293,13 +293,16 @@ DECIDE `the head's reward before the floor` h `principal's reward` IS
         THEN `principal's reward` (h's `average classes of the independent school in its last 3 years`)
         OTHERWISE 85% TIMES `principal's reward` (`classes counted for the head's reward` h)
 
--- (5): a head who was a tenured primary principal keeps at least the
--- lowest ("המינימום") reward of the three years before appointment.
+-- (5): a head of the middle division of a six-year school ("בבית הספר
+-- על-יסודי שש שנתי") who was a tenured primary principal keeps at least the
+-- lowest ("המינימום") reward of the three years before appointment. The
+-- head of an independent middle school is not in it.
 @ref akn:chp_7__sec_7_4__ssec_7_4_6_1__para_5
 GIVEN h IS A `middle division head`
 GIVETH A NUMBER
 DECIDE `the floor from a primary principalship` h IS
-    IF h's `was a tenured primary school principal until appointed`
+    IF      h's `was a tenured primary school principal until appointed`
+        AND NOT h's `heads an independent middle school`
     THEN CONSIDER h's `management rewards in the 3 years before appointment`
          WHEN EMPTY THEN 0
          WHEN r FOLLOWED BY rest THEN minimum1 r rest
@@ -353,3 +356,128 @@ DECIDE `middle division head's management reward` h `principal's reward` IS
 #ASSERT `the principal decides` `a question on home classes`
 #TRACE `a question that concerns the middle division` `a question on home classes` AT 0 WITH
     PARTY `the six-year school's principal` DOES `consult and cooperate closely with the middle division head` `a question on home classes` AT 2
+
+§§ `Property checks`
+
+-- The section's rules over their whole finite space: every party, every
+-- question (of principle or not, about the middle division or not), every
+-- document, both kinds of upper division, and every middle division head
+-- (independent or not, attached or not, 0 to 5 years before attachment, a
+-- tenured primary principal or not, 0 to 12 classes and 0 to 12 on average,
+-- and no, one or three earlier rewards), for a principal's reward of 100 a
+-- class (a placeholder that, like section 7.6's, does not fall with classes).
+
+`both booleans` MEANS LIST TRUE, FALSE
+`every 7.4 party` MEANS LIST `the six-year school's principal`, `the middle division head`, `the deputy principal`, `the school's management`, `the class educator`
+`every school document` MEANS LIST `a middle division pedagogical record`, `a term report card`, `a year-end report card`
+
+GIVEN i IS A BOOLEAN, a IS A BOOLEAN, y IS A NUMBER, t IS A BOOLEAN, n IS A NUMBER, v IS A NUMBER, r IS A LIST OF NUMBER
+GIVETH A `middle division head`
+DECIDE `a checked head` i a y t n v r IS
+    `middle division head` WITH
+        `heads an independent middle school`                IS i
+        `classes in the middle division`                    IS n
+        `independent school was attached to a six-year school` IS a
+        `years as head of the independent school before it was attached` IS y
+        `average classes of the independent school in its last 3 years` IS v
+        `was a tenured primary school principal until appointed` IS t
+        `management rewards in the 3 years before appointment` IS r
+
+`every earlier reward record` MEANS LIST EMPTY, (LIST 700), (LIST 1000, 600, 950)
+
+-- 7.4.3(1)–(3): of every party, one sees to the school and answers for it,
+-- and it is the one the head answers to, who chairs the management and
+-- decides its disagreements; one carries out the management's decisions on
+-- the middle division and keeps its records, and it is the head, a member
+-- of the management; the head's field is the middle division alone.
+#ASSERT filter `sees to the school's education and teaching and is responsible for everything done in it` `every 7.4 party` EQUALS LIST `the chair of the management`
+#ASSERT filter `the middle division head answers to` `every 7.4 party` EQUALS LIST `the chair of the management`
+#ASSERT filter `responsible for carrying out the management's decisions on the middle division` `every 7.4 party` EQUALS filter `responsible for the middle division's pedagogical records` `every 7.4 party`
+#ASSERT filter `responsible for carrying out the management's decisions on the middle division` `every 7.4 party` EQUALS LIST `the middle division head`
+#ASSERT elem `the middle division head` `the members of the management`
+#ASSERT filter `the middle division head's field covers` (LIST `the middle division`, `the upper division`) EQUALS LIST `the middle division`
+#ASSERT all (GIVEN p YIELD
+                all (GIVEN m YIELD
+                        LET q MEANS `school question` WITH `is a question of principle` IS p, `concerns the middle division` IS m
+                        IN      `the principal decides` q EQUALS p
+                            AND `who decides a disagreement in the management` q EQUALS `the chair of the management`)
+                    `both booleans`)
+            `both booleans`
+
+-- (3)ב over 0 to 14 days: the recommended interval is met exactly up to
+-- 10 days, and a shorter one never misses it.
+#ASSERT all (GIVEN d YIELD
+                    `the meeting interval is the recommended one` d EQUALS (d AT MOST 10)
+                AND ((NOT `the meeting interval is the recommended one` (d PLUS 1))
+                     OR `the meeting interval is the recommended one` d))
+            (range 0 14)
+
+-- (4) over both kinds of upper division: the head chairs the grade 9→10
+-- committee in either, the single-track division only adds a task, and
+-- no task is listed twice.
+#ASSERT all (GIVEN s YIELD
+                    elem `chairing the committee for moving pupils from grade 9 to 10` (`the head's tasks` s)
+                AND all (GIVEN k YIELD elem k (`the head's tasks` s)) (`the head's tasks` FALSE)
+                AND count (`the head's tasks` s) EQUALS count (nub (`the head's tasks` s)))
+            `both booleans`
+#ASSERT count (`the head's tasks` TRUE) EQUALS count (`the head's tasks` FALSE) PLUS 1
+
+-- (5)א and ד over every document: the head signs every one, two at most
+-- sign, and the principal only the year-end report card.
+#ASSERT all (GIVEN d YIELD
+                    elem `the middle division head` (`who signs` d)
+                AND count (`who signs` d) AT MOST 2
+                AND (elem `the six-year school's principal` (`who signs` d)) EQUALS (d EQUALS `a year-end report card`))
+            `every school document`
+
+-- 7.4.6.1 over every head: an independent school's head gets the full
+-- reward on its classes; a six-year school's head, 85% of it on the middle
+-- division's classes alone, unless attached from an independent school he
+-- headed for 3 years or more, who gets the full reward on that school's
+-- average — a step exactly at 3 years; the floor of (5) is the lowest
+-- earlier reward, and reaches only a tenured primary principal heading a
+-- six-year school's division; the reward never falls with classes.
+GIVEN i IS A BOOLEAN, a IS A BOOLEAN, y IS A NUMBER, t IS A BOOLEAN, n IS A NUMBER, r IS A LIST OF NUMBER
+GIVETH A BOOLEAN
+DECIDE `the reward holds as 7.4.6.1 says for` i a y t n r IF
+        b EQUALS expected
+    AND w AT LEAST b
+    AND w AT LEAST 0
+    AND `the floor from a primary principalship` h EQUALS floor
+    AND w AT MOST `middle division head's management reward` (`a checked head` i a y t (n PLUS 1) 7 r) `a placeholder principal's reward`
+    WHERE
+        h MEANS `a checked head` i a y t n 7 r
+        w MEANS `middle division head's management reward` h `a placeholder principal's reward`
+        b MEANS `the head's reward before the floor` h `a placeholder principal's reward`
+        expected MEANS
+            IF i
+            THEN 100 TIMES n
+            ELSE IF a AND y AT LEAST 3
+                 THEN 700
+                 ELSE 85% TIMES (100 TIMES n)
+        floor MEANS
+            IF t AND NOT i
+            THEN CONSIDER r
+                 WHEN EMPTY THEN 0
+                 WHEN x FOLLOWED BY xs THEN minimum1 x xs
+            ELSE 0
+
+#ASSERT all (GIVEN i YIELD
+                all (GIVEN a YIELD
+                        all (GIVEN y YIELD
+                                all (GIVEN t YIELD
+                                        all (GIVEN n YIELD
+                                                all (GIVEN r YIELD `the reward holds as 7.4.6.1 says for` i a y t n r)
+                                                    `every earlier reward record`)
+                                            (range 0 12))
+                                    `both booleans`)
+                            (range 0 5))
+                    `both booleans`)
+            `both booleans`
+
+-- (5)'s floor is the lowest of the three years, so a former principal
+-- never keeps more than any one of them gave him, nor less than all.
+#ASSERT all (GIVEN r YIELD
+                LET f MEANS `the floor from a primary principalship` (`a checked head` FALSE FALSE 0 TRUE 9 0 r)
+                IN  all (GIVEN x YIELD f AT MOST x) r)
+            `every earlier reward record`
