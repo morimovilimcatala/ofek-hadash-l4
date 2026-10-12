@@ -367,8 +367,10 @@ DECIDE `college principal's management allowance rate` c `month` `seminary rate`
     THEN c's `principal's table rate`
     ELSE `seminary rate`
 
--- (b): each 250 students of a college listed in (c) ("סעיף 3", the third
--- item) entitle it to a deputy, up to 5. (b) asks only the listing.
+-- (b): each 250 students of a college listed in (c) entitle it to a
+-- deputy, up to 5. (b) asks only the listing. F-11-g: (b) names the list
+-- "סעיף 3 להלן", and 11.6.5 has no paragraph 3; read as (c), the third
+-- item of paragraph 2, which (c) itself says (a) and (b) refer to.
 @ref akn:chp_11__ssec_11_6_5__para_2__subpara_b
 GIVEN c IS AN `academic college`
 GIVETH A NUMBER
@@ -627,3 +629,268 @@ DECIDE `internship coordinator's education allowance` `pedagogical guide's educa
                        `subject table allowance` IS 500, `permanent` IS TRUE, `position in seminars and colleges` IS 1
 #TRACE `appointing a track, major or subject coordinator` AT 0 WITH
     PARTY `the local authority or owning body` DOES `appoint a coordinator` `a subject coordinator appointed without the ministry` FALSE AT 1
+
+§§ `Property checks`
+
+-- The chapter's rules over their whole finite space: ages 20 to 70;
+-- every academic grade, 0 to 8 weekly hours, every set of the supplement's
+-- conditions, and each period's first day and the day before it; every
+-- allowance and coordinator post, lists of up to two posts; 0 to 100
+-- students and management hours; every college named in 11.6.5.2(c) and
+-- one it does not name, at 0 to 2,000 students; positions of 0 to 12
+-- hours; and every internship candidate's years of 0 to 4. Salaries and
+-- rates are placeholders.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`every academic grade` MEANS LIST `below the MA grade`, `MA grade`, `doctorate grade`
+`every coordinator post` MEANS LIST `guidance coordinator`, `studies coordinator`, `students coordinator`, `track or major coordinator`, `subject coordinator`
+`every college name` MEANS append (append `the listed academic colleges` `the institutions on permit`) (LIST "another college")
+
+GIVEN g IS AN `academic grade`, b IS A BOOLEAN, h IS A NUMBER, l IS A BOOLEAN, s IS A BOOLEAN, d IS A DATE
+GIVETH A `seminar teacher`
+DECIDE `a checked seminar teacher` g b h l s d IS
+    `seminar teacher` WITH
+        `paid by grade`                       IS g
+        `teaches post-secondary classes in a training institution` IS b
+        `weekly hours in those classes`       IS h
+        `left official or recognised teaching before 18.9.1964` IS l
+        `a survivor, a pensioner or on approved unpaid leave`   IS s
+        `gross salary for those classes`      IS 2000
+        `combined base salary`                IS 3000
+        `combined salary`                     IS 5000
+        `month`                               IS d
+
+GIVEN p IS A `coordinator post`, d IS A DATE
+GIVETH A `coordinator`
+DECIDE `a checked coordinator` p d IS
+    `coordinator` WITH
+        `post`                         IS p
+        `month`                        IS d
+        `combined salary`              IS 10000
+        `key allowance`                IS 600
+        `subject table allowance`      IS 500
+        `permanent`                    IS TRUE
+        `position in seminars and colleges` IS 1
+
+GIVEN n IS A STRING, s IS A NUMBER
+GIVETH AN `academic college`
+DECIDE `a checked college` n s IS
+    `academic college` WITH
+        `recognised for the BEd by the Council for Higher Education` IS TRUE
+        `college name`           IS n
+        `students`               IS s
+        `principal's table rate` IS 0.2
+
+-- 11.1.1 over ages 20 to 70: the reduction is 0, 2 or 4, never falls
+-- with age, steps exactly at 50 and at 55, and never takes more than 4
+-- hours off the base.
+#ASSERT all (GIVEN a YIELD
+                LET t MEANS `training-institution teacher` WITH `base for the layer` IS 20, `age` IS a
+                    u MEANS `training-institution teacher` WITH `base for the layer` IS 20, `age` IS a PLUS 1
+                IN      `age reduction` t EQUALS (IF a AT LEAST 55 THEN 4 ELSE IF a AT LEAST 50 THEN 2 ELSE 0)
+                    AND `age reduction` t AT MOST `age reduction` u
+                    AND `base position after the age reduction` t AT LEAST 16)
+            (range 20 70)
+
+-- 11.6.1 over every teacher on each period's first day and the day
+-- before: the supplement is never negative, nothing exactly where the
+-- teacher is not entitled, never lost with more hours or a higher grade.
+GIVEN g IS AN `academic grade`, b IS A BOOLEAN, h IS A NUMBER, l IS A BOOLEAN, s IS A BOOLEAN, d IS A DATE
+GIVETH A BOOLEAN
+DECIDE `the supplement holds as 11.6.1 says for` g b h l s d IF
+        x AT LEAST 0
+    AND (x EQUALS 0) EQUALS NOT `entitled to the seminar supplement` t
+    AND ((NOT `entitled to the seminar supplement` t)
+         OR `entitled to the seminar supplement` (`a checked seminar teacher` g b (h PLUS 1) l s d))
+    AND ((NOT `entitled to the seminar supplement` t)
+         OR `entitled to the seminar supplement` (`a checked seminar teacher` `doctorate grade` b h l s d))
+    WHERE
+        t MEANS `a checked seminar teacher` g b h l s d
+        x MEANS `seminar supplement` t
+
+`the days the supplement's periods turn on` MEANS
+    LIST Date 31 3 1965, Date 1 4 1965, Date 1 5 1965, Date 2 5 1965, Date 31 3 1976, Date 1 4 1976, Date 30 9 1982, Date 1 10 1982, Date 1 4 1986
+
+#ASSERT all (GIVEN g YIELD
+                all (GIVEN b YIELD
+                        all (GIVEN h YIELD
+                                all (GIVEN l YIELD
+                                        all (GIVEN s YIELD
+                                                all (GIVEN d YIELD `the supplement holds as 11.6.1 says for` g b h l s d)
+                                                    `the days the supplement's periods turn on`)
+                                            `both booleans`)
+                                    `both booleans`)
+                            (range 0 8))
+                    `both booleans`)
+            `every academic grade`
+
+-- Each period from its first day: none before 1.4.1965; 14% of the gross
+-- to 1.5.1965; 14% of the combined base from 2.5.1965 to 30.9.1982; 12%
+-- of the combined salary from 1.10.1982, unchanged from 1.4.86; under 6
+-- hours from 1.4.1976 and not the day before. The periods meet with no
+-- hole and no overlap.
+GIVEN h IS A NUMBER, d IS A DATE
+GIVETH A NUMBER
+DECIDE `an MA teacher's supplement` h d IS
+    `seminar supplement` (`a checked seminar teacher` `MA grade` TRUE h FALSE FALSE d)
+
+`the supplement's periods meet day to day` MEANS
+        `an MA teacher's supplement` 6 (Date 31 3 1965) EQUALS 0
+    AND `an MA teacher's supplement` 6 (Date 1 4 1965) EQUALS 280
+    AND `an MA teacher's supplement` 6 (Date 1 5 1965) EQUALS 280
+    AND `an MA teacher's supplement` 6 (Date 2 5 1965) EQUALS 420
+    AND `an MA teacher's supplement` 6 (Date 30 9 1982) EQUALS 420
+    AND `an MA teacher's supplement` 6 (Date 1 10 1982) EQUALS 600
+    AND `an MA teacher's supplement` 6 (Date 1 4 1986) EQUALS 600
+    AND `an MA teacher's supplement` 4 (Date 31 3 1976) EQUALS 0
+    AND `an MA teacher's supplement` 4 (Date 1 4 1976) EQUALS 420
+#ASSERT `the supplement's periods meet day to day`
+
+-- F-11-a over every grade: the two readings part for the doctorate
+-- grade alone.
+#ASSERT filter (GIVEN g YIELD NOT (`grade qualifies for the seminar supplement` g EQUALS `grade qualifies if paragraph 1 means the MA grade only` g)) `every academic grade` EQUALS LIST `doctorate grade`
+
+-- 11.6.2: exactly the four named allowances are open.
+#ASSERT count (filter `open to a teacher in a training institution` (LIST `pedagogical-guide allowance`, `security-officer allowance`, `training-teacher allowance`, `seminar coordinators' allowance`, `any other allowance`)) EQUALS 4
+
+-- 11.6.3 over every post and every pair of posts, from 1.9.89: one
+-- allowance only, the higher, never less than any post held and never
+-- more than the higher; a track or major post carries none before 1.9.89;
+-- (d) exactly for a permanent teacher of two thirds of a position, never
+-- lost with more.
+#ASSERT all (GIVEN p YIELD
+                all (GIVEN q YIELD
+                        LET a MEANS `a checked coordinator` p (Date 1 9 1990)
+                            b MEANS `a checked coordinator` q (Date 1 9 1990)
+                            x MEANS `concentration allowance paid` (LIST a, b)
+                        IN      x EQUALS max (`allowance for the post` a) (`allowance for the post` b)
+                            AND `concentration allowance paid` (LIST a) EQUALS `allowance for the post` a
+                            AND (x EQUALS `allowance for the post` a OR x EQUALS `allowance for the post` b))
+                    `every coordinator post`)
+            `every coordinator post`
+#ASSERT `concentration allowance paid` EMPTY EQUALS 0
+`a track or major post pays from 1.9.89 and not the day before` MEANS
+        `track or major coordinator's allowance` (`a checked coordinator` `track or major coordinator` (Date 1 9 1989)) EQUALS JUST 600
+    AND `track or major coordinator's allowance` (`a checked coordinator` `track or major coordinator` (Date 31 8 1989)) EQUALS NOTHING
+#ASSERT `a track or major post pays from 1.9.89 and not the day before`
+#ASSERT all (GIVEN k YIELD
+                all (GIVEN m YIELD
+                        LET c MEANS `coordinator` WITH `post` IS `subject coordinator`, `month` IS Date 1 9 1990, `combined salary` IS 10000, `key allowance` IS 0, `subject table allowance` IS 0, `permanent` IS m, `position in seminars and colleges` IS k DIVIDED BY 6
+                            d MEANS `coordinator` WITH `post` IS `subject coordinator`, `month` IS Date 1 9 1990, `combined salary` IS 10000, `key allowance` IS 0, `subject table allowance` IS 0, `permanent` IS m, `position in seminars and colleges` IS (k PLUS 1) DIVIDED BY 6
+                        IN      `may be a track, major or subject coordinator` c EQUALS (m AND k AT LEAST 4)
+                            AND ((NOT `may be a track, major or subject coordinator` c) OR `may be a track, major or subject coordinator` d))
+                    `both booleans`)
+            (range 0 6)
+
+-- 11.6.5.1 and 11.9.3 over 0 to 100: the classes counted never fall,
+-- are whole, and stay within one class of the exact share. F-11-d over the
+-- whole space: the readings of a remainder part exactly where there is one.
+#ASSERT all (GIVEN n YIELD
+                all (GIVEN p YIELD
+                        LET k MEANS `classes counted` n p
+                        IN      k EQUALS FLOOR k
+                            AND k AT LEAST n DIVIDED BY p
+                            AND k LESS THAN n DIVIDED BY p PLUS 1
+                            AND k AT MOST `classes counted` (n PLUS 1) p
+                            AND (NOT (FLOOR (n DIVIDED BY p) EQUALS k)) EQUALS (NOT (n MODULO p EQUALS 0)))
+                    (LIST 4, 25))
+            (range 0 100)
+
+-- 11.6.5.2 over every college and 0 to 2,000 students: a listed college
+-- may have one deputy a 250 students up to 5, another none; more students
+-- never take one away; each deputy it may have takes 75%, 70% or 65% of the
+-- principal's rate, never more than the principal and never more than the
+-- deputy before him; a deputy past the entitlement has no rate.
+GIVEN c IS AN `academic college`, e IS A NUMBER, k IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `the deputy's rate holds for` c e k IF
+    CONSIDER `deputy's management allowance rate` c k
+    WHEN NOTHING THEN k GREATER THAN e
+    WHEN JUST r THEN
+            k AT MOST e
+        AND r AT MOST 0.2
+        AND r AT MOST previous
+    WHERE
+        previous MEANS
+            CONSIDER `deputy's management allowance rate` c (k MINUS 1)
+            WHEN JUST q  THEN q
+            WHEN NOTHING THEN 0.2
+
+GIVEN n IS A STRING, s IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `the deputies hold as 11.6.5.2(b) says for` n s IF
+        e EQUALS (IF elem n `the listed academic colleges` THEN min (FLOOR (s DIVIDED BY 250)) 5 ELSE 0)
+    AND e AT MOST `deputies (b) entitles the college to` (`a checked college` n (s PLUS 50))
+    AND all (GIVEN k YIELD `the deputy's rate holds for` c e k) (range 1 6)
+    WHERE
+        c MEANS `a checked college` n s
+        e MEANS `deputies (b) entitles the college to` c
+
+#ASSERT all (GIVEN n YIELD
+                all (GIVEN k YIELD `the deputies hold as 11.6.5.2(b) says for` n (50 TIMES k)) (range 0 40))
+            `every college name`
+
+-- (a): the college table from 1.9.89 and not the day before, for a
+-- listed college only. F-11-e over every college: the readings of the
+-- institutions on permit part for those four alone.
+#ASSERT all (GIVEN n YIELD
+                    `the academic-college table applies` (`a checked college` n 1000) (Date 1 9 1989) EQUALS elem n `the listed academic colleges`
+                AND NOT `the academic-college table applies` (`a checked college` n 1000) (Date 31 8 1989))
+            `every college name`
+#ASSERT filter (GIVEN n YIELD NOT (`listed in (c)` (`a checked college` n 0) EQUALS `listed in (c), counting the institutions on permit` (`a checked college` n 0))) `every college name` EQUALS `the institutions on permit`
+
+-- 11.9.2 over positions of 0 to 12 hours: the pool never gives a
+-- negative share, and from 4 hours the 4 taught and the pool make the
+-- position exactly.
+#ASSERT all (GIVEN h YIELD
+                    `coordinator's hours from the management pool` h AT LEAST 0
+                AND ((h LESS THAN 4) OR `coordinator's hours from the management pool` h PLUS `coordinator's teaching hours` EQUALS h))
+            (range 0 12)
+
+-- 11.10: in force from 2.12.01 and not the day before; over every
+-- candidate's years of 0 to 4, more years never lose the appointment; F-11-f
+-- over the same space: the readings part exactly where kindergarten and
+-- higher education make less than three years and school teaching makes
+-- them up.
+`section 11.10 runs from its day and not the day before` MEANS
+        `section 11.10 applies in` (Date 2 12 2001)
+    AND NOT `section 11.10 applies in` (Date 1 12 2001)
+#ASSERT `section 11.10 runs from its day and not the day before`
+
+GIVEN k IS A NUMBER, s IS A NUMBER, h IS A NUMBER, i IS A NUMBER
+GIVETH AN `internship candidate`
+DECIDE `a checked candidate` k s h i IS
+    `internship candidate` WITH
+        `on the staff of the training institution` IS TRUE
+        `holds at least a second degree`           IS TRUE
+        `holds a teaching certificate or licence`  IS TRUE
+        `years teaching in kindergartens`          IS k
+        `years teaching in schools`                IS s
+        `years teaching in higher education`       IS h
+        `years at the training institution`        IS i
+        `experienced in pedagogical guidance or induction mentoring` IS TRUE
+        `has organisational ability`               IS TRUE
+
+#ASSERT all (GIVEN k YIELD
+                all (GIVEN s YIELD
+                        all (GIVEN h YIELD
+                                all (GIVEN i YIELD
+                                        LET c MEANS `a checked candidate` k s h i
+                                        IN      ((NOT `may be appointed internship coordinator` c)
+                                                 OR (    `may be appointed internship coordinator` (`a checked candidate` (k PLUS 1) s h i)
+                                                     AND `may be appointed internship coordinator` (`a checked candidate` k (s PLUS 1) h i)
+                                                     AND `may be appointed internship coordinator` (`a checked candidate` k s h (i PLUS 1))))
+                                            AND (NOT (`teaching experience that counts` c AT LEAST 3
+                                                      EQUALS `teaching experience that counts if school teaching does not` c AT LEAST 3))
+                                                EQUALS (k PLUS h LESS THAN 3 AND k PLUS s PLUS h AT LEAST 3))
+                                    (range 0 4))
+                            (range 0 4))
+                    (range 0 4))
+            (range 0 4)
+
+-- F-11-g: (b) gives deputies to a college "המנויה בסעיף 3 להלן"; 11.6.5
+-- has two paragraphs, and the colleges are listed in (c).
+`the paragraphs of 11.6.5` MEANS LIST 1, 2
+`(b) names a paragraph 3 that 11.6.5 does not have` MEANS
+    NOT elem 3 `the paragraphs of 11.6.5`
+#ASSERT `(b) names a paragraph 3 that 11.6.5 does not have`
