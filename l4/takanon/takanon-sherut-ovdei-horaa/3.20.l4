@@ -626,3 +626,172 @@ DECIDE `entitled to a conditional loan as a teaching student` `interning alongsi
     NOT (`work in the school sports club is recognised` 3 5 (1/3)
          EQUALS `work in the school sports club is recognised, the 4 hours being the club's` 3 5 (1/3))
 #ASSERT `the two readings of 1.8.3 differ for 3 PE hours and 5 club hours`
+
+§§ `Property checks`
+
+-- The section's rules over their whole finite space: every framework of
+-- 1.2-1.9; positions of 0 to 1 by fifteenths (a third and a fifth among
+-- them); 0 to 12 months; 0 to 10 weekly hours; every boolean the rules
+-- take; and 0 to 5 years since a referral or a confirmation was issued.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`the fractions checked` MEANS map (GIVEN k YIELD k DIVIDED BY 15) (range 0 15)
+
+`every internship framework` MEANS
+    LIST `compulsory kindergarten`, `pre-compulsory kindergarten`, `kindergarten in a school's young division`,
+         `licensed private kindergarten under Ministry supervision or guidance`, `afternoon programme in a licensed, supervised kindergarten`,
+         `six-year school, grades 1-6`, `eight-year school, grades 1-8`, `grades 1-2 in a school's young division`,
+         `four-year post-primary school, grades 9-12`, `six-year post-primary school, grades 7-12`, `middle school, grades 7-9`, `eight-year primary school, grades 7-8`,
+         `special-education kindergarten`, `integrating kindergarten in regular education`, `special-education school`,
+         `special-education class in regular education`, `integrating class in regular education`, `classes in regular education`,
+         `supervised school in a hospital or prison`,
+         `schools under Ministry supervision (music)`, `kindergartens supervised or guided by the Ministry (music)`,
+         `youth departments of local authorities and municipalities`, `youth departments of community centres`, `youth movements`,
+         `youth houses`, `community schools`, `voluntary extra-curricular frameworks in schools and boarding schools`, `summer camps`,
+         `youth-advancement units of local authorities`, `HILA centres`, `projects against dropping out, violence or addiction`,
+         `schools running של"ח and knowledge of the land`, `schools running social-education coordination`,
+         `not an approved framework`
+
+`the stage lists of frameworks` MEANS
+    LIST `the approved pre-primary frameworks (short and long school day)`,
+         `the approved primary frameworks (short and long school day)`,
+         `the approved post-primary frameworks`,
+         `the approved special-education frameworks`,
+         `the approved music frameworks`,
+         `the approved "youth and community" frameworks`,
+         `the approved "youth advancement" frameworks`,
+         `the approved של"ח and social-education frameworks`
+
+-- 1.2-1.9 over every framework: each approved one is in exactly one
+-- stage's list, so no two stages claim it; and every framework but the
+-- one outside them is approved.
+#ASSERT count `every internship framework` EQUALS 34
+#ASSERT all (GIVEN f YIELD
+                    count (filter (GIVEN l YIELD elem f l) `the stage lists of frameworks`)
+                    EQUALS (IF f EQUALS `not an approved framework` THEN 0 ELSE 1)
+                AND `an approved framework` f EQUALS (NOT (f EQUALS `not an approved framework`)))
+            `every internship framework`
+
+GIVEN f IS A NUMBER, m IS A NUMBER, two IS A BOOLEAN, single IS A BOOLEAN, trained IS A BOOLEAN,
+      fw IS AN `internship framework`, share IS A NUMBER
+GIVETH AN `internship year`
+DECIDE `a checked internship year` f m two single trained fw share IS
+    `internship year` WITH
+        `position fraction`                    IS f
+        `months worked in the year`            IS m
+        `two periods of at least three months` IS two
+        `only single days`                     IS single
+        `in the trained age layer and subjects` IS trained
+        `framework`                            IS fw
+        `share in specially approved settings` IS share
+
+-- 1.1.4 over 0 to 12 months and every way of working them: never on
+-- single days alone; otherwise from six months, or on two periods of
+-- three; and more months never take recognition away.
+#ASSERT all (GIVEN m YIELD
+                all (GIVEN two YIELD
+                        all (GIVEN single YIELD
+                                    `the duration is recognised` (`a checked internship year` 1 m two single TRUE `middle school, grades 7-9` 0)
+                                    EQUALS ((NOT single) AND (m AT LEAST 6 OR two))
+                                AND ((NOT `the duration is recognised` (`a checked internship year` 1 m two single TRUE `middle school, grades 7-9` 0))
+                                     OR `the duration is recognised` (`a checked internship year` 1 (m PLUS 1) two single TRUE `middle school, grades 7-9` 0)))
+                            `both booleans`)
+                    `both booleans`)
+            (range 0 12)
+
+-- 1.1.6 against 1.5.3: over every framework, training layer, share of
+-- the specially approved settings (0, 20%, 40%, 60%) and approval, a year
+-- that needs no special approval is within 1.5.3's limits whatever the
+-- branch did; and a year with any share in such a setting always needs it.
+#ASSERT all (GIVEN fw YIELD
+                all (GIVEN trained YIELD
+                        all (GIVEN share YIELD
+                                all (GIVEN approved YIELD
+                                            (   `needs the internship branch's special approval` (`a checked internship year` 1 6 FALSE FALSE trained fw share)
+                                             OR `the specially approved setting is within its limits` (`a checked internship year` 1 6 FALSE FALSE trained fw share) approved)
+                                        AND ((share EQUALS 0)
+                                             OR `needs the internship branch's special approval` (`a checked internship year` 1 6 FALSE FALSE trained fw share)))
+                                    `both booleans`)
+                            (LIST 0, 20%, 40%, 60%))
+                    `both booleans`)
+            `every internship framework`
+
+-- 1.1.3 against 5.2: over every position and 0 to 12 full months, a year
+-- that counts for seniority always has the scope 1.1.3 requires, and
+-- counts exactly from six full months on a third of a position.
+#ASSERT all (GIVEN f YIELD
+                all (GIVEN m YIELD
+                            ((NOT `the internship year counts as a year of seniority` (`a checked internship year` f m FALSE FALSE TRUE `middle school, grades 7-9` 0) m)
+                             OR `the scope is at least a third of a position` (`a checked internship year` f m FALSE FALSE TRUE `middle school, grades 7-9` 0))
+                        AND `the internship year counts as a year of seniority` (`a checked internship year` f m FALSE FALSE TRUE `middle school, grades 7-9` 0) m
+                            EQUALS (m AT LEAST 6 AND f AT LEAST 1/3))
+                    (range 0 12))
+            `the fractions checked`
+
+-- F-3.20-a over every split of a year in fifteenths: the reading adopted
+-- never refuses what teaching alone accepts, and the two part exactly
+-- where teaching is under a third and teaching and guidance together are
+-- not.
+#ASSERT all (GIVEN t YIELD
+                all (GIVEN g YIELD
+                            ((NOT `a split year is recognised, teaching alone counted` t g) OR `a split year is recognised` t g)
+                        AND (NOT (`a split year is recognised` t g EQUALS `a split year is recognised, teaching alone counted` t g))
+                            EQUALS (t LESS THAN 1/3 AND t PLUS g AT LEAST 1/3))
+                    `the fractions checked`)
+            `the fractions checked`
+
+-- F-3.20-b over 0 to 10 weekly hours of PE teaching and of the club, on
+-- positions of 0, a third, a half and one: the two readings part exactly
+-- where one of the two hour counts reaches 4 and the other does not, on a
+-- third of a position or more.
+#ASSERT all (GIVEN pe YIELD
+                all (GIVEN club YIELD
+                        all (GIVEN f YIELD
+                                (NOT (   `work in the school sports club is recognised` pe club f
+                                      EQUALS `work in the school sports club is recognised, the 4 hours being the club's` pe club f))
+                                EQUALS (f AT LEAST 1/3 AND NOT ((pe AT LEAST 4) EQUALS (club AT LEAST 4))))
+                            (LIST 0, 1/3, 1/2, 1))
+                    (range 0 10))
+            (range 0 10)
+
+-- 5.1 over every intern and 0 to 5 years since the confirmation: the
+-- senior certified pay comes only alongside the last year of study, with
+-- the confirmation, within two years of it and before the certificate;
+-- the instructor's pay only in the social-community field.
+#ASSERT all (GIVEN last YIELD
+                all (GIVEN social YIELD
+                        all (GIVEN conf YIELD
+                                all (GIVEN yrs YIELD
+                                        all (GIVEN cert YIELD
+                                                    ((`the intern is paid as` last social conf yrs cert EQUALS `by the degree held`)
+                                                     EQUALS (NOT (last AND conf AND yrs AT MOST 2 AND NOT cert)))
+                                                AND ((NOT (`the intern is paid as` last social conf yrs cert EQUALS `senior certified instructor`))
+                                                     OR social))
+                                            `both booleans`)
+                                    (range 0 5))
+                            `both booleans`)
+                    `both booleans`)
+            `both booleans`
+
+-- 2.2 over 0 to 5 years: the referral is valid up to three years from its
+-- issue and not after (when the renewal of 2.2 is what is left).
+#ASSERT all (GIVEN y YIELD `the referral is valid` y EQUALS (y AT MOST 3)) (range 0 5)
+
+-- 4.2.2-3 over 0 to 4 weekly hours, in the year or not: the workshop
+-- counts exactly in the internship year, from 2 weekly hours.
+#ASSERT all (GIVEN d YIELD
+                all (GIVEN h YIELD `the workshop counts` d h EQUALS (d AND h AT LEAST 2))
+                    (range 0 4))
+            `both booleans`
+
+-- 5.5.1-2 over every boolean: the year never counts for repaying the
+-- loans unless the internship's obligations were met.
+#ASSERT all (GIVEN deg YIELD
+                all (GIVEN last YIELD
+                        all (GIVEN met YIELD
+                                all (GIVEN next YIELD
+                                        (NOT `the internship year counts for repaying conditional loans` deg last met next) OR met)
+                                    `both booleans`)
+                            `both booleans`)
+                    `both booleans`)
+            `both booleans`
