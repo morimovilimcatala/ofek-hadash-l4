@@ -303,3 +303,100 @@ DECIDE `names a payment month` s IF
     PARTY `the employer` DOES `pay the clothing allowance` 1059 AT 11
 #TRACE `paying the additional allowances with the general one` `a half-time physical-education teacher` AT 0 WITH
     PARTY `the employer` DOES `pay the additional clothing allowances` 1349 AT 11
+
+§§ `Property checks`
+
+-- The circular over a finite space: graded and supervised or not; one or
+-- two employers at positions in tenths from 0 to 1.5; physical-education
+-- shares in tenths; every subject of either list, none, one on neither and
+-- one of each; every employment track.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`tenths to 1.5` MEANS map (GIVEN k YIELD k DIVIDED BY 10) (range 0 15)
+`every track` MEANS
+    LIST `a teaching employee`, `a principal not under the reform`,
+         `a teacher under Oz LeTmura in full implementation`, `a teacher under Ofek Hadash`
+`every subject list checked` MEANS
+    append (LIST EMPTY, (LIST "מכטרוניקה", "מערכות אלקטרוניות"), (LIST "מתמטיקה"))
+           (map (GIVEN q YIELD LIST q) (append `the shoes-and-coats subjects` `the two-coats subjects`))
+
+GIVEN g IS A BOOLEAN
+      o IS A BOOLEAN
+      p IS A LIST OF NUMBER
+      f IS A NUMBER
+      l IS A LIST OF STRING
+GIVETH A `clothing year`
+DECIDE `a checked year` g o p f l IS
+    `clothing year` WITH
+        `rated in the teaching employees' grading` IS g
+        `employed by an owner of a ministry-supervised institution` IS o
+        `positions with employers` IS p
+        `physical-education position` IS f
+        `technological subjects` IS l
+
+-- §1 over every flag and position: the allowance is level 4 pro rata to
+-- the position up to one full position, nothing outside the circular, and
+-- never falls with a larger position; above a full position at two
+-- employers, the employers' shares add up to the positions (finding b's
+-- reading).
+#ASSERT all (GIVEN g YIELD
+                all (GIVEN o YIELD
+                        all (GIVEN p YIELD
+                                all (GIVEN q YIELD
+                                        LET y MEANS `a checked year` g o (LIST p, q) 0 EMPTY
+                                            a MEANS `clothing allowance` y
+                                        IN      a EQUALS (IF g AND o THEN `the clothing allowance at level 4` TIMES min (p PLUS q) 1 ELSE 0)
+                                            AND a AT MOST `clothing allowance` (`a checked year` g o (LIST (p PLUS 0.1), q) 0 EMPTY)
+                                            AND (   p PLUS q AT MOST 1
+                                                 OR `the allowance one employer pays` y p PLUS `the allowance one employer pays` y q
+                                                    EQUALS `the clothing allowance at level 4` TIMES (p PLUS q)))
+                                    (LIST 0, 0.4, 0.8))
+                            `tenths to 1.5`)
+                    `both booleans`)
+            `both booleans`
+
+-- §1f over every track: a principal's cap outside the reform is the
+-- highest, Ofek Hadash's the lowest.
+#ASSERT all (GIVEN t YIELD
+                    `the employment cap` t AT MOST `the employment cap` `a principal not under the reform`
+                AND `the employment cap` `a teacher under Ofek Hadash` AT MOST `the employment cap` t)
+            `every track`
+
+-- §2 over shares in tenths: every share is in some row, two exactly at 0.3
+-- and 0.5 (finding a, whole space), the amount is one of those rows', and
+-- it never falls; finding d over the same shares: the two readings part
+-- for a full-position teacher exactly below 0.5.
+#ASSERT all (GIVEN f YIELD
+                LET rows MEANS `the amounts the table gives for` f
+                    a MEANS `additional physical-education allowance` (`a checked year` TRUE TRUE (LIST 1) f EMPTY)
+                    whole MEANS `additional physical-education allowance` (`a checked year` TRUE TRUE (LIST 1) 1 EMPTY)
+                IN      count rows AT LEAST 1
+                    AND (count rows EQUALS 2) EQUALS (f EQUALS 0.3 OR f EQUALS 0.5)
+                    AND elem a rows
+                    AND a AT MOST `additional physical-education allowance` (`a checked year` TRUE TRUE (LIST 1) (f PLUS 0.1) EMPTY)
+                    AND (NOT (a EQUALS whole)) EQUALS (f LESS THAN 0.5))
+            `tenths to 1.5`
+
+-- §3 over every subject list and position: never negative, never above the
+-- larger grant pro rata, never falling with a larger position; finding c's
+-- question arises exactly for a teacher on both lists.
+#ASSERT all (GIVEN l YIELD
+                all (GIVEN p YIELD
+                        LET t MEANS `technological clothing allowance` (`a checked year` TRUE TRUE (LIST p) 0 l)
+                        IN      t AT LEAST 0
+                            AND t AT MOST `the value of shoes and two coats` TIMES min p 1
+                            AND t AT MOST `technological clothing allowance` (`a checked year` TRUE TRUE (LIST (p PLUS 0.1)) 0 l))
+                    `tenths to 1.5`)
+            `every subject list checked`
+#ASSERT all (GIVEN l YIELD
+                LET y MEANS `a checked year` TRUE TRUE (LIST 1) 0 l
+                IN      (`teaches a subject in` y `the shoes-and-coats subjects` AND `teaches a subject in` y `the two-coats subjects`)
+                        EQUALS (l EQUALS LIST "מכטרוניקה", "מערכות אלקטרוניות"))
+            `every subject list checked`
+
+-- The total is the three allowances added, each in addition to the general
+-- one (§2 ¶1, §3.2).
+#ASSERT all (GIVEN f YIELD
+                LET y MEANS `a checked year` TRUE TRUE (LIST 1) f (LIST "סיעוד")
+                IN  `all clothing allowances` y EQUALS 2118 PLUS `additional physical-education allowance` y PLUS 346)
+            `tenths to 1.5`

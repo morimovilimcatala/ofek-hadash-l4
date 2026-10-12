@@ -366,3 +366,100 @@ DECIDE `the position part qualifies on "and above"` j p IF
     PARTY `the employer` DOES `pay the recuperation allowance` 4260 AT 10
 #TRACE `no employment beyond the cap unless approved` `a teacher under Ofek Hadash` FALSE AT 0 WITH
     PARTY `the employer` DOES `employ beyond the cap` 1.2 AT 1
+
+§§ `Property checks`
+
+-- The circular over a finite space: years of seniority 1 to 60; one or two
+-- employers at positions in tenths from 0 to 1.5; 0 to 12 months worked;
+-- every employment track and approval; years of seniority 1 to 45 with a
+-- position split between the two stages in either order.
+
+`tenths to 1.5` MEANS map (GIVEN k YIELD k DIVIDED BY 10) (range 0 15)
+`every track` MEANS
+    LIST `a teacher not under the reform`, `a principal not under the reform`,
+         `a teacher under Oz LeTmura in full implementation`, `a teacher under Ofek Hadash`
+`both stages` MEANS LIST `a middle division or upper division`, `kindergarten, primary school or a teachers' college`
+
+GIVEN n IS A NUMBER, p IS A NUMBER, q IS A NUMBER, m IS A NUMBER
+GIVETH A `recuperation year`
+DECIDE `a checked year` n p q m IS
+    `recuperation year` WITH
+        `seniority in teaching` IS n
+        `positions`             IS LIST `position with an employer` p, `position with an employer` q
+        `months worked`         IS m
+
+-- §1c: every year from 1 to 60 is in exactly one row, and the days never
+-- fall with seniority.
+#ASSERT all (GIVEN n YIELD
+                    count (`the days the table gives for year` n) EQUALS 1
+                AND `recuperation days` n AT MOST `recuperation days` (n PLUS 1))
+            (range 1 60)
+
+-- §1b-§1f over seniority, two positions and 0 to 12 months: the allowance is never
+-- negative, never more than a full position's days, never falls with
+-- another month, a larger position or another year; above a full position
+-- in all, each employer's share adds up to the positions (finding b's
+-- reading), and at most one employer's whole allowance otherwise.
+#ASSERT all (GIVEN n YIELD
+                all (GIVEN p YIELD
+                        all (GIVEN q YIELD
+                                all (GIVEN m YIELD
+                                        LET y MEANS `a checked year` n p q m
+                                            a MEANS `recuperation allowance` y
+                                        IN      a AT LEAST 0
+                                            AND a AT MOST `full recuperation allowance` y
+                                            AND a AT MOST `recuperation allowance` (`a checked year` n p q (m PLUS 1))
+                                            AND a AT MOST `recuperation allowance` (`a checked year` n (p PLUS 0.1) q m)
+                                            AND a AT MOST `recuperation allowance` (`a checked year` (n PLUS 1) p q m)
+                                            AND (   p PLUS q AT MOST 1
+                                                 OR sum (map (GIVEN e YIELD `the allowance one employer pays` y e) (y's `positions`))
+                                                    EQUALS `full recuperation allowance` y TIMES (p PLUS q) TIMES `months share` y))
+                                    (range 0 12))
+                            (LIST 0, 0.3, 0.5, 0.8))
+                    `tenths to 1.5`)
+            (LIST 1, 3, 4, 10, 11, 25, 40)
+
+-- §§1g-1h over every track: each cap lies between Ofek Hadash's 117% and
+-- the non-reform principal's 150%.
+#ASSERT all (GIVEN t YIELD
+                    `the employment cap` t AT LEAST 1.17
+                AND `the employment cap` t AT MOST 1.5)
+            `every track`
+
+GIVEN y IS A NUMBER, s IS A `stage of education`, u IS A `stage of education`
+GIVETH A `jubilee year`
+DECIDE `a checked jubilee year` y s u IS
+    `jubilee year` WITH
+        `seniority set in September 2017`               IS y MINUS 1
+        `years of work completed by 1 June 2018`        IS y MINUS 1
+        `years of unpaid leave with pension rights bought` IS 1
+        `jubilee positions`                             IS LIST `jubilee position` s 0.6, `jubilee position` u 0.4
+        `share of the year employed`                    IS 1
+        `determining salary for pension and severance`  IS 10000
+
+-- §2 over both stages in either order and seniority 1 to 45: a part
+-- qualifies exactly in the year its stage's threshold is completed, so over
+-- a career each part qualifies once (finding e's reading); the grant is
+-- never negative, never more than 60% of the salary, and 60% of it times
+-- the qualifying parts.
+#ASSERT all (GIVEN s YIELD
+                all (GIVEN u YIELD
+                            count (filter (GIVEN y YIELD `the position part qualifies` (`a checked jubilee year` y s u) (`jubilee position` s 0.6)) (range 1 45))
+                            EQUALS 1
+                        AND all (GIVEN y YIELD
+                                    LET j MEANS `a checked jubilee year` y s u
+                                        g MEANS `jubilee grant` j
+                                    IN      g AT LEAST 0
+                                        AND g AT MOST 6000
+                                        AND g EQUALS 6000 TIMES ((IF y EQUALS `the jubilee threshold` s THEN 0.6 ELSE 0)
+                                                                 PLUS (IF y EQUALS `the jubilee threshold` u THEN 0.4 ELSE 0)))
+                                (range 1 45))
+                    `both stages`)
+            `both stages`
+
+-- §2e(5) over one employer's fraction in tenths: what it pays is 60% of
+-- the salary times that fraction.
+#ASSERT all (GIVEN f YIELD
+                `the jubilee grant one employer pays` (`a checked jubilee year` 25 `a middle division or upper division` `a middle division or upper division`) f
+                EQUALS 6000 TIMES f)
+            `tenths to 1.5`
