@@ -229,3 +229,60 @@ DECIDE `reimbursing the owners` IS
 
 #TRACE `paying the achievement grant` `a full-time teacher at a rank-1 school` AT 0 WITH
     PARTY `the employer` DOES `pay the achievement grant` 8793.25 439.66 AT 12
+
+§§ `Property checks`
+
+-- The circular over a finite space: covered or not; ranks 0 to 5; upper-
+-- division positions in tenths from 0 to 1.5; shares of the year in
+-- quarters; on a full year's leave or not; every kind of school and grade.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`tenths to 1.5` MEANS map (GIVEN k YIELD k DIVIDED BY 10) (range 0 15)
+
+GIVEN c IS A BOOLEAN, r IS A NUMBER, p IS A NUMBER, y IS A NUMBER, s IS A BOOLEAN
+GIVETH AN `achievement grant employee`
+DECIDE `a checked teacher` c r p y s IS
+    `achievement grant employee` WITH
+        `rated on the teaching-employee scale`                   IS c
+        `employed by an owner of supervised secondary education` IS TRUE
+        `employed in the upper division in תשפ"ב`                IS TRUE
+        `position fraction in the upper division`                IS p
+        `share of the school year employed at the school`        IS y
+        `on sabbatical or unpaid leave all year`                 IS s
+        `rank of the school`                                     IS r
+
+-- §2ב: the grant falls from each rank to the next, and is nothing for a
+-- rank outside 1 to 4.
+#ASSERT all (GIVEN r YIELD
+                    (`the full-position grant for rank` r GREATER THAN 0) EQUALS (r AT LEAST 1 AND r AT MOST 4)
+                AND ((NOT (r AT LEAST 1 AND r LESS THAN 4)) OR `the full-position grant for rank` (r PLUS 1) LESS THAN `the full-position grant for rank` r))
+            (range 0 5)
+
+-- §§1-2 over the whole space: the grant is never negative, never above
+-- the rank's full amount, something exactly for a covered teacher at a
+-- ranked school with a position and a share of the year and not on a full
+-- year's leave; it never falls with a larger position, and pays above a
+-- full position as one.
+#ASSERT all (GIVEN c YIELD
+                all (GIVEN r YIELD
+                        all (GIVEN p YIELD
+                                all (GIVEN y YIELD
+                                        all (GIVEN s YIELD
+                                                LET a MEANS `the achievement grant` (`a checked teacher` c r p (y DIVIDED BY 4) s)
+                                                IN      a AT LEAST 0
+                                                    AND a AT MOST `the full-position grant for rank` r
+                                                    AND (a GREATER THAN 0) EQUALS (c AND r AT LEAST 1 AND r AT MOST 4 AND p GREATER THAN 0 AND y GREATER THAN 0 AND NOT s)
+                                                    AND a AT MOST `the achievement grant` (`a checked teacher` c r (p PLUS 0.1) (y DIVIDED BY 4) s))
+                                            `both booleans`)
+                                    (range 0 4))
+                            `tenths to 1.5`)
+                    (range 0 5))
+            `both booleans`
+
+-- §2א over every kind of school and grade 7 to 14: the upper division is
+-- grades 9 to 14 in a four-year school and 10 to 14 otherwise.
+#ASSERT all (GIVEN k YIELD
+                all (GIVEN g YIELD
+                        `the grade is in the upper division` k g EQUALS (g AT LEAST (IF k EQUALS `a four-year school` THEN 9 ELSE 10)))
+                    (range 7 14))
+            (LIST `a four-year school`, `a three-year school`, `a six-year school`)

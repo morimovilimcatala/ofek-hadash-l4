@@ -189,3 +189,58 @@ DECIDE `making up the isolation hours` e IS
     PARTY `the employer` DOES `treat hours as absence without pay` 18 AT 95
 #TRACE `no remote teaching from isolation` `a teacher back from a red country` AT 0 WITH
     PARTY `the teaching employee` DOES `work from home or teach remotely` AT 3
+
+§§ `Property checks`
+
+-- The circular over a finite space: every designation; travel private or
+-- not; a single isolation day on every day from two before 7 December 2021
+-- to 9 days after it, at 6 hours; make-up sessions of 0 to 20 hours on
+-- days 0 to 100, with every combination of the five conditions.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`every designation` MEANS LIST `an orange country`, `a red country`, `a country of another designation`
+
+GIVEN p IS A BOOLEAN, d IS A `country designation`, day IS A NUMBER
+GIVETH AN `isolated teaching employee`
+DECIDE `a checked isolation` p d day IS
+    `isolated teaching employee` WITH
+        `returned from private travel abroad` IS p
+        `designation of the country left`     IS d
+        `days in isolation`                   IS LIST `isolation day` day 6
+
+-- The window over every designation and day: a day's hours may be made up
+-- exactly after private travel from an orange or red country, from 7
+-- December to 9 (orange) or 14 (red) December; never more than were
+-- missed.
+#ASSERT all (GIVEN p YIELD
+                all (GIVEN d YIELD
+                        all (GIVEN day YIELD
+                                LET e MEANS `a checked isolation` p d (day MINUS 2)
+                                IN      (`hours that may be made up` e EQUALS 6)
+                                        EQUALS (p AND day MINUS 2 AT LEAST 0
+                                                AND ((d EQUALS `an orange country` AND day MINUS 2 AT MOST 2) OR (d EQUALS `a red country` AND day MINUS 2 AT MOST 7)))
+                                    AND `hours that may be made up` e AT MOST `hours missed in isolation` e)
+                            (range 0 11))
+                    `every designation`)
+            `both booleans`
+
+-- A session counts exactly on a free day, coordinated, consented, by 4
+-- March 2022 and not in overtime; what is made up never exceeds what may
+-- be, and the unpaid hours are never negative.
+#ASSERT all (GIVEN f YIELD
+                all (GIVEN c YIELD
+                        all (GIVEN k YIELD
+                                all (GIVEN o YIELD
+                                        all (GIVEN day YIELD
+                                                all (GIVEN h YIELD
+                                                        LET s MEANS `make-up session` day h f c k o
+                                                            e MEANS `a checked isolation` TRUE `a red country` 3
+                                                        IN      `the session counts as making up` s EQUALS (f AND c AND k AND day AT MOST 87 AND NOT o)
+                                                            AND `hours made up` e (LIST s) AT MOST `hours that may be made up` e
+                                                            AND `hours of absence without pay` e (LIST s) AT LEAST 0)
+                                                    (LIST 0, 5, 20))
+                                            (LIST 0, 40, 87, 88, 100))
+                                    `both booleans`)
+                            `both booleans`)
+                    `both booleans`)
+            `both booleans`

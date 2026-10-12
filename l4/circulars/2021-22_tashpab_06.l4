@@ -35,9 +35,9 @@ DECLARE `recuperation employee` HAS
 
 -- §1א: "יש לשלם את קצובת דמי ההבראה במלואה במשכורת חודש יוני .2021". The
 -- circular is dated 15.6.2022 and pays the allowance for the school year
--- תשפ"ב (1.9.2021-31.8.2022), so "2021" is a misprint for 2022, which a
--- reader sees past (§2א pays the jubilee grant with June 2022's salary);
--- the rule is written for June of the school year.
+-- תשפ"ב (1.9.2021-31.8.2022). F-2021-22_tashpab_06-h: the printed June precedes the
+-- school year; read as June of the school year (§2א pays the jubilee
+-- grant with June 2022's salary).
 @ref akn:art_1__para_a
 GIVEN e IS A `recuperation employee`, `the employer's share` IS A NUMBER @desc the allowance this employer owes, under sections 1ד-1ו
 GIVETH A DEONTIC Party `payment action`
@@ -462,3 +462,83 @@ DECIDE `paying the jubilee grant with June's salary` e IS
 `the jubilee's one-position cap and §2ה(5) disagree for two employers` MEANS
     sum `the jubilee shares §1ו gives for 80% and 60%` GREATER THAN 1
 #ASSERT `the jubilee's one-position cap and §2ה(5) disagree for two employers`
+
+-- F-2021-22_tashpab_06-h: §1א pays with "June 2021"'s salary in a circular of 15 June 2022
+-- for school year תשפ"ב, which begins in September 2021. Reading adopted:
+-- June of the school year, 2022, as the payment rule above is written.
+`the school year begins, year and month` MEANS 2021 TIMES 12 PLUS 9
+`the June §1א prints, year and month` MEANS 2021 TIMES 12 PLUS 6
+`the printed June precedes the school year it pays for` MEANS
+    `the June §1א prints, year and month` LESS THAN `the school year begins, year and month`
+#ASSERT `the printed June precedes the school year it pays for`
+
+§§ `Property checks`
+
+-- The circular over finite spaces: seniority 1 to 40 years; positions in
+-- tenths from 0 to 1.5 at one or two employers; ten to twelve months of
+-- work at a fixed position; every stage; 20 to 35 years of seniority by
+-- June; paid at this threshold before or not; shares of the year in
+-- quarters.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`tenths to 1.5` MEANS map (GIVEN k YIELD k DIVIDED BY 10) (range 0 15)
+`every stage` MEANS LIST `junior high school`, `upper division`, `recognised unofficial special education under Ofek Hadash`, `teacher-training college`, `kindergarten`, `primary school`
+
+GIVEN n IS A NUMBER, fs IS A LIST OF NUMBER
+GIVETH A `recuperation employee`
+DECIDE `a checked recuperation employee` n fs IS
+    `recuperation employee` WITH
+        `years of seniority in teaching` IS n
+        `employments`                    IS map (GIVEN f YIELD `employment at an employer` f) fs
+
+GIVEN s IS A `jubilee stage`, y IS A NUMBER, paid IS A BOOLEAN, f IS A NUMBER, q IS A NUMBER
+GIVETH A `jubilee employee`
+DECIDE `a checked jubilee employee` s y paid f q IS
+    `jubilee employee` WITH
+        `seniority months at the September determination` IS y TIMES 12 MINUS 9
+        `seniority months on 1 June`                      IS y TIMES 12
+        `jubilee already paid at this threshold`          IS paid
+        `portions`                                        IS LIST `employment portion` s f
+        `share of the year employed`                      IS q
+        `determining salary for pension and severance`    IS 10000
+
+-- §1 over seniority and position: one employer's allowance is 449 shekels
+-- times the table's days times the position up to one (§1ה), and it never
+-- falls with more seniority or a larger position.
+#ASSERT all (GIVEN n YIELD
+                all (GIVEN f YIELD
+                        LET e MEANS `a checked recuperation employee` n (LIST f)
+                            a MEANS `the recuperation allowance owed by the employer` e (`employment at an employer` f)
+                        IN      a EQUALS 449 TIMES `recuperation days` n TIMES min f 1
+                            AND a AT MOST `the recuperation allowance owed by the employer` (`a checked recuperation employee` (n PLUS 1) (LIST f)) (`employment at an employer` f)
+                            AND a AT MOST `the recuperation allowance owed by the employer` e (`employment at an employer` (f PLUS 0.1)))
+                    `tenths to 1.5`)
+            (range 1 40)
+
+-- §1ד over months of work: a fixed position held 10 to 12 months gives that
+-- position for the year, never more (finding a's reading).
+#ASSERT all (GIVEN m YIELD
+                all (GIVEN f YIELD
+                            `the year's position fraction` (replicate m f) AT MOST f
+                        AND (`the year's position fraction` (replicate m f) EQUALS f) EQUALS (m AT LEAST 10))
+                    (LIST 0.5, 1))
+            (range 1 12)
+
+-- §2 over every stage, years by June, earlier payment, position and share:
+-- the grant is something exactly from the stage's threshold, never twice
+-- at the same threshold, never above 60% of the determining salary, and
+-- never falls with a larger position or share.
+#ASSERT all (GIVEN s YIELD
+                all (GIVEN y YIELD
+                        all (GIVEN paid YIELD
+                                all (GIVEN f YIELD
+                                        all (GIVEN q YIELD
+                                                LET g MEANS `the jubilee grant` (`a checked jubilee employee` s y paid f (q DIVIDED BY 4))
+                                                IN      (g GREATER THAN 0) EQUALS (y AT LEAST `the jubilee threshold in years` s AND (NOT paid) AND f GREATER THAN 0 AND q GREATER THAN 0)
+                                                    AND g AT MOST 6000
+                                                    AND g AT MOST `the jubilee grant` (`a checked jubilee employee` s y paid (f PLUS 0.1) (q DIVIDED BY 4)))
+                                            (range 0 4))
+                                    `tenths to 1.5`)
+                            `both booleans`)
+                    (range 20 35))
+            `every stage`

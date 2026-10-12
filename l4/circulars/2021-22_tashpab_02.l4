@@ -1673,3 +1673,194 @@ DECIDE `§4.3 gives one week for the grades` gs IF
 `a multi-stage teacher in both ranges has no week` MEANS
     NOT `§4.3 gives one week for the grades` (LIST 3, 8)
 #ASSERT `a multi-stage teacher in both ranges has no week`
+
+§§ `Property checks`
+
+-- The circular over finite spaces, chapter by chapter.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`hundredths to 1` MEANS map (GIVEN k YIELD k DIVIDED BY 100) (range 0 100)
+`positions checked` MEANS LIST 0.25, 1 DIVIDED BY 3, 0.4, 0.5, 0.75, 1
+`every school structure` MEANS LIST `a primary school of grades 1-6, 1-8 or 1-9`, `a multi-stage school`, `a secondary school`
+`every complexity table` MEANS LIST `the principal's frontal hours by complexity`, `the primary first deputy's frontal hours by complexity`, `the secondary first deputy's frontal hours by complexity`, `the multi-stage first deputy's frontal hours by complexity`
+
+GIVEN y IS A NUMBER, s IS A NUMBER, a IS A BOOLEAN, c IS A BOOLEAN, p IS A NUMBER, j IS A BOOLEAN, d IS A BOOLEAN, x IS A BOOLEAN
+GIVETH AN `Ofek teacher`
+DECIDE `a checked teacher` y s a c p j d x IS
+    `Ofek teacher` WITH
+        `years of recognised actual teaching`        IS y
+        `years of seniority`                         IS s
+        `academic`                                   IS a
+        `certified to teach`                         IS c
+        `position fraction`                          IS p
+        `school joined Ofek Hadash`                  IS j
+        `signed the commitment to complete a degree` IS d
+        `approved by the exceptions committee`       IS x
+        `an intern`                                  IS FALSE
+        `a health or arts-therapy professional`      IS FALSE
+
+-- §3.2.1 and §3.4 over every flag and position: an existing academic joins
+-- exactly from a third of a position, certified or by exception; a new one
+-- exactly from a third and certified; nobody joins in a school that did
+-- not.
+#ASSERT all (GIVEN c YIELD
+                all (GIVEN x YIELD
+                        all (GIVEN p YIELD
+                                    `joins Ofek Hadash` (`a checked teacher` 5 5 TRUE c p TRUE FALSE x)
+                                    EQUALS (p AT LEAST 1 DIVIDED BY 3 AND (c OR x))
+                                AND `joins Ofek Hadash` (`a checked teacher` 0 0 TRUE c p TRUE FALSE x)
+                                    EQUALS (p AT LEAST 1 DIVIDED BY 3 AND c)
+                                AND (NOT `joins Ofek Hadash` (`a checked teacher` 5 5 TRUE c p FALSE FALSE x)))
+                            `positions checked`)
+                    `both booleans`)
+            `both booleans`
+
+-- §3.3 over seniority 20 to 35: an existing non-academic joins exactly from
+-- 28 years, or on signing; §12.2.3 promotes her on the same line.
+#ASSERT all (GIVEN s YIELD
+                all (GIVEN d YIELD
+                            `joins Ofek Hadash` (`a checked teacher` 5 s FALSE TRUE 1 TRUE d FALSE) EQUALS (s AT LEAST 28 OR d)
+                        AND `a non-academic may be promoted` s d EQUALS (s AT LEAST 28 OR d))
+                    `both booleans`)
+            (range 20 35)
+
+-- §4 over every school, grade range and profession: the full week is 36
+-- hours and adds up; a health professional teaches the teacher's frontal
+-- hours; the primary week has more frontal hours than the secondary one;
+-- a mother's week (§7.2) is 34.
+#ASSERT all (GIVEN st YIELD
+                all (GIVEN g YIELD
+                        all (GIVEN hp YIELD
+                                LET w MEANS `the full-position work week` st g hp
+                                IN      w's `weekly hours` EQUALS 36
+                                    AND `the week adds up` w
+                                    AND w's `frontal hours` EQUALS (`the full-position work week` st g FALSE)'s `frontal hours`
+                                    AND (`the mother's week` w)'s `weekly hours` EQUALS 34
+                                    AND `the week adds up` (`the mother's week` w))
+                            `both booleans`)
+                    `both booleans`)
+            `every school structure`
+#ASSERT `the primary teacher's week`'s `frontal hours` GREATER THAN `the secondary teacher's week`'s `frontal hours`
+
+-- §5.4-5.5 over positions in hundredths: a period counts toward promotion
+-- exactly from a third; §5.4 never permits more than 100% or three schools
+-- unless exempt.
+#ASSERT all (GIVEN f YIELD
+                    `the period counts toward promotion` f EQUALS (f AT LEAST 1 DIVIDED BY 3)
+                AND all (GIVEN n YIELD
+                            `section 5.4 permits the employment` n (f PLUS 0.5) FALSE EQUALS (n AT MOST 2 AND f PLUS 0.5 AT MOST 1))
+                        (range 1 4))
+            `hundredths to 1`
+
+-- §6 over totals from 100% to 140% and approval: up to 100% is always
+-- permitted, above it only on a request meeting the criteria, and above
+-- 117% only with the head office's approval.
+#ASSERT all (GIVEN f YIELD
+                all (GIVEN ap YIELD
+                        all (GIVEN r YIELD
+                                `section 6 permits the employment` (f DIVIDED BY 100) r ap
+                                EQUALS (f AT MOST 100 OR (`the request meets the criteria` r AND (f AT MOST 117 OR ap))))
+                            (LIST `a mathematics teacher in a central town`, `over-position request` TRUE TRUE TRUE TRUE 8 40 TRUE, `over-position request` FALSE FALSE FALSE TRUE 8 40 FALSE))
+                    `both booleans`)
+            (range 100 140)
+
+-- §7 over positions in hundredths and the months since leave: 7.3 exactly
+-- from 90% within four months, 7.4 from 79% to 90%, and both only at
+-- exactly 90% (finding c); the reading adopted gives one answer each time.
+#ASSERT all (GIVEN f YIELD
+                all (GIVEN m YIELD
+                        LET r MEANS `the reduction after maternity leave` f m
+                        IN      `section 7.3 gives the nursing hour` f m EQUALS (f AT LEAST 0.9 AND m LESS THAN 4)
+                            AND (`section 7.3 gives the nursing hour` f m AND `section 7.4 gives the mother's reduction` f) EQUALS (f EQUALS 0.9 AND m LESS THAN 4)
+                            AND (r EQUALS "none") EQUALS (NOT (`section 7.3 gives the nursing hour` f m OR `section 7.4 gives the mother's reduction` f))
+                            AND `entitled to a mother's position` f TRUE EQUALS (f AT LEAST 0.79))
+                    (LIST 0, 1, 3, 4, 12))
+            `hundredths to 1`
+
+-- §8 over ages 45 to 65, existing or new: the text gives two reductions
+-- exactly at 55, and two DIFFERENT ones only to an existing teacher (finding
+-- d; a new teacher's 8.2 and 8.4 are the same reduction); the reading adopted
+-- takes 0, 2 or 3 frontal hours, never fewer with age, never more for a new
+-- teacher, and a part position its share.
+#ASSERT all (GIVEN n YIELD
+                all (GIVEN ex YIELD
+                        LET h MEANS `frontal hours off for age` (`age-hours teacher` n ex) 1
+                        IN LET rs MEANS `the reductions the text gives` (`age-hours teacher` n ex)
+                        IN      (count rs EQUALS 2) EQUALS (n EQUALS 55)
+                            AND (count (nub (map (GIVEN r YIELD r's `frontal hours off`) rs)) EQUALS 2) EQUALS (ex AND n EQUALS 55)
+                            AND elem h (LIST 0, 2, 3)
+                            AND h AT MOST `frontal hours off for age` (`age-hours teacher` (n PLUS 1) ex) 1
+                            AND `frontal hours off for age` (`age-hours teacher` n FALSE) 1 AT MOST `frontal hours off for age` (`age-hours teacher` n TRUE) 1
+                            AND `frontal hours off for age` (`age-hours teacher` n ex) 0.5 EQUALS h TIMES 0.5)
+                    `both booleans`)
+            (range 45 65)
+
+-- §9 over computed levels 0 to 10: the level for the year is never below
+-- 3; every table names each level 3 to 8 once and never gives more frontal
+-- hours at a higher level; the hours off for a mother and for age are 0, 2
+-- or 4.
+#ASSERT all (GIVEN e YIELD
+                all (GIVEN l YIELD
+                        `the complexity level for the year` e l l AT LEAST 3)
+                    (range 0 10))
+            `both booleans`
+#ASSERT all (GIVEN t YIELD
+                all (GIVEN l YIELD
+                            count (filter (GIVEN r YIELD r's `complexity level` EQUALS l) t) EQUALS 1
+                        AND all (GIVEN r YIELD
+                                    all (GIVEN q YIELD
+                                            (NOT (r's `complexity level` LESS THAN q's `complexity level`)) OR q's `frontal teaching hours` AT MOST r's `frontal teaching hours`)
+                                        t)
+                                t)
+                    (range 3 8))
+            `every complexity table`
+#ASSERT all (GIVEN mo YIELD
+                all (GIVEN n YIELD
+                        elem (`non-frontal hours off for a principal or first deputy` mo n) (LIST 0, 2, 4))
+                    (range 40 65))
+            `both booleans`
+
+-- §12.2.2 over seniority 20 to 30: it says two things exactly at 25
+-- (finding e); an uncertified academic may be promoted exactly from 25 and
+-- is barred by §3.2.1 exactly below it.
+#ASSERT all (GIVEN s YIELD
+                    (count (`what section 12.2.2 says of an uncertified veteran` s) EQUALS 2) EQUALS (s EQUALS 25)
+                AND `an academic may be promoted` s FALSE EQUALS (s AT LEAST 25)
+                AND `barred from promotion until certified under section 3.2.1` (`a checked teacher` 5 s TRUE FALSE 1 TRUE FALSE TRUE) EQUALS (s LESS THAN 25))
+            (range 20 30)
+
+-- §13 over positions and counselling hours: a counsellor never teaches
+-- fewer than 4 frontal hours; the bonus needs 7 counselling hours.
+#ASSERT all (GIVEN p YIELD
+                all (GIVEN pr YIELD
+                        `a counsellor's minimum frontal teaching hours` p pr AT LEAST 4)
+                    `both booleans`)
+            `positions checked`
+#ASSERT all (GIVEN h YIELD
+                all (GIVEN l YIELD
+                        (`the counselling bonus rate` h l GREATER THAN 0) EQUALS (h AT LEAST 7))
+                    `both booleans`)
+            (range 0 12)
+
+-- §14.5 over quarter grades: the conversion gives exactly whole and half
+-- grades.
+#ASSERT all (GIVEN k YIELD
+                `a grade the conversion may give` (k DIVIDED BY 4) EQUALS (FLOOR (k DIVIDED BY 2) TIMES 2 EQUALS k))
+            (range 0 40)
+
+-- §15.2: every advance rate between 14% and 27%; interns below teachers in
+-- both stages.
+#ASSERT all (GIVEN g YIELD
+                `the advance rate` g AT LEAST 0.14 AND `the advance rate` g AT MOST 0.27)
+            (LIST `primary or grades 1-6, not a principal or first deputy`, `primary or grades 1-6, an intern`, `secondary or grades 7 and up, not a principal or first deputy`, `secondary or grades 7 and up, an intern`, `a first deputy`, `a principal`)
+`interns are advanced less than teachers` MEANS
+        `the advance rate` `primary or grades 1-6, an intern` LESS THAN `the advance rate` `primary or grades 1-6, not a principal or first deputy`
+    AND `the advance rate` `secondary or grades 7 and up, an intern` LESS THAN `the advance rate` `secondary or grades 7 and up, not a principal or first deputy`
+#ASSERT `interns are advanced less than teachers`
+
+-- §16.2 over punches from 6:00 to 9:00: the day never starts before 7:45,
+-- and a later punch is the start.
+#ASSERT all (GIVEN t YIELD
+                    `the working day starts at` t AT LEAST 465
+                AND (`the working day starts at` t EQUALS t) EQUALS (t AT LEAST 465))
+            (range 360 540)

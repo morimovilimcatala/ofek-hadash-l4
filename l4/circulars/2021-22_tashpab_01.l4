@@ -1689,3 +1689,146 @@ DECIDE `the month the salary to convert is taken from` `on unpaid absence in the
     PARTY `the local authority or owning body` DOES `submit the commitment to join Ofek Hadash through the portal` AT 15
 #TRACE `one reporting officer, personally` AT 0 WITH
     PARTY `the local authority or owning body` DOES `appoint a second reporting officer` AT 30
+
+§§ `Property checks`
+
+-- The circular over finite spaces, chapter by chapter.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`hundredths to 1` MEANS map (GIVEN k YIELD k DIVIDED BY 100) (range 0 100)
+`positions checked` MEANS LIST 0.25, 1 DIVIDED BY 3, 0.4, 0.5, 0.75, 1
+`every post` MEANS LIST `a kindergarten head teacher`, `a complementary kindergarten teacher`, `a kindergarten cluster manager`
+`every age band` MEANS LIST `under 50`, `50 to 55, 55 not included`, `55 and over, a new teacher`, `55 and over, an existing teacher`
+
+GIVEN y IS A NUMBER, s IS A NUMBER, a IS A BOOLEAN, c IS A BOOLEAN, p IS A NUMBER, j IS A BOOLEAN, d IS A BOOLEAN, x IS A BOOLEAN, i IS A BOOLEAN
+GIVETH A `kindergarten teacher`
+DECIDE `a checked teacher` y s a c p j d x i IS
+    `kindergarten teacher` WITH
+        `years of recognised actual teaching`        IS y
+        `years of seniority`                         IS s
+        `academic`                                   IS a
+        `certified to teach`                         IS c
+        `position fraction`                          IS p
+        `kindergarten joined Ofek Hadash`            IS j
+        `signed the commitment to complete a degree` IS d
+        `approved by the exceptions committee`       IS x
+        `an intern`                                  IS i
+
+-- §3.2.1 and §3.4 over every flag and position: an existing academic joins
+-- exactly from a third of a position, certified or by exception; a new one
+-- exactly from a third and certified; and nobody joins in a kindergarten
+-- that did not.
+#ASSERT all (GIVEN c YIELD
+                all (GIVEN x YIELD
+                        all (GIVEN p YIELD
+                                    `an existing academic teacher joins` (`a checked teacher` 5 5 TRUE c p TRUE FALSE x FALSE)
+                                    EQUALS (p AT LEAST 1 DIVIDED BY 3 AND (c OR x))
+                                AND `a new teacher joins` (`a checked teacher` 0 0 TRUE c p TRUE FALSE x FALSE)
+                                    EQUALS (p AT LEAST 1 DIVIDED BY 3 AND c)
+                                AND (NOT `joins Ofek Hadash` (`a checked teacher` 5 5 TRUE c p FALSE FALSE x FALSE)))
+                            `positions checked`)
+                    `both booleans`)
+            `both booleans`
+
+-- §3.3 over seniority 20 to 35: an existing non-academic joins exactly from
+-- 28 years, or on signing; §10.2.3 promotes her on the same line.
+#ASSERT all (GIVEN s YIELD
+                all (GIVEN d YIELD
+                            `an existing non-academic teacher joins` (`a checked teacher` 5 s FALSE TRUE 1 TRUE d FALSE FALSE) EQUALS (s AT LEAST 28 OR d)
+                        AND `a non-academic may be promoted` s d EQUALS (s AT LEAST 28 OR d))
+                    `both booleans`)
+            (range 20 35)
+
+-- §4.1.1's table: the complementary teacher's base 3.4 hours above the head
+-- teacher's and the cluster manager's 0.2 above that, in every band; the
+-- base is the under-50 base less the age hours of §8, and never rises with
+-- age.
+#ASSERT all (GIVEN b YIELD
+                    `the base of the position` `a complementary kindergarten teacher` b MINUS `the base of the position` `a kindergarten head teacher` b EQUALS 3.4
+                AND `the base of the position` `a kindergarten cluster manager` b MINUS `the base of the position` `a complementary kindergarten teacher` b EQUALS 0.2)
+            `every age band`
+#ASSERT all (GIVEN q YIELD
+                all (GIVEN ex YIELD
+                        all (GIVEN n YIELD
+                                    `the base of the position` q (`the age band of` n ex) PLUS `hours off the base for age` n ex EQUALS `the base of the position` q `under 50`
+                                AND `the base of the position` q (`the age band of` (n PLUS 1) ex) AT MOST `the base of the position` q (`the age band of` n ex))
+                            (range 40 65))
+                    `both booleans`)
+            `every post`
+
+-- §5.6 and §6 over positions: a period counts toward promotion exactly from
+-- a third; a placement above 100% is never allowed above 42 hours, and up to
+-- 126% (117% for a health professional) needs no approval.
+#ASSERT all (GIVEN f YIELD
+                `the period counts toward promotion` f EQUALS (f AT LEAST 1 DIVIDED BY 3))
+            `hundredths to 1`
+#ASSERT all (GIVEN hp YIELD
+                all (GIVEN f YIELD
+                        all (GIVEN h YIELD
+                                all (GIVEN ap YIELD
+                                        `the placement above 100% is allowed` hp (f DIVIDED BY 100) h ap
+                                        EQUALS (h AT MOST 42 AND (ap OR f AT MOST (IF hp THEN 117 ELSE 126))))
+                                    `both booleans`)
+                            (range 38 46))
+                    (range 100 140))
+            `both booleans`
+
+-- §7 over positions in hundredths: a mother's position exactly from 79%,
+-- the nursing hour exactly from 90% within four months, and the year
+-- without absences adds exactly 10%.
+#ASSERT all (GIVEN f YIELD
+                all (GIVEN m YIELD
+                            `entitled to a mother's position` f TRUE EQUALS (f AT LEAST 0.79)
+                        AND (NOT `entitled to a mother's position` f FALSE)
+                        AND `entitled to the nursing hour` f m EQUALS (f AT LEAST 0.9 AND m LESS THAN 4)
+                        AND `a mother kindergarten teacher's position` f TRUE MINUS `a mother kindergarten teacher's position` f FALSE EQUALS 0.1)
+                    (LIST 0, 1, 3, 4, 12))
+            `hundredths to 1`
+
+-- §8 over ages and positions: the age hours are 0, 2 or 4, never falling
+-- with age, never more for a new teacher than an existing one, and a part
+-- position takes its share (finding j's reading).
+#ASSERT all (GIVEN n YIELD
+                all (GIVEN ex YIELD
+                        all (GIVEN p YIELD
+                                    elem (`hours off the base for age` n ex) (LIST 0, 2, 4)
+                                AND `hours off the base for age` n ex AT MOST `hours off the base for age` (n PLUS 1) ex
+                                AND `hours off the base for age` n FALSE AT MOST `hours off the base for age` n TRUE
+                                AND `hours off a part position for age` n ex p AT MOST `hours off the base for age` n ex)
+                            `positions checked`)
+                    `both booleans`)
+            (range 40 65)
+
+-- §10.2.2 over seniority 20 to 30: it says two things exactly at 25
+-- (finding d); an uncertified academic may be promoted exactly from 25.
+#ASSERT all (GIVEN s YIELD
+                    (count (`what section 10.2.2 says of an uncertified veteran` s) EQUALS 2) EQUALS (s EQUALS 25)
+                AND `an academic may be promoted` s FALSE EQUALS (s AT LEAST 25)
+                AND `barred from promotion until certified under section 3.2.1` (`a checked teacher` 5 s TRUE FALSE 1 TRUE FALSE TRUE FALSE) EQUALS (s LESS THAN 25))
+            (range 20 30)
+
+-- §11 over grades and years: the head teacher's bonus is 17%, 20% or 21%,
+-- never falling with grade or years; the cluster manager's 25% or 28%;
+-- the mentor's never above three interns' worth.
+#ASSERT all (GIVEN nw YIELD
+                all (GIVEN g YIELD
+                        LET r MEANS `the head teacher's management bonus rate` nw g g
+                        IN      elem r (LIST 0.17, 0.20, 0.21)
+                            AND r AT MOST `the head teacher's management bonus rate` nw (g PLUS 1) (g PLUS 1))
+                    (range 0 20))
+            `both booleans`
+#ASSERT all (GIVEN n YIELD
+                    elem (`the cluster manager's management bonus rate` n) (LIST 0.25, 0.28)
+                AND `the mentor's bonus rate` n AT MOST 0.072)
+            (range 0 12)
+
+-- §12.5 over quarter grades: the conversion gives exactly whole and half
+-- grades.
+#ASSERT all (GIVEN k YIELD
+                `a grade the conversion may give` (k DIVIDED BY 4) EQUALS (FLOOR (k DIVIDED BY 2) TIMES 2 EQUALS k))
+            (range 0 40)
+
+-- §13.3: every advance rate between 0 and 17%.
+#ASSERT all (GIVEN g YIELD
+                `the advance rate` g AT LEAST 0 AND `the advance rate` g AT MOST 0.17)
+            (LIST `an academic kindergarten teacher`, `an academic health professional`, `an intern kindergarten teacher or health professional`, `a non-academic with 28 years or a signed commitment`)
