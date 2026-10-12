@@ -150,7 +150,8 @@ DECIDE `a principal's overtime needs a request and approval` `a request was subm
 -- Principals work five days a week. On the day the principal is away the
 -- deputy stands in, or — where there is no deputy — an educator who
 -- receives another role allowance, combining the two roles on Friday
--- without extra pay. Restated in section 7.6.9.1.
+-- without extra pay. Restated in section 7.6.9.1. Read as the rule for
+-- the weekly day off, beside 7.6.3.1(10)-(11) for other absences (F-7.6-f).
 @ref akn:chp_7__sec_7_6/p14 akn:chp_7__sec_7_6__ssec_7_6_9/p1
 GIVETH A NUMBER
 DECIDE `principal's working days a week` IS 5
@@ -1351,7 +1352,8 @@ DECIDE `delegating to the deputy relieves the principal` IS FALSE
 
 -- (10)-(11): in the principal's absence the deputy he appointed stands in,
 -- unless the supervisor decides otherwise; with no deputy, a teacher the
--- principal names each year with the supervisor's approval.
+-- principal names each year with the supervisor's approval. Read as the
+-- rule for absences other than the weekly day off (F-7.6-f).
 @ref akn:chp_7__sec_7_6__ssec_7_6_3_1__para_10 akn:chp_7__sec_7_6__ssec_7_6_3_1__para_11
 GIVEN `has a deputy` IS A BOOLEAN, `the supervisor decided otherwise` IS A BOOLEAN
 GIVETH A `stand-in for an absent principal`
@@ -1643,13 +1645,16 @@ DECIDE `a yearly evaluation in probation` IS
 
 -- (7): a professional supervisor's evaluation, if sent, is taken into
 -- account; (12): the local authority's is taken into account only if it
--- reaches the district manager by 1 March (school month 7).
+-- reaches the district manager "לא יאוחר מיום 1 במארס": in a school month
+-- before March (school month 7), or on 1 March itself.
 @ref akn:chp_7__sec_7_6__ssec_7_6_4__para_7 akn:chp_7__sec_7_6__ssec_7_6_4__para_12
-GIVEN `from a professional supervisor` IS A BOOLEAN, `from the local authority` IS A BOOLEAN, `school month received` IS A NUMBER
+GIVEN `from a professional supervisor` IS A BOOLEAN, `from the local authority` IS A BOOLEAN, `school month received` IS A NUMBER, `day of the month received` IS A NUMBER
 GIVETH A BOOLEAN
-DECIDE `the evaluation is taken into account` `from a professional supervisor` `from the local authority` `school month received` IF
+DECIDE `the evaluation is taken into account` `from a professional supervisor` `from the local authority` `school month received` `day of the month received` IF
     `from a professional supervisor`
-    OR (`from the local authority` AND `school month received` LESS THAN `month number` March)
+    OR (    `from the local authority`
+        AND (   `school month received` LESS THAN `month number` March
+             OR (`school month received` EQUALS `month number` March AND `day of the month received` EQUALS 1)))
 
 -- (12): the local education authority sends the district manager its
 -- evaluation of the principal's or coordinator's organisational,
@@ -1887,7 +1892,8 @@ DECIDE `share of the allowance carried after leaving management` h IS
          ELSE 1
 
 -- (9)(b)(2): moving to a school of the same level with fewer classes does
--- not lower the allowance.
+-- not lower the allowance. The note to (9)(a), "the same owners", is read
+-- into it through `may keep the allowance for past classes` (F-7.6-g).
 @ref akn:chp_7__sec_7_6__ssec_7_6_6_1__para_9__subpara_b__cls_2
 GIVEN h IS A `principal's history`, `previous rate` IS A NUMBER, `new school's rate` IS A NUMBER, `same level` IS A BOOLEAN
 GIVETH A NUMBER
@@ -2163,3 +2169,362 @@ DECIDE `management seniority carried from the deputyship` `years as deputy` IS
     PARTY `the district personnel head` DOES `invite to an interview` 1 AT 0
 #TRACE `no letter of recommendation to a teacher` AT 0 WITH
     PARTY `a takanon party` `the school principal` DOES `hand a teacher a letter of recommendation` AT 3
+
+§§ `Property checks`
+
+-- The section's rules over their whole finite space: every advisory
+-- committee; 0 to 5 votes each way and committees of 4 and 5 with every
+-- attendance; every school month a vacancy may end in; schools of 0 to 4
+-- post-primary and 0 to 4 special-education classes on table rates of 0,
+-- 5, 10 and 20; 0 to 20 years in management and as deputy; every four
+-- yearly class counts from 8 to 11; every month and day an evaluation may
+-- arrive; absences of 0 to 60 days; every principal's history the
+-- allowance rules ask about; and every stand-in case.
+
+`both booleans` MEANS LIST TRUE, FALSE
+
+GIVEN x IS A NUMBER, y IS A NUMBER, p IS A NUMBER
+GIVETH A `managed school`
+DECIDE `a checked managed school` x y p IS
+    `managed school` WITH
+        `classes in all`            IS 20
+        `post-primary classes`      IS x
+        `special-education classes` IS y
+        `table rate for m classes`  IS p
+
+GIVEN n IS A NUMBER, c IS A BOOLEAN, o IS A BOOLEAN, l IS A BOOLEAN, w IS A BOOLEAN
+GIVETH A `principal's history`
+DECIDE `a checked history` n c o l w IS
+    `principal's history` WITH
+        `years as principal`              IS n
+        `a coordinator`                   IS c
+        `same owners`                     IS o
+        `classes in the last four years`  IS LIST 12, 12, 11, 11
+        `classes now`                     IS 9
+        `left management but teaches`     IS l
+        `left management of his own will` IS w
+        `teaching position fraction`      IS 0.5
+
+GIVEN a IS A NUMBER, b IS A NUMBER, c IS A NUMBER
+GIVETH A LIST OF LIST OF NUMBER
+DECIDE `every fourth year after` a b c IS
+    map (GIVEN d YIELD LIST a, b, c, d) (range 8 11)
+
+GIVEN a IS A NUMBER, b IS A NUMBER
+GIVETH A LIST OF LIST OF NUMBER
+DECIDE `every third and fourth year after` a b IS
+    concat (map (GIVEN c YIELD `every fourth year after` a b c) (range 8 11))
+
+GIVEN a IS A NUMBER
+GIVETH A LIST OF LIST OF NUMBER
+DECIDE `every later three years after` a IS
+    concat (map (GIVEN b YIELD `every third and fourth year after` a b) (range 8 11))
+
+GIVEN a IS A BOOLEAN, b IS A BOOLEAN, c IS A BOOLEAN, d IS A BOOLEAN, e IS A BOOLEAN
+GIVETH A `probation year`
+DECIDE `a checked probation year` a b c d e IS
+    `probation year` WITH
+        `started before 1 January`                    IS a
+        `worked continuously to the year's end`       IS b
+        `the school year ended`                       IS c
+        `as acting principal just before appointment` IS d
+        `as a school coordinator`                     IS e
+
+GIVEN x IS A NUMBER, y IS A NUMBER, p IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the checked rate` x y p IS
+    `management allowance rate` (`a checked managed school` x y p)
+
+`every four yearly class counts` MEANS
+    concat (map `every later three years after` (range 8 11))
+
+-- 7.6.2.3(1.3.2)(b) over every institution: each committee has four or
+-- five seats, none twice, a teachers' union centre representative in every
+-- one; the two guidance centres have no local-authority seat and every
+-- other committee exactly one.
+#ASSERT all (GIVEN i YIELD
+                LET c MEANS `the advisory committee for` i
+                IN      count c AT LEAST 4
+                    AND count c AT MOST 5
+                    AND count (nub c) EQUALS count c
+                    AND elem `a representative of the teachers' union centre` c
+                    AND elem `one local-authority representative` c
+                        EQUALS NOT (i EQUALS `national guidance centre` OR i EQUALS `district guidance centre`))
+            `every institution`
+
+-- (c) over 0 to 5 votes each way: the committee resolves in favour exactly
+-- with more votes for, or on a tie with the chair for; with the chair's
+-- vote counted twice on a tie, the result is the same.
+#ASSERT all (GIVEN f YIELD
+                all (GIVEN a YIELD
+                        all (GIVEN ch YIELD
+                                    `the committee resolves in favour` f a ch
+                                    EQUALS (f GREATER THAN a OR (f EQUALS a AND ch))
+                                AND ((NOT (f EQUALS a))
+                                     OR `the committee resolves in favour` f a ch
+                                        EQUALS ((IF ch THEN f PLUS 1 ELSE f) GREATER THAN (IF ch THEN a ELSE a PLUS 1))))
+                            `both booleans`)
+                    (range 0 5))
+            (range 0 5)
+
+-- (g) over committees of 4 and 5 and every attendance: a quorum exactly
+-- from half the members with the chair among them; one more member present
+-- never loses it; a full committee with its chair always has one.
+#ASSERT all (GIVEN m YIELD
+                    `the committee has a quorum` m m TRUE
+                AND all (GIVEN k YIELD
+                            all (GIVEN ch YIELD
+                                        `the committee has a quorum` k m ch EQUALS (ch AND 2 TIMES k AT LEAST m)
+                                    AND ((NOT `the committee has a quorum` k m ch) OR `the committee has a quorum` (k PLUS 1) m ch))
+                                `both booleans`)
+                        (range 0 m))
+            (LIST 4, 5)
+
+-- 1.5.1 over every month a vacancy may end, and two past the year: the
+-- substitute serves to the vacancy's end and never past 31 August.
+#ASSERT all (GIVEN e YIELD
+                    `the substitute serves to school month` e AT MOST 12
+                AND `the substitute serves to school month` e AT MOST e
+                AND ((e GREATER THAN 12) OR `the substitute serves to school month` e EQUALS e))
+            (range 1 14)
+
+-- 7.6.4(1)-(2) over every probation year: it counts exactly when it ended,
+-- began before 1 January and ran on to the year's end, save a coordinator's
+-- year toward a principal's probation.
+#ASSERT all (GIVEN a YIELD
+                all (GIVEN b YIELD
+                        all (GIVEN c YIELD
+                                all (GIVEN d YIELD
+                                        all (GIVEN e YIELD
+                                                all (GIVEN t YIELD
+                                                        `the year counts toward probation` (`a checked probation year` a b c d e) t
+                                                        EQUALS (a AND b AND c AND NOT (t AND e)))
+                                                    `both booleans`)
+                                            `both booleans`)
+                                    `both booleans`)
+                            `both booleans`)
+                    `both booleans`)
+            `both booleans`
+
+-- (7) and (12) over every school month and every day: the local
+-- authority's evaluation counts exactly up to 1 March, that day included;
+-- a professional supervisor's always.
+#ASSERT all (GIVEN m YIELD
+                all (GIVEN d YIELD
+                            `the evaluation is taken into account` FALSE TRUE m d
+                            EQUALS (m LESS THAN 7 OR (m EQUALS 7 AND d EQUALS 1))
+                        AND `the evaluation is taken into account` TRUE FALSE m d)
+                    (range 1 31))
+            (range 1 12)
+
+-- 7.6.6.1(3) over every school: the rate never falls below p(m), never
+-- falls with more post-primary or special-education classes, and (d)'s
+-- addition is (b)'s and (c)'s added together. (2): the allowance is the
+-- same whatever the position fraction.
+#ASSERT all (GIVEN x YIELD
+                all (GIVEN y YIELD
+                        all (GIVEN p YIELD
+                                    `the checked rate` x y p AT LEAST p
+                                AND `the checked rate` x y p AT MOST `the checked rate` (x PLUS 1) y p
+                                AND `the checked rate` x y p AT MOST `the checked rate` x (y PLUS 1) p
+                                AND `the checked rate` x y p MINUS p
+                                    EQUALS (`the checked rate` x 0 p MINUS p) PLUS (`the checked rate` 0 y p MINUS p)
+                                AND `management allowance` (`a checked managed school` x y p) 10000 0.5 5
+                                        EQUALS `management allowance` (`a checked managed school` x y p) 10000 1.5 5)
+                            (LIST 0, 5, 10, 20))
+                    (range 0 4))
+            (range 0 4)
+
+-- 7.6.10(1) over 0 to 20 years: the addition is nothing in the first
+-- year, 2.4% more each year for 16 years, and no more after the 17th; it
+-- never falls and never passes 38.4% of the allowance.
+#ASSERT all (GIVEN n YIELD
+                    `management seniority addition` 1000 n AT LEAST 0
+                AND `management seniority addition` 1000 n AT MOST 384
+                AND `management seniority addition` 1000 n AT MOST `management seniority addition` 1000 (n PLUS 1)
+                AND ((n GREATER THAN 1) OR `management seniority addition` 1000 n EQUALS 0)
+                AND ((n LESS THAN 17) OR `management seniority addition` 1000 n EQUALS 384))
+            (range 0 20)
+
+-- 7.6.10(7) over 0 to 20 years as deputy: half, a half year rounded up to
+-- a whole one; never more than the years served, never falling.
+#ASSERT all (GIVEN n YIELD
+                    `management seniority carried from the deputyship` n
+                    EQUALS (IF n MODULO 2 EQUALS 0 THEN n DIVIDED BY 2 ELSE (n PLUS 1) DIVIDED BY 2)
+                AND `management seniority carried from the deputyship` n AT MOST n
+                AND `management seniority carried from the deputyship` n AT MOST `management seniority carried from the deputyship` (n PLUS 1))
+            (range 0 20)
+
+-- 7.6.6.1(9)(a) over every four yearly counts from 8 to 11: the average
+-- kept is a whole number within half a class of the average, between the
+-- least and the most of the four, and the average itself where it is
+-- whole.
+#ASSERT all (GIVEN l YIELD
+                LET k MEANS `average classes kept` l
+                    a MEANS sum l DIVIDED BY 4
+                IN      k EQUALS FLOOR k
+                    AND k MINUS a AT MOST 0.5
+                    AND a MINUS k AT MOST 0.5
+                    AND k AT LEAST minimum l
+                    AND k AT MOST maximum l
+                    AND ((NOT (a EQUALS FLOOR a)) OR k EQUALS a))
+            `every four yearly class counts`
+
+-- (9) over every history (6 to 9 years, coordinator or not, same owners or
+-- not, left management or not, of his own will or not): the classes paid
+-- for are never fewer than the classes now; the past classes are kept
+-- exactly from 8 years, by a principal who is not a coordinator, with the
+-- same owners; the share carried after leaving is 0, his teaching fraction
+-- or all of it; moving schools never lowers the rate below the new
+-- school's, and at the same level never below the old one where he keeps
+-- it.
+#ASSERT all (GIVEN n YIELD
+                all (GIVEN c YIELD
+                        all (GIVEN o YIELD
+                                all (GIVEN l YIELD
+                                        all (GIVEN w YIELD
+                                                LET h MEANS `a checked history` n c o l w
+                                                IN      `classes the allowance is paid for` h AT LEAST 9
+                                                    AND `may keep the allowance for past classes` h EQUALS (n AT LEAST 8 AND (NOT c) AND o)
+                                                    AND elem (`share of the allowance carried after leaving management` h) (LIST 0, 0.5, 1)
+                                                    AND `rate after moving schools` h 12 10 TRUE AT LEAST 10
+                                                    AND `rate after moving schools` h 12 10 FALSE EQUALS 10
+                                                    AND `rate after moving schools` h 12 10 TRUE
+                                                        EQUALS (IF `may keep the allowance for past classes` h THEN 12 ELSE 10))
+                                            `both booleans`)
+                                    `both booleans`)
+                            `both booleans`)
+                    `both booleans`)
+            (range 6 9)
+
+-- 7.6.8 over absences of 0 to 60 days: no paid stand-in and no released
+-- hours exactly up to 6 days; the stand-in's allowance from the 31st day,
+-- for no more days than he stood in.
+#ASSERT all (GIVEN d YIELD
+                    `no paid stand-in is appointed` d EQUALS (d AT MOST 6)
+                AND (`teaching hours the stand-in may be released from` d 8 EQUALS 0) EQUALS (d AT MOST 6)
+                AND `days the stand-in is paid the management allowance` d EQUALS max 0 (d MINUS 30)
+                AND `days the stand-in is paid the management allowance` d AT MOST d)
+            (range 0 60)
+
+-- 7.6.6.2-3: the telephone amount never passes one position's, whatever
+-- the position; a car owner's reimbursement exactly with the car, the
+-- licence and a grade of 3 to 5; 11 months of travel exactly from one
+-- summer month worked.
+#ASSERT all (GIVEN k YIELD
+                    `principal's telephone amount` 100 (k DIVIDED BY 4) 1 AT MOST 100
+                AND `principal's telephone amount` 100 (k DIVIDED BY 4) 1 AT LEAST 0)
+            (range 0 8)
+#ASSERT all (GIVEN r YIELD
+                all (GIVEN v YIELD
+                        all (GIVEN g YIELD
+                                (`principal's travel reimbursement` r v g EQUALS `as a private-car owner` g)
+                                EQUALS (r AND v AND g AT LEAST 3 AND g AT MOST 5))
+                            (range 0 7))
+                    `both booleans`)
+            `both booleans`
+#ASSERT all (GIVEN m YIELD (`months of travel expenses` m 10 EQUALS 11) EQUALS (m AT LEAST 1)) (range 0 2)
+
+-- 7.6.10(2) over positions in quarters: working-youth years count for a
+-- principal exactly from half a position, when certified, and never for a
+-- deputy.
+#ASSERT all (GIVEN k YIELD
+                all (GIVEN c YIELD
+                        all (GIVEN d YIELD
+                                `working-youth management counts` c (k DIVIDED BY 4) d EQUALS (c AND k AT LEAST 2 AND NOT d))
+                            `both booleans`)
+                    `both booleans`)
+            (range 0 4)
+
+-- F-7.6-f: the weekly day off (7.6.1.4) and an absence (7.6.3.1(10)-(11))
+-- name the stand-in two ways. Over every school (a deputy or not) and every
+-- supervisor's decision, they name the same stand-in exactly where there
+-- is a deputy and the supervisor decided nothing else.
+GIVEN s IS A `stand-in for an absent principal`
+GIVETH A MAYBE `day-off substitute`
+DECIDE `as a day-off substitute` s IS
+    CONSIDER s
+    WHEN `the deputy the principal appointed` THEN JUST `the deputy`
+    OTHERWISE NOTHING
+
+#ASSERT all (GIVEN d YIELD
+                all (GIVEN o YIELD
+                        (`as a day-off substitute` (`who stands in for an absent primary principal` d o)
+                         EQUALS JUST (`who stands in on the principal's day off` d))
+                        EQUALS (d AND NOT o))
+                    `both booleans`)
+            `both booleans`
+
+`with no deputy, the day off and an absence name different stand-ins` MEANS
+        `who stands in on the principal's day off` FALSE EQUALS `an educator receiving another role allowance`
+    AND `who stands in for an absent primary principal` FALSE FALSE EQUALS `the teacher named for the year`
+#ASSERT `with no deputy, the day off and an absence name different stand-ins`
+
+-- F-7.6-g: (9)(b)(2) read with the note to (9)(a) ("the same owners")
+-- and without it. Over every history, the readings part exactly for a
+-- principal of 8 years or more, not a coordinator, who moves to a school
+-- of other owners at the same level with fewer classes.
+GIVEN h IS A `principal's history`, `previous rate` IS A NUMBER, `new school's rate` IS A NUMBER, `same level` IS A BOOLEAN
+GIVETH A NUMBER
+DECIDE `rate after moving schools, without the same-owners note` h `previous rate` `new school's rate` `same level` IS
+    IF `same level` AND h's `years as principal` AT LEAST 8 AND NOT h's `a coordinator`
+    THEN max `previous rate` `new school's rate`
+    ELSE `new school's rate`
+
+#ASSERT all (GIVEN n YIELD
+                all (GIVEN c YIELD
+                        all (GIVEN o YIELD
+                                all (GIVEN s YIELD
+                                        LET h MEANS `a checked history` n c o FALSE FALSE
+                                        IN  (NOT (`rate after moving schools` h 12 10 s EQUALS `rate after moving schools, without the same-owners note` h 12 10 s))
+                                            EQUALS (n AT LEAST 8 AND (NOT c) AND (NOT o) AND s))
+                                    `both booleans`)
+                            `both booleans`)
+                    `both booleans`)
+            (range 6 9)
+
+`a principal of 10 years moving to other owners keeps his rate on one reading only` MEANS
+    LET h MEANS `a checked history` 10 FALSE FALSE FALSE FALSE
+    IN      `rate after moving schools` h 12 10 TRUE EQUALS 10
+        AND `rate after moving schools, without the same-owners note` h 12 10 TRUE EQUALS 12
+#ASSERT `a principal of 10 years moving to other owners keeps his rate on one reading only`
+
+-- F-7.6-d over every four yearly counts from 8 to 11: an average of
+-- exactly a half, where "the nearest whole number" is two numbers, occurs
+-- in a quarter of them (64 of 256).
+#ASSERT count (filter (GIVEN l YIELD sum l DIVIDED BY 4 MINUS FLOOR (sum l DIVIDED BY 4) EQUALS 0.5) `every four yearly class counts`) EQUALS 64
+#ASSERT count `every four yearly class counts` EQUALS 256
+
+-- F-7.6-e over every seminar: the two readings of 7.6.9.2(b) part exactly
+-- where a stand-in is arranged and one of the two cases holds without the
+-- other.
+GIVEN a IS A BOOLEAN, b IS A BOOLEAN, c IS A BOOLEAN
+GIVETH A `working-hours seminar`
+DECIDE `a checked seminar` a b c IS
+    `working-hours seminar` WITH
+        `needs the principal himself`   IS a
+        `national or several districts` IS b
+        `a stand-in is arranged`        IS c
+        `a national seminar not counted` IS FALSE
+        `length in days`                IS 1
+
+#ASSERT all (GIVEN a YIELD
+                all (GIVEN b YIELD
+                        all (GIVEN c YIELD
+                                (NOT (`the principal may attend in working hours` (`a checked seminar` a b c)
+                                      EQUALS `the principal may attend, all three items required` (`a checked seminar` a b c)))
+                                EQUALS (c AND NOT (a EQUALS b)))
+                            `both booleans`)
+                    `both booleans`)
+            `both booleans`
+
+-- (c)-(d): within two counted days a month, an uncounted national seminar
+-- never breaks the limit, and a third counted day always does, unless an
+-- exception is approved.
+#ASSERT all (GIVEN k YIELD
+                LET days MEANS map (GIVEN i YIELD `a checked seminar` TRUE TRUE TRUE) (range 1 k)
+                    national MEANS `working-hours seminar` WITH `needs the principal himself` IS TRUE, `national or several districts` IS TRUE, `a stand-in is arranged` IS TRUE, `a national seminar not counted` IS TRUE, `length in days` IS 3
+                IN      `within the monthly limit` FALSE days EQUALS (k AT MOST 2)
+                    AND `within the monthly limit` FALSE (national FOLLOWED BY days) EQUALS (k AT MOST 2)
+                    AND `within the monthly limit` TRUE days)
+            (range 0 4)
