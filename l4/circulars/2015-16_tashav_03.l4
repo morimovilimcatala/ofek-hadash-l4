@@ -128,3 +128,45 @@ DECIDE `the ministry's deduction from the owner` `budgeted hours at the striking
 
 #TRACE `deducting the strike hours` `a teacher with no report, two hours due before 10:00` AT 0 WITH
     PARTY `the local authority or owning body` DOES `deduct the strike hours from the salary` 200 AT 1
+
+§§ `Property checks`
+
+-- The circular over a finite space: every combination of the four
+-- attendance facts; hours absent 0 to 4 in halves; hourly values of 0, 50
+-- and 100; every kind of day and partial pay from 0 to past the full pay.
+
+`both booleans` MEANS LIST TRUE, FALSE
+
+-- ¶15-¶18 over every combination: an employee took part exactly by the
+-- reports or by ¶17's presumption (no report, no approval, no proof); the
+-- deduction is the hours absent at the hourly value for one who took part,
+-- nothing otherwise, never negative, and never falls with more hours.
+#ASSERT all (GIVEN rep YIELD
+                all (GIVEN apr YIELD
+                        all (GIVEN prf YIELD
+                                all (GIVEN tp YIELD
+                                        all (GIVEN h YIELD
+                                                LET c MEANS `strike-day case` rep apr prf tp h 100
+                                                    part MEANS tp OR ((NOT rep) AND (NOT apr) AND NOT prf)
+                                                IN      `took part in the strike` c EQUALS part
+                                                    AND `the strike deduction` c EQUALS (IF part THEN h TIMES 100 ELSE 0)
+                                                    AND `the strike deduction` c AT LEAST 0
+                                                    AND `the strike deduction` c AT MOST `the strike deduction` (`strike-day case` rep apr prf tp (h PLUS 0.5) 100))
+                                            (map (GIVEN k YIELD k DIVIDED BY 2) (range 0 8)))
+                                    `both booleans`)
+                            `both booleans`)
+                    `both booleans`)
+            `both booleans`
+
+-- ¶14 over every kind of day and partial pay: nothing for a strike day,
+-- the full pay for a day with no strike, and for a partial-strike day the
+-- partial pay but never more than the full.
+#ASSERT all (GIVEN d YIELD
+                all (GIVEN q YIELD
+                        LET x MEANS `the pay payable for the day` d 600 q
+                        IN      x AT LEAST 0
+                            AND x AT MOST 600
+                            AND ((NOT (d EQUALS `a strike day`)) OR x EQUALS 0)
+                            AND ((NOT (d EQUALS `a day with no strike`)) OR x EQUALS 600))
+                    (LIST 0, 200, 600, 800))
+            (LIST `a strike day`, `a partial-strike day`, `a day with no strike`)

@@ -259,3 +259,105 @@ DECIDE `indemnifying the owner` `the indemnity` IS
     PARTY `the employer` DOES `pay the one-time grant` 1000 AT 6
 #TRACE `paying the one-time grant` `a full-time kindergarten teacher` FALSE 0 AT 0 WITH
     PARTY `the employer` DOES `pay the one-time grant` 1000 AT 5
+
+§§ `Property checks`
+
+-- The circular over a finite space: graded or not; every stage; employed at
+-- both ends or not; no break, each break alone and unpaid leave with
+-- maternity leave; paid four months and a day or not; one to twelve months
+-- at a position in tenths from 0 to 1.5, or no month in the first period.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`tenths to 1.5` MEANS map (GIVEN k YIELD k DIVIDED BY 10) (range 0 15)
+`every stage` MEANS LIST `kindergarten`, `elementary school`, `junior high school`, `teacher-training college`, `high school`
+`every break` MEANS
+    LIST `maternity leave under section 6 of the Women's Employment Law`,
+         `unpaid leave or absence treated as unpaid leave, after maternity leave or not`,
+         `reserve duty`, `paid sick leave under takanon chapter 1.25.3`, `holiday or summer recess`, `end of employment`
+`every list of breaks checked` MEANS
+    append (LIST EMPTY, (LIST `maternity leave under section 6 of the Women's Employment Law`,
+                              `unpaid leave or absence treated as unpaid leave, after maternity leave or not`))
+           (map (GIVEN b YIELD LIST b) `every break`)
+
+GIVEN g IS A BOOLEAN
+      st IS A `grant stage`
+      e IS A BOOLEAN
+      bs IS A LIST OF `break kind`
+      f IS A BOOLEAN
+      ms IS A LIST OF NUMBER
+GIVETH A `grant case`
+DECIDE `a checked case` g st e bs f ms IS
+    `grant case` WITH
+        `graded as a teaching employee of a supervised owner` IS g
+        `stage`                                               IS st
+        `employed on 1.9.2015 and on 1.12.2015`               IS e
+        `breaks in the determining period`                    IS bs
+        `paid for 4 full months and a day in a row from 1.9.2015 to 31.1.2016` IS f
+        `monthly positions 1.12.2014 to 30.11.2015`           IS ms
+        `monthly positions 1.12.2015 to 30.6.2016`            IS LIST 0.5, 0.5
+
+GIVEN c IS A `grant case`
+      e IS A BOOLEAN
+      bs IS A LIST OF `break kind`
+      f IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `section 1 holds for` c e bs f IF
+    LET x MEANS `one-time grant` c
+        unpaid MEANS elem `unpaid leave or absence treated as unpaid leave, after maternity leave or not` bs
+        continuous MEANS e AND all (GIVEN b YIELD `keeps the continuity` b) bs
+    IN      `employed continuously in the determining period` c EQUALS continuous
+        AND `entitled to the grant` c EQUALS (`covered by the circular` c AND (continuous OR (unpaid AND f)))
+        AND x AT LEAST 0
+        AND x AT MOST `the full one-time grant`
+        AND x EQUALS (IF `entitled to the grant` c THEN `the full one-time grant` TIMES min (`the representative average position` c) 1 ELSE 0)
+
+-- §1א-§1ה over every flag, stage, break list and payment condition: the
+-- determining period is continuous exactly when the employee was there at
+-- both ends and every break is one §1ה(1)-(7) keeps; the grant is owed
+-- exactly to a covered employee continuously employed, or on unpaid leave
+-- and paid four months and a day; it is never negative, never above 1,000,
+-- and 1,000 times the average position up to one.
+#ASSERT all (GIVEN g YIELD
+                all (GIVEN st YIELD
+                        all (GIVEN e YIELD
+                                all (GIVEN bs YIELD
+                                        all (GIVEN f YIELD
+                                                `section 1 holds for` (`a checked case` g st e bs f (LIST 1, 0.5)) e bs f)
+                                            `both booleans`)
+                                    `every list of breaks checked`)
+                            `both booleans`)
+                    `every stage`)
+            `both booleans`
+
+-- §1ב over one to twelve months at one position: the average is that
+-- position, the grant never falls with a larger position, and above a full
+-- one is 1,000; with no month in the first period, an employee on unpaid
+-- leave is averaged over the second.
+#ASSERT all (GIVEN m YIELD
+                all (GIVEN p YIELD
+                        LET c MEANS `a checked case` TRUE `kindergarten` TRUE EMPTY TRUE (map (GIVEN k YIELD p) (range 1 m))
+                        IN      `the representative average position` c EQUALS p
+                            AND `one-time grant` c AT MOST `one-time grant` (`a checked case` TRUE `kindergarten` TRUE EMPTY TRUE (map (GIVEN k YIELD p PLUS 0.1) (range 1 m)))
+                            AND ((p LESS THAN 1) OR `one-time grant` c EQUALS 1000))
+                    `tenths to 1.5`)
+            (range 1 12)
+`an employee on unpaid leave with no month in the first period is averaged over the second` MEANS
+    `the representative average position`
+        (`a checked case` TRUE `kindergarten` TRUE (LIST `unpaid leave or absence treated as unpaid leave, after maternity leave or not`) TRUE EMPTY)
+    EQUALS 0.5
+#ASSERT `an employee on unpaid leave with no month in the first period is averaged over the second`
+
+-- §1ג-§1ד: the grant counts for none of the purposes they name.
+#ASSERT all (GIVEN q YIELD NOT `the one-time grant counts for` q)
+            (LIST `salary for any purpose`, `severance pay`, `the overtime hourly value`,
+                  `provident-fund contributions`, `the minimum-wage top-up`, `the combined-salary base`)
+
+-- §1 and §1ה: the payment month is the regular one unless the employee is on
+-- maternity leave (the month after her return) or was on unpaid leave (July).
+#ASSERT all (GIVEN mat YIELD
+                all (GIVEN bs YIELD
+                        LET c MEANS `a checked case` TRUE `kindergarten` TRUE bs TRUE (LIST 1)
+                            m MEANS `the last salary month for the grant` c mat 5
+                        IN  m EQUALS (IF mat THEN 6 ELSE IF elem `unpaid leave or absence treated as unpaid leave, after maternity leave or not` bs THEN 7 ELSE 3))
+                    `every list of breaks checked`)
+            `both booleans`

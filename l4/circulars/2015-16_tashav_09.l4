@@ -288,3 +288,122 @@ DECIDE `indemnifying the owner in August 2016` `the indemnity` IS
     PARTY `the employer` DOES `pay the persistence grant` 4000 AT 12
 #TRACE `indemnifying the owner in August 2016` 4000 AT 0 WITH
     PARTY `the Ministry of Education` DOES `indemnify the owner for the grant in the payment system` 4000 AT 12
+
+§§ `Property checks`
+
+-- The circular over a finite space: graded or not; a required subject or
+-- not; seniority for pay 20 to 35; 9 or 10 years in formal education;
+-- jubilee entitlement reached or not; one school of every status and stage
+-- at a position in tenths from 0 to 1.5; 0 to 12 months; on full leave or
+-- not.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`tenths to 1.5` MEANS map (GIVEN k YIELD k DIVIDED BY 10) (range 0 15)
+`every school checked` MEANS
+    LIST `school employment` `official school` `elementary school` 1,
+         `school employment` `official school` `high school` 1,
+         `school employment` `recognized unofficial school` `elementary school` 1,
+         `school employment` `recognized unofficial school` `junior high school` 1,
+         `school employment` `recognized unofficial school` `high school` 1,
+         `school employment` `official school` `another stage` 1
+
+GIVEN g IS A BOOLEAN
+      t IS A BOOLEAN
+      n IS A NUMBER
+      j IS A BOOLEAN
+      e IS A `school employment`
+      m IS A NUMBER
+      l IS A BOOLEAN
+GIVETH A `persistence case`
+DECIDE `a checked case` g t n j e m l IS
+    `persistence case` WITH
+        `graded and employed by a supervised owner`    IS g
+        `teaches a required subject in the year`       IS t
+        `seniority for pay`                            IS n
+        `years in formal education in Israel`          IS 10
+        `has reached entitlement to the jubilee grant` IS j
+        `schools`                                      IS LIST e
+        `months employed in the year`                  IS m
+        `on full sabbatical or unpaid leave`           IS l
+
+-- §3 over every school: the seniority required is 25 at an official school
+-- or in a high school and 30 otherwise; a school qualifies exactly at that
+-- seniority in a covered stage.
+#ASSERT all (GIVEN e YIELD
+                all (GIVEN n YIELD
+                            `the seniority this school requires` e
+                            EQUALS (IF e's `employment status` EQUALS `official school` OR e's `employment stage` EQUALS `high school` THEN 25 ELSE 30)
+                        AND `this school qualifies` (`a checked case` TRUE TRUE n FALSE e 12 FALSE) e
+                            EQUALS ((NOT (e's `employment stage` EQUALS `another stage`)) AND n AT LEAST `the seniority this school requires` e))
+                    (range 20 35))
+            `every school checked`
+
+GIVEN c IS A `persistence case`
+      g IS A BOOLEAN
+      t IS A BOOLEAN
+      n IS A NUMBER
+      j IS A BOOLEAN
+      e IS A `school employment`
+      m IS A NUMBER
+      l IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `sections 3 to 5 hold for` c g t n j e m l IF
+    LET x MEANS `persistence grant` c
+    IN      x AT LEAST 0
+        AND x AT MOST `the full persistence grant`
+        AND (x GREATER THAN 0) EQUALS (g AND t AND `this school qualifies` c e AND (NOT j) AND (NOT l) AND m GREATER THAN 0)
+        AND ((NOT j) OR x EQUALS 0)
+        AND x AT MOST `persistence grant` (`a checked case` g t n j e (m PLUS 1) l)
+
+-- §§3-5 over the whole space: the grant is never negative and never above
+-- 4,000; it is paid exactly where every condition holds and the employee is
+-- not on full leave and worked a month; never from the jubilee entitlement
+-- on; never falling with another month.
+#ASSERT all (GIVEN g YIELD
+                all (GIVEN t YIELD
+                        all (GIVEN n YIELD
+                                all (GIVEN j YIELD
+                                        all (GIVEN e YIELD
+                                                all (GIVEN m YIELD
+                                                        all (GIVEN l YIELD
+                                                                `sections 3 to 5 hold for` (`a checked case` g t n j e m l) g t n j e m l)
+                                                            `both booleans`)
+                                                    (range 0 12))
+                                            `every school checked`)
+                                    `both booleans`)
+                            (LIST 20, 25, 29, 30, 35))
+                    `both booleans`)
+            `both booleans`
+
+-- §4ד-§4ו over two schools in tenths: the qualifying share is the sum of
+-- the qualifying schools' shares, never above 100%.
+#ASSERT all (GIVEN p YIELD
+                all (GIVEN q YIELD
+                        LET c MEANS `persistence case` WITH
+                                        `graded and employed by a supervised owner`    IS TRUE
+                                        `teaches a required subject in the year`       IS TRUE
+                                        `seniority for pay`                            IS 26
+                                        `years in formal education in Israel`          IS 10
+                                        `has reached entitlement to the jubilee grant` IS FALSE
+                                        `schools`                                      IS LIST `school employment` `official school` `elementary school` p,
+                                                                                               `school employment` `recognized unofficial school` `elementary school` q
+                                        `months employed in the year`                  IS 12
+                                        `on full sabbatical or unpaid leave`           IS FALSE
+                        IN  `the qualifying position share` c EQUALS min p 1)
+                    `tenths to 1.5`)
+            `tenths to 1.5`
+
+-- §5ב over positions in tenths: an owner never pays more than its own
+-- position nor more than what 100% leaves after the State's share.
+#ASSERT all (GIVEN s YIELD
+                all (GIVEN o YIELD
+                        LET x MEANS `this owner's share of the grant` s o o
+                        IN  x AT LEAST 0 AND x AT MOST o AND x AT MOST max 0 (1 MINUS s))
+                    `tenths to 1.5`)
+            `tenths to 1.5`
+
+-- §4ח-§4י: the grant counts only for the 5% and 5% pension contributions.
+#ASSERT all (GIVEN q YIELD `the persistence grant counts for` q EQUALS (q EQUALS `provident-fund contributions for benefits at 5% and 5%`))
+            (LIST `the salary base`, `the base of supplements`, `salary for any purpose`, `severance pay`, `the overtime hourly value`,
+                  `other provident-fund contributions (study fund, pension fund, managers' insurance)`,
+                  `provident-fund contributions for benefits at 5% and 5%`)

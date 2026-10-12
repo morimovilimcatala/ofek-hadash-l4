@@ -208,3 +208,64 @@ DECIDE `indemnifying the owner` `rewards paid by the owner` IS
     PARTY `the employer` DOES `pay the achievement reward` 6189.54 AT 12
 #TRACE `indemnifying the owner` 6189.54 AT 0 WITH
     PARTY `the Ministry of Education` DOES `indemnify the owner` 6189.54 AT 13
+
+§§ `Property checks`
+
+-- The circular over a finite space: covered or not; school ranks 0 to 5;
+-- high-school positions in tenths from 0 to 1.5; months employed 0 to 12;
+-- on a full sabbatical or not.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`tenths to 1.5` MEANS map (GIVEN k YIELD k DIVIDED BY 10) (range 0 15)
+
+GIVEN g IS A BOOLEAN, r IS A NUMBER, p IS A NUMBER, m IS A NUMBER, s IS A BOOLEAN
+GIVETH A `reward case`
+DECIDE `a checked case` g r p m s IS
+    `reward case` WITH
+        `graded as a teaching employee in the high school` IS g
+        `employed by a supervised post-primary owner`      IS TRUE
+        `school rank`                                      IS r
+        `high-school position fraction`                    IS p
+        `months employed in the year`                      IS m
+        `months in the school year`                        IS 12
+        `on full sabbatical or full unpaid leave`          IS s
+
+-- §2ב's table: each rank 1 to 4 has exactly one row, and the reward falls
+-- from each rank to the next.
+#ASSERT all (GIVEN n YIELD
+                    count (filter (GIVEN row YIELD row's `reward rank` EQUALS n) `the reward table`) EQUALS 1
+                AND (n EQUALS 4 OR `the full-position reward for rank` (n PLUS 1) LESS THAN `the full-position reward for rank` n))
+            (range 1 4)
+
+GIVEN c IS A `reward case`, g IS A BOOLEAN, r IS A NUMBER, p IS A NUMBER, m IS A NUMBER, s IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `section 2 holds for` c g r p m s IF
+    LET x MEANS `achievement reward` c
+    IN      x AT LEAST 0
+        AND x AT MOST `the full-position reward for rank` 1
+        AND (x GREATER THAN 0) EQUALS (g AND r AT LEAST 1 AND r AT MOST 4 AND p GREATER THAN 0 AND m GREATER THAN 0 AND NOT s)
+        AND x AT MOST `achievement reward` (`a checked case` g r (p PLUS 0.1) m s)
+        AND x AT MOST `achievement reward` (`a checked case` g r p (m PLUS 1) s)
+        AND ((p LESS THAN 1) OR x EQUALS `achievement reward` (`a checked case` g r (p PLUS 0.5) m s))
+        AND `the employer's pension contribution on the reward` c EQUALS x TIMES 0.05
+
+-- §§1-2 over the whole space: the reward is never negative, never above
+-- rank 1's full amount, something exactly for a covered teacher at a ranked
+-- school with a position and a month and not on a full sabbatical, never
+-- falling with a larger position or another month, paying above a full
+-- position as one (§2ד), and carrying the employer's 5%.
+#ASSERT all (GIVEN g YIELD
+                all (GIVEN r YIELD
+                        all (GIVEN p YIELD
+                                all (GIVEN m YIELD
+                                        all (GIVEN s YIELD
+                                                `section 2 holds for` (`a checked case` g r p m s) g r p m s)
+                                            `both booleans`)
+                                    (range 0 12))
+                            `tenths to 1.5`)
+                    (range 0 5))
+            `both booleans`
+
+-- §2ו: the reward counts for the pension contributions and nothing else.
+#ASSERT all (GIVEN q YIELD `the reward counts for` q EQUALS (q EQUALS `pension-fund contributions`))
+            (LIST `the hourly value`, `severance pay`, `percentage supplements`, `training-fund contributions`, `pension-fund contributions`)
