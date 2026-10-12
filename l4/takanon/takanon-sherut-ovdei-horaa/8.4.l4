@@ -149,6 +149,11 @@ DECIDE `seniority carried in full under (d)` m IS
 
 -- F-8.4-a: (c) gives a principal moving into supervision 25%, (d) "from
 -- management to supervision" 100%. Reading adopted: (c) governs a principal.
+-- F-8.4-d: (b) and (d) both decide an instructor becoming a supervisor,
+-- (b) whole and (d) subject to the ceiling. Reading adopted: (d), the
+-- clause that names the move into a supervisor's role; a teacher-
+-- instructor becoming an instructor, which (d) does not name, carries his
+-- years whole under (b).
 GIVEN m IS A `supervision move`
 GIVETH A NUMBER
 DECIDE `seniority carried into supervision` m IS
@@ -268,14 +273,20 @@ DECIDE `moved to the 18 1/3% fund from 1.9.84` w IF
 -- From 1.9.84 supervisors in additional work earn 18 1/3% "even if" they
 -- hold less than a full position in supervision and complete it with
 -- teaching at the same owners, the total exceeding one position: "even if"
--- reads the full-position supervisor of paragraph 2 as included.
+-- reads the full-position supervisor of paragraph 2 as included, and
+-- extends paragraph 2's group only in the position it asks: the work is
+-- still additional work the regulations approve (paragraph 1), and still
+-- not overtime by virtue of the supervision role (the completion is
+-- "בהוראה", in teaching).
 @ref akn:chp_8__sec_8_4__ssec_8_4_11__para_4
 GIVEN w IS AN `additional work`
 GIVETH A BOOLEAN
 DECIDE `qualifies for the 18 1/3% fund from 1.9.84` w IF
         `qualified for the 13 1/3% fund before 1.9.84` w
     OR (    w's `supervision position fraction` LESS THAN 1
+        AND w's `approved under the civil-service regulations`
         AND w's `with the same owners`
+        AND NOT w's `is overtime by virtue of the supervision role`
         AND w's `total position fraction` GREATER THAN 1)
 
 GIVEN w IS AN `additional work`
@@ -322,3 +333,146 @@ DECIDE `savings-fund contribution rate` w IS
 
 #TRACE `a fixed holiday` `Passover eve` AT 0 WITH
     PARTY `the supervisor` DOES `exchange a fixed holiday for another day` `Passover eve` AT 7
+
+§§ `Property checks`
+
+-- The section's rules over their whole finite space: every move into
+-- supervision, 0 to 20 years, ceilings of 13 and 20; positions of 0 to 6
+-- sixths and table rates of 0 to 100% in tenths; every fixed holiday;
+-- every additional work (approved or not, same owners or not, overtime or
+-- not, earlier in the fund or not) at 1/4 to 5/4 of a position in
+-- supervision and in all, on 31.8.84 and 1.9.84; and every research work.
+-- Salaries are placeholders.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`every move into supervision` MEANS
+    LIST `teacher in an instruction role to supervision`, `teacher-instructor to instructor`, `instructor to supervisor`,
+         `teacher-instructor to supervisor`, `school principal to supervision`, `deputy or other role holder to supervision`
+`every fixed holiday` MEANS
+    LIST `Passover eve`, `Shavuot eve`, `Rosh Hashana eve`, `Yom Kippur eve`, `Sukkot eve`, `an intermediate day of Passover`
+
+GIVEN v IS A `move into supervision`, n IS A NUMBER, c IS A NUMBER
+GIVETH A `supervision move`
+DECIDE `a checked move` v n c IS
+    `supervision move` WITH
+        `the move`                                  IS v
+        `years in the previous role`                IS n
+        `years in an instruction role since 1.9.83` IS n
+        `seniority ceiling`                         IS c
+
+GIVEN a IS A BOOLEAN, o IS A BOOLEAN, x IS A BOOLEAN, e IS A BOOLEAN, s IS A NUMBER, t IS A NUMBER, d IS A DATE
+GIVETH AN `additional work`
+DECIDE `a checked additional work` a o x e s t d IS
+    `additional work` WITH
+        `approved under the civil-service regulations` IS a
+        `with the same owners`                         IS o
+        `is overtime by virtue of the supervision role` IS x
+        `supervision position fraction`                IS s DIVIDED BY 4
+        `total position fraction`                      IS t DIVIDED BY 4
+        `was in the 13 1/3% fund before 1.9.84`         IS e
+        `month worked`                                 IS d
+
+-- 8.4.6.2: the allowance is the table's rate of the salary pro rata to
+-- the position, never negative, never above the salary or the
+-- full-position amount, never falling with the position; the overtime
+-- base grows by exactly the allowance.
+#ASSERT all (GIVEN k YIELD
+                all (GIVEN r YIELD
+                        LET s MEANS `supervisor` WITH `personal combined salary` IS 10000, `position fraction` IS k DIVIDED BY 6, `table rate` IS r DIVIDED BY 10, `civil-service work unit` IS 42.5, `civil-service annual leave` IS 26
+                            u MEANS `supervisor` WITH `personal combined salary` IS 10000, `position fraction` IS (k PLUS 1) DIVIDED BY 6, `table rate` IS r DIVIDED BY 10, `civil-service work unit` IS 42.5, `civil-service annual leave` IS 26
+                            a MEANS `supervision allowance` s
+                        IN      a EQUALS 10000 TIMES (r DIVIDED BY 10) TIMES (k DIVIDED BY 6)
+                            AND a AT LEAST 0
+                            AND a AT MOST 10000
+                            AND a AT MOST `full-position supervision allowance` s
+                            AND ((k EQUALS 6) OR a AT MOST `supervision allowance` u)
+                            AND `overtime hourly-value base` s 5000 EQUALS 5000 PLUS a)
+                    (range 0 10))
+            (range 0 6)
+
+`the table runs from its day and not the day before` MEANS
+        `the table applies in` (DATE_FROM_DMY 1 1 2001)
+    AND NOT `the table applies in` (DATE_FROM_DMY 31 12 2000)
+#ASSERT `the table runs from its day and not the day before`
+
+-- 8.4.6.3 over every move: never negative, never more than the years
+-- served, never falling with them; (a) never past 7 and (d) never past its
+-- ceiling. F-8.4-a over the whole space: (c) and (d) agree for a
+-- principal only at no years.
+#ASSERT all (GIVEN v YIELD
+                all (GIVEN n YIELD
+                        all (GIVEN c YIELD
+                                LET x MEANS `seniority carried into supervision` (`a checked move` v n c)
+                                IN      x AT LEAST 0
+                                    AND x AT MOST n
+                                    AND x AT MOST `seniority carried into supervision` (`a checked move` v (n PLUS 1) c)
+                                    AND `seniority carried from an instruction role` (`a checked move` v n c) AT MOST 7
+                                    AND `seniority carried in full under (d)` (`a checked move` v n c) AT MOST c)
+                            (LIST 13, 20))
+                    (range 0 20))
+            `every move into supervision`
+#ASSERT all (GIVEN n YIELD
+                (`seniority a principal carries under (c)` (`a checked move` `school principal to supervision` n 13)
+                 EQUALS `seniority carried in full under (d)` (`a checked move` `school principal to supervision` n 13))
+                EQUALS (n EQUALS 0))
+            (range 0 20)
+
+-- F-8.4-d: (b) carries an instructor's seniority into a supervisor's
+-- role whole, and (d) carries the same move in full "subject to the
+-- ceiling". Over 0 to 20 years and both ceilings, they agree exactly up
+-- to the ceiling.
+#ASSERT all (GIVEN n YIELD
+                all (GIVEN c YIELD
+                        LET m MEANS `a checked move` `instructor to supervisor` n c
+                        IN  (`seniority carried between supervision roles` m EQUALS `seniority carried in full under (d)` m)
+                            EQUALS (n AT MOST c))
+                    (LIST 13, 20))
+            (range 0 20)
+
+`an instructor of fifteen years carries fifteen under (b) and thirteen under (d)` MEANS
+        `seniority carried between supervision roles` (`a checked move` `instructor to supervisor` 15 13) EQUALS 15
+    AND `seniority carried in full under (d)` (`a checked move` `instructor to supervisor` 15 13) EQUALS 13
+    AND `seniority carried into supervision` (`a checked move` `teacher-instructor to instructor` 15 13) EQUALS 15
+#ASSERT `an instructor of fifteen years carries fifteen under (b) and thirteen under (d)`
+
+-- 8.4.7(2) over every research work: approved exactly when it meets
+-- section 1.26's rules and is in the field worked in or certified for.
+#ASSERT all (GIVEN a YIELD
+                all (GIVEN w YIELD
+                        all (GIVEN c YIELD
+                                `a supervisor's research is approved for the allowance`
+                                    (`research work` WITH `approvable under section 1.26's rules` IS a, `in the field the employee works in` IS w, `in the field the employee is certified to teach` IS c)
+                                EQUALS (a AND (w OR c)))
+                            `both booleans`)
+                    `both booleans`)
+            `both booleans`
+
+-- 8.4.11 over every additional work, before and from 1.9.84: the rate is
+-- 0, 13 1/3% (only before) or 18 1/3% (only from); nothing is earned on
+-- work the regulations do not approve, or with other owners; no one in
+-- the fund on 31.8.84 has less on 1.9.84; and, for the same work, more of
+-- the position in supervision never loses the fund.
+GIVEN a IS A BOOLEAN, o IS A BOOLEAN, x IS A BOOLEAN, e IS A BOOLEAN, s IS A NUMBER, t IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `the fund holds as 8.4.11 says for` a o x e s t IF
+        elem r1 (LIST 0, 40 DIVIDED BY 300)
+    AND elem r2 (LIST 0, 55 DIVIDED BY 300)
+    AND ((a AND o) OR (r1 EQUALS 0 AND r2 EQUALS 0) OR e)
+    AND r2 AT LEAST r1
+    AND ((s EQUALS 5) OR r2 AT MOST `savings-fund contribution rate` (`a checked additional work` a o x e (s PLUS 1) (max t (s PLUS 1)) (Date 1 9 1984)))
+    WHERE
+        r1 MEANS `savings-fund contribution rate` (`a checked additional work` a o x e s t (Date 31 8 1984))
+        r2 MEANS `savings-fund contribution rate` (`a checked additional work` a o x e s t (Date 1 9 1984))
+
+#ASSERT all (GIVEN a YIELD
+                all (GIVEN o YIELD
+                        all (GIVEN x YIELD
+                                all (GIVEN e YIELD
+                                        all (GIVEN s YIELD
+                                                all (GIVEN t YIELD `the fund holds as 8.4.11 says for` a o x e s t)
+                                                    (range s 5))
+                                            (range 1 5))
+                                    `both booleans`)
+                            `both booleans`)
+                    `both booleans`)
+            `both booleans`

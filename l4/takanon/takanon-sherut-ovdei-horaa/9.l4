@@ -335,3 +335,111 @@ DECIDE `deputy's management allowance` `month` `deputy's table rate` `personal c
     PARTY `the local authority or owning body` DOES `appoint a division principal` `BA` AT 1
 #TRACE `an enlargement goes to the joint committee` AT 0 WITH
     PARTY `the local authority or owning body` DOES `enlarge a work group beyond 12` FALSE AT 1
+
+§§ `Property checks`
+
+-- The chapter's rules over their whole finite space: every degree, 0 to 5
+-- years teaching classes 13-14, institutions of 0 to 20 such classes on
+-- post-primary rates of 0 to 20, every candidate (16), adult school or
+-- not, management hours of 0 to 6 against a quota of 4, and the day the
+-- deputies' table runs from and the day before it.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`every degree` MEANS
+    LIST `technician`, `practical engineer`, `BA`, `BSc in engineering`, `MA or MSc`, `doctorate`,
+         `BSc outside engineering`, `engineer`
+`the printed degrees in their order` MEANS
+    LIST `technician`, `practical engineer`, `BA`, `BSc in engineering`, `MA or MSc`, `doctorate`
+
+GIVEN n IS A NUMBER, p IS A NUMBER
+GIVETH A `technological institution`
+DECIDE `a checked institution` n p IS
+    `technological institution` WITH
+        `classes 13 and 14`                                      IS n
+        `post-primary allowance rate for that number of classes` IS p
+
+-- 9.1.2: F-9-a over every degree — exactly the two the list does not
+-- name have no row, and the reading gives every degree one. Down the
+-- printed list a higher degree never teaches more hours, before or after
+-- two years; two years never add an hour, take away at most one, and the
+-- step is exactly at two years.
+#ASSERT filter (GIVEN d YIELD count (`the rows for` d) EQUALS 0) `every degree` EQUALS LIST `BSc outside engineering`, `engineer`
+#ASSERT all (GIVEN d YIELD count (`the rows for` (`the row a degree is read under` d)) EQUALS 1) `every degree`
+#ASSERT all (GIVEN i YIELD
+                all (GIVEN y YIELD
+                        `work unit` (at `the printed degrees in their order` (i PLUS 1)) y AT MOST `work unit` (at `the printed degrees in their order` i) y)
+                    (range 0 5))
+            (range 0 4)
+#ASSERT all (GIVEN d YIELD
+                all (GIVEN y YIELD
+                            `work unit` d (y PLUS 1) AT MOST `work unit` d y
+                        AND `work unit` d y MINUS `work unit` d (y PLUS 1) AT MOST 1
+                        AND ((y EQUALS 1) OR `work unit` d (y PLUS 1) EQUALS `work unit` d y)
+                        AND `work unit` d y GREATER THAN 0)
+                    (range 0 5))
+            `every degree`
+
+-- 9.1.3: an adult school's year is the 30 weeks and 5 more, never fewer
+-- than another programme's.
+#ASSERT `weeks in the school year` TRUE EQUALS `weeks in the school year` FALSE PLUS 5
+
+-- 9.2 over every candidate: a first degree always suffices; without one,
+-- a technician or practical engineer only in an exceptional case with the
+-- special approval; nobody else.
+#ASSERT all (GIVEN f YIELD
+                all (GIVEN t YIELD
+                        all (GIVEN e YIELD
+                                all (GIVEN a YIELD
+                                        `may be appointed to teach practical engineers and technicians`
+                                            (`candidate teacher` WITH `holds at least a first degree` IS f, `holds a technician or practical-engineer title` IS t, `the case is exceptional` IS e, `special approval of the head of technological education` IS a)
+                                        EQUALS (f OR (t AND e AND a)))
+                                    `both booleans`)
+                            `both booleans`)
+                    `both booleans`)
+            `both booleans`
+
+-- 9.10-9.11 over 0 to 20 classes: each threshold, once reached, is never
+-- lost with more classes; wherever a deputy may be appointed there is a
+-- division principal for him to answer to; the second deputy is required
+-- only where the first is permitted. F-9-c over the whole space: the
+-- second deputy is required while the first is only permitted exactly from
+-- 15 classes.
+#ASSERT all (GIVEN n YIELD
+                LET i MEANS `a checked institution` n 10
+                    j MEANS `a checked institution` (n PLUS 1) 10
+                IN      `a division principal must be appointed` i EQUALS (n AT LEAST 4)
+                    AND `a first deputy may be appointed` i EQUALS (n AT LEAST 8)
+                    AND `a second deputy must be appointed` i EQUALS (n AT LEAST 15)
+                    AND ((NOT `a division principal must be appointed` i) OR `a division principal must be appointed` j)
+                    AND ((NOT `a first deputy may be appointed` i) OR `a first deputy may be appointed` j)
+                    AND ((NOT `a second deputy must be appointed` i) OR `a second deputy must be appointed` j)
+                    AND ((NOT `a first deputy may be appointed` i) OR `a division principal must be appointed` i)
+                    AND ((NOT `a second deputy must be appointed` i) OR `a first deputy may be appointed` i))
+            (range 0 20)
+
+-- 9.10.1(b): of every degree, a principal needs exactly an engineer's
+-- title, an MA or MSc, or a doctorate; 9.10.2: his rate is 85% of the
+-- post-primary rate, never above it, never negative, never falling with it.
+#ASSERT filter `holds a degree a division principal needs` `every degree` EQUALS LIST `MA or MSc`, `doctorate`, `engineer`
+#ASSERT all (GIVEN p YIELD
+                LET r MEANS `division principal's management allowance rate` (`a checked institution` 10 p)
+                IN      r EQUALS 0.85 TIMES p
+                    AND r AT MOST p
+                    AND r AT LEAST 0
+                    AND r AT MOST `division principal's management allowance rate` (`a checked institution` 10 (p PLUS 1)))
+            (range 0 20)
+
+-- 9.11.1(c): giving the deputies fewer hours never breaks a quota that
+-- more hours kept.
+#ASSERT all (GIVEN u YIELD
+                all (GIVEN h YIELD
+                        ((NOT `the deputies fit the existing quota` u (h PLUS 1) 4) OR `the deputies fit the existing quota` u h 4)
+                        AND `the deputies fit the existing quota` u h 4 EQUALS (u PLUS h AT MOST 4))
+                    (range 0 6))
+            (range 0 6)
+
+-- 9.11.2: the deputies' table runs from 1.9.95 and not on 31.8.95.
+`the deputies' table runs from its day and not the day before` MEANS
+        `deputy's management allowance` (DATE_FROM_DMY 1 9 1995) 0.1 10000 EQUALS JUST 1000
+    AND `deputy's management allowance` (DATE_FROM_DMY 31 8 1995) 0.1 10000 EQUALS NOTHING
+#ASSERT `the deputies' table runs from its day and not the day before`
