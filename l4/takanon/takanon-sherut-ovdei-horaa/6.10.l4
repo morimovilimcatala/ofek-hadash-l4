@@ -404,3 +404,190 @@ DECIDE `paying and notifying` IS
     PARTY `the local authority or owning body` DOES `notify the other owner of the payment` AT 1
 
 -- akn:chp_6__sec_6_10__ssec_6_10_6/p1 akn:chp_6__sec_6_10__ssec_6_10_6/p2 akn:chp_6__sec_6_10__ssec_6_10_6/p3 akn:chp_6__sec_6_10__ssec_6_10_6/p4 akn:chp_6__sec_6_10__ssec_6_10_6/p5 akn:chp_6__sec_6_10__ssec_6_10_6/p6 akn:chp_6__sec_6_10__ssec_6_10_6/p7 akn:chp_6__sec_6_10__ssec_6_10_6/p8 akn:chp_6__sec_6_10__ssec_6_10_6/p9 akn:chp_6__sec_6_10__ssec_6_10_6/p10 akn:chp_6__sec_6_10__ssec_6_10_6/p11 The sources (אסמכתא) of section 6.10.6.
+
+§§ `Property checks`
+
+-- The section's rules over their whole finite space: subjects in schools
+-- of 6, 8 or 12 classes, post-primary or not, at each boundary of weekly
+-- hours (0, 47, 48, 71, 72, 99, 100, 120), with 0 to 6 other teachers at
+-- half a position or more and 0 to 6 at less; small schools or not with 1
+-- to 3 teachers filling a half, one or two positions; every candidate (the
+-- five booleans, 0 to 4 years, a sixth to a whole position in sixths);
+-- and 0 to 10 hours in each division of a six-year school.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`the hours' boundaries` MEANS LIST 0, 47, 48, 71, 72, 99, 100, 120
+`every staff threshold` MEANS LIST (PAIR OF 2, 3), (PAIR OF 4, 5), (PAIR OF 5, 6)
+
+GIVEN p IS A BOOLEAN, c IS A NUMBER, h IS A NUMBER, a IS A NUMBER, l IS A NUMBER, sm IS A BOOLEAN, t IS A NUMBER, f IS A NUMBER
+GIVETH A `subject in a school`
+DECIDE `a checked subject` p c h a l sm t f IS
+    `subject in a school` WITH
+        `is a post-primary institution`               IS p
+        `classes in the school`                       IS c
+        `weekly hours taught in the subject`          IS h
+        `other teachers at half a position or more`   IS a
+        `other teachers at less than half a position` IS l
+        `is a small school`                           IS sm
+        `teachers of the subject`                     IS t
+        `positions the subject's hours fill`          IS f
+
+GIVEN r IS A MAYBE NUMBER
+GIVETH A NUMBER
+DECIDE `the rate or none` r IS
+    CONSIDER r
+    WHEN JUST x THEN x
+    WHEN NOTHING THEN 0
+
+-- 6.10.2's opening over 0 to 5 coordinators the criteria give: the
+-- institution has at least one, and never fewer than the criteria give.
+#ASSERT all (GIVEN n YIELD
+                    `coordinators the institution has` n AT LEAST 1
+                AND `coordinators the institution has` n AT LEAST n
+                AND `coordinators the institution has` (n PLUS 1) AT LEAST `coordinators the institution has` n)
+            (range 0 5)
+
+-- The staff condition over 0 to 6 teachers of each kind and every
+-- threshold of 6.10.2א.1 and 6.10.6.2א-ג: the reading adopted never
+-- refuses a staff the printed words accept, and one more teacher of either
+-- kind never disqualifies. F-6.10-b over the same space: the two part
+-- exactly where the half-position teachers fall short, the staff together
+-- reach the larger number and the less-than-half teachers alone do not.
+#ASSERT all (GIVEN th YIELD
+                all (GIVEN a YIELD
+                        all (GIVEN l YIELD
+                                LET s MEANS `a checked subject` TRUE 12 48 a l FALSE 3 2
+                                    s2 MEANS `a checked subject` TRUE 12 48 (a PLUS 1) l FALSE 3 2
+                                    s3 MEANS `a checked subject` TRUE 12 48 a (l PLUS 1) FALSE 3 2
+                                IN      ((NOT `the staff condition as printed` s (fst th) (snd th)) OR `the staff condition` s (fst th) (snd th))
+                                    AND ((NOT `the staff condition` s (fst th) (snd th))
+                                         OR (`the staff condition` s2 (fst th) (snd th) AND `the staff condition` s3 (fst th) (snd th)))
+                                    AND (NOT (`the staff condition` s (fst th) (snd th) EQUALS `the staff condition as printed` s (fst th) (snd th)))
+                                        EQUALS (    a LESS THAN fst th
+                                                AND a PLUS l AT LEAST snd th
+                                                AND l LESS THAN snd th))
+                            (range 0 6))
+                    (range 0 6))
+            `every staff threshold`
+
+-- 6.10.6.2 over every subject's size (post-primary or not, every hours
+-- boundary, 0 to 6 teachers of each kind): the rate is 5, 6 or 7% or none,
+-- none outside a post-primary institution; more hours or another teacher
+-- never lower it; and a subject where 6.10.2א.1 lets the principal appoint
+-- (in a school of 8 classes) always has at least the 5% rate.
+#ASSERT all (GIVEN p YIELD
+                all (GIVEN h YIELD
+                        all (GIVEN a YIELD
+                                all (GIVEN l YIELD
+                                        LET s  MEANS `a checked subject` p 8 h a l FALSE 3 2
+                                            r  MEANS `the rate or none` (`coordination rate by the subject's size` s)
+                                        IN      elem r (LIST 0, 5%, 6%, 7%)
+                                            AND (p OR r EQUALS 0)
+                                            AND `the rate or none` (`coordination rate by the subject's size` (`a checked subject` p 8 (h PLUS 1) a l FALSE 3 2)) AT LEAST r
+                                            AND `the rate or none` (`coordination rate by the subject's size` (`a checked subject` p 8 h (a PLUS 1) l FALSE 3 2)) AT LEAST r
+                                            AND `the rate or none` (`coordination rate by the subject's size` (`a checked subject` p 8 h a (l PLUS 1) FALSE 3 2)) AT LEAST r
+                                            AND ((NOT `the principal may appoint a coordinator for the subject` s) OR r AT LEAST 5%))
+                                    (range 0 6))
+                            (range 0 6))
+                    `the hours' boundaries`)
+            `both booleans`
+
+-- 6.10.2א.1 over schools of 6, 8 and 12 classes at every hours boundary:
+-- the principal may appoint only from 8 classes and 48 hours, and more
+-- classes or hours never take it away.
+#ASSERT all (GIVEN c YIELD
+                all (GIVEN h YIELD
+                        LET s MEANS `a checked subject` TRUE c h 2 0 FALSE 3 2
+                        IN      ((NOT `the principal may appoint a coordinator for the subject` s) OR (c AT LEAST 8 AND h AT LEAST 48))
+                            AND ((NOT `the principal may appoint a coordinator for the subject` s)
+                                 OR (    `the principal may appoint a coordinator for the subject` (`a checked subject` TRUE (c PLUS 1) h 2 0 FALSE 3 2)
+                                     AND `the principal may appoint a coordinator for the subject` (`a checked subject` TRUE c (h PLUS 1) 2 0 FALSE 3 2))))
+                    `the hours' boundaries`)
+            (LIST 6, 8, 12)
+
+-- 6.10.2א.2 over small schools or not, 1 to 3 teachers and a half, one or
+-- two positions: F-6.10-f's two readings part exactly in a small school
+-- whose subject fills less than a position. 6.10.6.1א(1א) with 6.10.6.2:
+-- a coordinator appointed under 6.10.2א.2 always has a rate, the size
+-- rate where the subject has one (F-6.10-g, over every subject size) and
+-- 4% where it has none.
+#ASSERT all (GIVEN sm YIELD
+                all (GIVEN t YIELD
+                        all (GIVEN f YIELD
+                                LET s MEANS `a checked subject` TRUE 6 12 0 0 sm t f
+                                IN  (NOT (`the district manager may recommend a coordinator` s
+                                          EQUALS `the district manager may recommend a coordinator, the position floor read as binding both` s))
+                                    EQUALS (sm AND f LESS THAN 1))
+                            (LIST 1/2, 1, 2))
+                    (range 1 3))
+            `both booleans`
+#ASSERT all (GIVEN h YIELD
+                all (GIVEN a YIELD
+                        all (GIVEN l YIELD
+                                LET s MEANS `a checked subject` TRUE 8 h a l TRUE 3 2
+                                IN  `coordination rate` s TRUE
+                                    EQUALS (IF `coordination rate by the subject's size` s EQUALS NOTHING
+                                            THEN JUST (4%)
+                                            ELSE `coordination rate by the subject's size` s))
+                            (range 0 6))
+                    (range 0 6))
+            `the hours' boundaries`
+
+-- 6.10.2ב over every candidate and both kinds of subject: the experience
+-- requirement holds exactly from 3 years, guidance ability and a third of
+-- a position, and more years or position never undo it; an other subject
+-- needs the permanent licence; and the exception for a theoretical
+-- subject needs a special and exceptional case.
+GIVEN dg IS A BOOLEAN, pd IS A BOOLEAN, lc IS A BOOLEAN, ex IS A BOOLEAN, ms IS A BOOLEAN, yrs IS A NUMBER, gd IS A BOOLEAN, fr IS A NUMBER
+GIVETH A `coordinator candidate`
+DECIDE `a checked candidate` dg pd lc ex ms yrs gd fr IS
+    `coordinator candidate` WITH
+        `holds an academic degree in the subject`         IS dg
+        `has full pedagogical training`                   IS pd
+        `holds a permanent licence in the subject`        IS lc
+        `licence earned by completion exams or the licensing committee` IS ex
+        `supervision finds him the most suitable teacher of the subject` IS ms
+        `years teaching the subject`                      IS yrs
+        `has guidance ability in pedagogical work`        IS gd
+        `position fraction teaching the subject in the school` IS fr
+
+#ASSERT all (GIVEN yrs YIELD
+                all (GIVEN gd YIELD
+                        all (GIVEN k YIELD
+                                LET fr MEANS k DIVIDED BY 6
+                                    c  MEANS `a checked candidate` FALSE FALSE TRUE FALSE FALSE yrs gd fr
+                                IN      `meets the experience requirements` c EQUALS (yrs AT LEAST 3 AND gd AND k AT LEAST 2)
+                                    AND ((NOT `meets the experience requirements` c)
+                                         OR (    `meets the experience requirements` (`a checked candidate` FALSE FALSE TRUE FALSE FALSE (yrs PLUS 1) gd fr)
+                                             AND `meets the experience requirements` (`a checked candidate` FALSE FALSE TRUE FALSE FALSE yrs gd (fr PLUS 1/6)))))
+                            (range 0 6))
+                    `both booleans`)
+            (range 0 4)
+#ASSERT all (GIVEN dg YIELD
+                all (GIVEN pd YIELD
+                        all (GIVEN lc YIELD
+                                all (GIVEN ex YIELD
+                                        all (GIVEN ms YIELD
+                                                LET c MEANS `a checked candidate` dg pd lc ex ms 3 TRUE (1/3)
+                                                IN      `may be appointed subject coordinator` `other subject` c FALSE EQUALS lc
+                                                    AND `may be appointed subject coordinator` `theoretical subject` c FALSE EQUALS (dg AND pd)
+                                                    AND `may be appointed subject coordinator` `theoretical subject` c TRUE
+                                                        EQUALS ((dg AND pd) OR (lc AND ex AND ms)))
+                                            `both booleans`)
+                                    `both booleans`)
+                            `both booleans`)
+                    `both booleans`)
+            `both booleans`
+
+-- 6.10.6.3 over 0 to 10 hours in each division: the hours counted are the
+-- two together; the owner of the division with more of them pays; and
+-- F-6.10-e over the same space: no owner is named exactly where the hours
+-- are equal.
+#ASSERT all (GIVEN m YIELD
+                all (GIVEN u YIELD
+                            `hours counted for the reward` m u EQUALS m PLUS u
+                        AND ((NOT (m GREATER THAN u)) OR `who pays the reward` m u EQUALS JUST `the middle division's owner`)
+                        AND ((NOT (u GREATER THAN m)) OR `who pays the reward` m u EQUALS JUST `the upper division's owner`)
+                        AND (`who pays the reward` m u EQUALS NOTHING) EQUALS (m EQUALS u))
+                    (range 0 10))
+            (range 0 10)
