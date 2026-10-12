@@ -165,3 +165,92 @@ DECIDE `integration allowance rate` t IS
     NOT (`integration allowance rate` `a certified homeroom teacher`
          EQUALS `section 4.6.2(b)'s rate for a certified integration teacher`)
 #ASSERT `a certified integrating homeroom teacher gets 5.5% where section 4.6.2(b) gives 9%`
+
+§§ `Property checks`
+
+-- The section's rules over their whole finite space: every integrating
+-- teacher (both roles, 0 to 40 whole weekly hours, certified or not, 1 to
+-- 4 schools, the day before 4.10(c) applies and the day it does — 1,312
+-- teachers), and every class of 0 to 12 integrated pupils.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`both integration roles` MEANS LIST `the integrating homeroom teacher`, `the mobile teacher assisting integration`
+
+GIVEN r IS AN `integration role`, h IS A NUMBER, cert IS A BOOLEAN, n IS A NUMBER, d IS A DATE
+GIVETH AN `integrating teacher`
+DECIDE `a checked integrating teacher` r h cert n d IS
+    `integrating teacher` WITH
+        `role`                            IS r
+        `weekly working hours`            IS h
+        `certified for special education` IS cert
+        `number of schools worked in`     IS n
+        `the day`                         IS d
+
+GIVEN prop IS A FUNCTION FROM `integrating teacher` TO BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `holds for every integrating teacher` prop IF
+    all (GIVEN r YIELD
+            all (GIVEN h YIELD
+                    all (GIVEN cert YIELD
+                            all (GIVEN n YIELD
+                                    all (GIVEN d YIELD
+                                            prop (`a checked integrating teacher` r h cert n d))
+                                        (LIST Date 31 8 1991, `the day the arrangement applies from`))
+                                (range 1 4))
+                        `both booleans`)
+                (range 0 40))
+        `both integration roles`
+
+-- 4.10(a) over every class: a class of sensory-impaired pupils is of the
+-- prescribed size exactly from 6 to 8, any other exactly from 8 to 10.
+#ASSERT all (GIVEN s YIELD
+                all (GIVEN k YIELD
+                            `the class has the prescribed number of integrated pupils`
+                                (`integration class` WITH `a class in a primary school` IS TRUE, `pupils with complex functional learning problems from several schools in the locality or area` IS TRUE, `pupils with sensory impairments` IS s, `number of integrated pupils` IS k)
+                            EQUALS (elem k (IF s THEN LIST 6, 7, 8 ELSE LIST 8, 9, 10)))
+                    (range 0 12))
+            `both booleans`
+
+-- 4.10(c) over every teacher: the rate is nothing before 1.9.91 and, from
+-- that day, 5.5% or 9% for every teacher — never anything else; the mobile
+-- teacher's two bands of education hours meet at 18/19 and 10/11 with no
+-- whole hour in neither, and more hours never give fewer; a fourth school
+-- never takes the split allowance away. 4.10(c)(3)'s rate is section
+-- 4.6.2(b)/4.6.3(b)'s for every mobile teacher, certified or not.
+-- (a) and (b) as printed, for a whole number of hours.
+GIVEN h IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the bands as printed` h IS
+    BRANCH IF elem h (range 19 40) THEN 2
+           IF elem h (range 11 18) THEN 1
+           OTHERWISE 0
+
+GIVEN t IS AN `integrating teacher`
+GIVETH A BOOLEAN
+DECIDE `4.10(c), for every teacher` t IF
+        ((t's `the day` AT LEAST `the day the arrangement applies from`)
+         OR `integration allowance rate` t EQUALS 0)
+    AND ((t's `the day` LESS THAN `the day the arrangement applies from`)
+         OR elem (`integration allowance rate` t) (LIST 5.5%, 9%))
+    AND `education hours of the mobile teacher` t EQUALS `the bands as printed` (t's `weekly working hours`)
+    AND `education hours of the mobile teacher` (`a checked integrating teacher` (t's `role`) (t's `weekly working hours` PLUS 1) (t's `certified for special education`) (t's `number of schools worked in`) (t's `the day`))
+        AT LEAST `education hours of the mobile teacher` t
+    AND ((NOT `the mobile teacher is entitled to the split allowance` t)
+         OR `the mobile teacher is entitled to the split allowance` (`a checked integrating teacher` (t's `role`) (t's `weekly working hours`) (t's `certified for special education`) (t's `number of schools worked in` PLUS 1) (t's `the day`)))
+    AND ((NOT (t's `role` EQUALS `the mobile teacher assisting integration`))
+         OR `special-education allowance rate of the mobile teacher` t
+            EQUALS (IF t's `certified for special education` THEN `section 4.6.2(b)'s rate for a certified integration teacher` ELSE 5.5%))
+#ASSERT `holds for every integrating teacher` `4.10(c), for every teacher`
+
+-- F-4.10-a over every teacher: the integrating homeroom teacher's rate,
+-- from the day 4.10(c) applies, parts from section 4.6's for exactly the
+-- certified ones — 5.5% against 9% — and agrees for every uncertified one.
+GIVEN t IS AN `integrating teacher`
+GIVETH A BOOLEAN
+DECIDE `the homeroom rate parts from section 4.6 exactly for the certified` t IF
+        (NOT (    t's `role` EQUALS `the integrating homeroom teacher`
+              AND t's `the day` AT LEAST `the day the arrangement applies from`))
+    OR (NOT (`integration allowance rate` t
+             EQUALS (IF t's `certified for special education` THEN `section 4.6.2(b)'s rate for a certified integration teacher` ELSE 5.5%)))
+       EQUALS t's `certified for special education`
+#ASSERT `holds for every integrating teacher` `the homeroom rate parts from section 4.6 exactly for the certified`
