@@ -385,3 +385,131 @@ DECIDE `¶4 names no one to cancel the selection` IF
     PARTY `the teaching employee` DOES `complete the principal training programme` AT 5
 #TRACE `appointing a principal` `a sitting principal without Avney Rosha` AT 0 WITH
     PARTY `the local authority or owning body` DOES `appoint the candidate as principal` AT 1
+
+§§ `Property checks`
+
+-- The circular over a finite space of candidates: 0 to 6 years of
+-- teaching, 4 or 5 years of management, in education or not, staffs of 10
+-- or 30; a degree and a qualification or not; every kind of training; the
+-- two exemptions; the Ministry's two findings.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`every training` MEANS
+    LIST `the Avney Rosha programme completed or eligible`,
+         `the Avney Rosha programme begun in July of the year before the posts are published` TRUE,
+         `the Avney Rosha programme begun in July of the year before the posts are published` FALSE,
+         `an earlier Ministry programme for principals completed`,
+         `the 5769 pilot master's in school leadership`,
+         `a master's in education administration` TRUE,
+         `a master's in education administration` FALSE,
+         `none`
+
+GIVEN y IS A NUMBER
+      m IS A NUMBER
+      e IS A BOOLEAN
+      n IS A NUMBER
+      d IS A BOOLEAN
+      t IS A `principal training`
+      x IS A BOOLEAN
+      u IS A BOOLEAN
+      f IS A BOOLEAN
+GIVETH A `candidate`
+DECIDE `a checked candidate` y m e n d t x u f IS
+    `candidate` WITH
+        `years of actual teaching in grades 1-12 in Israel` IS y
+        `full school years of actual teaching` IS y
+        `years of proven management` IS m
+        `managed in the education system` IS e
+        `team size managed` IS n
+        `recognised master's degree` IS d
+        `post-primary pedagogical qualification` IS d
+        `principal training` IS t
+        `serving principal for 3 consecutive years with 3 approved years and no negative opinion` IS x
+        `former principal 4 of the last 10 years with 4 approved years and no negative opinion` IS FALSE
+        `found unsuitable by a Ministry representative` IS u
+        `found fit by the Ministry` IS f
+
+-- Condition 1 and its note over years, management and staffs: five years'
+-- teaching meets it alone; below five, exactly three full years with five
+-- years' management, in education or over a staff of 30 (finding a's
+-- reading); more teaching never loses it.
+#ASSERT all (GIVEN y YIELD
+                all (GIVEN m YIELD
+                        all (GIVEN e YIELD
+                                all (GIVEN n YIELD
+                                        LET c MEANS `a checked candidate` y m e n TRUE `none` FALSE FALSE FALSE
+                                        IN      `meets the teaching condition` c
+                                                EQUALS (y AT LEAST 5 OR (y AT LEAST 3 AND m AT LEAST 5 AND (e OR n AT LEAST 30)))
+                                            AND ((NOT `meets the teaching condition` c)
+                                                 OR `meets the teaching condition` (`a checked candidate` (y PLUS 1) m e n TRUE `none` FALSE FALSE FALSE)))
+                                    (LIST 10, 30))
+                            `both booleans`)
+                    (LIST 4, 5))
+            (range 0 6)
+
+-- Condition 4 over every kind of training: Avney Rosha, an earlier
+-- programme or the pilot master's always; Avney Rosha begun in July only
+-- for a tender closing before it ends; a master's in education
+-- administration only if begun by 5771; none never. An exemption meets the
+-- condition whatever the training.
+#ASSERT all (GIVEN t YIELD
+                    `meets the training condition` (`a checked candidate` 5 5 TRUE 30 TRUE t TRUE FALSE FALSE)
+                AND `meets the training condition` (`a checked candidate` 5 5 TRUE 30 TRUE t FALSE FALSE FALSE)
+                    EQUALS (NOT (   t EQUALS `none`
+                                 OR t EQUALS `the Avney Rosha programme begun in July of the year before the posts are published` FALSE
+                                 OR t EQUALS `a master's in education administration` FALSE)))
+            `every training`
+
+-- The thresholds over training, degree and teaching: met exactly where all
+-- four conditions are.
+#ASSERT all (GIVEN t YIELD
+                all (GIVEN d YIELD
+                        all (GIVEN y YIELD
+                                LET c MEANS `a checked candidate` y 5 FALSE 10 d t FALSE FALSE FALSE
+                                IN  `meets the threshold conditions` c
+                                    EQUALS (    `meets the teaching condition` c AND `meets the academic condition` c
+                                            AND `meets the pedagogical condition` c AND `meets the training condition` c))
+                            (LIST 2, 3, 5))
+                    `both booleans`)
+            `every training`
+
+-- ¶15 and the Ministry's consent over its two findings, for a qualified
+-- candidate: ¶15 bars exactly one found unsuitable; consent asks a finding
+-- of fitness; the two part exactly where the Ministry found neither
+-- (finding b), and an unqualified candidate passes neither.
+#ASSERT all (GIVEN u YIELD
+                all (GIVEN f YIELD
+                        LET c MEANS `a checked candidate` 5 5 TRUE 30 TRUE `none` TRUE u f
+                            q MEANS `a checked candidate` 2 5 TRUE 30 TRUE `none` TRUE u f
+                        IN      `may be selected under ¶15` c EQUALS (NOT u)
+                            AND `may be appointed with the Ministry's consent` c EQUALS f
+                            AND (`may be selected under ¶15` c AND NOT `may be appointed with the Ministry's consent` c) EQUALS ((NOT u) AND (NOT f))
+                            AND (NOT `may be selected under ¶15` q)
+                            AND (NOT `may be appointed with the Ministry's consent` q))
+                    `both booleans`)
+            `both booleans`
+
+-- ¶3-¶5 over every owner: a tender exactly for a local authority or the
+-- owner of a six-year school.
+#ASSERT all (GIVEN a YIELD
+                all (GIVEN s YIELD
+                        `must select by tender` (`owner` WITH
+                                                    `owns an upper division (10-12 or 9-12)` IS TRUE
+                                                    `supervised and budgeted by the Ministry` IS TRUE
+                                                    `licensed under the Supervision of Schools Law` IS TRUE
+                                                    `a local authority` IS a
+                                                    `owns a six-year school` IS s)
+                        EQUALS (a OR s))
+                    `both booleans`)
+            `both booleans`
+
+-- The desirable skills: twelve, all weighed, none a threshold.
+`every desirable skill` MEANS
+    LIST `knowing the school's particular features`, `leading, directing and guiding education, teaching and learning`,
+         `planning a vision and a work plan with the staff`, `leading a team and teamwork`,
+         `focusing on the individual, a safe environment, equality`, `experience teaching pupils with special needs`,
+         `knowing the law and the Ministry's instructions`, `positive ties with the community and public bodies`,
+         `expression in Hebrew and in the school's language`, `administrative ability: office, accounts and finances`,
+         `a budgeted pedagogical and organisational plan from data`, `a school curriculum on the official one`
+#ASSERT count `every desirable skill` EQUALS 12
+#ASSERT all (GIVEN s YIELD `is weighed in the advisers' committee's recommendation` s AND NOT `is a threshold condition` s) `every desirable skill`
