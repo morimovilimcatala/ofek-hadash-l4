@@ -60,7 +60,7 @@ DECLARE `who acts as "the owner"` IS ONE OF
 DECLARE `substitute engagement` HAS
     `period fixed in advance`       IS A BOOLEAN @desc engaged for a period defined in advance (not indefinite, not only a maximum)
     `days worked`                   IS A NUMBER
-    `days in two months`            IS A NUMBER  @desc how many days two months are, counted from the engagement's start; an input of the calendar
+    `days in two months`            IS A NUMBER  @desc how many days two calendar months are from the engagement's start: `days in two months from` its date
 
 @desc A supervisor's visit to a lesson of a teacher proposed for dismissal (section 6.5.8(b)).
 DECLARE `lesson visit` HAS
@@ -258,24 +258,49 @@ DECIDE `a sub-clause of 6.5.7(a)-(b) governs the substitute` e IF
     OR e's `days worked` LESS THAN e's `days in two months`
     OR e's `days worked` GREATER THAN e's `days in two months`
 
+-- Two months from the engagement's start are calendar months: to the same
+-- day two months on, or that month's last day where it is shorter.
+@ref akn:chp_6__sec_6_5__hc_2__para_7__subpara_a akn:chp_6__sec_6_5__hc_2__para_7__subpara_b
+GIVEN `start day` IS A NUMBER, `start month` IS A NUMBER, `start year` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `days in two months from` `start day` `start month` `start year` IS
+    DATE_SERIAL (`two months after` `start day` `start month` `start year`)
+    MINUS DATE_SERIAL (Date `start day` `start month` `start year`)
+
+GIVEN `start day` IS A NUMBER, `start month` IS A NUMBER, `start year` IS A NUMBER
+GIVETH A DATE
+DECIDE `two months after` `start day` `start month` `start year` IS
+    IF `start month` GREATER THAN 10
+    THEN Date (min `start day` (`Days in month` (`start month` MINUS 10) (`start year` PLUS 1))) (`start month` MINUS 10) (`start year` PLUS 1)
+    ELSE Date (min `start day` (`Days in month` (`start month` PLUS 2) `start year`)) (`start month` PLUS 2) `start year`
+
 @ref akn:chp_6__sec_6_5__hc_2__para_7__subpara_d
 GIVEN `worked a whole year as a substitute` IS A BOOLEAN, `position fraction that year` IS A NUMBER, `invited for the next year` IS A BOOLEAN
 GIVETH A BOOLEAN
 DECIDE `has the status of a second trial year` `worked a whole year as a substitute` `position fraction that year` `invited for the next year` IF
     `worked a whole year as a substitute` AND `position fraction that year` AT LEAST 1/3 AND `invited for the next year`
 
--- 8(a): second year, or third (extended), the principal and/or the
--- supervision not satisfied: dismissal on two supervisors' opinions after
--- the committee of 8(c)(4).
+-- 8(a): second year, or third "(מורה שתקופת ניסיונו הוארכה)", the
+-- principal and/or the supervision not satisfied: dismissal on two
+-- supervisors' opinions after the committee of 8(c)(4). F-6.5-d: a
+-- temporary-licence holder's third year is a trial year by (2) without an
+-- extension; the reading adopted takes it as one that runs to a third year.
+@ref akn:chp_6__sec_6_5__hc_2__para_8__subpara_a
+GIVEN `extended by a year` IS A BOOLEAN, `holds a temporary licence` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `the trial runs to a third year` `extended by a year` `holds a temporary licence` IF
+    `extended by a year` OR `holds a temporary licence`
+
 @ref akn:chp_6__sec_6_5__hc_2__para_8__subpara_a
 GIVEN `year of the trial` IS A NUMBER,
+      `the trial runs to a third year` IS A BOOLEAN @desc the trial was extended by a year (3(a)), or the teacher holds a temporary licence (F-6.5-d)
       `the work does not satisfy the principal and/or the supervision, on pedagogical or negligence and discipline grounds` IS A BOOLEAN,
       `opinion of the school's supervisor` IS A BOOLEAN,
       `opinion of a second supervisor` IS A BOOLEAN, `discussed by the committee of 8(c)(4)` IS A BOOLEAN
 GIVETH A BOOLEAN
-DECIDE `a second- or third-year teacher may be dismissed` `year of the trial` `the work does not satisfy the principal and/or the supervision, on pedagogical or negligence and discipline grounds` `opinion of the school's supervisor` `opinion of a second supervisor` `discussed by the committee of 8(c)(4)` IF
-        `year of the trial` AT LEAST 2
-    AND `year of the trial` AT MOST 3
+DECIDE `a second- or third-year teacher may be dismissed` `year of the trial` `the trial runs to a third year` `the work does not satisfy the principal and/or the supervision, on pedagogical or negligence and discipline grounds` `opinion of the school's supervisor` `opinion of a second supervisor` `discussed by the committee of 8(c)(4)` IF
+        (   `year of the trial` EQUALS 2
+         OR (`year of the trial` EQUALS 3 AND `the trial runs to a third year`))
     AND `the work does not satisfy the principal and/or the supervision, on pedagogical or negligence and discipline grounds`
     AND `opinion of the school's supervisor`
     AND `opinion of a second supervisor`
@@ -283,7 +308,9 @@ DECIDE `a second- or third-year teacher may be dismissed` `year of the trial` `t
 
 -- 8(b): four full-lesson reports, two of them the second supervisor's; no
 -- more than 2 lessons of the teacher a day; at least 10 days between one
--- visit and the next; never both supervisors on the same day.
+-- visit and the next; never both supervisors on the same day. F-6.5-e: a
+-- "visit" is read as a day's visit, so the 10 days run between visit days
+-- and two lessons on one day are allowed.
 @ref akn:chp_6__sec_6_5__hc_2__para_8__subpara_b
 GIVEN vs IS A LIST OF `lesson visit`
 GIVETH A BOOLEAN
@@ -416,14 +443,19 @@ DECIDE `the committee of three's two weeks` IS
     LEST BREACH BY `the committee of three (section 8(c)(4))` BECAUSE "section 6.5.13: the committee ends its discussions within two weeks"
 
 -- 14: the secretariat's chair appoints two (one chairing), and the owner and
--- the representative organisation up to two each; the material goes out
+-- the representative organisation each send representatives ("נציגים"), no
+-- more than two; the material goes out
 -- about two weeks before; the meeting no later than 1 May.
 -- 21(c) sets up the disciplinary joint committee in the same words.
 @ref akn:chp_6__sec_6_5__hc_2__para_14 akn:chp_6__sec_6_5__hc_2__para_21__subpara_c/p1
 GIVEN `the secretariat's members (chair included)` IS A NUMBER, `the owner's members` IS A NUMBER, `the organisation's members` IS A NUMBER
 GIVETH A BOOLEAN
 DECIDE `the joint committee is properly made up` `the secretariat's members (chair included)` `the owner's members` `the organisation's members` IF
-    `the secretariat's members (chair included)` EQUALS 2 AND `the owner's members` AT MOST 2 AND `the organisation's members` AT MOST 2
+        `the secretariat's members (chair included)` EQUALS 2
+    AND `the owner's members` AT LEAST 1
+    AND `the owner's members` AT MOST 2
+    AND `the organisation's members` AT LEAST 1
+    AND `the organisation's members` AT MOST 2
 
 @ref akn:chp_6__sec_6_5__hc_2__para_14
 GIVEN `y` IS A NUMBER
@@ -497,23 +529,24 @@ DECIDE `who decides on the teacher's defence` `a reprimand rather than a warning
 
 -- 18 and 20: a repeated offence within five years of a warning brings a
 -- reprimand; within five years of a reprimand, dismissal proceedings
--- (21) through the general supervisor.
+-- (21) through the general supervisor. Each period runs from its own
+-- letter: a reprimand more than five years old leaves a later warning
+-- (16) to bring a reprimand again.
 DECLARE `consequence of a repeated offence` IS ONE OF
     `a reprimand worded as a warning of dismissal`
     `dismissal proceedings through the general supervisor`
     `no step under sections 18 and 20`
 
 @ref akn:chp_6__sec_6_5__hc_2__para_18/p1 akn:chp_6__sec_6_5__hc_2__para_18/p2 akn:chp_6__sec_6_5__hc_2__para_20
-GIVEN `holds a written reprimand` IS A BOOLEAN, `holds a written warning` IS A BOOLEAN, `years since it` IS A NUMBER
+GIVEN `holds a written reprimand` IS A BOOLEAN, `years since the reprimand` IS A NUMBER,
+      `holds a written warning` IS A BOOLEAN, `years since the warning` IS A NUMBER
 GIVETH A `consequence of a repeated offence`
-DECIDE `a repeated offence leads to` `holds a written reprimand` `holds a written warning` `years since it` IS
-    IF `years since it` GREATER THAN 5
-    THEN `no step under sections 18 and 20`
-    ELSE IF `holds a written reprimand`
-         THEN `dismissal proceedings through the general supervisor`
-         ELSE IF `holds a written warning`
-              THEN `a reprimand worded as a warning of dismissal`
-              ELSE `no step under sections 18 and 20`
+DECIDE `a repeated offence leads to` `holds a written reprimand` `years since the reprimand` `holds a written warning` `years since the warning` IS
+    IF `holds a written reprimand` AND `years since the reprimand` AT MOST 5
+    THEN `dismissal proceedings through the general supervisor`
+    ELSE IF `holds a written warning` AND `years since the warning` AT MOST 5
+         THEN `a reprimand worded as a warning of dismissal`
+         ELSE `no step under sections 18 and 20`
 
 -- 21(a)-(b): the general supervisor passes the matter to the head of the
 -- division, who clarifies it with the owner and the principal; where they
@@ -759,7 +792,7 @@ DECIDE `the next school year is a further trial year` `the committee concluded s
 
 -- Examples.
 #ASSERT `days from 1 September to` 15 5 2026 EQUALS 256
-#ASSERT `a repeated offence leads to` FALSE TRUE 3 EQUALS `a reprimand worded as a warning of dismissal`
+#ASSERT `a repeated offence leads to` FALSE 0 TRUE 3 EQUALS `a reprimand worded as a warning of dismissal`
 #ASSERT `the visits meet section 6.5.8(b)` (LIST `lesson visit` FALSE 10 TRUE, `lesson visit` FALSE 10 TRUE, `lesson visit` TRUE 30 TRUE, `lesson visit` TRUE 45 TRUE)
 #ASSERT NOT `the visits meet section 6.5.8(b)` (LIST `lesson visit` FALSE 10 TRUE, `lesson visit` TRUE 10 TRUE, `lesson visit` TRUE 30 TRUE, `lesson visit` FALSE 45 TRUE)
 
@@ -793,3 +826,207 @@ DECIDE `the next school year is a further trial year` `the committee concluded s
         `a member of the supervision committee` TRUE
     AND NOT `the committee of three is properly made up` TRUE 2 1
 #ASSERT `a visiting supervisor sits on one committee and not the other`
+
+§§ `Property checks`
+
+-- The section's rules over their whole finite space: the deadlines of the
+-- school years 2023 to 2027; every engagement start day of 2024 (a 29-day
+-- February) and 2025; years 1 to 5 of a trial, extended or not, on either
+-- licence; every record of a warning and a reprimand at 0, 1, 4, 5, 6 and
+-- 7 years; every joint committee of 0 to 3 members from each body; and
+-- every pair of lesson visits on days 0 to 20 by either supervisor.
+
+`both booleans` MEANS LIST TRUE, FALSE
+
+-- 5(e)-6, 14-15, 21(c)-(d), 25-26 and 27(b)(b) over every school year from
+-- 2023 to 2027: each deadline is the calendar date it names; the 15 May
+-- letters and the 1 May committees come before the 31 May dismissal
+-- letter; the 31 May of 6, 15(b), 21(d)(2) and 26 is the last day 27(b)
+-- gives to notify a dismissal, which takes effect on 1 September after it,
+-- outside the school year the deadlines fall in.
+#ASSERT all (GIVEN y YIELD
+                    `days from 1 September to` 15 5 y EQUALS DATE_SERIAL (Date 15 5 (y PLUS 1)) MINUS DATE_SERIAL (Date 1 9 y)
+                AND `days from 1 September to` 1 5 y EQUALS DATE_SERIAL (Date 1 5 (y PLUS 1)) MINUS DATE_SERIAL (Date 1 9 y)
+                AND `days from 1 September to` 31 5 y EQUALS DATE_SERIAL (Date 31 5 (y PLUS 1)) MINUS DATE_SERIAL (Date 1 9 y)
+                AND `days from 1 September to` 1 5 y LESS THAN `days from 1 September to` 15 5 y
+                AND `days from 1 September to` 15 5 y LESS THAN `days from 1 September to` 31 5 y
+                AND `the last day to give notice of dismissal` y EQUALS `days from 1 September to` 31 5 y
+                AND DATE_SERIAL (`the day a dismissal takes effect` y) MINUS DATE_SERIAL (Date 1 9 y)
+                    GREATER THAN `the last day to give notice of dismissal` y
+                AND DATE_SERIAL (`the day a dismissal takes effect` y) MINUS DATE_SERIAL (Date 1 9 y)
+                    EQUALS `Days in year` (y PLUS 1))
+            (range 2023 2027)
+
+-- 7 over every engagement starting on a day of 2024 or 2025: two calendar
+-- months run to the same day two months on (or that month's last day) and
+-- are 59 to 62 days; notice is 3 days the day before they end and two
+-- weeks the day after, and a longer engagement is never owed less notice;
+-- an engagement for a period fixed in advance is owed none. F-6.5-a over
+-- the same space: the one day on which two months are worked exactly is
+-- governed by neither sub-clause, whatever the start.
+GIVEN n IS A NUMBER, fixed IS A BOOLEAN, d IS A NUMBER
+GIVETH A `substitute engagement`
+DECIDE `a checked engagement` n fixed d IS
+    `substitute engagement` WITH
+        `period fixed in advance` IS fixed
+        `days worked`             IS d
+        `days in two months`      IS n
+
+#ASSERT all (GIVEN y YIELD
+                all (GIVEN m YIELD
+                        all (GIVEN d YIELD
+                                LET n MEANS `days in two months from` d m y
+                                IN      n AT LEAST 59
+                                    AND n AT MOST 62
+                                    AND `days of notice a substitute is owed` (`a checked engagement` n FALSE (n MINUS 1)) EQUALS 3
+                                    AND `days of notice a substitute is owed` (`a checked engagement` n FALSE (n PLUS 1)) EQUALS 14
+                                    AND NOT `a sub-clause of 6.5.7(a)-(b) governs the substitute` (`a checked engagement` n FALSE n)
+                                    AND `a sub-clause of 6.5.7(a)-(b) governs the substitute` (`a checked engagement` n FALSE (n MINUS 1))
+                                    AND `a sub-clause of 6.5.7(a)-(b) governs the substitute` (`a checked engagement` n FALSE (n PLUS 1))
+                                    AND `days of notice a substitute is owed` (`a checked engagement` n TRUE (n PLUS 1)) EQUALS 0)
+                            (range 1 (`Days in month` m y)))
+                    (range 1 12))
+            (LIST 2024, 2025)
+#ASSERT `days in two months from` 31 12 2023 EQUALS 60 AND `days in two months from` 31 12 2024 EQUALS 59
+#ASSERT all (GIVEN d YIELD
+                `days of notice a substitute is owed` (`a checked engagement` 61 FALSE (d PLUS 1))
+                AT LEAST `days of notice a substitute is owed` (`a checked engagement` 61 FALSE d))
+            (range 0 70)
+
+-- 1-3, 8(a) and 8(c)(6) over years 1 to 5 of a trial, extended or not, on
+-- either licence: 3(b)'s first-year route and 8(a)'s never both apply; for
+-- a permanent-licence holder 8(a) applies only within the trial 3(a)
+-- gives, and the third year only to an extended trial; the further year
+-- 8(c)(6) may give is in the second year and makes the 3-year trial of
+-- 3(a); a temporary-licence holder may be dismissed at the end of each of
+-- the first three years, and is judged as one on trial in them and as a
+-- permanent teacher from the fourth.
+#ASSERT all (GIVEN y YIELD
+                all (GIVEN ext YIELD
+                        all (GIVEN tmp YIELD
+                                    (NOT (    `a first-year teacher may be dismissed on the principal's proposal` (y EQUALS 1) TRUE TRUE TRUE TRUE
+                                          AND `a second- or third-year teacher may be dismissed` y (`the trial runs to a third year` ext tmp) TRUE TRUE TRUE TRUE))
+                                AND (   tmp
+                                     OR (NOT `a second- or third-year teacher may be dismissed` y (`the trial runs to a third year` ext tmp) TRUE TRUE TRUE TRUE)
+                                     OR y AT MOST `years of a new teacher's trial in a school` ext)
+                                AND `a second- or third-year teacher may be dismissed` 3 (`the trial runs to a third year` ext FALSE) TRUE TRUE TRUE TRUE
+                                    EQUALS ext
+                                AND `the committee may give a further trial year` y EQUALS (y EQUALS 2)
+                                AND `a temporary-licence holder may be dismissed` y TRUE EQUALS (y AT MOST 3)
+                                AND `a temporary-licence holder's status on pedagogical or disciplinary grounds` y
+                                    EQUALS (IF y AT MOST 3 THEN `as a permanent-licence holder in the trial period` ELSE `as a permanent teacher (sections 9 and 16)`))
+                            `both booleans`)
+                    `both booleans`)
+            (range 1 5)
+#ASSERT `years of a new teacher's trial in a school` (`the committee may give a further trial year` 2) EQUALS 3
+
+-- F-6.5-d over years 1 to 5, extended or not: (2)'s trial years of a
+-- temporary-licence holder and 3(a)'s trial part exactly in an unextended
+-- third year.
+#ASSERT all (GIVEN y YIELD
+                all (GIVEN ext YIELD
+                            (NOT ((`a temporary-licence holder's status on pedagogical or disciplinary grounds` y
+                                   EQUALS `as a permanent-licence holder in the trial period`)
+                                  EQUALS (y AT MOST `years of a new teacher's trial in a school` ext)))
+                            EQUALS (y EQUALS 3 AND NOT ext))
+                    `both booleans`)
+            (range 1 5)
+
+`(2) makes a temporary-licence holder's third year a trial year that 3(a) ends after two` MEANS
+        `a temporary-licence holder's status on pedagogical or disciplinary grounds` 3 EQUALS `as a permanent-licence holder in the trial period`
+    AND `years of a new teacher's trial in a school` FALSE LESS THAN 3
+#ASSERT `(2) makes a temporary-licence holder's third year a trial year that 3(a) ends after two`
+
+-- 18 and 20 over every record of a warning and a reprimand: a reprimand
+-- within five years always brings dismissal proceedings, a warning alone
+-- within five years a reprimand, and no record within five years nothing;
+-- a fresher letter, or one more letter, never brings a milder step.
+GIVEN c IS A `consequence of a repeated offence`
+GIVETH A NUMBER
+DECIDE `the weight of` c IS
+    CONSIDER c
+    WHEN `dismissal proceedings through the general supervisor` THEN 2
+    WHEN `a reprimand worded as a warning of dismissal` THEN 1
+    WHEN `no step under sections 18 and 20` THEN 0
+
+`ages of a letter checked` MEANS LIST 0, 1, 4, 5, 6, 7
+
+#ASSERT all (GIVEN r YIELD
+                all (GIVEN ar YIELD
+                        all (GIVEN w YIELD
+                                all (GIVEN aw YIELD
+                                        LET k MEANS `the weight of` (`a repeated offence leads to` r ar w aw)
+                                        IN      k EQUALS (IF r AND ar AT MOST 5 THEN 2 ELSE IF w AND aw AT MOST 5 THEN 1 ELSE 0)
+                                            AND `the weight of` (`a repeated offence leads to` r (max 0 (ar MINUS 1)) w aw) AT LEAST k
+                                            AND `the weight of` (`a repeated offence leads to` r ar w (max 0 (aw MINUS 1))) AT LEAST k
+                                            AND `the weight of` (`a repeated offence leads to` TRUE ar w aw) AT LEAST k
+                                            AND `the weight of` (`a repeated offence leads to` r ar TRUE aw) AT LEAST k)
+                                    `ages of a letter checked`)
+                            `both booleans`)
+                    `ages of a letter checked`)
+            `both booleans`
+
+-- 14 and 21(c) over 0 to 3 members from each body: a joint committee
+-- that is properly made up has four to six members, every body there.
+#ASSERT all (GIVEN a YIELD
+                all (GIVEN b YIELD
+                        all (GIVEN c YIELD
+                                    (NOT `the joint committee is properly made up` a b c)
+                                 OR (    a PLUS b PLUS c AT LEAST 4
+                                     AND a PLUS b PLUS c AT MOST 6
+                                     AND b AT LEAST 1
+                                     AND c AT LEAST 1))
+                            (range 0 3))
+                    (range 0 3))
+            (range 0 3)
+
+-- 27(a)-(b) over 0 to 3 members demanding: the teacher must submit from
+-- two of the three, and more members demanding never release the teacher.
+#ASSERT all (GIVEN k YIELD
+                    `the teacher must submit to examination` k EQUALS (k AT LEAST 2)
+                AND ((NOT `the teacher must submit to examination` k) OR `the teacher must submit to examination` (k PLUS 1)))
+            (range 0 3)
+
+-- 15(c) and 21(d)(3): a warning applies to the year it is about, or, where
+-- the teacher did not teach in it, the next — never earlier, never later.
+#ASSERT all (GIVEN y YIELD
+                all (GIVEN t YIELD
+                            `the year the warning applies to` y t AT LEAST y
+                        AND `the year the warning applies to` y t AT MOST y PLUS 1)
+                    `both booleans`)
+            (range 1 5)
+
+-- F-6.5-e: 8(b)'s "10 days at least between one visit and the next" read
+-- lesson by lesson. Under that reading, over every pair of visits on days
+-- 0 to 20 by either supervisor, two visits that keep the gap are never on
+-- one day, so "no more than 2 lessons of such a teacher on the same day"
+-- forbids nothing; the encoding reads a visit as a day's visit.
+GIVEN vs IS A LIST OF `lesson visit`
+GIVETH A BOOLEAN
+DECIDE `every two lessons visited are 10 days apart` vs IF
+    all (GIVEN i YIELD
+            all (GIVEN j YIELD
+                       i EQUALS j
+                    OR (at vs i)'s `day of the visit` MINUS (at vs j)'s `day of the visit` AT LEAST 10
+                    OR (at vs j)'s `day of the visit` MINUS (at vs i)'s `day of the visit` AT LEAST 10)
+                (range 0 (count vs MINUS 1)))
+        (range 0 (count vs MINUS 1))
+
+#ASSERT all (GIVEN d1 YIELD
+                all (GIVEN d2 YIELD
+                        all (GIVEN s1 YIELD
+                                all (GIVEN s2 YIELD
+                                        LET vs MEANS LIST `lesson visit` s1 d1 TRUE, `lesson visit` s2 d2 TRUE
+                                        IN (NOT `every two lessons visited are 10 days apart` vs) OR (NOT (d1 EQUALS d2)))
+                                    `both booleans`)
+                            `both booleans`)
+                    (range 0 20))
+            (range 0 20)
+
+`two lessons a day, ten days apart` MEANS
+    LIST `lesson visit` FALSE 0 TRUE, `lesson visit` FALSE 0 TRUE, `lesson visit` TRUE 10 TRUE, `lesson visit` TRUE 10 TRUE
+
+`8(b) is met by two lessons a day ten days apart, which a lesson-by-lesson gap forbids` MEANS
+        `the visits meet section 6.5.8(b)` `two lessons a day, ten days apart`
+    AND NOT `every two lessons visited are 10 days apart` `two lessons a day, ten days apart`
+#ASSERT `8(b) is met by two lessons a day ten days apart, which a lesson-by-lesson gap forbids`
