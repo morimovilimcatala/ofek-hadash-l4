@@ -465,3 +465,123 @@ DECIDE `every cell is within an agora` a b IF
 #TRACE `written notice 30 days before deducting an overpayment` 100 AT 0 WITH
     PARTY `the employer` DOES `send written notice of the error's details and a chance to respond` AT 0
     PARTY `the employer` DOES `deduct the overpayment` 100 AT 31
+
+§§ `Property checks`
+
+-- The circular over a finite space: both tables, every seniority year and
+-- degree; days around every date it names; one to four promotion grades;
+-- every merged supplement; every set of the four sections; salary months
+-- 1 to 12.
+
+`all degrees in order` MEANS LIST `doctor`, `second degree`, `first degree`, `senior teacher`, `certified teacher`
+`both tables` MEANS LIST `the combined-salary table from 1.9.2017`, `the combined-salary table from 1.12.2018`
+`the days checked` MEANS
+    LIST Date 31 8 2017, Date 1 9 2017, Date 31 12 2017, Date 1 1 2018, Date 31 5 2018, Date 1 6 2018,
+         Date 30 11 2018, Date 1 12 2018, Date 1 1 2020
+`every merged supplement` MEANS
+    LIST `the 87 supplement`, `the 94 supplement, teaching reinforcement`, `the 2001 supplement`, `the 2008 supplement`,
+         `the 2011 supplement`, `the 2011 erosion supplement`, `the 2016 percentage supplement`
+
+GIVEN t IS A LIST OF `salary row`
+GIVETH A BOOLEAN
+DECIDE `the table is ordered` t IF
+        map (GIVEN r YIELD r's `seniority year`) t EQUALS range 1 36
+    AND all (GIVEN r YIELD
+                all (GIVEN k YIELD `the cell for` r (at `all degrees in order` (k PLUS 1)) LESS THAN `the cell for` r (at `all degrees in order` k))
+                    (range 0 3))
+            t
+    AND all (GIVEN k YIELD
+                all (GIVEN d YIELD `the cell for` (at t k) d LESS THAN `the cell for` (at t (k PLUS 1)) d) `all degrees in order`)
+            (range 0 34)
+
+-- Annex A: each table has the years 1 to 36; in every row the salary falls
+-- from a doctor's to a certified teacher's, and in every column it rises
+-- with each year of seniority.
+#ASSERT all (GIVEN t YIELD `the table is ordered` t) `both tables`
+
+-- §1a: every cell of the 1.12.2018 table is above the same cell of the
+-- 1.9.2017 table.
+GIVEN a IS A `salary row`, b IS A `salary row`
+GIVETH A BOOLEAN
+DECIDE `every cell of the second row is higher` a b IF
+    all (GIVEN d YIELD `the cell for` a d LESS THAN `the cell for` b d) `all degrees in order`
+#ASSERT and (zipWith `every cell of the second row is higher` `the combined-salary table from 1.9.2017` `the combined-salary table from 1.12.2018`)
+
+-- §1a-§1b over every day, degree and year: no salary before 1.9.2017,
+-- one otherwise; it never falls from one day checked to a later one, and
+-- grows with the cost-of-living rate.
+#ASSERT all (GIVEN d YIELD
+                all (GIVEN g YIELD
+                        all (GIVEN n YIELD
+                                LET x MEANS `combined salary` d g n 0
+                                IN      (x GREATER THAN 0) EQUALS (d AT LEAST Date 1 9 2017)
+                                    AND `combined salary` d g n 0.02 AT LEAST x
+                                    AND all (GIVEN e YIELD (e LESS THAN d) OR x AT MOST `combined salary` e g n 0) `the days checked`)
+                            (LIST 1, 10, 25, 36))
+                    `all degrees in order`)
+            `the days checked`
+
+-- §2 over every day: no amount before 1.9.2017, exactly one period after
+-- it, and the amount never falls.
+#ASSERT all (GIVEN d YIELD
+                    count (filter (GIVEN p YIELD d AT LEAST p's `period from` AND d AT MOST p's `period to`) `the updated shekel supplement 2016`)
+                    EQUALS (IF d AT LEAST Date 1 9 2017 THEN 1 ELSE 0)
+                AND all (GIVEN e YIELD (e LESS THAN d) OR `the updated shekel supplement for a full position on` d AT MOST `the updated shekel supplement for a full position on` e)
+                        `the days checked`)
+            `the days checked`
+
+-- §3 over every day and one to four grades: one grade's rate never rises
+-- with time; the cumulative rate rises with the grades, never falls below
+-- one grade's rate, and is lower from 1.12.2018 than from 1.9.2017.
+#ASSERT all (GIVEN d YIELD
+                    all (GIVEN e YIELD (e LESS THAN d) OR `the rate of one promotion grade on` e AT MOST `the rate of one promotion grade on` d) `the days checked`
+                AND all (GIVEN n YIELD
+                                (d LESS THAN Date 1 9 2017)
+                            OR (    `cumulative promotion rate` n d LESS THAN `cumulative promotion rate` (n PLUS 1) d
+                                AND `cumulative promotion rate` n d AT LEAST `the rate of one promotion grade on` d))
+                        (range 1 3))
+            `the days checked`
+#ASSERT all (GIVEN n YIELD `cumulative promotion rate` n (Date 1 12 2018) LESS THAN `cumulative promotion rate` n (Date 1 9 2017))
+            (range 1 4)
+
+-- §4 over every merged supplement and day: paid and a base exactly before
+-- 1.9.2017; the transition supplement's base is the combined salary alone
+-- from that day.
+#ASSERT all (GIVEN s YIELD
+                all (GIVEN d YIELD
+                            `is paid on` s d EQUALS (d LESS THAN Date 1 9 2017)
+                        AND `is a base for other supplements on` s d EQUALS (d LESS THAN Date 1 9 2017)
+                        AND `the base of the transition-to-reform supplement` d 5000 300
+                            EQUALS (IF d AT LEAST Date 1 9 2017 THEN 5000 ELSE 5300))
+                    `the days checked`)
+            `every merged supplement`
+
+-- §5a-§5b over every set of the four sections: lawful exactly when none or
+-- all are carried out.
+`every set of sections` MEANS
+    LIST EMPTY,
+         (LIST `section 1 tables`),
+         (LIST `section 2 shekel supplement`),
+         (LIST `section 3 promotion grades`),
+         (LIST `section 4 merged supplements`),
+         (LIST `section 1 tables`, `section 2 shekel supplement`),
+         (LIST `section 1 tables`, `section 3 promotion grades`),
+         (LIST `section 1 tables`, `section 4 merged supplements`),
+         (LIST `section 2 shekel supplement`, `section 3 promotion grades`),
+         (LIST `section 2 shekel supplement`, `section 4 merged supplements`),
+         (LIST `section 3 promotion grades`, `section 4 merged supplements`),
+         (LIST `section 1 tables`, `section 2 shekel supplement`, `section 3 promotion grades`),
+         (LIST `section 1 tables`, `section 2 shekel supplement`, `section 4 merged supplements`),
+         (LIST `section 1 tables`, `section 3 promotion grades`, `section 4 merged supplements`),
+         (LIST `section 2 shekel supplement`, `section 3 promotion grades`, `section 4 merged supplements`),
+         (LIST `section 1 tables`, `section 2 shekel supplement`, `section 3 promotion grades`, `section 4 merged supplements`)
+#ASSERT count `every set of sections` EQUALS 16
+#ASSERT all (GIVEN l YIELD `the implementation is lawful` l EQUALS (count l EQUALS 0 OR count l EQUALS 4)) `every set of sections`
+
+-- §5d over salary months 1 to 12: an advance on wages exactly for an
+-- error's overpayment up to January 2018; §5f: twelve equal parts make
+-- the whole.
+#ASSERT all (GIVEN m YIELD
+                all (GIVEN o YIELD `the overpayment counts as an advance on wages` m o EQUALS (o AND m AT MOST 5)) (LIST TRUE, FALSE))
+            (range 1 12)
+#ASSERT all (GIVEN x YIELD 12 TIMES `monthly deduction of the overpayment` x EQUALS x) (LIST 0, 120, 1200, 3600)

@@ -885,3 +885,222 @@ DECLARE `section of this circular` IS ONE OF
     PARTY `the employer` DOES `implement the agreement in the salary` 900 AT 8
 #TRACE `paying the one-time grant` (LIST `grant month` 1 `worked`, `grant month` 1 `worked`, `grant month` 1 `worked`) AT 0 WITH
     PARTY `the employer` DOES `pay the one-time grant` 1000 AT 9
+
+§§ `Property checks`
+
+-- The circular over a finite space: every category; the first and last
+-- days around every date it names; seniority 1 to 10; counselling years 1
+-- to 7; 0 to 5 interns; the eight retroactive provisions; three grant
+-- months of every kind; make-up cases with strikes and lessons 0 to 12.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`every category` MEANS
+    LIST `a teacher in the reform`, `a teacher not in the reform`, `a principal in the reform`, `a principal not in the reform`
+`the days checked` MEANS
+    LIST Date 31 8 2017, Date 1 9 2017, Date 31 12 2017, Date 1 1 2018, Date 31 5 2018, Date 1 6 2018,
+         Date 31 8 2018, Date 1 9 2018, Date 30 11 2018, Date 1 12 2018, Date 1 1 2019, Date 1 9 2019,
+         Date 1 1 2020, Date 1 9 2020, Date 1 1 2021, Date 1 9 2021, Date 1 3 2022
+`the eight provisions` MEANS LIST `4.3`, `4.5`, `5.2`, `5.3`, `6`, `7`, `10.1`, `10.2`
+`every month kind` MEANS
+    LIST `worked`, `maternity and parenthood, reserve duty or unpaid sick leave`,
+         `unpaid leave, sabbatical or leave treated as unpaid`, `not employed`
+
+GIVEN c IS AN `employee category`
+GIVETH AN `employee`
+DECIDE `an employee of` c IS
+    `employee` WITH
+        `covered by the Oz LeTmura agreement of 14.8.2011` IS TRUE
+        `category` IS c
+
+-- §§2-3: one group is the reform's teachers, the other everyone else;
+-- principals are the two principal categories.
+#ASSERT all (GIVEN c YIELD
+                    `is outside the reform or a principal` c EQUALS (NOT (c EQUALS `a teacher in the reform`))
+                AND `is a principal` c EQUALS (c EQUALS `a principal in the reform` OR c EQUALS `a principal not in the reform`))
+            `every category`
+
+-- §4 over every category, day and seniority: no table of this agreement
+-- before 1.9.2017; outside the reform, annex D exactly for seniority 1-7
+-- from 1.9.2018 and the old tables otherwise; in the reform, annex C from
+-- 1.12.2018 whatever the seniority.
+#ASSERT all (GIVEN c YIELD
+                all (GIVEN d YIELD
+                        all (GIVEN n YIELD
+                                LET t MEANS `the table in force for` (`an employee of` c) d n
+                                IN      ((d AT LEAST Date 1 9 2017) OR t EQUALS `the tables before this agreement`)
+                                    AND ((NOT `is outside the reform or a principal` c)
+                                         OR t EQUALS (IF d AT LEAST Date 1 9 2018 AND n AT MOST 7
+                                                      THEN `annex D, outside the reform and principals, from 1.9.2018`
+                                                      ELSE `the tables before this agreement`))
+                                    AND (`is outside the reform or a principal` c OR (d LESS THAN Date 1 12 2018) OR t EQUALS `annex C, reform, from 1.12.2018`))
+                            (range 1 10))
+                    `the days checked`)
+            `every category`
+
+-- §5 over every category and day: no amount before 1.9.2017, exactly one
+-- period from it in each schedule; the reform's amount is above the other
+-- group's on every day; and neither ever falls.
+#ASSERT all (GIVEN d YIELD
+                    all (GIVEN ps YIELD
+                            count (filter (GIVEN p YIELD d AT LEAST p's `period from` AND d AT MOST p's `period to`) ps)
+                            EQUALS (IF d AT LEAST Date 1 9 2017 THEN 1 ELSE 0))
+                        (LIST `the reform shekel supplement`, `the shekel supplement outside the reform`)
+                AND ((d LESS THAN Date 1 9 2017)
+                     OR `the amount on` `the shekel supplement outside the reform` d LESS THAN `the amount on` `the reform shekel supplement` d)
+                AND all (GIVEN c YIELD
+                            all (GIVEN e YIELD
+                                    (e LESS THAN d)
+                                    OR `the updated shekel supplement 2016 for a full position` (`an employee of` c) d
+                                       AT MOST `the updated shekel supplement 2016 for a full position` (`an employee of` c) e)
+                                `the days checked`)
+                        `every category`)
+            `the days checked`
+
+-- §§6, 7, 10 and 12 over every category and day: the merger supplement and
+-- the '94 supplement are paid, and the merged supplements cancelled,
+-- exactly outside the reform and from 1.9.2017; neither amount ever falls;
+-- §12 shields exactly the reform's teachers.
+#ASSERT all (GIVEN c YIELD
+                all (GIVEN d YIELD
+                        LET o MEANS `is outside the reform or a principal` c
+                            on MEANS d AT LEAST Date 1 9 2017
+                            e MEANS `an employee of` c
+                        IN      (`the merger supplement rate` e d GREATER THAN 0) EQUALS (o AND on)
+                            AND (`the 94 supplement outside the reform` e d GREATER THAN 0) EQUALS (o AND on)
+                            AND `the merged supplement is cancelled, also as a base for others, for` e `the 2008 supplement` d EQUALS (o AND on)
+                            AND `no retroactive liability and no double payment for` e EQUALS (NOT o)
+                            AND `the merger supplement rate` e d AT MOST `the merger supplement rate` e (Date 1 1 2022)
+                            AND `the 94 supplement outside the reform` e d AT MOST `the 94 supplement outside the reform` e (Date 1 1 2022))
+                    `the days checked`)
+            `every category`
+
+-- §8.1 over the days: the base drops the other supplements for the merger
+-- supplement from 1.9.2017.
+#ASSERT all (GIVEN d YIELD
+                `the base of the transition-to-reform supplement` d 10000 160 1900 700
+                EQUALS (IF d AT LEAST Date 1 9 2017 THEN 12060 ELSE 10860))
+            `the days checked`
+
+-- §11.1-§11.2: all eight provisions or none; leaving out any one, or
+-- carrying out any one alone, is unlawful.
+#ASSERT `the implementation is lawful` `the eight provisions`
+#ASSERT `the implementation is lawful` EMPTY
+#ASSERT all (GIVEN p YIELD
+                    NOT `the implementation is lawful` (filter (GIVEN q YIELD NOT (q EQUALS p)) `the eight provisions`)
+                AND NOT `the implementation is lawful` (LIST p))
+            `the eight provisions`
+
+-- §11.3-§11.6: the excess is never negative and is the difference where
+-- positive; an advance on wages exactly for an error up to August 2018.
+#ASSERT all (GIVEN a YIELD
+                all (GIVEN b YIELD `the excess amount` a b EQUALS (IF a GREATER THAN b THEN a MINUS b ELSE 0)) (LIST 0, 500, 1000))
+            (LIST 0, 500, 1000)
+#ASSERT all (GIVEN m YIELD
+                all (GIVEN o YIELD `the overpayment counts as an advance on wages` m o EQUALS (o AND m AT MOST 12)) `both booleans`)
+            (range 1 15)
+
+-- §13 over counselling years 1 to 7 and the days: the rate rises with the
+-- years (from five on, the five-year row) and never falls with time.
+#ASSERT all (GIVEN d YIELD
+                all (GIVEN n YIELD
+                            `the counsellor's stipend rate` n d AT MOST `the counsellor's stipend rate` (n PLUS 1) d
+                        AND `the counsellor's stipend rate` n d AT MOST `the counsellor's stipend rate` n (Date 1 1 2022)
+                        AND `the counsellor's stipend rate` n d GREATER THAN 0)
+                    (range 1 7))
+            `the days checked`
+
+-- §14 over every category and day: the role stipend is 6% exactly for a
+-- teacher in the reform in a new role from 1.9.2019; the principal's
+-- choice of roles never falls with time and reaches three.
+#ASSERT all (GIVEN c YIELD
+                all (GIVEN d YIELD
+                        all (GIVEN f YIELD
+                                `the new role stipend` (`an employee of` c) d f 10000 1000
+                                EQUALS (IF c EQUALS `a teacher in the reform` AND f AND d AT LEAST Date 1 9 2019 THEN 660 ELSE 0))
+                            `both booleans`)
+                    `the days checked`)
+            `every category`
+#ASSERT all (GIVEN d YIELD `new roles a principal may choose` d AT MOST `new roles a principal may choose` (Date 1 1 2022)) `the days checked`
+#ASSERT `new roles a principal may choose` (Date 1 1 2022) EQUALS 3
+
+-- §15 over interns 0 to 5 and the days: 2.4% per intern up to three from
+-- 1.9.2018; a base exactly for the two teacher categories.
+#ASSERT all (GIVEN d YIELD
+                all (GIVEN i YIELD
+                        `the mentor stipend` d i 10000
+                        EQUALS (IF d AT LEAST Date 1 9 2018 THEN 240 TIMES min i 3 ELSE 0))
+                    (range 0 5))
+            `the days checked`
+#ASSERT all (GIVEN c YIELD
+                (`the mentor stipend base` c 10000 1000 160 1900 EQUALS NOTHING) EQUALS `is a principal` c)
+            `every category`
+
+-- §16 over units 15 to 22: never more than 19 from 1.9.2019, and never
+-- more than earned.
+#ASSERT all (GIVEN u YIELD
+                    `training units recognised` (Date 1 9 2019) u 16 EQUALS min u 19
+                AND `training units recognised` (Date 1 9 2018) u 16 AT MOST u)
+            (range 15 22)
+
+-- §17 over three months of every kind and a position of 0.5, 1 or 1.2:
+-- the grant is never negative, never above 1,000, and a third of 1,000 for
+-- each month that counts, by its position up to one.
+#ASSERT all (GIVEN a YIELD
+                all (GIVEN b YIELD
+                        all (GIVEN f YIELD
+                                LET ms MEANS LIST `grant month` f a, `grant month` f b, `grant month` 1 `worked`
+                                    g MEANS `the one-time grant due` ms
+                                IN      g AT LEAST 0
+                                    AND g AT MOST 1000
+                                    AND g EQUALS 1000 TIMES ((count (filter (GIVEN m YIELD `the month counts as work` m) (take 2 ms)) TIMES min f 1) PLUS 1) DIVIDED BY 3)
+                            (LIST 0.5, 1, 1.2))
+                    `every month kind`)
+            `every month kind`
+
+-- §18b over the days: no amount with an agreement; without one, 548.52
+-- from 1.9.2018 and 1,008.52 from 1.9.2019, each 460 above the last.
+#ASSERT all (GIVEN d YIELD `the 87 transition supplement under section 18b` TRUE d EQUALS NOTHING) `the days checked`
+#ASSERT `the 87 transition supplement under section 18b` FALSE (Date 1 9 2018) EQUALS JUST (88.52 PLUS 460)
+#ASSERT `the 87 transition supplement under section 18b` FALSE (Date 1 9 2019) EQUALS JUST (88.52 PLUS 920)
+
+GIVEN g IS A BOOLEAN
+      l IS A NUMBER
+      x IS A NUMBER
+GIVETH A `struck school and teacher`
+DECIDE `a checked school` g l x IS
+    `struck school and teacher` WITH
+        `school struck on a general strike day` IS g
+        `local strike days at the school`       IS l
+        `lessons missed on the day chosen for Shavuot` IS x
+        `lessons missed on general strike days` IS x
+        `lessons missed on local strike days`   IS x
+        `lessons made up after Shavuot`         IS min x 4
+        `lessons made up on Lag BaOmer`         IS min x 8
+
+-- §19.1 over strikes and lessons: Lag BaOmer only where both kinds of
+-- strike were held and Sukkot wherever either was; never more than eight
+-- lessons owed on Lag BaOmer or after Sukkot.
+#ASSERT all (GIVEN g YIELD
+                all (GIVEN l YIELD
+                        all (GIVEN x YIELD
+                                LET s MEANS `a checked school` g l x
+                                IN      ((NOT `the school holds` `Lag BaOmer, 3.5.2018` s) OR `the school holds` `the day after Sukkot, 2.10.2018` s)
+                                    AND ((NOT `the school holds` `the day after Shavuot, 21.5.2018` s) OR `the school holds` `the day after Sukkot, 2.10.2018` s)
+                                    AND `lessons owed on Lag BaOmer` s AT MOST 8
+                                    AND `lessons owed after Sukkot` s AT LEAST 0
+                                    AND `lessons owed after Sukkot` s AT MOST 8)
+                            (range 0 12))
+                    (range 0 3))
+            `both booleans`
+
+-- §19.2 over advances and spring pay: the two recoveries add up to the
+-- advance, the first never above the spring pay.
+#ASSERT all (GIVEN a YIELD
+                all (GIVEN p YIELD
+                        all (GIVEN o YIELD
+                                LET r MEANS `recovering the strike advance` a p o
+                                IN      sum (map (GIVEN x YIELD x's `amount recovered`) r) EQUALS a
+                                    AND (at r 0)'s `amount recovered` AT MOST p)
+                            `both booleans`)
+                    (LIST 0, 200, 500))
+            (LIST 0, 300, 600)
