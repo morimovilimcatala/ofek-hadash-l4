@@ -334,3 +334,113 @@ DECIDE `indemnifying the owner` `the indemnity` IS
     PARTY `the employer` DOES `pay the second part of the grant` 500 AT 6
 #TRACE `paying the second part` `a half-position high-school teacher` `at work` 0 AT 0 WITH
     PARTY `the employer` DOES `pay the second part of the grant` 500 AT 4
+
+§§ `Property checks`
+
+-- The circular over a finite space: covered or not; every stage; employed
+-- at both ends or not; no break or one break of every kind; paid four
+-- months and a day or not; a year's monthly positions of 0, 0.5, 1 and 1.2,
+-- or none, with a fallback year or not.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`every stage` MEANS
+    LIST `kindergarten`, `elementary school`, `junior high school`, `high school, grades 13-14 included`,
+         `teacher-training college`, `another stage`
+`every break` MEANS
+    LIST `maternity leave under section 6 of the Women's Employment Law`,
+         `unpaid leave or absence treated as unpaid leave, after maternity leave or not`,
+         `reserve duty`, `paid sick leave under takanon chapter 1.25.3`, `holiday or summer recess`, `end of employment`
+`every break list` MEANS append (LIST EMPTY) (map (GIVEN b YIELD LIST b) `every break`)
+`every position list` MEANS
+    LIST EMPTY, (LIST 1, 1, 1), (LIST 0.5, 0.5), (LIST 1, 0.5), (LIST 1.2, 1.2), (LIST 0, 1)
+
+GIVEN g IS A BOOLEAN
+      s IS A `second-part stage`
+      e IS A BOOLEAN
+      b IS A LIST OF `break kind`
+      f IS A BOOLEAN
+      p IS A LIST OF NUMBER
+      q IS A LIST OF NUMBER
+GIVETH A `second-part case`
+DECIDE `a checked case` g s e b f p q IS
+    `second-part case` WITH
+        `graded as a teaching employee in a supervised institution` IS g
+        `stage`                                                     IS s
+        `entitled to the first part under circular 2015-16/5`       IS TRUE
+        `first part paid`                                           IS 1000
+        `employed on 1.9.2015 and on 1.1.2016`                      IS e
+        `breaks in the determining period`                          IS b
+        `paid for 4 full months and a day in a row from 1.9.2015 to 31.1.2016` IS f
+        `monthly positions 1.12.2014 to 30.11.2015`                 IS p
+        `monthly positions 1.12.2015 to 30.6.2016`                  IS q
+
+-- §2ה over every break: maternity leave, reserve duty, paid sick leave and
+-- the recesses keep the continuity; unpaid leave and the end of employment
+-- do not.
+#ASSERT all (GIVEN b YIELD
+                `keeps the continuity` b
+                EQUALS (NOT (b EQUALS `unpaid leave or absence treated as unpaid leave, after maternity leave or not` OR b EQUALS `end of employment`)))
+            `every break`
+
+-- §2 over every flag, stage and break: entitled exactly where covered and
+-- either continuous over the determining period or on unpaid leave and
+-- paid four months and a day in a row (§2ה.8.1).
+#ASSERT all (GIVEN g YIELD
+                all (GIVEN s YIELD
+                        all (GIVEN e YIELD
+                                all (GIVEN b YIELD
+                                        all (GIVEN f YIELD
+                                                LET c MEANS `a checked case` g s e b f (LIST 1) EMPTY
+                                                IN  `entitled to the second part` c
+                                                    EQUALS (g AND (NOT (s EQUALS `another stage`))
+                                                            AND ((e AND all (GIVEN k YIELD `keeps the continuity` k) b)
+                                                                 OR (elem `unpaid leave or absence treated as unpaid leave, after maternity leave or not` b AND f))))
+                                            `both booleans`)
+                                    `every break list`)
+                            `both booleans`)
+                    `every stage`)
+            `both booleans`
+
+GIVEN b IS A LIST OF `break kind`
+      p IS A LIST OF NUMBER
+      q IS A LIST OF NUMBER
+GIVETH A NUMBER
+DECIDE `the average the check expects` b p q IS
+    IF count p GREATER THAN 0
+    THEN `the monthly average of` p
+    ELSE IF elem `unpaid leave or absence treated as unpaid leave, after maternity leave or not` b
+         THEN `the monthly average of` q
+         ELSE 0
+
+-- §2ב, §2ד(3) and §2ה.8.2 over the position lists, with and without unpaid
+-- leave: the grant is never negative, never above 1,000, and is 1,000
+-- times the representative average up to one position; the fallback year
+-- is used only on unpaid leave and only where the first year is empty.
+#ASSERT all (GIVEN b YIELD
+                all (GIVEN p YIELD
+                        all (GIVEN q YIELD
+                                LET c MEANS `a checked case` TRUE `elementary school` TRUE b TRUE p q
+                                    x MEANS `second part of the grant` c
+                                    avg MEANS `the average the check expects` b p q
+                                IN      x AT LEAST 0
+                                    AND x AT MOST 1000
+                                    AND `the representative average position` c EQUALS avg
+                                    AND ((NOT `entitled to the second part` c) OR x EQUALS 1000 TIMES min avg 1))
+                            `every position list`)
+                    `every position list`)
+            (LIST EMPTY, (LIST `unpaid leave or absence treated as unpaid leave, after maternity leave or not`), (LIST `reserve duty`))
+
+-- The payment date over every circumstance and month of return: at work,
+-- February's salary; back from sick leave without pay or maternity leave,
+-- the salary after the return; ended, the last salary.
+#ASSERT all (GIVEN r YIELD
+                    `the last salary month for the second part` `at work` r EQUALS 2
+                AND `the last salary month for the second part` `on sick leave without pay` r EQUALS r PLUS 1
+                AND `the last salary month for the second part` `on maternity leave` r EQUALS r PLUS 1
+                AND `the last salary month for the second part` `employment ended before the payment date` r EQUALS r)
+            (range 1 12)
+
+-- §2ג-§2ד: the second part counts for nothing.
+#ASSERT all (GIVEN u YIELD NOT `the second part counts for` u)
+            (LIST `salary for any purpose`, `severance pay`, `the overtime hourly value`, `provident-fund contributions`,
+                  `the minimum-wage top-up`, `the combined-salary base`)

@@ -254,3 +254,92 @@ DECIDE `indemnifying the owner` `the indemnity at the relevant hourly costs` IS
 
 #TRACE `paying the supplements with the differences` 1000 AT 0 WITH
     PARTY `the employer` DOES `pay the supplements with the differences` 1000 AT 4
+
+§§ `Property checks`
+
+-- The circular over a finite space: covered or not; under Oz LaTmura or
+-- not; positions in tenths to 1.5; the first and last day around each
+-- date the circular names; base components of 0 or 1,000.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`tenths to 1.5` MEANS map (GIVEN k YIELD k DIVIDED BY 10) (range 0 15)
+`the days checked` MEANS
+    LIST Date 31 8 2016, Date 1 9 2016, Date 31 3 2017, Date 1 4 2017, Date 1 1 2018
+
+GIVEN g IS A BOOLEAN
+      o IS A BOOLEAN
+      p IS A NUMBER
+      b IS A NUMBER
+GIVETH A `high-school supplement case`
+DECIDE `a checked case` g o p b IS
+    `high-school supplement case` WITH
+        `graded and employed by a supervised owner in the high school` IS g
+        `employed under Oz LaTmura`                    IS o
+        `position fraction for the supplements`        IS p
+        `combined salary`                              IS b
+        `supplement 2001`                              IS b
+        `supplement 2008`                              IS b
+        `supplement 2011`                              IS b
+        `erosion supplement 2011`                      IS b
+        `Oz LaTmura supplement`                        IS (IF o THEN b ELSE 0)
+
+-- §1 over every case and day: the shekel supplement is nothing before
+-- 1.9.2016 or outside the circular, otherwise the period's full amount
+-- times the position; the full amount never falls with time.
+#ASSERT all (GIVEN g YIELD
+                all (GIVEN o YIELD
+                        all (GIVEN p YIELD
+                                all (GIVEN d YIELD
+                                        LET x MEANS `shekel supplement` (`a checked case` g o p 1000) d
+                                        IN      x EQUALS (IF g AND d AT LEAST Date 1 9 2016 THEN `the full-position shekel supplement` d TIMES p ELSE 0)
+                                            AND all (GIVEN e YIELD (e LESS THAN d) OR `the full-position shekel supplement` d AT MOST `the full-position shekel supplement` e)
+                                                    `the days checked`)
+                                    `the days checked`)
+                            `tenths to 1.5`)
+                    `both booleans`)
+            `both booleans`
+
+-- §2 over every case and day: the percentage supplement is nothing before
+-- 1.4.2017 or outside the circular, otherwise 0.625% of the base; the base
+-- holds the Oz LaTmura supplement exactly for one under the reform.
+#ASSERT all (GIVEN g YIELD
+                all (GIVEN o YIELD
+                        all (GIVEN d YIELD
+                                LET c MEANS `a checked case` g o 1 1000
+                                IN      `percentage supplement 2016` c d
+                                        EQUALS (IF g AND d AT LEAST Date 1 4 2017 THEN 0.00625 TIMES `the percentage supplement's base` c ELSE 0)
+                                    AND `the percentage supplement's base` c EQUALS (IF o THEN 6000 ELSE 5000))
+                            `the days checked`)
+                    `both booleans`)
+            `both booleans`
+
+-- §1ד over indices 98 to 103 against 100: an update never lowers the
+-- amount and raises it exactly when the index rose.
+#ASSERT all (GIVEN i YIELD
+                    `the indexed amount` 176.70 i 100 AT LEAST 176.70
+                AND (`the indexed amount` 176.70 i 100 GREATER THAN 176.70) EQUALS (i GREATER THAN 100))
+            (range 98 103)
+
+-- §2ה: each supplement's 1.4.2017 amount is higher under Oz LaTmura, and
+-- supplement '87's is above supplement '94's on either track.
+#ASSERT all (GIVEN o YIELD
+                    `the amount from 1.4.2017` `supplement '87` o GREATER THAN `the amount from 1.4.2017` `supplement '94` o
+                AND all (GIVEN s YIELD `the amount from 1.4.2017` s TRUE GREATER THAN `the amount from 1.4.2017` s FALSE)
+                        (LIST `supplement '87`, `supplement '94`))
+            `both booleans`
+
+-- §§1ה-1ח and §§2ה-2ו: the shekel supplement counts for all but the
+-- minimum-wage top-up and the other supplements' base; the percentage one
+-- for all but the five named supplements, the promotion grade and the
+-- minimum-wage top-up.
+`every shekel purpose` MEANS
+    LIST `the minimum-wage top-up`, `salary for any purpose`, `the hourly value for substitution hours`,
+         `the deduction for an hour of absence`, `severance pay`,
+         `pension-fund contributions under section 46 of the Oz LaTmura agreement`,
+         `the training fund and the Dafna fund`, `the base of percentage and shekel supplements`, `the jubilee grant`
+`every percentage purpose` MEANS
+    LIST `another percentage supplement on the combined salary`, `supplement 2001, 2008, 2011, erosion 2011 or Oz LaTmura`,
+         `the promotion-grade supplement`, `the hourly value of substitution hours`, `the absence deduction`,
+         `severance, pension, training fund and Dafna`, `the minimum-wage top-up`
+#ASSERT count (filter (GIVEN u YIELD NOT `the shekel supplement counts for` u) `every shekel purpose`) EQUALS 2
+#ASSERT count (filter (GIVEN u YIELD NOT `the percentage supplement counts for` u) `every percentage purpose`) EQUALS 3

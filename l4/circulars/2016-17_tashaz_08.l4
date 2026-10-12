@@ -480,3 +480,131 @@ DECIDE `is a required subject` s IF
     PARTY `the employer` DOES `pay the grant` 4000 AT 12
 #TRACE `payment in August for the year just ended` `a 27-year mathematics teacher in an official school` AT 0 WITH
     PARTY `the employer` DOES `pay the grant` 2000 AT 12
+
+§§ `Property checks`
+
+-- The circular over a finite space: covered or not; a required subject or
+-- not; seniority for pay 20 to 35; 9 or 10 years in formal education;
+-- jubilee entitlement or not; one school of every kind at a position in
+-- tenths from 0 to 1.5; 0 to 12 months; no absence, two months paid or
+-- unpaid; every leave status.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`tenths to 1.5` MEANS map (GIVEN k YIELD k DIVIDED BY 10) (range 0 15)
+`every kind` MEANS LIST `an official school`, `an upper division`, `a recognised unofficial primary school or middle division`
+`every leave` MEANS LIST `no leave`, `full sabbatical`, `full unpaid leave`, `partial unpaid leave`, `half sabbatical`
+`every absence list` MEANS LIST EMPTY, (LIST `absence` 2 TRUE), (LIST `absence` 2 FALSE)
+
+GIVEN g IS A BOOLEAN
+      t IS A BOOLEAN
+      n IS A NUMBER
+      j IS A BOOLEAN
+      e IS AN `employment at a school`
+      m IS A NUMBER
+      a IS A LIST OF `absence`
+      l IS A `leave status`
+GIVETH A `persistence year`
+DECIDE `a checked year` g t n j e m a l IS
+    `persistence year` WITH
+        `rated in the teaching employees' grading`        IS g
+        `employed by an owner of a ministry-supervised institution` IS TRUE
+        `employed in primary, middle or upper division schools` IS TRUE
+        `subjects actually taught`                        IS (IF t THEN LIST "מתמטיקה" ELSE LIST "היסטוריה")
+        `seniority for pay purposes`                      IS n
+        `years in formal education in Israel`             IS 10
+        `entitled to the jubilee grant this year`         IS j
+        `employments`                                     IS LIST e
+        `months employed in the year`                     IS m
+        `absences`                                        IS a
+        `leave in the year`                               IS l
+
+-- The two subjects the space uses: one in annex A, one not.
+#ASSERT `is a required subject` "מתמטיקה"
+#ASSERT NOT `is a required subject` "היסטוריה"
+
+-- §3a.2 over every kind and seniority 20 to 35: 25 years in an official
+-- school or an upper division, 30 in a recognised unofficial primary or
+-- middle school, and a school qualifies exactly from its threshold.
+#ASSERT all (GIVEN k YIELD
+                all (GIVEN n YIELD
+                            `seniority threshold at` k EQUALS (IF k EQUALS `a recognised unofficial primary school or middle division` THEN 30 ELSE 25)
+                        AND `the employment qualifies on seniority` (`a checked year` TRUE TRUE n FALSE (`employment at a school` k 1) 12 EMPTY `no leave`) (`employment at a school` k 1)
+                            EQUALS (n AT LEAST `seniority threshold at` k))
+                    (range 20 35))
+            `every kind`
+
+GIVEN p IS A `persistence year`
+      g IS A BOOLEAN
+      t IS A BOOLEAN
+      n IS A NUMBER
+      j IS A BOOLEAN
+      k IS A `kind of school`
+      f IS A NUMBER
+      m IS A NUMBER
+      a IS A LIST OF `absence`
+      l IS A `leave status`
+GIVETH A BOOLEAN
+DECIDE `sections 3 to 5 hold for` p g t n j k f m a l IF
+    LET x MEANS `persistence grant` p
+        u MEANS `months of absence not counted` p
+    IN      x AT LEAST 0
+        AND x AT MOST `the full grant`
+        AND (x GREATER THAN 0)
+            EQUALS (g AND t AND n AT LEAST `seniority threshold at` k AND (NOT j) AND f GREATER THAN 0
+                    AND m GREATER THAN u
+                    AND (NOT (l EQUALS `full sabbatical` OR l EQUALS `full unpaid leave`)))
+        AND ((NOT j) OR x EQUALS 0)
+        AND x AT MOST `persistence grant` (`a checked year` g t n j (`employment at a school` k (f PLUS 0.1)) m a l)
+        AND x AT MOST `persistence grant` (`a checked year` g t n j (`employment at a school` k f) (m PLUS 1) a l)
+        AND ((f LESS THAN 1) OR x EQUALS `persistence grant` (`a checked year` g t n j (`employment at a school` k (f PLUS 0.5)) m a l))
+
+-- §§3-5 over the whole space: the grant is never negative and never above
+-- 4,000; it is paid exactly where every condition holds, the employee is
+-- not on full leave and worked a month beyond the unpaid absence; never in
+-- a year of jubilee entitlement (§5a); never falling with a larger position
+-- or another month; above a full position, as one (§4c).
+#ASSERT all (GIVEN g YIELD
+                all (GIVEN t YIELD
+                        all (GIVEN n YIELD
+                                all (GIVEN j YIELD
+                                        all (GIVEN k YIELD
+                                                all (GIVEN f YIELD
+                                                        all (GIVEN m YIELD
+                                                                all (GIVEN a YIELD
+                                                                        all (GIVEN l YIELD
+                                                                                `sections 3 to 5 hold for` (`a checked year` g t n j (`employment at a school` k f) m a l) g t n j k f m a l)
+                                                                            `every leave`)
+                                                                    `every absence list`)
+                                                            (LIST 0, 1, 2, 3, 6, 12))
+                                                    (LIST 0, 0.5, 1, 1.2))
+                                            `every kind`)
+                                    `both booleans`)
+                            (LIST 24, 25, 29, 30))
+                    `both booleans`)
+            `both booleans`
+
+-- §4g over the absence lists: an absence paid from the employer's funds is
+-- counted as work and costs nothing; an unpaid one costs its months.
+#ASSERT all (GIVEN a YIELD
+                `persistence grant` (`a checked year` TRUE TRUE 26 FALSE (`employment at a school` `an official school` 1) 12 a `no leave`)
+                EQUALS 4000 TIMES (12 MINUS `months of absence not counted` (`a checked year` TRUE TRUE 26 FALSE (`employment at a school` `an official school` 1) 12 a `no leave`)) DIVIDED BY 12)
+            `every absence list`
+
+-- §5b over positions in tenths: an owner beside the State never pays more
+-- than its own position nor more than what 100% leaves; among several
+-- owners, the shares never exceed a full position in all.
+#ASSERT all (GIVEN s YIELD
+                all (GIVEN o YIELD
+                            (LET x MEANS `the owner's position share beside the State` s o
+                             IN  x AT LEAST 0 AND x AT MOST o AND x AT MOST max 0 (1 MINUS s))
+                        AND `this owner's share among several` o (o PLUS s) PLUS `this owner's share among several` s (o PLUS s)
+                            AT MOST 1)
+                    `tenths to 1.5`)
+            `tenths to 1.5`
+
+-- §4h-§4i: the grant counts for nothing; §4f's provident rates are equal.
+#ASSERT all (GIVEN u YIELD NOT `the grant counts for` u)
+            (LIST `the salary base in the salary tables`, `the base of any salary increment`, `salary for any matter`,
+                  `severance pay under the Severance Pay Law 1963`, `the hourly value of overtime, stand-bys and call-outs`,
+                  `incentive pay`, `duty rosters and shifts`)
+#ASSERT all (GIVEN x YIELD `employer's provident contribution on` x EQUALS `employee's provident deduction on` x) (LIST 0, 1000, 4000)
