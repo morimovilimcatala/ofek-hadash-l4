@@ -125,19 +125,22 @@ DECIDE `keeps the 17.12.98 contribution` c IF
 -- 6%), whichever is lower. F-2011-12_tashab_06-a: the employer's two figures
 -- agree only where the rate was 6%. The reading adopted: the stated rate,
 -- 6.5% and then 7% — the employer half, unlike the employee half, has no
--- "whichever is lower".
+-- "whichever is lower". Either way the rate "יגדל", rises: an employer
+-- rate already above the stated one stays where it was.
 @ref akn:art_3__para_a akn:art_3__para_a__subpara_1 akn:art_3__para_a__subpara_2
 GIVEN e IS A `provident employee`, `month` IS A NUMBER
 GIVETH A `pension contribution rates`
 DECIDE `the rates under section 3(א)` e `month` IS
-    BRANCH IF `month` AT LEAST `the month of the second step for` e
-           THEN `pension contribution rates` 0.07
-                    (`a deduction raised by 0.5% or to` 0.06 `from`
-                        (`a deduction raised by 0.5% or to` 0.055 `from` (e's `rates before 1.1.2011`'s `employee deduction rate`)))
-           IF `month` AT LEAST `1 January 2011`
-           THEN `pension contribution rates` 0.065
-                    (`a deduction raised by 0.5% or to` 0.055 `from` (e's `rates before 1.1.2011`'s `employee deduction rate`))
-           OTHERWISE e's `rates before 1.1.2011`
+    LET `employer before` MEANS e's `rates before 1.1.2011`'s `employer benefits rate`
+        `employer from 1.1.2011` MEANS max `employer before` 0.065
+    IN BRANCH IF `month` AT LEAST `the month of the second step for` e
+              THEN `pension contribution rates` (max `employer from 1.1.2011` 0.07)
+                       (`a deduction raised by 0.5% or to` 0.06 `from`
+                           (`a deduction raised by 0.5% or to` 0.055 `from` (e's `rates before 1.1.2011`'s `employee deduction rate`)))
+              IF `month` AT LEAST `1 January 2011`
+              THEN `pension contribution rates` `employer from 1.1.2011`
+                       (`a deduction raised by 0.5% or to` 0.055 `from` (e's `rates before 1.1.2011`'s `employee deduction rate`))
+              OTHERWISE e's `rates before 1.1.2011`
 
 GIVEN `ceiling` IS A NUMBER, rate IS A NUMBER
 GIVETH A NUMBER
@@ -317,3 +320,105 @@ DECIDE `the benefits rates` e `month` IS
     PARTY `the local authority or owning body` DOES `apply the new rates retroactively` AT 11
 #TRACE `making the changes before the end of 2011` AT 10 WITH
     PARTY `the local authority or owning body` DOES `apply the new rates retroactively` AT 23
+
+§§ `Property checks`
+
+-- The circular over a finite space: every fund kind, employer rates before
+-- 1.1.2011 from 4% to 8% and employee rates from 4% to 7% around every
+-- threshold, full Oz LaTmura terms from January 2011, September 2011,
+-- September 2012, after 2013 or never, the employee's request or not, and
+-- every month from December 2010 to July 2013.
+
+`every fund kind` MEANS
+    LIST `a veteran pension fund`, `a new pension fund or other provident fund`,
+         `managers' insurance, active on 31.8.2011`, `managers' insurance, joined later`
+`employer rates checked` MEANS LIST 0.04, 0.05, 0.06, 0.065, 0.07, 0.072, 0.075, 0.08
+`employee rates checked` MEANS LIST 0.04, 0.05, 0.053, 0.055, 0.06, 0.065, 0.07
+`Oz months checked` MEANS LIST 0, 8, 20, 30, 999
+`both booleans` MEANS LIST TRUE, FALSE
+`months checked` MEANS range (0 MINUS 1) 30
+
+GIVEN k IS A `provident fund kind`, a IS A NUMBER, b IS A NUMBER, z IS A NUMBER, r IS A BOOLEAN
+GIVETH A `provident employee`
+DECIDE `a checked employee` k a b z r IS
+    `provident employee` WITH
+        `in the teaching-staff grade`        IS TRUE
+        `employed by an owner of secondary education supervised by the Ministry` IS TRUE
+        `insured in an accrual pension arrangement` IS TRUE
+        `fund kind`                          IS k
+        `rates before 1.1.2011`              IS `pension contribution rates` a b
+        `month full Oz LaTmura terms began`  IS z
+        `deduction of 7% at the employee's request` IS r
+
+GIVEN e IS A `provident employee`, k IS A `provident fund kind`, a IS A NUMBER, b IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `the rates hold for` e k a b IF
+    all (GIVEN m YIELD
+            LET x MEANS `the benefits rates` e m
+                y MEANS `the benefits rates` e (m PLUS 1)
+            IN      x's `employer benefits rate` AT MOST y's `employer benefits rate`
+                AND x's `employee deduction rate` AT MOST y's `employee deduction rate`
+                AND (    k EQUALS `a veteran pension fund`
+                     OR (    x's `employer benefits rate` AT LEAST a
+                         AND x's `employee deduction rate` AT LEAST b
+                         AND x's `employer benefits rate` AT MOST max a 0.075
+                         AND x's `employee deduction rate` AT MOST max b 0.07))
+                AND ((m AT LEAST `1 January 2011`) OR k EQUALS `a veteran pension fund` OR x EQUALS `pension contribution rates` a b))
+        `months checked`
+
+-- Section 3 over the whole space: outside a veteran fund the rates never
+-- fall from one month to the next, never fall below the rates before
+-- 1.1.2011, never pass 7.5% and 7% unless they were above them already, and
+-- are the old rates before 1.1.2011.
+#ASSERT all (GIVEN k YIELD
+                all (GIVEN a YIELD
+                        all (GIVEN b YIELD
+                                all (GIVEN z YIELD
+                                        all (GIVEN r YIELD
+                                                `the rates hold for` (`a checked employee` k a b z r) k a b)
+                                            `both booleans`)
+                                    `Oz months checked`)
+                            `employee rates checked`)
+                    `employer rates checked`)
+            `every fund kind`
+
+-- Section 3(א)(3): the second step comes no later than 1.1.2013, and from
+-- the start of full Oz LaTmura terms where that is earlier.
+#ASSERT all (GIVEN z YIELD
+                `the month of the second step for` (`a checked employee` `a new pension fund or other provident fund` 0.06 0.05 z FALSE)
+                EQUALS (IF z LESS THAN `1 January 2013` THEN z ELSE `1 January 2013`))
+            `Oz months checked`
+
+-- Section 3(א)'s employee half over every rate before: the first step ends
+-- at the lower of a 0.5% rise and 5.5%, the second at the lower of a
+-- further 0.5% and 6%, never below where it began.
+#ASSERT all (GIVEN b YIELD
+                LET one MEANS `a deduction raised by 0.5% or to` 0.055 `from` b
+                    two MEANS `a deduction raised by 0.5% or to` 0.06 `from` one
+                IN      one EQUALS max b (min (b PLUS 0.005) 0.055)
+                    AND two EQUALS max one (min (one PLUS 0.005) 0.06))
+            `employee rates checked`
+
+-- Section 4(א) over every fund and month: 8 1/3% for severance exactly from
+-- 1.9.2011 outside a veteran fund.
+#ASSERT all (GIVEN k YIELD
+                all (GIVEN m YIELD
+                        `the severance contribution is 8 1/3%` (`a checked employee` k 0.06 0.05 999 FALSE) m
+                        EQUALS (m AT LEAST `1 September 2011` AND NOT k EQUALS `a veteran pension fund`))
+                    `months checked`)
+            `every fund kind`
+
+-- Section 2 over every component: none both carries the pension rates and
+-- keeps the 17.12.98 contribution; from 1.9.2011 a pension component stops
+-- carrying the 17.12.98 contribution, and the four left with neither are the
+-- two Oz LaTmura grants and the two tax items.
+`every component` MEANS
+    LIST `a component of the combined salary or another pay component`, `the evaluation-results grant`,
+         `the school-achievement grant`, `the personal contract (incentives)`, `expense reimbursement`,
+         `the clothing allowance`, `tax gross-up`, `imputation of a benefit for tax`
+#ASSERT all (GIVEN c YIELD
+                    (NOT (`a pension component from 1.9.2011` c OR `keeps the 17.12.98 contribution` c))
+                    EQUALS elem c (LIST `the evaluation-results grant`, `the school-achievement grant`, `tax gross-up`, `imputation of a benefit for tax`)
+                AND `carries the 17.12.98 contribution` c 7 TRUE
+                AND (`carries the 17.12.98 contribution` c 8 TRUE EQUALS NOT `a pension component from 1.9.2011` c))
+            `every component`

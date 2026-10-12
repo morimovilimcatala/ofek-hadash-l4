@@ -229,3 +229,99 @@ DECIDE `paying the erosion addition with September's salary` p IS
     PARTY `the local authority or owning body` DOES `pay the erosion addition` 189 AT 1
 #TRACE `paying the erosion addition with September's salary` `grade 11 of a three-year school` AT 0 WITH
     PARTY `the local authority or owning body` DOES `pay the erosion addition` 100 AT 1
+
+§§ `Property checks`
+
+-- The circular over a finite space: every kind of school, grades 7 to 14,
+-- either division the school may place a class in, every combination of
+-- the grade, the owner, a three- or four-year upper division and the move
+-- to Ofek Hadash, and combined salaries from 0 to 12,000 in steps of 3,000.
+
+`every school kind` MEANS LIST `a six-year school`, `a three-year school`, `another school`
+`both divisions` MEANS LIST `the upper division`, `the middle division`
+`both booleans` MEANS LIST TRUE, FALSE
+`grades checked` MEANS range 7 14
+`salaries checked` MEANS map (GIVEN k YIELD k TIMES 3000) (range 0 4)
+
+GIVEN g IS A BOOLEAN, u IS A BOOLEAN, o IS A BOOLEAN, k IS A `school kind`, n IS A NUMBER, d IS A `school division`, s IS A NUMBER
+GIVETH AN `erosion portion`
+DECIDE `a checked portion` g u o k n d s IS
+    `erosion portion` WITH
+        `in the teaching-staff grade`        IS g
+        `employed by an owner of secondary education supervised by the Ministry` IS TRUE
+        `kind of school`                     IS k
+        `grade taught`                       IS n
+        `division the school places it in`   IS d
+        `in a three- or four-year upper division` IS u
+        `moved to Ofek Hadash in the middle school` IS o
+        `combined salary`                    IS s
+        `tosefet '87`                        IS s DIVIDED BY 50
+        `tosefet '94`                        IS s DIVIDED BY 60
+        `tosefet 2008 amount`                IS s DIVIDED BY 20
+        `tosefet 2001 amount`                IS s DIVIDED BY 25
+
+GIVEN p IS AN `erosion portion`, g IS A BOOLEAN, u IS A BOOLEAN, o IS A BOOLEAN, s IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `sections 1 and 2 hold for` p g u o s IF
+    LET e MEANS `the erosion addition` p
+        paid MEANS `the employee is within section 1א` p AND `an upper-division portion by section 1ב` p
+    IN      e AT LEAST 0
+        AND e EQUALS (IF paid THEN 0.021 TIMES `the base of the erosion addition` p ELSE 0)
+        AND `the employee is within section 1א` p EQUALS (g AND u)
+        AND ((NOT `awaits the agreement still to be signed` p) OR (g AND u AND (NOT o) AND NOT paid))
+        AND ((NOT (g AND u)) OR paid OR o OR `awaits the agreement still to be signed` p)
+        AND e AT MOST `the erosion addition` (`a checked portion` g u o (p's `kind of school`) (p's `grade taught`) (p's `division the school places it in`) (s PLUS 3000))
+
+-- Sections 1 and 2 over the whole space: the erosion addition is never
+-- negative and is 2.1% of its base exactly on an upper-division portion of
+-- an employee within section 1א; a middle-school portion of such an
+-- employee is either under Ofek Hadash or awaits the agreement still to be
+-- signed, and only such a portion awaits it; the addition never falls as
+-- the salary grows.
+#ASSERT all (GIVEN g YIELD
+                all (GIVEN u YIELD
+                        all (GIVEN o YIELD
+                                all (GIVEN k YIELD
+                                        all (GIVEN n YIELD
+                                                all (GIVEN d YIELD
+                                                        all (GIVEN s YIELD
+                                                                `sections 1 and 2 hold for` (`a checked portion` g u o k n d s) g u o s)
+                                                            `salaries checked`)
+                                                    `both divisions`)
+                                            `grades checked`)
+                                    `every school kind`)
+                            `both booleans`)
+                    `both booleans`)
+            `both booleans`
+
+-- Section 1ב: in a six-year or three-year school the upper division is
+-- every grade from its first one up, so a higher grade is never out of it
+-- when a lower one is in.
+#ASSERT all (GIVEN k YIELD
+                all (GIVEN n YIELD
+                        (NOT `an upper-division portion by section 1ב` (`a checked portion` TRUE TRUE FALSE k n `the middle division` 0))
+                        OR `an upper-division portion by section 1ב` (`a checked portion` TRUE TRUE FALSE k (n PLUS 1) `the middle division` 0))
+                    (range 7 13))
+            (LIST `a six-year school`, `a three-year school`)
+
+-- F-2011-12_tashab_04-a over every grade of a six-year school, its upper
+-- division three or four years long and each class placed by the school
+-- accordingly (from grade 10, or from grade 9): section 1ב and the school's
+-- own division part exactly at grade 9 with a three-year upper division.
+#ASSERT all (GIVEN three YIELD
+                all (GIVEN n YIELD
+                        LET d MEANS IF n AT LEAST (IF three THEN 10 ELSE 9) THEN `the upper division` ELSE `the middle division`
+                            p MEANS `a checked portion` TRUE TRUE FALSE `a six-year school` n d 8000
+                        IN  (`an upper-division portion by section 1ב` p EQUALS (d EQUALS `the upper division`))
+                            EQUALS NOT (three AND n EQUALS 9))
+                    `grades checked`)
+            `both booleans`
+
+-- Section 2ב over every use: the addition counts toward every use but the
+-- five additions it names.
+#ASSERT all (GIVEN u YIELD
+                `the erosion addition counts toward` u
+                EQUALS NOT elem u (LIST `tosefet 2001`, `tosefet 2008`, `tosefet Oz LaTmura`, `tosefet 2011`, `promotion-grade addition`))
+            (LIST `percentage additions computed from the combined salary`, `tosefet 2001`, `tosefet 2008`, `tosefet Oz LaTmura`,
+                  `tosefet 2011`, `promotion-grade addition`, `the hourly value`, `severance pay under the Severance Pay Law`,
+                  `contributions to a pension provident fund, the study fund and the Dafna fund`)

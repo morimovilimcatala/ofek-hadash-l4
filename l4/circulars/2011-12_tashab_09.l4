@@ -211,3 +211,78 @@ DECIDE `the Ministry's reimbursement` IS
     PARTY `the Ministry of Education` DOES `reimburse the owner` AT 6
 #TRACE `paying from January's salary` `a partial-Oz upper-division teacher` AT 0 WITH
     PARTY `the local authority or owning body` DOES `pay the second tranche` 773.13 AT 5
+
+§§ `Property checks`
+
+-- The circular over a finite space: every reform status, in an Ofek Hadash
+-- middle school or not, every combination of the grade, the owner, the
+-- tosefet 2011 entitlement and the two personal-addition flags, and bases
+-- and table salaries from 0 to 12,000 in steps of 3,000.
+
+`every reform status` MEANS
+    LIST `not employed under reform terms`, `a principal under Oz LaTmura`,
+         `a non-principal in partial Oz LaTmura`, `a non-principal in full Oz LaTmura`
+`both booleans` MEANS LIST TRUE, FALSE
+`amounts checked` MEANS map (GIVEN k YIELD k TIMES 3000) (range 0 4)
+
+GIVEN g IS A BOOLEAN, t IS A BOOLEAN, s IS A `reform status`, h IS A BOOLEAN, d IS A BOOLEAN, j IS A BOOLEAN, a IS A NUMBER
+GIVETH A `second-tranche portion`
+DECIDE `a checked portion` g t s h d j a IS
+    `second-tranche portion` WITH
+        `in the teaching-staff grade`        IS g
+        `employed by an owner supervised by the Ministry` IS TRUE
+        `entitled to tosefet 2011 under circular תשע"ב/2` IS t
+        `status`                             IS s
+        `in an Ofek Hadash middle school`    IS h
+        `tosefet 2011 base under circular תשע"ב/2` IS a
+        `Ofek Hadash table salary before 1.1.2011` IS a
+        `entitled to a personal shekel addition in December 2011` IS d
+        `still entitled to it in January 2012` IS j
+        `personal shekel addition before 1.1.2011` IS a DIVIDED BY 10
+
+-- Section ב.1(ב): each addition never falls as the reform goes further,
+-- and a principal's row is the row of an employee not under the reform.
+#ASSERT all (GIVEN i YIELD
+                LET r MEANS at `the shekel additions from 1.1.2012` i
+                    q MEANS at `the shekel additions from 1.1.2012` (i PLUS 1)
+                IN      r's `tosefet '94 (teaching reinforcement)` AT MOST q's `tosefet '94 (teaching reinforcement)`
+                    AND r's `tosefet '87` AT MOST q's `tosefet '87`)
+            (range 0 2)
+#ASSERT `the shekel rows for` `a principal under Oz LaTmura` EQUALS
+        map (GIVEN r YIELD `shekel row` `a principal under Oz LaTmura` (r's `tosefet '94 (teaching reinforcement)`) (r's `tosefet '87`))
+            (`the shekel rows for` `not employed under reform terms`)
+
+-- Sections א and ב over every flag, status and amount: nothing for a
+-- portion outside the grade; tosefet 2011 and the shekel additions exactly
+-- where circular תשע"ב/2 gave tosefet 2011; the Ofek Hadash table exactly
+-- 4% above its old level in such a school; the personal addition updated
+-- exactly where both of its months hold; the whole never negative and
+-- never falling as the amounts grow.
+GIVEN p IS A `second-tranche portion`, g IS A BOOLEAN, t IS A BOOLEAN, h IS A BOOLEAN, d IS A BOOLEAN, j IS A BOOLEAN, a IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `sections א and ב hold for` p g t h d j a IF
+    LET w MEANS `the second-tranche amounts` p
+    IN      w AT LEAST 0
+        AND (g OR w EQUALS 0)
+        AND ((NOT g) OR (`the shekel additions of` p GREATER THAN 0) EQUALS t)
+        AND `tosefet 2011 from 1.1.2012` p EQUALS (IF g AND t THEN 0.04 TIMES a ELSE 0)
+        AND `the Ofek Hadash table salary from 1.1.2012` p EQUALS (IF g AND h THEN a TIMES 1.04 ELSE 0)
+        AND `the personal shekel addition is updated` p EQUALS (g AND h AND d AND j)
+
+#ASSERT all (GIVEN g YIELD
+                all (GIVEN t YIELD
+                        all (GIVEN s YIELD
+                                all (GIVEN h YIELD
+                                        all (GIVEN d YIELD
+                                                all (GIVEN j YIELD
+                                                        all (GIVEN a YIELD
+                                                                    `sections א and ב hold for` (`a checked portion` g t s h d j a) g t h d j a
+                                                                AND `the second-tranche amounts` (`a checked portion` g t s h d j a)
+                                                                    AT MOST `the second-tranche amounts` (`a checked portion` g t s h d j (a PLUS 3000)))
+                                                            `amounts checked`)
+                                                    `both booleans`)
+                                            `both booleans`)
+                                    `both booleans`)
+                            `every reform status`)
+                    `both booleans`)
+            `both booleans`

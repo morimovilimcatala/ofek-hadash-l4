@@ -177,3 +177,71 @@ DECIDE `the weekly quota at 100%` i y IS
 
 #TRACE `substituting frontal hours` `a partial-implementation teacher at 100% in תשע"ג` AT 0 WITH
     PARTY `the teaching employee` DOES `teach a frontal hour in place of a support hour` 2 AT 0
+
+§§ `Property checks`
+
+-- The circular over a finite space: both implementations, every school
+-- year named, positions of half, full and 120%, held beyond a full position
+-- as the agreement allows or not, agreed with the principal or not, and 0
+-- to 7 hours substituted a week.
+
+`both implementations` MEANS LIST `full implementation`, `partial implementation`
+`every school year` MEANS LIST `תשע"ב (2011/12)`, `תשע"ג (2012/13)`, `תשע"ד (2013/14)`
+`both booleans` MEANS LIST TRUE, FALSE
+
+GIVEN i IS AN `implementation`, y IS A `school year`, p IS A NUMBER, b IS A BOOLEAN, a IS A BOOLEAN, h IS A NUMBER
+GIVETH AN `Oz teacher`
+DECIDE `a checked teacher` i y p b a h IS
+    `Oz teacher` WITH
+        `in the upper division of an owner supervised by the Ministry` IS TRUE
+        `reform implementation`              IS i
+        `in school year`                     IS y
+        `position`                           IS p
+        `beyond a full position as the agreement allows` IS b
+        `hourly value`                       IS 100
+        `frontal hours in place of support hours` IS h
+        `agreed with the principal`          IS a
+
+GIVEN t IS AN `Oz teacher`, p IS A NUMBER, b IS A BOOLEAN, a IS A BOOLEAN, h IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `section 2 holds for` t p b a h IF
+    LET x MEANS `the weekly frontal-hour addition` t
+    IN      x AT LEAST 0
+        AND x AT MOST `the weekly cap for` t TIMES 100 TIMES 0.25
+        AND x AT MOST 5 TIMES 100 TIMES 0.25
+        AND (x GREATER THAN 0) EQUALS (a AND (p EQUALS 1 OR (p GREATER THAN 1 AND b)) AND h GREATER THAN 0 AND `the weekly cap for` t GREATER THAN 0)
+        AND ((h LESS THAN `the weekly cap for` t) OR (NOT `may teach a frontal hour in place of a support hour` t) OR x EQUALS `the weekly cap for` t TIMES 100 TIMES 0.25)
+
+-- Section 2 over the whole space: the addition is never negative, never
+-- more than a quarter of the hourly value for each hour of the cap, paid
+-- exactly to a teacher at a full position (or beyond it as the agreement
+-- allows) who agreed it with the principal and has a cap, and at or above
+-- the cap is the cap's.
+#ASSERT all (GIVEN i YIELD
+                all (GIVEN y YIELD
+                        all (GIVEN p YIELD
+                                all (GIVEN b YIELD
+                                        all (GIVEN a YIELD
+                                                all (GIVEN h YIELD
+                                                        `section 2 holds for` (`a checked teacher` i y p b a h) p b a h)
+                                                    (range 0 7))
+                                            `both booleans`)
+                                    `both booleans`)
+                            (LIST 0.5, 1, 1.2))
+                    `every school year`)
+            `both implementations`
+
+-- The caps and quotas over every implementation and year: set together
+-- (a year with a cap has a quota, a year without has neither), and in
+-- partial implementation neither falls from one year to the next.
+#ASSERT all (GIVEN i YIELD
+                all (GIVEN y YIELD
+                        isJust (`the cap section 2 sets` i y) EQUALS isJust (`the weekly quota at 100%` i y))
+                    `every school year`)
+            `both implementations`
+`the partial-implementation caps and quotas never fall` MEANS
+        fromMaybe 0 (`the cap section 2 sets` `partial implementation` `תשע"ג (2012/13)`)
+        AT MOST fromMaybe 0 (`the cap section 2 sets` `partial implementation` `תשע"ד (2013/14)`)
+    AND fromMaybe 0 (`the weekly quota at 100%` `partial implementation` `תשע"ג (2012/13)`)
+        AT MOST fromMaybe 0 (`the weekly quota at 100%` `partial implementation` `תשע"ד (2013/14)`)
+#ASSERT `the partial-implementation caps and quotas never fall`

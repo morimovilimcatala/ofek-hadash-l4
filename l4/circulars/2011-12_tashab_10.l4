@@ -147,3 +147,63 @@ DECIDE `the מית"ר topic of the reimbursement` u IS
     PARTY `the school principal` DOES `allocate role hours` 1.5 AT 0
 #TRACE `doing the role hour in school` TRUE AT 0 WITH
     PARTY `the teaching employee` DOES `do the role hour outside the school` AT 0
+
+§§ `Property checks`
+
+-- The circular over a finite space: every span, grades 7 to 14, upper
+-- divisions of one class of each grade, joined or not, and allocations of
+-- 0 to 1.5 hours.
+
+`every span` MEANS LIST `a four-year school`, `a three-year school`, `a six-year school`
+`grades checked` MEANS range 7 14
+`both booleans` MEANS LIST TRUE, FALSE
+
+GIVEN s IS A `school span`
+      gs IS A LIST OF NUMBER
+      j IS A BOOLEAN
+GIVETH AN `upper division`
+DECIDE `a checked division` s gs j IS
+    `upper division` WITH
+        `span`              IS s
+        `classes`           IS map (GIVEN g YIELD `school class` g) gs
+        `joined Oz LaTmura` IS j
+
+-- Section 2 over every span and grade: a class counts exactly from grade 9
+-- in a four-year school and from grade 10 otherwise, up to 14; a higher
+-- grade is never out when a lower one is in.
+#ASSERT all (GIVEN s YIELD
+                all (GIVEN g YIELD
+                            `a class that counts for the pool` s (`school class` g)
+                            EQUALS (g AT MOST 14 AND g AT LEAST (IF s EQUALS `a four-year school` THEN 9 ELSE 10))
+                        AND ((NOT `a class that counts for the pool` s (`school class` g)) OR g EQUALS 14
+                             OR `a class that counts for the pool` s (`school class` (g PLUS 1))))
+                    `grades checked`)
+            `every span`
+
+-- Sections 2 and 3 over every span, every run of grades from 7 up and both
+-- reform states: the pool is half an hour per counted class, never falls
+-- as a class is added, is the same joined or not, and only the מית"ר topic
+-- follows the reform.
+#ASSERT all (GIVEN s YIELD
+                all (GIVEN n YIELD
+                        all (GIVEN j YIELD
+                                LET gs MEANS range 7 n
+                                    u MEANS `a checked division` s gs j
+                                IN      `the coordinators' pool` u
+                                        EQUALS 0.5 TIMES count (filter (GIVEN g YIELD `a class that counts for the pool` s (`school class` g)) gs)
+                                    AND `the coordinators' pool` u AT MOST `the coordinators' pool` (`a checked division` s (range 7 (n PLUS 1)) j)
+                                    AND `the coordinators' pool` u EQUALS `the coordinators' pool` (`a checked division` s gs (NOT j))
+                                    AND `the מית"ר topic of the reimbursement` u EQUALS (IF j THEN 559 ELSE 560))
+                            `both booleans`)
+                    `grades checked`)
+            `every span`
+
+-- Section 2's cap over allocations of two coordinators in quarter hours: an
+-- allocation is allowed exactly when each gets at most an hour and they
+-- share no more than the pool of a four-year division of grades 9 to 12.
+#ASSERT all (GIVEN a YIELD
+                all (GIVEN b YIELD
+                        `an allocation section 2 allows` (LIST a, b) (`a checked division` `a four-year school` (range 9 12) TRUE)
+                        EQUALS (a AT MOST 1 AND b AT MOST 1 AND a PLUS b AT MOST 2))
+                    (map (GIVEN k YIELD k DIVIDED BY 4) (range 0 6)))
+            (map (GIVEN k YIELD k DIVIDED BY 4) (range 0 6))

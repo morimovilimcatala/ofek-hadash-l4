@@ -101,6 +101,11 @@ DECIDE `entitled to the one-off grant` g IF
 -- Section 2(ב): 2,000 for a full position, the same for more than a full
 -- position, and pro-rated to the average position below it. The average is
 -- taken over the part of the year actually employed (2(ב), 2(ז)).
+-- F-2011-12_tashab_03-a: section 2(א) entitles the employee, continuously
+-- employed "אצל המעסיקים", to a grant of 2,000 ₪; section 2(ב) computes it
+-- by the position "אצל המעסיק", capped at 100% there, and nothing caps the
+-- total of several employers. The reading adopted: each employer pays by
+-- the position held with it, as section 2(ב) computes it.
 @ref akn:hc_1__para_c__subpara_b
 GIVEN g IS A `grant employee`
 GIVETH A NUMBER
@@ -189,3 +194,86 @@ DECIDE `paying the grant with September's salary` g IS
     PARTY `the local authority or owning body` DOES `pay the one-off grant` 1600 AT 1
 #TRACE `paying the grant with September's salary` `a teacher at 80% employed throughout` AT 0 WITH
     PARTY `the local authority or owning body` DOES `pay the one-off grant` 1600 AT 2
+
+§§ `Property checks`
+
+-- The circular over a finite space: every absence, every combination of
+-- the grade, the owner, the earlier grant and continuous employment,
+-- salaried runs from 0 to 12 months in quarters around 4, and average
+-- positions in tenths from 0 to 1.5.
+
+`every absence` MEANS
+    LIST `no such absence`, `a sabbatical year for part of the period`,
+         `maternity leave under section 6 of the Women's Work Law`,
+         `unpaid leave, or absence treated as unpaid leave`
+`both booleans` MEANS LIST TRUE, FALSE
+`runs checked` MEANS LIST 0, 3, 4, 4.04, 4.25, 6, 12
+`tenths to 1.5` MEANS map (GIVEN k YIELD k DIVIDED BY 10) (range 0 15)
+
+GIVEN g IS A BOOLEAN, r IS A BOOLEAN, c IS A BOOLEAN, a IS AN `absence in the determining period`, m IS A NUMBER, f IS A NUMBER
+GIVETH A `grant employee`
+DECIDE `a checked employee` g r c a m f IS
+    `grant employee` WITH
+        `in the teaching-staff grade`        IS g
+        `employed by an owner of secondary education supervised by the Ministry` IS TRUE
+        `received the grant under the agreement of 25.1.2011` IS r
+        `employed continuously from 1.9.2010 to 1.1.2011` IS c
+        `absence`                            IS a
+        `longest continuous salaried period in months` IS m
+        `average position`                   IS f
+
+GIVEN e IS A `grant employee`, g IS A BOOLEAN, r IS A BOOLEAN, c IS A BOOLEAN, a IS AN `absence in the determining period`, m IS A NUMBER, f IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `section 2 holds for` e g r c a m f IF
+    LET x MEANS `the one-off grant` e
+    IN      x AT LEAST 0
+        AND x AT MOST `the grant for a full position`
+        AND (x GREATER THAN 0) EQUALS (    g AND (NOT r) AND f GREATER THAN 0
+                                       AND (IF a EQUALS `unpaid leave, or absence treated as unpaid leave`
+                                            THEN m GREATER THAN 4
+                                            ELSE c))
+        AND ((f LESS THAN 1) OR (NOT `entitled to the one-off grant` e) OR x EQUALS `the grant for a full position`)
+
+-- Sections 1 and 2 over the whole space: the grant is never negative and
+-- never above 2,000; it is something exactly for an employee in the grade
+-- with a position who did not receive it under the agreement of 25.1.2011
+-- and meets the employment test — continuous employment, or, with unpaid
+-- leave, more than four months salaried in a row; a full position or more
+-- is paid 2,000; and the grant never falls with a larger position.
+#ASSERT all (GIVEN g YIELD
+                all (GIVEN r YIELD
+                        all (GIVEN c YIELD
+                                all (GIVEN a YIELD
+                                        all (GIVEN m YIELD
+                                                all (GIVEN f YIELD
+                                                            `section 2 holds for` (`a checked employee` g r c a m f) g r c a m f
+                                                        AND `the one-off grant` (`a checked employee` g r c a m f)
+                                                            AT MOST `the one-off grant` (`a checked employee` g r c a m (f PLUS 0.1)))
+                                                    `tenths to 1.5`)
+                                            `runs checked`)
+                                    `every absence`)
+                            `both booleans`)
+                    `both booleans`)
+            `both booleans`
+
+-- Sections 2(ג)-(ד): the grant counts toward none of the uses they name.
+#ASSERT all (GIVEN u YIELD NOT `the grant counts toward` u)
+            (LIST `salary for every purpose`, `severance pay`, `the hourly value`,
+                  `contributions to a provident fund, the study fund and a pension fund included`,
+                  `the minimum-wage top-up`)
+
+-- F-2011-12_tashab_03-a over every pair of positions in tenths at two
+-- employers: the two grants together exceed one full position's 2,000
+-- exactly where the positions add to more than one.
+#ASSERT all (GIVEN f YIELD
+                all (GIVEN h YIELD
+                        LET x MEANS `the one-off grant` (`a checked employee` TRUE FALSE TRUE `no such absence` 12 f)
+                            y MEANS `the one-off grant` (`a checked employee` TRUE FALSE TRUE `no such absence` 12 h)
+                        IN  (x PLUS y GREATER THAN `the grant for a full position`) EQUALS (f PLUS h GREATER THAN 1))
+                    (map (GIVEN k YIELD k DIVIDED BY 10) (range 0 10)))
+            (map (GIVEN k YIELD k DIVIDED BY 10) (range 0 10))
+
+`a teacher with a full position at each of two employers draws two grants` MEANS
+    LET x MEANS `the one-off grant` (`a checked employee` TRUE FALSE TRUE `no such absence` 12 1)
+    IN  x PLUS x EQUALS 2 TIMES `the grant for a full position`
+#ASSERT `a teacher with a full position at each of two employers draws two grants`

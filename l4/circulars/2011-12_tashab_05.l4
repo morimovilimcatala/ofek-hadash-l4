@@ -242,3 +242,79 @@ DECIDE `the daycare addition` d g IS
     PARTY `the local authority or owning body` DOES `pay the daycare addition` 250 AT 2
 #TRACE `no receipts` AT 0 WITH
     PARTY `the local authority or owning body` DOES `require receipts` AT 1
+
+§§ `Property checks`
+
+-- The circular over a finite space: 0 to 4 children under 5, positions in
+-- tenths from 0 to 1.5, every combination of mother, custodial father,
+-- the Equal Employment Opportunities Law and a salaried month, and general
+-- arrangements on either side of 300 and 500.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`tenths to 1.5` MEANS map (GIVEN k YIELD k DIVIDED BY 10) (range 0 15)
+`children checked` MEANS range 0 4
+
+GIVEN m IS A BOOLEAN, f IS A BOOLEAN, q IS A BOOLEAN, w IS A BOOLEAN, n IS A NUMBER, p IS A NUMBER
+GIVETH A `daycare employee`
+DECIDE `a checked employee` m f q w n p IS
+    `daycare employee` WITH
+        `in the teaching-staff grade`        IS TRUE
+        `employed by an owner of secondary education` IS TRUE
+        `a mother`                           IS m
+        `a widower or divorced man with the children in his custody` IS f
+        `entitled through section 4(א) of the Equal Employment Opportunities Law` IS q
+        `children under 5`                   IS n
+        `position fraction`                  IS p
+        `entitled to salary from the employer and funded by it this month` IS w
+
+GIVEN d IS A `daycare employee`, m IS A BOOLEAN, f IS A BOOLEAN, q IS A BOOLEAN, w IS A BOOLEAN, n IS A NUMBER, p IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `sections 1 and 2 hold for` d m f q w n p IF
+    LET a MEANS `the daycare addition` d `no general arrangement`
+    IN      a AT LEAST 0
+        AND a AT MOST `the amount for the first child` PLUS `the amount for the second child`
+        AND (a GREATER THAN 0) EQUALS ((m OR f OR q) AND w AND n AT LEAST 1 AND p GREATER THAN 0)
+        AND a AT MOST `the daycare addition` (`a checked employee` m f q w (n PLUS 1) p) `no general arrangement`
+        AND a AT MOST `the daycare addition` (`a checked employee` m f q w n (p PLUS 0.1)) `no general arrangement`
+        AND `the daycare addition` d `a better general arrangement` EQUALS 0
+
+-- Sections 1 to 3 over the whole space: the addition is never negative and
+-- never more than 500; it is paid exactly to a mother, a custodial father
+-- or a parent section 4(א) of that law reaches, with a child under 5 and a
+-- position, in a salaried month; it never falls with another child or a
+-- larger position; and under a better general arrangement it is not paid.
+#ASSERT all (GIVEN m YIELD
+                all (GIVEN f YIELD
+                        all (GIVEN q YIELD
+                                all (GIVEN w YIELD
+                                        all (GIVEN n YIELD
+                                                all (GIVEN p YIELD
+                                                        `sections 1 and 2 hold for` (`a checked employee` m f q w n p) m f q w n p)
+                                                    `tenths to 1.5`)
+                                            `children checked`)
+                                    `both booleans`)
+                            `both booleans`)
+                    `both booleans`)
+            `both booleans`
+
+-- F-2011-12_tashab_05-a over the same positions: the two readings part
+-- exactly above a full position.
+#ASSERT all (GIVEN p YIELD
+                LET d MEANS `a checked employee` TRUE FALSE FALSE TRUE 1 p
+                IN  (NOT (`the daycare position share` d EQUALS `the share if pro-rated above a full position too` d))
+                    EQUALS (p GREATER THAN 1))
+            `tenths to 1.5`
+
+-- Section 3 over general arrangements on either side of both thresholds:
+-- one continues exactly when it pays more than 300 for one child and more
+-- than 500 for two, and section 29 permits it.
+#ASSERT all (GIVEN b YIELD
+                all (GIVEN one YIELD
+                        all (GIVEN two YIELD
+                                all (GIVEN s YIELD
+                                        `the general arrangement continues` (`general arrangement` b one two s)
+                                        EQUALS (b AND one GREATER THAN 300 AND two GREATER THAN 500 AND s))
+                                    `both booleans`)
+                            (LIST 0, 500, 501, 700))
+                    (LIST 0, 300, 301, 400))
+            `both booleans`

@@ -218,3 +218,69 @@ DECIDE `the Ministry's reimbursement of the grant` IS
     PARTY `the Ministry of Education` DOES `reimburse the owner for the grant` AT 13
 #TRACE `paying the grant with August's salary` `a full-position teacher all year` AT 0 WITH
     PARTY `the local authority or owning body` DOES `pay the grant` 1000 AT 12
+
+§§ `Property checks`
+
+-- The circular over a finite space: in the grade or not, employed in the
+-- upper division in 2011/12 or not, upper-division positions in tenths
+-- from 0 to 1.5, and 0 to 10 months employed with 0 to 3 of them on
+-- statutory maternity leave.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`tenths to 1.5` MEANS map (GIVEN k YIELD k DIVIDED BY 10) (range 0 15)
+
+GIVEN g IS A BOOLEAN, u IS A BOOLEAN, p IS A NUMBER, m IS A NUMBER, l IS A NUMBER
+GIVETH A `grant year`
+DECIDE `a checked year` g u p m l IS
+    `grant year` WITH
+        `in the upper-division teaching-staff grade` IS g
+        `employed by an owner supervised by the Ministry` IS TRUE
+        `employed in the upper division in 2011/12` IS u
+        `upper-division position`            IS p
+        `months employed from 9/2011 to 6/2012` IS m
+        `months of statutory maternity leave` IS l
+
+GIVEN y IS A `grant year`, g IS A BOOLEAN, u IS A BOOLEAN, p IS A NUMBER, m IS A NUMBER, l IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `section 2 holds for` y g u p m l IF
+    LET x MEANS `the grant` y
+    IN      x AT LEAST 0
+        AND (x GREATER THAN 0) EQUALS (g AND u AND p GREATER THAN 0 AND m PLUS l GREATER THAN 0)
+        AND x AT MOST `the grant for a full position` TIMES p
+        AND `the grant capped at one position` y AT MOST `the grant for a full position`
+        AND (NOT (x EQUALS `the grant capped at one position` y)) EQUALS (x GREATER THAN 0 AND p GREATER THAN 1)
+        AND x AT MOST `the grant` (`a checked year` g u (p PLUS 0.1) m l)
+        AND x AT MOST `the grant` (`a checked year` g u p (m PLUS 1) l)
+        AND `the employer's pension contribution on the grant` y EQUALS x TIMES 0.05
+        AND `the teacher's pension deduction on the grant` y EQUALS `the employer's pension contribution on the grant` y
+
+-- Section 2 over the whole space: the grant is never negative; it is
+-- something exactly for an employee in the grade employed in the upper
+-- division with a position and a month counted; it is never more than
+-- 2,000 per position, never falls with a larger position or another month,
+-- and the employer's 5% and the teacher's 5% on it are equal.
+-- F-2011-12_tashab_14-a over the same space: the reading adopted and the
+-- reading capped at one position part exactly where a grant is paid on a
+-- position above 100%, and the capped one never passes 2,000.
+#ASSERT all (GIVEN g YIELD
+                all (GIVEN u YIELD
+                        all (GIVEN p YIELD
+                                all (GIVEN m YIELD
+                                        all (GIVEN l YIELD
+                                                `section 2 holds for` (`a checked year` g u p (m MINUS l) l) g u p (m MINUS l) l)
+                                            (range 0 (min 3 m)))
+                                    (range 0 10))
+                            `tenths to 1.5`)
+                    `both booleans`)
+            `both booleans`
+
+-- Statutory maternity leave counts as a month employed, over every split of
+-- the ten months.
+#ASSERT all (GIVEN l YIELD
+                `the grant` (`a checked year` TRUE TRUE 1 (10 MINUS l) l) EQUALS `the grant for a full position`)
+            (range 0 10)
+
+-- Section 2(ב) over every base: excluded from exactly the four it names.
+#ASSERT all (GIVEN b YIELD `the grant is excluded from` b EQUALS NOT (b EQUALS `any other base`))
+            (LIST `the base of the hourly value`, `the base of severance pay`, `the base of percentage additions`,
+                  `the base of study-fund contributions`, `any other base`)
