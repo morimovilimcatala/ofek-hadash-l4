@@ -5,6 +5,17 @@ that sets each section's TEXT beside its L4. The text is the corpus's; the
 reading of it is ours. Use the L4 skill (`writing-l4-rules`, from
 legalese/l4-ide `skills/`) for anything about the language.
 
+## Work is tracked in Linear, project `L4 encoding`
+
+The L4's own work — an encoding batch, a property-check pass, a site or
+findings change — is an issue in Linear team `MMS`, project `L4 encoding`
+(the client, 2026-10-12: from 2026-10-07 to 2026-10-12 none was filed,
+MMS-454 records them after the fact). A defect in the corpus text still goes
+to `AKN corpus`, as above. The corpus repo's live-status rule applies here
+unchanged: In Progress the moment work starts, a comment per shipped commit,
+Done in the same step as the push that finishes it, back to Backlog with a
+reason when work stops, and nothing open written in a markdown file.
+
 ## The corpus decides the text
 
 - `corpus/` is a vendored snapshot of `morimovilimcatala/TeachersSalaryCatala`
