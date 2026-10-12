@@ -264,3 +264,57 @@ DECIDE `the external part is the stated weight` r IF
 
 #TRACE `paying a part of the reward in weekly hours` `a placeholder geography questionnaire row` `the school-based assessment` AT 0 WITH
     PARTY `the employer` DOES `pay the reward for the part` 4 AT 1
+
+§§ `Property checks`
+
+-- The rules over a finite space: the four subjects the table names and
+-- another; whole rewards of 1, 2 and 3.5 weekly hours split by the stated
+-- weight; every examination event; school years beginning 2017 to 2021.
+
+`the subjects checked` MEANS LIST "תנ\"ך דתי", "גיאוגרפיה", "לימודי ארץ ישראל", "תנ\"ך ממ\"ד", "היסטוריה"
+
+GIVEN s IS A STRING, w IS A NUMBER
+GIVETH A `reward row`
+DECIDE `a row split by its stated weight` s w IS
+    `reward row` s 5 "שאלון"
+        (JUST w) (JUST w)
+        (JUST (w TIMES `the external weight stated for` s)) (JUST (w TIMES `the external weight stated for` s))
+        (JUST (w MINUS w TIMES `the external weight stated for` s)) (JUST (w MINUS w TIMES `the external weight stated for` s))
+
+-- The notes' weights: every subject's external weight is a share between 0
+-- and 1, the general 70% for any subject without a note of its own; a row
+-- split by it passes both of a row's checks, in hours and in percent.
+#ASSERT all (GIVEN s YIELD
+                    `the external weight stated for` s GREATER THAN 0
+                AND `the external weight stated for` s LESS THAN 1
+                AND all (GIVEN w YIELD
+                                `the row's parts add up` (`a row split by its stated weight` s w)
+                            AND `the external part is the stated weight` (`a row split by its stated weight` s w))
+                        (LIST 1, 2, 3.5))
+            `the subjects checked`
+#ASSERT `the external weight stated for` "היסטוריה" EQUALS 0.7
+
+-- A blank cell adds nothing: the sum of a part and a blank is the part,
+-- and of two blanks is a blank.
+#ASSERT all (GIVEN x YIELD `the sum of` (JUST x) NOTHING EQUALS JUST x AND `the sum of` NOTHING (JUST x) EQUALS JUST x) (LIST 0, 1, 2.5)
+#ASSERT `the sum of` NOTHING NOTHING EQUALS NOTHING
+
+-- The Bible notes over every event: the religious row's external part goes
+-- half to each external questionnaire and nothing to the school-based
+-- events; the state-religious row's shares make up the whole reward, half
+-- external (25% each) and half school-based, the two school-based shares
+-- different (finding a).
+#ASSERT sum (map `religious Bible share of the external part` `all examination events`) EQUALS 1
+#ASSERT all (GIVEN e YIELD
+                (`religious Bible share of the external part` e GREATER THAN 0)
+                EQUALS (e EQUALS `the first external questionnaire` OR e EQUALS `the second external questionnaire`))
+            `all examination events`
+`the state-religious external shares` MEANS
+    `state-religious Bible share of the whole reward` `the first external questionnaire`
+    PLUS `state-religious Bible share of the whole reward` `the second external questionnaire`
+#ASSERT `the state-religious external shares` EQUALS 0.5
+
+-- ¶17 over school years beginning 1.9.2017 to 1.9.2021: the update applies
+-- exactly from תש"פ.
+#ASSERT all (GIVEN y YIELD `the updated split applies to the year beginning` (Date 1 9 y) EQUALS (y AT LEAST 2019))
+            (range 2017 2021)

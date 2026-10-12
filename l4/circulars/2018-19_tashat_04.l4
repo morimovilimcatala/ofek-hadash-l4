@@ -135,3 +135,51 @@ DECIDE `indemnifying the owners` `indemnity due` IS
 
 #TRACE `indemnifying the owners` 80 AT 0 WITH
     PARTY `the Ministry of Education` DOES `indemnify the owner at the hour costs` 80 AT 1
+
+§§ `Property checks`
+
+-- The circular over a finite space: covered or not; every stage; grades 0
+-- to 5 in halves; the first and last days around each period.
+`both booleans` MEANS LIST TRUE, FALSE
+`every stage` MEANS LIST `kindergarten`, `primary school`, `middle division`, `teachers' college`, `upper division`
+`every grade checked` MEANS map (GIVEN k YIELD k DIVIDED BY 2) (range 0 10)
+`the days checked` MEANS
+    LIST Date 31 12 2018, Date 1 1 2019, Date 31 5 2019, Date 1 6 2019, Date 31 8 2019, Date 1 9 2019, Date 1 1 2021
+
+GIVEN g IS A BOOLEAN, s IS A `stage of education`, r IS A NUMBER
+GIVETH A `teaching employee`
+DECIDE `a checked employee` g s r IS
+    `teaching employee` WITH
+        `rated in the teaching employees' grading` IS g
+        `employed by an owner of a ministry-supervised institution` IS TRUE
+        `stage` IS s
+        `academic grade` IS r
+
+-- §§א-ג: each period lists every grade at most once and one amount for
+-- all others; from 1.1.2019 every day falls in exactly one period.
+#ASSERT all (GIVEN d YIELD
+                    all (GIVEN r YIELD count (filter (GIVEN a YIELD a's `for grade` EQUALS r) (`the amounts in force on` d)) AT MOST 1)
+                        `every grade checked`
+                AND count (filter (GIVEN a YIELD a's `for grade` EQUALS 0) (`the amounts in force on` d))
+                    EQUALS (IF d AT LEAST Date 1 1 2019 THEN 1 ELSE 0))
+            `the days checked`
+
+-- Over every case and day: nothing outside the circular (the upper
+-- division among it) or before 1.1.2019; a named grade never below all
+-- others, and from grade 1 falling with each half grade; no case's amount
+-- falls from one day checked to a later one.
+#ASSERT all (GIVEN g YIELD
+                all (GIVEN s YIELD
+                        all (GIVEN r YIELD
+                                all (GIVEN d YIELD
+                                        LET x MEANS `the linked shekel supplement for a full position` (`a checked employee` g s r) d
+                                            o MEANS `the linked shekel supplement for a full position` (`a checked employee` g s 0) d
+                                        IN      ((g AND (NOT (s EQUALS `upper division`)) AND d AT LEAST Date 1 1 2019) OR x EQUALS 0)
+                                            AND x AT LEAST o
+                                            AND ((r LESS THAN 1.5) OR x AT MOST `the linked shekel supplement for a full position` (`a checked employee` g s (r MINUS 0.5)) d)
+                                            AND all (GIVEN e YIELD (e LESS THAN d) OR x AT MOST `the linked shekel supplement for a full position` (`a checked employee` g s r) e)
+                                                    `the days checked`)
+                                    `the days checked`)
+                            `every grade checked`)
+                    `every stage`)
+            `both booleans`

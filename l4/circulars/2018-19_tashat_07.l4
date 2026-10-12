@@ -391,3 +391,65 @@ DECIDE `within two agorot` a b IF
     PARTY `the employer` DOES `pay the differences` 600 AT 9
 #TRACE `no deduction for the replaced annexes` AT 0 WITH
     PARTY `the employer` DOES `deduct salary because of the replaced annexes` 50 AT 9
+
+§§ `Property checks`
+
+-- The annexes over every row and grade, and the annex in force over every
+-- kind of employee and the first and last days around each date.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`every annex` MEANS
+    LIST `annex A, reform, from 1.9.2017`, `annex B, reform, from 1.9.2018`, `annex C, reform, from 1.12.2018`,
+         `annex D, outside the reform and principals, from 1.9.2018`
+-- The grades by salary, highest first, as every row prints them.
+`the grades by salary` MEANS
+    LIST `doctor`, `second degree (MA)`, `first degree (BA)`, `senior teacher or certified professional instructor`,
+         `intermediate professional instructor`, `professional instructor certified in practice`, `certified teacher`
+`the days checked` MEANS
+    LIST Date 31 8 2017, Date 1 9 2017, Date 31 8 2018, Date 1 9 2018, Date 30 11 2018, Date 1 12 2018, Date 1 1 2020
+
+GIVEN t IS A LIST OF `salary row`
+GIVETH A BOOLEAN
+DECIDE `the annex is ordered` t IF
+        all (GIVEN r YIELD
+                all (GIVEN k YIELD `the cell for` r (at `the grades by salary` (k PLUS 1)) LESS THAN `the cell for` r (at `the grades by salary` k))
+                    (range 0 5))
+            t
+    AND all (GIVEN k YIELD
+                all (GIVEN g YIELD `the cell for` (at t k) g LESS THAN `the cell for` (at t (k PLUS 1)) g) `all grades`)
+            (range 0 34)
+
+-- Every annex: in each row the salary falls grade by grade in one order,
+-- and in each grade it rises with every year of seniority.
+#ASSERT all (GIVEN a YIELD `the annex is ordered` (`the rows of` a)) `every annex`
+
+GIVEN a IS A `salary row`, b IS A `salary row`
+GIVETH A BOOLEAN
+DECIDE `no cell of the second row is lower` a b IF
+    all (GIVEN g YIELD `the cell for` a g AT MOST `the cell for` b g) `all grades`
+
+-- Annex C is never below annex B, cell by cell.
+#ASSERT and (zipWith `no cell of the second row is lower` `annex B` `annex C`)
+
+-- §2 over every kind of employee and day: the reform's teachers have an
+-- annex from 1.9.2017, everyone else from 1.9.2018, and nothing before; the
+-- salary is a printed cell exactly where an annex is in force.
+#ASSERT all (GIVEN r YIELD
+                all (GIVEN p YIELD
+                        all (GIVEN d YIELD
+                                LET e MEANS `employee` WITH
+                                                `covered by the Oz LeTmura agreement of 14.8.2011` IS TRUE
+                                                `in the reform` IS r
+                                                `a principal` IS p
+                                    from MEANS IF r AND (NOT p) THEN Date 1 9 2017 ELSE Date 1 9 2018
+                                IN      (NOT (`the annex in force for` e d EQUALS NOTHING)) EQUALS (d AT LEAST from)
+                                    AND (`combined salary` e d `doctor` 1 GREATER THAN 0) EQUALS (d AT LEAST from))
+                            `the days checked`)
+                    `both booleans`)
+            `both booleans`
+
+-- §3 ¶2 over owed and paid amounts: the differences are never negative,
+-- and are the excess where there is one.
+#ASSERT all (GIVEN o YIELD
+                all (GIVEN q YIELD `the differences owed` o q EQUALS (IF o GREATER THAN q THEN o MINUS q ELSE 0)) (LIST 0, 100, 250))
+            (LIST 0, 100, 250)

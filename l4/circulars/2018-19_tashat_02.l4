@@ -590,3 +590,203 @@ DECIDE `paying the jubilee differences` `differences owed` IS
 
 #TRACE `paying the 2015 grant` `twenty-four full months` AT 0 WITH
     PARTY `the employer` DOES `pay the 2015 grant` 5000 AT 5
+
+§§ `Property checks`
+
+-- The circular over finite spaces: both kinds of teacher; days around the
+-- determining date; every rank; positions in tenths to 1.5; amounts for the
+-- calculation 0 to 2,500; months of every kind; ages 49 to 66 in months.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`tenths to 1.5` MEANS map (GIVEN k YIELD k DIVIDED BY 10) (range 0 15)
+`ranks in order` MEANS
+    LIST `lecturer`, `senior lecturer`, `associate professor`, `full professor`
+`every rank` MEANS
+    LIST `lecturer`, `adjunct lecturer`, `senior lecturer`, `adjunct senior lecturer`,
+         `associate professor`, `adjunct associate professor`, `full professor`
+`every month kind` MEANS
+    LIST `worked`, `maternity and parenthood, reserve duty or unpaid sick leave`,
+         `unpaid leave, sabbatical or leave treated as unpaid`, `not employed`
+
+GIVEN k IS A `kind of college teacher`
+GIVETH A `college teacher`
+DECIDE `a teacher of kind` k IS
+    `college teacher` WITH
+        `covered by the colleges' reform agreement` IS TRUE
+        `kind` IS k
+        `promotion grade rate on the eve` IS 0.04
+
+GIVEN b IS A NUMBER
+GIVETH A `trailing base`
+DECIDE `a base of` b IS `trailing base` b b b b b b b
+
+-- §5(a): the promotion-grade agreements govern exactly before 1.9.2018;
+-- the trailing supplement is the eve's rate on the seven components for a
+-- teacher who had a promotion grade, from that day, and nothing otherwise.
+#ASSERT all (GIVEN d YIELD
+                    `the promotion-grade agreements govern on` d EQUALS (d LESS THAN Date 1 9 2018)
+                AND all (GIVEN k YIELD
+                            `the trailing promotion supplement` (`a teacher of kind` k) (`a base of` 1000) d
+                            EQUALS (IF k EQUALS `a teacher who had a promotion grade` AND d AT LEAST Date 1 9 2018 THEN 280 ELSE 0))
+                        (LIST `a teacher who had a promotion grade`, `a teacher who had no promotion grade`))
+            (LIST Date 31 8 2018, Date 1 9 2018, Date 1 1 2020)
+
+-- The new supplements count for every purpose but the base of another.
+`every purpose` MEANS
+    LIST `salary for every matter`, `the hourly value`, `severance pay`, `accruing-pension deposits`,
+         `study-fund deposits`, `the base of another supplement`,
+         `annual supplements and grants on the overtime or budgetary-pension base`
+#ASSERT all (GIVEN u YIELD `the new supplements count for` u EQUALS (NOT (u EQUALS `the base of another supplement`))) `every purpose`
+
+GIVEN t IS A BOOLEAN, p IS A NUMBER, a IS A NUMBER, y IS A NUMBER
+GIVETH A `rank candidacy`
+DECIDE `a candidacy` t p a y IS
+    `rank candidacy` WITH
+        `tenured`                         IS t
+        `tenured position at the college` IS p
+        `position in academic tracks`     IS a
+        `years actually employed at the college` IS y
+        `approved under the management rules` IS TRUE
+
+-- §5(c) over positions in tenths: a higher rank's position condition
+-- implies every lower rank's; an adjunct rank asks what its rank asks;
+-- more position never loses it; one may apply exactly when tenured and
+-- meeting it.
+#ASSERT all (GIVEN p YIELD
+                all (GIVEN a YIELD
+                        all (GIVEN k YIELD
+                                LET c MEANS `a candidacy` TRUE p a 6
+                                    hi MEANS at `ranks in order` (k PLUS 1)
+                                    lo MEANS at `ranks in order` k
+                                IN      ((NOT `meets the position condition for` hi c) OR `meets the position condition for` lo c)
+                                    AND ((NOT `meets the position condition for` lo c)
+                                         OR `meets the position condition for` lo (`a candidacy` TRUE (p PLUS 0.1) (a PLUS 0.1) 6)))
+                            (range 0 2))
+                    `tenths to 1.5`)
+            `tenths to 1.5`
+#ASSERT all (GIVEN p YIELD
+                all (GIVEN t YIELD
+                            `meets the position condition for` `adjunct lecturer` (`a candidacy` t p p 6) EQUALS `meets the position condition for` `lecturer` (`a candidacy` t p p 6)
+                        AND `meets the position condition for` `adjunct senior lecturer` (`a candidacy` t p p 6) EQUALS `meets the position condition for` `senior lecturer` (`a candidacy` t p p 6)
+                        AND `may apply for` `senior lecturer` (`a candidacy` t p p 6) EQUALS (t AND `meets the position condition for` `senior lecturer` (`a candidacy` t p p 6)))
+                    `both booleans`)
+            `tenths to 1.5`
+
+-- §5(c)(1)(4) and §5(c)(2): the temporary exemptions hold only in their
+-- years (2018-2020 for senior lecturer, 2018-2022 for the professorships)
+-- and never for a lecturer.
+#ASSERT all (GIVEN y YIELD
+                LET c MEANS `a candidacy` TRUE 1 1 6
+                IN      `is exempt from the minimum time as lecturer` `senior lecturer` c y EQUALS (y AT LEAST 2018 AND y AT MOST 2020)
+                    AND `is exempt from the minimum time as lecturer` `full professor` c y EQUALS (y AT LEAST 2018 AND y AT MOST 2022)
+                    AND (NOT `is exempt from the minimum time as lecturer` `lecturer` c y))
+            (range 2016 2024)
+
+-- §5(c)(7): the entitlement date is the later of the two dates.
+#ASSERT all (GIVEN a YIELD
+                all (GIVEN b YIELD
+                            `the rank's entitlement date` a b AT LEAST a
+                        AND `the rank's entitlement date` a b AT LEAST b
+                        AND (`the rank's entitlement date` a b EQUALS a OR `the rank's entitlement date` a b EQUALS b))
+                    (LIST Date 1 10 2018, Date 1 9 2019))
+            (LIST Date 1 9 2018, Date 1 9 2019, Date 1 9 2020)
+
+-- §5(d)-(e) over every rank, amounts for the calculation 0 to 2,500,
+-- factors 1 and 1.02 and positions in tenths: the first figure rises with
+-- the rank and is above the floor; the supplement is never below the floor
+-- nor above the first figure (each by the factor and the position up to
+-- one), never rises with a larger amount for the calculation, never falls
+-- with a larger position, and pays above a full position as one.
+#ASSERT all (GIVEN k YIELD `the first figure` (at `ranks in order` k) LESS THAN `the first figure` (at `ranks in order` (k PLUS 1))) (range 0 2)
+#ASSERT all (GIVEN r YIELD
+                    `the floor` r LESS THAN `the first figure` r
+                AND all (GIVEN m YIELD
+                            all (GIVEN f YIELD
+                                    all (GIVEN p YIELD
+                                            LET x MEANS `the shekel supplement by rank` r m f p
+                                                q MEANS min p 1
+                                            IN      x AT LEAST `the floor` r TIMES f TIMES q
+                                                AND x AT MOST `the first figure` r TIMES f TIMES q
+                                                AND `the shekel supplement by rank` r (m PLUS 100) f p AT MOST x
+                                                AND x AT MOST `the shekel supplement by rank` r m f (p PLUS 0.1)
+                                                AND ((p LESS THAN 1) OR x EQUALS `the shekel supplement by rank` r m f 1))
+                                        `tenths to 1.5`)
+                                (LIST 1, 1.02))
+                        (LIST 0, 300, 600, 1000, 1500, 2500))
+            `every rank`
+
+-- §5(d)(4): the January factor is never below one, and is the rise where
+-- the index rose.
+#ASSERT all (GIVEN i YIELD
+                    `the January update factor` i 100 AT LEAST 1
+                AND `the January update factor` i 100 EQUALS (IF i GREATER THAN 100 THEN i DIVIDED BY 100 ELSE 1))
+            (range 97 104)
+
+-- §5(d)(9): the supplement runs from the entitlement date and while the
+-- rank is held.
+#ASSERT all (GIVEN d YIELD
+                all (GIVEN h YIELD `the shekel supplement runs on` d (Date 1 9 2019) h EQUALS (h AND d AT LEAST Date 1 9 2019)) `both booleans`)
+            (LIST Date 31 8 2019, Date 1 9 2019, Date 1 1 2021)
+
+-- §§7-8 over 9 to 34 months of every kind at positions of 0.5, 1 and
+-- 1.2 (the 2015 grant's period has 24): each grant is never negative,
+-- never above its full sum,
+-- nothing below its minimum of months counted, and whole for a full
+-- position all the period.
+#ASSERT all (GIVEN k YIELD
+                all (GIVEN q YIELD
+                        all (GIVEN n YIELD
+                                LET ms MEANS replicate n (`grant month` q k)
+                                IN      ((n GREATER THAN 24) OR (`the 2015 grant` ms AT LEAST 0 AND `the 2015 grant` ms AT MOST 5000))
+                                    AND `the 2018 grant` ms AT LEAST 0 AND `the 2018 grant` ms AT MOST 8000
+                                    AND ((`the month counts` (`grant month` q k) AND n AT LEAST 10) OR `the 2015 grant` ms EQUALS 0)
+                                    AND ((`the month counts` (`grant month` q k) AND n AT LEAST 12) OR `the 2018 grant` ms EQUALS 0))
+                            (LIST 9, 10, 11, 12, 24, 34))
+                    (LIST 0.5, 1, 1.2))
+            `every month kind`
+#ASSERT `the 2015 grant` (replicate 24 (`grant month` 1 `worked`)) EQUALS 5000
+#ASSERT `the 2018 grant` (replicate 34 (`grant month` 1 `worked`)) EQUALS 8000
+#ASSERT all (GIVEN u YIELD NOT `the one-time grants count for` u)
+            (LIST `salary for any matter`, `the hourly value for substitution hours`, `salary reduction for an hour of absence`,
+                  `severance pay under the Severance Pay Law 1963`, `provident deposits, study fund, pension fund or managers' insurance included`,
+                  `topping up to the minimum wage`, `the salary base of the combined-salary tables`)
+
+-- §9(b): the age bands follow one another without overlap, the grant
+-- falling from each band to the next; over ages 49 to 66 in months every
+-- age is in at most one band.
+#ASSERT all (GIVEN k YIELD
+                    (at `the special grant table` k)'s `to age in months` PLUS 1 EQUALS (at `the special grant table` (k PLUS 1))'s `from age in months`
+                AND (at `the special grant table` (k PLUS 1))'s `special grant` LESS THAN (at `the special grant table` k)'s `special grant`)
+            (range 0 2)
+#ASSERT all (GIVEN a YIELD
+                count (filter (GIVEN b YIELD a AT LEAST b's `from age in months` AND a AT MOST b's `to age in months`) `the special grant table`) AT MOST 1)
+            (range 588 792)
+
+-- §9(a), (c)-(d) over eligibility, age, position and the section 22 grant:
+-- never negative, nothing for one not eligible, never more than the
+-- table's grant for the age.
+#ASSERT all (GIVEN e YIELD
+                all (GIVEN a YIELD
+                        all (GIVEN p YIELD
+                                all (GIVEN g YIELD
+                                        LET l MEANS `leaver` WITH
+                                                        `employment ended on or after 31.8.2015` IS TRUE
+                                                        `ended because of the colleges' organisational changes` IS e
+                                                        `continuous years teaching in the colleges` IS 12
+                                                        `entitled to or received Civil Service Commission retirement terms` IS FALSE
+                                                        `age in months at the end of employment` IS a
+                                                        `weighted position` IS p
+                                                        `grant under section 22 of the State Service (Pensions) Law` IS g
+                                            x MEANS `the special grant` l
+                                        IN      x AT LEAST 0
+                                            AND (e OR x EQUALS 0)
+                                            AND x AT MOST `the table's special grant` a)
+                                    (LIST 0, 50000, 250000))
+                            (LIST 0.5, 1, 1.3))
+                    (LIST 599, 600, 675, 720, 768, 780, 781))
+            `both booleans`
+
+-- §10: the colleges' jubilee seniority is 25 years exactly from the June
+-- 2016 salary, 30 before.
+#ASSERT all (GIVEN d YIELD `the jubilee seniority in the colleges` d EQUALS (IF d AT LEAST Date 1 6 2016 THEN 25 ELSE 30))
+            (LIST Date 1 5 2016, Date 1 6 2016, Date 1 6 2019)
