@@ -126,3 +126,48 @@ DECIDE `to the agora` x IS TRUNC (x PLUS 0.005) 2
 
 #TRACE `indemnifying the owners` 1000 AT 0 WITH
     PARTY `the Ministry of Education` DOES `indemnify the owner at the hour costs` 1000 AT 1
+
+§§ `Property checks`
+
+-- The table over the first and the last of every month from December 2017
+-- to January 2019, for both groups.
+
+`both groups` MEANS LIST `teachers in the Oz LeTmura reform`, `teachers outside the reform and principals`
+`the days checked` MEANS
+    append (LIST Date 1 12 2017, Date 31 12 2017, Date 1 1 2019, Date 31 1 2019)
+           (concat (map (GIVEN m YIELD LIST (Date 1 m 2018), (Date 28 m 2018)) (range 1 12)))
+
+GIVEN g IS A `group`, `the day` IS A DATE
+GIVETH A NUMBER
+DECIDE `rows in force` g `the day` IS
+    count (filter (GIVEN a YIELD a's `for group` EQUALS g AND `the day` AT LEAST a's `linked from` AND `the day` AT MOST a's `linked to`)
+                  `the linked amounts`)
+
+-- ¶20-¶25: no row before 1.1.2018 and exactly one from it, so the rows do
+-- not overlap; the reform teachers' amount is always the larger; and the
+-- amount never falls from one day checked to a later one.
+#ASSERT all (GIVEN d YIELD
+                    all (GIVEN g YIELD `rows in force` g d EQUALS (IF d AT LEAST Date 1 1 2018 THEN 1 ELSE 0)) `both groups`
+                AND `the linked shekel supplement for a full position` `teachers outside the reform and principals` d
+                    AT MOST `the linked shekel supplement for a full position` `teachers in the Oz LeTmura reform` d
+                AND all (GIVEN e YIELD
+                            all (GIVEN g YIELD
+                                    (e LESS THAN d)
+                                    OR `the linked shekel supplement for a full position` g d AT MOST `the linked shekel supplement for a full position` g e)
+                                `both groups`)
+                        `the days checked`)
+            `the days checked`
+
+-- ¶21-¶22: the difference owed for January-May 2018 is positive and under
+-- two shekels a month for each group; each linked amount exceeds
+-- the amount it replaces.
+#ASSERT all (GIVEN g YIELD
+                    `monthly difference owed for January-May 2018` g GREATER THAN 0
+                AND `monthly difference owed for January-May 2018` g LESS THAN 2)
+            `both groups`
+#ASSERT all (GIVEN a YIELD a's `amount linked` GREATER THAN a's `amount replaced`) `the linked amounts`
+
+-- ¶16: the factor is above one exactly when December 2017's index is
+-- above December 2015's.
+#ASSERT all (GIVEN i YIELD (`the linkage factor` i 100 GREATER THAN 1) EQUALS (i GREATER THAN 100))
+            (LIST 98, 99, 100, 101, 102)

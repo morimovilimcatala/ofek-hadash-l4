@@ -146,3 +146,75 @@ DECIDE `¶14 and ¶16 say what to deduct for` a IF
 
 #TRACE `the owner's deduction` `a striker who did not report` AT 0 WITH
     PARTY `the employer` DOES `deduct from the salary` 800 AT 1
+
+§§ `Property checks`
+
+-- The circular over a finite space: every combination of the four
+-- attendance flags; hours missed 0 to 3 of each kind; hourly values 0, 50
+-- and 100.
+
+`both booleans` MEANS LIST TRUE, FALSE
+
+GIVEN r IS A BOOLEAN
+      t IS A BOOLEAN
+      a IS A BOOLEAN
+      p IS A BOOLEAN
+      h IS A NUMBER
+      v IS A NUMBER
+GIVETH A `strike record`
+DECIDE `a checked record` r t a p h v IS
+    `strike record` WITH
+        `reported attendance on the strike days` IS r
+        `took part in the strike by the reports` IS t
+        `produced an approval of absence`        IS a
+        `produced proof of attendance`           IS p
+        `teaching hours missed`                  IS h
+        `stay hours missed`                      IS h
+        `individual hours missed`                IS h
+        `hourly value`                           IS v
+
+-- ¶15 over every combination: with reports, the reports decide; without,
+-- the employee is held to have taken part exactly when neither an approval
+-- nor proof of attendance was produced.
+#ASSERT all (GIVEN r YIELD
+                all (GIVEN t YIELD
+                        all (GIVEN a YIELD
+                                all (GIVEN p YIELD
+                                        `is held to have taken part in the strike` (`a checked record` r t a p 1 100)
+                                        EQUALS (IF r THEN t ELSE ((NOT a) AND (NOT p))))
+                                    `both booleans`)
+                            `both booleans`)
+                    `both booleans`)
+            `both booleans`
+
+-- ¶14-¶16 over every combination, hours and value: the deduction is never
+-- negative, nothing for one not held to have taken part, and otherwise the
+-- three kinds of hours times the hourly value; it never falls with more
+-- hours.
+#ASSERT all (GIVEN r YIELD
+                all (GIVEN t YIELD
+                        all (GIVEN a YIELD
+                                all (GIVEN h YIELD
+                                        all (GIVEN v YIELD
+                                                LET s MEANS `a checked record` r t a FALSE h v
+                                                    d MEANS `the salary deduction` s
+                                                IN      d AT LEAST 0
+                                                    AND d EQUALS (IF `is held to have taken part in the strike` s THEN 3 TIMES h TIMES v ELSE 0)
+                                                    AND d AT MOST `the salary deduction` (`a checked record` r t a FALSE (h PLUS 1) v))
+                                            (LIST 0, 50, 100))
+                                    (range 0 3))
+                            `both booleans`)
+                    `both booleans`)
+            `both booleans`
+
+-- The government decisions: nothing is owed for any strike hour.
+#ASSERT all (GIVEN h YIELD `salary owed for strike hours` h EQUALS 0) (range 0 10)
+
+-- ¶17: the Ministry's deduction is the budgeted hours times their value,
+-- and grows with either.
+#ASSERT all (GIVEN h YIELD
+                all (GIVEN v YIELD
+                            `the Ministry's deduction from the owner` h v EQUALS h TIMES v
+                        AND `the Ministry's deduction from the owner` h v AT MOST `the Ministry's deduction from the owner` (h PLUS 1) v)
+                    (LIST 0, 50, 100))
+            (range 0 10)
