@@ -17,7 +17,7 @@ DECLARE `teaching licence` IS ONE OF
 @desc A middle-school teacher's trial, as section 5.4 asks about it.
 DECLARE `middle-school trial` HAS
     `licence`                           IS A `teaching licence`
-    `an extension notice was sent`      IS A BOOLEAN @desc the district manager sent the teacher notice extending the trial period
+    `years added by extension notices`  IS A NUMBER  @desc 0 if the district manager sent no notice extending the trial period; each notice adds a further trial year (extension and tenure, 4(a))
     `work years completed`              IS A NUMBER  @desc work years in the middle school, each counted under section 5.4.2
 
 @desc A school year of work, as section 5.4.2 counts it.
@@ -64,15 +64,6 @@ DECIDE `days from 1 September to` `day` `month` `y` IS
 
 §§ `5.4.1–5.4.5 תקופת ניסיון`
 
-@ref akn:chp_5__sec_5_4__hc_2__para_1 akn:chp_5__sec_5_4__hc_2__para_3 akn:chp_5__sec_5_4__hc_2__para_5
-GIVEN t IS A `middle-school trial`
-GIVETH A NUMBER
-DECIDE `work years of the trial period` t IS
-    CONSIDER t's `licence`
-    WHEN `a permanent teaching licence` THEN 2
-    WHEN `a temporary licence, permanent licence due in the 2nd or 3rd year` THEN 3
-    WHEN `a temporary licence that did not become permanent` THEN 3
-
 -- (1) and (3) end the trial "unless" an extension notice was sent; (5)
 -- says the 3-year trial of a temporary licence that did not become
 -- permanent cannot be extended at all.
@@ -84,12 +75,30 @@ DECIDE `the trial may be extended` t IF
     WHEN `a temporary licence that did not become permanent` THEN FALSE
     OTHERWISE TRUE
 
+-- The trial's length: 2 or 3 work years by the licence, and, where it may
+-- be extended, a further year for each extension notice — the notice is of
+-- "שנת ניסיון נוספת" (extension and tenure, 4(a)). A notice to one whose
+-- trial (5) forbids extending adds nothing.
+@ref akn:chp_5__sec_5_4__hc_2__para_1 akn:chp_5__sec_5_4__hc_2__para_3 akn:chp_5__sec_5_4__hc_2__para_5
+GIVEN t IS A `middle-school trial`
+GIVETH A NUMBER
+DECIDE `work years of the trial period` t IS
+    `work years of the trial before any extension` t
+    PLUS (IF `the trial may be extended` t THEN t's `years added by extension notices` ELSE 0)
+
+GIVEN t IS A `middle-school trial`
+GIVETH A NUMBER
+DECIDE `work years of the trial before any extension` t IS
+    CONSIDER t's `licence`
+    WHEN `a permanent teaching licence` THEN 2
+    WHEN `a temporary licence, permanent licence due in the 2nd or 3rd year` THEN 3
+    WHEN `a temporary licence that did not become permanent` THEN 3
+
 @ref akn:chp_5__sec_5_4__hc_2__para_1 akn:chp_5__sec_5_4__hc_2__para_3
 GIVEN t IS A `middle-school trial`
 GIVETH A BOOLEAN
 DECIDE `reaches tenure` t IF
         t's `work years completed` AT LEAST `work years of the trial period` t
-    AND (NOT (t's `an extension notice was sent` AND `the trial may be extended` t))
     AND (NOT (t's `licence` EQUALS `a temporary licence that did not become permanent`))
 
 @ref akn:chp_5__sec_5_4__hc_2__para_2
@@ -232,8 +241,8 @@ DECIDE `the permit amounts to tenure in the institution` `employed a fourth year
 -- Examples.
 #ASSERT `counts as a work year` (`year of middle-school work` WITH `months worked in the school year` IS 4, `position fraction during them` IS 0.6, `days worked in the school year` IS 150, `position fraction during the days` IS 0.5)
 #ASSERT NOT `counts as a work year` (`year of middle-school work` WITH `months worked in the school year` IS 6, `position fraction during them` IS 0.25, `days worked in the school year` IS 140, `position fraction during the days` IS 0.25)
-#ASSERT `reaches tenure` (`middle-school trial` WITH `licence` IS `a permanent teaching licence`, `an extension notice was sent` IS FALSE, `work years completed` IS 2)
-#ASSERT NOT `reaches tenure` (`middle-school trial` WITH `licence` IS `a temporary licence that did not become permanent`, `an extension notice was sent` IS FALSE, `work years completed` IS 3)
+#ASSERT `reaches tenure` (`middle-school trial` WITH `licence` IS `a permanent teaching licence`, `years added by extension notices` IS 0, `work years completed` IS 2)
+#ASSERT NOT `reaches tenure` (`middle-school trial` WITH `licence` IS `a temporary licence that did not become permanent`, `years added by extension notices` IS 0, `work years completed` IS 3)
 #ASSERT `days from 1 September to` 20 6 2026 EQUALS 292
 
 -- The 2026/27 timetable kept, then the notice posted on 25 June (day 297):
@@ -247,3 +256,121 @@ DECIDE `the permit amounts to tenure in the institution` `employed a fourth year
 #TRACE `notice of an extended trial` 2026 TRUE AT 0 WITH
     PARTY `the district manager` DOES `send the extension notice by registered mail` AT 297
     PARTY `the district manager` DOES `send copies of the notices to the teaching-personnel division` AT 297
+
+§§ `Property checks`
+
+-- The section's rules over their whole finite space: every trial (each
+-- licence, 0 to 2 years added by extension notices, 0 to 6 work years
+-- completed); every year of work (0 to 12 months and 0, 149, 150, 151 or
+-- 200 days, each at every position fraction in sixths); every extension
+-- file (0 to 2 extensions made, every combination of its five conditions);
+-- and the school years starting 2023 (a 29-day February follows) to 2027.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`every teaching licence` MEANS LIST `a permanent teaching licence`, `a temporary licence, permanent licence due in the 2nd or 3rd year`, `a temporary licence that did not become permanent`
+
+GIVEN l IS A `teaching licence`, x IS A NUMBER, w IS A NUMBER
+GIVETH A `middle-school trial`
+DECIDE `a checked trial` l x w IS
+    `middle-school trial` WITH
+        `licence`                          IS l
+        `years added by extension notices` IS x
+        `work years completed`             IS w
+
+-- 5.4.1-5.4.5 over every trial: a trial that may be extended is 2 or 3
+-- years plus one for each notice, and reaches tenure exactly when its work
+-- years reach that — so an extended trial, too, ends in tenure; another
+-- work year never takes tenure away, and another notice never shortens
+-- the trial; (5)'s trial is 3 years whatever was notified, and never
+-- reaches tenure by itself.
+GIVEN t IS A `middle-school trial`
+GIVETH A BOOLEAN
+DECIDE `5.4.1-5.4.5, for every trial` t IF
+        ((NOT `the trial may be extended` t)
+         OR (    `work years of the trial period` t
+                 EQUALS `work years of the trial before any extension` t PLUS t's `years added by extension notices`
+             AND `reaches tenure` t EQUALS (t's `work years completed` AT LEAST `work years of the trial period` t)))
+    AND elem (`work years of the trial before any extension` t) (LIST 2, 3)
+    AND ((NOT `reaches tenure` t)
+         OR `reaches tenure` (`a checked trial` (t's `licence`) (t's `years added by extension notices`) (t's `work years completed` PLUS 1)))
+    AND `work years of the trial period` (`a checked trial` (t's `licence`) (t's `years added by extension notices` PLUS 1) (t's `work years completed`))
+        AT LEAST `work years of the trial period` t
+    AND (`the trial may be extended` t
+         OR (`work years of the trial period` t EQUALS 3 AND NOT `reaches tenure` t))
+#ASSERT all (GIVEN l YIELD
+                all (GIVEN x YIELD
+                        all (GIVEN w YIELD `5.4.1-5.4.5, for every trial` (`a checked trial` l x w))
+                            (range 0 6))
+                    (range 0 2))
+            `every teaching licence`
+
+-- Every trial that may be extended reaches tenure at some number of work
+-- years, however many notices were sent.
+#ASSERT all (GIVEN l YIELD
+                all (GIVEN x YIELD any (GIVEN w YIELD `reaches tenure` (`a checked trial` l x w)) (range 0 6))
+                    (range 0 2))
+            (LIST `a permanent teaching licence`, `a temporary licence, permanent licence due in the 2nd or 3rd year`)
+
+-- 5.4.2 over every year of work: it counts exactly from 6 months at a
+-- third of a position, or from 150 days at half; more months, days or
+-- position never undo it.
+GIVEN m IS A NUMBER, f IS A NUMBER, d IS A NUMBER, g IS A NUMBER
+GIVETH A `year of middle-school work`
+DECIDE `a checked year` m f d g IS
+    `year of middle-school work` WITH
+        `months worked in the school year`  IS m
+        `position fraction during them`     IS f
+        `days worked in the school year`    IS d
+        `position fraction during the days` IS g
+
+`every sixth of a position` MEANS map (GIVEN k YIELD k DIVIDED BY 6) (range 0 6)
+
+#ASSERT all (GIVEN m YIELD
+                all (GIVEN f YIELD
+                        all (GIVEN d YIELD
+                                all (GIVEN g YIELD
+                                            `counts as a work year` (`a checked year` m f d g)
+                                            EQUALS ((m AT LEAST 6 AND f AT LEAST 1/3) OR (d AT LEAST 150 AND g AT LEAST 1/2))
+                                        AND (   (NOT `counts as a work year` (`a checked year` m f d g))
+                                             OR (    `counts as a work year` (`a checked year` (m PLUS 1) f d g)
+                                                 AND `counts as a work year` (`a checked year` m (f PLUS 1/6) d g)
+                                                 AND `counts as a work year` (`a checked year` m f (d PLUS 1) g)
+                                                 AND `counts as a work year` (`a checked year` m f d (g PLUS 1/6)))))
+                                    `every sixth of a position`)
+                            (LIST 0, 149, 150, 151, 200))
+                    `every sixth of a position`)
+            (range 0 12)
+
+-- Extension and tenure, 2-3, over every file: a first extension needs the
+-- supervision's reasoned opinion, the visit dates and their average, and
+-- nothing of the union; a second or later needs, besides, the union's
+-- prior consent and extraordinary reasons.
+#ASSERT all (GIVEN n YIELD
+                all (GIVEN op YIELD
+                        all (GIVEN dt YIELD
+                                all (GIVEN av YIELD
+                                        all (GIVEN un YIELD
+                                                all (GIVEN ex YIELD
+                                                        `the trial may lawfully be extended`
+                                                            (`extension file` WITH `a well-reasoned opinion of the supervision` IS op, `the dates of the lesson visits are detailed` IS dt, `the average of the visit evaluations is stated` IS av, `extensions already made` IS n, `the teachers' organisation consented in advance` IS un, `extraordinary reasons` IS ex)
+                                                        EQUALS (op AND dt AND av AND (n EQUALS 0 OR (un AND ex))))
+                                                    `both booleans`)
+                                            `both booleans`)
+                                    `both booleans`)
+                            `both booleans`)
+                    `both booleans`)
+            (range 0 2)
+
+-- The reporting timetable and the extension notice over every school year
+-- from 2023 to 2027: each deadline is a calendar date of that school year
+-- (1 January, 1 February, 1 March, 15 April, 20 June), each falls after
+-- the one before, and the last is within the school year (before 1
+-- September of the next) — so every step can be kept in the text's order.
+#ASSERT all (GIVEN y YIELD
+                LET ds MEANS LIST `days from 1 September to` 1 1 y, `days from 1 September to` 1 2 y, `days from 1 September to` 1 3 y,
+                                  `days from 1 September to` 15 4 y, `days from 1 September to` 20 6 y
+                IN      all (GIVEN p YIELD fst p LESS THAN snd p) (zip ds (drop 1 ds))
+                    AND at ds 0 EQUALS DATE_SERIAL (Date 1 1 (y PLUS 1)) MINUS DATE_SERIAL (Date 1 9 y)
+                    AND at ds 4 EQUALS DATE_SERIAL (Date 20 6 (y PLUS 1)) MINUS DATE_SERIAL (Date 1 9 y)
+                    AND at ds 4 LESS THAN DATE_SERIAL (Date 1 9 (y PLUS 1)) MINUS DATE_SERIAL (Date 1 9 y))
+            (range 2023 2027)
