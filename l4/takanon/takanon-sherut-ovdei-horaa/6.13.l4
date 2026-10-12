@@ -45,7 +45,8 @@ DECIDE `is a preferred candidate` c IF
 
 -- §6.13.2.1ב: "only candidates with teaching experience are employed" — and
 -- the list of 1 is the requirements a counselling teacher must meet. The
--- text does not say who places; the employer is read as the one who does.
+-- text does not say who places; the employer is read as the one who does
+-- (F-6.13-a).
 @ref akn:chp_6__sec_6_13__ssec_6_13_2__para_1__subpara_b
 GIVEN c IS A `counsellor candidate`
 GIVETH A DEONTIC Party `counsellor placement action`
@@ -106,3 +107,53 @@ DECIDE `counselling reward` `is a counselling teacher` IS
 -- Placed without the senior counsellor's approval: the prohibition is breached.
 #TRACE `no placement without the senior counsellor's approval` AT 0 WITH
     PARTY `the employer` DOES `place a counselling teacher` FALSE AT 1
+
+§§ `Property checks`
+
+-- The section's rules over every candidate (the four booleans, 16 cases).
+
+`both booleans` MEANS LIST TRUE, FALSE
+
+GIVEN u IS A BOOLEAN, m IS A BOOLEAN, st IS A BOOLEAN, x IS A BOOLEAN
+GIVETH A `counsellor candidate`
+DECIDE `a checked candidate` u m st x IS
+    `counsellor candidate` WITH
+        `has completed university training in counselling` IS u
+        `holds an MA`                                      IS m
+        `is studying towards an MA`                        IS st
+        `has teaching experience`                          IS x
+
+-- 6.13.2.1 over every candidate: the requirements are exactly the
+-- training and the teaching experience, and the MA is a preference among
+-- those who meet them, never a condition: a preferred candidate always
+-- meets them, and the MA never changes whether one does.
+#ASSERT all (GIVEN u YIELD
+                all (GIVEN m YIELD
+                        all (GIVEN st YIELD
+                                all (GIVEN x YIELD
+                                        LET c MEANS `a checked candidate` u m st x
+                                        IN      `meets the education requirements for a counselling teacher` c EQUALS (u AND x)
+                                            AND ((NOT `is a preferred candidate` c) OR `meets the education requirements for a counselling teacher` c)
+                                            AND `meets the education requirements for a counselling teacher` c
+                                                EQUALS `meets the education requirements for a counselling teacher` (`a checked candidate` u FALSE FALSE x)
+                                            AND `is a preferred candidate` c EQUALS (u AND x AND (m OR st)))
+                                    `both booleans`)
+                            `both booleans`)
+                    `both booleans`)
+            `both booleans`
+
+-- F-6.13-a's evidence: what each clause of 6.13.2 says, read off the text.
+-- Neither names who employs or places the counselling teacher; both say
+-- what the placement needs.
+DECLARE `placement clause` HAS
+    `clause`              IS A STRING
+    `names who places`    IS A BOOLEAN
+    `sets a condition`    IS A BOOLEAN
+
+`the clauses of section 6.13.2` MEANS
+    LIST `placement clause` "6.13.2.1ב" FALSE TRUE,
+         `placement clause` "6.13.2.2"  FALSE TRUE
+
+`6.13.2 conditions the placement and names no one who places` MEANS
+    all (GIVEN c YIELD c's `sets a condition` AND NOT c's `names who places`) `the clauses of section 6.13.2`
+#ASSERT `6.13.2 conditions the placement and names no one who places`
