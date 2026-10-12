@@ -339,3 +339,144 @@ DECIDE `not choosing an unsuitable candidate` IS
     PARTY `the employer` DOES `select a candidate the ministry's representatives found unsuitable` AT 40
 #TRACE `appointing by the ministry's conditions and with its consent` AT 0 WITH
     PARTY `the employer` DOES `appoint a teaching employee` TRUE TRUE TRUE FALSE AT 10
+
+§§ `Property checks`
+
+-- The conditions over a finite space of candidates: 0 to 6 years of
+-- teaching, 0 to 6 managerial years, the managerial route's three proofs
+-- together or not at all, every degree, every qualification with and
+-- without approved eligibility, and each training alternative alone (0 for
+-- none, 1-5 the five certificates and exemptions).
+
+GIVEN y IS A NUMBER
+      f IS A NUMBER
+      m IS A NUMBER
+      p IS A BOOLEAN
+      d IS A `master's degree`
+      e IS A BOOLEAN
+      q IS A `teaching qualification`
+      l IS A BOOLEAN
+      t IS A NUMBER
+GIVETH A `principal candidate`
+DECIDE `a candidate built from` y f m p d e q l t IS
+    `principal candidate` WITH
+        `years of actual teaching in grades 1-12 in Israel`        IS y
+        `full school years of actual teaching`                     IS f
+        `years of proven full-time managerial experience`          IS m
+        `managed in education or a staff of at least 30`           IS p
+        `guided, instructed or taught workers as a manager`        IS p
+        `presented the HR manager's approval of the experience`    IS p
+        `degree`                                                   IS d
+        `started the master's degree by 2010-11`                   IS e
+        `qualification`                                            IS q
+        `licence eligibility approved by the application deadline` IS l
+        `Avney Rosha certificate or eligibility`                   IS t EQUALS 1
+        `started Avney Rosha in July of the year before the posts are published` IS t EQUALS 2
+        `graduate of an earlier ministry principals' programme`    IS t EQUALS 3
+        `graduate of the 2008-09 pilot master's in school leadership` IS t EQUALS 4
+        `serving principal for 3 years in a row, 3 years approved, no negative opinion` IS t EQUALS 5
+        `principal for 4 of the last 10 years, 4 years approved, no negative opinion`   IS FALSE
+
+`the degrees` MEANS LIST `no master's degree`, `a recognized master's degree in another field`, `a recognized master's degree in education administration`
+`the qualifications` MEANS LIST `a permanent teaching licence`, `a licence to practise teaching in the post-primary track`, `a Mandel school for educational leadership graduate certificate`, `a teaching certificate without the licence process completed`, `a licence in educational counselling`, `no teaching qualification`
+`both truths` MEANS LIST TRUE, FALSE
+
+-- §1 over years and the managerial route: five years' teaching meets it
+-- whatever else; below five it is met exactly by three full years with five
+-- managerial years and all three proofs; and more teaching never loses it.
+#ASSERT all (GIVEN y YIELD
+                all (GIVEN m YIELD
+                        all (GIVEN p YIELD
+                                LET c MEANS `a candidate built from` y y m p `no master's degree` FALSE `no teaching qualification` FALSE 0
+                                    c2 MEANS `a candidate built from` (y PLUS 1) (y PLUS 1) m p `no master's degree` FALSE `no teaching qualification` FALSE 0
+                                IN      `meets the teaching-experience condition` c
+                                        EQUALS (y AT LEAST 5 OR (y AT LEAST 3 AND m AT LEAST 5 AND p))
+                                    AND ((NOT `meets the teaching-experience condition` c) OR `meets the teaching-experience condition` c2))
+                            `both truths`)
+                    (range 0 6))
+            (range 0 6)
+
+-- §2: every recognized master's degree meets it, none does not.
+#ASSERT all (GIVEN d YIELD
+                `meets the academic condition` (`a candidate built from` 0 0 0 FALSE d FALSE `no teaching qualification` FALSE 0)
+                EQUALS (NOT (d EQUALS `no master's degree`)))
+            `the degrees`
+
+-- §3 over every qualification: the two licences and the Mandel certificate
+-- meet it whatever the eligibility; a certificate without the licence process
+-- exactly where eligibility was approved in time; a counselling licence and
+-- no qualification never (note ב).
+#ASSERT all (GIVEN q YIELD
+                all (GIVEN l YIELD
+                        `meets the pedagogical condition` (`a candidate built from` 0 0 0 FALSE `no master's degree` FALSE q l 0)
+                        EQUALS (   q EQUALS `a permanent teaching licence`
+                                OR q EQUALS `a licence to practise teaching in the post-primary track`
+                                OR q EQUALS `a Mandel school for educational leadership graduate certificate`
+                                OR (q EQUALS `a teaching certificate without the licence process completed` AND l)))
+                    `both truths`)
+            `the qualifications`
+
+-- §4 over each alternative alone and every degree: any one certificate or
+-- exemption meets it; with none, only a master's in education administration
+-- begun by 2010-11 does, and one begun later does not (¶5).
+#ASSERT all (GIVEN t YIELD
+                all (GIVEN d YIELD
+                        all (GIVEN e YIELD
+                                `meets the training condition` (`a candidate built from` 0 0 0 FALSE d e `no teaching qualification` FALSE t)
+                                EQUALS (t AT LEAST 1 OR (d EQUALS `a recognized master's degree in education administration` AND e)))
+                            `both truths`)
+                    `the degrees`)
+            (range 0 5)
+#ASSERT `meets the training condition` (`principal candidate` WITH
+        `years of actual teaching in grades 1-12 in Israel`        IS 0
+        `full school years of actual teaching`                     IS 0
+        `years of proven full-time managerial experience`          IS 0
+        `managed in education or a staff of at least 30`           IS FALSE
+        `guided, instructed or taught workers as a manager`        IS FALSE
+        `presented the HR manager's approval of the experience`    IS FALSE
+        `degree`                                                   IS `no master's degree`
+        `started the master's degree by 2010-11`                   IS FALSE
+        `qualification`                                            IS `no teaching qualification`
+        `licence eligibility approved by the application deadline` IS FALSE
+        `Avney Rosha certificate or eligibility`                   IS FALSE
+        `started Avney Rosha in July of the year before the posts are published` IS FALSE
+        `graduate of an earlier ministry principals' programme`    IS FALSE
+        `graduate of the 2008-09 pilot master's in school leadership` IS FALSE
+        `serving principal for 3 years in a row, 3 years approved, no negative opinion` IS FALSE
+        `principal for 4 of the last 10 years, 4 years approved, no negative opinion`   IS TRUE)
+
+-- The threshold over the space: met exactly where all four conditions are,
+-- so failing any one of them fails it; and the ministry's representatives
+-- interview exactly the candidates who meet it.
+#ASSERT all (GIVEN y YIELD
+                all (GIVEN d YIELD
+                        all (GIVEN q YIELD
+                                all (GIVEN t YIELD
+                                        LET c MEANS `a candidate built from` y y 5 TRUE d TRUE q FALSE t
+                                        IN      `meets the threshold conditions` c
+                                                EQUALS (    `meets the teaching-experience condition` c
+                                                        AND `meets the academic condition` c
+                                                        AND `meets the pedagogical condition` c
+                                                        AND `meets the training condition` c)
+                                            AND `the ministry's representatives interview` c EQUALS `meets the threshold conditions` c)
+                                    (range 0 5))
+                            `the qualifications`)
+                    `the degrees`)
+            (LIST 2, 3, 5)
+
+-- ¶10 over its truth table: a choice is allowed exactly where the committee
+-- chose and the ministry's representatives did not find the candidate
+-- unsuitable; the introduction allows exactly a qualified candidate with
+-- the ministry's consent.
+#ASSERT all (GIVEN a YIELD
+                all (GIVEN b YIELD
+                            `¶10 allows the choice` a b EQUALS (a AND (NOT b))
+                        AND `the introduction allows the appointment` a b EQUALS (a AND b))
+                    `both truths`)
+            `both truths`
+
+-- The desired qualifications: never more than twelve counted, each counted
+-- once however it is listed, and a quality outside the list never counts.
+#ASSERT `desired qualifications shown` `the desired qualifications` EQUALS 12
+#ASSERT `desired qualifications shown` (LIST "knowing the law and the ministry's instructions", "a driving licence") EQUALS 1
+#ASSERT all (GIVEN q YIELD `desired qualifications shown` (LIST q) EQUALS 1) `the desired qualifications`

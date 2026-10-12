@@ -215,3 +215,60 @@ DECIDE `the payment for the action` a b IS
     PARTY `the local authority or owning body` DOES `appoint an adjustments coordinator` AT 1
 #TRACE `management hours for the coordinator` TRUE 3 AT 0 WITH
     PARTY `the school principal` DOES `allot management hours to the coordinator` 2 AT 1
+
+§§ `Property checks`
+
+-- The circular over a finite space: positions in twelfths from 0 to 1.5;
+-- bases of 0 to 12,000; dates on either side of 24.2.2015 and of the
+-- appointment; months served 0 to 12; every adjustment action.
+
+`twelfths to 1.5` MEANS map (GIVEN k YIELD k DIVIDED BY 12) (range 0 18)
+`every action` MEANS
+    LIST `extra time in the examination, the teacher present`, `reading the examination paper to the pupil or pupils`,
+         `an oral examination`, `the pupil dictating answers to the teacher`, `transcribing the pupil's answers`
+
+GIVEN a IS A NUMBER
+GIVETH A `salary base`
+DECIDE `a base of` a IS `salary base` a 0 0 0 0 0
+
+-- 1(א)-(ב) over positions and bases: the allowance is 6% of the full
+-- position's base exactly from a third of a position, nothing below, and
+-- the same at every position from a third up.
+#ASSERT all (GIVEN p YIELD
+                all (GIVEN a YIELD
+                        `the monthly role allowance` (`a base of` a) p
+                        EQUALS (IF p AT LEAST 1 DIVIDED BY 3 THEN 0.06 TIMES a ELSE 0))
+                    (LIST 0, 3000, 12000))
+            `twelfths to 1.5`
+
+-- 1(ג) over dates and appointments: due exactly from the later of the
+-- appointment and 24.2.2015; the summer month's share is never above the
+-- full allowance and never falls with another month served.
+#ASSERT all (GIVEN d YIELD
+                all (GIVEN ap YIELD
+                        `the role allowance is due` d ap EQUALS (d AT LEAST ap AND d AT LEAST 20150224))
+                    (LIST 20140901, 20150224, 20150401))
+            (LIST 20150101, 20150223, 20150224, 20150301, 20150501, 20150801)
+#ASSERT all (GIVEN m YIELD
+                    `the summer-month allowance as read` 600 m AT MOST 600
+                AND `the summer-month allowance as read` 600 m AT MOST `the summer-month allowance as read` 600 (m PLUS 1))
+            (range 0 12)
+
+-- 2 over every action and base: exactly one row per action, at 1 or 1.25
+-- units; the payment is the units at 0.5% of the base, never negative; the
+-- units are earned exactly from 24.2.2015, outside Oz LeTmura, beyond the
+-- position's hours.
+#ASSERT all (GIVEN x YIELD
+                    count (filter (GIVEN r YIELD r's `row action` EQUALS x) `the units table`) EQUALS 1
+                AND elem (`the units for` x) (LIST 1, 1.25)
+                AND all (GIVEN a YIELD
+                            `the payment for the action` x (`a base of` a) EQUALS `the units for` x TIMES 0.005 TIMES a)
+                        (LIST 0, 3000, 12000))
+            `every action`
+#ASSERT all (GIVEN d YIELD
+                all (GIVEN oz YIELD
+                        all (GIVEN b YIELD
+                                `the work earns allowance units` d oz b EQUALS (d AT LEAST 20150224 AND (NOT oz) AND b))
+                            (LIST TRUE, FALSE))
+                    (LIST TRUE, FALSE))
+            (LIST 20150223, 20150224, 20150601)

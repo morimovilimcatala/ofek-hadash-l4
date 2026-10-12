@@ -121,3 +121,40 @@ DECIDE `released by the reason the circular gives` c IF
     PARTY `the employer` DOES `pay for the hours worked on the make-up days` 2000 AT 1
 #TRACE `the make-up days` `a teacher hired in 2013-14 after the extra vacation days` AT 0 WITH
     PARTY `the teaching employee` DOES `work the make-up days` AT 4
+
+§§ `Property checks`
+
+-- The circular over every combination of its three facts and hours 0 to
+-- 30 on the make-up days.
+
+`both booleans` MEANS LIST TRUE, FALSE
+
+-- §§1-2: the four make-up days are distinct, inside school year 2014-15
+-- and none on a Saturday.
+#ASSERT all (GIVEN d YIELD
+                    count (filter (GIVEN e YIELD e EQUALS d) `the make-up days`) EQUALS 1
+                AND d AT LEAST Date 1 9 2014 AND d AT MOST Date 31 8 2015
+                AND NOT (`Weekday of` d EQUALS Saturday))
+            `the make-up days`
+
+-- §2 ¶1 over every combination: bound exactly unless on a full year's
+-- leave or new; paid only if not bound, then the hours at the single
+-- substitution rate, never negative and never falling with more hours;
+-- whoever the categories release the reason releases too, and they part
+-- exactly on one employed in 2013-14 after the extra days (finding a,
+-- whole space).
+#ASSERT all (GIVEN l YIELD
+                all (GIVEN n YIELD
+                        all (GIVEN e YIELD
+                                all (GIVEN h YIELD
+                                        LET c MEANS `make-up case` l n e h 100
+                                        IN      `bound to make up the four days` c EQUALS ((NOT l) AND NOT n)
+                                            AND `pay for the make-up days` c EQUALS (IF l OR n THEN h TIMES 100 ELSE 0)
+                                            AND `pay for the make-up days` c AT MOST `pay for the make-up days` (`make-up case` l n e (h PLUS 1) 100)
+                                            AND ((`bound to make up the four days` c) OR `released by the reason the circular gives` c)
+                                            AND (`bound to make up the four days` c AND `released by the reason the circular gives` c)
+                                                EQUALS (e AND (NOT l) AND NOT n))
+                                    (range 0 30))
+                            `both booleans`)
+                    `both booleans`)
+            `both booleans`

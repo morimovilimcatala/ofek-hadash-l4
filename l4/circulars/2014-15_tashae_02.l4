@@ -367,3 +367,56 @@ DECIDE `the allowance for the part` r p `pupils` IS
 
 #TRACE `the external part paid in its year` (`cell` 1.5 (2%)) AT 0 WITH
     PARTY `the employer` DOES `pay the external part` (`cell` 1.05 (1.4%)) AT 10
+
+§§ `Property checks`
+
+-- The circular over a finite space: every row of the table, both parts,
+-- classes of 0 to 40 pupils; every assessment with and without an external
+-- examination; every subject, 1 to 5 units, years 2013 and 2014.
+
+`both parts` MEANS LIST `the external examination`, `the school assessment`
+
+-- 2(ב) over class sizes 0 to 40: the share is one of 0, 25%, 50% and 1, and
+-- never falls with more pupils.
+#ASSERT all (GIVEN n YIELD
+                    elem (`the share for the class size` n) (LIST 0, 25%, 50%, 1)
+                AND `the share for the class size` n AT MOST `the share for the class size` (n PLUS 1))
+            (range 0 40)
+
+-- §1 over every row: the two parts it prints never add up to more than its
+-- pre-reform allowance, and where it prints both they add up to it exactly;
+-- the allowance for a part and a class is never more than the printed part.
+#ASSERT all (GIVEN r YIELD
+                LET e MEANS `the allowance for the part` r `the external examination` 10
+                    s MEANS `the allowance for the part` r `the school assessment` 10
+                IN      e's `cell weekly hours` PLUS s's `cell weekly hours` EQUALS r's `pre-reform`'s `cell weekly hours`
+                    AND e's `cell percent` PLUS s's `cell percent` EQUALS r's `pre-reform`'s `cell percent`
+                    AND all (GIVEN p YIELD
+                                all (GIVEN n YIELD
+                                        (`the allowance for the part` r p n)'s `cell weekly hours`
+                                        AT MOST (`the allowance for the part` r p 10)'s `cell weekly hours`)
+                                    (range 0 40))
+                            `both parts`)
+            `the table`
+#ASSERT `the external share` PLUS `the school share` EQUALS 1
+
+-- §2's definitions over every assessment: an external examination always
+-- earns the allowance, a school assessment exactly where the subject has an
+-- external examination, an internal assessment never.
+#ASSERT all (GIVEN a YIELD
+                all (GIVEN x YIELD
+                        `the assessment earns a preparation allowance` a x
+                        EQUALS (a EQUALS `an external matriculation examination` OR (a EQUALS `a school matriculation assessment` AND x)))
+                    (LIST TRUE, FALSE))
+            (LIST `an external matriculation examination`, `a school matriculation assessment`, `an internal assessment`)
+
+-- ¶13-¶14 over subjects, units and years: a school assessment from תשע"ה
+-- in every subject but mathematics at 4 and 5 units.
+#ASSERT all (GIVEN s YIELD
+                all (GIVEN u YIELD
+                        all (GIVEN y YIELD
+                                `the examination has a school assessment` s u y
+                                EQUALS (y AT LEAST 2014 AND NOT (s EQUALS `mathematics` AND u AT LEAST 4)))
+                            (LIST 2013, 2014))
+                    (range 1 5))
+            (LIST `mathematics`, `English`, `history`, `biology`, `another elective subject`)

@@ -284,3 +284,82 @@ DECIDE `the week's hours` w IS
     PARTY `the teaching employee` DOES `submit the yearly request` AT 1
 #TRACE `no money for a father's position` AT 0 WITH
     PARTY `the employer` DOES `pay a monetary supplement for the father's position` 100 AT 3
+
+§§ `Property checks`
+
+-- The circular over a finite space: fixed positions in hundredths from 0.7
+-- to 1.2 on a 24-hour week, part hours schedulable or not; every
+-- combination of the four conditions and the yearly request; spouse's
+-- positions around 80%; every kind of employment.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`positions checked` MEANS map (GIVEN k YIELD k DIVIDED BY 100) (range 70 120)
+`every employment` MEANS
+    LIST `pre-reform terms`, `Ofek Hadash as a kindergarten teacher`, `Ofek Hadash, not as a kindergarten teacher`, `Oz LeTmura`
+
+GIVEN w IS A BOOLEAN, s IS A NUMBER, h IS A BOOLEAN, k IS A BOOLEAN, e IS A `father's employment`, p IS A NUMBER, part IS A BOOLEAN, y IS A BOOLEAN
+GIVETH A `father's request`
+DECIDE `a checked request` w s h k e p part y IS
+    `father's request` WITH
+        `spouse is an employee or self-employed`  IS w
+        `spouse's position`                       IS s
+        `spouse receives a shortened day herself` IS h
+        `has a child under 14`                    IS k
+        `employment`                              IS e
+        `fixed position`                          IS p
+        `weekly hours of his full position`       IS 24
+        `principal can schedule part hours`       IS part
+        `requested this year`                     IS y
+
+-- 5(א) over every position and scheduling: the hours shortened are never
+-- negative, never more than 10% of the fixed position, never take the
+-- actual position below 79%, are whole hours where the principal cannot set
+-- part hours, and are nothing from 79% down. Finding a over the same
+-- space: the two readings of "10% בש"ש" give the same hours wherever the
+-- fixed position is a full one.
+#ASSERT all (GIVEN p YIELD
+                all (GIVEN part YIELD
+                        LET r MEANS `a checked request` TRUE 1 FALSE TRUE `pre-reform terms` p part TRUE
+                            c MEANS `the hours a 5(א) father may shorten` r
+                            fixed MEANS p TIMES 24
+                        IN      c AT LEAST 0
+                            AND c AT MOST 0.1 TIMES fixed
+                            AND ((p LESS THAN 0.79) OR fixed MINUS c AT LEAST 0.79 TIMES 24)
+                            AND (part OR c EQUALS TRUNC c 0)
+                            AND ((p GREATER THAN 0.79) OR c EQUALS 0)
+                            AND ((NOT (p EQUALS 1)) OR c EQUALS `the hours under the full-position reading` r))
+                    `both booleans`)
+            `positions checked`
+
+-- §§1-5 over every combination: a father is entitled exactly where all four
+-- conditions hold, he asked this year, and the positions stay at 79% or
+-- more (above it under Oz LeTmura).
+#ASSERT all (GIVEN w YIELD
+                all (GIVEN s YIELD
+                        all (GIVEN h YIELD
+                                all (GIVEN k YIELD
+                                        all (GIVEN y YIELD
+                                                all (GIVEN e YIELD
+                                                        all (GIVEN p YIELD
+                                                                `a father is entitled to a shortened week` (`a checked request` w s h k e p TRUE y) 0.8
+                                                                EQUALS (w AND s AT LEAST 0.8 AND (NOT h) AND k AND y
+                                                                        AND (IF e EQUALS `Oz LeTmura` THEN p GREATER THAN 0.79 ELSE p AT LEAST 0.79)))
+                                                            (LIST 0.78, 0.79, 0.8, 1))
+                                                    `every employment`)
+                                            `both booleans`)
+                                    `both booleans`)
+                            `both booleans`)
+                    (LIST 0.7, 0.79, 0.8, 1))
+            `both booleans`
+
+-- §6 and §8: the position for pay is never above 100% nor below the
+-- position worked; a father may ask exactly above 79%.
+#ASSERT all (GIVEN p YIELD
+                all (GIVEN c YIELD
+                        LET x MEANS `the father's position for pay` p c
+                        IN  x AT MOST 1 AND (x AT LEAST p OR p GREATER THAN 1))
+                    (LIST 0, 0.05, 0.1))
+            `positions checked`
+#ASSERT all (GIVEN p YIELD
+                `may ask for a shorter week` (`a checked request` TRUE 1 FALSE TRUE `pre-reform terms` p TRUE TRUE) EQUALS (p GREATER THAN 0.79))
+            `positions checked`
