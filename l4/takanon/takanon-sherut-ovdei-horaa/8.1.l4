@@ -493,6 +493,10 @@ DECIDE `differential guidance` IS
 
 §§ `8.1.5 ותק בהדרכה`
 
+-- F-8.1-e: "ומשלים את עבודתו בהוראה" says nothing of a guide whose whole
+-- position is guidance (the five-day row, open to the four kinds exempt
+-- from teaching). Reading adopted: such a guide has nothing to complete,
+-- and the condition is met.
 @ref akn:chp_8__sec_8_1__ssec_8_1_5/p1
 GIVEN `guidance position fraction` IS A NUMBER, `completes the position with teaching` IS A BOOLEAN
 GIVETH A BOOLEAN
@@ -773,6 +777,9 @@ DECIDE `guidance years count as management seniority for the coordination allowa
 -- The difference is a temporary supplement for actually holding the role,
 -- not counted for severance, pension or retirement benefits — except for a
 -- full-time guide of at least 2 years before retiring, for pension.
+-- F-8.1-f: 8.1.6.1(2) counts a guide's allowance for pension from a third
+-- of a position. Reading adopted: for a kindergarten guide this section,
+-- the more specific, governs the difference.
 @ref akn:chp_8__sec_8_1__ssec_8_1_6_5__para_3 akn:chp_8__sec_8_1__ssec_8_1_6_5__para_4
 GIVEN k IS A `kindergarten guide`
 GIVETH A BOOLEAN
@@ -808,3 +815,266 @@ DECIDE `the difference is paid` k IF
     PARTY `a takanon party` `the teaching employee` DOES `teach in a school` 1 AT 1
 #TRACE `use the leave by 31 August` 1 AT 0 WITH
     PARTY `a takanon party` `the teaching employee` DOES `use the annual leave` 26 AT 11
+
+§§ `Property checks`
+
+-- The section's rules over their whole finite space: 0 to 7 days of
+-- guidance; guidance and teaching in sixths of a position, 0 to 8; 0 to
+-- 10 years in guidance, total and consecutive, with every set of the
+-- extension's four conditions; every kind of guidance and every sector;
+-- three instructor table rates; every boundary day the text names, and
+-- the day before it; and kindergarten allowances on a grid of amounts.
+-- Salaries and rates are placeholders.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`every kind of guidance` MEANS LIST `ordinary guidance`, `guidance in assistive or remedial-differential teaching`, `guiding a kindergarten teacher in a guidance role`, `guidance in special subjects that are not teaching subjects`, `guidance in a sabbatical or study year`
+`every guide's sector` MEANS LIST `state`, `state-religious`, `Druze`, `Arab`
+GIVEN n IS A NUMBER, k IS A NUMBER, a IS A BOOLEAN, b IS A BOOLEAN, c IS A BOOLEAN, d IS A BOOLEAN
+GIVETH A `guidance term`
+DECIDE `a checked term` n k a b c d IS
+    `guidance term` WITH
+        `years in the role`               IS n
+        `years in the role consecutively` IS k
+        `guidance position fraction`      IS 0.5
+        `kind`                            IS `ordinary guidance`
+        `trained suitably in the last five years` IS a
+        `extension approved by the district manager or the bureau head` IS b
+        `the ministry's accountant consents` IS c
+        `guidance in teaching subjects or educational topics` IS d
+
+GIVEN n IS A NUMBER, k IS A NUMBER, a IS A BOOLEAN, b IS A BOOLEAN, c IS A BOOLEAN, d IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `the term rules hold as 8.1.2.2 says for` n k a b c d IF
+        `the employment is within the term rules` t EQUALS (k AT MOST 6 OR all4)
+    AND ((NOT `the employment is within the term rules` (`a checked term` n (k PLUS 1) a b c d))
+         OR `the employment is within the term rules` t)
+    AND ((NOT `sections 13 to 15 of the appointments law do not apply` t)
+         OR `the employment is within the term rules` t)
+    AND (NOT (`the employment is within the term rules` t
+              EQUALS `the employment is within the term rules if the cap counts all years` t))
+        EQUALS (k AT MOST 6 AND n GREATER THAN 6 AND NOT all4)
+    WHERE
+        t MEANS `a checked term` n k a b c d
+        all4 MEANS a AND b AND c AND d
+
+GIVEN f IS A NUMBER, r IS A BOOLEAN, d IS A BOOLEAN, n IS A NUMBER, p IS A BOOLEAN, t IS A NUMBER
+GIVETH A `guide`
+DECIDE `a checked guide` f r d n p t IS
+    `guide` WITH
+        `personal combined salary`       IS 10000
+        `guidance position fraction`     IS f
+        `actually in the role`           IS r
+        `holds an academic degree`       IS d
+        `years in guidance since 1.9.83` IS n
+        `a pensioner`                    IS p
+        `instructor table rate`          IS t
+
+-- 8.1.1.1: every day count of the schedule has exactly one row; by its
+-- fraction column the share never falls with days and is at most the
+-- whole position, and no day count outside 1 to 5 has a share. F-8.1-a over
+-- the whole table: the hours column agrees with the fraction column on
+-- the five-day row alone.
+#ASSERT all (GIVEN n YIELD
+                    count (filter (GIVEN r YIELD r's `guidance days` EQUALS n) `the guidance-days schedule`)
+                    EQUALS (IF n AT LEAST 1 AND n AT MOST 5 THEN 1 ELSE 0)
+                AND ((n AT LEAST 5) OR `position share for guidance days` n AT MOST `position share for guidance days` (n PLUS 1))
+                AND `position share for guidance days` n AT MOST 1)
+            (range 0 7)
+#ASSERT filter (GIVEN r YIELD `share by the hours column` r EQUALS r's `position share`) `the guidance-days schedule` EQUALS LIST `five days of guidance`
+
+-- 8.1.1(2) against the schedule: the two teaching days are the
+-- schedule's two-day share, a third of a position; an ordinary guide fits
+-- one to three guidance days into a five-day week beside them, four only
+-- if he agrees to six days, and five never; a guide of the four exempt
+-- kinds needs no teaching day and may take every row.
+#ASSERT `position share for guidance days` 2 EQUALS 1/3
+#ASSERT all (GIVEN n YIELD
+                    (n PLUS 2 AT MOST `days a full position is assigned over` FALSE) EQUALS (n AT MOST 3)
+                AND (n PLUS 2 AT MOST `days a full position is assigned over` TRUE) EQUALS (n AT MOST 4))
+            (range 1 5)
+#ASSERT filter `must also teach` `every kind of guidance` EQUALS LIST `ordinary guidance`
+
+-- 8.1.1(3): leave never passes 26 days and 10 holiday days, and never
+-- falls with the position, in sixths up to a full one.
+#ASSERT all (GIVEN k YIELD
+                    `guide's annual leave days` (k DIVIDED BY 6) AT MOST 26
+                AND `guide's holiday leave days` (k DIVIDED BY 6) AT MOST 10
+                AND `guide's annual leave days` (k DIVIDED BY 6) AT MOST `guide's annual leave days` ((k PLUS 1) DIVIDED BY 6))
+            (range 0 5)
+
+-- 8.1.2.2 over 0 to 10 years, consecutive never more than in all, and
+-- every set of (b)'s four conditions: a term is within the rules exactly
+-- at six consecutive years or less, or with all four; one more
+-- consecutive year never brings a term within them; (c)'s exemption never
+-- reaches a term (a) and (b) forbid. F-8.1-c over the whole space: the
+-- two readings of the cap part exactly where the consecutive years are at
+-- most six, the years in all more, and (b) is not met.
+#ASSERT all (GIVEN n YIELD
+                all (GIVEN k YIELD
+                        all (GIVEN a YIELD
+                                all (GIVEN b YIELD
+                                        all (GIVEN c YIELD
+                                                all (GIVEN d YIELD `the term rules hold as 8.1.2.2 says for` n k a b c d)
+                                                    `both booleans`)
+                                            `both booleans`)
+                                    `both booleans`)
+                            `both booleans`)
+                    (range 0 n))
+            (range 0 10)
+
+-- 8.1.2.1(d) and 8.1.2.2(d): the district manager hires every district
+-- guide and no national one; a sector other than the state one has a
+-- voice of its own in hiring, and the state sector none. Every multi-year
+-- committee has one chair and the guide's direct supervisor, and a
+-- sector adds exactly one member.
+#ASSERT all (GIVEN s YIELD
+                    elem `the district manager, who hires` (`who takes part in hiring a guide` FALSE s)
+                AND NOT elem `the district manager, who hires` (`who takes part in hiring a guide` TRUE s)
+                AND (count (`who takes part in hiring a guide` FALSE s) EQUALS 3) EQUALS (NOT (s EQUALS `state`)))
+            `every guide's sector`
+#ASSERT all (GIVEN n YIELD
+                all (GIVEN x YIELD
+                        LET m MEANS `the multi-year appointment committee` n x
+                        IN      count (filter (GIVEN p YIELD p EQUALS `the district guidance referent, as chair` OR p EQUALS `the head of the guidance bureau, as chair`) m) EQUALS 1
+                            AND elem `the guide's direct supervisor` m
+                            AND count m EQUALS (IF x THEN 4 ELSE 3))
+                    `both booleans`)
+            `both booleans`
+
+-- 8.1.5 over guidance in sixths, the rest of a full position taught:
+-- a year counts exactly from a sixth of a position.
+GIVEN g IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `the year counts, read literally` g IF
+    `the year counts as guidance seniority` g (1 MINUS g GREATER THAN 0)
+
+GIVEN g IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `the year counts, as adopted` g IF
+    `the year counts as guidance seniority` g (1 MINUS g GREATER THAN 0 OR g AT LEAST 1)
+
+#ASSERT all (GIVEN k YIELD `the year counts, as adopted` (k DIVIDED BY 6) EQUALS (k AT LEAST 1)) (range 0 6)
+
+-- F-8.1-e: read literally, more guidance never earns seniority more
+-- surely — except that the full guidance position, with no teaching to
+-- complete, loses it. Over every sixth, the readings part there alone.
+#ASSERT filter (GIVEN k YIELD NOT (`the year counts, read literally` (k DIVIDED BY 6) EQUALS `the year counts, as adopted` (k DIVIDED BY 6))) (range 0 6) EQUALS LIST 6
+`a full-position guide's year counts on one reading only` MEANS
+        `the year counts, read literally` (5/6)
+    AND NOT `the year counts, read literally` 1
+    AND `the year counts, as adopted` 1
+#ASSERT `a full-position guide's year counts on one reading only`
+
+-- 8.1.6.1(1) over guidance in sixths to 8/6, in the role or not, with a
+-- degree or not, 0 to 10 years, pensioner or not: the allowance is 43% of
+-- the salary up to a full position, nothing out of the role, never more
+-- than 43% of the salary, never falling with the position, and the same
+-- whatever the years ("אינו גדל עם ויתקו"). The instructor rate's
+-- qualification steps exactly past two years, or for a pensioner, from a
+-- sixth of a position, and is never lost with more years or more position.
+#ASSERT all (GIVEN k YIELD
+                all (GIVEN r YIELD
+                        all (GIVEN d YIELD
+                                all (GIVEN n YIELD
+                                        all (GIVEN p YIELD
+                                                LET g MEANS `a checked guide` (k DIVIDED BY 6) r d n p 0.5
+                                                    a MEANS `guidance allowance` g
+                                                IN      a EQUALS (IF r THEN 4300 TIMES min (k DIVIDED BY 6) 1 ELSE 0)
+                                                    AND a AT MOST 4300
+                                                    AND a AT MOST `guidance allowance` (`a checked guide` ((k PLUS 1) DIVIDED BY 6) r d n p 0.5)
+                                                    AND a EQUALS `guidance allowance` (`a checked guide` (k DIVIDED BY 6) r d 0 p 0.5)
+                                                    AND `qualifies for the instructor rate` g
+                                                        EQUALS (d AND (n AT LEAST 3 OR p) AND k AT LEAST 1)
+                                                    AND ((NOT `qualifies for the instructor rate` g)
+                                                         OR (    `qualifies for the instructor rate` (`a checked guide` (k DIVIDED BY 6) r d (n PLUS 1) p 0.5)
+                                                             AND `qualifies for the instructor rate` (`a checked guide` ((k PLUS 1) DIVIDED BY 6) r d n p 0.5))))
+                                            `both booleans`)
+                                    (range 0 10))
+                            `both booleans`)
+                    `both booleans`)
+            (range 0 8)
+
+-- F-8.1-b over the whole space: for every qualifying guide in the role,
+-- the two sentences give the same allowance exactly where the table's rate
+-- happens to be 43%.
+#ASSERT all (GIVEN k YIELD
+                all (GIVEN t YIELD
+                        LET g MEANS `a checked guide` (k DIVIDED BY 6) TRUE TRUE 5 FALSE t
+                        IN  (`guidance allowance at 43%` g EQUALS `guidance allowance at the instructor rate` g)
+                            EQUALS (t EQUALS 0.43))
+                    (LIST 0.3, 0.43, 0.5))
+            (range 1 6)
+
+-- The dates the section names: each rule runs from its day and not the
+-- day before.
+`every dated rule runs from its day` MEANS
+            `the 43% applies in` (DATE_FROM_DMY 1 1 2001)
+        AND NOT `the 43% applies in` (DATE_FROM_DMY 31 12 2000)
+        AND `the instructor-rate entitlement runs in` (DATE_FROM_DMY 1 9 1989)
+        AND NOT `the instructor-rate entitlement runs in` (DATE_FROM_DMY 31 8 1989)
+        AND `section 8.1.6.4 applies in` (DATE_FROM_DMY 1 4 2000)
+        AND NOT `section 8.1.6.4 applies in` (DATE_FROM_DMY 31 3 2000)
+        AND `the guidance allowance enters the pension salary` (DATE_FROM_DMY 1 9 1994) 2 1
+        AND NOT `the guidance allowance enters the pension salary` (DATE_FROM_DMY 31 8 1994) 2 1
+        AND `sixth-position guidance counts for pension` (DATE_FROM_DMY 1 9 2001) (1/6) (1/3) TRUE
+        AND NOT `sixth-position guidance counts for pension` (DATE_FROM_DMY 31 8 2001) (1/6) (1/3) TRUE
+#ASSERT `every dated rule runs from its day`
+
+-- 8.1.6.1(2)-(4) over sixths and 0 to 3 years: the allowance enters the
+-- pension salary exactly from a third of a position and two years; (4)
+-- reaches exactly the lawful holder whom (2) leaves out.
+#ASSERT all (GIVEN k YIELD
+                all (GIVEN y YIELD
+                        LET e MEANS `the guidance allowance enters the pension salary` (DATE_FROM_DMY 1 9 2010) y (k DIVIDED BY 6)
+                        IN      e EQUALS (k AT LEAST 2 AND y AT LEAST 2)
+                            AND `qualifications allowance counts in pension for the guidance part` e TRUE EQUALS NOT e)
+                    (range 0 3))
+            (range 0 6)
+
+-- 8.1.6.3-4: the car payment is never negative and paid exactly to an
+-- owner without a quota; the telephone amount never falls with days, is
+-- positive on every row of the schedule, and is the same from 4 days on.
+#ASSERT all (GIVEN o YIELD
+                all (GIVEN q YIELD
+                        (`guide's monthly car payment` o q 1 GREATER THAN 0) EQUALS (o AND NOT q)
+                        AND `guide's monthly car payment` o q 1 AT LEAST 0)
+                    `both booleans`)
+            `both booleans`
+#ASSERT all (GIVEN n YIELD
+                    `guide's additional telephone amount` n AT MOST `guide's additional telephone amount` (n PLUS 1)
+                AND (`guide's additional telephone amount` n GREATER THAN 0) EQUALS (n AT LEAST 1)
+                AND ((n LESS THAN 4) OR `guide's additional telephone amount` n EQUALS 36.45))
+            (range 0 7)
+
+-- 8.1.6.5 over a grid of amounts: the kindergarten guide receives the
+-- larger of the two allowances, never less than either.
+#ASSERT all (GIVEN c YIELD
+                all (GIVEN g YIELD
+                        LET k MEANS `kindergarten guide` WITH `kindergarten coordination allowance` IS c, `guidance allowance` IS g, `actually fills the guidance role` IS TRUE, `years in the role full-time before retiring` IS 0
+                        IN      `kindergarten guide's allowances` k EQUALS max c g
+                            AND `the difference` k AT LEAST 0)
+                    (LIST 0, 500, 1000, 1500))
+            (LIST 0, 500, 1000, 1500)
+
+-- F-8.1-f: a kindergarten guide in sixths of a position for 0 to 3
+-- years. 8.1.6.1(2) counts the guidance allowance for pension from a third
+-- of a position and two years; 8.1.6.5(3)-(4) count the difference only
+-- after two full-time years. The two part exactly from a third of a
+-- position up to a full one, after two years.
+GIVEN k IS A NUMBER, y IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `the two pension rules part for a kindergarten guide of` k y IF
+    NOT (`the guidance allowance enters the pension salary` (DATE_FROM_DMY 1 9 2010) y (k DIVIDED BY 6)
+         EQUALS `the difference counts in the pension salary`
+                    (`kindergarten guide` WITH `kindergarten coordination allowance` IS 1000, `guidance allowance` IS 1500, `actually fills the guidance role` IS TRUE, `years in the role full-time before retiring` IS (IF k EQUALS 6 THEN y ELSE 0)))
+
+#ASSERT all (GIVEN k YIELD
+                all (GIVEN y YIELD
+                        `the two pension rules part for a kindergarten guide of` k y
+                        EQUALS (k AT LEAST 2 AND k LESS THAN 6 AND y AT LEAST 2))
+                    (range 0 3))
+            (range 1 6)
+
+`a half-position kindergarten guide of two years is in her pension by one clause and not by the other` MEANS
+    `the two pension rules part for a kindergarten guide of` 3 2
+#ASSERT `a half-position kindergarten guide of two years is in her pension by one clause and not by the other`

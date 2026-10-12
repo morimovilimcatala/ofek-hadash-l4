@@ -104,3 +104,47 @@ DECIDE `overtime hourly-value base` t `the other components of the salary the ho
 #ASSERT `overtime hourly-value base` `a half-position teacher-instructor` 10000 EQUALS 12150
 #ASSERT `the 43% rate applies in` (DATE_FROM_DMY 1 1 2001)
 #ASSERT NOT `the 43% rate applies in` (DATE_FROM_DMY 1 12 2000)
+
+§§ `Property checks`
+
+-- The section's rules over their whole finite space: a position of 0 to
+-- 6 sixths, 0 to 30 years as a teacher-instructor, three salaries and
+-- other components of 0 and 5,000, and the day 8.2.6.1 names and the day
+-- before it. Salaries are placeholders.
+
+GIVEN s IS A NUMBER, k IS A NUMBER, y IS A NUMBER
+GIVETH A `teacher-instructor`
+DECIDE `a checked teacher-instructor` s k y IS
+    `teacher-instructor` WITH
+        `personal combined salary`      IS s
+        `instruction position fraction` IS k DIVIDED BY 6
+        `years as a teacher-instructor` IS y
+        `civil-service work unit`       IS 42.5
+
+-- 8.2.6: the allowance is 43% of the salary pro rata to the position
+-- (2)א-ב, never negative, never above the full-position amount, never
+-- falling with the position, and the same whatever the years (1); (2)ג:
+-- the overtime base is the other components plus exactly the allowance.
+#ASSERT all (GIVEN s YIELD
+                all (GIVEN k YIELD
+                        all (GIVEN y YIELD
+                                LET t MEANS `a checked teacher-instructor` s k y
+                                    a MEANS `instruction allowance` t
+                                IN      a EQUALS 0.43 TIMES s TIMES (k DIVIDED BY 6)
+                                    AND a AT LEAST 0
+                                    AND a AT MOST `full-position instruction allowance` t
+                                    AND ((k EQUALS 6) OR a AT MOST `instruction allowance` (`a checked teacher-instructor` s (k PLUS 1) y))
+                                    AND a EQUALS `instruction allowance` (`a checked teacher-instructor` s k 0)
+                                    AND all (GIVEN o YIELD `overtime hourly-value base` t o MINUS o EQUALS a) (LIST 0, 5000))
+                            (range 0 30))
+                    (range 0 6))
+            (LIST 0, 8000, 10000)
+
+-- 8.2.6.1: the rate runs from 1.1.01, not on 31.12.00.
+`the rate runs from its day and not the day before` MEANS
+        `the 43% rate applies in` (DATE_FROM_DMY 1 1 2001)
+    AND NOT `the 43% rate applies in` (DATE_FROM_DMY 31 12 2000)
+#ASSERT `the rate runs from its day and not the day before`
+
+-- 8.2.1: the work unit is the civil service's, whatever it is.
+#ASSERT all (GIVEN u YIELD `teacher-instructor's work unit` (`teacher-instructor` WITH `personal combined salary` IS 0, `instruction position fraction` IS 1, `years as a teacher-instructor` IS 0, `civil-service work unit` IS u) EQUALS u) (LIST 40, 42.5, 45)
