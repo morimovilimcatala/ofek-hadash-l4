@@ -114,6 +114,11 @@ DECIDE `seniority carried in full under (d)` m IS
 -- give 25% and 100%. The reading adopted: (c) governs a principal — it is
 -- the clause that names the principal and excludes deputies, and its
 -- footnote is the Treasury's later clarification (6.5.91).
+-- F-8.3-c: (b) and (d) both decide an instructor becoming a supervisor,
+-- (b) whole and (d) subject to the ceiling. The reading adopted: (d), the
+-- clause that names the move into a supervisor's role; a teacher-
+-- instructor becoming an instructor, which (d) does not name, carries his
+-- years whole under (b).
 GIVEN m IS A `supervision move`
 GIVETH A NUMBER
 DECIDE `seniority carried into supervision` m IS
@@ -183,3 +188,92 @@ DECIDE `seniority carried into supervision` m IS
         `years in an instruction role since 1.9.83` IS 0
         `seniority ceiling`                         IS 13
 #ASSERT `seniority carried into supervision` `an instructor of fifteen years becomes a supervisor` EQUALS 13
+
+§§ `Property checks`
+
+-- The section's rules over their whole finite space: every move into
+-- supervision, 0 to 20 years in the role left and in an instruction role,
+-- ceilings of 13 and 20; positions of 0 to 6 sixths, table rates of 0 to
+-- 100% in tenths, two salaries; and the day the table runs from and the
+-- day before it. Salaries are placeholders.
+
+`every move into supervision` MEANS
+    LIST `teacher in an instruction role to supervision`, `teacher-instructor to instructor`, `instructor to supervisor`,
+         `teacher-instructor to supervisor`, `school principal to supervision`, `deputy or other role holder to supervision`
+
+GIVEN v IS A `move into supervision`, n IS A NUMBER, c IS A NUMBER
+GIVETH A `supervision move`
+DECIDE `a checked move` v n c IS
+    `supervision move` WITH
+        `the move`                                  IS v
+        `years in the previous role`                IS n
+        `years in an instruction role since 1.9.83` IS n
+        `seniority ceiling`                         IS c
+
+-- 8.3.6.2: the allowance is the table's rate of the salary pro rata to
+-- the position, never negative, never above the salary or the
+-- full-position amount, never falling with the position or the rate; the
+-- overtime base grows by exactly the allowance.
+#ASSERT all (GIVEN s YIELD
+                all (GIVEN k YIELD
+                        all (GIVEN r YIELD
+                                LET i MEANS `instructor` WITH `personal combined salary` IS s, `position fraction` IS k DIVIDED BY 6, `table rate` IS r DIVIDED BY 10, `civil-service work unit` IS 42.5
+                                    j MEANS `instructor` WITH `personal combined salary` IS s, `position fraction` IS (k PLUS 1) DIVIDED BY 6, `table rate` IS r DIVIDED BY 10, `civil-service work unit` IS 42.5
+                                    a MEANS `instructor allowance` i
+                                IN      a EQUALS (r DIVIDED BY 10) TIMES s TIMES (k DIVIDED BY 6)
+                                    AND a AT LEAST 0
+                                    AND a AT MOST s
+                                    AND a AT MOST `full-position instructor allowance` i
+                                    AND ((k EQUALS 6) OR a AT MOST `instructor allowance` j)
+                                    AND `overtime hourly-value base` i 5000 EQUALS 5000 PLUS a)
+                            (range 0 10))
+                    (range 0 6))
+            (LIST 8000, 10000)
+
+`the table runs from its day and not the day before` MEANS
+        `the table applies in` (DATE_FROM_DMY 1 1 2001)
+    AND NOT `the table applies in` (DATE_FROM_DMY 31 12 2000)
+#ASSERT `the table runs from its day and not the day before`
+
+-- 8.3.6.3 over every move: the seniority carried is never negative, never
+-- more than the years served, and never falls with more of them; (a)
+-- never passes 7 years and (d) never its ceiling.
+#ASSERT all (GIVEN v YIELD
+                all (GIVEN n YIELD
+                        all (GIVEN c YIELD
+                                LET x MEANS `seniority carried into supervision` (`a checked move` v n c)
+                                IN      x AT LEAST 0
+                                    AND x AT MOST n
+                                    AND x AT MOST `seniority carried into supervision` (`a checked move` v (n PLUS 1) c)
+                                    AND `seniority carried from an instruction role` (`a checked move` v n c) AT MOST 7
+                                    AND `seniority carried in full under (d)` (`a checked move` v n c) AT MOST c)
+                            (LIST 13, 20))
+                    (range 0 20))
+            `every move into supervision`
+
+-- F-8.3-a over the whole space: (c) and (d) give a principal the same
+-- seniority only when he has none.
+#ASSERT all (GIVEN n YIELD
+                (`seniority a principal carries under (c)` (`a checked move` `school principal to supervision` n 13)
+                 EQUALS `seniority carried in full under (d)` (`a checked move` `school principal to supervision` n 13))
+                EQUALS (n EQUALS 0))
+            (range 0 20)
+
+-- F-8.3-c: (b) carries an instructor's seniority into a supervisor's role
+-- whole, and (d) carries the same move in full "subject to the ceiling".
+-- Over 0 to 20 years and both ceilings, the two agree exactly up to the
+-- ceiling; a teacher-instructor who moves to instructor, a move (d) does
+-- not name, carries every year past it.
+#ASSERT all (GIVEN n YIELD
+                all (GIVEN c YIELD
+                        LET m MEANS `a checked move` `instructor to supervisor` n c
+                        IN  (`seniority carried between supervision roles` m EQUALS `seniority carried in full under (d)` m)
+                            EQUALS (n AT MOST c))
+                    (LIST 13, 20))
+            (range 0 20)
+
+`an instructor of fifteen years carries fifteen under (b) and thirteen under (d)` MEANS
+        `seniority carried between supervision roles` `an instructor of fifteen years becomes a supervisor` EQUALS 15
+    AND `seniority carried in full under (d)` `an instructor of fifteen years becomes a supervisor` EQUALS 13
+    AND `seniority carried into supervision` (`a checked move` `teacher-instructor to instructor` 15 13) EQUALS 15
+#ASSERT `an instructor of fifteen years carries fifteen under (b) and thirteen under (d)`
