@@ -155,3 +155,92 @@ DECIDE `the manager is exempt from a tender under the temporary order` m IF
          EQUALS `the classes reckoned with the centre's classes capped at 6`)
 #ASSERT `the cap's two readings differ for a principal who also runs the centre`
 #ASSERT `management hours of a treatment-centre manager` `a manager of a 210-hour centre` `a placeholder management-allowance table` EQUALS 800
+
+§§ `Property checks`
+
+-- The section's rules over their whole finite space: every teacher
+-- (certified or not, mornings and afternoons or not, 1 to 5 institutions);
+-- every centre of 20 to 66 pupils against positions of 1 to 60
+-- twentieths; and every manager (0 to 300 weekly hours granted, principal
+-- of the housing school or not, a school of 0 to 12 classes, 3 or 4 years
+-- managing the centre, the temporary order's boundary — 15,652 managers)
+-- under the placeholder table.
+
+`both booleans` MEANS LIST TRUE, FALSE
+
+-- 4.13.1 over every teacher: one split allowance at most, owed exactly on
+-- either ground. F-4.13-a over every teacher: neither of the clause's
+-- rates is section 4.6's for a special-education setting (14%, 8.5%); each
+-- is the one 4.6 gives for integration in regular education (9%, 5.5%).
+#ASSERT all (GIVEN cert YIELD
+                all (GIVEN both YIELD
+                        all (GIVEN n YIELD
+                                LET t MEANS `treatment-centre teacher` WITH `certified for special education` IS cert, `works both mornings and afternoons` IS both, `number of institutions worked in` IS n
+                                IN      `split allowances in a treatment centre` t EQUALS (IF both OR n AT LEAST 3 THEN 1 ELSE 0)
+                                    AND (NOT (`special-education allowance rate in a treatment centre` t EQUALS (IF cert THEN 14% ELSE 8.5%)))
+                                    AND `special-education allowance rate in a treatment centre` t EQUALS (IF cert THEN 9% ELSE 5.5%))
+                            (range 1 5))
+                    `both booleans`)
+            `both booleans`
+
+-- 4.13.2 over every centre of 20 to 66 pupils: some position in twentieths
+-- staffs it within the range, and the range is 20 to 22 pupils for each.
+#ASSERT all (GIVEN p YIELD
+                    any (GIVEN k YIELD `pupils per full position are within the range` p (k DIVIDED BY 20)) (range 1 60)
+                AND all (GIVEN k YIELD
+                                `pupils per full position are within the range` p (k DIVIDED BY 20)
+                                EQUALS (    p DIVIDED BY (k DIVIDED BY 20) AT LEAST 20
+                                        AND p DIVIDED BY (k DIVIDED BY 20) AT MOST 22))
+                        (range 1 60))
+            (range 20 66)
+
+GIVEN h IS A NUMBER, pr IS A BOOLEAN, sc IS A NUMBER, y IS A NUMBER
+GIVETH A `treatment-centre manager`
+DECIDE `a checked manager` h pr sc y IS
+    `treatment-centre manager` WITH
+        `weekly hours granted to the centre`               IS h
+        `also principal of the school housing the centre`  IS pr
+        `classes of that school`                           IS sc
+        `consecutive years managing the centre`            IS y
+
+GIVEN prop IS A FUNCTION FROM `treatment-centre manager` TO BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `holds for every manager` prop IF
+    all (GIVEN h YIELD
+            all (GIVEN pr YIELD
+                    all (GIVEN sc YIELD
+                            all (GIVEN y YIELD
+                                    prop (`a checked manager` h pr sc y))
+                                (LIST 3, 4))
+                        (range 0 12))
+                `both booleans`)
+        (range 0 300)
+
+-- 4.13.3 over every manager: the centre's classes are the whole 25-hour
+-- blocks, so F-4.13-b's remainder is 0 to 24 hours and is never counted;
+-- another hour never lowers the classes, the allowance or the hours; a
+-- manager who is not the school's principal is never reckoned on more than
+-- 6 classes, a principal on no fewer than the school's own; another year
+-- never takes the tender exemption away. F-4.13-c over every manager: the
+-- two readings of the cap part exactly for a principal whose centre is
+-- more than 6 classes — granted 175 hours or more.
+GIVEN m IS A `treatment-centre manager`
+GIVETH A BOOLEAN
+DECIDE `4.13.3, for every manager` m IF
+        25 TIMES `classes the centre's hours are recognised as` m AT MOST m's `weekly hours granted to the centre`
+    AND m's `weekly hours granted to the centre` MINUS 25 TIMES `classes the centre's hours are recognised as` m AT MOST 24
+    AND `management allowance of a treatment-centre manager` (`a checked manager` (m's `weekly hours granted to the centre` PLUS 1) (m's `also principal of the school housing the centre`) (m's `classes of that school`) (m's `consecutive years managing the centre`)) `a placeholder management-allowance table`
+        AT LEAST `management allowance of a treatment-centre manager` m `a placeholder management-allowance table`
+    AND `management hours of a treatment-centre manager` (`a checked manager` (m's `weekly hours granted to the centre` PLUS 1) (m's `also principal of the school housing the centre`) (m's `classes of that school`) (m's `consecutive years managing the centre`)) `a placeholder management-allowance table`
+        AT LEAST `management hours of a treatment-centre manager` m `a placeholder management-allowance table`
+    AND (m's `also principal of the school housing the centre`
+         OR `classes the management allowance is reckoned on` m AT MOST 6)
+    AND ((NOT m's `also principal of the school housing the centre`)
+         OR `classes the management allowance is reckoned on` m AT LEAST m's `classes of that school`)
+    AND ((NOT `the manager is exempt from a tender under the temporary order` m)
+         OR `the manager is exempt from a tender under the temporary order` (`a checked manager` (m's `weekly hours granted to the centre`) (m's `also principal of the school housing the centre`) (m's `classes of that school`) (m's `consecutive years managing the centre` PLUS 1)))
+    AND (NOT (`classes the management allowance is reckoned on` m
+              EQUALS m's `classes of that school` PLUS min (`classes the centre's hours are recognised as` m) 6
+              OR (NOT m's `also principal of the school housing the centre`)))
+        EQUALS (m's `also principal of the school housing the centre` AND m's `weekly hours granted to the centre` AT LEAST 175)
+#ASSERT `holds for every manager` `4.13.3, for every manager`
