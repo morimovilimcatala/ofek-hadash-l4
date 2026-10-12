@@ -529,6 +529,35 @@ DECIDE `employment above 100% may be approved` r IF
     AND r's `hours on the longest day` AT MOST 8.5
     AND r's `hours in the week` AT MOST 42
 
+-- F-2019-20_tashaf_01-n: §6.2 approves "subject to the following criteria"
+-- and lists five without saying which are alternatives. The reading
+-- adopted, as F-2013-14_tashad_01-f and its sibling read the same words:
+-- the first three (a required subject, a shortage, a remote locality) are
+-- alternatives, the last two limits every approval keeps.
+GIVEN r IS AN `excess request`
+GIVETH A BOOLEAN
+DECIDE `may be approved with every criterion of §6.2 cumulative` r IF
+        (NOT r's `a principal or first deputy`)
+    AND r's `required subject` AND r's `shortage in the area` AND r's `remote locality`
+    AND r's `extra hours all frontal`
+    AND r's `hours on the longest day` AT MOST 8.5
+    AND r's `hours in the week` AT MOST 42
+
+`a mathematics teacher in an ordinary school` MEANS
+    `excess request` WITH
+        `a principal or first deputy`   IS FALSE
+        `required subject`              IS TRUE
+        `shortage in the area`          IS FALSE
+        `remote locality`               IS FALSE
+        `extra hours all frontal`       IS TRUE
+        `hours on the longest day`      IS 8
+        `hours in the week`             IS 40
+
+`the readings of §6.2 part on a mathematics teacher in an ordinary school` MEANS
+        `employment above 100% may be approved` `a mathematics teacher in an ordinary school`
+    AND NOT `may be approved with every criterion of §6.2 cumulative` `a mathematics teacher in an ordinary school`
+#ASSERT `the readings of §6.2 part on a mathematics teacher in an ordinary school`
+
 -- §6.3–6.4: the placement system allows up to 117%; beyond that the request
 -- goes to the division's headquarters through the entitlements system.
 @ref akn:art_6__para_6-3/p1 akn:art_6__para_6-4/p1
@@ -932,6 +961,42 @@ DECIDE `the advance rate` p IS
 DECLARE `advance post` IS ONE OF
     `primary teacher`, `primary intern`, `post-primary teacher`, `post-primary intern`,
     `first deputy`, `principal`
+
+-- F-2019-20_tashaf_01-m: the rows as printed. An intern is a teaching
+-- employee who is not a principal or a first deputy, so in each stage two
+-- rows price the intern (27% and 22% post-primary, 17% and 14% primary).
+-- The reading adopted, as F-2013-14_tashad_01-c and its siblings read the
+-- same words: the row that names interns governs them, as `the advance
+-- rate` does.
+DECLARE `role for the advance` IS ONE OF `a teacher`, `an intern`, `a first deputy`, `a principal`
+
+DECLARE `post-primary advance row` IS ONE OF
+    `teachers who are not principals or first deputies`, `interns`, `first deputies`, `principals`
+
+GIVEN row IS A `post-primary advance row`
+GIVETH A NUMBER
+DECIDE `the rate the post-primary row prints` row IS
+    CONSIDER row
+    WHEN `teachers who are not principals or first deputies` THEN 0.27
+    WHEN `interns` THEN 0.22
+    WHEN `first deputies` THEN 0.20
+    WHEN `principals` THEN 0.15
+
+GIVEN row IS A `post-primary advance row`, r IS A `role for the advance`
+GIVETH A BOOLEAN
+DECIDE `the row covers` row r IF
+    CONSIDER row
+    WHEN `teachers who are not principals or first deputies` THEN NOT (r EQUALS `a first deputy` OR r EQUALS `a principal`)
+    WHEN `interns` THEN r EQUALS `an intern`
+    WHEN `first deputies` THEN r EQUALS `a first deputy`
+    WHEN `principals` THEN r EQUALS `a principal`
+
+`a post-primary intern has two advance rates` MEANS
+    map (GIVEN row YIELD `the rate the post-primary row prints` row)
+        (filter (GIVEN row YIELD `the row covers` row `an intern`)
+                (LIST `teachers who are not principals or first deputies`, `interns`, `first deputies`, `principals`))
+    EQUALS LIST 0.27, 0.22
+#ASSERT `a post-primary intern has two advance rates`
 
 @ref akn:art_15__para_15-1/p3
 GIVEN `the advance` IS A NUMBER
