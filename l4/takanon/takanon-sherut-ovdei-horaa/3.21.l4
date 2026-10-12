@@ -157,18 +157,27 @@ DECIDE `who appoints the mentor` s `the intern is the only teacher of the subjec
 
 -- 3.5-3.6 (3.6's first line is a heading the corpus keeps apart): as
 -- early as possible, near the intern's hiring, and in any case within a
--- month (30 days) of the intern's placement; in writing, a copy of the
--- letter being attached to the summative evaluation. Time in days
--- from the placement. The duty is the appointing authority's, whichever
--- 3.1-3.4 names for the setting; the text says not who attaches the copy
--- ("יצורף"), and the encoding gives it to the same authority.
+-- month of the intern's placement; in writing, a copy of the letter being
+-- attached to the summative evaluation. Time in days from the placement;
+-- the month is a calendar month, to the same day of the next month (or its
+-- last day, where it is shorter), so its length follows the placement's
+-- date. The duty is the appointing authority's, whichever 3.1-3.4 names
+-- for the setting; the text says not who attaches the copy ("יצורף"), and
+-- the encoding gives it to the same authority.
+GIVEN `placement day` IS A NUMBER, `placement month` IS A NUMBER, `placement year` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `days in a month from` `placement day` `placement month` `placement year` IS
+    `Days in month` `placement month` `placement year`
+    MINUS max 0 (`placement day` MINUS `Days in month` (`placement month` PLUS 1) `placement year`)
+
 @ref akn:chp_3__sec_3_21__ssec_3_5 akn:chp_3__sec_3_21__ssec_3_6 akn:chp_3__sec_3_21__ssec_3_6/p1
-GIVEN s IS A `setting of the internship`, `the intern is the only teacher of the subject in the school` IS A BOOLEAN
+GIVEN s IS A `setting of the internship`, `the intern is the only teacher of the subject in the school` IS A BOOLEAN,
+      `placement day` IS A NUMBER, `placement month` IS A NUMBER, `placement year` IS A NUMBER
 GIVETH A DEONTIC `appointing authority` `mentoring action`
-DECIDE `appointing the mentor within a month` s `the intern is the only teacher of the subject in the school` IS
+DECIDE `appointing the mentor within a month` s `the intern is the only teacher of the subject in the school` `placement day` `placement month` `placement year` IS
     PARTY `who appoints the mentor` s `the intern is the only teacher of the subject in the school`
     MUST  `appoint the mentor in writing`
-    WITHIN 30
+    WITHIN `days in a month from` `placement day` `placement month` `placement year`
     HENCE (PARTY `who appoints the mentor` s `the intern is the only teacher of the subject in the school`
            MUST `attach the appointment letter to the summative evaluation`)
     LEST  BREACH BY `who appoints the mentor` s `the intern is the only teacher of the subject in the school`
@@ -287,7 +296,7 @@ DECIDE `the mentors' course counts toward the in-service training allowance` IS 
 -- The course's hours add up as the text states them: 112 + 56 = 168.
 #ASSERT `hours of the mentors' course` EQUALS 168
 
-#TRACE `appointing the mentor within a month` `a school` FALSE AT 0 WITH
+#TRACE `appointing the mentor within a month` `a school` FALSE 1 9 2025 AT 0 WITH
     PARTY `the principal of the intern's school` DOES `appoint the mentor in writing` AT 20
     PARTY `the principal of the intern's school` DOES `attach the appointment letter to the summative evaluation` AT 250
 
@@ -298,3 +307,108 @@ DECIDE `the mentors' course counts toward the in-service training allowance` IS 
         `may be appointed mentor` `a candidate with 6 years, 3 in the layer, at 1 meeting`
     AND NOT `met every condition of the role by the year's end` `a candidate with 6 years, 3 in the layer, at 1 meeting`
 #ASSERT `condition (d) cannot be met when the mentor must be appointed`
+
+-- A month from 31 January 2025 runs to 28 February: an appointment on its
+-- 29th day is late. From 31 January 2024 it runs to 29 February.
+#ASSERT `days in a month from` 31 1 2025 EQUALS 28 AND `days in a month from` 31 1 2024 EQUALS 29
+#TRACE `appointing the mentor within a month` `a school` FALSE 31 1 2025 AT 0 WITH
+    PARTY `the principal of the intern's school` DOES `appoint the mentor in writing` AT 29
+
+§§ `Property checks`
+
+-- The section's rules over their whole finite space: every placement day
+-- of every month of 2023, 2024 (a 29-day February) and 2025; every
+-- candidate mentor (certificate or not, 0 to 6 years' seniority, 0 to 4
+-- in the layer, post-primary or not, has taught the subject or not, 0 to
+-- 3 training meetings — 1,120 candidates); every setting; and 0 to 12
+-- months of mentoring.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`every setting of the internship` MEANS LIST `a kindergarten`, `a school`, `the social-community field`
+
+-- 3.5 over every placement day: a month from it ends on the same day of
+-- the next month, or on that month's last day where it is shorter; it is
+-- never under 28 days nor over 31.
+GIVEN d IS A NUMBER, m IS A NUMBER, y IS A NUMBER
+GIVETH A DATE
+DECIDE `a month after` d m y IS
+    IF m EQUALS 12
+    THEN DATE_FROM_DMY d 1 (y PLUS 1)
+    ELSE DATE_FROM_DMY (min d (`Days in month` (m PLUS 1) y)) (m PLUS 1) y
+
+#ASSERT all (GIVEN y YIELD
+                all (GIVEN m YIELD
+                        all (GIVEN d YIELD
+                                    DATE_SERIAL (DATE_FROM_DMY d m y) PLUS `days in a month from` d m y
+                                    EQUALS DATE_SERIAL (`a month after` d m y)
+                                AND `days in a month from` d m y AT LEAST 28
+                                AND `days in a month from` d m y AT MOST 31)
+                            (range 1 (`Days in month` m y)))
+                    (range 1 12))
+            (LIST 2023, 2024, 2025)
+
+GIVEN cert IS A BOOLEAN, yrs IS A NUMBER, layer IS A NUMBER, post IS A BOOLEAN, taught IS A BOOLEAN, meetings IS A NUMBER
+GIVETH A `mentor candidate`
+DECIDE `a checked mentor candidate` cert yrs layer post taught meetings IS
+    `mentor candidate` WITH
+        `holds a teaching certificate or licence`          IS cert
+        `years of teaching seniority`                     IS yrs
+        `years in the intern's age layer`                 IS layer
+        `post-primary`                                    IS post
+        `has taught one of the intern's subjects`         IS taught
+        `training meetings attended in the mentoring year` IS meetings
+        `academic degree`                                 IS FALSE
+        `seniority in training student teachers`          IS FALSE
+        `trained in, or taking, a mentors' course`        IS FALSE
+
+GIVEN prop IS A FUNCTION FROM `mentor candidate` TO BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `holds for every mentor candidate` prop IF
+    all (GIVEN cert YIELD
+            all (GIVEN yrs YIELD
+                    all (GIVEN layer YIELD
+                            all (GIVEN post YIELD
+                                    all (GIVEN taught YIELD
+                                            all (GIVEN meetings YIELD
+                                                    prop (`a checked mentor candidate` cert yrs layer post taught meetings))
+                                                (range 0 3))
+                                        `both booleans`)
+                                `both booleans`)
+                        (range 0 4))
+                (range 0 6))
+        `both booleans`
+
+-- 2(a)-(c): another year of seniority, or of the layer, never disqualifies
+-- a candidate. F-3.21-a over the whole space: no candidate meets every
+-- condition of the role before she has attended a training meeting — that
+-- is, when the appointment is due; and every appointable one meets them
+-- all from her second meeting.
+GIVEN c IS A `mentor candidate`
+GIVETH A BOOLEAN
+DECIDE `the conditions of the role, through the year` c IF
+        ((NOT `may be appointed mentor` c)
+         OR (    `may be appointed mentor` (`a checked mentor candidate` (c's `holds a teaching certificate or licence`) (c's `years of teaching seniority` PLUS 1) (c's `years in the intern's age layer`) (c's `post-primary`) (c's `has taught one of the intern's subjects`) (c's `training meetings attended in the mentoring year`))
+             AND `may be appointed mentor` (`a checked mentor candidate` (c's `holds a teaching certificate or licence`) (c's `years of teaching seniority`) (c's `years in the intern's age layer` PLUS 1) (c's `post-primary`) (c's `has taught one of the intern's subjects`) (c's `training meetings attended in the mentoring year`))))
+    AND ((c's `training meetings attended in the mentoring year` GREATER THAN 0)
+         OR NOT `met every condition of the role by the year's end` c)
+    AND `met every condition of the role by the year's end` c
+        EQUALS (`may be appointed mentor` c AND c's `training meetings attended in the mentoring year` AT LEAST 2)
+#ASSERT `holds for every mentor candidate` `the conditions of the role, through the year`
+
+-- 3.1-3.4 over every setting: the school's mentor is appointed by its
+-- principal unless the intern is the only teacher of the subject there;
+-- in the other settings that makes no difference.
+#ASSERT all (GIVEN s YIELD
+                    (`who appoints the mentor` s TRUE EQUALS `who appoints the mentor` s FALSE)
+                    EQUALS NOT (s EQUALS `a school`))
+            `every setting of the internship`
+
+-- 5.2 over 0 to 12 months mentored: the allowances owed are never negative
+-- nor more than 12, never fewer for more months, and 12 for the whole
+-- school year.
+#ASSERT all (GIVEN m YIELD
+                    `monthly allowances owed` m AT LEAST 0
+                AND `monthly allowances owed` m AT MOST 12
+                AND `monthly allowances owed` (m PLUS 1) AT LEAST `monthly allowances owed` m
+                AND ((m LESS THAN 10) OR `monthly allowances owed` m EQUALS 12))
+            (range 0 12)
