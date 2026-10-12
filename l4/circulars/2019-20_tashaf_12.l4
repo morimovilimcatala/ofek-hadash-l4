@@ -181,3 +181,66 @@ DECIDE `printed within an agora below` rank ratio IF
     PARTY `the employer` DOES `pay the achievement grant` 8318.22 AT 1
 #TRACE `paying the achievement grant` (`a teacher` 1 1 1) AT 0 WITH
     PARTY `the employer` DOES `pay the achievement grant` 8318.22 AT 2
+
+§§ `Property checks`
+
+-- The circular over a finite space: covered or not; ranks 0 to 5;
+-- upper-secondary positions in tenths from 0 to 1.5; shares of the year in
+-- quarters; on a full year's leave or not.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`tenths to 1.5` MEANS map (GIVEN k YIELD k DIVIDED BY 10) (range 0 15)
+
+GIVEN g IS A BOOLEAN
+      r IS A NUMBER
+      p IS A NUMBER
+      y IS A NUMBER
+      s IS A BOOLEAN
+GIVETH AN `achievement teacher`
+DECIDE `a checked teacher` g r p y s IS
+    `achievement teacher` WITH
+        `graded on the teaching-employee scale`             IS g
+        `employed in upper secondary by a supervised owner` IS TRUE
+        `rank of the school`                                IS r
+        `upper-secondary position fraction`                 IS p
+        `share of the year employed at the school`          IS y
+        `on full sabbatical or unpaid leave all year`       IS s
+
+-- §2(ב): the grant falls from each rank to the next, and is nothing for a
+-- rank outside 1 to 4, exactly the schools not on the list (§3).
+#ASSERT all (GIVEN r YIELD `the grant for a full position` (r PLUS 1) LESS THAN `the grant for a full position` r) (range 1 3)
+#ASSERT all (GIVEN r YIELD
+                (`the grant for a full position` r GREATER THAN 0) EQUALS `the school is on the list of winners` (`a checked teacher` TRUE r 1 1 FALSE))
+            (range 0 5)
+
+-- §§1-2 over the whole space: the grant is never negative, never above
+-- rank 1's full amount, something exactly for a covered teacher at a
+-- listed school with a position and a share of the year and not on a full
+-- year's leave; it never falls with a larger position or a longer share,
+-- and pays above a full position as one (§2(ד)).
+#ASSERT all (GIVEN g YIELD
+                all (GIVEN r YIELD
+                        all (GIVEN p YIELD
+                                all (GIVEN y YIELD
+                                        all (GIVEN s YIELD
+                                                LET x MEANS `the achievement grant` (`a checked teacher` g r p y s)
+                                                IN      x AT LEAST 0
+                                                    AND x AT MOST `the grant for a full position` 1
+                                                    AND (x GREATER THAN 0) EQUALS (g AND r AT LEAST 1 AND r AT MOST 4 AND p GREATER THAN 0 AND y GREATER THAN 0 AND (NOT s))
+                                                    AND x AT MOST `the achievement grant` (`a checked teacher` g r (p PLUS 0.1) y s)
+                                                    AND x AT MOST `the achievement grant` (`a checked teacher` g r p (y PLUS 0.25) s)
+                                                    AND ((p LESS THAN 1) OR x EQUALS `the achievement grant` (`a checked teacher` g r (p PLUS 0.5) y s)))
+                                            `both booleans`)
+                                    (LIST 0, 0.25, 0.5, 0.75, 1))
+                            `tenths to 1.5`)
+                    (range 0 5))
+            `both booleans`
+
+-- §2(ו)-(ז): the grant is left out of every base the circular names; the
+-- employer's contribution and the teacher's deduction are equal.
+#ASSERT all (GIVEN b YIELD `the grant is left out of` b)
+            (LIST `the hour value`, `severance pay`, `percentage supplements`, `study-fund contributions`)
+#ASSERT all (GIVEN r YIELD
+                `the employer's pension contribution on the grant` (`the grant for a full position` r)
+                EQUALS `the teacher's pension deduction on the grant` (`the grant for a full position` r))
+            (range 0 5)

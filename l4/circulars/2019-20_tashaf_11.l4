@@ -263,3 +263,68 @@ DECIDE `an employee` f pe subjects IS
     PARTY `the employer` DOES `pay the clothing allowance` 2116 AT 11
 #TRACE `paying the clothing allowance` (`an employee` 1 0 EMPTY) AT 0 WITH
     PARTY `the employer` DOES `pay the clothing allowance` 2116 AT 12
+
+§§ `Property checks`
+
+-- The circular over a finite space: covered or not; positions in tenths to
+-- 1.5; physical-education shares in thirds, halves and tenths; every
+-- subject list of one subject, none, and one of each list; every track.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`tenths to 1.5` MEANS map (GIVEN k YIELD k DIVIDED BY 10) (range 0 15)
+`the shares checked` MEANS append `tenths to 1.5` (LIST 1 DIVIDED BY 3, 0.3333, 0.5001)
+`every track` MEANS LIST `non-reform teacher`, `non-reform principal`, `Oz LeTmura in full implementation`, `Ofek Hadash`
+`every subject list checked` MEANS
+    LIST EMPTY, (LIST `mechatronics`), (LIST `nursing`), (LIST `another subject`), (LIST `mechatronics`, `nursing`)
+
+GIVEN g IS A BOOLEAN, f IS A NUMBER, pe IS A NUMBER, l IS A LIST OF `technological subject`
+GIVETH A `clothing employee`
+DECIDE `a checked employee` g f pe l IS
+    `clothing employee` WITH
+        `graded on the teaching-employee scale`            IS g
+        `employed by an owner of a supervised institution` IS TRUE
+        `position fraction at this employer`               IS f
+        `total position fraction at all employers`         IS f
+        `physical-education position fraction`             IS pe
+        `technological subjects taught`                    IS l
+
+-- §1 over every flag and position: level 4 pro rata to the position up to
+-- one, nothing outside the circular, never falling with a larger position.
+#ASSERT all (GIVEN g YIELD
+                all (GIVEN f YIELD
+                        LET a MEANS `the clothing allowance this employer pays` (`a checked employee` g f 0 EMPTY)
+                        IN      a EQUALS (IF g THEN 2116 TIMES min f 1 ELSE 0)
+                            AND a AT MOST `the clothing allowance this employer pays` (`a checked employee` g (f PLUS 0.1) 0 EMPTY))
+                    `tenths to 1.5`)
+            `both booleans`
+
+-- §1(ו): each track's limits as printed include 140%, and the one adopted
+-- is among them (finding a for the principal).
+#ASSERT all (GIVEN t YIELD
+                    elem 1.4 (`the limits §1(ו) sets` t)
+                AND elem (`the position limit at all employers` t) (`the limits §1(ו) sets` t))
+            `every track`
+
+-- §2 over every share: exactly one band, no overlap at a third or a half,
+-- the amount never falling; finding c: the two readings part for a
+-- full-position teacher exactly up to a half.
+#ASSERT all (GIVEN f YIELD
+                LET a MEANS `the physical-education allowance` (`a checked employee` TRUE 1 f EMPTY)
+                    whole MEANS `the physical-education allowance` (`a checked employee` TRUE 1 1 EMPTY)
+                IN      count (`the amounts the table gives for a position of` f) EQUALS 1
+                    AND a AT MOST `the physical-education allowance` (`a checked employee` TRUE 1 (f PLUS 0.1) EMPTY)
+                    AND (NOT (a EQUALS whole)) EQUALS (f AT MOST 0.5))
+            `the shares checked`
+
+-- §3 over every subject list and position: never negative, never above
+-- shoes and two coats pro rata, never falling with a larger position; one
+-- of each list gets the larger item only (finding b's reading).
+#ASSERT all (GIVEN l YIELD
+                all (GIVEN f YIELD
+                        LET t MEANS `the technological allowance` (`a checked employee` TRUE f 0 l)
+                        IN      t AT LEAST 0
+                            AND t AT MOST `the value of shoes and two coats` TIMES min f 1
+                            AND t AT MOST `the technological allowance` (`a checked employee` TRUE (f PLUS 0.1) 0 l))
+                    `tenths to 1.5`)
+            `every subject list checked`
+#ASSERT `the technological allowance` (`a checked employee` TRUE 1 0 (LIST `mechatronics`, `nursing`)) EQUALS `the value of shoes and two coats`

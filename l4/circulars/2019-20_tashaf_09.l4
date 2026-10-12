@@ -358,3 +358,104 @@ DECIDE `paying the jubilee grant` e IS
 #TRACE `paying the jubilee grant` `a teacher completing 25 years in March 2020` AT 0 WITH
     PARTY `the employer` DOES `pay the jubilee grant` 6000 AT 10
 
+
+§§ `Property checks`
+
+-- The circular over a finite space: seniority 1 to 60; positions in tenths
+-- to 1.5; 0 to 12 months of work; every employment track; every stage;
+-- seniority on 1 June 20 to 34 in quarters; positions at one employer.
+
+`tenths to 1.5` MEANS map (GIVEN k YIELD k DIVIDED BY 10) (range 0 15)
+`every track` MEANS LIST `non-reform teacher`, `non-reform principal`, `Oz LeTmura in full implementation`, `Ofek Hadash`
+`every jubilee stage` MEANS
+    LIST `junior high`, `upper secondary`, `recognised-unofficial special education under Ofek Hadash`,
+         `academic teacher-training college`, `kindergarten`, `primary`
+
+GIVEN n IS A NUMBER, p IS A NUMBER, m IS A NUMBER
+GIVETH A `havraa year`
+DECIDE `a checked year` n p m IS
+    `havraa year` WITH
+        `year of seniority in teaching`            IS n
+        `position fraction at this employer`       IS p
+        `total position fraction at all employers` IS p
+        `months of work in the year`               IS m
+
+-- §1(ג): every year from 1 to 60 is in exactly one row, and the days never
+-- fall with seniority.
+#ASSERT all (GIVEN n YIELD
+                    count (`the days the table gives for year` n) EQUALS 1
+                AND `recuperation days` n AT MOST `recuperation days` (n PLUS 1))
+            (range 1 60)
+
+-- §1(ב)-(ו) over seniority, positions and months: the allowance is never
+-- negative, never more than a full position's days, never falls with
+-- another month, a larger position or another year; the share is the
+-- position up to one times a tenth a month up to ten (finding a's
+-- reading).
+#ASSERT all (GIVEN n YIELD
+                all (GIVEN p YIELD
+                        all (GIVEN m YIELD
+                                LET y MEANS `a checked year` n p m
+                                    a MEANS `recuperation allowance` y
+                                IN      `the share this employer pays` y EQUALS min p 1 TIMES min m 10 DIVIDED BY 10
+                                    AND a AT LEAST 0
+                                    AND a AT MOST `the value of a recuperation day` TIMES `recuperation days` n
+                                    AND a AT MOST `recuperation allowance` (`a checked year` n p (m PLUS 1))
+                                    AND a AT MOST `recuperation allowance` (`a checked year` n (p PLUS 0.1) m)
+                                    AND a AT MOST `recuperation allowance` (`a checked year` (n PLUS 1) p m))
+                            (range 0 12))
+                    `tenths to 1.5`)
+            (LIST 1, 3, 4, 10, 11, 15, 16, 19, 20, 24, 25, 40)
+
+-- §1(ז)-(ח) over every track and position: within the limit exactly up to
+-- it; the non-reform principal's limit the highest, Ofek Hadash's the
+-- lowest.
+#ASSERT all (GIVEN t YIELD
+                    all (GIVEN p YIELD `within the position limit` t (`a checked year` 1 p 10) EQUALS (p AT MOST `the position limit at all employers` t))
+                        `tenths to 1.5`
+                AND `the position limit at all employers` t AT MOST `the position limit at all employers` `non-reform principal`
+                AND `the position limit at all employers` `Ofek Hadash` AT MOST `the position limit at all employers` t)
+            `every track`
+
+GIVEN s IS A `jubilee stage`, y IS A NUMBER, p IS A NUMBER
+GIVETH A `jubilee employee`
+DECIDE `a checked jubilee employee` s y p IS
+    `jubilee employee` WITH
+        `stage of the employment`               IS s
+        `seniority in September before payment` IS y MINUS 0.75
+        `seniority on 1 June of the year`       IS y
+        `paid-pension unpaid-leave years`       IS 0
+        `determining salary`                    IS 10000
+        `jubilee position fraction`             IS p
+        `share of the year employed`            IS 1
+
+-- §2 over every stage and seniority 20 to 34 in quarters: entitled exactly
+-- in the year the stage's seniority is reached (finding e's reading), so
+-- over a career once; the grant never negative, never above 60% of the
+-- salary, 60% times the position up to one where entitled.
+#ASSERT all (GIVEN s YIELD
+                    count (filter (GIVEN k YIELD `entitled to the jubilee grant` (`a checked jubilee employee` s (k DIVIDED BY 4) 1)) (range 80 136))
+                    EQUALS 4
+                AND all (GIVEN k YIELD
+                            all (GIVEN p YIELD
+                                    LET e MEANS `a checked jubilee employee` s (k DIVIDED BY 4) p
+                                        g MEANS `the jubilee grant` e
+                                    IN      g AT LEAST 0
+                                        AND g AT MOST 6000
+                                        AND g EQUALS (IF `entitled to the jubilee grant` e THEN 6000 TIMES min p 1 ELSE 0)
+                                        AND `entitled to the jubilee grant` e
+                                            EQUALS (k DIVIDED BY 4 AT LEAST `the qualifying seniority` s AND k DIVIDED BY 4 LESS THAN `the qualifying seniority` s PLUS 1))
+                                (LIST 0.5, 1, 1.2))
+                        (range 80 136))
+            `every jubilee stage`
+
+-- §2(ה)(3): 25 years for the stages it lists first (the colleges among them,
+-- finding c's reading), 30 for kindergartens and primary schools.
+#ASSERT all (GIVEN s YIELD `the qualifying seniority` s EQUALS (IF s EQUALS `kindergarten` OR s EQUALS `primary` THEN 30 ELSE 25))
+            `every jubilee stage`
+
+-- §2(ה)(5) over one employer's position in tenths: what it pays is 60% of
+-- the salary times that position up to one, for an entitled employee.
+#ASSERT all (GIVEN f YIELD
+                `the jubilee grant one employer pays` (`a checked jubilee employee` `junior high` 25 1) f EQUALS 6000 TIMES min f 1)
+            `tenths to 1.5`
