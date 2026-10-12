@@ -252,3 +252,55 @@ DECIDE `"within two days" read as a deadline allows day` n day IF
         `the reduction may be made on day` (`appeal decided` 2) 5
     AND (NOT `"within two days" read as a deadline allows day` 2 5)
 #ASSERT `§6(ג)'s two limits read two ways for an appeal`
+
+§§ `Property checks`
+
+-- The agreement over a finite space: every combination of the employee's
+-- five flags; shares of duties unperformed in quarters; appeals decided
+-- 1 to 10 days after the director; days 0 to 15.
+`both booleans` MEANS LIST TRUE, FALSE
+
+-- §1: covered exactly when employed at a college on the teaching scale with
+-- the teachers' salary, and either in the state service or at a college that
+-- signed the joining letter.
+#ASSERT all (GIVEN c YIELD
+                all (GIVEN g YIELD
+                        all (GIVEN t YIELD
+                                all (GIVEN s YIELD
+                                        all (GIVEN j YIELD
+                                                `the agreement covers` (`college employee` WITH
+                                                                            `employed at a teacher-training college`      IS c
+                                                                            `graded on the teaching-employee scale`       IS g
+                                                                            `salary computed by the teachers' agreements` IS t
+                                                                            `employed in the state service`               IS s
+                                                                            `the college signed the joining letter`       IS j
+                                                                            `position fraction at the college`            IS 1)
+                                                EQUALS (c AND g AND t AND (s OR j)))
+                                            `both booleans`)
+                                    `both booleans`)
+                            `both booleans`)
+                    `both booleans`)
+            `both booleans`
+
+-- §§3-6: the consideration is the full salary whatever was reported; the
+-- reduction never makes it negative or raises it, and takes the share
+-- unperformed; deferred duties earn nothing extra.
+#ASSERT all (GIVEN q YIELD
+                LET x MEANS `the reduced consideration` 10000 q
+                IN      x AT LEAST 0 AND x AT MOST 10000
+                    AND x EQUALS 10000 MINUS 10000 TIMES q)
+            (LIST 0, 0.25, 0.5, 0.75, 1)
+#ASSERT all (GIVEN r YIELD `the consideration` 10000 r EQUALS 10000) (LIST 0, 5000, 12000)
+#ASSERT all (GIVEN c YIELD `extra pay for deferred duties` c EQUALS 0) (LIST 0, 500, 2000)
+
+-- §6(ג) over days 0 to 15: with no appeal, the reduction may be made from
+-- the day after the seven-day window; after an appeal, from two days after
+-- its decision; once allowed it stays allowed.
+#ASSERT all (GIVEN d YIELD
+                    `the reduction may be made on day` `no appeal` d EQUALS (d AT LEAST 8)
+                AND all (GIVEN n YIELD
+                                `the reduction may be made on day` (`appeal decided` n) d EQUALS (d AT LEAST n PLUS 2)
+                            AND ((NOT `the reduction may be made on day` (`appeal decided` n) d)
+                                 OR `the reduction may be made on day` (`appeal decided` n) (d PLUS 1)))
+                        (range 1 10))
+            (range 0 15)

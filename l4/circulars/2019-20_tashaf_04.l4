@@ -214,3 +214,63 @@ DECIDE `the amounts fall row by row` rows IF
 -- rules, in October 2020: half of 963.84 meets the duty.
 #TRACE `paying the supplement` (`an employee on a share` 2 TRUE `primary school` 0.5) (Date 1 10 2020) AT 0 WITH
     PARTY `the employer` DOES `pay the supplement` 481.92 AT 1
+
+§§ `Property checks`
+
+-- The circular over a finite space: covered or not; every stage; under
+-- Ofek Hadash or not; grades 0 to 5 in halves; days around 1.1.2020 and
+-- 1.9.2020.
+`both booleans` MEANS LIST TRUE, FALSE
+`every stage` MEANS LIST `kindergarten`, `primary school`, `junior high`, `teacher-training college`, `upper secondary`, `other stage`
+`every grade checked` MEANS map (GIVEN k YIELD k DIVIDED BY 2) (range 0 10)
+`the days checked` MEANS LIST Date 31 12 2019, Date 1 1 2020, Date 31 8 2020, Date 1 9 2020, Date 1 1 2022
+
+GIVEN g IS A BOOLEAN, s IS AN `education stage`, o IS A BOOLEAN, r IS A NUMBER
+GIVETH A `supplement employee`
+DECIDE `a checked employee` g s o r IS
+    `supplement employee` WITH
+        `graded on the teaching-employee scale`            IS g
+        `employed by an owner of a supervised institution` IS TRUE
+        `stage of employment`                              IS s
+        `employed under Ofek Hadash`                       IS o
+        `Ofek Hadash grade`                                IS r
+        `share of the full amount payable`                 IS 1
+
+GIVEN x IS A MAYBE NUMBER
+GIVETH A NUMBER
+DECIDE `or nothing` x IS
+    CONSIDER x
+    WHEN JUST a THEN a
+    WHEN NOTHING THEN 0
+
+-- Each table lists every grade once and "all others" (0) once.
+#ASSERT all (GIVEN rows YIELD
+                all (GIVEN r YIELD count (filter (GIVEN x YIELD x's `row grade` EQUALS r) rows) EQUALS (IF elem r (LIST 0, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5) THEN 1 ELSE 0))
+                    `every grade checked`)
+            (LIST `the amounts from 1.1.2020 to 31.8.2020`, `the amounts from 1.9.2020`)
+
+-- Over every case and day: an amount exactly for a covered employee outside
+-- the upper division from 1.1.2020; a grade outside Ofek Hadash or off the
+-- tables takes "all others"; a named grade is never below "all others" and
+-- falls with each half grade from grade 1; no amount falls with time.
+#ASSERT all (GIVEN g YIELD
+                all (GIVEN s YIELD
+                        all (GIVEN o YIELD
+                                all (GIVEN r YIELD
+                                        all (GIVEN d YIELD
+                                                LET e MEANS `a checked employee` g s o r
+                                                    x MEANS `full-position shekel supplement 2016` e d
+                                                    a MEANS `or nothing` x
+                                                    others MEANS `or nothing` (`full-position shekel supplement 2016` (`a checked employee` g s o 0) d)
+                                                IN      (NOT (x EQUALS NOTHING))
+                                                        EQUALS (g AND (NOT (s EQUALS `upper secondary` OR s EQUALS `other stage`)) AND d AT LEAST Date 1 1 2020)
+                                                    AND (o OR a EQUALS others)
+                                                    AND a AT LEAST others
+                                                    AND ((r LESS THAN 1.5) OR (NOT o) OR a AT MOST `or nothing` (`full-position shekel supplement 2016` (`a checked employee` g s o (r MINUS 0.5)) d))
+                                                    AND all (GIVEN f YIELD (f LESS THAN d) OR a AT MOST `or nothing` (`full-position shekel supplement 2016` e f))
+                                                            `the days checked`)
+                                            `the days checked`)
+                                    `every grade checked`)
+                            `both booleans`)
+                    `every stage`)
+            `both booleans`

@@ -395,3 +395,90 @@ DECIDE `§ד's first two items read as alternatives` e IF
 `a request filed on time can bring the reimbursement after it was due to the teacher` MEANS
     `the last day to file the request` GREATER THAN `the last day the reimbursement may reach the teacher`
 #ASSERT `a request filed on time can bring the reimbursement after it was due to the teacher`
+
+§§ `Property checks`
+
+-- The procedure over a finite space of leavers: ended through the
+-- reorganisation or not, on 30.8.2015 or 31.8.2015, after 9, 10 or 15
+-- years, with Civil Service terms or not; ages 49 to 66 at band edges;
+-- positions 0.5, 1 and 1.3; a section 22 grant of 0, 50,000 or 250,000;
+-- every pension and report flag.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`the ages checked` MEANS LIST 599, 600, 659, 660, 719, 720, 767, 768, 780, 781, 792
+
+GIVEN r IS A BOOLEAN
+      d IS A DATE
+      y IS A NUMBER
+      c IS A BOOLEAN
+      a IS A NUMBER
+      p IS A NUMBER
+      g IS A NUMBER
+      w IS A BOOLEAN
+GIVETH A `college leaver`
+DECIDE `a checked leaver` r d y c a p g w IS
+    `college leaver` WITH
+        `actually teaching at the college`                  IS TRUE
+        `state employee only`                               IS FALSE
+        `employment ended through the reorganisation`       IS r
+        `employment ended on`                               IS d
+        `continuous years teaching at the college`          IS y
+        `entitled to Civil Service retirement-plan terms`   IS c
+        `age in months at the end of employment`            IS a
+        `weighted position fraction`                        IS p
+        `entitled to the section 22 retirement grant`       IS g GREATER THAN 0
+        `section 22 grant paid`                             IS g
+        `retired on pension`                                IS TRUE
+        `receives a pension`                                IS TRUE
+        `early retirement approved by the Ministry's letter` IS TRUE
+        `works at the college as a pensioner of the same employer` IS w
+        `reported in the staff report for all its employment` IS TRUE
+
+-- §ג(א): the bands follow one another without overlap, the grant falling
+-- from each to the next; every age checked is in at most one band.
+#ASSERT all (GIVEN k YIELD
+                    (at `the grant table` k)'s `to age in months` PLUS 1 EQUALS (at `the grant table` (k PLUS 1))'s `from age in months`
+                AND (at `the grant table` (k PLUS 1))'s `band grant` LESS THAN (at `the grant table` k)'s `band grant`)
+            (range 0 2)
+#ASSERT all (GIVEN a YIELD count (`the grants the table gives at age` a `the grant table`) AT MOST 1) (range 588 792)
+
+-- §§ב-ג over the space: entitled exactly where its four conditions hold;
+-- one entitled never receives Civil Service terms (§ג(ז)); the grant is
+-- never negative, nothing for one not entitled, never above the table's
+-- grant for the age, and the section 22 grant comes off it.
+#ASSERT all (GIVEN r YIELD
+                all (GIVEN d YIELD
+                        all (GIVEN y YIELD
+                                all (GIVEN c YIELD
+                                        all (GIVEN a YIELD
+                                                all (GIVEN p YIELD
+                                                        all (GIVEN g YIELD
+                                                                LET e MEANS `a checked leaver` r d y c a p g FALSE
+                                                                    x MEANS `the special grant` e
+                                                                    full MEANS `the full grant for the age` e TIMES min p 1
+                                                                IN      `entitled to the special grant` e EQUALS (r AND d AT LEAST Date 31 8 2015 AND y AT LEAST 10 AND (NOT c))
+                                                                    AND `may receive Civil Service retirement-plan terms` e EQUALS (NOT `entitled to the special grant` e)
+                                                                    AND x AT LEAST 0
+                                                                    AND (`entitled to the special grant` e OR x EQUALS 0)
+                                                                    AND x AT MOST `the full grant for the age` e
+                                                                    AND ((NOT `entitled to the special grant` e) OR x EQUALS max 0 (full MINUS g)))
+                                                            (LIST 0, 50000, 250000))
+                                                    (LIST 0.5, 1, 1.3))
+                                            `the ages checked`)
+                                    `both booleans`)
+                            (LIST 9, 10, 15))
+                    (LIST Date 30 8 2015, Date 31 8 2015))
+            `both booleans`
+
+-- §§א-ה: the reimbursement only for one entitled to the grant and not
+-- excluded; a pensioner of the same employer is always excluded; the
+-- position it covers is the positions together up to one.
+#ASSERT all (GIVEN w YIELD
+                all (GIVEN y YIELD
+                        LET e MEANS `a checked leaver` TRUE (Date 31 8 2019) y FALSE 684 1 0 w
+                        IN      ((NOT `the reimbursement is given for` e TRUE) OR (`entitled to the special grant` e AND NOT `excluded from the reimbursement` e))
+                            AND ((NOT w) OR `excluded from the reimbursement` e))
+                    (LIST 9, 10, 15))
+            `both booleans`
+#ASSERT all (GIVEN l YIELD `the position the reimbursement covers` l EQUALS min (sum l) 1)
+            (LIST EMPTY, (LIST 0.5), (LIST 0.5, 0.3), (LIST 0.8, 0.6))

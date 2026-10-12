@@ -222,3 +222,64 @@ DECIDE `reimbursing the owners for the '87 supplement` IS
     PARTY `the employer` DOES `pay the updated supplement` 1242.05 AT 1
 #TRACE `paying the updated supplement` `an Oz LeTmura teacher` (Date 1 3 2020) AT 0 WITH
     PARTY `the employer` DOES `pay the updated supplement` 1153.84 AT 1
+
+§§ `Property checks`
+
+-- The circular over a finite space: every combination of the employee's
+-- five flags; days around 1.1.2020 and 1.9.2020.
+`both booleans` MEANS LIST TRUE, FALSE
+`both groups` MEANS LIST `Oz LeTmura teacher`, `non-reform teacher or principal`
+`the days checked` MEANS LIST Date 31 12 2019, Date 1 1 2020, Date 31 8 2020, Date 1 9 2020, Date 1 1 2022
+
+GIVEN g IS A BOOLEAN, u IS A BOOLEAN, o IS A BOOLEAN, p IS A BOOLEAN
+GIVETH AN `upper-secondary employee`
+DECIDE `a checked employee` g u o p IS
+    `upper-secondary employee` WITH
+        `graded on the teaching-employee scale`            IS g
+        `employed by an owner of a supervised institution` IS TRUE
+        `employed in upper secondary or grades 13-14`      IS u
+        `employed under Oz LeTmura`                        IS o
+        `is a principal`                                   IS p
+
+GIVEN x IS A MAYBE NUMBER
+GIVETH A NUMBER
+DECIDE `or nothing` x IS
+    CONSIDER x
+    WHEN JUST a THEN a
+    WHEN NOTHING THEN 0
+
+-- The groups: the Oz LeTmura teachers' group holds exactly a teacher under
+-- the reform who is not a principal; the '87 supplement exactly a covered
+-- principal under the reform.
+#ASSERT all (GIVEN g YIELD
+                all (GIVEN u YIELD
+                        all (GIVEN o YIELD
+                                all (GIVEN p YIELD
+                                        LET e MEANS `a checked employee` g u o p
+                                        IN      (`the supplement group of` e EQUALS `Oz LeTmura teacher`) EQUALS (o AND (NOT p))
+                                            AND `entitled to the '87 transition supplement` e EQUALS (g AND u AND o AND p))
+                                    `both booleans`)
+                            `both booleans`)
+                    `both booleans`)
+            `both booleans`
+
+-- Part א over both groups and the days: nothing before 1.1.2020, an amount
+-- from it; the reform teachers' amount above the other group's; neither
+-- falls with time; the January-August 2020 difference is positive.
+#ASSERT all (GIVEN d YIELD
+                    all (GIVEN k YIELD
+                                (NOT (`monthly shekel supplement 2016` k d EQUALS NOTHING)) EQUALS (d AT LEAST Date 1 1 2020)
+                            AND all (GIVEN e YIELD (e LESS THAN d) OR `or nothing` (`monthly shekel supplement 2016` k d) AT MOST `or nothing` (`monthly shekel supplement 2016` k e))
+                                    `the days checked`)
+                        `both groups`
+                AND ((d LESS THAN Date 1 1 2020)
+                     OR `or nothing` (`monthly shekel supplement 2016` `non-reform teacher or principal` d)
+                        LESS THAN `or nothing` (`monthly shekel supplement 2016` `Oz LeTmura teacher` d)))
+            `the days checked`
+#ASSERT all (GIVEN k YIELD `monthly difference owed for January to August 2020` k GREATER THAN 0) `both groups`
+
+-- Part ב: the '87 supplement from 1.1.2020 only, above the amount it updates.
+#ASSERT all (GIVEN d YIELD
+                (NOT (`monthly '87 transition supplement` d EQUALS NOTHING)) EQUALS (d AT LEAST Date 1 1 2020))
+            `the days checked`
+#ASSERT `or nothing` (`monthly '87 transition supplement` (Date 1 1 2020)) GREATER THAN `the '87 supplement paid before this update`

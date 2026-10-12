@@ -277,3 +277,82 @@ DECIDE `what chapter ג requires of a teacher` IS EMPTY
         `the circular covers` `an owners' kindergarten teacher`
     AND (NOT `the agreement of 1.4.2020 covers` `an owners' kindergarten teacher`)
 #ASSERT `a teacher of an owning body outside the state service is covered by the circular and not by the agreement it implements`
+
+§§ `Property checks`
+
+-- The circular over finite spaces: every flag of the employment and the
+-- employee; every stage and sector; every day from 25.3.2020 to 20.4.2020;
+-- unpaid-leave and substitution days 0 to 35; extensions 0 to 10 days.
+`both booleans` MEANS LIST TRUE, FALSE
+`every stage` MEANS LIST `kindergarten`, `primary`, `junior high`, `special education`, `upper secondary`
+`every sector` MEANS
+    LIST `Jewish sector`, `Arab sector`, `mixed institution`, `Druze institution teaching on Saturday`, `Druze institution not teaching on Saturday`
+`the days checked` MEANS map (GIVEN k YIELD Date (Day (Date 25 3 2020) PLUS k)) (range 0 26)
+
+-- The application period is 35 days, 15.3.2020 to 18.4.2020, ending the day
+-- the Order's ban ends.
+#ASSERT `days in the application period` EQUALS 35
+#ASSERT `the application period ends` EQUALS `the last day the Public Health Order bars gatherings`
+
+-- ¶20: the leave agreement yields only to another agreement meeting all
+-- four conditions.
+#ASSERT all (GIVEN a YIELD
+                all (GIVEN b YIELD
+                        all (GIVEN c YIELD
+                                all (GIVEN d YIELD
+                                        `the leave agreement applies` (`employment under the leave regulations` a b c d)
+                                        EQUALS (NOT (a AND b AND c AND d)))
+                                    `both booleans`)
+                            `both booleans`)
+                    `both booleans`)
+            `both booleans`
+
+-- §א over every stage and flag: the circular covers an owner's employee in
+-- kindergarten, primary or junior high, and in special education only on
+-- the Director-General's days; never the upper division.
+#ASSERT all (GIVEN s YIELD
+                all (GIVEN o YIELD
+                        all (GIVEN d YIELD
+                                `the circular covers` (`emergency employee` WITH
+                                                          `graded on the teaching-employee scale`       IS TRUE
+                                                          `employed in the state service`               IS FALSE
+                                                          `employed by an owning body`                  IS o
+                                                          `stage`                                       IS s
+                                                          `days set by the Director-General's circular` IS d)
+                                EQUALS (o AND (NOT (s EQUALS `upper secondary`)) AND ((NOT (s EQUALS `special education`)) OR d)))
+                            `both booleans`)
+                    `both booleans`)
+            `every stage`
+
+-- §ב over every sector and day: the holiday days on which studies are held
+-- number four for each sector — three named for a mixed institution, which
+-- sets its fourth (§ב(ג)) — all inside the application period; no day
+-- after the period is a study day.
+#ASSERT all (GIVEN s YIELD
+                    count (filter (GIVEN d YIELD `a holiday day on which studies are held` s d) `the days checked`)
+                    EQUALS (IF s EQUALS `mixed institution` THEN 3 ELSE 4)
+                AND all (GIVEN d YIELD
+                            (NOT `a holiday day on which studies are held` s d)
+                            OR (d AT LEAST `the application period begins` AND d AT MOST `the application period ends`))
+                        `the days checked`
+                AND all (GIVEN d YIELD
+                            (d AT MOST `the application period ends`) OR NOT `studies are held on` s d TRUE)
+                        `the days checked`)
+            `every sector`
+
+-- §ה over leave and substitution days 0 to 35 and extensions 0 to 10:
+-- a teacher's extension days and a substitute's never negative, never
+-- above the extension, and together, for the same days, the extension.
+#ASSERT all (GIVEN l YIELD
+                all (GIVEN x YIELD
+                        LET w MEANS `extension days a teacher works` l x
+                            s MEANS `days a substitute makes up` l x
+                        IN      w AT LEAST 0 AND w AT MOST x
+                            AND s AT LEAST 0 AND s AT MOST x
+                            AND w PLUS s EQUALS x)
+                    (LIST 0, 3, 10))
+            (LIST 0, 7, 20, 35)
+
+-- §ד: the salary is paid exactly when the studies were held.
+#ASSERT `the salary through the application period` TRUE 9000 EQUALS JUST 9000
+#ASSERT `the salary through the application period` FALSE 9000 EQUALS NOTHING

@@ -1418,3 +1418,147 @@ DECIDE `§16.1 names no one to install the clock` IF
 GIVEN x IS A NUMBER, y IS A NUMBER
 GIVETH A NUMBER
 DECIDE `the examples' conversion` x y IS x TIMES 1.034 TIMES (100 PLUS y) DIVIDED BY 100
+
+§§ `Property checks`
+
+-- The circular over finite spaces, section by section.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`hundredths to 1` MEANS map (GIVEN k YIELD k DIVIDED BY 100) (range 0 100)
+
+GIVEN a IS A BOOLEAN, c IS A BOOLEAN, x IS A BOOLEAN, p IS A NUMBER, s IS A NUMBER, d IS A BOOLEAN
+GIVETH A `special-ed teacher`
+DECIDE `a checked teacher` a c x p s d IS
+    `special-ed teacher` WITH
+        `previously recognised teaching seniority`              IS TRUE
+        `entitled to seniority recognition for actual teaching` IS TRUE
+        `academic`                    IS a
+        `certified to teach`          IS c
+        `position fraction`           IS p
+        `seniority years`             IS s
+        `intern`                      IS FALSE
+        `health profession or arts therapist` IS FALSE
+        `in regular education`        IS FALSE
+        `signed the degree commitment` IS d
+        `exception approved by the committee` IS x
+
+-- §3.2.1 over every flag and position: an existing academic joins exactly
+-- at a third of a position or more, certified or by the exceptions
+-- committee.
+#ASSERT all (GIVEN c YIELD
+                all (GIVEN x YIELD
+                        all (GIVEN p YIELD
+                                `an existing academic teacher joins` (`a checked teacher` TRUE c x p 10 FALSE)
+                                EQUALS (p AT LEAST 1 DIVIDED BY 3 AND (c OR x)))
+                            (LIST 0.25, 1 DIVIDED BY 3, 0.5, 1))
+                    `both booleans`)
+            `both booleans`
+
+-- §3.3 over seniority 0 to 40 in quarters: each existing non-academic falls
+-- in exactly one of "must sign" (finding a's reading, under 28) and "joins
+-- without"; one who must sign joins exactly when signed.
+#ASSERT all (GIVEN k YIELD
+                all (GIVEN d YIELD
+                        LET t MEANS `a checked teacher` FALSE TRUE FALSE 1 (k DIVIDED BY 4) d
+                        IN      (`must sign, counting completed years` t) EQUALS (NOT `joins without a commitment` t)
+                            AND `an existing non-academic teacher joins` t EQUALS ((NOT `must sign, counting completed years` t) OR d))
+                    `both booleans`)
+            (range 0 160)
+
+-- §4 over every school kind, range of grades and profession: one week
+-- exactly, except a multi-stage teacher of both ranges (finding i); every
+-- week adds up to 36; a part position scales each part.
+#ASSERT all (GIVEN k YIELD
+                all (GIVEN g YIELD
+                        all (GIVEN h YIELD
+                                count (`the weeks §4 gives` k g h)
+                                EQUALS (IF k EQUALS `multi-stage special-education school` AND g EQUALS `grades in both ranges` THEN 0 ELSE 1))
+                            `both booleans`)
+                    (LIST `grades 1 to 6 only`, `grades 7 to 12 only`, `grades in both ranges`))
+            (LIST `primary special-education school`, `multi-stage special-education school`, `post-primary special-education school`)
+#ASSERT all (GIVEN f YIELD
+                LET w MEANS `the part-position week` `the primary special-education week` f
+                IN  `the week adds up` w AND w's `week total` EQUALS 36 TIMES f)
+            (LIST 0.25, 0.5, 0.75, 1)
+
+-- §5.4 over schools 1 to 4 and positions in quarters: met exactly for an
+-- exempt employee, or at two schools and a full position at most.
+#ASSERT all (GIVEN n YIELD
+                all (GIVEN p YIELD
+                        all (GIVEN e YIELD `the schools rule is met` n p e EQUALS (e OR (n AT MOST 2 AND p AT MOST 1)))
+                            `both booleans`)
+                    (LIST 0.5, 1, 1.25))
+            (range 1 4)
+
+-- §7 over positions in hundredths: the reliefs after maternity leave are
+-- two exactly at 90% (finding c) and the relief adopted is always one;
+-- the nursing hour only within four months, from 90%.
+#ASSERT all (GIVEN p YIELD
+                    count (`the reliefs §7 gives after maternity leave` p TRUE) EQUALS (IF p EQUALS 0.9 THEN 2 ELSE IF p AT LEAST 0.79 THEN 1 ELSE 0)
+                AND ((`the relief` p TRUE TRUE EQUALS `the nursing hour`) EQUALS (p AT LEAST 0.9))
+                AND (NOT (`the relief` p FALSE TRUE EQUALS `the nursing hour`)))
+            `hundredths to 1`
+
+-- §8 over ages 45 to 65: the reductions are two exactly at 55 (finding d);
+-- the reduction adopted leaves a base of 32, 34 or 36, never more hours as
+-- age rises, and the existing teacher never above the new one.
+GIVEN n IS A NUMBER, e IS A BOOLEAN
+GIVETH A NUMBER
+DECIDE `the base after the age reduction` n e IS (`the age reduction` n e 1)'s `base after`
+
+#ASSERT all (GIVEN n YIELD
+                    count (`the reductions §8 gives` n TRUE) EQUALS (IF n EQUALS 55 THEN 2 ELSE IF n AT LEAST 50 THEN 1 ELSE 0)
+                AND elem (`the base after the age reduction` n TRUE) (LIST 32, 34, 36)
+                AND `the base after the age reduction` (n PLUS 1) TRUE AT MOST `the base after the age reduction` n TRUE
+                AND `the base after the age reduction` n TRUE AT MOST `the base after the age reduction` n FALSE)
+            (range 45 65)
+
+-- §9 over computed levels 0 to 10: the level is clamped to 3-8; every
+-- table names each level once, the hours never rising with the level.
+#ASSERT all (GIVEN l YIELD
+                    `the complexity level` l AT LEAST 3 AND `the complexity level` l AT MOST 8
+                AND `the level in force` TRUE TRUE l EQUALS 3)
+            (range 0 10)
+#ASSERT all (GIVEN t YIELD
+                all (GIVEN l YIELD
+                            count (`the hours the table gives for level` l t) EQUALS 1
+                        AND ((l EQUALS 8) OR sum (`the hours the table gives for level` (l PLUS 1) t) AT MOST sum (`the hours the table gives for level` l t)))
+                    (range 3 8))
+            (LIST `the principals' table`, `the primary first deputies' table`, `the post-primary first deputies' table`, `the multi-stage first deputies' table`)
+
+-- §10: within the limits never fails for fewer hours.
+#ASSERT all (GIVEN n YIELD
+                all (GIVEN m YIELD
+                        all (GIVEN h YIELD
+                                (NOT `the half-year's activity hours are within the limits` (n PLUS 1) m h)
+                                OR `the half-year's activity hours are within the limits` n m h)
+                            (range 0 7))
+                    (range 0 9))
+            (range 0 5)
+
+-- §12 over seniority 20 to 30: §12.2.2 says both things exactly at 25
+-- (finding e); the reading lets the uncertified advance from 25.
+#ASSERT all (GIVEN s YIELD
+                    count (`what §12.2.2 says of an uncertified veteran's advance` s) EQUALS (IF s EQUALS 25 THEN 2 ELSE 1)
+                AND `an uncertified veteran may advance` s FALSE EQUALS (s AT LEAST 25))
+            (range 20 30)
+-- Promotion never fails for more months or more development hours.
+#ASSERT all (GIVEN r YIELD
+                all (GIVEN m YIELD
+                        all (GIVEN h YIELD
+                                (NOT `may be promoted` m h TRUE r) OR (`may be promoted` (m PLUS 6) h TRUE r AND `may be promoted` m (h PLUS 30) TRUE r))
+                            (LIST 120, 180, 210, 480))
+                    (LIST 30, 36, 48))
+            (concat (LIST `the certified academics' promotion table`, `the certified non-academics' promotion table`,
+                          `the academic principals' promotion table`, `the non-academic principals' promotion table`))
+
+-- §13: a counsellor's minimum is never below 4 frontal hours.
+#ASSERT all (GIVEN p YIELD all (GIVEN i YIELD `a counsellor's minimum frontal hours` p i AT LEAST 4) `both booleans`)
+            (LIST 0.25, 0.5, 0.75, 1)
+
+-- §15: interns' advance below the teachers' in both stages; every rate
+-- between 14% and 27%.
+#ASSERT `the advance rate` `primary intern` LESS THAN `the advance rate` `primary teacher`
+#ASSERT `the advance rate` `post-primary intern` LESS THAN `the advance rate` `post-primary teacher`
+#ASSERT all (GIVEN p YIELD `the advance rate` p AT LEAST 0.14 AND `the advance rate` p AT MOST 0.27)
+            (LIST `primary teacher`, `primary intern`, `post-primary teacher`, `post-primary intern`, `first deputy`, `principal`)
