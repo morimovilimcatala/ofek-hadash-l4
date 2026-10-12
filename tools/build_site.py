@@ -1499,7 +1499,8 @@ def calculator_page(all_views: dict[str, list["SectionView"]], findings: list[di
     evaluator compiled to WebAssembly (tools/calculator.py)."""
     here = "calculator.html"
     v = next(v for v in all_views[SALARY[0]] if v.section.num == SALARY[1])
-    s = calculator.spec(v.section, v.l4, {k: clause(v.section, k, k) for k in citations(v.section)})
+    s = calculator.spec(v.section, v.l4, {k: clause(v.section, k, k) for k in citations(v.section)},
+                        href=lambda k: f"{v.page}#{k}")
     s = calculator.ship(s, v.l4, OUT / "assets")
     # the document is named: "§1.1 השכר" alone does not say which text it is
     link = (f'<a href="{v.href}">סעיף {esc(v.section.num)} ("{esc(v.section.heading)}") '

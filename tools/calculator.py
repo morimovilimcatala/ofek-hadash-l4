@@ -184,8 +184,9 @@ def example(lines: list[str], name: str) -> dict:
     return out
 
 
-def spec(section, l4: Path, cites: dict[str, str]) -> dict:
-    """Everything the page needs to know about §1.1's L4, read off the file."""
+def spec(section, l4: Path, cites: dict[str, str], href=lambda key: "") -> dict:
+    """Everything the page needs to know about §1.1's L4, read off the file.
+    `href(key)` is the link to a row on the section's own page."""
     text = l4.read_text(encoding="utf-8")
     lines = text.splitlines()
     rows = {}
@@ -199,11 +200,25 @@ def spec(section, l4: Path, cites: dict[str, str]) -> dict:
     def cite(keys: list[str]) -> str:
         return " · ".join(dict.fromkeys(cites[k] for k in keys))
 
+    # a citation a reader can use: the clause's own words ("תוספת 3%") with
+    # its number and a link to it, never the number alone, which says
+    # nothing to someone who has not got the takanon open beside them
+    def refs(keys: list[str]) -> list[dict]:
+        out, seen = [], set()
+        for k in keys:
+            words, num = label("", [k])
+            num = num or cites[k]
+            if num in seen:
+                continue
+            seen.add(num)
+            out.append({"words": words, "num": num, "href": href(k)})
+        return out
+
     fields = record_fields(lines, MONTH_RECORD)
     assert set(FIELDS_HE) == {f["name"] for f in fields}, "FIELDS_HE does not match the L4 record"
     for f in fields:
         he, keys = FIELDS_HE[f["name"]]
-        f.update(label=he, cite=cite(keys), hint=FIELD_HINTS.get(f["name"], ""))
+        f.update(label=he, cite=cite(keys), refs=refs(keys), hint=FIELD_HINTS.get(f["name"], ""))
     pops, pop_refs = enum_ctors(lines, POPULATION_ENUM)
     pop_rows = [k for k in pop_refs if "subpara" in k]
     assert len(pop_rows) == len(pops), "the populations' rows do not match the enum"
@@ -239,7 +254,9 @@ def spec(section, l4: Path, cites: dict[str, str]) -> dict:
     for a, b in edges:
         if a == ROOT_RULE and not b.startswith("in:"):
             words, c = label(b, nearest_refs(b))
-            components.append({"name": b, "label": words, "cite": c, "params": params(lines, b)})
+            near = nearest_refs(b)
+            components.append({"name": b, "label": words, "cite": c, "params": params(lines, b),
+                               "href": href(near[0]) if near else ""})
     root_words, root_cite = label(ROOT_RULE, decls[ROOT_RULE]["refs"])
     ex = example(lines, EXAMPLE)
     assert set(ex) == {f["name"] for f in fields}, "the worked example does not fill the record"
@@ -256,10 +273,12 @@ def spec(section, l4: Path, cites: dict[str, str]) -> dict:
         "allowance": {
             "record": HELD_RECORD, "kindField": kind_field, "rateField": rate_field,
             "rule": ALLOWANCE_RULE, "params": params(lines, ALLOWANCE_RULE),
-            "kinds": [{"name": k, "label": allowance_label(k), "cite": cites[ALLOWANCE_ROWS[k]]} for k in kinds],
+            "kinds": [{"name": k, "label": allowance_label(k), "cite": cites[ALLOWANCE_ROWS[k]],
+                       "href": href(ALLOWANCE_ROWS[k])} for k in kinds],
         },
         "root": {"name": ROOT_RULE, "label": root_words, "cite": root_cite,
-                 "params": params(lines, ROOT_RULE)},
+                 "params": params(lines, ROOT_RULE),
+                 "href": href(decls[ROOT_RULE]["refs"][0]) if decls[ROOT_RULE]["refs"] else ""},
         "components": components,
         "example": {"fields": ex, "allowances": [{"kind": ex_held[kind_field], "percent": pct}]},
     }
@@ -291,6 +310,16 @@ def cite_text(cite: str) -> str:
     return " · ".join("\u2066" + HEB.sub("\\1\u200e", c) + "\u2069" for c in cite.split(" · "))
 
 
+def refs_html(refs: list[dict]) -> str:
+    """"בתקנון: תוספת 3% §1.1ב · תוספת 2008 §1.1ג": each clause by its own
+    words and its number, linked to it on the section's page."""
+    items = []
+    for r in refs:
+        inner = (f'{esc(r["words"])} ' if r["words"] else "") + f'<bdi dir="ltr">{esc(r["num"])}</bdi>'
+        items.append(f'<a href="{esc(r["href"])}">{inner}</a>' if r["href"] else inner)
+    return '<span class="cite">בתקנון: ' + " · ".join(items) + "</span>"
+
+
 def form_html(s: dict) -> str:
     """The form, server-rendered: one control per field of the record, in
     the record's order, and the list of allowances."""
@@ -298,8 +327,7 @@ def form_html(s: dict) -> str:
     for f in s["fields"]:
         fid = "f-" + re.sub(r"\W+", "-", f["name"]).strip("-")
         name = esc(f["name"])
-        meta = (f'<span class="cite">{esc(cite_text(f["cite"]))}</span>'
-                f'<code class="l4n" dir="ltr">{name}</code>')
+        meta = refs_html(f["refs"]) + f'<code class="l4n" dir="ltr">{name}</code>'
         hint = f'<span class="hint">{esc(f["hint"])}</span>' if f["hint"] else ""
         if f["name"] == "in a population whose 5% step was postponed":
             hint += ('<details class="pops"><summary>ארבע האוכלוסיות</summary><ol>'
@@ -313,11 +341,11 @@ def form_html(s: dict) -> str:
         out.append(f'<div class="fld"><label for="{fid}">{esc(f["label"])}</label>{meta}'
                    f'<input id="{fid}" {attrs} data-field="{name}">{hint}</div>')
     a = s["allowance"]
-    opts = "".join(f'<option value="{esc(k["name"])}">{esc(k["label"])} — {esc(cite_text(k["cite"]))}</option>'
-                   for k in a["kinds"])
+    opts = "".join(f'<option value="{esc(k["name"])}">{esc(k["label"])}</option>' for k in a["kinds"])
+    pct = next(c for c in s["components"] if c["name"] == "percentage allowances")
     out.append(
         '<fieldset class="allow"><legend>תוספות אחוזיות</legend>'
-        f'<span class="cite">{esc(cite_text(next(c["cite"] for c in s["components"] if c["name"] == "percentage allowances")))}</span>'
+        + refs_html([{"words": pct["label"], "num": pct["cite"], "href": pct["href"]}]) +
         f'<code class="l4n" dir="ltr">{esc(a["record"])}</code>'
         '<p class="hint">כל תוספת שהעובד מחזיק בחודש, ושיעורה — שנקבע בסעיף של התוספת עצמה ואינו מקודד כאן.</p>'
         '<ol class="allow-list"></ol>'

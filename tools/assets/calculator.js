@@ -27,8 +27,11 @@ const money = (v) => {
 };
 const ltr = (text, cls = "") => el("bdi", { dir: "ltr", class: cls, text });
 // a citation that keeps its order inside Hebrew (tools/calculator.py cite_text)
-const cite = (c) => el("span", { class: "cite",
-  text: c.split(" · ").map((x) => "\u2066" + x.replace(/([\u05d0-\u05ea])/g, "$1\u200e") + "\u2069").join(" · ") });
+// and, with `href`, a link to the clause on the takanon's page
+const cite = (c, href) => {
+  const text = c.split(" · ").map((x) => "\u2066" + x.replace(/([\u05d0-\u05ea])/g, "$1\u200e") + "\u2069").join(" · ");
+  return href ? el("a", { class: "cite", href, text }) : el("span", { class: "cite", text });
+};
 
 // ------------------------------------------------------------- loading L4
 
@@ -135,28 +138,28 @@ function show(r, prog) {
   for (const c of r.components) {
     tbody.append(el("tr", { class: "c" },
       el("td", {}, el("span", { class: "cl", text: c.label })),
-      el("td", {}, cite(c.cite)),
+      el("td", {}, cite(c.cite, c.href)),
       el("td", {}, el("code", { class: "l4n", dir: "ltr", text: c.name })),
       el("td", { class: "num" }, ltr(money(c.value)))));
     if (c.name === "percentage allowances") {
       for (const a of r.allowances) {
         tbody.append(el("tr", { class: "sub" },
           el("td", {}, el("span", { class: "cl", text: a.label }), " ", ltr(a.rate, "rate")),
-          el("td", {}, cite(a.cite)),
+          el("td", {}, cite(a.cite, a.href)),
           el("td", {}, el("code", { class: "l4n", dir: "ltr", text: spec.allowance.rule })),
           el("td", { class: "num" }, ltr(money(a.value)))));
       }
     }
   }
   const table = el("table", { class: "comp" },
-    el("thead", {}, el("tr", {}, ...["רכיב", "סעיף", "הכלל ב־L4", "₪"].map((t) => el("th", { text: t })))),
+    el("thead", {}, el("tr", {}, ...["רכיב", "סעיף בתקנון", "הכלל ב־L4", "₪"].map((t) => el("th", { text: t })))),
     tbody);
   const tree = el("div", { class: "tree hide-lookups" }, traceNode(r.total.trace, true));
   const lookups = el("input", { type: "checkbox" });
   lookups.addEventListener("change", () => tree.classList.toggle("hide-lookups", !lookups.checked));
   out.replaceChildren(
     el("div", { class: "total" },
-      el("span", {}, `${spec.root.label} `, cite(spec.root.cite)),
+      el("span", {}, `${spec.root.label} — התקנון `, cite(spec.root.cite, spec.root.href)),
       el("strong", { dir: "ltr", text: "₪ " + money(r.total.value) }),
       el("code", { class: "l4n", dir: "ltr", text: spec.root.name })),
     el("div", { class: "scroll-x" }, table),

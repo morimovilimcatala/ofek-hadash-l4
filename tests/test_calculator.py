@@ -39,6 +39,23 @@ class Form(unittest.TestCase):
         for x in s["fields"] + s["allowance"]["kinds"] + s["components"]:
             self.assertTrue(x["label"] and x["cite"].startswith("§1.1"), x)
 
+    def test_a_fields_citation_says_which_text_and_what_the_clause_is(self):
+        """The client, 2026-10-12: "§1.1ב · §1.1ג" alone "tell me nothing".
+        A field cites each clause by its own words and its number, under the
+        document's name, and links to it."""
+        sec = next(s for s in akn.sections(build_site.SALARY[0]) if s.num == build_site.SALARY[1])
+        s = calculator.spec(sec, L4, build_site.citations(sec), href=lambda k: "p.html#" + k)
+        keys = {r.key for r in sec.rows} | {a for r in sec.rows for a in r.aliases}
+        for f in s["fields"]:
+            self.assertTrue(f["refs"], f["name"])
+            for r in f["refs"]:
+                self.assertTrue(r["words"] and r["num"].startswith("§1.1"), r)
+                self.assertIn(r["href"].split("#", 1)[1], keys, r)
+        html = calculator.form_html(s)
+        self.assertEqual(html.count('<span class="cite">בתקנון: '), len(s["fields"]) + 1)
+        month = next(f for f in s["fields"] if f["name"] == "month")
+        self.assertEqual([r["words"] for r in month["refs"]], ["תוספת 3%", "תוספת 2008", "תוספת 2011"])
+
     def test_the_components_are_what_the_salary_rule_adds_up(self):
         self.assertEqual([c["name"] for c in spec()["components"]],
                          ["combined salary", "3% supplement", "2008 supplement", "2011 supplement",
