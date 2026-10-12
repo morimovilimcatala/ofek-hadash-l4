@@ -83,6 +83,7 @@ DECIDE `the appointment is approved` a IF
 -- "המועסק ב-1/3 משרה" is read as at least a third of a position in the
 -- laboratory subjects: §6.10.2ב.4 says "לפחות" in the same rule for
 -- subject coordinators, and nothing suggests more is a bar.
+-- The text does not say "at least": F-6.9-b.
 @ref akn:chp_6__sec_6_9__ssec_6_9_2__para_2
 GIVEN c IS A `lab coordinator candidate`
 GIVETH A BOOLEAN
@@ -170,3 +171,87 @@ DECIDE `lab coordination reward` `is an appointed lab coordinator` IS
 -- Appointed for one year at the start of the year: the permission is used.
 #TRACE `appointing a lab coordinator` `a 12-class high school with a recognised lab` `a half-position chemistry teacher` `approved by supervisor and owner` AT 0 WITH
     PARTY `the institution's management` DOES `appoint a lab coordinator` 1 AT 1
+
+§§ `Property checks`
+
+-- The section's rules over their whole finite space: every institution (0
+-- to 12 classes, post-primary or not, a recognised laboratory or not),
+-- every set of the three approvals, every position fraction in twelfths
+-- from 0 to a whole position, and every school month.
+
+`both booleans` MEANS LIST TRUE, FALSE
+
+GIVEN p IS A BOOLEAN, n IS A NUMBER, l IS A BOOLEAN
+GIVETH A `laboratory school`
+DECIDE `a checked institution` p n l IS
+    `laboratory school` WITH
+        `is a post-primary institution`               IS p
+        `number of classes`                           IS n
+        `has a laboratory recognised by the Ministry` IS l
+        `weekly hours the school's classes use the laboratory` IS 20
+
+GIVEN sv IS A BOOLEAN, mg IS A BOOLEAN, ow IS A BOOLEAN
+GIVETH A `lab appointment approvals`
+DECIDE `checked approvals` sv mg ow IS
+    `lab appointment approvals` WITH
+        `approved by the supervisor`               IS sv
+        `approved by the institution's management` IS mg
+        `approved by the owner`                    IS ow
+
+-- 6.9.2.1 over every institution: a coordinator only in a post-primary
+-- institution of 8 classes or more with a recognised laboratory, and more
+-- classes never take the permission away.
+#ASSERT all (GIVEN p YIELD
+                all (GIVEN n YIELD
+                        all (GIVEN l YIELD
+                                    `the institution may have a lab coordinator` (`a checked institution` p n l)
+                                    EQUALS (p AND l AND n AT LEAST 8)
+                                AND ((NOT `the institution may have a lab coordinator` (`a checked institution` p n l))
+                                     OR `the institution may have a lab coordinator` (`a checked institution` p (n PLUS 1) l)))
+                            `both booleans`)
+                    (range 0 12))
+            `both booleans`
+
+-- F-6.9-a over every set of approvals: without the supervisor's, both
+-- clauses refuse; with it, they part exactly where the management and the
+-- owner did not both, or neither, approve. The reading adopted is
+-- 6.9.2.3's in every case.
+#ASSERT all (GIVEN sv YIELD
+                all (GIVEN mg YIELD
+                        all (GIVEN ow YIELD
+                                LET a MEANS `checked approvals` sv mg ow
+                                IN      (NOT (`has the approvals §6.9.2.1 names` a EQUALS `has the approvals §6.9.2.3 names` a))
+                                        EQUALS (sv AND NOT (mg EQUALS ow))
+                                    AND `the appointment is approved` a EQUALS (sv AND ow))
+                            `both booleans`)
+                    `both booleans`)
+            `both booleans`
+
+-- 6.9.2.2 over every fraction in twelfths: a third of a position or more
+-- qualifies, and more never disqualifies. F-6.9-b over the same space: the
+-- reading "at least" and the words "a third" part on every fraction above
+-- a third.
+#ASSERT all (GIVEN k YIELD
+                LET f MEANS k DIVIDED BY 12
+                IN      `may be appointed lab coordinator` (`lab coordinator candidate` WITH `position fraction in laboratory subjects` IS f)
+                        EQUALS (k AT LEAST 4)
+                    AND (NOT (`may be appointed lab coordinator` (`lab coordinator candidate` WITH `position fraction in laboratory subjects` IS f)
+                              EQUALS (f EQUALS 1/3)))
+                        EQUALS (k GREATER THAN 4))
+            (range 0 12)
+
+-- 6.9.2.4 over every school month: a change takes effect at the start of
+-- the month after it, and one made before August takes effect within the
+-- one school year of the appointment (6.9.2.3).
+#ASSERT all (GIVEN m YIELD
+                    `month the change takes effect` m EQUALS m PLUS 1
+                AND ((m EQUALS 12) OR `month the change takes effect` m AT MOST 12))
+            (range 1 12)
+
+-- F-6.9-b: "employed at a third of a position" read as at least a third: a
+-- teacher at half a position may be appointed, whom the words alone,
+-- read as exactly a third, would not admit.
+`a teacher at half a position qualifies, though not at "a third" exactly` MEANS
+        `may be appointed lab coordinator` `a half-position chemistry teacher`
+    AND NOT (`a half-position chemistry teacher`'s `position fraction in laboratory subjects` EQUALS 1/3)
+#ASSERT `a teacher at half a position qualifies, though not at "a third" exactly`

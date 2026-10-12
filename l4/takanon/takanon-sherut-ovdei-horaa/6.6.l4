@@ -358,7 +358,7 @@ DECIDE `share of the reward for a group of` `pupils in the group` IS
 
 -- ב(2)(ד): pupils prepared for different numbers of units: the reward is
 -- for the largest number, and it does not exceed 3 hours + 2%. "גמול זה"
--- is read as the cap of this case only.
+-- is read as the cap of this case only (F-6.6-e).
 @ref akn:chp_6__sec_6_6__ssec_6_6_4/p23 akn:chp_6__sec_6_6__ssec_6_6_4/p24
 GIVEN `the table's reward for` IS A FUNCTION FROM NUMBER TO `preparation reward` @desc the reward the table of 6.6.4 ב(2)(א) gives for a number of study units
       `units the pupils were prepared for` IS A LIST OF NUMBER
@@ -671,3 +671,206 @@ DECIDE `the rates basis in force` `combined salary in force` IS
     PARTY `the teaching employee` DOES `contact the pupil directly about the project` AT 2
 
 -- akn:chp_6__sec_6_6__ssec_6_6_4/p116 akn:chp_6__sec_6_6__ssec_6_6_4/p117 akn:chp_6__sec_6_6__ssec_6_6_4/p118 akn:chp_6__sec_6_6__ssec_6_6_4/p119 akn:chp_6__sec_6_6__ssec_6_6_4/p120 akn:chp_6__sec_6_6__ssec_6_6_4/p121 akn:chp_6__sec_6_6__ssec_6_6_4/p122 akn:chp_6__sec_6_6__ssec_6_6_4/p123 akn:chp_6__sec_6_6__ssec_6_6_4/p124 akn:chp_6__sec_6_6__ssec_6_6_4/p125 akn:chp_6__sec_6_6__ssec_6_6_4/p126 akn:chp_6__sec_6_6__ssec_6_6_4/p127 The sources (אסמכתא) of section 6.6.4.
+
+§§ `Property checks`
+
+-- The section's rules over their whole finite space: every guidance (the
+-- six booleans, 64 cases); 0 to 10 study units; 0 to 30 pupils in a group
+-- (and standard groups of 10, 15 and 20); every special subject on the day
+-- before and the day of its oral key's start; 0 to 12 weekly hours;
+-- positions of 0 to 30 hours with 0 to 8 preparation hours; exam durations
+-- of 0 to 12 hours with committees of up to three members; 0 to 20
+-- examinees and 0 to 24 follow-up hours. The basis is the placeholder 9600.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`every special subject` MEANS
+    LIST `Hebrew language knowledge`, `Hebrew composition`, `Hebrew literature`, `biology oral (biotope)`,
+         `geography oral (geotope)`, `environmental science ecotope or life sciences personal project`,
+         `Land of Israel studies oral (geotope)`
+
+GIVEN a IS A BOOLEAN, l IS A BOOLEAN, s IS A BOOLEAN, g IS A BOOLEAN, w IS A BOOLEAN, m IS A BOOLEAN
+GIVETH A `project guidance`
+DECIDE `a checked guidance` a l s g w m IS
+    `project guidance` WITH
+        `teacher is an academic with full pedagogical education` IS a
+        `teacher holds a permanent teaching licence`               IS l
+        `supervisor approved the teacher to guide the project`     IS s
+        `pupil is in grade 11 or 12`                               IS g
+        `guided from 1 Shvat of grade 11 to 1 Shvat of the next year` IS w
+        `submitted for the Ministry's approval to exempt one matriculation exam` IS m
+
+GIVEN prop IS A FUNCTION FROM `project guidance` TO BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `holds for every guidance` prop IF
+    all (GIVEN a YIELD
+            all (GIVEN l YIELD
+                    all (GIVEN s YIELD
+                            all (GIVEN g YIELD
+                                    all (GIVEN w YIELD
+                                            all (GIVEN m YIELD prop (`a checked guidance` a l s g w m))
+                                                `both booleans`)
+                                        `both booleans`)
+                                `both booleans`)
+                        `both booleans`)
+                `both booleans`)
+        `both booleans`
+
+-- 6.6.1.1 over every guidance: the reward needs the grade, the whole year
+-- and the submission whoever guides; and the owner owes it only where the
+-- teacher is entitled. F-6.6-a over the same space: the two readings of the
+-- approval part exactly for an academic teacher the supervisor did not
+-- approve.
+GIVEN gd IS A `project guidance`
+GIVETH A BOOLEAN
+DECIDE `6.6.1.1, for every guidance` gd IF
+        ((NOT `entitled to the final project reward` gd)
+         OR (    gd's `pupil is in grade 11 or 12`
+             AND gd's `guided from 1 Shvat of grade 11 to 1 Shvat of the next year`
+             AND gd's `submitted for the Ministry's approval to exempt one matriculation exam`))
+    AND (`entitled to the final project reward` gd
+         OR `paying the final project reward` gd 500 TRUE EQUALS FULFILLED)
+    AND (NOT (`the teacher may guide for the reward` gd EQUALS `the teacher may guide, approval read as governing both` gd))
+        EQUALS (    gd's `teacher is an academic with full pedagogical education`
+                AND NOT gd's `supervisor approved the teacher to guide the project`)
+#ASSERT `holds for every guidance` `6.6.1.1, for every guidance`
+
+-- 6.6.1.2 over 0 to 10 study units: a row exists exactly for 2 to 5 units
+-- (F-6.6-b: none for 0, 1 or more than 5), each pays two checking hours a
+-- unit, and more units never pay less.
+#ASSERT all (GIVEN u YIELD
+                    (NOT (`checking hours for` u EQUALS NOTHING)) EQUALS (u AT LEAST 2 AND u AT MOST 5)
+                AND ((NOT (u AT LEAST 2 AND u AT MOST 5)) OR `checking hours for` u EQUALS JUST (2 TIMES u))
+                AND ((NOT (u AT LEAST 2 AND u AT MOST 4))
+                     OR `pay for checking a final project` `a placeholder basis` (u PLUS 1)
+                        EQUALS JUST (`checking hour value` `a placeholder basis` TIMES 2 TIMES (u PLUS 1))))
+            (range 0 10)
+
+-- 6.6.2.3 over 0 to 30 pupils and standard groups of 10, 15 and 20: the
+-- share is the whole reward from 60% of a standard group and half below
+-- it, never anything else, and more pupils never get less.
+#ASSERT all (GIVEN std YIELD
+                all (GIVEN n YIELD
+                            `share of the assessment reward` n std EQUALS (IF n AT LEAST 0.6 TIMES std THEN 1 ELSE 0.5)
+                        AND `share of the assessment reward` (n PLUS 1) std AT LEAST `share of the assessment reward` n std)
+                    (range 0 30))
+            (LIST 10, 15, 20)
+
+-- 6.6.4 ב(2)(ג) over 0 to 30 pupils: the printed key gives one share to
+-- every group of 1 to 9 and none to an empty one; F-6.6-c over the same
+-- space: every group of 10 or more gets two, 50% and 100%. The reading
+-- adopted gives each group one share in 0 to 100%, the printed one where
+-- there is one, and a larger group never less.
+#ASSERT all (GIVEN n YIELD
+                    count (`the shares the key gives a group of` n)
+                    EQUALS (IF n EQUALS 0 THEN 0 ELSE IF n AT MOST 9 THEN 1 ELSE 2)
+                AND ((n LESS THAN 10) OR `the shares the key gives a group of` n EQUALS LIST (50%), (100%))
+                AND ((NOT (count (`the shares the key gives a group of` n) EQUALS 1))
+                     OR `the shares the key gives a group of` n EQUALS LIST (`share of the reward for a group of` n))
+                AND `share of the reward for a group of` n AT LEAST 0
+                AND `share of the reward for a group of` n AT MOST 1
+                AND `share of the reward for a group of` (n PLUS 1) AT LEAST `share of the reward for a group of` n)
+            (range 0 30)
+
+-- 6.6.4 ב(3) over every special subject and 0 to 30 pupils, the day before
+-- and the day of its key's start: the oral reward is added to the written
+-- one and never subtracts; it is nothing the day before the key's start;
+-- and a larger group never gets fewer hours. The Hebrew parts have no
+-- oral key and are subjects of their own from 1.9.87.
+#ASSERT all (GIVEN s YIELD
+                all (GIVEN n YIELD
+                        LET d MEANS `oral key in force from` s
+                        IN      `weekly preparation hours with the oral exam` s n d 3 AT LEAST 3
+                            AND `weekly preparation hours with the oral exam` s n (d MINUS 1) 3 EQUALS 3
+                            AND `weekly preparation hours with the oral exam` s (n PLUS 1) d 3
+                                AT LEAST `weekly preparation hours with the oral exam` s n d 3)
+                    (range 0 30))
+            `every special subject`
+#ASSERT all (GIVEN s YIELD
+                    (`oral key of` s EQUALS NOTHING)
+                    EQUALS (NOT `is a subject of its own` s (Date 31 8 1987)))
+            `every special subject`
+
+-- 6.6.4 ג over 0 to 12 weekly hours and 0 to 30 pupils: 1 hour + 2% from
+-- one weekly hour, 2 hours + 2% from six, never fewer with more hours; the
+-- group share is a quarter below 10 pupils and whole from 10.
+#ASSERT all (GIVEN h YIELD
+                    (`reward for a subject without study units` (h PLUS 1))'s `reward hours`
+                    AT LEAST (`reward for a subject without study units` h)'s `reward hours`
+                AND (`reward for a subject without study units` h)'s `reward hours`
+                    EQUALS (IF h AT LEAST 6 THEN 2 ELSE IF h AT LEAST 1 THEN 1 ELSE 0))
+            (range 0 12)
+#ASSERT all (GIVEN n YIELD `share for a group without study units` n EQUALS (IF n AT LEAST 10 THEN 1 ELSE 0.25))
+            (range 0 30)
+
+-- 6.6.4 1א(2) over positions of 0 to 30 hours, 0 to 8 preparation hours and
+-- a 24-hour full position: the hours inside the position and those above it
+-- are never negative and add up to the preparation hours, and the hours
+-- inside never take the position past a full one.
+#ASSERT all (GIVEN p YIELD
+                all (GIVEN h YIELD
+                        LET i MEANS `preparation hours that are part of the position, with all social rights` p h 24
+                            o MEANS `preparation hours above a full position, with no social rights` p h 24
+                        IN      i AT LEAST 0
+                            AND o AT LEAST 0
+                            AND i PLUS o EQUALS h
+                            AND (p PLUS i AT MOST 24 OR i EQUALS 0))
+                    (range 0 8))
+            (range 0 30)
+
+-- 6.6.4 2 over exam durations of 0 to 12 hours: the duration counts up to
+-- 8 and never falls; every committee of up to three members without a
+-- doctorate is paid together no more than twice the chair. F-6.6-d over
+-- the same durations: from the first hour one ordinary member alone is
+-- paid more than twice the chair, and a member with a doctorate less than
+-- one without.
+`every committee of up to three` MEANS
+    LIST (LIST FALSE), (LIST FALSE, FALSE), (LIST FALSE, FALSE, FALSE),
+         (LIST TRUE), (LIST TRUE, FALSE), (LIST TRUE, FALSE, FALSE), (LIST TRUE, TRUE, FALSE)
+
+#ASSERT all (GIVEN t YIELD
+                    `duration counted` t AT MOST 8
+                AND `duration counted` (t PLUS 1) AT LEAST `duration counted` t
+                AND all (GIVEN c YIELD
+                                (any (GIVEN d YIELD d) c)
+                             OR `the members' pay together` `a placeholder basis` t c
+                                AT MOST 2 TIMES `the committee chair's pay` `a placeholder basis` t)
+                        `every committee of up to three`
+                AND ((t EQUALS 0)
+                     OR (    `a committee member's pay` `a placeholder basis` t GREATER THAN 2 TIMES `the committee chair's pay` `a placeholder basis` t
+                         AND `a member's pay` `a placeholder basis` t TRUE LESS THAN `a member's pay` `a placeholder basis` t FALSE)))
+            (range 0 12)
+
+-- 6.6.4 4-6 over 0 to 20 examinees and 0 to 24 follow-up hours: an oral
+-- exam pays at least five examinees' rate and more examinees never pay
+-- less; a group's follow-up exams pay at most 16 hours and more hours never
+-- pay less; lost time is a quarter of an assessment hour, and the
+-- follow-up hour, worked out separately, is the assessment hour; an ethics
+-- committee hour is one and a half of it; checking a final project and
+-- writing a questionnaire start from the same hour value.
+#ASSERT all (GIVEN n YIELD
+                    `pay for an oral exam` `a placeholder basis` 3 n AT LEAST `pay for an oral exam` `a placeholder basis` 3 5
+                AND `pay for an oral exam` `a placeholder basis` 3 (n PLUS 1) AT LEAST `pay for an oral exam` `a placeholder basis` 3 n)
+            (range 0 20)
+#ASSERT all (GIVEN h YIELD
+                    `pay for a group's follow-up exams` `a placeholder basis` h AT MOST 16 TIMES `follow-up hour value` `a placeholder basis`
+                AND `pay for a group's follow-up exams` `a placeholder basis` (h PLUS 1) AT LEAST `pay for a group's follow-up exams` `a placeholder basis` h)
+            (range 0 24)
+`the hour values agree` MEANS
+            `pay for lost time` `a placeholder basis` TRUE 1 EQUALS `assessment hour value` `a placeholder basis` DIVIDED BY 4
+        AND `pay for lost time` `a placeholder basis` FALSE 5 EQUALS 0
+        AND `follow-up hour value` `a placeholder basis` EQUALS `assessment hour value` `a placeholder basis`
+        AND `ethics committee hour value` `a placeholder basis` EQUALS 1.5 TIMES `assessment hour value` `a placeholder basis`
+        AND `checking hour value` `a placeholder basis` EQUALS `exam hour value` `a placeholder basis`
+#ASSERT `the hour values agree`
+
+-- F-6.6-e's evidence: (ד)'s cap is read as its own. Given a table that
+-- prices some level of units above 3 hours (the table is not in the corpus
+-- text; a placeholder of one hour a unit), a class prepared for 5 units
+-- alone keeps the table's reward while pupils at 4 and 5 units are capped.
+`a placeholder table above the cap` MEANS
+    GIVEN u YIELD `preparation reward` WITH `reward hours` IS u, `reward percent` IS 2%
+
+`(d)'s cap binds pupils at mixed units and not a class at one level` MEANS
+        (`reward for pupils at different numbers of units` `a placeholder table above the cap` (LIST 4, 5))'s `reward hours` EQUALS 3
+    AND (`a class's unit-based reward` `a placeholder table above the cap` 5 8)'s `reward hours` GREATER THAN 3
+#ASSERT `(d)'s cap binds pupils at mixed units and not a class at one level`
