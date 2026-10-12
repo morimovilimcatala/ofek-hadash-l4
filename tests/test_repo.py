@@ -12,9 +12,11 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import sys
 import tempfile
 import tomllib
+import unicodedata
 import unittest
 from pathlib import Path
 
@@ -205,6 +207,78 @@ class Segmenter(unittest.TestCase):
     def test_one_marker_may_cite_several_keys(self):
         src = self.parse("@ref akn:A akn:B__x\ny MEANS 2\n")
         self.assertEqual(src.segments[0].keys, ["A", "B__x"])
+
+
+def _quote_text(s: str) -> str:
+    """Whitespace-normalised, and NFC so that two spellings of one pointed
+    letter (the takanon's "מרַכֵּז") compare as the same text."""
+    return " ".join(unicodedata.normalize("NFC", s).replace("​", "").split())
+
+
+def _row_text(r) -> str:
+    """A row as a quote copies it: its number, its heading, then its text; a
+    table's cells joined by " | " and its rows by " ‖ "."""
+    body = (" ‖ ".join(" | ".join(c) for c in r.cells) if r.cells is not None else r.text)
+    return _quote_text(" ".join(x for x in (r.num, r.heading, body) if x))
+
+
+# The findings whose quote is not, today, in the rows their keys cite — each
+# with the issue it waits on. Exact in both directions: a quote that starts
+# to match goes red here until its line is removed. Never add a line to make
+# the check pass; a quote we got wrong is fixed in the finding.
+MISQUOTED = {
+    # The corpus prints the sentence damaged, the quote is the page's
+    # (MMS-478): a bullet glyph inside it, or a number moved by the RTL
+    # extraction.
+    "F-2008-09_tashsat_09-b": "MMS-478",
+    "F-2008-09_tashsat_09-c": "MMS-478",
+    "F-2008-09_tashsat_10-d": "MMS-478",
+    "F-2009-10_tasha_05-d": "MMS-478",
+    "F-2011-12_tashab_11-a": "MMS-478",
+    "F-2011-12_tashab_12-a": "MMS-478",
+    "F-2011-12_tashab_12-d": "MMS-478",
+    "F-2019-20_tashaf_08-b": "MMS-478",
+    # A table cell the corpus publishes flattened and scrambled (MMS-424);
+    # the quote reads the cell off the page.
+    "F-2022-23_tashpag_01-g": "MMS-424",
+    "F-2024-25_tashpah_10-b": "MMS-424",
+    "F-2025-26_tashpo_02-j": "MMS-424",
+}
+
+
+class FindingQuotes(unittest.TestCase):
+    """A finding's `quote` is the Hebrew words at issue, verbatim from the
+    corpus (MMS-477). Each passage (separated by " · ") must appear in the
+    text of the rows the finding's keys cite — a key citing its row and the
+    rows nested under it, as a cited ancestor covers its descendants in the
+    coverage test — with "…" (or "...") marking an elision. Nothing else is
+    forgiven: not a dropped footnote mark, not a repaired word order."""
+
+    def test_every_quote_is_in_the_rows_it_cites(self):
+        # per document, every row in reading order under each name it has
+        rows: dict[str, list[tuple[int, str, object]]] = {}
+        for doc in site_mod.DOCUMENTS:
+            n = 0
+            for sec in akn.sections(doc):
+                for r in sec.rows:
+                    n += 1
+                    rows.setdefault(doc, []).extend((n, k, r) for k in [r.key] + r.aliases)
+        failing = set()
+        for f in site_mod.load_findings():
+            doc = site_mod.finding_doc(f)
+            cited = {}
+            for k in f["keys"]:
+                for n, kk, r in rows.get(doc, []):
+                    if kk == k or kk.startswith(k + "/") or kk.startswith(k + "__"):
+                        cited[n] = r
+            hay = " ".join(_row_text(cited[n]) for n in sorted(cited))
+            for part in f["quote"].split(" · "):
+                for frag in re.split(r"…|\.\.\.", part):
+                    if _quote_text(frag) and _quote_text(frag) not in hay:
+                        failing.add(f["id"])
+        self.assertEqual(sorted(failing), sorted(MISQUOTED))
+        for fid, issue in MISQUOTED.items():
+            self.assertRegex(issue, r"^MMS-\d+$", fid)
 
 
 class FindingPlacement(unittest.TestCase):
