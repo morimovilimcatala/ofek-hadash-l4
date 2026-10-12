@@ -487,3 +487,102 @@ DECIDE `the circular is in force in` y m IF
     PARTY `the employer` DOES `appoint a humanities lead` TRUE AT 3
 #TRACE `not both allowances for one class and subject` `a state history teacher at 1.5 units` AT 0 WITH
     PARTY `the employer` DOES `pay the pre-arrangement matriculation allowance for the class and subject` AT 5
+
+§§ `Property checks`
+
+-- The circular over finite spaces: every stream, subject, unit count and
+-- year, under the program or not; every split of the events between this
+-- year and earlier ones; class sizes 1 to 40 and one to six subjects.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`every stream` MEANS LIST `state`, `state-religious`, `Haredi`, `Arab society`
+`every subject` MEANS LIST `history`, `literature`, `Bible`, `civics`, `Oral Torah`, `Judaism`, `Hebrew`, `Arabic`
+`every year` MEANS LIST `the school year 2021-22`, `the school year 2022-23`, `the school year 2023-24`
+`every event set` MEANS
+    LIST EMPTY, (LIST `individual task`), (LIST `group task`), (LIST `controlled exam`),
+         (LIST `individual task`, `group task`), (LIST `individual task`, `controlled exam`),
+         (LIST `group task`, `controlled exam`), (LIST `individual task`, `group task`, `controlled exam`)
+
+GIVEN y IS A `school year`, s IS A `supervision stream`, j IS A `humanities subject`, p IS A BOOLEAN, u IS A NUMBER
+GIVETH A `matriculation teacher`
+DECIDE `a checked teacher` y s j p u IS
+    `matriculation teacher` WITH
+        `graded in the teaching employees' grading`      IS TRUE
+        `employed in a supervised three- or four-year upper division` IS TRUE
+        `teacher's school year`                          IS y
+        `teacher's stream`                               IS s
+        `subject presented`                              IS j
+        `under the renewed-learning program`             IS p
+        `study units`                                    IS u
+        `employed under Oz LaTmura`                      IS TRUE
+
+-- §1 over every teacher: entitled exactly in 2022-23, under the program, in
+-- one of the stream's subjects, at 1.5 units (or 2.5 outside the state
+-- stream); then paid the eve's hours for 2 or 3 units, otherwise nothing.
+#ASSERT all (GIVEN y YIELD
+                all (GIVEN s YIELD
+                        all (GIVEN j YIELD
+                                all (GIVEN p YIELD
+                                        all (GIVEN u YIELD
+                                                LET t MEANS `a checked teacher` y s j p u
+                                                IN      `entitled under the arrangement` t
+                                                        EQUALS (y EQUALS `the school year 2022-23` AND p AND elem j (`the humanities subjects of` s)
+                                                                AND (u EQUALS 1.5 OR (u EQUALS 2.5 AND NOT s EQUALS `state`)))
+                                                    AND elem (`the equivalent units on the eve of the arrangement` t) (LIST 0, 2, 3)
+                                                    AND `the reform allowance in weekly hours` t 2 EQUALS (IF `entitled under the arrangement` t THEN 2 ELSE 0)
+                                                    AND `the pre-arrangement allowance continues unchanged` t EQUALS (u EQUALS 1))
+                                            (LIST 1, 1.5, 2, 2.5, 3))
+                                    `both booleans`)
+                            `every subject`)
+                    `every stream`)
+            `every year`
+
+-- §1(2) over every split of the events: the share paid this year is never
+-- negative or above the whole, all events in one year pay the whole
+-- allowance, and the two years' shares never add up to more than the whole.
+#ASSERT all (GIVEN now YIELD
+                all (GIVEN before YIELD
+                        LET a MEANS `the share of the allowance paid this year` `the example weights for 1.5 units` now before
+                        IN      a AT LEAST 0
+                            AND a AT MOST 1
+                            AND ((NOT (count now EQUALS 3)) OR a EQUALS 1)
+                            AND a PLUS `the share of the allowance paid this year` `the example weights for 1.5 units` before EMPTY AT MOST 1)
+                    (filter (GIVEN b YIELD all (GIVEN c YIELD NOT elem c now) b) `every event set`))
+            `every event set`
+
+-- §1(2), 2022-23: permitted exactly the controlled exam alone or the two
+-- tasks.
+#ASSERT all (GIVEN e YIELD
+                `the events are permitted in 2022-23` e
+                EQUALS (e EQUALS (LIST `controlled exam`) OR e EQUALS (LIST `individual task`, `group task`)))
+            `every event set`
+
+-- §1(3) over class sizes and subjects: never above 0.4 a subject for four
+-- subjects, never falling with more students or subjects, nothing unless
+-- submitted this year.
+GIVEN n IS A NUMBER, k IS A NUMBER, sub IS A BOOLEAN
+GIVETH A `summary work class`
+DECIDE `a checked class` n k sub IS `summary work class` n k sub FALSE
+
+#ASSERT all (GIVEN n YIELD
+                all (GIVEN k YIELD
+                        all (GIVEN sub YIELD
+                                LET h MEANS `the summary-work allowance in weekly hours` (`a checked class` n k sub)
+                                IN      h AT MOST 1.6
+                                    AND h AT MOST `the summary-work allowance in weekly hours` (`a checked class` (n PLUS 1) k sub)
+                                    AND h AT MOST `the summary-work allowance in weekly hours` (`a checked class` n (k PLUS 1) sub)
+                                    AND ((NOT (h GREATER THAN 0)) OR sub))
+                            `both booleans`)
+                    (range 1 6))
+            (range 1 40)
+
+-- §2 and §4 over every year and month: the lead's allowance is 6% of the
+-- base exactly in 2022-23 under Oz LaTmura; the circular is in force only
+-- through August 2023.
+#ASSERT all (GIVEN y YIELD
+                all (GIVEN z YIELD
+                            `the humanities-lead allowance` (`humanities lead` y z 10000 2000)
+                            EQUALS (IF y EQUALS `the school year 2022-23` AND z THEN 720 ELSE 0)
+                        AND all (GIVEN m YIELD `the circular is in force in` y m EQUALS (y EQUALS `the school year 2022-23` AND m AT MOST 12)) (range 1 14))
+                    `both booleans`)
+            `every year`

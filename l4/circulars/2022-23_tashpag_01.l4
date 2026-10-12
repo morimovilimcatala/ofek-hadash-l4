@@ -741,7 +741,7 @@ GIVEN f IS A NUMBER, `months since the maternity leave ended` IS A NUMBER, `enti
 GIVETH A STRING
 DECIDE `the reduction after maternity leave` f `months since the maternity leave ended` `entitled to a mother's position` IS
     IF f AT LEAST 0.90 AND `months since the maternity leave ended` LESS THAN 4
-    THEN "the nursing hour: five stay hours a week less"
+    THEN "the nursing hour: five working hours a week less"
     ELSE IF `entitled to a mother's position`
          THEN "the mother's position"
          ELSE "none"
@@ -1302,3 +1302,169 @@ DECIDE `the conversion month` `absent without pay before joining` IS
     PARTY `the employer` DOES `submit the owner's undertaking through the portal` AT 27
 #TRACE `the academic-completion undertakings by 31.12.2022` AT 0 WITH
     PARTY `the employer` DOES `submit the academic-completion undertaking` AT 100
+
+-- F-2022-23_tashpag_01-i: 7.4 takes the nursing hour off the STAY hours; 4.1.2 gives a
+-- head and a complementary teacher frontal hours only. The reading adopted,
+-- as F-2021-22_tashpab_01-f's: the five hours come off her working hours.
+`a kindergarten head teacher has no stay hours to reduce` MEANS
+    `the position is frontal hours only` `kindergarten head`
+#ASSERT `a kindergarten head teacher has no stay hours to reduce`
+
+-- F-2022-23_tashpag_01-j: 8.2 promises a part-position teacher of 50 or more a PARTIAL
+-- reduction "by the rules detailed below"; 8.3-8.5 give whole-position
+-- hours only. The reading adopted, as F-2021-22_tashpab_01-j's: in
+-- proportion to the position, up to one full position.
+GIVEN age IS A NUMBER, existing IS A BOOLEAN, f IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the age-hours reduction of a part position` age existing f IS
+    `the age-hours reduction` age existing TIMES min f 1
+
+`8.3-8.5 give no part-position measure` MEANS
+    `the age-hours reduction` 52 TRUE EQUALS 2
+#ASSERT `8.3-8.5 give no part-position measure`
+
+-- F-2022-23_tashpag_01-k: 3.3.1 binds "up to 27 years (inclusive)" and 3.3.2 frees "28
+-- years and above"; seniority of 27 and a half years is in neither as
+-- printed. The reading adopted, as F-2021-22_tashpab_02-l's: whole years —
+-- one who has not completed 28 is "up to 27" and must sign, as the joining
+-- rule above is encoded.
+GIVEN s IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `in 3.3.1's printed band` s IF s AT MOST 27
+GIVEN s IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `in 3.3.2's printed band` s IF s AT LEAST 28
+`a non-academic teacher of 27 and a half years is in neither rule` MEANS
+    (NOT `in 3.3.1's printed band` 27.5) AND NOT `in 3.3.2's printed band` 27.5
+#ASSERT `a non-academic teacher of 27 and a half years is in neither rule`
+
+§§ `Property checks`
+
+-- The circular over finite spaces, chapter by chapter.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`hundredths to 1` MEANS map (GIVEN k YIELD k DIVIDED BY 100) (range 0 100)
+`positions checked` MEANS LIST 0.25, 1 DIVIDED BY 3, 0.4, 0.5, 0.75, 1
+`every post` MEANS LIST `kindergarten head`, `complementary kindergarten teacher`, `kindergarten cluster manager`
+
+GIVEN y IS A NUMBER, a IS A BOOLEAN, c IS A BOOLEAN, p IS A NUMBER, d IS A BOOLEAN, x IS A BOOLEAN
+GIVETH A `kindergarten employee`
+DECIDE `a checked employee` y a c p d x IS
+    `kindergarten employee` WITH
+        `recognized teaching seniority`              IS y
+        `academic`                                   IS a
+        `teaching certificate`                       IS c
+        `employee's position fraction`               IS p
+        `signed the academic-completion undertaking` IS d
+        `approved by the exceptions committee`       IS x
+
+-- §3.2.1 and §3.4 over every flag and position: an existing academic joins
+-- exactly from a third, certified or by exception; a new one exactly from a
+-- third and certified.
+#ASSERT all (GIVEN c YIELD
+                all (GIVEN x YIELD
+                        all (GIVEN p YIELD
+                                    `joins Ofek Hadash` (`a checked employee` 5 TRUE c p FALSE x)
+                                    EQUALS (p AT LEAST 1 DIVIDED BY 3 AND (c OR x))
+                                AND `joins Ofek Hadash` (`a checked employee` 0 TRUE c p FALSE x)
+                                    EQUALS (p AT LEAST 1 DIVIDED BY 3 AND c))
+                            `positions checked`)
+                    `both booleans`)
+            `both booleans`
+
+-- §3.3 and §10.2.3 over seniority 20 to 35: an existing non-academic joins,
+-- and is promoted, exactly from 28 years or on signing (or the degree).
+#ASSERT all (GIVEN s YIELD
+                all (GIVEN d YIELD
+                            `joins Ofek Hadash` (`a checked employee` s FALSE TRUE 1 d FALSE) EQUALS (s AT LEAST 28 OR d)
+                        AND `a non-academic may be promoted` (`a checked employee` s FALSE TRUE 1 FALSE FALSE) d EQUALS (s AT LEAST 28 OR d))
+                    `both booleans`)
+            (range 20 35)
+
+-- §4.1.1 and §8 over every post, ages 40 to 65, existing or new: the base
+-- is the under-50 base less the age hours, never rising with age; the age
+-- hours are 0, 2 or 4, never more for a new teacher; a part position takes
+-- its share (finding j's reading).
+#ASSERT all (GIVEN q YIELD
+                all (GIVEN ex YIELD
+                        all (GIVEN n YIELD
+                                    `the position base` q n ex PLUS `the age-hours reduction` n ex EQUALS `the position base` q 40 ex
+                                AND `the position base` q (n PLUS 1) ex AT MOST `the position base` q n ex
+                                AND elem (`the age-hours reduction` n ex) (LIST 0, 2, 4)
+                                AND `the age-hours reduction` n FALSE AT MOST `the age-hours reduction` n TRUE
+                                AND `the age-hours reduction of a part position` n ex 0.5 EQUALS `the age-hours reduction` n ex TIMES 0.5)
+                            (range 40 65))
+                    `both booleans`)
+            `every post`
+#ASSERT all (GIVEN n YIELD
+                all (GIVEN ex YIELD
+                        (count (`the reductions the clauses give` n ex) EQUALS 2) EQUALS (ex AND n EQUALS 55))
+                    `both booleans`)
+            (range 45 65)
+
+-- §4.1.2: every cluster row adds up to 34 hours, and more kindergartens
+-- never mean more frontal hours.
+#ASSERT all (GIVEN r YIELD
+                all (GIVEN q YIELD
+                        (NOT (r's `kindergartens from` LESS THAN q's `kindergartens from`)) OR q's `frontal or enrichment hours` LESS THAN r's `frontal or enrichment hours`)
+                    `the cluster manager's hours`)
+            `the cluster manager's hours`
+
+-- §5-6 over positions in hundredths and weekly hours 38 to 46: a period
+-- counts exactly from a third; a complementary teacher is on reform terms
+-- exactly from a third in reform kindergartens; above 42 hours never.
+#ASSERT all (GIVEN f YIELD
+                    `the period counts for promotion` f EQUALS (f AT LEAST 1 DIVIDED BY 3)
+                AND `a complementary teacher is on reform terms here` f TRUE EQUALS (f AT LEAST 1 DIVIDED BY 3)
+                AND (NOT `a complementary teacher is on reform terms here` f FALSE))
+            `hundredths to 1`
+#ASSERT all (GIVEN h YIELD `the weekly hours may be approved` h EQUALS (h AT MOST 42)) (range 38 46)
+
+-- §7 over positions in hundredths and months: a mother's position exactly
+-- from 79% with a child up to 14; the nursing hour exactly from 90% within
+-- four months, otherwise the mother's position if entitled; no absence adds
+-- exactly 10%.
+#ASSERT all (GIVEN f YIELD
+                all (GIVEN m YIELD
+                        all (GIVEN e YIELD
+                                LET r MEANS `the reduction after maternity leave` f m e
+                                IN      (r EQUALS "the nursing hour: five working hours a week less") EQUALS (f AT LEAST 0.9 AND m LESS THAN 4)
+                                    AND (r EQUALS "none") EQUALS ((NOT (f AT LEAST 0.9 AND m LESS THAN 4)) AND NOT e))
+                            `both booleans`)
+                    (LIST 0, 1, 3, 4, 12))
+            `hundredths to 1`
+#ASSERT all (GIVEN f YIELD
+                    `entitled to a mother's position` 14 f EQUALS (f AT LEAST 0.79)
+                AND (NOT `entitled to a mother's position` 15 f)
+                AND `a mother kindergarten teacher's position` f TRUE MINUS `a mother kindergarten teacher's position` f FALSE EQUALS 0.1)
+            `hundredths to 1`
+
+-- §10.2.2 over seniority 20 to 30: it says two things exactly at 25
+-- (finding d); an uncertified existing academic may be promoted exactly from
+-- 25, and is barred by §3.2.1 exactly below it.
+#ASSERT all (GIVEN s YIELD
+                    (count (`what 10.2.2's two groups say of seniority` s) EQUALS 2) EQUALS (s EQUALS 25)
+                AND `an uncertified academic may be promoted` (`a checked employee` s TRUE FALSE 1 FALSE TRUE) EQUALS (s AT LEAST 25)
+                AND `cannot be promoted until certified under 3.2.1` (`a checked employee` s TRUE FALSE 1 FALSE TRUE) EQUALS (s LESS THAN 25))
+            (range 20 30)
+
+-- §11 over grades and management seniority: the head's rate is 17%, 20% or
+-- 21%, never falling with grade or seniority; the mentor's never above three
+-- interns' worth.
+#ASSERT all (GIVEN ex YIELD
+                all (GIVEN g YIELD
+                        LET r MEANS `the kindergarten management rate` ex g g
+                        IN      elem r (LIST 0.17, 0.20, 0.21)
+                            AND r AT MOST `the kindergarten management rate` ex (g PLUS 1) (g PLUS 1))
+                    (range 0 20))
+            `both booleans`
+#ASSERT all (GIVEN n YIELD `the mentor's allowance rate` n AT MOST 0.072) (range 0 12)
+
+-- §12.5 over quarter grades: whole and half grades only. §13.3: every
+-- advance rate between 10% and 17%.
+#ASSERT all (GIVEN k YIELD
+                `a grade the conversion may give` (k DIVIDED BY 4) EQUALS (FLOOR (k DIVIDED BY 2) TIMES 2 EQUALS k))
+            (range 0 40)
+#ASSERT all (GIVEN g YIELD
+                `the advance rate of` g AT LEAST 0.10 AND `the advance rate of` g AT MOST 0.17)
+            (LIST `academic kindergarten teacher`, `academic health professional`, `intern`, `non-academic of 28 years or who signed the undertaking`)

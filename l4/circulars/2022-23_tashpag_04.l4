@@ -998,3 +998,118 @@ DECIDE `which governs` `the circular and the agreement conflict` IS
     PARTY `the employer` DOES `pay the retroactive differences from September 2022` "the Ofek 2022 supplement" AT 5
 #TRACE `the physiotherapists' clothing supplement with July's salary` TRUE `1 September 2023` AT 0 WITH
     PARTY `the employer` DOES `pay the physiotherapists' clothing supplement` 800 AT 23
+
+§§ `Property checks`
+
+-- The circular over finite spaces: every employee's flags, stage and terms;
+-- the salary months from August 2022 to September 2024; positions in
+-- quarters; combined salaries in steps of 2,500; every allowance and role.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`months checked` MEANS range 0 25
+`every stage` MEANS LIST `recognized-unofficial special-education schools`, `recognized-unofficial special-education kindergartens`, `official junior highs of six-year schools`, `another stage`
+`every allowance with a minimum` MEANS LIST `class education, not first grade`, `class education, first grade`, `grade coordinator, up to four classes`, `grade coordinator, more than four classes`, `deputy`, `kindergarten management`
+
+GIVEN g IS A BOOLEAN, st IS A `stage of education`, t IS AN `employment terms`, f IS A NUMBER
+GIVETH A `circular 4 employee`
+DECIDE `a checked employee` g st t f IS
+    `circular 4 employee` WITH
+        `graded in the teaching employees' grading`        IS g
+        `employed by an owner of a supervised institution` IS TRUE
+        `stage employed in`                                IS st
+        `terms`                                            IS t
+        `position fraction`                                IS f
+        `signed the advance notice`                        IS TRUE
+
+-- ¶23-¶27 over every employee: chapter 3 applies exactly to one the
+-- circular covers, and exactly one of chapters 1 and 2 with it; the Ofek
+-- 2022 supplement is the annexes' amount times the position for chapter 1
+-- from September 2022, and nothing otherwise.
+#ASSERT all (GIVEN g YIELD
+                all (GIVEN st YIELD
+                        all (GIVEN t YIELD
+                                all (GIVEN f YIELD
+                                        all (GIVEN m YIELD
+                                                LET e MEANS `a checked employee` g st t f
+                                                IN      `chapter` `chapter 3` `applies to` e EQUALS `the circular applies to` e
+                                                    AND (`chapter` `chapter 1` `applies to` e AND `chapter` `chapter 2` `applies to` e) EQUALS FALSE
+                                                    AND (`chapter` `chapter 1` `applies to` e OR `chapter` `chapter 2` `applies to` e) EQUALS `the circular applies to` e
+                                                    AND `the Ofek 2022 supplement` e m 1000
+                                                        EQUALS (IF `chapter` `chapter 1` `applies to` e AND m AT LEAST 1 THEN 1000 TIMES f ELSE 0)
+                                                    AND `the new rates apply to` e `in` m EQUALS (`chapter` `chapter 1` `applies to` e AND m AT LEAST 13))
+                                            (LIST 0, 1, 12, 13, 25))
+                                    (LIST 0.25, 0.5, 1))
+                            (LIST `Ofek Hadash terms`, `pre-reform terms`))
+                    `every stage`)
+            `both booleans`
+
+-- §1 and §2 over the months: the tables in force never go back, A9 from
+-- September 2023; annexes C from the same month.
+#ASSERT all (GIVEN m YIELD
+                    (`the combined-salary tables in force in` m EQUALS `annex table A9 in place of A8`) EQUALS (m AT LEAST 13)
+                AND (`the combined-salary tables in force in` m EQUALS `the tables on the eve of the agreement`) EQUALS (m LESS THAN 1)
+                AND (`the annexes that price the Ofek 2022 supplement in` m EQUALS "C1-C7") EQUALS (m AT LEAST 13))
+            `months checked`
+
+-- §§4-13: every allowance names one row, and no rate falls on 1.9.2023.
+#ASSERT all (GIVEN r YIELD
+                    count (`the rate of` (r's `allowance`) `in` 13) EQUALS 1
+                AND r's `rate from 1.9.2023` AT LEAST r's `rate on the eve`
+                AND `the rate of` (r's `allowance`) `in` 12 EQUALS LIST (r's `rate on the eve`)
+                AND `the rate of` (r's `allowance`) `in` 13 EQUALS LIST (r's `rate from 1.9.2023`))
+            `the rate changes from 1.9.2023`
+
+-- §6 over every allowance, combined salaries and shares: never below the
+-- shekel minimum or the percentage, each times the share, and equal to the
+-- larger.
+#ASSERT all (GIVEN a YIELD
+                all (GIVEN s YIELD
+                        all (GIVEN q YIELD
+                                LET v MEANS `the role allowance with its minimum` a s 0.15 q
+                                IN      v AT LEAST `the shekel minimum of` a TIMES q
+                                    AND v AT LEAST `the rate part of` a 0.15 TIMES s TIMES q
+                                    AND (v EQUALS `the shekel minimum of` a TIMES q OR v EQUALS `the rate part of` a 0.15 TIMES s TIMES q))
+                            (LIST 0.5, 1))
+                    (map (GIVEN k YIELD k TIMES 2500) (range 0 10)))
+            `every allowance with a minimum`
+
+-- §9 over the months: an activity unit is worth 0.7% of a full position's
+-- salary from September 2023 and nothing before; a short day is under 7
+-- hours from then and under 4 before.
+#ASSERT all (GIVEN m YIELD
+                    `the value of an activity unit` 10000 m EQUALS (IF m AT LEAST 13 THEN 70 ELSE 0)
+                AND all (GIVEN h YIELD `a short day for trip escort pay` h m EQUALS (h LESS THAN (IF m AT LEAST 13 THEN 7 ELSE 4))) (range 0 9))
+            `months checked`
+
+-- §10 over the hours: what is left unperformed never exceeds the hours
+-- worked on the preparation day (at most 6), 2 individual and 4 stay hours.
+#ASSERT all (GIVEN w YIELD
+                all (GIVEN i YIELD
+                        all (GIVEN s YIELD
+                                (NOT `the teacher may leave unperformed` w i s) OR (i PLUS s AT MOST w AND w AT MOST 6 AND i AT MOST 2 AND s AT MOST 4))
+                            (range 0 5))
+                    (range 0 3))
+            (range 0 8)
+
+-- §11 over every combination of the seven flags and the months: the
+-- supplement is something exactly for an eligible colleague from September
+-- 2023, and never above 10% of a full position's salary.
+#ASSERT all (GIVEN fx YIELD
+                all (GIVEN ch YIELD
+                        all (GIVEN other YIELD
+                                all (GIVEN m YIELD
+                                        LET k MEANS `kindergarten teacher` fx ch other FALSE FALSE FALSE FALSE 0.8
+                                            v MEANS `the colleague kindergarten teacher supplement` k 10000 m
+                                        IN      (v GREATER THAN 0) EQUALS (fx AND ch AND (NOT other) AND m AT LEAST 13)
+                                            AND v AT MOST 1000)
+                                    (LIST 12, 13))
+                            `both booleans`)
+                    `both booleans`)
+            `both booleans`
+
+-- §12 over the months: 40 activity hours a year from September 2023, 36
+-- in half-years before.
+#ASSERT all (GIVEN m YIELD
+                    `the maximum school-activity hours a year in` m EQUALS (IF m AT LEAST 13 THEN 40 ELSE 36)
+                AND `the hours are capped per half-year in` m EQUALS (m LESS THAN 13))
+            `months checked`

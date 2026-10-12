@@ -212,3 +212,64 @@ DECIDE `an employee at` `PE` `profession` `tech` IS
     sum (`the amounts the table gives for` 0.4) PLUS sum (`the amounts the table gives for` 0.4)
         GREATER THAN sum (`the amounts the table gives for` 0.8)
 #ASSERT `two employers at 40% each pay more than one employer at 80%`
+
+-- F-2022-23_tashpag_09_clarif-c: "שיעור העסקה" is not said to be the share of the position in
+-- physical education or the employee's whole position. The reading adopted,
+-- as F-2021-22_tashpab_07-e's: the share in physical education, the input
+-- `physical-education position fraction`.
+`the two readings of the employment rate differ` MEANS
+    NOT (`the amounts the table gives for` 0.2 EQUALS `the amounts the table gives for` 1)
+#ASSERT `the two readings of the employment rate differ`
+
+-- F-2022-23_tashpag_09_clarif-d: a teacher of professions on both lists: (א) gives a pair of
+-- shoes and two coats, (ב) two coats, and the circular does not say whether
+-- both are paid. The reading adopted, as F-2021-22_tashpab_07-d's: the
+-- higher item, once (the profession on the first list decides).
+GIVEN `on the first list` IS A BOOLEAN, `on the second list` IS A BOOLEAN
+GIVETH A LIST OF NUMBER
+DECIDE `the items the two lists give` `on the first list` `on the second list` IS
+    append (IF `on the first list` THEN LIST `the value of a pair of shoes and two coats` ELSE EMPTY)
+           (IF `on the second list` THEN LIST `the value of two coats` ELSE EMPTY)
+`a teacher of subjects on both lists is given two items` MEANS
+    count (`the items the two lists give` TRUE TRUE) EQUALS 2
+#ASSERT `a teacher of subjects on both lists is given two items`
+
+§§ `Property checks`
+
+-- The clarification over a finite space: physical-education shares in
+-- tenths from 0 to 1.5, with a third and a half; every profession and
+-- technology position in tenths.
+
+`tenths to 1.5` MEANS map (GIVEN k YIELD k DIVIDED BY 10) (range 0 15)
+`the shares checked` MEANS append `tenths to 1.5` (LIST 1 DIVIDED BY 3, 0.3333, 0.5001)
+`every profession checked` MEANS LIST `mechatronics`, `photography systems`, `nursing`, `applied art`, `no listed profession`
+
+GIVEN pe IS A NUMBER, pr IS A `technology profession`, t IS A NUMBER
+GIVETH A `clarification employee`
+DECIDE `a checked employee` pe pr t IS
+    `clarification employee` WITH
+        `physical-education position fraction` IS pe
+        `technology profession`                IS pr
+        `technology position fraction`         IS t
+        `general clothing allowance`           IS 2340
+
+-- §1 over every share: exactly one band, the amount never falling, and
+-- something exactly from a third (finding c: the share in physical
+-- education decides); the total adds the general allowance.
+#ASSERT all (GIVEN s YIELD
+                LET e MEANS `a checked employee` s `no listed profession` 0
+                IN      count (`the amounts the table gives for` s) EQUALS 1
+                    AND `the physical-education allowance` e AT MOST `the physical-education allowance` (`a checked employee` (s PLUS 0.1) `no listed profession` 0)
+                    AND (`the physical-education allowance` e GREATER THAN 0) EQUALS (s AT LEAST 1 DIVIDED BY 3)
+                    AND `the total clothing allowance of a physical-education teacher` e EQUALS 2340 PLUS `the physical-education allowance` e)
+            `the shares checked`
+
+-- §2 over professions and positions: the full item of the profession's
+-- list, pro rata to the position up to one; never above 615.
+#ASSERT all (GIVEN pr YIELD
+                all (GIVEN t YIELD
+                        LET a MEANS `the technology allowance` (`a checked employee` 0 pr t)
+                        IN      a EQUALS `the full technology allowance for` pr TIMES min t 1
+                            AND a AT MOST 615)
+                    `tenths to 1.5`)
+            `every profession checked`
