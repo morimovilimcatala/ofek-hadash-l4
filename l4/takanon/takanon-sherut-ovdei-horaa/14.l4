@@ -513,6 +513,9 @@ DECIDE `Tehila centre principal's rate` i IS
 
 -- The allowance is fixed when the principal starts; it rises if the
 -- classes grow, and does not fall before the end of the year if they shrink.
+-- F-14-d: whether a shrink is measured from the start or from a raised
+-- allowance. Reading adopted: from the start, the point at which the text
+-- fixes the allowance.
 @ref akn:chp_14__ssec_14_10_6__para_4
 GIVEN i IS AN `adult institution`, `rate for a number of classes` IS A FUNCTION FROM NUMBER TO NUMBER
 GIVETH A NUMBER
@@ -576,3 +579,181 @@ GIVETH A NUMBER
     PARTY `a takanon party` `the employer` DOES `dismiss on pedagogical grounds` FALSE AT 1
 #TRACE `the fund's refund` TRUE AT 0 WITH
     PARTY `the training fund` DOES `refund the employer's share` 0.9 October AT 2
+
+§§ `Property checks`
+
+-- The chapter's rules over their whole finite space: every candidate and
+-- class flag, 1 to 5 years in the ulpan system, 0 to 7 days, hours and
+-- 0 to 30 students, positions in quarters, unused balances of 0 to 100,
+-- 0 to 12 classes at the start, at the year's peak and now, every
+-- institution and committee view, and each day the chapter names and the
+-- day before it. Rates and salaries are placeholders.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`every adult-education institution` MEANS LIST `ulpan`, `ulpanit`, `Tehila centre`
+
+GIVEN k IS AN `adult-education institution`, s IS A NUMBER, n IS A NUMBER
+GIVETH AN `adult institution`
+DECIDE `a checked institution` k s n IS
+    `adult institution` WITH
+        `kind of institution`                   IS k
+        `classes at the start`                  IS s
+        `classes now`                           IS n
+        `primary-school rate for these classes` IS 0.1
+        `ulpanit table rate for these classes`  IS 0.12
+
+-- 14.2 over every candidate: Tehila hires exactly a seminary-trained
+-- teacher or a graduate with a certificate; an ulpan exactly one who meets
+-- primary education's conditions.
+#ASSERT all (GIVEN a YIELD
+                all (GIVEN b YIELD
+                        all (GIVEN c YIELD
+                                LET x MEANS `adult-education candidate` WITH `trained at a teachers' seminary` IS a, `academic degree with a teaching certificate` IS b, `meets the primary-education hiring conditions` IS c
+                                IN      `may be hired for Tehila` x EQUALS (a OR b)
+                                    AND `may be hired for an ulpan` x EQUALS c)
+                            `both booleans`)
+                    `both booleans`)
+            `both booleans`
+
+-- 14.4.2 over years 1 to 5 and every case of shrinking work: by contract
+-- in the first year alone; where the work did not shrink nothing is owed.
+#ASSERT all (GIVEN y YIELD
+                all (GIVEN f YIELD
+                            (`an ulpan teacher is employed` (`ulpan teacher` WITH `year in the ulpan system` IS y, `work in the ulpan shrank` IS FALSE, `work found in another ulpan` IS f) EQUALS `by contract`)
+                            EQUALS (y EQUALS 1)
+                        AND `when an ulpan's work shrinks` (`ulpan teacher` WITH `year in the ulpan system` IS y, `work in the ulpan shrank` IS FALSE, `work found in another ulpan` IS f) EQUALS FULFILLED)
+                    `both booleans`)
+            (range 1 5)
+
+-- The fund: both funds are open; the refund is the difference of the
+-- two shares, paid exactly in October or November.
+#ASSERT all `a state-employee ulpan teacher may join` (LIST `the regular fund`, `the Makor fund`)
+#ASSERT filter `a refund month` (LIST September, October, November, December, January, February, March, April, May, June, July, August) EQUALS LIST October, November
+
+-- The days the chapter names: each rule runs from its day and not the
+-- day before.
+`each dated rule runs from its day` MEANS
+        `the ulpan training-fund arrangement applies on` (DATE_FROM_DMY 1 9 1991)
+    AND NOT `the ulpan training-fund arrangement applies on` (DATE_FROM_DMY 31 8 1991)
+    AND `section 14.6 applies on` (DATE_FROM_DMY 12 9 1986)
+    AND NOT `section 14.6 applies on` (DATE_FROM_DMY 11 9 1986)
+    AND `the ulpanit table applies on` (DATE_FROM_DMY 1 1 1998)
+    AND NOT `the ulpanit table applies on` (DATE_FROM_DMY 31 12 1997)
+#ASSERT `each dated rule runs from its day`
+
+-- 14.5.1 over Tehila years of 150 to 160 days against primary
+-- education's 155: a departure exactly in recess days with the same total.
+#ASSERT all (GIVEN r YIELD
+                all (GIVEN d YIELD `Tehila's year may depart from primary education's` r d 155 EQUALS (r AND d EQUALS 155))
+                    (range 150 160))
+            `both booleans`
+
+-- 14.5.2 over positions in quarters and balances of 0 to 100: leave is
+-- 60 days pro rata, never more than 60, never falling with the position;
+-- a balance carries only where the system's needs prevented its use,
+-- never more than 65 days or than the balance; a position that never
+-- changed gives the same leave by the weighted rule as by the flat one;
+-- the top-up never charges more than is unused or than is needed.
+#ASSERT all (GIVEN k YIELD
+                    `ulpan teacher's annual leave days` (k DIVIDED BY 4) EQUALS 15 TIMES k
+                AND `ulpan teacher's annual leave days` (k DIVIDED BY 4) AT MOST 60
+                AND ((k EQUALS 4) OR `ulpan teacher's annual leave days` (k DIVIDED BY 4) AT MOST `ulpan teacher's annual leave days` ((k PLUS 1) DIVIDED BY 4))
+                AND `leave days for a changing position` (LIST `period at one position` (k DIVIDED BY 4) 0.25, `period at one position` (k DIVIDED BY 4) 0.75)
+                    EQUALS `ulpan teacher's annual leave days` (k DIVIDED BY 4))
+            (range 0 4)
+#ASSERT all (GIVEN p YIELD
+                all (GIVEN b YIELD
+                        LET c MEANS `days carried to the next year` p b
+                        IN      c AT MOST 65
+                            AND c AT MOST b
+                            AND (c GREATER THAN 0) EQUALS (p AND b GREATER THAN 0)
+                            AND all (GIVEN t YIELD `leave days charged for the top-up` b t AT MOST b AND `leave days charged for the top-up` b t AT MOST t) (LIST 0, 10, 30))
+                    (range 0 100))
+            `both booleans`
+
+-- 14.6 over 0 to 7 days, 0 to 7 hours and 0 to 30 students: in charge of
+-- a class exactly from 5 days, 4 hours and 15 students, never lost with
+-- more of any; the allowance needs the department's list too; and never
+-- education hours.
+#ASSERT all (GIVEN d YIELD
+                all (GIVEN h YIELD
+                        all (GIVEN s YIELD
+                                LET c MEANS `adult class` WITH `days a week` IS d, `hours a day` IS h, `students` IS s, `on the department's list` IS TRUE
+                                    l MEANS `adult class` WITH `days a week` IS d, `hours a day` IS h, `students` IS s, `on the department's list` IS FALSE
+                                IN      `in charge of a class` c EQUALS (d AT LEAST 5 AND h AT LEAST 4 AND s AT LEAST 15)
+                                    AND `entitled to the class-education allowance` c EQUALS `in charge of a class` c
+                                    AND NOT `entitled to the class-education allowance` l
+                                    AND `education hours for an adult class` c EQUALS 0)
+                            (range 0 30))
+                    (range 0 7))
+            (range 0 7)
+
+-- 14.10.2 over every pair of views and 0 to 10 years: the committee has
+-- five seats, two the department's, two the owners', one the union's, and
+-- its chair is the department's; F-14-b over the whole space: a dispute
+-- is decided exactly where the two deciders agree. A principal is
+-- qualified exactly from 5 years with a senior teacher's education.
+`the committee is as 14.10.2(a) composes it` MEANS
+            count `the Tehila selection committee` EQUALS 5
+        AND count (filter (GIVEN x YIELD x EQUALS `adult-education department representative`) `the Tehila selection committee`) EQUALS 2
+        AND count (filter (GIVEN x YIELD x EQUALS `owners' representative`) `the Tehila selection committee`) EQUALS 2
+        AND elem `the chair's seat` `the Tehila selection committee`
+#ASSERT `the committee is as 14.10.2(a) composes it`
+#ASSERT all (GIVEN a YIELD
+                all (GIVEN b YIELD (`a department-owners dispute is decided` a b EQUALS `no decision`) EQUALS NOT (a EQUALS b)) `both booleans`)
+            `both booleans`
+#ASSERT all (GIVEN e YIELD
+                all (GIVEN y YIELD `qualified to be a Tehila principal` e y EQUALS (e AND y AT LEAST 5)) (range 0 10))
+            `both booleans`
+
+-- 14.10.6 over every institution: an ulpan takes the primary rate, an
+-- ulpanit and (as read for F-14-c) a Tehila centre the ulpanit table; the
+-- allowance is the rate of the salary with the seniority added, never
+-- less than the rate of the salary.
+#ASSERT all (GIVEN k YIELD
+                LET i MEANS `a checked institution` k 8 8
+                IN  `adult-education management allowance rate` i EQUALS (IF k EQUALS `ulpan` THEN 0.1 ELSE 0.12))
+            `every adult-education institution`
+#ASSERT all (GIVEN a YIELD
+                    `adult-education management allowance` 0.12 10000 a EQUALS 1200 PLUS a
+                AND `adult-education management allowance` 0.12 10000 a AT LEAST 1200)
+            (LIST 0, 100, 500)
+
+-- 14.10.6(4) over 0 to 12 classes at the start and now, on a table that
+-- rises with classes: the rate paid never falls below the start's, rises
+-- with the classes now, and is the start's exactly where they did not
+-- grow.
+#ASSERT all (GIVEN s YIELD
+                all (GIVEN n YIELD
+                        LET r MEANS `the rate paid during the year` (`a checked institution` `ulpanit` s n) `a placeholder rate table`
+                        IN      r AT LEAST `a placeholder rate table` s
+                            AND r AT LEAST `a placeholder rate table` n
+                            AND (r EQUALS `a placeholder rate table` s) EQUALS (n AT MOST s))
+                    (range 0 12))
+            (range 0 12)
+
+-- F-14-d: a year in which the classes grew and then fell back, still
+-- above the start. Read from the classes at the start ("נקבע עם כניסת
+-- המנהל"), the rate falls back with them; read as "the allowance shall
+-- not be reduced", it keeps the peak. Over every start, peak and now of
+-- 0 to 12 classes, the readings part exactly where the peak passed both
+-- the start and the classes now.
+GIVEN s IS A NUMBER, p IS A NUMBER, n IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the rate paid if the peak is kept` s p n IS
+    `a placeholder rate table` (max s (max p n))
+
+#ASSERT all (GIVEN s YIELD
+                all (GIVEN p YIELD
+                        all (GIVEN n YIELD
+                                (NOT (`the rate paid during the year` (`a checked institution` `ulpanit` s n) `a placeholder rate table`
+                                      EQUALS `the rate paid if the peak is kept` s p n))
+                                EQUALS (p GREATER THAN s AND p GREATER THAN n))
+                            (range 0 12))
+                    (range 0 12))
+            (range 0 12)
+
+`a centre grown from 8 classes to 10 and back to 9 is paid for 9 on one reading and 10 on the other` MEANS
+        `the rate paid during the year` (`a checked institution` `Tehila centre` 8 9) `a placeholder rate table` EQUALS 0.09
+    AND `the rate paid if the peak is kept` 8 10 9 EQUALS 0.1
+#ASSERT `a centre grown from 8 classes to 10 and back to 9 is paid for 9 on one reading and 10 on the other`
