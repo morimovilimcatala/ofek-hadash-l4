@@ -149,6 +149,53 @@ class Findings(unittest.TestCase):
 
 
 @unittest.skipUnless((ROOT / "build/l4").exists(), "run `make l4` first")
+class Settings(unittest.TestCase):
+    """settings.toml (MMS-485): the choices the encoding takes that the text
+    does not make. Each names the rules that apply it, and each such rule is
+    a definition in the file named — so the page cannot describe a rule that
+    was renamed or removed — and each finding it cites exists."""
+
+    HEBREW = re.compile(r"[\u0590-\u05FF]")
+
+    def setUp(self):
+        self.reg = site_mod.load_settings()
+        self.findings = {f["id"] for f in site_mod.load_findings()}
+
+    def defines(self, path: str, name: str) -> bool:
+        text = (ROOT / path).read_text(encoding="utf-8")
+        n = re.escape(name)
+        return bool(re.search(rf"^(?:DECIDE\s+`{n}`|`{n}`\s+MEANS|DECLARE\s+`{n}`|ASSUME\s+`{n}`)"
+                              rf"|^\s+`{n}`\s+IS AN?\s", text, re.M))
+
+    def test_the_register_is_well_formed(self):
+        groups = [g["id"] for g in self.reg.get("group", [])]
+        self.assertEqual(len(groups), len(set(groups)))
+        ids = [st["id"] for st in self.reg.get("setting", [])]
+        self.assertEqual(len(ids), len(set(ids)))
+        for st in self.reg.get("setting", []):
+            with self.subTest(setting=st["id"]):
+                self.assertIn(st["group"], groups)
+                self.assertIn(st["basis"], site_mod.BASIS)
+                for field in ("title", "value", "detail"):
+                    self.assertRegex(st[field], self.HEBREW, f"{field} is shown on a Hebrew page")
+                # a setting with no rule behind it is a claim about nothing
+                self.assertTrue(st.get("applies"), "names no rule that applies it")
+                for f in st.get("findings", []):
+                    self.assertIn(f, self.findings)
+
+    def test_every_rule_it_names_is_defined_where_it_says(self):
+        for st in self.reg.get("setting", []):
+            for a in st.get("applies", []) + st.get("exceptions", []):
+                with self.subTest(setting=st["id"], l4=a["l4"], rule=a.get("rule")):
+                    self.assertTrue((ROOT / a["l4"]).exists())
+                    if a.get("rule"):
+                        self.assertTrue(self.defines(a["l4"], a["rule"]), "no such definition")
+            for e in st.get("exceptions", []):
+                with self.subTest(setting=st["id"], exception=e["l4"]):
+                    self.assertRegex(e["value"], self.HEBREW)
+                    self.assertTrue(e.get("why"), "an exception says why it differs")
+
+
 class Toolchain(unittest.TestCase):
     def test_every_file_checks_and_every_assert_holds(self):
         import l4run

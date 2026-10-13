@@ -773,6 +773,7 @@ def page(here: str, title: str, body: str, *, tab: str = "", desc: str = "",
            ("findings.html", "ממצאים", "findings"),
            ("salary.html", "מבנה השכר", "salary"),
            *([("calculator.html", "מחשבון שכר", "calculator")] if CALCULATOR else []),
+           ("settings.html", "הגדרות", "settings"),
            ("coverage.html", "כיסוי", "coverage"),
            ("diagnostics.html", "בדיקות", "diagnostics"),
            ("about.html", "אודות", "about")]
@@ -1706,6 +1707,75 @@ def coverage_page(all_views: dict[str, list[SectionView]]) -> str:
                 desc="כמה מקורפוס אופק חדש מקודד ב-L4, מסמך אחר מסמך וסעיף אחר סעיף")
 
 
+# ------------------------------------------------------------- the settings
+# The choices the encoding takes that the text does not make for it — how a
+# figure is rounded when the text names no rounding, whether a period's last
+# day is in it — written once, in settings.toml, each with the rules that
+# apply it (the client, 2026-10-13, MMS-485: "a non interactive settings view
+# … which we decided implicitly"). tests/test_repo.py holds every rule named
+# there to a definition in the file named, so the page cannot describe code
+# that is gone.
+SETTINGS = ROOT / "settings.toml"
+BASIS = {"text": "הטקסט קובע", "ours": "בחירת הקידוד", "finding": "קריאה בממצא"}
+
+
+def load_settings() -> dict:
+    return tomllib.loads(SETTINGS.read_text(encoding="utf-8")) if SETTINGS.exists() else {}
+
+
+def settings_page(reg: dict, by_file: dict[str, "SectionView"]) -> str:
+    here = "settings.html"
+
+    def where(a: dict) -> str:
+        v = by_file.get(a["l4"])
+        name = f'<code dir="ltr">{esc(a["rule"])}</code>' if a.get("rule") else ""
+        sec = (f'<a href="{rel(v.href, here)}">{esc(akn.title(v.doc))} <bdi dir="ltr">§{esc(v.section.num)}</bdi></a>'
+               if v is not None else f'<code dir="ltr">{esc(a["l4"])}</code>')
+        why = f' <span class="why">— {esc(a["why"])}</span>' if a.get("why") else ""
+        return f"{sec} {name}{why}"
+
+    def finding_links(ids: list[str]) -> str:
+        if not ids:
+            return ""
+        return ('<p class="set-find">ממצאים: ' + ", ".join(
+            f'<a href="{rel("findings.html", here)}#{esc(i)}" dir="ltr">{esc(i)}</a>' for i in ids) + "</p>")
+
+    groups = []
+    for g in reg.get("group", []):
+        rows = []
+        for st in [x for x in reg.get("setting", []) if x["group"] == g["id"]]:
+            apps = st.get("applies", [])
+            exc = st.get("exceptions", [])
+            details = ""
+            if apps or exc:
+                details = ('<details><summary>היכן זה חל'
+                           + (f' ({len(apps)})' if apps else "")
+                           + (f' · חריגים ({len(exc)})' if exc else "") + '</summary>'
+                           + (f'<ul class="set-where">{"".join(f"<li>{where(a)}</li>" for a in apps)}</ul>' if apps else "")
+                           + ('<p class="set-exc-h">כאן הקידוד עונה אחרת:</p><ul class="set-where exc">'
+                              + "".join(f'<li><span class="set-val alt">{esc(e["value"])}</span> '
+                                        + where(e) + "</li>" for e in exc) + "</ul>" if exc else "")
+                           + "</details>")
+            rows.append(
+                f'<div class="set-row" id="{esc(st["id"])}">'
+                f'<div class="set-q"><div class="set-label">{esc(st["title"])}</div>'
+                f'<div class="set-detail">{esc(st["detail"])}</div>'
+                f'{finding_links(st.get("findings", []))}{details}</div>'
+                f'<div class="set-a"><span class="set-val">{esc(st["value"])}</span>'
+                f'<span class="set-basis {esc(st["basis"])}">{BASIS[st["basis"]]}</span></div></div>')
+        if rows:
+            groups.append(f'<section class="set-group"><h2>{esc(g["title"])}</h2>{"".join(rows)}</section>')
+    body = ('<h1>הגדרות</h1>'
+            '<p class="lede">ההכרעות שהקידוד מקבל במקום שהטקסט אינו מכריע — איך מעגלים סכום כשהטקסט אינו '
+            'אומר, האם היום האחרון של תקופה נכלל בה, מה פירוש "מעל" — כתובות כאן פעם אחת, כל אחת עם הכללים '
+            'שמחילים אותה. העמוד לקריאה בלבד: הוא מתאר את הקוד, ואינו משנה אותו.</p>'
+            '<p>בכל שורה: השאלה, התשובה שהקידוד נותן, ומי הכריע — הטקסט עצמו, או הקידוד. '
+            'מקום שבו אותה שאלה מקבלת תשובה אחרת מופיע תחת <em>חריגים</em>.</p>'
+            + ("".join(groups) or '<p class="empty">אין עדיין הגדרות רשומות.</p>'))
+    return page(here, f"הגדרות — {TITLE}", body, tab="settings",
+                desc="ההכרעות שקידוד ה-L4 מקבל במקום שהטקסט אינו מכריע: עיגול, גבולות תאריכים, ספים ויחידות זמן")
+
+
 def about_page() -> str:
     body = f"""<h1>אודות</h1>
 <p class="lede">האתר מציב את נוסח קורפוס אופק חדש — המסמכים שמסדירים את העסקת עובדי ההוראה —
@@ -1803,6 +1873,7 @@ def build() -> int:
     (OUT / "index.json").write_text(index_json(flat), encoding="utf-8")
     (OUT / "coverage.html").write_text(coverage_page(all_views), encoding="utf-8")
     (OUT / "diagnostics.html").write_text(diagnostics_page(flat), encoding="utf-8")
+    (OUT / "settings.html").write_text(settings_page(load_settings(), by_file), encoding="utf-8")
     (OUT / "about.html").write_text(about_page(), encoding="utf-8")
     (OUT / ".nojekyll").write_text("")
     done = sum(v.status == "done" for v in flat)
