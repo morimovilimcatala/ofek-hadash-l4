@@ -1466,25 +1466,35 @@ def salary_page(all_views: dict[str, list["SectionView"]]) -> str:
     here = "salary.html"
     v = next((v for v in all_views.get(SALARY[0], []) if v.section.num == SALARY[1]), None)
     drawing = ""
+    sec = (f'<a href="{v.href}"><bdi dir="ltr">§{esc(v.section.num)}</bdi> {esc(v.section.heading)}</a>'
+           if v is not None else "§1.1")
     if v is not None and v.l4 is not None:
         src = rule_graph.dot(rule_graph.declarations(v.l4), SALARY_RULE,
-                             rule_graph.clause_labeller(v.section, citations(v.section)))
+                             rule_graph.clause_labeller(v.section, citations(v.section)),
+                             rule_graph.field_descs(v.l4))
         svg = rule_graph.svg(src)
         if svg:
             (OUT / "assets").mkdir(parents=True, exist_ok=True)
             (OUT / "assets" / "salary.svg").write_text(svg, encoding="utf-8")
-            drawing = ('<div class="salary-box"><a href="assets/salary.svg" target="_blank" rel="noopener" '
+            legend = "".join(
+                f'<li><span class="swatch{" oval" if k in ("elsewhere", "case") else ""}" '
+                f'style="background:{rule_graph.KINDS[k][0]};border-color:{rule_graph.KINDS[k][1]}"></span>{t}</li>'
+                for k, t in (("clause", f"כלל שמקודד סעיף של {sec}"),
+                             ("helper", "כלל עזר ב־L4, שאינו מצטט סעיף"),
+                             ("elsewhere", "סכום שמסמך אחר קובע — טבלת השכר, הסכם"),
+                             ("case", "עובדה מנסיבות העובד")))
+            drawing = (f'<ul class="salary-legend">{legend}</ul>'
+                       '<div class="salary-box"><a href="assets/salary.svg" target="_blank" rel="noopener" '
                        'title="פתיחה בגודל מלא"><img src="assets/salary.svg" alt="מבנה השכר"></a></div>')
-    sec = (f'<a href="{v.href}"><bdi dir="ltr">§{esc(v.section.num)}</bdi> {esc(v.section.heading)}</a>'
-           if v is not None else "§1.1")
     body = ('<h1>מבנה השכר</h1>'
             f'<p class="lede">ממה מורכב שכרו של עובד הוראה, כפי שהקוד של {sec} מחשב אותו. '
             'הציור נגזר מן הקוד עצמו: כל תיבה היא כלל, והחצים מובילים מכל רכיב אל מה שהוא חלק ממנו, '
-            'עד השכר שבצד ימין. בכל תיבה: מילות הסעיף שהכלל מקודד ומספרו, ומתחתיהן שם הכלל ב־L4. '
-            'האליפסות הן הנתונים שהטקסט משאיר לנסיבות של העובד — השכר המשולב למשרה מלאה, החודש, '
-            'היקף המשרה, הגמולים שהוא מחזיק — וכל אחת מחוברת למקום שבו נדרשת לראשונה.</p>'
+            'עד השכר שבראש הציור. בכל תיבה: מילות הסעיף שהכלל מקודד ומספרו, ומתחתיהן שם הכלל ב־L4. '
+            'האליפסות הן הנתונים שהטקסט אינו קובע בעצמו — סכום שמסמך אחר קובע, כמו השכר המשולב למשרה מלאה '
+            'לפי טבלת השכר, או עובדה מנסיבות העובד, כמו החודש והיקף המשרה — וכל אחת מחוברת למקום שבו נדרשת '
+            'לראשונה. הצבעים לפי סוג, כמפורט במקרא.</p>'
             '<p>אין בציור סכומים: הוא מראה את המבנה, לא חישוב. כלל עזר שאינו מצטט סעיף משלו מופיע בשמו ב־L4 בלבד. '
-            'הציור רחב; גוללים בו שמאלה, ולחיצה פותחת אותו בגודל מלא.</p>'
+            'לחיצה על הציור פותחת אותו בגודל מלא.</p>'
             + (drawing or '<p class="empty">הציור דורש GraphViz בעת הבנייה.</p>'))
     return page(here, f"מבנה השכר — {TITLE}", body, tab="salary")
 

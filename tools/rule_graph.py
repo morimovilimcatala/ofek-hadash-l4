@@ -19,6 +19,18 @@ START = re.compile(r"^(?:DECIDE\s+`([^`]+)`|`([^`]+)`\s+MEANS)")
 REF = re.compile(r"akn:(\S+)")
 FIELD = re.compile(r"'s\s+`([^`]+)`")
 NAME = re.compile(r"`([^`]+)`")
+FIELD_DESC = re.compile(r"^\s+`([^`]+)`\s+IS AN?\s.*?@desc\s+(.*)$")
+
+# what a box is, by colour: (fill, border). A clause of the section; a helper
+# of the L4 that cites no clause; an amount another instrument sets (a field
+# whose @desc ends "an input", the convention CLAUDE.md gives an amount the
+# text says is set elsewhere); a fact of the employee's own case.
+KINDS = {
+    "clause": ("#eef3fb", "#9db0cf"),
+    "helper": ("#f4f5f7", "#c3c8d1"),
+    "elsewhere": ("#fbe9d7", "#d9a46c"),
+    "case": ("#e6f4ea", "#93c4a2"),
+}
 
 
 def declarations(path: Path) -> dict[str, dict]:
@@ -44,6 +56,20 @@ def declarations(path: Path) -> dict[str, dict]:
         elif line.strip():
             cur = None
     return out
+
+
+def field_descs(path: Path) -> dict[str, str]:
+    """field -> its @desc, from the file's DECLAREs."""
+    out = {}
+    for line in path.read_text(encoding="utf-8").splitlines():
+        m = FIELD_DESC.match(line)
+        if m:
+            out.setdefault(m.group(1), m.group(2).strip())
+    return out
+
+
+def input_kind(desc: str) -> str:
+    return "elsewhere" if re.search(r"\ban input\s*$", desc) else "case"
 
 
 def walk(decls: dict[str, dict], root: str) -> tuple[list[str], list[tuple[str, str]], list[str]]:
@@ -75,14 +101,17 @@ def walk(decls: dict[str, dict], root: str) -> tuple[list[str], list[tuple[str, 
     return order, edges, inputs
 
 
-def dot(decls, root: str, label_of) -> str:
-    """GraphViz, right to left like the page: the root on the right, what it
-    is made of to its left. `label_of(name, refs)` gives a box's clause as
-    (the text's own words, its citation); either may be empty."""
+def dot(decls, root: str, label_of, descs: dict[str, str] | None = None) -> str:
+    """GraphViz, top to bottom: the root at the top, what it is made of below
+    it (the client, 2026-10-13: "make the salary tree vertical"; it was drawn
+    right to left until then, wider than the page). `label_of(name, refs)` gives a box's clause as
+    (the text's own words, its citation); either may be empty. A box is
+    coloured by its KIND; `descs` (field -> @desc) tells an amount another
+    instrument sets from a fact of the case."""
     order, edges, inputs = walk(decls, root)
     def q(s: str) -> str:
         return s.replace("\\", "\\\\").replace('"', '\\"')
-    out = ['digraph {', '  graph [rankdir=RL, nodesep=0.25, ranksep=0.5, fontname="DejaVu Sans"];',
+    out = ['digraph {', '  graph [rankdir=TB, nodesep=0.25, ranksep=0.5, fontname="DejaVu Sans"];',
            '  node [shape=box, style="rounded,filled", fontname="DejaVu Sans", fontsize=11, '
            'fillcolor="#eef3fb", color="#9db0cf"];',
            '  edge [color="#8a94a6", arrowsize=0.6, dir=back];']
@@ -92,10 +121,14 @@ def dot(decls, root: str, label_of) -> str:
         words, cite = label_of(n, decls[n]["refs"])
         lines = ([f'<FONT POINT-SIZE="13">{h(words)}</FONT>'] if words else [])
         lines.append(f'<FONT POINT-SIZE="9" COLOR="#5b6474">{h(n)}{"  ·  " + h(cite) if cite else ""}</FONT>')
-        extra = ', fillcolor="#dbe6f8", penwidth=1.6' if n == root else ""
+        fill, line = KINDS["clause" if decls[n]["refs"] else "helper"]
+        extra = f', fillcolor="{fill}", color="{line}"'
+        if n == root:
+            extra = ', fillcolor="#dbe6f8", color="#6f88b3", penwidth=1.6'
         out.append(f'  r{i} [label=<{"<BR/>".join(lines)}>{extra}];')
     for j, f in enumerate(inputs):
-        out.append(f'  i{j} [label="{q(f)}", shape=ellipse, style=filled, fillcolor="#f6f1e3", color="#cdbf99"];')
+        fill, line = KINDS[input_kind((descs or {}).get(f, ""))]
+        out.append(f'  i{j} [label="{q(f)}", shape=ellipse, style=filled, fillcolor="{fill}", color="{line}"];')
     idx = {n: f"r{i}" for i, n in enumerate(order)}
     idx.update({"in:" + f: f"i{j}" for j, f in enumerate(inputs)})
     for a, b in dict.fromkeys(edges):
