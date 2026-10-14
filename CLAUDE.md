@@ -101,6 +101,18 @@ not from the Catala proofs, the corpus's ambiguity ledger or its sic kinds:
   the text is wrong; if the text is ever corrected the build goes red and
   the finding is stale, which is the point.
 
+**Every ambiguity's reading follows a convention** (the client, 2026-10-14,
+MMS-485: "all ambiguities decisions should follow a convention"). The
+conventions are `settings.toml`, published as the site's "הגדרות" page: one
+row per choice the text leaves to the encoding (how a figure is rounded when
+the text names no rounding, whether a period's last day is in it, which of
+two provisions prevails), each naming the L4 rules that apply it. A finding
+of kind `ambiguity` names the one its reading applies in `convention`; a
+reading decided case by case is refused by the tests. A new kind of question
+gets a new convention, written generally enough to decide the next case, and
+a reading that departs from one is either brought into line or recorded as
+that convention's exception with its reason.
+
 Three rules (MMS-415): nothing is fixed quietly to make the code compile —
 every choice the text does not make is a finding with its reading; a later
 finding names the readings it depends on; and the page shows the LAW's

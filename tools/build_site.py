@@ -1394,6 +1394,8 @@ def findings_page(findings, views_by_file, key_to_view) -> str:
             f'<div class="fcard"><p class="fmeta"><span class="stage" title="{esc(sgloss)}">נתגלה {esc(stage)}</span> · '
             f'{" · ".join(where)}</p>{quote}{body}'
             f'<p class="reading"><strong>הקריאה שהקידוד מאמץ:</strong> {prose(f["reading"], link_ids=True)}</p>'
+            + (f'<p class="conv">לפי ההגדרה: <a href="settings.html#{esc(f["convention"])}">'
+               f'{esc(SETTING_TITLES.get(f["convention"], f["convention"]))}</a></p>' if f.get("convention") else "")
             + (f'<p class="deps">תלוי בקריאות של: {deps}</p>' if deps else "")
             + (f'<p class="ev"><a href="{ev["url"]}">הראיה ב-L4</a> · {state}</p>'
                + "".join(f'<pre class="msg" dir="ltr">{esc(m)}</pre>' for m in ev["messages"])
@@ -1531,6 +1533,7 @@ def findings_json(findings, views_by_file, key_to_view) -> str:
             "addresses": [address(finding_doc(f), k) for k in f["keys"] if (finding_doc(f), k) in key_to_view],
             "statement": f["title"], "body": f["body"].strip(), "reading": f["reading"],
             "quote": f.get("quote"), "depends_on": f.get("depends_on", []),
+            "convention": f.get("convention"),
             "l4": {"file": f["l4"], "line": ev["line"], "evidence": f["evidence"]},
             "messages": ev["messages"], "message_count": len(ev["messages"]),
             "evidence_holds": ev["held"],
@@ -1723,8 +1726,18 @@ def load_settings() -> dict:
     return tomllib.loads(SETTINGS.read_text(encoding="utf-8")) if SETTINGS.exists() else {}
 
 
-def settings_page(reg: dict, by_file: dict[str, "SectionView"]) -> str:
+SETTING_TITLES = {st["id"]: st["title"] for st in load_settings().get("setting", [])}
+
+
+def settings_page(reg: dict, by_file: dict[str, "SectionView"], findings: list[dict]) -> str:
     here = "settings.html"
+    # which findings rely on each convention: read off the finding, never
+    # listed twice (the client, 2026-10-14: "all ambiguities decisions should
+    # follow a convention")
+    relying: dict[str, list[dict]] = {}
+    for f in findings:
+        if f.get("convention"):
+            relying.setdefault(f["convention"], []).append(f)
 
     def where(a: dict) -> str:
         v = by_file.get(a["l4"])
@@ -1734,11 +1747,12 @@ def settings_page(reg: dict, by_file: dict[str, "SectionView"]) -> str:
         why = f' <span class="why">— {esc(a["why"])}</span>' if a.get("why") else ""
         return f"{sec} {name}{why}"
 
-    def finding_links(ids: list[str]) -> str:
-        if not ids:
+    def finding_links(fs: list[dict]) -> str:
+        if not fs:
             return ""
-        return ('<p class="set-find">ממצאים: ' + ", ".join(
-            f'<a href="{rel("findings.html", here)}#{esc(i)}" dir="ltr">{esc(i)}</a>' for i in ids) + "</p>")
+        return (f'<details class="set-find"><summary>ממצאים שהקריאה בהם נשענת על ההגדרה ({len(fs)})</summary><ul>'
+                + "".join(f'<li><a href="{rel("findings.html", here)}#{esc(f["id"])}">{esc(f["title"])}</a></li>'
+                          for f in fs) + "</ul></details>")
 
     groups = []
     for g in reg.get("group", []):
@@ -1760,7 +1774,7 @@ def settings_page(reg: dict, by_file: dict[str, "SectionView"]) -> str:
                 f'<div class="set-row" id="{esc(st["id"])}">'
                 f'<div class="set-q"><div class="set-label">{esc(st["title"])}</div>'
                 f'<div class="set-detail">{esc(st["detail"])}</div>'
-                f'{finding_links(st.get("findings", []))}{details}</div>'
+                f'{finding_links(relying.get(st["id"], []))}{details}</div>'
                 f'<div class="set-a"><span class="set-val">{esc(st["value"])}</span>'
                 f'<span class="set-basis {esc(st["basis"])}">{BASIS[st["basis"]]}</span></div></div>')
         if rows:
@@ -1873,7 +1887,7 @@ def build() -> int:
     (OUT / "index.json").write_text(index_json(flat), encoding="utf-8")
     (OUT / "coverage.html").write_text(coverage_page(all_views), encoding="utf-8")
     (OUT / "diagnostics.html").write_text(diagnostics_page(flat), encoding="utf-8")
-    (OUT / "settings.html").write_text(settings_page(load_settings(), by_file), encoding="utf-8")
+    (OUT / "settings.html").write_text(settings_page(load_settings(), by_file, findings), encoding="utf-8")
     (OUT / "about.html").write_text(about_page(), encoding="utf-8")
     (OUT / ".nojekyll").write_text("")
     done = sum(v.status == "done" for v in flat)

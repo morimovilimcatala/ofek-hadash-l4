@@ -159,7 +159,7 @@ class Settings(unittest.TestCase):
 
     def setUp(self):
         self.reg = site_mod.load_settings()
-        self.findings = {f["id"] for f in site_mod.load_findings()}
+        self.relied_on = {f.get("convention") for f in site_mod.load_findings()}
 
     def defines(self, path: str, name: str) -> bool:
         text = (ROOT / path).read_text(encoding="utf-8")
@@ -178,10 +178,23 @@ class Settings(unittest.TestCase):
                 self.assertIn(st["basis"], site_mod.BASIS)
                 for field in ("title", "value", "detail"):
                     self.assertRegex(st[field], self.HEBREW, f"{field} is shown on a Hebrew page")
-                # a setting with no rule behind it is a claim about nothing
-                self.assertTrue(st.get("applies"), "names no rule that applies it")
-                for f in st.get("findings", []):
-                    self.assertIn(f, self.findings)
+                # a setting nothing applies is a claim about nothing: it names
+                # the rules that apply it, or findings name it as their reading's
+                self.assertTrue(st.get("applies") or st["id"] in self.relied_on,
+                                "no rule applies it and no finding relies on it")
+
+    def test_every_ambiguity_follows_a_convention(self):
+        """The client, 2026-10-14: "all ambiguities decisions should follow a
+        convention". A finding of kind `ambiguity` names, in `convention`, the
+        setting its reading applies; a reading decided case by case is the
+        thing this refuses. Any other finding that names one names a real one."""
+        known = {st["id"] for st in self.reg.get("setting", [])}
+        for f in site_mod.load_findings():
+            with self.subTest(finding=f["id"]):
+                if f["kind"] == "ambiguity":
+                    self.assertTrue(f.get("convention"), "an ambiguity's reading follows no convention")
+                if f.get("convention"):
+                    self.assertIn(f["convention"], known)
 
     def test_every_rule_it_names_is_defined_where_it_says(self):
         for st in self.reg.get("setting", []):
