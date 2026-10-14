@@ -1,4 +1,4 @@
-"""Write the agents' applies/exceptions into settings.toml, after each setting's basis."""
+"""Write the agents' applies/exceptions into conventions.toml, after each setting's basis."""
 import json, sys, tomllib
 from pathlib import Path
 SP = Path(__file__).parent
@@ -15,14 +15,14 @@ for f in sys.argv[1:]:
     for k, v in d.get("applies", {}).items(): applies.setdefault(k, []).extend(v)
     for k, v in d.get("exceptions", {}).items(): exc.setdefault(k, []).extend(v)
 q = lambda s: json.dumps(s, ensure_ascii=False)
-text = (ROOT / "settings.toml").read_text(encoding="utf-8")
-ids = {s["id"] for s in tomllib.loads(text)["setting"]}
+text = (ROOT / "conventions.toml").read_text(encoding="utf-8")
+ids = {s["id"] for s in tomllib.loads(text)["convention"]}
 unknown = (set(applies) | set(exc)) - ids
 assert not unknown, unknown
-blocks = text.split("\n[[setting]]\n")
+blocks = text.split("\n[[convention]]\n")
 out = [blocks[0]]
 for b in blocks[1:]:
-    sid = tomllib.loads("[[setting]]\n" + b)["setting"][0]["id"]
+    sid = tomllib.loads("[[convention]]\n" + b)["convention"][0]["id"]
     b = b.rstrip("\n").split("\n")
     b = [l for l in b if not l.startswith(("applies", "exceptions", "  {"))]  # idempotent
     seen = set(); rows = []
@@ -40,5 +40,5 @@ for b in blocks[1:]:
               + ', value = ' + q(e["value"]) + ', why = ' + q(e["why"]) + ' },' for e in exc[sid]]
         b.append("]")
     out.append("\n".join(b) + "\n")
-(ROOT / "settings.toml").write_text("\n[[setting]]\n".join(out), encoding="utf-8")
+(ROOT / "conventions.toml").write_text("\n[[convention]]\n".join(out), encoding="utf-8")
 print("applies:", sum(len(v) for v in applies.values()), "exceptions:", sum(len(v) for v in exc.values()))

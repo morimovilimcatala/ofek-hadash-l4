@@ -103,7 +103,7 @@ not from the Catala proofs, the corpus's ambiguity ledger or its sic kinds:
 
 **Every ambiguity's reading follows a convention** (the client, 2026-10-14,
 MMS-485: "all ambiguities decisions should follow a convention"). The
-conventions are `settings.toml`, published as the site's "הגדרות" page: one
+conventions are `conventions.toml`, published as the site's "מוסכמות" page: one
 row per choice the text leaves to the encoding (how a figure is rounded when
 the text names no rounding, whether a period's last day is in it, which of
 two provisions prevails), each naming the L4 rules that apply it. A finding
