@@ -23,7 +23,7 @@ DECLARE `technological subject list` IS ONE OF
 @desc A teaching employee's 2007-08 year, as far as the clothing allowance asks about it.
 DECLARE `clothing year` HAS
     `on the teaching grading`         IS A BOOLEAN
-    `years of teaching seniority`     IS A NUMBER  @desc the year of teaching seniority being served (the first year is 1), as read for F-2007-08_tashsach_06-b
+    `years of teaching seniority`     IS A NUMBER  @desc completed years of teaching seniority (0 in the first year), as read for F-2007-08_tashsach_06-b
     `position fraction`               IS A NUMBER  @desc share of a full position (1 = 100%)
     `teaches physical education`      IS A BOOLEAN
     `physical-education position`     IS A NUMBER  @desc the share of a full position employed as a physical-education teacher
@@ -53,7 +53,11 @@ DECIDE `entitled to the clothing allowance` y IF
 -- F-2007-08_tashsach_06-b: the table opens at year 1 and does not say how
 -- the seniority is counted. The reading adopted, as for the same table in
 -- תשס"ז/7 and תשס"ט/10 (F-2006-07_tashsaz_07-a, F-2008-09_tashsat_10-a):
--- the year being served counts, so a first-year employee is in year 1.
+-- convention thresholds.seniority (settings.toml): the table prints "1-25
+-- שנים" and "26 שנים ומעלה", years of seniority rather than "the N-th
+-- year", so they are COMPLETED years and the top row begins at 26. A
+-- first-year employee (0 completed), whom no row prints and §א.2 entitles,
+-- takes the first row.
 @ref akn:art_a__para_3 akn:art_a__para_4 akn:art_a__para_5/p2 akn:art_a__para_5/p3 akn:art_a__para_5/p4
 `the summary table` MEANS
     LIST `seniority row` 1  25  1328,
@@ -63,7 +67,7 @@ GIVEN n IS A NUMBER
 GIVETH A NUMBER
 DECIDE `the full-position amount for seniority` n IS
     sum (map (GIVEN r YIELD r's `row amount`)
-             (filter (GIVEN r YIELD n AT LEAST r's `from seniority` AND n AT MOST r's `to seniority`)
+             (filter (GIVEN r YIELD max n 1 AT LEAST r's `from seniority` AND max n 1 AT MOST r's `to seniority`)
                      `the summary table`))
 
 -- §א.5 and §ג.3: pro-rated to the position, up to one full position (100%).
@@ -278,10 +282,9 @@ DECIDE `a checked year` g n f p e t IS
         `physical-education position`     IS e
         `technological subject`           IS t
 
--- §א.4: every year served from 1 to 61 is in exactly one row, and the
--- amount never falls with seniority. Year 0 is in none: on any count of
--- the seniority that starts at 0, a first-year employee entitled by §א.2
--- has no amount (F-2007-08_tashsach_06-b).
+-- §א.4: every completed year from 1 to 61 is in exactly one printed row,
+-- and the amount never falls with seniority. Year 0 is in none
+-- (F-2007-08_tashsach_06-b); the reading adopted gives it the first row.
 #ASSERT all (GIVEN n YIELD
                     count (filter (GIVEN r YIELD n AT LEAST r's `from seniority` AND n AT MOST r's `to seniority`) `the summary table`) EQUALS 1
                 AND `the full-position amount for seniority` n AT MOST `the full-position amount for seniority` (n PLUS 1))
@@ -289,8 +292,13 @@ DECIDE `a checked year` g n f p e t IS
 
 `a first-year employee has no row if seniority counts completed years` MEANS
         `entitled to the clothing allowance` (`a checked year` TRUE 0 1 FALSE 0 `not a listed technological subject`)
-    AND `the general clothing allowance` (`a checked year` TRUE 0 1 FALSE 0 `not a listed technological subject`) EQUALS 0
-    AND `the general clothing allowance` (`a checked year` TRUE 1 1 FALSE 0 `not a listed technological subject`) EQUALS 1328
+    AND null (filter (GIVEN r YIELD 0 AT LEAST r's `from seniority` AND 0 AT MOST r's `to seniority`) `the summary table`)
+
+-- The reading adopted: 0 completed years takes the first row; 25 the
+-- first, 26 the second.
+#ASSERT `the general clothing allowance` (`a checked year` TRUE 0 1 FALSE 0 `not a listed technological subject`) EQUALS 1328
+#ASSERT `the full-position amount for seniority` 25 EQUALS 1328
+#ASSERT `the full-position amount for seniority` 26 EQUALS 1851
 #ASSERT `a first-year employee has no row if seniority counts completed years`
 
 -- §ב over physical-education positions in tenths: every one is in some
