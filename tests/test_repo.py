@@ -164,7 +164,9 @@ class Settings(unittest.TestCase):
     def defines(self, path: str, name: str) -> bool:
         text = (ROOT / path).read_text(encoding="utf-8")
         n = re.escape(name)
-        return bool(re.search(rf"^(?:DECIDE\s+`{n}`|`{n}`\s+MEANS|DECLARE\s+`{n}`|ASSUME\s+`{n}`)"
+        # a DECIDE may put its first parameter before the name ("DECIDE d `is on
+        # or after` e"); a record field is a definition too
+        return bool(re.search(rf"^(?:DECIDE\s+(?:\w+\s+)?`{n}`|`{n}`\s+MEANS|DECLARE\s+`{n}`|ASSUME\s+`{n}`)"
                               rf"|^\s+`{n}`\s+IS AN?\s", text, re.M))
 
     def test_the_register_is_well_formed(self):
