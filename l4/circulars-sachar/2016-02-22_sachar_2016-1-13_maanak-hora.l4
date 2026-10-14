@@ -175,13 +175,15 @@ DECIDE `the position the grant is computed on` t IS
 -- 2: the 1,000 is for a teacher in a full position; for each qualifying
 -- teacher it is proportional to the teacher's position (a representative
 -- monthly average) relative to a full position over 1.12.2014–30.11.2015.
--- F-2016-02-22_sachar_2016-1-13_maanak-hora-e: a position above full; the
--- reading adopted caps the grant at 1,000.
+-- F-2016-02-22_sachar_2016-1-13_maanak-hora-e: a position above full.
+-- Convention position.above-full (conventions.toml): pro rata above one
+-- position too, as the text sets no ceiling ("1,000 ₪ בלבד" states the
+-- grant, which section 2 makes the full-position amount).
 @ref akn:hc_1__para_2
 GIVEN t IS A `teaching employee for the grant`
 GIVETH A NUMBER
 DECIDE `the grant in proportion to the position` t IS
-    `the grant for a full position` TIMES min (`the position the grant is computed on` t) 1
+    `the grant for a full position` TIMES `the position the grant is computed on` t
 
 @export default The one-time grant (in shekels) the circular gives a teaching employee
 GIVEN t IS A `teaching employee for the grant` @desc the teacher
@@ -197,16 +199,16 @@ GIVEN t IS A `teaching employee for the grant`
 GIVETH A NUMBER
 DECIDE `the grant averaged over the whole twelve months` t IS
     `the grant for a full position`
-    TIMES min ((t's `average position over the months employed, 1.12.2014 to 30.11.2015`
-                TIMES t's `months employed from 1.12.2014 to 30.11.2015`)
-               DIVIDED BY 12) 1
+    TIMES ((t's `average position over the months employed, 1.12.2014 to 30.11.2015`
+            TIMES t's `months employed from 1.12.2014 to 30.11.2015`)
+           DIVIDED BY 12)
 
--- The other reading of section 2 for a position above full: proportional,
--- uncapped.
+-- The other reading of section 2 for a position above full: capped at the
+-- 1,000 of a full position.
 GIVEN t IS A `teaching employee for the grant`
 GIVETH A NUMBER
-DECIDE `the grant uncapped` t IS
-    `the grant for a full position` TIMES `the position the grant is computed on` t
+DECIDE `the grant capped at a full position` t IS
+    `the grant for a full position` TIMES min (`the position the grant is computed on` t) 1
 
 §§ `3-5 The grant's nature`
 
@@ -453,8 +455,8 @@ DECIDE `qualifies by section 11's words` t IF
         `average position from 1.12.2015 to 30.11.2016`   IS 1.2
 
 `the two readings of section 2 differ above a full position` MEANS
-        `the one-time grant` `a teacher at 120%` EQUALS 1000
-    AND `the grant uncapped` `a teacher at 120%` EQUALS 1200
+        `the one-time grant` `a teacher at 120%` EQUALS 1200
+    AND `the grant capped at a full position` `a teacher at 120%` EQUALS 1000
 #ASSERT `the two readings of section 2 differ above a full position`
 
 §§ `Property checks`
@@ -539,16 +541,16 @@ DECIDE `sections that keep the continuity through` k IS
             (range 0 10)
 
 -- 2 over both routes and positions in quarters from 0 to 1.5: the grant is
--- never negative, never above 1,000, never falls with a larger position,
--- and is 1,000 exactly from a full position.
+-- never negative, never above 1,000 for each full position, never falls
+-- with a larger position, and is 1,000 exactly at a full position.
 #ASSERT all (GIVEN l YIELD
                 all (GIVEN b YIELD
                         all (GIVEN p YIELD
                                 LET g MEANS `the one-time grant` (`a checked teacher` l 5 FALSE 12 p b)
                                 IN      g AT LEAST 0
-                                    AND g AT MOST `the grant for a full position`
+                                    AND g AT MOST `the grant for a full position` TIMES max 1 p
                                     AND g AT MOST `the one-time grant` (`a checked teacher` l 5 FALSE 12 (p PLUS 0.25) b)
-                                    AND (g EQUALS `the grant for a full position`) EQUALS (p AT LEAST 1))
+                                    AND (g EQUALS `the grant for a full position`) EQUALS (p EQUALS 1))
                             `positions in quarters`)
                     `both booleans`)
             (LIST (LIST `reserve duty`), (LIST `unpaid leave or an absence treated as one`))
@@ -592,9 +594,9 @@ DECIDE `sections that keep the continuity through` k IS
             (range 0 10)
 
 -- F-2016-02-22_sachar_2016-1-13_maanak-hora-e over positions in quarters
--- from 0 to 1.5: capped and proportional part exactly above a full
+-- from 0 to 1.5: proportional and capped part exactly above a full
 -- position.
 #ASSERT all (GIVEN p YIELD
                 LET t MEANS `a checked teacher` (LIST `reserve duty`) 10 FALSE 12 p TRUE
-                IN  (NOT (`the one-time grant` t EQUALS `the grant uncapped` t)) EQUALS (p GREATER THAN 1))
+                IN  (NOT (`the one-time grant` t EQUALS `the grant capped at a full position` t)) EQUALS (p GREATER THAN 1))
             `positions in quarters`

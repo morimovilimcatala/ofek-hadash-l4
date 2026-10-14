@@ -773,6 +773,7 @@ def page(here: str, title: str, body: str, *, tab: str = "", desc: str = "",
            ("findings.html", "ממצאים", "findings"),
            ("salary.html", "מבנה השכר", "salary"),
            *([("calculator.html", "מחשבון שכר", "calculator")] if CALCULATOR else []),
+           ("conventions.html", "מוסכמות", "conventions"),
            ("coverage.html", "כיסוי", "coverage"),
            ("diagnostics.html", "בדיקות", "diagnostics"),
            ("about.html", "אודות", "about")]
@@ -1393,6 +1394,8 @@ def findings_page(findings, views_by_file, key_to_view) -> str:
             f'<div class="fcard"><p class="fmeta"><span class="stage" title="{esc(sgloss)}">נתגלה {esc(stage)}</span> · '
             f'{" · ".join(where)}</p>{quote}{body}'
             f'<p class="reading"><strong>הקריאה שהקידוד מאמץ:</strong> {prose(f["reading"], link_ids=True)}</p>'
+            + (f'<p class="conv">לפי המוסכמה: <a href="conventions.html#{esc(f["convention"])}">'
+               f'{esc(CONVENTION_TITLES.get(f["convention"], f["convention"]))}</a></p>' if f.get("convention") else "")
             + (f'<p class="deps">תלוי בקריאות של: {deps}</p>' if deps else "")
             + (f'<p class="ev"><a href="{ev["url"]}">הראיה ב-L4</a> · {state}</p>'
                + "".join(f'<pre class="msg" dir="ltr">{esc(m)}</pre>' for m in ev["messages"])
@@ -1530,6 +1533,7 @@ def findings_json(findings, views_by_file, key_to_view) -> str:
             "addresses": [address(finding_doc(f), k) for k in f["keys"] if (finding_doc(f), k) in key_to_view],
             "statement": f["title"], "body": f["body"].strip(), "reading": f["reading"],
             "quote": f.get("quote"), "depends_on": f.get("depends_on", []),
+            "convention": f.get("convention"),
             "l4": {"file": f["l4"], "line": ev["line"], "evidence": f["evidence"]},
             "messages": ev["messages"], "message_count": len(ev["messages"]),
             "evidence_holds": ev["held"],
@@ -1706,6 +1710,102 @@ def coverage_page(all_views: dict[str, list[SectionView]]) -> str:
                 desc="כמה מקורפוס אופק חדש מקודד ב-L4, מסמך אחר מסמך וסעיף אחר סעיף")
 
 
+# ---------------------------------------------------------- the conventions
+# The rules of reading the encoding follows where the text does not decide —
+# how a figure is rounded when the text names no rounding, whether a period's
+# last day is in it, which of two provisions prevails — written once, in
+# conventions.toml, each with the L4 rules that apply it (the client,
+# 2026-10-13/14, MMS-485: a read-only view of what "we decided implicitly",
+# "all ambiguities decisions should follow a convention", "maybe it should be
+# called conventions … each convention could link to the ambiguities it
+# affects"). A finding names its convention; the page reads the link off the
+# finding, so it is written once. tests/test_repo.py holds every rule named
+# here to a definition in the file named.
+CONVENTIONS = ROOT / "conventions.toml"
+BASIS = {"text": "הטקסט קובע", "ours": "בחירת הקידוד"}
+
+
+def load_conventions() -> dict:
+    return tomllib.loads(CONVENTIONS.read_text(encoding="utf-8")) if CONVENTIONS.exists() else {}
+
+
+CONVENTION_TITLES = {c["id"]: c["title"] for c in load_conventions().get("convention", [])}
+
+
+def conventions_page(reg: dict, by_file: dict[str, "SectionView"], findings: list[dict]) -> str:
+    here = "conventions.html"
+    relying: dict[str, list[dict]] = {}
+    for f in findings:
+        if f.get("convention"):
+            relying.setdefault(f["convention"], []).append(f)
+
+    def where(a: dict) -> str:
+        v = by_file.get(a["l4"])
+        name = f'<code class="rule" dir="ltr">{esc(a["rule"])}</code>' if a.get("rule") else ""
+        # a whole document's one "section" is numbered by its slug: no § for it
+        num = "" if v is None or akn.is_whole(v.doc) else f' <bdi dir="ltr">§{esc(v.section.num)}</bdi>'
+        sec = (f'<a href="{rel(v.href, here)}">{esc(akn.title(v.doc))}{num}</a>'
+               if v is not None else f'<code dir="ltr">{esc(a["l4"])}</code>')
+        why = f' <span class="why">— {esc(a["why"])}</span>' if a.get("why") else ""
+        return f"{sec}{why}{name}"
+
+    def finding_list(fs: list[dict], head: str) -> str:
+        """The findings a convention decides, as links. The first few show;
+        a long list folds the rest."""
+        if not fs:
+            return ""
+        # the document is named: sibling circulars share a finding's title
+        item = lambda f: (f'<li><span class="kind-tag {f["kind"]}">{esc(KINDS[f["kind"]][0])}</span>'
+                          f'<a href="{rel("findings.html", here)}#{esc(f["id"])}">{prose(f["title"])}</a>'
+                          f'<span class="conv-doc">{esc(akn.title(finding_doc(f)))}</span></li>')
+        shown, rest = fs[:5], fs[5:]
+        return (f'<div class="conv-find"><p class="conv-find-h">{head} ({len(fs)})</p><ul>{"".join(map(item, shown))}</ul>'
+                + (f'<details><summary>עוד {len(rest)}</summary><ul>{"".join(map(item, rest))}</ul></details>' if rest else "")
+                + "</div>")
+
+    groups = []
+    for g in reg.get("group", []):
+        rows = []
+        for c in [x for x in reg.get("convention", []) if x["group"] == g["id"]]:
+            apps = c.get("applies", [])
+            exc = c.get("exceptions", [])
+            fs = relying.get(c["id"], [])
+            amb = [f for f in fs if f["kind"] == "ambiguity"]
+            other = [f for f in fs if f["kind"] != "ambiguity"]
+            details = ""
+            if apps or exc:
+                details = ('<details><summary>הכללים שמחילים אותה'
+                           + (f' ({len(apps)})' if apps else "")
+                           + (f' · חריגים ({len(exc)})' if exc else "") + '</summary>'
+                           + (f'<ul class="set-where">{"".join(f"<li>{where(a)}</li>" for a in apps)}</ul>' if apps else "")
+                           + ('<p class="set-exc-h">כאן הטקסט עצמו עונה אחרת:</p><ul class="set-where exc">'
+                              + "".join(f'<li><span class="set-val alt">{esc(e["value"])}</span> '
+                                        + where(e) + "</li>" for e in exc) + "</ul>" if exc else "")
+                           + "</details>")
+            rows.append(
+                f'<div class="set-row" id="{esc(c["id"])}">'
+                f'<div class="set-q"><div class="set-label">{esc(c["title"])}</div>'
+                f'<div class="set-detail">{esc(c["detail"])}</div>'
+                f'{finding_list(amb, "העמימויות שהמוסכמה מכריעה")}'
+                f'{finding_list(other, "ממצאים נוספים שהקריאה בהם נשענת עליה")}{details}</div>'
+                f'<div class="set-a"><span class="set-val">{esc(c["value"])}</span>'
+                f'<span class="set-basis {esc(c["basis"])}">{BASIS[c["basis"]]}</span></div></div>')
+        if rows:
+            groups.append(f'<section class="set-group"><h2>{esc(g["title"])}</h2>{"".join(rows)}</section>')
+    body = ('<h1>מוסכמות</h1>'
+            '<p class="lede">כללי הקריאה שהקידוד נוהג לפיהם במקום שהטקסט אינו מכריע — איך מעגלים סכום כשהטקסט אינו '
+            'אומר, האם היום האחרון של תקופה נכלל בה, מה פירוש "מעל", איזו הוראה גוברת — כתובים כאן פעם אחת, '
+            'כל אחד עם הכללים ב־L4 שמחילים אותו. העמוד מתאר את הקוד, ואינו משנה אותו.</p>'
+            '<p>בכל שורה: השאלה, התשובה שהקידוד נותן, ומי הכריע — הטקסט עצמו, או הקידוד. '
+            'כל עמימות שהקידוד נתקל בה מוכרעת לפי אחת המוסכמות, ומתחת לכל מוסכמה מופיעות העמימויות שהיא מכריעה. '
+            'מקום שבו הטקסט עצמו עונה אחרת מופיע תחת <em>חריגים</em>, עם המילים שמכריעות.</p>'
+            '<p class="banner">הבחירות שהקידוד עשה כאן זמניות: הן נבחרו כדי שהקריאה תהיה אחידה, '
+            'וניתן לשנות כל אחת מהן. שינוי מוסכמה משנה את כל הכללים שמחילים אותה.</p>'
+            + ("".join(groups) or '<p class="empty">אין עדיין מוסכמות רשומות.</p>'))
+    return page(here, f"מוסכמות — {TITLE}", body, tab="conventions",
+                desc="כללי הקריאה שקידוד ה-L4 נוהג לפיהם במקום שהטקסט אינו מכריע: עיגול, גבולות תאריכים, ספים ועדיפות בין הוראות")
+
+
 def about_page() -> str:
     body = f"""<h1>אודות</h1>
 <p class="lede">האתר מציב את נוסח קורפוס אופק חדש — המסמכים שמסדירים את העסקת עובדי ההוראה —
@@ -1803,6 +1903,7 @@ def build() -> int:
     (OUT / "index.json").write_text(index_json(flat), encoding="utf-8")
     (OUT / "coverage.html").write_text(coverage_page(all_views), encoding="utf-8")
     (OUT / "diagnostics.html").write_text(diagnostics_page(flat), encoding="utf-8")
+    (OUT / "conventions.html").write_text(conventions_page(load_conventions(), by_file, findings), encoding="utf-8")
     (OUT / "about.html").write_text(about_page(), encoding="utf-8")
     (OUT / ".nojekyll").write_text("")
     done = sum(v.status == "done" for v in flat)

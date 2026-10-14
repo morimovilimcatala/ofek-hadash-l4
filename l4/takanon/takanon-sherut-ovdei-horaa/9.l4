@@ -74,26 +74,25 @@ GIVETH A LIST OF `work-unit row`
 DECIDE `the rows for` d IS
     filter (GIVEN r YIELD r's `row degree` EQUALS d) `the work-unit table`
 
--- F-9-a: a first degree the list does not name has no row. The reading
--- adopted gives it the BA row (any first degree other than a BSc in
--- engineering); an engineer's title is read with the BSc in engineering.
+-- F-9-a: a first degree the list does not name has no row. Convention
+-- thresholds.missing-row (conventions.toml): a row the table does not print is
+-- not filled in from its neighbours, so each degree is read under its own
+-- row only, and a degree the list does not name (a BSc outside engineering,
+-- the engineer's title) has no work unit.
 GIVEN d IS A `degree`
 GIVETH A `degree`
 DECIDE `the row a degree is read under` d IS
-    CONSIDER d
-    WHEN `BSc outside engineering` THEN `BA`
-    WHEN `engineer`                THEN `BSc in engineering`
-    OTHERWISE d
+    d
 
 GIVEN d IS A `degree`, `years teaching classes 13-14` IS A NUMBER
-GIVETH A NUMBER
+GIVETH A MAYBE NUMBER
 DECIDE `work unit` d `years teaching classes 13-14` IS
     CONSIDER `the rows for` (`the row a degree is read under` d)
     WHEN r FOLLOWED BY rest THEN
         IF `years teaching classes 13-14` AT LEAST 2
-        THEN r's `weekly hours after two years`
-        ELSE r's `weekly hours`
-    WHEN EMPTY THEN 0
+        THEN JUST (r's `weekly hours after two years`)
+        ELSE JUST (r's `weekly hours`)
+    WHEN EMPTY THEN NOTHING
 
 `a BSc outside engineering has no row` MEANS
     `the rows for` `BSc outside engineering` EQUALS EMPTY
@@ -318,8 +317,9 @@ DECIDE `deputy's management allowance` `month` `deputy's table rate` `personal c
         `post-primary allowance rate for that number of classes` IS 10
 
 #ASSERT `division principal's management allowance rate` `an institution with 16 classes 13-14` EQUALS 8.5
-#ASSERT `work unit` `MA or MSc` 3 EQUALS 18
-#ASSERT `work unit` `technician` 5 EQUALS 21
+#ASSERT `work unit` `MA or MSc` 3 EQUALS JUST 18
+#ASSERT `work unit` `technician` 5 EQUALS JUST 21
+#ASSERT `work unit` `BSc outside engineering` 0 EQUALS NOTHING
 #EVAL   `work unit` `BSc outside engineering` 0
 #ASSERT `deputy's management allowance` (DATE_FROM_DMY 1 9 1995) 0.1 10000 EQUALS JUST 1000
 #ASSERT `deputy's management allowance` (DATE_FROM_DMY 1 8 1995) 0.1 10000 EQUALS NOTHING
@@ -359,25 +359,27 @@ DECIDE `a checked institution` n p IS
         `post-primary allowance rate for that number of classes` IS p
 
 -- 9.1.2: F-9-a over every degree — exactly the two the list does not
--- name have no row, and the reading gives every degree one. Down the
+-- name have no row, and the reading gives them no work unit. Down the
 -- printed list a higher degree never teaches more hours, before or after
 -- two years; two years never add an hour, take away at most one, and the
 -- step is exactly at two years.
 #ASSERT filter (GIVEN d YIELD count (`the rows for` d) EQUALS 0) `every degree` EQUALS LIST `BSc outside engineering`, `engineer`
-#ASSERT all (GIVEN d YIELD count (`the rows for` (`the row a degree is read under` d)) EQUALS 1) `every degree`
+#ASSERT all (GIVEN d YIELD (`work unit` d 0 EQUALS NOTHING) EQUALS (count (`the rows for` d) EQUALS 0)) `every degree`
 #ASSERT all (GIVEN i YIELD
                 all (GIVEN y YIELD
-                        `work unit` (at `the printed degrees in their order` (i PLUS 1)) y AT MOST `work unit` (at `the printed degrees in their order` i) y)
+                        fromMaybe 0 (`work unit` (at `the printed degrees in their order` (i PLUS 1)) y) AT MOST fromMaybe 0 (`work unit` (at `the printed degrees in their order` i) y))
                     (range 0 5))
             (range 0 4)
 #ASSERT all (GIVEN d YIELD
                 all (GIVEN y YIELD
-                            `work unit` d (y PLUS 1) AT MOST `work unit` d y
-                        AND `work unit` d y MINUS `work unit` d (y PLUS 1) AT MOST 1
-                        AND ((y EQUALS 1) OR `work unit` d (y PLUS 1) EQUALS `work unit` d y)
-                        AND `work unit` d y GREATER THAN 0)
+                        LET w MEANS fromMaybe 0 (`work unit` d y)
+                            v MEANS fromMaybe 0 (`work unit` d (y PLUS 1))
+                        IN      v AT MOST w
+                            AND w MINUS v AT MOST 1
+                            AND ((y EQUALS 1) OR v EQUALS w)
+                            AND w GREATER THAN 0)
                     (range 0 5))
-            `every degree`
+            `the printed degrees in their order`
 
 -- 9.1.3: an adult school's year is the 30 weeks and 5 more, never fewer
 -- than another programme's.

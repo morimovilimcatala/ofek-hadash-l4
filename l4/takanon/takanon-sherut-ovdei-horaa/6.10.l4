@@ -88,20 +88,22 @@ DECIDE `the principal may appoint a coordinator for the subject` s IF
 -- and their hours come to at least one position, the district manager may
 -- recommend a coordinator, who receives 4% (rate under §6.10.6.1א).
 -- F-6.10-f: whether "the hours come to at least one position" binds the
--- small school too is not settled; the reading adopted is the one the
--- order of the words gives — it belongs to the second kind of school.
+-- small school too is not settled. Convention reading.qualifier
+-- (conventions.toml): the condition is set off from the two kinds of school
+-- by a comma (", והיקף השעות ..."), so it binds both — as F-3.14-a reads
+-- the same words in §3.14.3.
 @ref akn:chp_6__sec_6_10__ssec_6_10_2__para_a__subpara_2
 GIVEN s IS A `subject in a school`
 GIVETH A BOOLEAN
 DECIDE `the district manager may recommend a coordinator` s IF
-       s's `is a small school`
-    OR (s's `teachers of the subject` AT LEAST 2 AND s's `positions the subject's hours fill` AT LEAST 1)
+        (s's `is a small school` OR s's `teachers of the subject` AT LEAST 2)
+    AND s's `positions the subject's hours fill` AT LEAST 1
 
 GIVEN s IS A `subject in a school`
 GIVETH A BOOLEAN
-DECIDE `the district manager may recommend a coordinator, the position floor read as binding both` s IF
-        (s's `is a small school` OR s's `teachers of the subject` AT LEAST 2)
-    AND s's `positions the subject's hours fill` AT LEAST 1
+DECIDE `the district manager may recommend a coordinator, the position floor read as binding the second kind only` s IF
+       s's `is a small school`
+    OR (s's `teachers of the subject` AT LEAST 2 AND s's `positions the subject's hours fill` AT LEAST 1)
 
 `a small school whose subject fills half a position` MEANS
     `subject in a school` WITH
@@ -116,7 +118,7 @@ DECIDE `the district manager may recommend a coordinator, the position floor rea
 
 `the two readings of §6.10.2א.2 decide a small school differently` MEANS
     NOT (`the district manager may recommend a coordinator` `a small school whose subject fills half a position`
-         EQUALS `the district manager may recommend a coordinator, the position floor read as binding both` `a small school whose subject fills half a position`)
+         EQUALS `the district manager may recommend a coordinator, the position floor read as binding the second kind only` `a small school whose subject fills half a position`)
 #ASSERT `the two readings of §6.10.2א.2 decide a small school differently`
 
 -- The cap on §6.10.2א.2's arrangement: 280 teachers in 5754 (תשנ"ד), and
@@ -349,6 +351,8 @@ DECIDE `the reward is paid` `still fills the post` IF `still fills the post`
 -- subject in both divisions counts as teaching in one; where two owners pay
 -- his salary, the owner in whose division most of the subject's hours are
 -- taught pays the reward. Equal hours have no majority (F-6.10-e).
+-- Convention thresholds.ties (conventions.toml): on a tie every owner with the
+-- most hours is returned, so equal hours show as both.
 DECLARE `paying owner` IS ONE OF `the middle division's owner`, `the upper division's owner`
 
 @ref akn:chp_6__sec_6_10__ssec_6_10_6__para_3
@@ -359,15 +363,24 @@ DECIDE `hours counted for the reward` `hours in the middle division` `hours in t
 
 @ref akn:chp_6__sec_6_10__ssec_6_10_6__para_3
 GIVEN `hours in the middle division` IS A NUMBER, `hours in the upper division` IS A NUMBER
-GIVETH A MAYBE `paying owner`
+GIVETH A LIST OF `paying owner`
 DECIDE `who pays the reward` `hours in the middle division` `hours in the upper division` IS
     BRANCH IF `hours in the middle division` GREATER THAN `hours in the upper division`
-           THEN JUST `the middle division's owner`
+           THEN LIST `the middle division's owner`
            IF `hours in the upper division` GREATER THAN `hours in the middle division`
-           THEN JUST `the upper division's owner`
-           OTHERWISE NOTHING
+           THEN LIST `the upper division's owner`
+           OTHERWISE LIST `the middle division's owner`, `the upper division's owner`
 
-`equal hours name no paying owner` MEANS `who pays the reward` 10 10 EQUALS NOTHING
+-- The words alone: a division in which "most of the hours" (מרבית השעות)
+-- are taught has more than half of them.
+GIVEN `hours in the division` IS A NUMBER, `hours in the other division` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `most of the hours are taught in the division` `hours in the division` `hours in the other division` IF
+    `hours in the division` GREATER THAN (`hours in the division` PLUS `hours in the other division`) DIVIDED BY 2
+
+`equal hours name no paying owner` MEANS
+        NOT `most of the hours are taught in the division` 10 10
+    AND count (`who pays the reward` 10 10) EQUALS 2
 #ASSERT `equal hours name no paying owner`
 
 -- The paying owner notifies the other, so that it pays nothing. The text
@@ -397,7 +410,7 @@ DECIDE `paying and notifying` IS
 #ASSERT `coordination rate` `100 hours, five others at half` FALSE EQUALS JUST (7%)
 #ASSERT `coordination rate` `48 hours, one other at half and two at less` FALSE EQUALS JUST (5%)
 #ASSERT `coordination reward` (7%) 10000 EQUALS 700
-#ASSERT `who pays the reward` 4 8 EQUALS JUST `the upper division's owner`
+#ASSERT `who pays the reward` 4 8 EQUALS LIST `the upper division's owner`
 
 #TRACE `paying and notifying` AT 0 WITH
     PARTY `the local authority or owning body` DOES `pay the coordination reward` AT 1
@@ -516,7 +529,7 @@ DECIDE `the rate or none` r IS
                         all (GIVEN f YIELD
                                 LET s MEANS `a checked subject` TRUE 6 12 0 0 sm t f
                                 IN  (NOT (`the district manager may recommend a coordinator` s
-                                          EQUALS `the district manager may recommend a coordinator, the position floor read as binding both` s))
+                                          EQUALS `the district manager may recommend a coordinator, the position floor read as binding the second kind only` s))
                                     EQUALS (sm AND f LESS THAN 1))
                             (LIST 1/2, 1, 2))
                     (range 1 3))
@@ -581,13 +594,14 @@ DECIDE `a checked candidate` dg pd lc ex ms yrs gd fr IS
 
 -- 6.10.6.3 over 0 to 10 hours in each division: the hours counted are the
 -- two together; the owner of the division with more of them pays; and
--- F-6.10-e over the same space: no owner is named exactly where the hours
--- are equal.
+-- F-6.10-e over the same space: no division has most of the hours exactly
+-- where they are equal, and there both owners are returned.
 #ASSERT all (GIVEN m YIELD
                 all (GIVEN u YIELD
                             `hours counted for the reward` m u EQUALS m PLUS u
-                        AND ((NOT (m GREATER THAN u)) OR `who pays the reward` m u EQUALS JUST `the middle division's owner`)
-                        AND ((NOT (u GREATER THAN m)) OR `who pays the reward` m u EQUALS JUST `the upper division's owner`)
-                        AND (`who pays the reward` m u EQUALS NOTHING) EQUALS (m EQUALS u))
+                        AND ((NOT (m GREATER THAN u)) OR `who pays the reward` m u EQUALS LIST `the middle division's owner`)
+                        AND ((NOT (u GREATER THAN m)) OR `who pays the reward` m u EQUALS LIST `the upper division's owner`)
+                        AND (count (`who pays the reward` m u) EQUALS 2) EQUALS (m EQUALS u)
+                        AND (`most of the hours are taught in the division` m u OR `most of the hours are taught in the division` u m) EQUALS NOT (m EQUALS u))
                     (range 0 10))
             (range 0 10)

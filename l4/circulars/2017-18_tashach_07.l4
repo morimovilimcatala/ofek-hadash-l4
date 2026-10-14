@@ -151,7 +151,11 @@ DECLARE `physical-education band` HAS
     `band amount` IS A NUMBER
 
 -- The table as printed: "up to 0.3" (0), "from 0.3 to 0.5" (676), "from 0.5
--- and above" (1,349). Both bounds are read inclusively, as printed.
+-- and above" (1,349). Convention thresholds.until (conventions.toml): "עד 0.3"
+-- and "עד 0.5" do not include 0.3 and 0.5; and convention
+-- thresholds.shared-bound: a bound two rows share belongs to the row that
+-- opens there ("מ־"). So a row runs from its first bound up to, not
+-- including, its last.
 @ref akn:art_2/p2 akn:art_2/t1
 `the physical-education table` MEANS
     LIST `physical-education band` 0   0.3 0,
@@ -162,7 +166,7 @@ GIVEN f IS A NUMBER
 GIVETH A LIST OF NUMBER
 DECIDE `the amounts the table gives for` f IS
     map (GIVEN b YIELD b's `band amount`)
-        (filter (GIVEN b YIELD f AT LEAST b's `band from` AND f AT MOST b's `band to`) `the physical-education table`)
+        (filter (GIVEN b YIELD f AT LEAST b's `band from` AND f LESS THAN b's `band to`) `the physical-education table`)
 
 -- F-2017-18_tashach_07-d: "שיעור העסקה" is not said to be the share of the
 -- position in physical education or the employee's whole position. The
@@ -172,8 +176,10 @@ DECIDE `the amounts the table gives for` f IS
     NOT (`the amounts the table gives for` 0.2 EQUALS `the amounts the table gives for` 1)
 #ASSERT `the two readings of the employment rate differ`
 
--- The reading adopted (F-2017-18_tashach_07-a): a band's lower bound
--- belongs to it ("from"), so exactly 0.3 takes 676 and exactly 0.5 1,349.
+-- The reading adopted (F-2017-18_tashach_07-a), by conventions
+-- thresholds.shared-bound and thresholds.until (conventions.toml): a band's
+-- lower bound belongs to it ("from"), so exactly 0.3 takes 676 and exactly
+-- 0.5 1,349.
 @ref akn:art_2/t1
 GIVEN y IS A `clothing year`
 GIVETH A NUMBER
@@ -182,8 +188,12 @@ DECIDE `additional physical-education allowance` y IS
            IF y's `physical-education position` AT LEAST 0.3 THEN 676
            OTHERWISE 0
 
-`the table gives 0.3 two amounts` MEANS `the amounts the table gives for` 0.3 EQUALS LIST 0, 676
-`the table gives 0.5 two amounts` MEANS `the amounts the table gives for` 0.5 EQUALS LIST 676, 1349
+-- F-2017-18_tashach_07-a, the flaw in the text: each row's printed end is
+-- the next row's printed start, so 0.3 and 0.5 are each printed in two rows.
+`the table gives 0.3 two amounts` MEANS
+    (at `the physical-education table` 0)'s `band to` EQUALS 0.3 AND (at `the physical-education table` 1)'s `band from` EQUALS 0.3
+`the table gives 0.5 two amounts` MEANS
+    (at `the physical-education table` 1)'s `band to` EQUALS 0.5 AND (at `the physical-education table` 2)'s `band from` EQUALS 0.5
 `the physical-education table overlaps at its bounds` MEANS
     `the table gives 0.3 two amounts` AND `the table gives 0.5 two amounts`
 #ASSERT `the physical-education table overlaps at its bounds`
@@ -248,17 +258,17 @@ DECIDE `all clothing allowances` y IS
     PLUS `technological clothing allowance` y
 
 -- F-2017-18_tashach_07-e: §1a dates the general allowance (the July 2018
--- salary); §2 and §3 name no month for theirs. The reading adopted pays
--- them with the general allowance, as allowances "in addition" to it.
-`the month §1a names` MEANS `month number` July
+-- salary); §2 and §3 name no month for theirs. The reading adopted, by
+-- convention dates.no-deadline (conventions.toml): the additional allowances
+-- are owed with no deadline, since no stated time is no deadline; July binds
+-- the general allowance only.
 GIVEN y IS A `clothing year`
 GIVETH A DEONTIC Party `clothing action`
-DECIDE `paying the additional allowances with the general one` y IS
+DECIDE `paying the additional allowances` y IS
     PARTY `the employer`
     MUST  `pay the additional clothing allowances` `amount`
           PROVIDED `amount` AT LEAST (`additional physical-education allowance` y PLUS `technological clothing allowance` y)
-    WITHIN `the month §1a names`
-    LEST BREACH BY `the employer` BECAUSE "sections 2-3, read with section 1a: the additional allowances are paid with the general one"
+    LEST BREACH BY `the employer` BECAUSE "sections 2-3, no month stated: the additional allowances are owed with no deadline"
 
 DECLARE `section of the circular` IS ONE OF `section 1`, `section 2`, `section 3`
 GIVEN s IS A `section of the circular`
@@ -318,7 +328,7 @@ DECIDE `names a payment month` s IF
 
 #TRACE `paying the clothing allowance in full with the July 2018 salary` `a half-time physical-education teacher` AT 0 WITH
     PARTY `the employer` DOES `pay the clothing allowance` 1059 AT 11
-#TRACE `paying the additional allowances with the general one` `a half-time physical-education teacher` AT 0 WITH
+#TRACE `paying the additional allowances` `a half-time physical-education teacher` AT 0 WITH
     PARTY `the employer` DOES `pay the additional clothing allowances` 1349 AT 11
 
 -- F-2017-18_tashach_07-g: the table bands "שיעור העסקה" without saying whether a teacher
@@ -389,16 +399,16 @@ DECIDE `a checked year` g o p f l IS
                 AND `the employment cap` `a teacher under Ofek Hadash` AT MOST `the employment cap` t)
             `every track`
 
--- §2 over shares in tenths: every share is in some row, two exactly at 0.3
--- and 0.5 (finding a, whole space), the amount is one of those rows', and
--- it never falls; finding d over the same shares: the two readings part
--- for a full-position teacher exactly below 0.5.
+-- §2 over shares in tenths: every share is in exactly one row (finding a's
+-- reading, whole space), the amount is that row's, and it never falls;
+-- finding d over the same shares: the two readings part for a
+-- full-position teacher exactly below 0.5.
 #ASSERT all (GIVEN f YIELD
                 LET rows MEANS `the amounts the table gives for` f
                     a MEANS `additional physical-education allowance` (`a checked year` TRUE TRUE (LIST 1) f EMPTY)
                     whole MEANS `additional physical-education allowance` (`a checked year` TRUE TRUE (LIST 1) 1 EMPTY)
                 IN      count rows AT LEAST 1
-                    AND (count rows EQUALS 2) EQUALS (f EQUALS 0.3 OR f EQUALS 0.5)
+                    AND count rows EQUALS 1
                     AND elem a rows
                     AND a AT MOST `additional physical-education allowance` (`a checked year` TRUE TRUE (LIST 1) (f PLUS 0.1) EMPTY)
                     AND (NOT (a EQUALS whole)) EQUALS (f LESS THAN 0.5))

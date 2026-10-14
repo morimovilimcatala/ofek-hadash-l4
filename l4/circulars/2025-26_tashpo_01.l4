@@ -14,8 +14,9 @@ IMPORT common
 -- 18 June 2025 (day 0); 31 August 2025 is day 74.
 `31 August 2025` MEANS 74
 
--- Agorot: amounts are rounded half up to the agora where the circular's
--- examples print a rounded figure.
+-- Agorot: the circular sets no rounding, so by convention rounding.default
+-- (conventions.toml) no rule here rounds; this helper reproduces a figure the
+-- examples print, rounding in the check, half up (convention rounding.half).
 GIVEN x IS A NUMBER
 GIVETH A NUMBER
 DECIDE `to the agora` x IS
@@ -1208,18 +1209,21 @@ DECIDE `the units the table gives for` `ending hour` IS
 #ASSERT `an activity ending at 16:00 is in two rows`
 #ASSERT all (GIVEN h YIELD count (`the units the table gives for` h) EQUALS 2) (LIST 15, 16, 18, 21)
 
--- The reading adopted: an hour that ends one row and opens the next
--- belongs to the row it ends.
+-- The reading adopted (F-2025-26_tashpo_01-i).
+-- Convention thresholds.shared-bound (conventions.toml): an hour that closes
+-- one row and opens the next belongs to the row it OPENS; and convention
+-- thresholds.until: "עד 15:00" ends at 15:00 and does not include it. So
+-- a band runs from its first hour up to, not including, its last.
 @ref akn:art_16__para_16-2__subpara_b akn:art_16__para_16-2__subpara_b/p2 akn:art_16__para_16-2__subpara_c
 GIVEN k IS A `trip kind`
 GIVETH A NUMBER
 DECIDE `trip units` k IS
     CONSIDER k
     WHEN `ending at an hour` h THEN
-        BRANCH IF h AT MOST 15 THEN 0
-               IF h AT MOST 16 THEN 0.5
-               IF h AT MOST 18 THEN 1.5
-               IF h AT MOST 21 THEN 3
+        BRANCH IF h LESS THAN 15 THEN 0
+               IF h LESS THAN 16 THEN 0.5
+               IF h LESS THAN 18 THEN 1.5
+               IF h LESS THAN 21 THEN 3
                OTHERWISE 4.5
     WHEN `detached activity` THEN 3
     WHEN `activity with an overnight stay` THEN 6.5
@@ -1598,12 +1602,14 @@ DECIDE `the salary to convert at a full position` `paid for 100%` `paid by the p
 -- 140%): T is the full salary by the position (March before joining; for
 -- a principal on leave then, the March before the leave); B = T × (100 +
 -- Y) / 100; C = B less the new table salary, turned into a percentage of
--- the combined salary.
+-- the combined salary. Convention rounding.default (conventions.toml): the text
+-- sets no rounding, so B and C are exact; the check against the example's
+-- printed C rounds in the check.
 @ref akn:att_4__hc_1__para_3__subpara_e/p5 akn:att_4__hc_1__para_3__subpara_e/p6 akn:att_4__hc_1__para_3__subpara_e/p7 akn:att_4__hc_1__para_3__subpara_e/p8 akn:att_4__hc_1__para_3__subpara_e/p9 akn:att_4__hc_1__para_3__subpara_e/p10 akn:att_4__hc_1__para_3__subpara_e/p11 akn:att_4__hc_1__para_3__subpara_e/p12 akn:att_4__hc_1__para_3__subpara_e/p13 akn:att_4__hc_1__para_3__subpara_e/p14 akn:att_4__hc_1__para_3__subpara_e/p15
 GIVEN T IS A NUMBER, Y IS A NUMBER, `new table salary` IS A NUMBER
 GIVETH A NUMBER
 DECIDE `the personal supplement` T Y `new table salary` IS
-    `to the agora` (T TIMES (1 PLUS Y)) MINUS `new table salary`
+    T TIMES (1 PLUS Y) MINUS `new table salary`
 
 GIVEN T IS A NUMBER, Y IS A NUMBER, `new table salary` IS A NUMBER
 GIVETH A NUMBER
@@ -1615,7 +1621,7 @@ DECIDE `the personal supplement as a percentage` T Y `new table salary` IS
 `the principal's T` MEANS `the principal's components by the position` PLUS `the principal's management allowance`
 
 #ASSERT `the principal's T` EQUALS 20735.13
-#ASSERT `the personal supplement` `the principal's T` `a principal's conversion factor` `the principal's new combined salary` EQUALS 3758.72
+#ASSERT `to the agora` (`the personal supplement` `the principal's T` `a principal's conversion factor` `the principal's new combined salary`) EQUALS 3758.72
 #ASSERT TRUNC (`the personal supplement as a percentage` `the principal's T` `a principal's conversion factor` `the principal's new combined salary` TIMES 100000) 0 EQUALS 18712
 
 §§ `נספח ה' כתובות לפניות`
@@ -1678,6 +1684,8 @@ DECIDE `the frontal hours at level` level table IS
 #ASSERT `role allowances paid` (LIST `class educator`, `trips coordinator`, `laboratory coordinator`) EQUALS 0.16
 #ASSERT `the role allowance with its minimum` `class education` 8000 EQUALS 1000
 #ASSERT `trip units` (`ending at an hour` 17) EQUALS 1.5
+#ASSERT `trip units` (`ending at an hour` 16) EQUALS 1.5
+#ASSERT `trip units` (`ending at an hour` 15) EQUALS 0.5
 #ASSERT `trip allowance` `activity with an overnight stay` 10000 EQUALS 455
 #ASSERT `substitute hours for a trip` 2 9 EQUALS 5
 #ASSERT `pay for school activity` `instead of a stay hour worked another day` 100 4 38 EQUALS 250

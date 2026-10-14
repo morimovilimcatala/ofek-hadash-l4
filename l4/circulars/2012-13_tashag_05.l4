@@ -351,11 +351,14 @@ DECLARE `sick-hours row` HAS
 -- has half. Notes 1-2 (¶116-¶118): a deputy teaching less than 2/3 of the
 -- base of 24 has half, 2/3 and more the full entitlement. The full
 -- entitlement is what the rows print: 4 hours above 55, 2 above 50.
+-- Convention thresholds.above (conventions.toml): the rows print "מעל גיל 50"
+-- and "מעל גיל 55", so neither 50 nor 55 itself is above: 50 has none and
+-- 55 has the 2 hours.
 @ref akn:art_3__para_b__subpara_2/p87 akn:art_3__para_b__subpara_2/p116 akn:art_3__para_b__subpara_2/p117 akn:art_3__para_b__subpara_2/p118
 GIVEN r IS A `sick-day role`, `frontal hours in class` IS A NUMBER, `age` IS A NUMBER
 GIVETH A NUMBER
 DECIDE `age hours off the base` r `frontal hours in class` `age` IS
-    IF `age` LESS THAN 50
+    IF `age` AT MOST 50
     THEN 0
     ELSE IF r EQUALS `a principal` OR (r EQUALS `a deputy principal` AND `frontal hours in class` LESS THAN (2 DIVIDED BY 3) TIMES 24)
          THEN (IF `age` GREATER THAN 55 THEN 4 ELSE 2) DIVIDED BY 2
@@ -389,6 +392,8 @@ DECIDE `age hours off the base` r `frontal hours in class` `age` IS
 #ASSERT `hours as days` 86.6 40 `תשע"ג` EQUALS 15
 #ASSERT `days carried from before תשע"ב` 48 24 EQUALS 15
 #ASSERT NOT (`age hours off the base` `a deputy principal` 10 57 EQUALS 4)
+#ASSERT `age hours off the base` `a teacher` 20 50 EQUALS 0
+#ASSERT `age hours off the base` `a teacher` 20 51 EQUALS 2
 
 #TRACE `the yearly conversion to days` AT 0 WITH
     PARTY `the local authority or owning body` DOES `convert the hours to days` AT 12
@@ -473,14 +478,14 @@ DECIDE `age hours off the base` r `frontal hours in class` `age` IS
             (LIST (LIST `the first table (deputy rows)`), (LIST `the principal table`), (LIST `the third table (teacher rows)`))
 
 -- The age notes over every role, age and frontal load: the age hours are
--- none below 50 and never more than the full entitlement (4 above 55, 2
+-- none up to 50 and never more than the full entitlement (4 above 55, 2
 -- above 50); a principal has half of it, a teacher all of it, and a deputy
 -- all of it exactly from two thirds of 24 frontal hours.
 #ASSERT all (GIVEN r YIELD
                 all (GIVEN a YIELD
                         all (GIVEN f YIELD
                                 LET h MEANS `age hours off the base` r f a
-                                    full MEANS IF a LESS THAN 50 THEN 0 ELSE IF a GREATER THAN 55 THEN 4 ELSE 2
+                                    full MEANS IF a AT MOST 50 THEN 0 ELSE IF a GREATER THAN 55 THEN 4 ELSE 2
                                 IN      h AT MOST full
                                     AND h EQUALS (IF r EQUALS `a principal` OR (r EQUALS `a deputy principal` AND f LESS THAN 16)
                                                   THEN full DIVIDED BY 2 ELSE full))

@@ -14,7 +14,7 @@ IMPORT common
 @desc A teaching employee's school year 2010/11, as far as this circular asks about it.
 DECLARE `clothing year` HAS
     `in the teaching-staff grade`        IS A BOOLEAN @desc the employee is graded in the teaching-staff grade (דירוג עובדי הוראה)
-    `years of teaching seniority`        IS A NUMBER  @desc seniority in teaching (ותק בהוראה), in years
+    `years of teaching seniority`        IS A NUMBER  @desc seniority in teaching (ותק בהוראה), in completed years (0 in the first year)
     `position fraction`                  IS A NUMBER  @desc the share of a full position held at this employer (1 = one full position)
     `position at all employers`          IS A NUMBER  @desc the share of a full position held at all employers together
     `teaches physical education`         IS A BOOLEAN
@@ -29,6 +29,7 @@ DECLARE `clothing item` IS ONE OF
 
 DECLARE `clothing action` IS ONE OF
     `pay the clothing allowance` HAS `amount of clothing allowance paid` IS A NUMBER
+    `pay the additional clothing allowances` HAS `amount of the additional allowances paid` IS A NUMBER
     `work beyond 140% of a position`
 
 §§ `א קצובת ביגוד – כללי`
@@ -37,8 +38,10 @@ DECLARE `clothing action` IS ONE OF
 -- July 2011 salary; "במלואה" is read as one payment, not as setting aside
 -- section א.5's pro-rating, which the same section states in the same breath.
 -- Section א is headed "general", and sections ב and ג name no month of their
--- own; the July payment is read as the whole allowance's
--- (F-2010-11_tashaa_03-e).
+-- own (F-2010-11_tashaa_03-e). The reading adopted, by convention
+-- dates.no-deadline (conventions.toml): July binds the general allowance of
+-- section א; the additional allowances of sections ב and ג are owed with no
+-- deadline, since no stated time is no deadline.
 -- Time is counted in school months of 2010/11 (common.l4: September = 1).
 @ref akn:art_a__para_1
 GIVEN y IS A `clothing year`
@@ -46,9 +49,18 @@ GIVETH A DEONTIC Party `clothing action`
 DECIDE `payment with July's salary` y IS
     PARTY `the local authority or owning body`
     MUST  `pay the clothing allowance` `amount paid`
-          PROVIDED `amount paid` AT LEAST `clothing allowance` y
+          PROVIDED `amount paid` AT LEAST `general clothing allowance` y
     WITHIN `month number` July
     LEST BREACH BY `the local authority or owning body` BECAUSE "section א.1: the clothing allowance is paid in full with the July 2011 salary"
+
+@ref akn:art_b akn:art_c__para_4
+GIVEN y IS A `clothing year`
+GIVETH A DEONTIC Party `clothing action`
+DECIDE `paying the additional allowances` y IS
+    PARTY `the local authority or owning body`
+    MUST  `pay the additional clothing allowances` `additional amount`
+          PROVIDED `additional amount` AT LEAST `physical-education allowance` y PLUS `technological clothing allowance` y
+    LEST  BREACH BY `the local authority or owning body` BECAUSE "sections ב and ג name no month: the additional allowances are owed with no deadline"
 
 `the months sections ב and ג name for payment` MEANS EMPTY
 `sections ב and ג name no month of payment` MEANS
@@ -84,8 +96,12 @@ DECIDE `the amounts the seniority table gives for` n IS
         (filter (GIVEN b YIELD n AT LEAST b's `from seniority year` AND n AT MOST b's `to seniority year`)
                 `the seniority table`)
 
--- F-2010-11_tashaa_03-a: the table opens at year 1. The reading adopted
--- counts the year being served, so a first-year employee is in year 1.
+-- F-2010-11_tashaa_03-a: the table opens at year 1. The reading adopted, by
+-- convention thresholds.seniority (conventions.toml): the table prints "1-25
+-- שנים" and "26 שנים ומעלה", years of seniority rather than "the N-th
+-- year", so `years of teaching seniority` is COMPLETED years and the top
+-- row begins at 26. A first-year employee (0 completed), whom no row
+-- prints and section א.2 entitles, takes the first row.
 GIVEN y IS A `clothing year`
 GIVETH A NUMBER
 DECIDE `full-position amount by seniority` y IS
@@ -96,6 +112,12 @@ DECIDE `full-position amount by seniority` y IS
 `a first-year employee has no row if seniority counts completed years` MEANS
     `the amounts the seniority table gives for` 0 EQUALS EMPTY
 #ASSERT `a first-year employee has no row if seniority counts completed years`
+
+-- The reading adopted (completed years): 0 takes the first row, 25 the
+-- first, 26 the second.
+#ASSERT `full-position amount by seniority` (`a checked year` TRUE 0 1 0 FALSE EMPTY) EQUALS 1464
+#ASSERT `full-position amount by seniority` (`a checked year` TRUE 25 1 0 FALSE EMPTY) EQUALS 1464
+#ASSERT `full-position amount by seniority` (`a checked year` TRUE 26 1 0 FALSE EMPTY) EQUALS 2042
 
 #ASSERT all (GIVEN n YIELD count (`the amounts the seniority table gives for` n) EQUALS 1)
             (LIST 1, 2, 10, 25, 26, 30, 40)
