@@ -26,14 +26,35 @@ DECLARE `1.27 party` IS ONE OF
 `the general supervisor` MEANS `takanon party` `the supervisor`
 `the union`             MEANS `takanon party` `the teachers' union`
 
--- Time in 1.27.1 and 1.27.2 is counted in days of the calendar year, with
--- 1 January as day 1, in a common year; a leap year moves every date below
--- by one day and changes no order between them.
-`31 March`  MEANS 90
-`30 April`  MEANS 120
-`30 June`   MEANS 181
-`1 August`  MEANS 213
-`5 August`  MEANS 217
+-- Time in 1.27.1 and 1.27.2 is counted in days of the calendar year `y`,
+-- with 1 January as day 1. Convention dates.calendar (settings.toml): the
+-- real calendar, so in a leap year every date from 1 March is a day later
+-- (31 March is day 90 in a common year, 91 in a leap one).
+GIVEN `day` IS A NUMBER, `month` IS A NUMBER, y IS A NUMBER
+GIVETH A NUMBER
+DECIDE `day of the year` `day` `month` y IS
+    DATE_SERIAL (DATE_FROM_DMY `day` `month` y) MINUS DATE_SERIAL (DATE_FROM_DMY 1 1 y) PLUS 1
+
+GIVEN y IS A NUMBER
+GIVETH A NUMBER
+DECIDE `31 March` y IS `day of the year` 31 3 y
+
+GIVEN y IS A NUMBER
+GIVETH A NUMBER
+DECIDE `30 April` y IS `day of the year` 30 4 y
+
+GIVEN y IS A NUMBER
+GIVETH A NUMBER
+DECIDE `30 June` y IS `day of the year` 30 6 y
+
+GIVEN y IS A NUMBER
+GIVETH A NUMBER
+DECIDE `1 August` y IS `day of the year` 1 8 y
+
+GIVEN y IS A NUMBER
+GIVETH A NUMBER
+DECIDE `5 August` y IS `day of the year` 5 8 y
+
 `two weeks` MEANS 14
 `one week`  MEANS 7
 
@@ -84,6 +105,7 @@ DECLARE `transfer action` IS ONE OF
 @ref akn:chp_1ב__sec_1_27__ssec_1_27_1__para_1/p1
 DECLARE `transfer request` HAS
     `submitted on day`                         IS A NUMBER  @desc day of the calendar year the request reached the district manager (1 January = 1)
+    `calendar year`                            IS A NUMBER  @desc the Gregorian year the request was submitted in
     `is reasoned`                              IS A BOOLEAN
     `is from an official institution in one district to an official institution in another` IS A BOOLEAN
     `is on the request form of the district office` IS A BOOLEAN
@@ -93,12 +115,13 @@ DECLARE `transfer request` HAS
 -- 1.27.1.1 ¶1: the request goes to the manager of the district the employee
 -- works in, by 31 March. The permission runs to that date, and once used the
 -- district manager owes a decision by 30 April (1.27.1.4 ¶3, 1.27.1.5 ¶2).
+GIVEN y IS A NUMBER @desc the calendar year of the request
 GIVETH A DEONTIC `1.27 party` `transfer action`
-DECIDE `filing an inter-district transfer request` IS
+DECIDE `filing an inter-district transfer request` y IS
     PARTY `the employee`
-    MAY   `submit a transfer request` d PROVIDED d AT MOST `31 March`
-    WITHIN `31 March`
-    HENCE `the district manager decides by 30 April` d
+    MAY   `submit a transfer request` d PROVIDED d AT MOST `31 March` y
+    WITHIN `31 March` y
+    HENCE `the district manager decides by 30 April` y d
 
 @ref akn:chp_1ב__sec_1_27__ssec_1_27_1__para_1/p2
 GIVETH A DEONTIC `1.27 party` `transfer action`
@@ -113,7 +136,7 @@ DECIDE `the yearly notice of the deadline` IS
 GIVEN r IS A `transfer request`
 GIVETH A BOOLEAN
 DECIDE `the request was filed in time` r IF
-    r's `submitted on day` AT MOST `31 March`
+    r's `submitted on day` AT MOST `31 March` (r's `calendar year`)
 
 @ref akn:chp_1ב__sec_1_27__ssec_1_27_1__para_1/p3
 GIVETH A DEONTIC `1.27 party` `transfer action`
@@ -264,12 +287,12 @@ DECLARE `staffing consideration` IS ONE OF
 -- 1.27.1.4 ¶3 and 1.27.1.5 ¶2: approval or rejection alike is notified to the
 -- employee on the form by 30 April. The obligation runs from the request.
 @ref akn:chp_1ב__sec_1_27__ssec_1_27_1__para_4/p3 akn:chp_1ב__sec_1_27__ssec_1_27_1__para_5/p2
-GIVEN `filed on` IS A NUMBER
+GIVEN y IS A NUMBER, `filed on` IS A NUMBER
 GIVETH A DEONTIC `1.27 party` `transfer action`
-DECIDE `the district manager decides by 30 April` `filed on` IS
+DECIDE `the district manager decides by 30 April` y `filed on` IS
     PARTY `the district manager`
-    MUST  `notify the decision on the form` n PROVIDED n AT MOST `30 April`
-    WITHIN `30 April` MINUS `filed on`
+    MUST  `notify the decision on the form` n PROVIDED n AT MOST `30 April` y
+    WITHIN `30 April` y MINUS `filed on`
     LEST  BREACH BY `the district manager` BECAUSE "1.27.1.4/1.27.1.5: the decision is notified on the form by 30 April"
 
 @ref akn:chp_1ב__sec_1_27__ssec_1_27_1__para_4/p4 akn:chp_1ב__sec_1_27__ssec_1_27_1__para_5/p4
@@ -393,6 +416,7 @@ DECLARE `clause citation` HAS
 §§ `1.27.1.7 העברה שאושרה ואינה מנוצלת`
 
 DECLARE `conditional transferee` HAS
+    `calendar year`                                     IS A NUMBER @desc the Gregorian year of the transfer
     `day the conditional transfer was approved` IS A NUMBER
     `offered work in the receiving district by 1 August` IS A BOOLEAN
     `placed in the receiving district by 1 August`     IS A BOOLEAN
@@ -405,17 +429,18 @@ GIVETH A BOOLEAN
 DECIDE `may stay in the permanent post` t IF
         (NOT t's `offered work in the receiving district by 1 August`)
     AND t's `day the wish to stay was notified` GREATER THAN 0
-    AND t's `day the wish to stay was notified` AT MOST `5 August`
+    AND t's `day the wish to stay was notified` AT MOST `5 August` (t's `calendar year`)
 
 -- 1.27.1.7 ¶1-¶2: the notice is in writing, by registered mail or telegram,
 -- to both district managers, by 5 August — also where the conditional
 -- transfer was approved after the 30 April date.
 @ref akn:chp_1ב__sec_1_27__ssec_1_27_1__para_7/p1 akn:chp_1ב__sec_1_27__ssec_1_27_1__para_7/p2
+GIVEN y IS A NUMBER @desc the calendar year of the transfer
 GIVETH A DEONTIC `1.27 party` `transfer action`
-DECIDE `keeping the permanent post` IS
+DECIDE `keeping the permanent post` y IS
     PARTY `the employee`
-    MAY   `notify the wish to stay` d PROVIDED d AT MOST `5 August`
-    WITHIN `5 August`
+    MAY   `notify the wish to stay` d PROVIDED d AT MOST `5 August` y
+    WITHIN `5 August` y
     LEST  `the sending district may fill the post`
 
 @ref akn:chp_1ב__sec_1_27__ssec_1_27_1__para_7/p3
@@ -434,6 +459,7 @@ DECIDE `the post in the sending district is lost` t IF
 -- needs "not offered", ¶4's loss of the post needs "placed".
 `offered but not placed` MEANS
     `conditional transferee` WITH
+        `calendar year`                                     IS 2023
         `day the conditional transfer was approved`        IS 110
         `offered work in the receiving district by 1 August` IS TRUE
         `placed in the receiving district by 1 August`     IS FALSE
@@ -457,7 +483,7 @@ DECIDE `the wait until placement counts as unpaid leave` t IF
         (NOT t's `placed in the receiving district by 1 August`)
     AND t's `not placed through no fault of his own`
     AND (NOT (    t's `day the wish to stay was notified` GREATER THAN 0
-              AND t's `day the wish to stay was notified` AT MOST `5 August`))
+              AND t's `day the wish to stay was notified` AT MOST `5 August` (t's `calendar year`)))
 
 @ref akn:chp_1ב__sec_1_27__ssec_1_27_1__para_8/p2
 GIVEN t IS A `conditional transferee`
@@ -641,20 +667,22 @@ DECIDE `the new-year initiated transfer is allowed` t IF
 -- and hears the employee; the record goes through the district personnel
 -- department, with the personal file, to the district manager.
 @ref akn:chp_1ב__sec_1_27__ssec_1_27_2/p4
+GIVEN y IS A NUMBER @desc the calendar year of the transfer notice
 GIVETH A DEONTIC `1.27 party` `transfer action`
-DECIDE `hearing before an initiated transfer` IS
+DECIDE `hearing before an initiated transfer` y IS
     PARTY `the general supervisor`
     MUST  `check the facts, hear the employee and send the record to the district personnel department`
     HENCE (PARTY `the district personnel department`
            MUST  `forward the record with the personal file to the district manager`
-           HENCE `the notice of a new-year initiated transfer`)
+           HENCE `the notice of a new-year initiated transfer` y)
 
 @ref akn:chp_1ב__sec_1_27__ssec_1_27_2/p6
+GIVEN y IS A NUMBER @desc the calendar year of the transfer notice
 GIVETH A DEONTIC `1.27 party` `transfer action`
-DECIDE `the notice of a new-year initiated transfer` IS
+DECIDE `the notice of a new-year initiated transfer` y IS
          (PARTY `the district manager`
-          MUST  `send the transfer notice by registered mail` d PROVIDED d AT MOST `30 June`
-          WITHIN `30 June`
+          MUST  `send the transfer notice by registered mail` d PROVIDED d AT MOST `30 June` y
+          WITHIN `30 June` y
           LEST  BREACH BY `the district manager` BECAUSE "1.27.2.1ב: the signed notice with its reasons goes by registered mail by 30 June")
     RAND (PARTY `the district manager`
           MUST  `send a copy to the local union branch`)
@@ -694,11 +722,12 @@ DECIDE `the division decides an initiated-transfer appeal` IS
 -- akn:chp_1ב__sec_1_27__ssec_1_27_2/p11 akn:chp_1ב__sec_1_27__ssec_1_27_2/p12 Headings "2. העברה לפי בקשת העובד" and "א. הגשת הבקשה"; their rules follow.
 
 @ref akn:chp_1ב__sec_1_27__ssec_1_27_2/p13
+GIVEN y IS A NUMBER @desc the calendar year of the request
 GIVETH A DEONTIC `1.27 party` `transfer action`
-DECIDE `requesting a move inside the district` IS
+DECIDE `requesting a move inside the district` y IS
     PARTY `the employee`
-    MAY   `submit a transfer request` d PROVIDED d AT MOST `31 March`
-    WITHIN `31 March`
+    MAY   `submit a transfer request` d PROVIDED d AT MOST `31 March` y
+    WITHIN `31 March` y
     HENCE (PARTY `the district manager` MUST `notify the employee`)
 
 @ref akn:chp_1ב__sec_1_27__ssec_1_27_2/p14 akn:chp_1ב__sec_1_27__ssec_1_27_2/p15
@@ -921,6 +950,7 @@ DECIDE `when the district manager will not employ the teacher` `the teacher refu
 `a request filed on 20 March` MEANS
     `transfer request` WITH
         `submitted on day`                         IS 79
+        `calendar year`                            IS 2023
         `is reasoned`                              IS TRUE
         `is from an official institution in one district to an official institution in another` IS TRUE
         `is on the request form of the district office` IS TRUE
@@ -933,15 +963,15 @@ DECIDE `when the district manager will not employ the teacher` `the teacher refu
 #ASSERT `position offered to a conditional transferee` 1.25 EQUALS 1
 
 -- Filed on 20 March, answered on 25 April: in time. Answered on 2 May: late.
-#TRACE `filing an inter-district transfer request` AT 0 WITH
+#TRACE `filing an inter-district transfer request` 2023 AT 0 WITH
     PARTY `the employee` DOES `submit a transfer request` 79 AT 79
     PARTY `the district manager` DOES `notify the decision on the form` 115 AT 115
-#TRACE `filing an inter-district transfer request` AT 0 WITH
+#TRACE `filing an inter-district transfer request` 2023 AT 0 WITH
     PARTY `the employee` DOES `submit a transfer request` 79 AT 79
     PARTY `the district manager` DOES `notify the decision on the form` 122 AT 122
 
 -- The notice of a new-year initiated transfer, sent on 20 June with a copy to the union.
-#TRACE `the notice of a new-year initiated transfer` AT 0 WITH
+#TRACE `the notice of a new-year initiated transfer` 2023 AT 0 WITH
     PARTY `the district manager` DOES `send the transfer notice by registered mail` 171 AT 171
     PARTY `the district manager` DOES `send a copy to the local union branch` AT 172
 
@@ -963,20 +993,25 @@ DECIDE `every row of transfer flags of length` n IS
     ELSE concat (map (GIVEN r YIELD LIST (TRUE FOLLOWED BY r), (FALSE FOLLOWED BY r))
                      (`every row of transfer flags of length` (n MINUS 1)))
 
--- 1.27.1.1: a request is in time exactly up to 31 March (day 90).
-GIVEN d IS A NUMBER
+-- 1.27.1.1: a request is in time exactly up to 31 March — day 90 of 2023,
+-- day 91 of the leap year 2024.
+GIVEN d IS A NUMBER, y IS A NUMBER
 GIVETH A `transfer request`
-DECIDE `a request submitted on day` d IS
+DECIDE `a request submitted on day` d `of` y IS
     `transfer request` WITH
         `submitted on day`                         IS d
+        `calendar year`                            IS y
         `is reasoned`                              IS TRUE
         `is from an official institution in one district to an official institution in another` IS TRUE
         `is on the request form of the district office` IS TRUE
         `attaches the documents needed`            IS TRUE
         `is filed as an original and two copies`   IS TRUE
 
-#ASSERT all (GIVEN d YIELD `the request was filed in time` (`a request submitted on day` d) EQUALS (d AT MOST 90))
+#ASSERT all (GIVEN d YIELD `the request was filed in time` (`a request submitted on day` d `of` 2023) EQUALS (d AT MOST 90))
             (range 1 365)
+#ASSERT all (GIVEN d YIELD `the request was filed in time` (`a request submitted on day` d `of` 2024) EQUALS (d AT MOST 91))
+            (range 1 366)
+#ASSERT `31 March` 2023 EQUALS 90 AND `5 August` 2023 EQUALS 217 AND `5 August` 2024 EQUALS 218
 
 -- 1.27.1.2 over every combination of the bars, with 0 to 10 years in the
 -- district: an employee is barred exactly when one bar holds; certification
@@ -1063,6 +1098,7 @@ GIVEN offered IS A BOOLEAN, placed IS A BOOLEAN, notice IS A NUMBER, nofault IS 
 GIVETH A `conditional transferee`
 DECIDE `a checked transferee` offered placed notice nofault IS
     `conditional transferee` WITH
+        `calendar year`                                       IS 2023
         `day the conditional transfer was approved`          IS 110
         `offered work in the receiving district by 1 August` IS offered
         `placed in the receiving district by 1 August`       IS placed
@@ -1093,7 +1129,7 @@ DECIDE `what becomes of` t IS
                         AND (NOT t's `placed in the receiving district by 1 August`)
                         AND (   (NOT t's `not placed through no fault of his own`)
                              OR (    t's `day the wish to stay was notified` GREATER THAN 0
-                                 AND t's `day the wish to stay was notified` AT MOST `5 August`))))
+                                 AND t's `day the wish to stay was notified` AT MOST `5 August` (t's `calendar year`)))))
             `every checked transferee`
 
 -- 1.27.2.1 over every initiated transfer: the in-year and the new-year
