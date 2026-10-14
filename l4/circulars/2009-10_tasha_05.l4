@@ -14,7 +14,7 @@ IMPORT common
 @desc A teaching employee's school year 2009/10, as far as this circular asks about it.
 DECLARE `clothing year` HAS
     `in the teaching-staff grade`        IS A BOOLEAN @desc the employee is graded in the teaching-staff grade (דירוג עובדי הוראה)
-    `years of teaching seniority`        IS A NUMBER  @desc seniority in teaching (ותק בהוראה), in years
+    `years of teaching seniority`        IS A NUMBER  @desc seniority in teaching (ותק בהוראה), in completed years (0 in the first year)
     `position fraction`                  IS A NUMBER  @desc the share of a full position held (1 = one full position)
     `teaches physical education`         IS A BOOLEAN
     `physical-education employment rate` IS A NUMBER  @desc the employment rate (שיעור העסקה) section ב's table is read by; see F-2009-10_tasha_05-c
@@ -61,8 +61,12 @@ DECIDE `entitled to the clothing allowance` y IF
 `the school year this circular prices` MEANS "תש\"ע (September 2009 to August 2010)"
 
 -- Section א.3: the payment is by the employee's seniority. The reading
--- adopted (F-2009-10_tasha_05-a) counts the year being served, so a
--- first-year employee is in year 1 of section א.4's table.
+-- adopted (F-2009-10_tasha_05-a), by
+-- convention thresholds.seniority (settings.toml): the table prints "1-25
+-- שנים" and "26 שנים ומעלה", years of seniority rather than "the N-th
+-- year", so `years of teaching seniority` is COMPLETED years and the top
+-- row begins at 26. A first-year employee (0 completed), whom no row
+-- prints and section א.2 entitles, takes the first row.
 @ref akn:art_a__para_3
 GIVEN y IS A `clothing year`
 GIVETH A NUMBER
@@ -261,6 +265,12 @@ DECIDE `both grants added` y IS
 `a first-year employee has no row if seniority counts completed years` MEANS
     `the amounts the seniority table gives for` 0 EQUALS EMPTY
 #ASSERT `a first-year employee has no row if seniority counts completed years`
+
+-- The reading adopted (completed years): 0 takes the first row, 25 the
+-- first, 26 the second.
+#ASSERT `full-position amount by seniority` (`a checked year` TRUE 0 1 0 FALSE EMPTY) EQUALS 1406
+#ASSERT `full-position amount by seniority` (`a checked year` TRUE 25 1 0 FALSE EMPTY) EQUALS 1406
+#ASSERT `full-position amount by seniority` (`a checked year` TRUE 26 1 0 FALSE EMPTY) EQUALS 1961
 
 #ASSERT all (GIVEN n YIELD count (`the amounts the seniority table gives for` n) EQUALS 1)
             (LIST 1, 2, 10, 25, 26, 30, 40)
