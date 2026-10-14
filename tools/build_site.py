@@ -1741,11 +1741,13 @@ def conventions_page(reg: dict, by_file: dict[str, "SectionView"], findings: lis
 
     def where(a: dict) -> str:
         v = by_file.get(a["l4"])
-        name = f'<code dir="ltr">{esc(a["rule"])}</code>' if a.get("rule") else ""
-        sec = (f'<a href="{rel(v.href, here)}">{esc(akn.title(v.doc))} <bdi dir="ltr">§{esc(v.section.num)}</bdi></a>'
+        name = f'<code class="rule" dir="ltr">{esc(a["rule"])}</code>' if a.get("rule") else ""
+        # a whole document's one "section" is numbered by its slug: no § for it
+        num = "" if v is None or akn.is_whole(v.doc) else f' <bdi dir="ltr">§{esc(v.section.num)}</bdi>'
+        sec = (f'<a href="{rel(v.href, here)}">{esc(akn.title(v.doc))}{num}</a>'
                if v is not None else f'<code dir="ltr">{esc(a["l4"])}</code>')
         why = f' <span class="why">— {esc(a["why"])}</span>' if a.get("why") else ""
-        return f"{sec} {name}{why}"
+        return f"{sec}{why}{name}"
 
     def finding_list(fs: list[dict], head: str) -> str:
         """The findings a convention decides, as links. The first few show;
