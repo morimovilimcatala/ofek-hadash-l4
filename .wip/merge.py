@@ -24,7 +24,9 @@ out = [blocks[0]]
 for b in blocks[1:]:
     sid = tomllib.loads("[[convention]]\n" + b)["convention"][0]["id"]
     b = b.rstrip("\n").split("\n")
-    b = [l for l in b if not l.startswith(("applies", "exceptions", "  {"))]  # idempotent
+    # idempotent: applies and exceptions are always the block's last lines
+    cut = next((i for i, l in enumerate(b) if l.startswith(("applies", "exceptions"))), len(b))
+    b = b[:cut]
     seen = set(); rows = []
     for a in applies.get(sid, []):
         if not a.get("rule"): continue
