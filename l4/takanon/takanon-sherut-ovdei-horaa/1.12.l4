@@ -332,12 +332,16 @@ DECIDE `entitled to class education` e d IF
     OTHERWISE d `is on or after` (DATE_FROM_DMY 1 11 1983)
 
 -- ¶34: 10% from 1.1.01; ¶36: twice for two classes. F-1.12-j: the text
--- states no rate for three; the reading adopted caps it at twice.
+-- states no rate for three. Convention thresholds.missing-row
+-- (settings.toml): a row the text does not print is left without a value,
+-- so three classes or more have no rate here.
 @ref akn:chp_1א___sec_1_12__ssec_1_12/p34 akn:chp_1א___sec_1_12__ssec_1_12/p36
 GIVEN `classes educated` IS A NUMBER
-GIVETH A NUMBER
+GIVETH A MAYBE NUMBER
 DECIDE `class-education rate` `classes educated` IS
-    10% TIMES min `classes educated` 2
+    IF `classes educated` AT MOST 2
+    THEN JUST (10% TIMES `classes educated`)
+    ELSE NOTHING
 
 -- ¶35 and ¶42: both are salary for every purpose from 1.11.83.
 @ref akn:chp_1א___sec_1_12__ssec_1_12/p35 akn:chp_1א___sec_1_12__ssec_1_12/p42
@@ -767,7 +771,7 @@ DECIDE `extra pay for concentrated training` `trains on a regular basis` IS
         `fills the role now`        IS TRUE
         `actual position fraction`  IS 0.5
         `full-position base`        IS 10000
-        `allowance rate`            IS `class-education rate` 2
+        `allowance rate`            IS fromMaybe 0 (`class-education rate` 2)
 
 #ASSERT `role allowance amount` `a class educator of two classes` EQUALS 2000
 
@@ -886,14 +890,16 @@ DECIDE `the same holder out of the role` r IS
             `every other allowance held`
 
 -- Class education (¶34, ¶36): monotone in the classes educated and never
--- more than twice the rate of one.
-#ASSERT and (zipWith (GIVEN m, n YIELD `class-education rate` m AT MOST `class-education rate` n)
-                     (range 0 4) (drop 1 (range 0 4)))
-#ASSERT all (GIVEN n YIELD `class-education rate` n AT MOST 2 TIMES `class-education rate` 1) (range 0 4)
+-- more than twice the rate of one, where the text gives a rate; none from
+-- three classes.
+#ASSERT and (zipWith (GIVEN m, n YIELD fromMaybe 0 (`class-education rate` m) AT MOST fromMaybe 0 (`class-education rate` n))
+                     (range 0 2) (drop 1 (range 0 2)))
+#ASSERT all (GIVEN n YIELD fromMaybe 0 (`class-education rate` n) AT MOST 2 TIMES fromMaybe 0 (`class-education rate` 1)) (range 0 2)
+#ASSERT all (GIVEN n YIELD (`class-education rate` n EQUALS NOTHING) EQUALS (n GREATER THAN 2)) (range 0 4)
 
 -- Totality of ¶32–36 (F-1.12-j): the text states a rate for one class
--- (¶34) and for two (¶36), and none for three; the encoding's cap at two
--- is a reading, not a rate the text gives.
+-- (¶34) and for two (¶36), and none for three; the encoding gives three
+-- none either.
 `the numbers of classes the text gives a class-education rate for` MEANS LIST 1, 2
 GIVEN n IS A NUMBER
 GIVETH A BOOLEAN
@@ -902,7 +908,7 @@ DECIDE `the text states a class-education rate for` n IF
 
 `an educator of three classes has no rate in the text` MEANS
         (NOT `the text states a class-education rate for` 3)
-    AND `class-education rate` 3 GREATER THAN 0
+    AND `class-education rate` 3 EQUALS NOTHING
 #ASSERT `an educator of three classes has no rate in the text`
 
 -- ¶14 makes three classes possible: the district manager may allow more

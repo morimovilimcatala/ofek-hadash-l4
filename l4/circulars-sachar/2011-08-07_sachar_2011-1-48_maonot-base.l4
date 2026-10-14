@@ -164,12 +164,18 @@ DECIDE `the full-position amount for children` n IS
 -- 3ד: the amount is for a full position; for a part-time position it is
 -- computed by the part. (The text says "the amount stated below"; the
 -- amounts are the ones stated above, in 3ג.) F-2011-08-07_sachar_2011-1-48_maonot-base-b:
--- a position above full is neither; the reading adopted pays it the
--- full-position amount.
+-- a position above full is neither. Convention position.above-full
+-- (settings.toml): the full-position amount is pro rata to the position
+-- above one too, as the text sets no ceiling.
 @ref akn:hc_1__para_3__subpara_3__cls_4
 GIVEN f IS A NUMBER
 GIVETH A NUMBER
 DECIDE `the position share paid` f IS
+    f
+
+GIVEN f IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the position share on the other reading, capped at full` f IS
     min f 1
 
 GIVEN f IS A NUMBER
@@ -179,7 +185,7 @@ DECIDE `3ד decides the position` f IF
 
 `3ד does not decide a position above full` MEANS
         (NOT (`3ד decides the position` 1.2))
-    AND (NOT ((`the position share paid` 1.2) EQUALS 1.2))
+    AND (NOT (`the position share paid` 1.2 EQUALS `the position share on the other reading, capped at full` 1.2))
 #ASSERT `3ד does not decide a position above full`
 
 -- 3ה: paid at the same time for up to two children; nothing for any
@@ -421,7 +427,7 @@ DECIDE `the existing arrangement applies to the child` `child is 5 or over` `an 
 #ASSERT `the monthly childcare supplement` `a divorced father of one` EQUALS 300
 #ASSERT `the monthly childcare supplement` `a mother of one on maternity pay` EQUALS 0
 #ASSERT `the monthly childcare supplement` `a married father of one` EQUALS 0
-#ASSERT `the monthly childcare supplement` `a mother of one at 120%` EQUALS 300
+#ASSERT `the monthly childcare supplement` `a mother of one at 120%` EQUALS 360
 #ASSERT `the general arrangement is kept` `a better general arrangement`
 #ASSERT NOT `the general arrangement is kept` `a smaller general arrangement`
 #ASSERT `the other arrangement survives` `a better general arrangement` (Date 1 10 2011) TRUE
@@ -499,7 +505,8 @@ DECIDE `the routes admit exactly the employees section 2 names, each by one rout
                 AND NOT (e's `parent status` EQUALS `another employee`))
 #ASSERT `holds for every checked month` `the routes admit exactly the employees section 2 names, each by one route`
 
--- 3ג-3ז: the supplement is never negative and never above 300 + 200; it
+-- 3ג-3ז: the supplement is never negative and never above 300 + 200 for
+-- each full position held; it
 -- is nothing in a month without salary from the employer; a third or later
 -- child adds nothing; and it never falls with more children or with a
 -- larger position.
@@ -507,7 +514,7 @@ GIVEN e IS AN `employee month`
 GIVETH A BOOLEAN
 DECIDE `the supplement is within 0 and 500, nothing without salary, for at most two children` e IF
         `the monthly childcare supplement` e AT LEAST 0
-    AND `the monthly childcare supplement` e AT MOST `the monthly amount for one or a first child` PLUS `the monthly amount for a second child`
+    AND `the monthly childcare supplement` e AT MOST (`the monthly amount for one or a first child` PLUS `the monthly amount for a second child`) TIMES max 1 (e's `position fraction`)
     AND (e's `entitled to salary from the employer and at its expense` OR `the monthly childcare supplement` e EQUALS 0)
     AND `children paid for` e AT MOST 2
 #ASSERT `holds for every checked month` `the supplement is within 0 and 500, nothing without salary, for at most two children`
@@ -611,10 +618,11 @@ DECIDE `the readings of 3 א' part exactly where a kept arrangement meets a supp
 #ASSERT `holds for every checked arrangement` `the readings of 3 א' part exactly where a kept arrangement meets a supplement due`
 
 -- F-2011-08-07_sachar_2011-1-48_maonot-base-b over positions above full
--- from 1.05 to 1.5: 3ד decides none of them, and the reading adopted pays
--- each the full-position amount.
+-- from 1.05 to 1.5: 3ד decides none of them, the reading adopted pays each
+-- pro rata, and the capped reading would pay each less.
 #ASSERT all (GIVEN k YIELD
                 LET f MEANS 1 PLUS k DIVIDED BY 20
                 IN      NOT `3ד decides the position` f
-                    AND `the position share paid` f EQUALS 1)
+                    AND `the position share paid` f EQUALS f
+                    AND `the position share on the other reading, capped at full` f LESS THAN f)
             (range 1 10)

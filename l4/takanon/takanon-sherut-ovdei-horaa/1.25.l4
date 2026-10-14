@@ -1585,8 +1585,8 @@ DECIDE `share of sick leave used` r IS
 
 -- 4א-ג: more than 65% used — nothing; 36% to 65% — 6 days' pay for every
 -- 30 days of balance; under 36% — 8. The bands meet without gap or overlap.
--- F-1.25-j: "for every 30 days" is read as a rate (pro rata), not as whole
--- blocks of 30.
+-- F-1.25-j: "for every 30 days" — convention thresholds.per-n (settings.toml):
+-- only whole blocks of 30 count; a remainder under 30 earns nothing.
 @ref akn:chp_1ב__sec_1_25__ssec_1_25_3_2__para_4 akn:chp_1ב__sec_1_25__ssec_1_25_3_2__para_4__subpara_a akn:chp_1ב__sec_1_25__ssec_1_25_3_2__para_4__subpara_b akn:chp_1ב__sec_1_25__ssec_1_25_3_2__para_4__subpara_c
 GIVEN r IS A `retirement case`
 GIVETH A NUMBER
@@ -1598,12 +1598,12 @@ DECIDE `days' pay for every 30 days of balance` r IS
 GIVEN r IS A `retirement case`
 GIVETH A NUMBER
 DECIDE `days' pay of compensation` r IS
-    `days' pay for every 30 days of balance` r TIMES `sick days that count for compensation` r DIVIDED BY 30
+    `days' pay for every 30 days of balance` r TIMES TRUNC (`sick days that count for compensation` r DIVIDED BY 30) 0
 
 GIVEN r IS A `retirement case`
 GIVETH A NUMBER
-DECIDE `days' pay on the other reading, whole blocks of 30` r IS
-    `days' pay for every 30 days of balance` r TIMES TRUNC (`sick days that count for compensation` r DIVIDED BY 30) 0
+DECIDE `days' pay on the other reading, pro rata` r IS
+    `days' pay for every 30 days of balance` r TIMES `sick days that count for compensation` r DIVIDED BY 30
 
 -- 6: a day's pay is 1/25 of the monthly salary on the eve of retirement.
 @ref akn:chp_1ב__sec_1_25__ssec_1_25_3_2__para_6 akn:chp_1ב__sec_1_25__ssec_1_25_3_2__para_6/p2 akn:chp_1ב__sec_1_25__ssec_1_25_3_2__para_6/p3
@@ -1732,10 +1732,10 @@ DECIDE `claiming reimbursement for carried days` IS
 #ASSERT `compensation for unused sick leave` `a retiree of 60 who used a third` FALSE EQUALS 160000
 
 -- F-1.25-j's evidence: a balance of 45 days in the 36-65% band.
--- 40 months earn 100 days; 55 used (55%) leaves 45: 9 days' pay pro rata, 6 in whole blocks.
+-- 40 months earn 100 days; 55 used (55%) leaves 45: 6 days' pay in whole blocks, 9 pro rata.
 `for every 30 days: pro rata and whole blocks differ` MEANS
     NOT (`days' pay of compensation` (`retirement case` `retirement on pension` 60 30 TRUE 40 55 1 25000 0)
-         EQUALS `days' pay on the other reading, whole blocks of 30` (`retirement case` `retirement on pension` 60 30 TRUE 40 55 1 25000 0))
+         EQUALS `days' pay on the other reading, pro rata` (`retirement case` `retirement on pension` 60 30 TRUE 40 55 1 25000 0))
 #ASSERT `for every 30 days: pro rata and whole blocks differ`
 
 -- A retiree of 54 who reached 55 after 1 January gets nothing; one who reached it by 31 December does.
@@ -3553,7 +3553,8 @@ DECIDE `summer pay after absences` `summer pay` `unjustified absence hours in th
 -- from actual work hours only (not homeroom or matriculation-preparation
 -- hours, nor the percentage additions for roles); one of MORE than 10% is
 -- deducted proportionally from those too. F-1.25-x: exactly 10% is in
--- neither; read with the lighter rule, as no "more than 10%" is reached.
+-- neither. Convention thresholds.shared-bound (settings.toml): a value on the
+-- bound the two bands share belongs to the band that opens there, the upper.
 DECLARE `what an absence is deducted from` IS ONE OF
     `actual work hours only`
     `also homeroom and matriculation hours and role additions`
@@ -3570,7 +3571,7 @@ DECIDE `what the text deducts from` `share of the month's quota absent` IS
 GIVEN `share of the month's quota absent` IS A NUMBER
 GIVETH A `what an absence is deducted from`
 DECIDE `what an absence is deducted from, as read` `share of the month's quota absent` IS
-    IF `share of the month's quota absent` GREATER THAN 10%
+    IF `share of the month's quota absent` AT LEAST 10%
     THEN `also homeroom and matriculation hours and role additions`
     ELSE `actual work hours only`
 
@@ -3585,6 +3586,7 @@ DECIDE `what an absence is deducted from, as read` `share of the month's quota a
 
 #ASSERT `deduction from the month's salary` 3 120 EQUALS 360
 #ASSERT `what an absence is deducted from, as read` 0.15 EQUALS `also homeroom and matriculation hours and role additions`
+#ASSERT `what an absence is deducted from, as read` 0.1 EQUALS `also homeroom and matriculation hours and role additions`
 
 §§ `1.25.15 היעדרות לצורך השתתפות בועדת יועצים לבחירת מנהל בית ספר`
 
@@ -3755,8 +3757,8 @@ DECIDE `the days used checked for` months IS
                 all (GIVEN u YIELD
                             elem (`days' pay for every 30 days of balance` (`a retiree of 60 with` m `months and` u `days used`)) (LIST 0, 6, 8)
                         AND `compensation for unused sick leave` (`a retiree of 60 with` m `months and` u `days used`) FALSE AT LEAST 0
-                        AND `days' pay on the other reading, whole blocks of 30` (`a retiree of 60 with` m `months and` u `days used`)
-                            AT MOST `days' pay of compensation` (`a retiree of 60 with` m `months and` u `days used`))
+                        AND `days' pay of compensation` (`a retiree of 60 with` m `months and` u `days used`)
+                            AT MOST `days' pay on the other reading, pro rata` (`a retiree of 60 with` m `months and` u `days used`))
                     (`the days used checked for` m))
             `the months served checked`
 
@@ -3776,7 +3778,7 @@ DECIDE `the days used checked for` months IS
 
 #ASSERT all (GIVEN m YIELD
                 all (GIVEN u YIELD
-                        (NOT (`days' pay on the other reading, whole blocks of 30` (`a retiree of 60 with` m `months and` u `days used`)
+                        (NOT (`days' pay on the other reading, pro rata` (`a retiree of 60 with` m `months and` u `days used`)
                               EQUALS `days' pay of compensation` (`a retiree of 60 with` m `months and` u `days used`)))
                         EQUALS (    `days' pay for every 30 days of balance` (`a retiree of 60 with` m `months and` u `days used`) GREATER THAN 0
                                 AND NOT (TRUNC (`sick days that count for compensation` (`a retiree of 60 with` m `months and` u `days used`) DIVIDED BY 30) 0

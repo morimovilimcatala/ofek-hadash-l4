@@ -96,7 +96,8 @@ DECIDE `the amount the table gives instead of a quota of` quota IS
 -- F-2000-10_tnai-sherut_tashsa_01_sichot-telefon-c: the quotas are "for one
 -- full position" and the circular does not say what another share gets.
 -- The reading adopted: the amount for one full position, pro-rated to the
--- share held, never above one position.
+-- share held. Convention position.above-full (settings.toml): pro rata above
+-- one position too, as the text sets no ceiling.
 -- F-2000-10_tnai-sherut_tashsa_01_sichot-telefon-a: the amount for a
 -- deputy principal is the printed 29.13.
 @export default The monthly telephone amount (in shekels) a teaching employee is paid in place of a call quota, on the readings this file adopts
@@ -108,7 +109,7 @@ DECIDE `the monthly telephone amount` c `day` IS
     IF `day` LESS THAN `the conversion takes effect` OR (NOT c's `has a private telephone`)
     THEN NOTHING
     ELSE CONSIDER `the amount the table gives instead of a quota of` (`the monthly call quota for one full position` (c's `post`))
-         WHEN JUST full THEN JUST (full TIMES min (c's `share of a full position`) 1)
+         WHEN JUST full THEN JUST (full TIMES c's `share of a full position`)
          WHEN NOTHING   THEN NOTHING
 
 DECLARE `telephone action` IS ONE OF
@@ -214,6 +215,7 @@ DECLARE `paragraph source` IS ONE OF
 #ASSERT `the monthly telephone amount` `a principal on a full position` (Date 1 5 2000) EQUALS JUST 36.45
 #ASSERT `the monthly telephone amount` `a deputy principal on a full position` (Date 1 5 2000) EQUALS JUST 29.13
 #ASSERT `the monthly telephone amount` `a teacher on half a position` (Date 1 5 2000) EQUALS JUST 6.075
+#ASSERT `the monthly telephone amount` (`telephone case` WITH `post` IS `school principal`, `share of a full position` IS 1.2, `has a private telephone` IS TRUE) (Date 1 5 2000) EQUALS JUST 43.74
 #ASSERT `the monthly telephone amount` `a principal on a full position` (Date 31 3 2000) EQUALS NOTHING
 #ASSERT `the monthly telephone amount` `a teacher without a private telephone` (Date 1 5 2000) EQUALS NOTHING
 #ASSERT `the amount the table gives instead of a quota of` 175 EQUALS JUST 42.53
@@ -254,9 +256,9 @@ DECLARE `paragraph source` IS ONE OF
 
 -- ¶4 on the readings adopted, over every post, share, telephone and day:
 -- an amount is paid exactly from 1.4.2000 to a holder of a private
--- telephone; it is never negative, never above the post's full amount,
--- never falls with a larger share, and never puts a lower post above a
--- higher one at the same share.
+-- telephone; it is never negative, never above the post's full amount for
+-- each full position held, never falls with a larger share, and never puts
+-- a lower post above a higher one at the same share.
 #ASSERT all (GIVEN p YIELD
                 all (GIVEN f YIELD
                         all (GIVEN t YIELD
@@ -266,7 +268,7 @@ DECLARE `paragraph source` IS ONE OF
                                             full MEANS `the amount the table gives instead of a quota of` (`the monthly call quota for one full position` p)
                                         IN      isJust a EQUALS (t AND d AT LEAST `the conversion takes effect`)
                                             AND fromMaybe 0 a AT LEAST 0
-                                            AND fromMaybe 0 a AT MOST fromMaybe 0 full
+                                            AND fromMaybe 0 a AT MOST fromMaybe 0 full TIMES max 1 f
                                             AND fromMaybe 0 a AT MOST fromMaybe 0 b)
                                     `the days checked`)
                             `both booleans`)

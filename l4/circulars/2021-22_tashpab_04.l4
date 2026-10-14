@@ -18,19 +18,24 @@ IMPORT common
 -- ¶13 names the sources: the wage agreements of 14.3.2018 (§§5א(ב), 5ב(ב))
 -- and 23.3.2017 (§4ד), and the earlier circulars תשע"ז/4, תשע"ח/5, תשע"ט/3,
 -- תש"פ/3, תשפ"א/5. Its rule is that the supplement is linked to the CPI.
--- The index values are not printed; they are inputs.
+-- The index values are not printed; they are inputs. Convention
+-- rounding.default (settings.toml): the circular sets no rounding, so the
+-- linked amount is exact; a check against a printed amount rounds in the
+-- check.
 @ref akn:preamble/p13
 GIVEN `amount set by the agreements` IS A NUMBER @desc the supplement as the collective agreements set it, before indexation
       `index of the update`          IS A NUMBER @desc the consumer price index the update is made to
       `index of the base`            IS A NUMBER @desc the consumer price index the agreements' amount stands at
 GIVETH A NUMBER
 DECIDE `the supplement linked to the CPI` `amount set by the agreements` `index of the update` `index of the base` IS
-    `to the agora` (`amount set by the agreements` TIMES (`index of the update` DIVIDED BY `index of the base`))
+    `amount set by the agreements` TIMES (`index of the update` DIVIDED BY `index of the base`)
 
+-- Convention rounding.half (settings.toml): to the nearest agora, an exact
+-- half going up (amounts here are positive). Used in checks only.
 GIVEN x IS A NUMBER
 GIVETH A NUMBER
 DECIDE `to the agora` x IS
-    ROUND (x TIMES 100) DIVIDED BY 100
+    TRUNC (x PLUS 0.005) 2
 
 -- ¶14: the circular governs the period from 1 January 2022 onward. ¶15: the
 -- update is to the December 2021 index (published January 2022) against the
@@ -269,14 +274,12 @@ DECIDE `a checked employee` r o u p z IS
                     `both booleans`)
             `both booleans`
 
--- The indexation: rounded to the agora, never moving an amount by more
--- than half an agora from the exact product, and never lowering it when the
--- index rises.
+-- The indexation: exact (convention rounding.default), the amount times the
+-- index ratio, and never lowering it when the index rises.
 #ASSERT all (GIVEN a YIELD
                 all (GIVEN i YIELD
                         LET x MEANS `the supplement linked to the CPI` a i 100
-                        IN      x MINUS a TIMES i DIVIDED BY 100 AT MOST 0.005
-                            AND a TIMES i DIVIDED BY 100 MINUS x AT MOST 0.005
+                        IN      x EQUALS a TIMES i DIVIDED BY 100
                             AND ((NOT (i AT LEAST 100)) OR x AT LEAST a))
                     (map (GIVEN k YIELD 98 PLUS k) (range 0 8)))
             (map (GIVEN k YIELD k TIMES 250) (range 0 8))
