@@ -181,9 +181,19 @@ class Conventions(unittest.TestCase):
                 for field in ("title", "value", "detail"):
                     self.assertRegex(st[field], self.HEBREW, f"{field} is shown on a Hebrew page")
                 # a convention nothing applies is a claim about nothing: it names
-                # the rules that apply it, or findings name it as their reading's
-                self.assertTrue(st.get("applies") or st["id"] in self.relied_on,
-                                "no rule applies it and no finding relies on it")
+                # the rules that apply it, or findings name it as their reading's,
+                # or the corpus places that apply it
+                self.assertTrue(st.get("applies") or st["id"] in self.relied_on
+                                or st.get("corpus"),
+                                "no rule applies it, no finding relies on it, no corpus place")
+                # a pick put to the lawyer names the issue that asks him
+                # (the client, 2026-10-17)
+                if "lawyer" in st:
+                    self.assertRegex(st["lawyer"], r"^MMS-\d+$")
+                for place in st.get("corpus", []):
+                    self.assertRegex(place["doc"], r"^[\w./-]+\.xml$")
+                    self.assertRegex(place.get("how", ""), self.HEBREW, "a corpus place says how")
+                    self.assertRegex(place.get("name", "א"), self.HEBREW)
 
     def test_every_ambiguity_follows_a_convention(self):
         """The client, 2026-10-14: "all ambiguities decisions should follow a

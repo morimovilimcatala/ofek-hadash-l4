@@ -113,6 +113,14 @@ gets a new convention, written generally enough to decide the next case, and
 a reading that departs from one is either brought into line or recorded as
 that convention's exception with its reason.
 
+**A question waiting on the lawyer gets a pick here** (the client,
+2026-10-17; the corpus repo's standing decision 16). A legal reading put to
+Zvika — a misquoted amendment, two same-day wordings, a misprinted year — is
+not left open: the pick is a convention carrying `lawyer = "<the issue that
+asks him>"` and the corpus places that apply it (`corpus`). The page lists
+every such pick under "לעיון עורך הדין"; he reviews them there and may revert
+any of them.
+
 Three rules (MMS-415): nothing is fixed quietly to make the code compile —
 every choice the text does not make is a finding with its reading; a later
 finding names the readings it depends on; and the page shows the LAW's

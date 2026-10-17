@@ -1723,6 +1723,17 @@ def coverage_page(all_views: dict[str, list[SectionView]]) -> str:
 # here to a definition in the file named.
 CONVENTIONS = ROOT / "conventions.toml"
 BASIS = {"text": "הטקסט קובע", "ours": "בחירת הקידוד"}
+# A pick on a question put to the lawyer (the client, 2026-10-17): provisional
+# until he has reviewed it, and he may revert it.
+LAWYER = "ממתין לעיון עורך הדין"
+
+
+def corpus_title(doc: str) -> str:
+    """A corpus document's title, from the vendored snapshot when it holds
+    the file, and its file name otherwise (the snapshot holds what the L4
+    encodes; a pick may be applied in an agreement it does not)."""
+    path = ROOT / "corpus/akn" / doc
+    return akn.title(doc) if path.exists() else Path(doc).stem
 
 
 def load_conventions() -> dict:
@@ -1772,9 +1783,19 @@ def conventions_page(reg: dict, by_file: dict[str, "SectionView"], findings: lis
             fs = relying.get(c["id"], [])
             amb = [f for f in fs if f["kind"] == "ambiguity"]
             other = [f for f in fs if f["kind"] != "ambiguity"]
+            places = c.get("corpus", [])
             details = ""
+            if places:
+                details += ('<details><summary>היכן הקורפוס מחיל אותה'
+                            f' ({len(places)})</summary><ul class="set-where">'
+                            + "".join(f'<li><a href="{CORPUS_SITE}/{esc(pl["doc"].removesuffix(".xml"))}.html'
+                                      + (f'#{esc(pl["eId"])}' if pl.get("eId") else "") + '">'
+                                      + f'{esc(pl.get("name") or corpus_title(pl["doc"]))} ↗</a>'
+                                      + (f' <span class="why">— {esc(pl["how"])}</span>' if pl.get("how") else "")
+                                      + "</li>" for pl in places)
+                            + "</ul></details>")
             if apps or exc:
-                details = ('<details><summary>הכללים שמחילים אותה'
+                details += ('<details><summary>הכללים שמחילים אותה'
                            + (f' ({len(apps)})' if apps else "")
                            + (f' · חריגים ({len(exc)})' if exc else "") + '</summary>'
                            + (f'<ul class="set-where">{"".join(f"<li>{where(a)}</li>" for a in apps)}</ul>' if apps else "")
@@ -1789,9 +1810,19 @@ def conventions_page(reg: dict, by_file: dict[str, "SectionView"], findings: lis
                 f'{finding_list(amb, "העמימויות שהמוסכמה מכריעה")}'
                 f'{finding_list(other, "ממצאים נוספים שהקריאה בהם נשענת עליה")}{details}</div>'
                 f'<div class="set-a"><span class="set-val">{esc(c["value"])}</span>'
-                f'<span class="set-basis {esc(c["basis"])}">{BASIS[c["basis"]]}</span></div></div>')
+                f'<span class="set-basis {esc(c["basis"])}">{BASIS[c["basis"]]}</span>'
+                + (f'<span class="set-lawyer">{LAWYER}</span>' if c.get("lawyer") else "")
+                + '</div></div>')
         if rows:
             groups.append(f'<section class="set-group"><h2>{esc(g["title"])}</h2>{"".join(rows)}</section>')
+    asked = [c for c in reg.get("convention", []) if c.get("lawyer")]
+    review = ('<section class="set-review"><h2>לעיון עורך הדין</h2>'
+              '<p>שאלות שחיכו לעורך הדין קיבלו כאן תשובה זמנית, כדי שהעבודה לא תיעצר: '
+              'הקידוד והקורפוס נוהגים לפיה עד שהוא יעיין בה. כל אחת מהן ניתנת לשינוי, '
+              'ושינוי משנה את כל המקומות שהיא מונה.</p><ul>'
+              + "".join(f'<li><a href="#{esc(c["id"])}">{esc(c["title"])}</a> — '
+                        f'<span class="set-val alt">{esc(c["value"])}</span></li>' for c in asked)
+              + "</ul></section>") if asked else ""
     body = ('<h1>מוסכמות</h1>'
             '<p class="lede">כללי הקריאה שהקידוד נוהג לפיהם במקום שהטקסט אינו מכריע — איך מעגלים סכום כשהטקסט אינו '
             'אומר, האם היום האחרון של תקופה נכלל בה, מה פירוש "מעל", איזו הוראה גוברת — כתובים כאן פעם אחת, '
@@ -1801,6 +1832,7 @@ def conventions_page(reg: dict, by_file: dict[str, "SectionView"], findings: lis
             'מקום שבו הטקסט עצמו עונה אחרת מופיע תחת <em>חריגים</em>, עם המילים שמכריעות.</p>'
             '<p class="banner">הבחירות שהקידוד עשה כאן זמניות: הן נבחרו כדי שהקריאה תהיה אחידה, '
             'וניתן לשנות כל אחת מהן. שינוי מוסכמה משנה את כל הכללים שמחילים אותה.</p>'
+            + review
             + ("".join(groups) or '<p class="empty">אין עדיין מוסכמות רשומות.</p>'))
     return page(here, f"מוסכמות — {TITLE}", body, tab="conventions",
                 desc="כללי הקריאה שקידוד ה-L4 נוהג לפיהם במקום שהטקסט אינו מכריע: עיגול, גבולות תאריכים, ספים ועדיפות בין הוראות")
