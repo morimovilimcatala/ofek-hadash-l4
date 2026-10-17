@@ -289,17 +289,14 @@ def _row_text(r) -> str:
 # to match goes red here until its line is removed. Never add a line to make
 # the check pass; a quote we got wrong is fixed in the finding.
 MISQUOTED = {
-    # The corpus prints the sentence damaged, the quote is the page's
-    # (MMS-478): a bullet glyph inside it, or a number moved by the RTL
-    # extraction.
-    "F-2008-09_tashsat_09-b": "MMS-478",
-    "F-2008-09_tashsat_09-c": "MMS-478",
-    "F-2008-09_tashsat_10-d": "MMS-478",
-    "F-2009-10_tasha_05-d": "MMS-478",
-    "F-2011-12_tashab_11-a": "MMS-478",
-    "F-2011-12_tashab_12-a": "MMS-478",
-    "F-2011-12_tashab_12-d": "MMS-478",
-    "F-2019-20_tashaf_08-b": "MMS-478",
+    # The corpus prints the sentence damaged, the quote is the page's: a
+    # number or a sign moved by the RTL extraction (MMS-426, which MMS-478
+    # was folded into; its bullet half shipped in the corpus's bfacfc2).
+    "F-2008-09_tashsat_09-b": "MMS-426",
+    "F-2008-09_tashsat_09-c": "MMS-426",
+    "F-2008-09_tashsat_10-d": "MMS-426",
+    "F-2009-10_tasha_05-d": "MMS-426",
+    "F-2019-20_tashaf_08-b": "MMS-426",
     # A table cell the corpus publishes flattened and scrambled (MMS-424);
     # the quote reads the cell off the page.
     "F-2022-23_tashpag_01-g": "MMS-424",
