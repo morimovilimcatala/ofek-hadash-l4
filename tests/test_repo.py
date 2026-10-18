@@ -303,9 +303,6 @@ MISQUOTED = {
     # number or a sign moved by the RTL extraction (MMS-426, which MMS-478
     # was folded into; its bullet half shipped in the corpus's bfacfc2).
     "F-2008-09_tashsat_09-b": "MMS-426",
-    "F-2008-09_tashsat_09-c": "MMS-426",
-    "F-2008-09_tashsat_10-d": "MMS-426",
-    "F-2009-10_tasha_05-d": "MMS-426",
     "F-2019-20_tashaf_08-b": "MMS-426",
     # A table cell the corpus publishes flattened and scrambled (MMS-424);
     # the quote reads the cell off the page.
