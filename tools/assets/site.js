@@ -89,7 +89,8 @@
           current = a;
           if (where) {
             var n = a.querySelector(".secnum"), h = a.querySelector(".sh");
-            where.textContent = (n ? "§" + n.textContent + "  " : "") + (h ? h.textContent : "");
+            // an agreement's preamble and sign-off are named, not numbered: no §
+            where.textContent = (n ? (/^\d/.test(n.textContent) ? "§" : "") + n.textContent + "  " : "") + (h ? h.textContent : "");
           }
           // open the chapter that holds it, close the one left behind
           var det = a.closest("details");

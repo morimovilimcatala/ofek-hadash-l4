@@ -3,9 +3,11 @@
     python3 tools/sync_corpus.py /path/to/TeachersSalaryCatala
 
 First records, in corpus/cited-rows.tsv, the words every cited row holds in
-the corpus being replaced (tools/cited_rows.py); then copies every file
-corpus/SOURCE.toml lists, rewrites the manifest of the corpus's documents,
-and records the checkout's commit and the copies' hashes. A cited row whose
+the corpus being replaced (tools/cited_rows.py); then copies every document
+of the collections in work (tools/build_site.py's WORK_COLLECTIONS) as the
+checkout has committed it, removes a vendored file the corpus no longer
+has, rewrites the manifest of the corpus's documents, and records the
+checkout's commit and the copies' hashes. A cited row whose
 words the new corpus moved fails tests/test_sync.py, which names where they
 went: re-point the citation, then `python3 tools/cited_rows.py --write`. Nothing here edits a corpus file; a defect in one is fixed there.
 """
@@ -79,13 +81,23 @@ def main(src_dir: str) -> int:
              "# copy of these files at this commit; tools/sync_corpus.py refreshes it.",
              f'repository = "{source["repository"]}"', f'commit = "{commit}"',
              f'synced = "{datetime.date.today().isoformat()}"', f'site = "{source["site"]}"', ""]
-    for f in source["file"]:
-        dst = ROOT / "corpus" / f["path"]
+    # what is vendored is every document of a collection in work: a
+    # collection joins the snapshot by joining WORK_COLLECTIONS, and a
+    # document the corpus adds to one arrives with the next sync
+    before = {f["path"]: f["sha256"] for f in source["file"]}
+    wanted = [p for p in committed_documents(src)
+              if Path(p).relative_to("akn").parts[0] in cited_rows.build_site.WORK_COLLECTIONS]
+    for path in wanted:
+        dst = ROOT / "corpus" / path
         dst.parent.mkdir(parents=True, exist_ok=True)
-        dst.write_bytes(committed(src, f["path"]))
+        dst.write_bytes(committed(src, path))
         digest = hashlib.sha256(dst.read_bytes()).hexdigest()
-        lines += ["[[file]]", f'path = "{f["path"]}"', f'sha256 = "{digest}"', ""]
-        print(("changed " if digest != f["sha256"] else "same    ") + f["path"])
+        lines += ["[[file]]", f'path = "{path}"', f'sha256 = "{digest}"', ""]
+        print(("new     " if path not in before else
+               "changed " if digest != before[path] else "same    ") + path)
+    for path in sorted(set(before) - set(wanted)):
+        (ROOT / "corpus" / path).unlink(missing_ok=True)
+        print("gone    " + path)
     (ROOT / "corpus/SOURCE.toml").write_text("\n".join(lines), encoding="utf-8")
     docs = manifest(src)
     (ROOT / "corpus/manifest.json").write_text(json.dumps(

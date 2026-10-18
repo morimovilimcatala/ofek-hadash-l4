@@ -70,7 +70,10 @@ class Section:
 
     @property
     def slug(self) -> str:
-        return self.num
+        """The section's name in a file or page name: its number, or an
+        agreement's preamble or sign-off by its part's name (a Hebrew file
+        name is not one every tool opens)."""
+        return file_name(self.num)
 
     def keys(self) -> set[str]:
         out = set()
@@ -206,9 +209,20 @@ WHOLE_PARTS = ("preamble", "mainBody", "body", "conclusions", "attachments")
 
 
 # The documents divided into chapters and sections. Every other document is
-# whole — a circular, and the department's web pages that the corpus files
-# in the takanon collection beside the takanon itself.
-SECTIONED = {"takanon/takanon-sherut-ovdei-horaa.xml"}
+# whole — a circular, an agreement not yet read section by section, and the
+# department's web pages that the corpus files in the takanon collection
+# beside the takanon itself. The takanon divides into <chapter>s of
+# <section>s; an agreement into <part>s of <article>s, with its preamble and
+# its sign-off each a section of its own (the agreement's §1: "המבוא להסכם
+# זה ... מהווים חלק בלתי נפרד ממנו").
+SECTIONED = {"takanon/takanon-sherut-ovdei-horaa.xml",
+             "agreements/ofek-hadash/2008-12-25_ofek-hadash_base-agreement.xml"}
+
+# how a sectioned document divides: (chapter element, section element)
+DIVISIONS = (("chapter", "section"), ("part", "article"))
+# the parts of an agreement outside its parts and articles, each one section,
+# keyed and cited the way a whole document's are
+FRAME_PARTS = {"preamble": "פתיח", "conclusions": "חתימה"}
 
 
 def is_whole(relative: str) -> bool:
@@ -236,15 +250,34 @@ def whole_section(relative: str) -> Section:
     return Section(stem, stem, title(relative), "", "", "", rows)
 
 
+def file_name(num: str) -> str:
+    return {v: k for k, v in FRAME_PARTS.items()}.get(num, num)
+
+
+def frame_section(part, notes) -> Section | None:
+    """An agreement's preamble or sign-off as a section of its own: its
+    rows keyed "<part>/p<N>", as a whole document keys them."""
+    key = tag(part)
+    rows = section_rows(part, notes, key)
+    if not rows:
+        return None
+    name = FRAME_PARTS[key]
+    return Section(key, name, "", key, "", name, rows)
+
+
 def sections(relative: str) -> list[Section]:
     if is_whole(relative):
         return [whole_section(relative)]
     root = load(relative)
     notes = sic_notes(root)
     out = []
-    for chap in root.iter(AKN + "chapter"):
+    chapter_tag, section_tag = next(d for d in DIVISIONS if root.find(f".//{AKN}{d[0]}") is not None)
+    frame = {tag(p): p for p in root[0] if tag(p) in FRAME_PARTS}
+    if "preamble" in frame and (s := frame_section(frame["preamble"], notes)):
+        out.append(s)
+    for chap in root.iter(AKN + chapter_tag):
         cnum, chead = label_of(chap)
-        secs = [s for s in chap if tag(s) == "section"]
+        secs = [s for s in chap if tag(s) == section_tag]
         if not secs:
             # a chapter the corpus holds as one block (9, 10, 11, 14)
             secs = [chap]
@@ -257,6 +290,8 @@ def sections(relative: str) -> list[Section]:
                 rows = [r for r in rows if r.key != s.get("eId")]
             out.append(Section(s.get("eId"), num, head, chap.get("eId"),
                                cnum, chead, rows))
+    if "conclusions" in frame and (s := frame_section(frame["conclusions"], notes)):
+        out.append(s)
     return out
 
 

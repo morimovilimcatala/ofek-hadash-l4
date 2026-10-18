@@ -77,6 +77,10 @@ def cited() -> set[tuple[str, str]]:
     """(document, key) for every key an L4 segment or a finding cites."""
     out = set()
     for doc in build_site.DOCUMENTS:
+        # a document of a collection that has just joined the work is not
+        # vendored until the sync that brings it: nothing cites it yet
+        if not (akn.CORPUS / doc).exists():
+            continue
         for sec in akn.sections(doc):
             path = build_site.l4_path(doc, sec.num)
             if not path.exists():

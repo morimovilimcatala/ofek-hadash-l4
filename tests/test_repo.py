@@ -406,6 +406,36 @@ class SitePages(unittest.TestCase):
         self.assertEqual(site_mod.coll_hub("takanon"), "takanon/takanon-sherut-ovdei-horaa.html")
 
 
+class Agreements(unittest.TestCase):
+    """The agreements collection is in work: every agreement the corpus
+    publishes is a document here, and the base agreement is read part by
+    part, article by article, its preamble and sign-off a section each."""
+
+    BASE = "agreements/ofek-hadash/2008-12-25_ofek-hadash_base-agreement.xml"
+
+    def test_every_agreement_is_in_work_and_vendored(self):
+        listed = {d["path"] for d in site_mod.MANIFEST_DOCS if d["collection"] == "agreements"}
+        self.assertTrue(listed)
+        self.assertEqual(listed, {d for d in site_mod.DOCUMENTS if d.startswith("agreements/")})
+        # the snapshot holds every document of every collection in work, and
+        # nothing else (tools/sync_corpus.py)
+        vendored = {f["path"].removeprefix("akn/") for f in tomllib.loads(
+            (ROOT / "corpus/SOURCE.toml").read_text(encoding="utf-8"))["file"]}
+        self.assertEqual(vendored, set(site_mod.DOCUMENTS))
+
+    def test_the_base_agreement_reads_by_article(self):
+        self.assertFalse(akn.is_whole(self.BASE))
+        secs = akn.sections(self.BASE)
+        self.assertEqual((secs[0].eid, secs[-1].eid), ("preamble", "conclusions"))
+        self.assertEqual([s.num for s in secs[1:-1]], [str(n) for n in range(1, 161)])
+        self.assertTrue(all(s.chapter_eid.startswith("part_") for s in secs[1:-1]))
+        # a frame section's file and page are named in ASCII
+        self.assertEqual(site_mod.l4_path(self.BASE, secs[0].num).name, "preamble.l4")
+        keys = [k for s in secs for k in s.keys()]
+        self.assertEqual(len(keys), len(set(keys)))
+        self.assertEqual(site_mod.citations(secs[0])["preamble/p3"], "פתיח ¶3")
+
+
 class Citations(unittest.TestCase):
     def test_every_row_of_every_document_has_a_label(self):
         # a table row is keyed "<holder>/t<N>"; the label code once assumed

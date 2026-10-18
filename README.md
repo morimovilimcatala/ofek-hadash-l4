@@ -19,6 +19,14 @@ L4 (an answer the takanon contradicts, or a rule it adds where the takanon
 is silent, is a finding), the introduction's precedence rule as a rule, and
 the navigation pages as notes.
 
+The collective agreements carry the rules the circulars price ("circulars
+carry amounts; agreements carry rules"). Their collection is in work: every
+agreement the corpus publishes has a page, and the base agreement of
+25.12.2008 is read part by part and article by article, with its preamble
+and its sign-off each a section of its own (`tools/akn.py`'s `SECTIONED`).
+An agreement the corpus publishes without its text (an OCR layer it
+refused) has nothing to encode until the corpus reads its pages.
+
 ## Layout
 
 | Path | What |
@@ -33,17 +41,21 @@ the navigation pages as notes.
 ## Site
 
 - **Documents** — documents → chapters → sections. The takanon has a
-  contents page and a page per chapter; a circular is one page, and so is
-  each of the department's web pages, listed under the takanon as a group of
-  their own (in the sidebar, on the contents page and on the coverage page). Each section
+  contents page and a page per chapter, and so does the base agreement (a
+  page per part); a circular is one page, and so is every other agreement
+  and each of the department's web pages, listed under the takanon as a group of
+  their own (in the sidebar, on the contents page and on the coverage page).
+  The agreements are listed by family (the corpus's folders: Ofek Hadash, Oz
+  LaTmura, the teachers' general agreements, the public-sector framework
+  agreements), the circulars by school year. Each section
   is a two-column comparison, paragraph by paragraph: the text, and the L4
   that encodes it (switchable to `l4 render`'s natural-language rendering). The
   results of the file's `#EVAL`/`#ASSERT`/`#TRACE` sit under the code they test.
   Each obligation (`MUST`/`MAY`/`SHANT`) carries its state diagram, drawn by
   `l4 state-graph` and GraphViz (`dot`, which `make site` needs installed to
   draw them; without it the pages are built with no diagrams).
-- **The sidebar** follows the page: on a document, its own chapter or year
-  first and open, with an outline of the page, and the other collections
+- **The sidebar** follows the page: on a document, its own chapter, year or
+  family first and open, with an outline of the page, and the other collections
   closed below; on the findings page, every section and circular that has
   findings, with its count, following the filters; elsewhere, every
   collection.
