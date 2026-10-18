@@ -106,6 +106,14 @@ reader can see past, a dated amount.
   name: daydate's `Sun`…`Sat`, for one, must not be redefined.
 - `IMPORT prelude` explicitly — `map`, `filter`, `sum`, `min`, `all`,
   `count` come from it.
+- An infix name (`x \`is above\` n`, `a \`pro rata to a position of\` p`)
+  binds tighter than any operator, so bracket what it does not: a
+  function call on its left (`(f g) \`is above\` n`, not `f g \`is
+  above\` n`), a percentage on its right (`\`has reached the row from\`
+  (10%)`), and the whole comparison on a continuation line that begins
+  with AND (`AND (e's \`days\` \`is above\` 151)`). A parameter that
+  shares its name with a record field cannot stand on its left at all
+  ("multiple definitions"); there the rule keeps the plain comparison.
 - Record field names are global within a file and across `IMPORT`: two
   records with a field `days` make every `x's days` ambiguous. Give fields
   specific names (`length in days`, `band days`).
@@ -130,7 +138,9 @@ reader can see past, a dated amount.
   pro rata above a full position, "יגדל ב־X%" (`increased by`), a difference
   never below zero — each pinned by its own `#ASSERT`s. A file that applies
   one says `IMPORT conventions` and calls it; the suite refuses a local
-  definition of any name the module defines. Never use L4's `ROUND`: it
+  definition of any name the module defines. Call it where the convention
+  decides the reading; where the text decides it ("לפחות", "ומעלה", "ועד
+  בכלל"), the rule says AT LEAST or AT MOST itself. Never use L4's `ROUND`: it
   takes a half to the even neighbour (`ROUND 2.5` is 2), and the convention
   is half up.
 
