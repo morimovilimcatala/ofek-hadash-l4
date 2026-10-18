@@ -1,0 +1,89 @@
+-- הסכם אופק חדש (25.12.2008), §33 היקף העסקה: up to a 100% position; no
+-- more than two schools, with exceptions; 42 hours where one school is off
+-- the reform; the Ministry's aim of completing positions of 80% and more;
+-- and employment beyond 100% for those needed — frontal hours only, within
+-- daily and weekly caps, at 100% of the hour value, with contributions by
+-- the Dafna agreement.
+
+IMPORT prelude
+IMPORT common
+IMPORT `31`
+
+§ `33 היקף העסקה`
+
+-- (א): up to 100% only (and (ד) is the exception).
+@ref akn:art_33__para_a
+`the position under the reform at most` MEANS 1
+
+-- (ב)(1)–(2): no more than two schools, reform or not, save an integrating
+-- teacher, a paramedical one and a teacher of a subject the personnel
+-- division allowed in more than two.
+@ref akn:art_33__para_b__subpara_1 akn:art_33__para_b__subpara_2
+GIVEN schools IS A NUMBER, `exempt under 33(ב)(2)` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `the number of schools is allowed` schools `exempt under 33(ב)(2)` IF
+    schools AT MOST 2 OR `exempt under 33(ב)(2)`
+
+-- (ב)(3): where one of the two schools is off the reform, all the hours
+-- come to 42 at most, and every such case needs the Ministry's approval.
+@ref akn:art_33__para_b__subpara_3
+GIVEN `total weekly hours` IS A NUMBER, `approved by the Ministry` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `employment in a school off the reform is allowed` `total weekly hours` `approved by the Ministry` IF
+    `total weekly hours` AT MOST 42 AND `approved by the Ministry`
+
+-- akn:art_33__para_c akn:art_33__para_c/p2 The Ministry's statement of aim (to try to complete positions of 80% and more, subject to budget, the school's needs and its discretion, and to prefer it to hiring new teachers); a declaration, not a duty a teacher can enforce.
+
+-- (ד): beyond 100%, for teaching employees (not principals or first
+-- deputies) whom the districts' heads of teaching personnel decide, by the
+-- criteria the head of teaching personnel publishes, are needed.
+@ref akn:art_33__para_d
+GIVEN `a principal or first deputy` IS A BOOLEAN, `found needed beyond a full position` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `may be employed beyond 100%` `a principal or first deputy` `found needed beyond a full position` IF
+    NOT `a principal or first deputy` AND `found needed beyond a full position`
+
+-- (ד)(1)–(2): the hours beyond 100% are frontal only; frontal, individual
+-- and stay hours together come to 8.5 a day Sunday to Thursday, 5 on
+-- Friday, and 42 a week, at most.
+@ref akn:art_33__para_d__subpara_1 akn:art_33__para_d__subpara_2
+GIVEN `hours each day, Sunday to Friday` IS A LIST OF NUMBER
+GIVETH A BOOLEAN
+DECIDE `the week beyond 100% keeps the caps` `hours each day, Sunday to Friday` IF
+        all (GIVEN h YIELD h AT MOST 8.5) (take 5 `hours each day, Sunday to Friday`)
+    AND all (GIVEN h YIELD h AT MOST 5) (drop 5 `hours each day, Sunday to Friday`)
+    AND sum `hours each day, Sunday to Friday` AT MOST 42
+
+-- (ד)(3): an hour beyond 100% is paid at 100% of the hour value, its base
+-- §31(א)(1)'s and its computation §31(ב)'s.
+@ref akn:art_33__para_d__subpara_3
+GIVEN p IS A `pay for the hour value`
+GIVETH A NUMBER
+DECIDE `pay for an hour beyond 100%` p IS
+    `the hour value` (`the base under 31(א)(1)` p)
+
+-- (ד)(4): contributions to a non-paying provident fund for a pension: the
+-- employer 13⅓% (8⅓% severance and 5% benefits), the employee 5%, by the
+-- agreement of 27.12.84 ("הסכם דפנה").
+@ref akn:art_33__para_d__subpara_4
+`the employer's severance contribution beyond 100%` MEANS 25/3 DIVIDED BY 100
+`the employer's benefits contribution beyond 100%` MEANS 5%
+`the employee's contribution beyond 100%` MEANS 5%
+
+#ASSERT `the employer's severance contribution beyond 100%` PLUS `the employer's benefits contribution beyond 100%` EQUALS 40/3 DIVIDED BY 100
+
+-- akn:art_33__para_d__subpara_5 The parties' undertaking to negotiate (under §155) a clarification of section 3.ה of the agreement of 27.12.84; no rule.
+
+-- Five days of 8.5 hours are 42.5: the weekly cap of 42 is the one that bites.
+#ASSERT NOT `the week beyond 100% keeps the caps` (LIST 8.5, 8.5, 8.5, 8.5, 8.5, 0)
+#ASSERT `the week beyond 100% keeps the caps` (LIST 8.5, 8.5, 8.5, 8.5, 8, 0)
+#ASSERT `the number of schools is allowed` 3 TRUE
+#ASSERT NOT `the number of schools is allowed` 3 FALSE
+
+`a teacher beyond 100%` MEANS
+    `pay for the hour value` WITH
+        `combined salary`             IS 7794
+        `special-education allowance` IS 0
+        `pensionable role allowances` IS 779.4
+        `a special-education teacher substituting in a special-education class` IS FALSE
+#ASSERT `pay for an hour beyond 100%` `a teacher beyond 100%` EQUALS 50

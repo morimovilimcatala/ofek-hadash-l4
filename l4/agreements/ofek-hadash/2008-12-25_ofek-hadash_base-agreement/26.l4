@@ -1,0 +1,58 @@
+-- הסכם אופק חדש (25.12.2008), §26 שעות גיל: age hours — an existing teacher
+-- of 50 to 55 in a full position takes 2 frontal hours off, from 55 three
+-- frontal hours and one individual hour; a new teacher of 50 or more takes
+-- 2 frontal hours off and no more at 55. The age is the one on 31 December
+-- of the school year, and the reduction runs from the year's start.
+
+IMPORT prelude
+IMPORT common
+
+§ `26 שעות גיל`
+
+DECLARE `age reduction` HAS
+    `frontal hours off`    IS A NUMBER
+    `individual hours off` IS A NUMBER
+
+GIVEN f IS A NUMBER, i IS A NUMBER
+GIVETH A `age reduction`
+DECIDE `hours off` f i IS
+    `age reduction` WITH
+        `frontal hours off`    IS f
+        `individual hours off` IS i
+
+-- (ד): the age that counts is the age on 31 December of the school year
+-- whose first half the year starts in; on the last day of a calendar year
+-- everyone is that year less the year of birth.
+@ref akn:art_26__para_d
+GIVEN `year of birth` IS A NUMBER, `year the school year starts` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `age for the age hours` `year of birth` `year the school year starts` IS
+    `year the school year starts` MINUS `year of birth`
+
+-- (א)–(ב): an existing teacher in a full position; (ג): a new teacher. A
+-- part-time teacher's age hours are §27(יא)'s.
+@ref akn:art_26__para_a akn:art_26__para_b akn:art_26__para_c
+GIVEN `an existing teacher` IS A BOOLEAN, `in a full position` IS A BOOLEAN, age IS A NUMBER
+GIVETH A `age reduction`
+DECIDE `the age hours` `an existing teacher` `in a full position` age IS
+    IF `an existing teacher`
+    THEN BRANCH IF NOT `in a full position` THEN `hours off` 0 0
+                IF age AT LEAST 55          THEN `hours off` 3 1
+                IF age AT LEAST 50          THEN `hours off` 2 0
+                OTHERWISE                        `hours off` 0 0
+    ELSE IF age AT LEAST 50 THEN `hours off` 2 0 ELSE `hours off` 0 0
+
+#ASSERT `the age hours` TRUE TRUE 54 EQUALS `hours off` 2 0
+#ASSERT `the age hours` TRUE TRUE 55 EQUALS `hours off` 3 1
+#ASSERT `the age hours` FALSE TRUE 60 EQUALS `hours off` 2 0
+#ASSERT `the age hours` TRUE TRUE 49 EQUALS `hours off` 0 0
+-- Born in 1958: 50 on 31.12.2008, so the reduction runs from 1.9.2008,
+-- though the birthday may fall after the year has started.
+#ASSERT `age for the age hours` 1958 2008 EQUALS 50
+
+-- Over every age from 30 to 70: the reduction never shrinks with age, and
+-- a new teacher's never passes an existing full-time teacher's.
+#ASSERT all (GIVEN a YIELD
+                    (`the age hours` TRUE TRUE a)'s `frontal hours off` AT MOST (`the age hours` TRUE TRUE (a PLUS 1))'s `frontal hours off`
+                AND (`the age hours` FALSE TRUE a)'s `frontal hours off` AT MOST (`the age hours` TRUE TRUE a)'s `frontal hours off`)
+            (range 30 70)

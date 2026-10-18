@@ -1,0 +1,119 @@
+-- הסכם אופק חדש (25.12.2008), §30 פעילויות בית ספריות: school activities —
+-- 125% of the hour value for up to 18 hours a half-year, for every
+-- teaching employee under the reform save the principal and a first deputy
+-- who is not a homeroom teacher; their kinds and caps; the free day and the
+-- stay hour, as in §29; payment on a report the principal approves, in the
+-- next month's salary; and pension contributions.
+
+IMPORT prelude
+IMPORT common
+IMPORT `31`
+
+§ `30 פעילויות בית ספריות`
+
+DECLARE `school role` IS ONE OF
+    `the principal`
+    `a first deputy who is not a homeroom teacher`
+    `another teaching employee`
+
+-- (ג): the activities and the hours of each in a half-year.
+@ref akn:art_30__para_c akn:art_30__para_c__subpara_1 akn:art_30__para_c__subpara_2 akn:art_30__para_c__subpara_3
+DECLARE `school activity` IS ONE OF
+    `a general school assembly`
+    `an individual parents-and-children meeting`
+    `an activity after school hours`
+
+GIVEN a IS A `school activity`
+GIVETH A NUMBER
+DECIDE `hours of the activity a half-year at most` a IS
+    CONSIDER a
+    WHEN `a general school assembly` THEN 4
+    WHEN `an individual parents-and-children meeting` THEN 8
+    WHEN `an activity after school hours` THEN 6
+
+-- (א)–(ב): who is paid, at what rate, and the cap of 18 hours a half-year,
+-- also on what is allotted.
+@ref akn:art_30__para_a akn:art_30__para_b
+`school-activity hours a half-year at most` MEANS 18
+`the school-activity rate` MEANS 125%
+
+GIVEN r IS A `school role`
+GIVETH A BOOLEAN
+DECIDE `paid for school activities` r IF
+    r EQUALS `another teaching employee`
+
+-- The hours paid in a half-year: each activity up to its own cap, all of
+-- them up to 18.
+GIVEN `hours of each activity` IS A FUNCTION FROM `school activity` TO NUMBER
+GIVETH A NUMBER
+DECIDE `school-activity hours paid in the half-year` `hours of each activity` IS
+    min `school-activity hours a half-year at most`
+        (sum (map (GIVEN a YIELD min (`hours of each activity` a) (`hours of the activity a half-year at most` a))
+                  (LIST `a general school assembly`, `an individual parents-and-children meeting`, `an activity after school hours`)))
+
+-- (ד)–(ו): on the free day 125%; in place of a stay hour that day 125% and
+-- not the stay hour's 100%; if the stay hour is done on another day, both.
+-- The base is §31(א)(3)'s, whichever day.
+@ref akn:art_30__para_d akn:art_30__para_e akn:art_30__para_f
+GIVEN r IS A `school role`, p IS A `pay for the hour value`
+GIVETH A NUMBER
+DECIDE `pay for a school-activity hour` r p IS
+    IF `paid for school activities` r
+    THEN `the school-activity rate` TIMES `the hour value for` `a school-activities hour` p
+    ELSE 0
+
+DECLARE `section 30 action` IS ONE OF
+    `report the school-activity hours done`
+    `approve the report`
+    `pay the school-activity hours`
+
+-- (ז)–(ח): payment depends on the teacher's report of the hours, approved
+-- by the principal; it is made in the salary of the month after the one
+-- the hours were done in, if the report was in by the Ministry's deadline.
+-- Time is counted in days from the end of the month the hours were done in.
+@ref akn:art_30__para_g akn:art_30__para_h
+GIVEN `report deadline` IS A NUMBER @desc the day the Ministry set for the report, counted from the end of the month
+GIVETH A DEONTIC Party `section 30 action`
+DECIDE `paying for school activities` `report deadline` IS
+    PARTY `the teaching employee`
+    MAY   `report the school-activity hours done`
+    WITHIN `report deadline`
+    HENCE (PARTY `the school principal`
+           MUST  `approve the report`
+           HENCE (PARTY `the State`
+                  MUST  `pay the school-activity hours`
+                  WITHIN 31
+                  LEST BREACH BY `the State` BECAUSE "section 30(ח): paid in the salary of the next month"))
+
+-- (ט): pension contributions on the pay (5% employer, 5% employee), by the
+-- agreement of 17.12.98.
+@ref akn:art_30__para_i
+`the employer's contribution on school-activity pay` MEANS 5%
+`the employee's contribution on school-activity pay` MEANS 5%
+
+-- The three caps of (ג) come to the 18 hours of (א) exactly.
+`the caps of (ג) together` MEANS
+    sum (map `hours of the activity a half-year at most`
+             (LIST `a general school assembly`, `an individual parents-and-children meeting`, `an activity after school hours`))
+#ASSERT `the caps of (ג) together` EQUALS `school-activity hours a half-year at most`
+
+GIVEN a IS A `school activity`
+GIVETH A NUMBER
+DECIDE `ten hours of each` a IS 10
+
+#ASSERT `school-activity hours paid in the half-year` `ten hours of each` EQUALS 18
+
+`a teacher at school activities` MEANS
+    `pay for the hour value` WITH
+        `combined salary`             IS 7794
+        `special-education allowance` IS 0
+        `pensionable role allowances` IS 779.4
+        `a special-education teacher substituting in a special-education class` IS FALSE
+
+#ASSERT `pay for a school-activity hour` `another teaching employee` `a teacher at school activities` EQUALS 68.75
+#ASSERT `pay for a school-activity hour` `the principal` `a teacher at school activities` EQUALS 0
+
+#TRACE `paying for school activities` 10 AT 0 WITH
+    PARTY `the teaching employee` DOES `report the school-activity hours done` AT 5
+    PARTY `the school principal` DOES `approve the report` AT 7
+    PARTY `the State` DOES `pay the school-activity hours` AT 30

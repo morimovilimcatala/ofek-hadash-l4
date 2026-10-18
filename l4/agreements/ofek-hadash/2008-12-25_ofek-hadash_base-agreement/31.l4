@@ -1,0 +1,100 @@
+-- הסכם אופק חדש (25.12.2008), §31 חישוב ערך שעה: the hour's value — its
+-- base for substitution, school activities and a deduction for an hour's
+-- absence, and its computation: the base for a 100% position over 4.33
+-- weeks times 36 hours.
+
+IMPORT prelude
+IMPORT common
+
+§ `31 חישוב ערך שעה`
+
+DECLARE `use of the hour value` IS ONE OF
+    `a substitution hour, not in place of a stay hour`
+    `a substitution hour in place of a stay hour, paid instead of it (§29(ד))`
+    `a substitution hour in place of a stay hour, done on another day (§29(ה))`
+    `a school-activities hour`
+    `a deduction for an hour's absence`
+
+@desc The monthly amounts the base of an hour's value is made of, for a 100% position.
+DECLARE `pay for the hour value` HAS
+    `combined salary`                     IS A NUMBER @desc שכר משולב for a full position; from §35's tables, an input
+    `special-education allowance`         IS A NUMBER @desc גמול חינוך מיוחד, for a full position
+    `pensionable role allowances`         IS A NUMBER @desc the role allowances counted in the salary determining the pension, that the teacher earns in the regular salary
+    `a special-education teacher substituting in a special-education class` IS A BOOLEAN @desc a special-education, מתי"א, therapeutic-centre or integrating teacher (31(א)(1))
+
+-- (א)(1): a substitution hour, save one in place of a stay hour under
+-- §29(ד): the combined salary; a special-education teacher substituting in
+-- a special-education class adds the special-education allowance.
+@ref akn:art_31__para_a akn:art_31__para_a__subpara_1
+GIVEN p IS A `pay for the hour value`
+GIVETH A NUMBER
+DECIDE `the base under 31(א)(1)` p IS
+    IF p's `a special-education teacher substituting in a special-education class`
+    THEN p's `combined salary` PLUS p's `special-education allowance`
+    ELSE p's `combined salary`
+
+-- (א)(2)–(4): a substitution hour in place of a stay hour, a
+-- school-activities hour and a deduction for an hour's absence: the
+-- combined salary and the pensionable role allowances.
+@ref akn:art_31__para_a__subpara_2 akn:art_31__para_a__subpara_3 akn:art_31__para_a__subpara_4
+GIVEN p IS A `pay for the hour value`
+GIVETH A NUMBER
+DECIDE `the base under 31(א)(2)–(4)` p IS
+    p's `combined salary` PLUS p's `pensionable role allowances`
+
+-- Which base a use takes. F-ofek-hadash-base-31-a: (1) takes every
+-- substitution hour except the one "במקום שעת שהיה כאמור בסעיף 29 (ד)",
+-- and (2) takes every substitution hour "במקום שעת שהיה" — so the hour of
+-- §29(ה), in place of a stay hour that is done on another day, is in both,
+-- with two different bases. The reading adopted (convention
+-- precedence.specific): (2), which speaks of exactly the hour in place of a
+-- stay hour.
+GIVEN u IS A `use of the hour value`
+GIVETH A LIST OF STRING
+DECIDE `the clauses of 31(א) whose words take` u IS
+    CONSIDER u
+    WHEN `a substitution hour, not in place of a stay hour` THEN LIST "(1)"
+    WHEN `a substitution hour in place of a stay hour, paid instead of it (§29(ד))` THEN LIST "(2)"
+    WHEN `a substitution hour in place of a stay hour, done on another day (§29(ה))` THEN LIST "(1)", "(2)"
+    WHEN `a school-activities hour` THEN LIST "(3)"
+    WHEN `a deduction for an hour's absence` THEN LIST "(4)"
+
+GIVEN u IS A `use of the hour value`, p IS A `pay for the hour value`
+GIVETH A NUMBER
+DECIDE `the base of the hour value` u p IS
+    IF u EQUALS `a substitution hour, not in place of a stay hour`
+    THEN `the base under 31(א)(1)` p
+    ELSE `the base under 31(א)(2)–(4)` p
+
+`the hour of §29(ה) falls under two clauses of 31(א)` MEANS
+    count (`the clauses of 31(א) whose words take` `a substitution hour in place of a stay hour, done on another day (§29(ה))`) EQUALS 2
+#ASSERT `the hour of §29(ה) falls under two clauses of 31(א)`
+
+-- (ב): the hour's value is the base for a 100% position over 4.33 weeks
+-- times 36 hours. No rounding is stated (convention rounding.default).
+@ref akn:art_31__para_b akn:art_31__para_b/p2 akn:art_31__para_b/p3
+`weeks in a month` MEANS 4.33
+`hours in a full week` MEANS 36
+
+GIVEN base IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the hour value` base IS
+    base DIVIDED BY (`weeks in a month` TIMES `hours in a full week`)
+
+GIVEN u IS A `use of the hour value`, p IS A `pay for the hour value`
+GIVETH A NUMBER
+DECIDE `the hour value for` u p IS
+    `the hour value` (`the base of the hour value` u p)
+
+-- A placeholder teacher: a combined salary of 7,794 (50 an hour, 4.33 × 36
+-- being 155.88) and 779.40 of pensionable role allowances (5 an hour more).
+`a teacher for the hour value` MEANS
+    `pay for the hour value` WITH
+        `combined salary`             IS 7794
+        `special-education allowance` IS 0
+        `pensionable role allowances` IS 779.4
+        `a special-education teacher substituting in a special-education class` IS FALSE
+
+#ASSERT `weeks in a month` TIMES `hours in a full week` EQUALS 155.88
+#ASSERT `the hour value for` `a substitution hour, not in place of a stay hour` `a teacher for the hour value` EQUALS 7794 DIVIDED BY 155.88
+#ASSERT `the hour value for` `a school-activities hour` `a teacher for the hour value` EQUALS 55
