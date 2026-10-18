@@ -121,13 +121,25 @@ reader can see past, a dated amount.
 - `common.l4` holds `Party`. Do not edit it; if a section needs an actor it
   lacks, declare a section-local party type (`DECLARE \`1.28 party\` IS ONE
   OF …`) and say so in the hand-off.
+- **A convention's arithmetic is called, never copied.** `l4/conventions.l4`
+  holds one definition for each convention in `conventions.toml` that is a
+  computation — rounding half up (`to the agora`, `to the nearest whole`),
+  a period's first and last day (`is on or after`, `is on or before`), "מעל"
+  (`is above`), "עד" (`is until`), a table's shared bound (`has reached the
+  row from`, `is in the row from … to …`), "לכל N" (`whole blocks of … in`),
+  pro rata above a full position, "יגדל ב־X%" (`increased by`), a difference
+  never below zero — each pinned by its own `#ASSERT`s. A file that applies
+  one says `IMPORT conventions` and calls it; the suite refuses a local
+  definition of any name the module defines.
 
 ## Circulars (and any document that is not divided into sections)
 
 A circular is ONE unit: `l4/<collection>/<file>.l4` beside the corpus's
 `akn/<collection>/<file>.xml`, findings in `findings/<collection>/<file>.toml`
 (`l4 = "l4/<collection>/<file>.l4"` in each finding). `common.l4` in each
-collection directory is a link to the takanon's, so `IMPORT common` works.
+collection directory is a link to the takanon's, so `IMPORT common` works;
+`conventions.l4` in each is a link to `l4/conventions.l4`, so `IMPORT
+conventions` does.
 
     python3 tools/rows.py circulars/2016-17_tashaz_05          # its rows and keys
     python3 tools/rows.py circulars/2016-17_tashaz_05 --todo

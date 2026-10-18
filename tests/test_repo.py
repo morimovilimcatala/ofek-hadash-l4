@@ -58,7 +58,7 @@ class Alignment(unittest.TestCase):
         known = {site_mod.l4_path(doc, s.num) for doc in site_mod.DOCUMENTS
                  for s in akn.sections(doc)}
         for f in (ROOT / "l4").rglob("*.l4"):
-            if f.name == "common.l4" or f.parent.name == "lib" or f.is_symlink():
+            if f.name in ("common.l4", "conventions.l4") or f.parent.name == "lib" or f.is_symlink():
                 continue
             self.assertIn(f, known, f"{f.relative_to(ROOT)} encodes no corpus section")
 

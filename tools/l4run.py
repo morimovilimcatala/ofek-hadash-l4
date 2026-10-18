@@ -47,7 +47,8 @@ def compiler_id(exe: str) -> str:
 def files() -> list[Path]:
     """Every .l4 file, but a link: a link is another file's name for an
     IMPORT in a directory that is not its own (a section's `common.l4`, a
-    site page's `takanon-1-11.l4`), and its target is run where it lives."""
+    collection's `conventions.l4`, a site page's `takanon-1-11.l4`), and its
+    target is run where it lives."""
     return sorted(p for p in L4_DIR.rglob("*.l4") if not p.is_symlink())
 
 

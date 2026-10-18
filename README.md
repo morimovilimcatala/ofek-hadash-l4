@@ -88,8 +88,8 @@ The patch is ours and is not upstream. It changes `jl4-core/src/L4/API.hs`
 in two ways: an `#EVALTRACE` result in the evaluator's JSON carries its
 trace (`trace`, a tree of steps and values, and `traceText`, the text `l4`
 prints), where upstream drops it; and a new export, `l4_eval_files`, takes
-the modules a source imports (here `common`), where `l4_eval` resolves only
-the built-in libraries. `toolchain/build-wasm.sh` installs GHC's WASM
+the modules a source imports (here `common` and `conventions`), where
+`l4_eval` resolves only the built-in libraries. `toolchain/build-wasm.sh` installs GHC's WASM
 toolchain (ghc-wasm-meta at the commit in `toolchain/GHC_WASM_META`),
 applies the patch at the pinned commit, builds, and rewrites the directory.
 Bumping `L4_COMMIT` means re-running it, and checking the patch still applies.
