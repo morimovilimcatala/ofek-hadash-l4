@@ -130,7 +130,9 @@ reader can see past, a dated amount.
   pro rata above a full position, "יגדל ב־X%" (`increased by`), a difference
   never below zero — each pinned by its own `#ASSERT`s. A file that applies
   one says `IMPORT conventions` and calls it; the suite refuses a local
-  definition of any name the module defines.
+  definition of any name the module defines. Never use L4's `ROUND`: it
+  takes a half to the even neighbour (`ROUND 2.5` is 2), and the convention
+  is half up.
 
 ## Circulars (and any document that is not divided into sections)
 
