@@ -1,0 +1,75 @@
+-- הסכם אופק חדש (25.12.2008), §65 שכר מנהלים חדשים: a new principal in a
+-- reform school is paid by the principals' table (annex י"ב), updated as
+-- §35(ב); placed at grade 1 by the school's complexity level, a full-time
+-- grade-1 principal earning at least 12,200 ₪ at the start of תשס"ט and
+-- 12,383 ₪ in the December 2008 salary; a reform teacher appointed
+-- principal goes to the grade whose salary is nearest at or above his last
+-- table salary with role allowances; a teacher off the reform appointed in
+-- a reform school, by the conversion of §§44–45; and one appointed where
+-- the reform is not applied stays on the existing agreements.
+
+IMPORT prelude
+IMPORT common
+
+§ `65 שכר מנהלים חדשים`
+
+-- (א): the principals' table is annex י"ב, which the corpus does not publish
+-- with the agreement: an input by complexity level and grade (the grades
+-- and intermediate grades of (ד)(2) as its rows), updated as §35(ב).
+@ref akn:art_65__para_a
+ASSUME `the principals' table` IS A FUNCTION FROM NUMBER AND NUMBER TO NUMBER
+
+-- (ב): grade 1 at the school's level; the floor of a full-time grade-1
+-- principal's pay.
+@ref akn:art_65__para_b
+GIVEN `salary day` IS A DATE
+GIVETH A NUMBER
+DECIDE `a grade-1 principal's least pay` `salary day` IS
+    BRANCH IF `salary day` `is on or after` (DATE_FROM_DMY 1 12 2008) THEN 12383
+           IF `salary day` `is on or after` (DATE_FROM_DMY 1 9 2008) THEN 12200
+           OTHERWISE 0
+
+GIVEN `table value` IS A NUMBER, `salary day` IS A DATE
+GIVETH A NUMBER
+DECIDE `a new grade-1 principal's full-time pay` `table value` `salary day` IS
+    max `table value` (`a grade-1 principal's least pay` `salary day`)
+
+-- The grade among those offered whose pay is the nearest at or above a
+-- target: the least pay not below it.
+GIVEN target IS A NUMBER, `pay at each grade` IS A LIST OF NUMBER
+GIVETH A MAYBE NUMBER
+DECIDE `the pay of the grade nearest at or above` target `pay at each grade` IS
+    listToMaybe (sort (filter (GIVEN p YIELD p AT LEAST target) `pay at each grade`))
+
+-- (ג): a reform teacher appointed principal: the target is his last table
+-- salary with the role allowances he had on the eve of the appointment.
+@ref akn:art_65__para_c
+GIVEN `last table salary` IS A NUMBER, `role allowances on the eve` IS A NUMBER, `pay at each grade` IS A LIST OF NUMBER
+GIVETH A MAYBE NUMBER
+DECIDE `a reform teacher's pay as principal` `last table salary` `role allowances on the eve` `pay at each grade` IS
+    `the pay of the grade nearest at or above` (`last table salary` PLUS `role allowances on the eve`) `pay at each grade`
+
+-- (ד): a teacher off the reform appointed in a reform school: (1) his pay
+-- converted (A) by §§44–45 (an input until they are encoded); (2) the grade
+-- or intermediate grade nearest at or above A.
+@ref akn:art_65__para_d akn:art_65__para_d__subpara_1 akn:art_65__para_d__subpara_2
+GIVEN `A, the converted pay` IS A NUMBER, `pay at each grade and intermediate grade` IS A LIST OF NUMBER
+GIVETH A MAYBE NUMBER
+DECIDE `a converted teacher's pay as principal` `A, the converted pay` `pay at each grade and intermediate grade` IS
+    `the pay of the grade nearest at or above` `A, the converted pay` `pay at each grade and intermediate grade`
+
+-- (ה): appointed where the reform is not applied, the existing agreements
+-- go on until it is.
+@ref akn:art_65__para_e
+GIVEN `on the reform` IS A BOOLEAN, `the school applies the reform` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `stays on the existing agreements as principal` `on the reform` `the school applies the reform` IF
+    (NOT `on the reform`) AND (NOT `the school applies the reform`)
+
+-- Placeholder rows of a complexity level: 12,000, 12,600, 13,300.
+#ASSERT `a reform teacher's pay as principal` 11000 1000 (LIST 12000, 12600, 13300) EQUALS JUST 12000
+#ASSERT `a reform teacher's pay as principal` 11000 1100 (LIST 12000, 12600, 13300) EQUALS JUST 12600
+#ASSERT `a new grade-1 principal's full-time pay` 12000 (DATE_FROM_DMY 1 9 2008) EQUALS 12200
+#ASSERT `a new grade-1 principal's full-time pay` 12000 (DATE_FROM_DMY 1 12 2008) EQUALS 12383
+#ASSERT NOT `stays on the existing agreements as principal` FALSE TRUE
+#ASSERT `stays on the existing agreements as principal` FALSE FALSE
