@@ -1742,6 +1742,53 @@ def load_conventions() -> dict:
 
 CONVENTION_TITLES = {c["id"]: c["title"] for c in load_conventions().get("convention", [])}
 
+# A convention that is a computation is code too (MMS-488): one definition
+# in l4/conventions.l4 for each name its `code` lists, imported by every rule
+# that applies it. The page sets that definition, and the #ASSERTs that pin
+# it, beside the prose; tests/test_repo.py refuses a local copy.
+CONVENTIONS_L4 = ROOT / "l4" / "conventions.l4"
+MODULE_DEF = re.compile(r"^(?:DECIDE\s+(?:\w+\s+)?`([^`]+)`|`([^`]+)`\s+MEANS)", re.M)
+
+
+def module_names(text: str) -> list[str]:
+    """The names a module defines, in its order."""
+    return [a or b for a, b in MODULE_DEF.findall(text)]
+
+
+def definition_block(lines: list[str], name: str) -> tuple[int, int]:
+    """The 1-based lines (first, last) of `name`'s definition in a module:
+    its paragraph (the comment, GIVEN and GIVETH above it included) and the
+    paragraphs of #ASSERTs right after it."""
+    n = re.escape(name)
+    pat = re.compile(rf"^(?:DECIDE\s+(?:\w+\s+)?`{n}`|`{n}`\s+MEANS)")
+    i = next(i for i, l in enumerate(lines) if pat.match(l))
+    j = i
+    while j > 0 and lines[j - 1].strip():
+        j -= 1
+    k = i
+    while k + 1 < len(lines) and lines[k + 1].strip():
+        k += 1
+    while True:
+        a = k + 1
+        while a < len(lines) and not lines[a].strip():
+            a += 1
+        b = a
+        while b < len(lines) and lines[b].strip():
+            b += 1
+        if a < b and all(l.startswith(("#ASSERT", "#EVAL")) for l in lines[a:b]):
+            k = b - 1
+        else:
+            break
+    return j + 1, k + 1
+
+
+def module_callers(name: str) -> list[str]:
+    """The L4 files, other than the module, that call `name`."""
+    tick = f"`{name}`"
+    return sorted(str(f.relative_to(ROOT)) for f in (ROOT / "l4").rglob("*.l4")
+                  if not f.is_symlink() and f != CONVENTIONS_L4
+                  and tick in f.read_text(encoding="utf-8"))
+
 
 def conventions_page(reg: dict, by_file: dict[str, "SectionView"], findings: list[dict]) -> str:
     here = "conventions.html"
@@ -1772,6 +1819,41 @@ def conventions_page(reg: dict, by_file: dict[str, "SectionView"], findings: lis
         shown, rest = fs[:5], fs[5:]
         return (f'<div class="conv-find"><p class="conv-find-h">{head} ({len(fs)})</p><ul>{"".join(map(item, shown))}</ul>'
                 + (f'<details><summary>עוד {len(rest)}</summary><ul>{"".join(map(item, rest))}</ul></details>' if rest else "")
+                + "</div>")
+
+    import l4run
+    mod_lines = CONVENTIONS_L4.read_text(encoding="utf-8").split("\n") if CONVENTIONS_L4.exists() else []
+    run = l4run.outputs(CONVENTIONS_L4)["run"]
+    mod_results = json.loads(run.read_text(encoding="utf-8")).get("results", []) if run.exists() else []
+
+    def code_html(c: dict) -> str:
+        """The convention's own definitions in the module, as code, with the
+        #ASSERTs that pin them and the files that call them."""
+        names = c.get("code", [])
+        if not names:
+            return ""
+        blocks, held, total, files = [], 0, 0, set()
+        for name in names:
+            s, e = definition_block(mod_lines, name)
+            blocks.append((s, e))
+            for r in mod_results:
+                if r.get("kind") == "assertion" and s <= (line_of(r.get("range")) or 0) <= e:
+                    total += 1
+                    held += str(r.get("value")).strip().lower() == "true"
+            files.update(module_callers(name))
+        numbered = [(n, mod_lines[n - 1]) for s, e in blocks for n in range(s, e + 1)]
+        gh = f"{REPO}/blob/main/l4/conventions.l4#L{blocks[0][0]}-L{blocks[-1][1]}"
+        assert_tag = '<code dir="ltr">#ASSERT</code>'
+        tally = (f'<span class="set-asserts">כל ה־{assert_tag} מתקיימים ({total})</span>'
+                 if total and held == total else
+                 f'<span class="set-asserts bad">{total - held} מתוך {total} {assert_tag} אינם מתקיימים</span>'
+                 if total else f'<span class="set-asserts bad">ה־{assert_tag} לא הורצו</span>')
+        callers = "".join(f"<li>{where({'l4': f})}</li>" for f in sorted(files))
+        return (f'<div class="set-code"><p class="set-code-h">בקוד: '
+                f'<a href="{gh}" dir="ltr">l4/conventions.l4</a> {tally}</p>'
+                f'{l4src.numbered_html(numbered)}'
+                + (f'<details><summary>נקראת מ־{len(files)} קבצים</summary>'
+                   f'<ul class="set-where">{callers}</ul></details>' if files else "")
                 + "</div>")
 
     groups = []
@@ -1807,6 +1889,7 @@ def conventions_page(reg: dict, by_file: dict[str, "SectionView"], findings: lis
                 f'<div class="set-row" id="{esc(c["id"])}">'
                 f'<div class="set-q"><div class="set-label">{esc(c["title"])}</div>'
                 f'<div class="set-detail">{esc(c["detail"])}</div>'
+                f'{code_html(c)}'
                 f'{finding_list(amb, "העמימויות שהמוסכמה מכריעה")}'
                 f'{finding_list(other, "ממצאים נוספים שהקריאה בהם נשענת עליה")}{details}</div>'
                 f'<div class="set-a"><span class="set-val">{esc(c["value"])}</span>'
@@ -1830,6 +1913,10 @@ def conventions_page(reg: dict, by_file: dict[str, "SectionView"], findings: lis
             '<p>בכל שורה: השאלה, התשובה שהקידוד נותן, ומי הכריע — הטקסט עצמו, או הקידוד. '
             'כל עמימות שהקידוד נתקל בה מוכרעת לפי אחת המוסכמות, ומתחת לכל מוסכמה מופיעות העמימויות שהיא מכריעה. '
             'מקום שבו הטקסט עצמו עונה אחרת מופיע תחת <em>חריגים</em>, עם המילים שמכריעות.</p>'
+            '<p>מוסכמה שהיא חישוב — עיגול, יום ראשון ואחרון של תקופה, "מעל", "עד", גבול משותף בטבלה, '
+            '"לכל N", חלק משרה, "יגדל ב־X%" — כתובה גם כקוד: הגדרה אחת ב־'
+            '<code dir="ltr">l4/conventions.l4</code>, עם ה־<code dir="ltr">#ASSERT</code> שמקבעים את פעולתה, '
+            'והכללים שמחילים אותה מייבאים אותה משם ואינם מעתיקים אותה. הקוד מופיע ליד הניסוח.</p>'
             '<p class="banner">הבחירות שהקידוד עשה כאן זמניות: הן נבחרו כדי שהקריאה תהיה אחידה, '
             'וניתן לשנות כל אחת מהן. שינוי מוסכמה משנה את כל הכללים שמחילים אותה.</p>'
             + review

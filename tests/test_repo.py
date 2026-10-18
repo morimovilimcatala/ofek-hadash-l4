@@ -221,6 +221,113 @@ class Conventions(unittest.TestCase):
                     self.assertTrue(e.get("why"), "an exception says why it differs")
 
 
+class ConventionsModule(unittest.TestCase):
+    """l4/conventions.l4 (MMS-488): each convention that is a computation is
+    one definition there, named by the convention's `code` and pinned by its
+    own #ASSERTs, and rules that apply it call it. The client asked
+    whether the conventions "get l4 code, or are they only prose"; before
+    this the half-up "to the agora" was defined fifteen times, once per
+    circular, and `is on or after` sixteen. A copy can drift from the
+    convention it claims to apply, so the copies may not grow back."""
+
+    MODULE = ROOT / "l4/conventions.l4"
+    # the hand-written forms of what the module defines: L4's ROUND takes a
+    # half to the even neighbour, which is not rounding.half, and the TRUNC
+    # and FLOOR idioms are the module's rounding written out again
+    IDIOMS = {
+        "ROUND": re.compile(r"\bROUND\b"),
+        "half up to the agora": re.compile(r"\bTRUNC \(.*PLUS 0\.005\) 2\b"),
+        "half up to a whole": re.compile(r"\bTRUNC \(.*PLUS 0\.5\) 0\b|\bFLOOR \(.*PLUS 0\.5\)"),
+    }
+
+    def setUp(self):
+        self.reg = site_mod.load_conventions()
+        self.text = self.MODULE.read_text(encoding="utf-8")
+        self.names = site_mod.module_names(self.text)
+        self.files = {f: f.read_text(encoding="utf-8") for f in sorted((ROOT / "l4").rglob("*.l4"))
+                      if not f.is_symlink() and f != self.MODULE}
+
+    @staticmethod
+    def definitions(text: str) -> dict[str, str]:
+        """Each name a file defines, and its definition's paragraph."""
+        out = {}
+        for m in re.finditer(r"^(?:DECIDE\s+(?:\w+\s+)?`([^`]+)`|`([^`]+)`\s+MEANS)[^\n]*(?:\n(?!\s*\n)[^\n]*)*",
+                             text, re.M):
+            out.setdefault(m.group(1) or m.group(2), m.group())
+        return out
+
+    def test_every_directory_that_imports_it_links_it(self):
+        # IMPORT resolves in the directory the file is run in, and a link to a
+        # section (takanon-1-11.l4) is run in the link's directory
+        for d in {f.parent for f in (ROOT / "l4").rglob("*.l4") if f.resolve() != self.MODULE.resolve()
+                  and re.search(r"^IMPORT conventions$", f.read_text(encoding="utf-8"), re.M)}:
+            with self.subTest(dir=str(d.relative_to(ROOT))):
+                link = d / "conventions.l4"
+                self.assertTrue(link.is_symlink(), "no conventions.l4 link")
+                self.assertEqual(link.resolve(), self.MODULE.resolve())
+
+    def test_a_computed_convention_names_its_definitions(self):
+        known = {st["id"] for st in self.reg.get("convention", [])}
+        for st in self.reg.get("convention", []):
+            for name in st.get("code", []):
+                with self.subTest(convention=st["id"], name=name):
+                    self.assertIn(name, self.names, "not defined in l4/conventions.l4")
+        # and a section of the module is headed by the convention it encodes
+        for sec in re.findall(r"^§§ `([^`]+)`", self.text, re.M):
+            if "." in sec:
+                self.assertIn(sec, known, f"§§ {sec} heads no convention")
+
+    def test_no_file_keeps_its_own_copy(self):
+        copies = [f"{f.relative_to(ROOT)}: {n}" for f, text in self.files.items()
+                  for n in self.names if n in self.definitions(text)]
+        self.assertEqual(copies, [], "defined in l4/conventions.l4: IMPORT conventions and call it")
+
+    def test_no_file_writes_the_module_out_by_hand(self):
+        found = []
+        for f, text in self.files.items():
+            for n, line in enumerate(text.split("\n"), 1):
+                code = line.split("--")[0]
+                for kind, pat in self.IDIOMS.items():
+                    if pat.search(code):
+                        found.append(f"{f.relative_to(ROOT)}:{n} {kind}: {line.strip()}")
+        self.assertEqual(found, [])
+
+    def test_every_definition_in_the_module_is_called(self):
+        for n in self.names:
+            with self.subTest(name=n):
+                self.assertTrue(any(f"`{n}`" in t for t in self.files.values()), "nothing calls it")
+
+    def calls(self, path: str, rule: str, code: list[str]) -> bool:
+        """Whether `rule` in `path` calls one of `code`, itself or through
+        rules of its own file."""
+        defs = self.definitions((ROOT / path).read_text(encoding="utf-8"))
+        seen, todo = set(), [rule]
+        while todo:
+            r = todo.pop()
+            if r in seen or r not in defs:
+                continue
+            seen.add(r)
+            if any(f"`{n}`" in defs[r] for n in code):
+                return True
+            todo += [x for x in defs if x != r and f"`{x}`" in defs[r]]
+        return False
+
+    def test_a_computed_convention_is_the_code_its_rules_run(self):
+        """A convention with `code` is applied by at least one of the rules it
+        names calling that code — so what the page shows beside the prose is
+        what the rules run, not a description of it. (Not every rule it
+        names calls it: a table that rows share is read by
+        thresholds.shared-bound's code and thresholds.until's alike, where
+        the two agree; a rule that applies one in data, such as a band
+        printed to 65 and 11 months, has nothing to call.)"""
+        for st in self.reg.get("convention", []):
+            code = st.get("code", [])
+            if code:
+                with self.subTest(convention=st["id"]):
+                    self.assertTrue(any(self.calls(a["l4"], a["rule"], code) for a in st.get("applies", [])),
+                                    f"no rule it names calls {code}")
+
+
 class Toolchain(unittest.TestCase):
     def test_every_file_checks_and_every_assert_holds(self):
         import l4run
