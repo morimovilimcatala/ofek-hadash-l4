@@ -33,6 +33,7 @@ refused) has nothing to encode until the corpus reads its pages.
 |---|---|
 | `corpus/` | read-only snapshot of the corpus's Akoma Ntoso (`SOURCE.toml` names the commit) and its document list |
 | `l4/<corpus path>/<section>.l4` | one L4 file per section, laid out like the corpus |
+| `conventions.toml`, `l4/conventions.l4` | the rules of reading the encoding follows where the text does not decide, and the one L4 definition of each that is a computation, which the rules import |
 | `findings/<corpus path>/<section>.toml` (one per section) | errors in the text the encoding exposed, each backed by an `#ASSERT` |
 | `tools/` | the L4 runner, the AKN reader, the site generator |
 | `toolchain/` | the pinned L4 compiler revision and its build script |
@@ -69,6 +70,11 @@ refused) has nothing to encode until the corpus reads its pages.
   by the stage that caught it (`findings.json` for machines), grouped by
   section or circular, folded to a title, and filterable by kind, stage,
   collection and words.
+- **Conventions** (`conventions.html`) — the rules of reading the encoding
+  follows where the text does not decide, each with the rules that apply it
+  and the findings it decides. A convention that is a computation shows its
+  definition in `l4/conventions.l4` beside the prose, with the `#ASSERT`s
+  that pin it and the files that call it.
 - **Coverage** — how much of the corpus is encoded, against the corpus's own
   document list.
 - **Diagnostics** — the L4 checker's report, file by file.
@@ -100,8 +106,8 @@ The patch is ours and is not upstream. It changes `jl4-core/src/L4/API.hs`
 in two ways: an `#EVALTRACE` result in the evaluator's JSON carries its
 trace (`trace`, a tree of steps and values, and `traceText`, the text `l4`
 prints), where upstream drops it; and a new export, `l4_eval_files`, takes
-the modules a source imports (here `common`), where `l4_eval` resolves only
-the built-in libraries. `toolchain/build-wasm.sh` installs GHC's WASM
+the modules a source imports (here `common` and `conventions`), where
+`l4_eval` resolves only the built-in libraries. `toolchain/build-wasm.sh` installs GHC's WASM
 toolchain (ghc-wasm-meta at the commit in `toolchain/GHC_WASM_META`),
 applies the patch at the pinned commit, builds, and rewrites the directory.
 Bumping `L4_COMMIT` means re-running it, and checking the patch still applies.
