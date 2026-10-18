@@ -1,0 +1,194 @@
+-- הסכם אופק חדש (25.12.2008), §38 קידום בדרגות: promotion — to grades 2–6
+-- by years in the grade below and the Ministry's criteria; what counts in
+-- those years and what does not; to grades 7–9 also by evaluation, within
+-- quotas of 10%, 5% and 3% of all positions; the yearly check, the order of
+-- promotion, the longest a qualified teacher may be held back, and the
+-- converted teachers in the quotas.
+
+IMPORT prelude
+IMPORT common
+
+§ `38 קידום בדרגות`
+
+§§ `38(ב), (ו) Years in a grade`
+
+-- (ב) and (ו): the years in the grade below that promotion to each grade
+-- asks.
+@ref akn:art_38__para_b akn:art_38__para_b__subpara_1 akn:art_38__para_b__subpara_2 akn:art_38__para_b__subpara_3 akn:art_38__para_b__subpara_4 akn:art_38__para_b__subpara_5 akn:art_38__para_f akn:art_38__para_f__subpara_1 akn:art_38__para_f__subpara_2 akn:art_38__para_f__subpara_3
+GIVEN `to grade` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `years in the grade below for promotion to` `to grade` IS
+    BRANCH IF `to grade` AT MOST 3 THEN 2
+           OTHERWISE 3
+
+§§ `38(ג)–(ד) What counts in the years`
+
+DECLARE `kind of period` IS ONE OF
+    `work in the grade`
+    `statutory maternity leave`
+    `reserve duty`
+    `continuous service as principal or first deputy that gave no promotion in those roles`
+    `paid vacation or paid sick leave`
+    `a sabbatical`
+    `unpaid leave`
+
+@desc A period in a grade, as far as §38(ג)–(ד) ask.
+DECLARE `period in a grade` HAS
+    kind     IS A `kind of period`
+    years    IS A NUMBER
+    `on the sabbatical, employed at least a third of a position, seniority-eligible` IS A BOOLEAN @desc 38(ג)(5)(א)
+    `on the sabbatical, studied the didactic fields the training department recognised` IS A BOOLEAN @desc 38(ג)(5)(ב)
+
+-- (ג)(1)–(4): maternity leave, reserve duty, continuous service as
+-- principal or first deputy that gave no promotion in them, paid vacation
+-- and sick leave count. (ד)(1): unpaid leave of every kind does not.
+@ref akn:art_38__para_c akn:art_38__para_c__subpara_1 akn:art_38__para_c__subpara_2 akn:art_38__para_c__subpara_3 akn:art_38__para_c__subpara_4 akn:art_38__para_d akn:art_38__para_d__subpara_1
+GIVEN k IS A `kind of period`
+GIVETH A BOOLEAN
+DECIDE `counts in full` k IF
+    NOT (k EQUALS `unpaid leave` OR k EQUALS `a sabbatical`)
+
+-- (ג)(5): a sabbatical counts only if (א) the teacher went on teaching a
+-- third of a position or more, by the takanon's rules, and would have had
+-- the work recognised for seniority but for the sabbatical; or (ב) the
+-- training department found he studied the didactic fields of circular
+-- סז/3(ב) §§6.1.1–6.4.1; "במקרה כזה" the year counts as half a year.
+-- (ד)(2): a sabbatical meeting neither does not count.
+--
+-- F-ofek-hadash-base-38-a: the half-year sentence is printed under (ב)
+-- (convention reading.placement: it applies to the clause it is printed
+-- in), so a sabbatical under (א) counts in full and one under (ב) as half.
+-- A sabbatical that meets both is a full year under (א) and half under
+-- (ב); the reading adopted (convention amounts.highest): the full year.
+@ref akn:art_38__para_c__subpara_5 akn:art_38__para_c__subpara_5__cls_a akn:art_38__para_c__subpara_5__cls_b akn:art_38__para_c__subpara_5__cls_b/p2 akn:art_38__para_d__subpara_2
+GIVEN p IS A `period in a grade`
+GIVETH A LIST OF NUMBER
+DECIDE `what each clause counts of a sabbatical year` p IS
+    append (IF p's `on the sabbatical, employed at least a third of a position, seniority-eligible` THEN LIST 1 ELSE EMPTY)
+           (IF p's `on the sabbatical, studied the didactic fields the training department recognised` THEN LIST 0.5 ELSE EMPTY)
+
+GIVEN p IS A `period in a grade`
+GIVETH A NUMBER
+DECIDE `years the period counts for` p IS
+    IF p's kind EQUALS `a sabbatical`
+    THEN p's years TIMES foldr max 0 (`what each clause counts of a sabbatical year` p)
+    ELSE IF `counts in full` (p's kind) THEN p's years ELSE 0
+
+GIVEN periods IS A LIST OF `period in a grade`
+GIVETH A NUMBER
+DECIDE `years counted in the grade` periods IS
+    sum (map `years the period counts for` periods)
+
+§§ `38(א), (ה) Promotion to grades 2–9`
+
+@desc A teacher in a grade, as far as §38 asks.
+DECLARE `candidate` HAS
+    grade                         IS A NUMBER
+    `periods in the grade`        IS A LIST OF `period in a grade`
+    `meets the Ministry's criteria` IS A BOOLEAN @desc the criteria in the Ministry's letter to the union of 25.12.08, which the corpus does not hold
+    `evaluation recommends promotion` IS A BOOLEAN @desc 38(ה)(3): the evaluations under the Ministry's professional directions
+    `evaluation score`            IS A NUMBER
+
+-- (א): to grades 2–6, the years of (ב) and the Ministry's criteria;
+-- (ה): to grades 7–9, also an evaluation recommending promotion.
+@ref akn:art_38__para_a akn:art_38__para_a__subpara_1 akn:art_38__para_a__subpara_2 akn:art_38__para_e akn:art_38__para_e__subpara_1 akn:art_38__para_e__subpara_2 akn:art_38__para_e__subpara_3
+GIVEN c IS A `candidate`
+GIVETH A BOOLEAN
+DECIDE `meets the conditions for the next grade` c IF
+        c's grade AT LEAST 1
+    AND c's grade AT MOST 8
+    AND `years counted in the grade` (c's `periods in the grade`) AT LEAST `years in the grade below for promotion to` (c's grade PLUS 1)
+    AND c's `meets the Ministry's criteria`
+    AND (c's grade PLUS 1 AT MOST 6 OR c's `evaluation recommends promotion`)
+
+§§ `38(ז)–(יא) The quotas of grades 7–9`
+
+-- (ז): the positions in grades 7, 8 and 9 never pass 10%, 5% and 3% of all
+-- teaching employees' positions — those in reform and non-reform official
+-- primary and junior high schools and kindergartens and in special
+-- education, without principals, first deputies, supervisors and the
+-- instruction share of instructors (¶2) — and "all the positions" are never
+-- fewer than on the eve of the signing (¶3).
+@ref akn:art_38__para_g akn:art_38__para_g__subpara_1 akn:art_38__para_g__subpara_2 akn:art_38__para_g__subpara_3 akn:art_38__para_g__subpara_3/p2 akn:art_38__para_g__subpara_3/p3
+GIVEN grade IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the quota of the grade` grade IS
+    BRANCH IF grade EQUALS 7 THEN 10%
+           IF grade EQUALS 8 THEN 5%
+           IF grade EQUALS 9 THEN 3%
+           OTHERWISE 1
+
+GIVEN `all positions now` IS A NUMBER, `all positions on the eve of the signing` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `all the positions for the quotas` `all positions now` `all positions on the eve of the signing` IS
+    max `all positions now` `all positions on the eve of the signing`
+
+GIVEN grade IS A NUMBER, `positions in the grade` IS A NUMBER, `all the positions` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `free positions in the quota` grade `positions in the grade` `all the positions` IS
+    max 0 ((`the quota of the grade` grade TIMES `all the positions`) MINUS `positions in the grade`)
+
+-- (ח): a yearly check, by a procedure the parties agree, of whether the
+-- quotas allow promotion next year; if so, among those who meet (ה)(1)–(2),
+-- the highest evaluation scores first.
+@ref akn:art_38__para_h
+GIVEN cs IS A LIST OF `candidate`
+GIVETH A LIST OF `candidate`
+DECIDE `the order of promotion` cs IS
+    sortBy (GIVEN a, b YIELD a's `evaluation score` AT LEAST b's `evaluation score`)
+           (filter (GIVEN c YIELD c's `meets the Ministry's criteria`) cs)
+
+-- (ט): one who met the conditions of (ה) is not held back more than 3, 4
+-- or 5 years from grade 7, 8 or 9, subject to a free place in the quota:
+-- once held back that long, the next free place is his, before the
+-- scores of (ח).
+@ref akn:art_38__para_i akn:art_38__para_i__subpara_1 akn:art_38__para_i__subpara_2 akn:art_38__para_i__subpara_3
+GIVEN `to grade` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `years a qualified teacher may be held back from` `to grade` IS
+    BRANCH IF `to grade` EQUALS 7 THEN 3
+           IF `to grade` EQUALS 8 THEN 4
+           OTHERWISE 5
+
+GIVEN `to grade` IS A NUMBER, `years held back` IS A NUMBER, `free places` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `goes before the scores` `to grade` `years held back` `free places` IF
+        `years held back` AT LEAST `years a qualified teacher may be held back from` `to grade`
+    AND `free places` GREATER THAN 0
+
+-- (י): the existing teachers placed in grades 7–9 by the conversion, or
+-- promoted to them at the first promotion after it (§48), count in the
+-- quotas; (יא): the quotas never stop that placement or that promotion.
+@ref akn:art_38__para_j akn:art_38__para_ja
+GIVEN `by the conversion or the first promotion after it` IS A BOOLEAN, `free places` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `the quota allows the placement` `by the conversion or the first promotion after it` `free places` IF
+    `by the conversion or the first promotion after it` OR `free places` GREATER THAN 0
+
+-- Worked examples.
+GIVEN k IS A `kind of period`, years IS A NUMBER, a IS A BOOLEAN, b IS A BOOLEAN
+GIVETH A `period in a grade`
+DECIDE `a period of` k years a b IS
+    `period in a grade` WITH
+        kind  IS k
+        years IS years
+        `on the sabbatical, employed at least a third of a position, seniority-eligible` IS a
+        `on the sabbatical, studied the didactic fields the training department recognised` IS b
+
+-- To grade 2: two years. One year of work and a studied sabbatical make 1.5.
+#ASSERT `years counted in the grade` (LIST `a period of` `work in the grade` 1 FALSE FALSE, `a period of` `a sabbatical` 1 FALSE TRUE) EQUALS 1.5
+#ASSERT `years counted in the grade` (LIST `a period of` `work in the grade` 1 FALSE FALSE, `a period of` `unpaid leave` 1 FALSE FALSE) EQUALS 1
+-- From grade 1 to grade 6: 2 + 2 + 3 + 3 + 3 = 13 years; to grade 9 nine more.
+#ASSERT sum (map `years in the grade below for promotion to` (LIST 2, 3, 4, 5, 6)) EQUALS 13
+#ASSERT sum (map `years in the grade below for promotion to` (LIST 7, 8, 9)) EQUALS 9
+-- The quotas of 10,000 positions: 1,000 in grade 7.
+#ASSERT `free positions in the quota` 7 900 10000 EQUALS 100
+#ASSERT `all the positions for the quotas` 9500 10000 EQUALS 10000
+
+-- F-ofek-hadash-base-38-a's evidence: a sabbatical meeting both (א) and
+-- (ב) is a full year by one and half by the other.
+`a sabbatical meeting both clauses` MEANS `a period of` `a sabbatical` 1 TRUE TRUE
+`the clauses count a sabbatical meeting both differently` MEANS
+    `what each clause counts of a sabbatical year` `a sabbatical meeting both clauses` EQUALS LIST 1, 0.5
+#ASSERT `the clauses count a sabbatical meeting both differently`
+#ASSERT `years the period counts for` `a sabbatical meeting both clauses` EQUALS 1
