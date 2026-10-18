@@ -1,0 +1,94 @@
+-- הסכם אופק חדש (25.12.2008), §10: the exceptions to §9 — an existing
+-- teacher's choice not to be under the reform in תשס"ט, the terms of the
+-- conversion for one who chose so, a school whose permanent staff asked to
+-- go back for תש"ע, and the part of a position in instruction or on loan to
+-- an upper division, which stays off the reform.
+
+IMPORT prelude
+IMPORT common
+
+§ `10`
+
+-- akn:art_10/p1 The opening ("על אף האמור בסעיף 9 … ובכפוף לאמור בסעיף 5"); its effect is the exceptions below.
+
+DECLARE `school year` IS ONE OF `5768`, `5769`, `5770`, `a later year`
+
+@desc An existing teaching employee's choices, as far as 10(א)–(ב) ask.
+DECLARE `opt-out case` HAS
+    `moved to the reform in 5768 only`             IS A BOOLEAN @desc 10(א)
+    `gave notice by 1.5.08`                        IS A BOOLEAN
+    `in a school that applied the reform from 5768` IS A BOOLEAN @desc 10(ב)
+    `chose not to be under the reform in 5768`     IS A BOOLEAN
+
+-- 10(א): one who moved to the reform in תשס"ח only could choose, by notice
+-- given by 1.5.08, not to be under it in תשס"ט only. 10(ב): one in a school
+-- that applied the reform from תשס"ח who chose not to be under it in
+-- תשס"ח could stay off it in תשס"ט only.
+@ref akn:art_10__para_a akn:art_10__para_b
+GIVEN c IS A `opt-out case`, y IS A `school year`
+GIVETH A BOOLEAN
+DECIDE `may be off the reform in` c y IF
+        y EQUALS `5769`
+    AND (    (c's `moved to the reform in 5768 only` AND c's `gave notice by 1.5.08`)
+         OR  (c's `in a school that applied the reform from 5768` AND c's `chose not to be under the reform in 5768`))
+
+-- 10(ג)(1): the salary status for the conversion of §44 is the one he had
+-- when the reform was applied in his school; (2): the conversion counts
+-- only the role allowances he had then, those §39 lists excepted.
+@ref akn:art_10__para_c akn:art_10__para_c__subpara_1 akn:art_10__para_c__subpara_2
+DECLARE `role allowance at the reform's start` HAS
+    `held when the reform was applied in the school` IS A BOOLEAN
+    `one §39 lists`                                   IS A BOOLEAN
+
+GIVEN a IS A `role allowance at the reform's start`
+GIVETH A BOOLEAN
+DECIDE `counted in the conversion of one who opted out` a IF
+    a's `held when the reform was applied in the school` AND NOT a's `one §39 lists`
+
+-- 10(ד): in a school that moved to the reform in תשס"ט only, where at the
+-- end of that year most of the permanent staff ask to be employed off it,
+-- the staff go back off the reform for תש"ע only. "רוב" follows convention
+-- thresholds.main: more than half.
+@ref akn:art_10__para_d
+GIVEN `moved to the reform in 5769 only` IS A BOOLEAN
+      `permanent staff` IS A NUMBER
+      `permanent staff asking to go back` IS A NUMBER
+      y IS A `school year`
+GIVETH A BOOLEAN
+DECIDE `the school goes back off the reform in` `moved to the reform in 5769 only` `permanent staff` `permanent staff asking to go back` y IF
+        y EQUALS `5770`
+    AND `moved to the reform in 5769 only`
+    AND `permanent staff asking to go back` TIMES 2 GREATER THAN `permanent staff`
+
+-- 10(ה): while they are off the reform, §11's terms apply to them.
+@ref akn:art_10__para_e
+GIVEN `off the reform under 10(א), (ב) or (ד)` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `section 11's terms apply` `off the reform under 10(א), (ב) or (ד)` IF
+    `off the reform under 10(א), (ב) or (ד)`
+
+-- 10(ו)–(ז): the move to the reform applies only to the part of the
+-- position in an educational institution (not to instruction, which keeps
+-- §11's terms), and only to the part in a junior high school (not to the
+-- part on loan to an upper division under the lending agreement of
+-- 15.8.82).
+@ref akn:art_10__para_f akn:art_10__para_g
+GIVEN `position in the institution or junior high school` IS A NUMBER
+      `position in instruction or on loan to an upper division` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the part of the position under the reform` `position in the institution or junior high school` `position in instruction or on loan to an upper division` IS
+    `position in the institution or junior high school`
+
+#ASSERT `may be off the reform in` (`opt-out case` WITH
+            `moved to the reform in 5768 only`              IS TRUE
+            `gave notice by 1.5.08`                         IS TRUE
+            `in a school that applied the reform from 5768` IS FALSE
+            `chose not to be under the reform in 5768`      IS FALSE) `5769`
+#ASSERT NOT `may be off the reform in` (`opt-out case` WITH
+            `moved to the reform in 5768 only`              IS TRUE
+            `gave notice by 1.5.08`                         IS TRUE
+            `in a school that applied the reform from 5768` IS FALSE
+            `chose not to be under the reform in 5768`      IS FALSE) `5770`
+#ASSERT `the school goes back off the reform in` TRUE 20 11 `5770`
+#ASSERT NOT `the school goes back off the reform in` TRUE 20 10 `5770`
+#ASSERT `the part of the position under the reform` 0.6 0.4 EQUALS 0.6
