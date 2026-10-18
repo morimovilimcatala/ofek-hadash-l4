@@ -2,8 +2,9 @@
 `salary of a teaching employee`, evaluated in the browser by L4 itself.
 
 Nothing here computes a salary. The page ships §1.1's own L4 file and the
-`common` module it imports; on "חישוב" the browser appends the form's values
-and an `#EVALTRACE` to that source and runs it through the L4 evaluator
+`common` and `conventions` modules it imports; on "חישוב" the browser
+appends the form's values and an `#EVALTRACE` to that source and runs it
+through the L4 evaluator
 compiled to WebAssembly (tools/assets/l4wasm/, built by
 toolchain/build-wasm.sh). There is no second implementation of the rules.
 

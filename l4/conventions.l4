@@ -1,0 +1,212 @@
+-- The conventions (conventions.toml, the site's "מוסכמות" page) that are
+-- arithmetic: one definition each, with the #ASSERTs that pin what it does.
+-- A rule that applies one of them calls it from here (IMPORT conventions)
+-- and never writes its own copy; tests/test_repo.py refuses a local
+-- definition of any name this file defines. Changing a convention is a
+-- change to its definition here, and every rule that calls it follows.
+--
+-- IMPORT reaches only the importing file's own directory, so each
+-- collection directory holds a link to this file named conventions.l4, as
+-- it does to the takanon's common.l4.
+--
+-- A rule calls a definition here where the convention decides its reading;
+-- where the text itself decides ("לפחות", "ומעלה", "ועד בכלל"), the rule
+-- says AT LEAST or AT MOST on its own. The conventions that are rules of
+-- reading (a qualifier's scope, which provision prevails, …) stay prose: what
+-- they decide is which rule is written, not a computation a rule could call.
+
+IMPORT prelude
+
+§ `מוסכמות הקידוד — הגדרה אחת לכל מוסכמה חישובית`
+
+§§ `rounding.half`
+
+-- Where the text says to round to the nearest agora or shekel, an exact
+-- half goes up (0.5 → 1), not to the even neighbour. "Up" is toward the
+-- larger number, so −0.5 goes to 0. L4's own ROUND takes a half to the even
+-- neighbour (ROUND 2.5 is 2) and is not this convention.
+GIVEN x IS A NUMBER
+GIVETH A NUMBER
+DECIDE `to the nearest whole` x IS
+    FLOOR (x PLUS 0.5)
+
+#ASSERT `to the nearest whole` 2.5 EQUALS 3
+#ASSERT `to the nearest whole` 3.5 EQUALS 4
+#ASSERT `to the nearest whole` 2.4999 EQUALS 2
+#ASSERT `to the nearest whole` (0 MINUS 0.5) EQUALS 0
+#ASSERT NOT (ROUND 2.5 EQUALS `to the nearest whole` 2.5)
+
+-- The same, to the nearest multiple of a unit: 0.01 is the agora, 0.0001 a
+-- hundredth of a percent written as a share.
+GIVEN x IS A NUMBER, unit IS A NUMBER
+GIVETH A NUMBER
+DECIDE x `to the nearest` unit IS
+    `to the nearest whole` (x DIVIDED BY unit) TIMES unit
+
+#ASSERT 0.12225 `to the nearest` 0.0001 EQUALS 0.1223
+#ASSERT 2.5 `to the nearest` 1 EQUALS 3
+
+GIVEN x IS A NUMBER
+GIVETH A NUMBER
+DECIDE `to the agora` x IS
+    x `to the nearest` 0.01
+
+#ASSERT `to the agora` 1.005 EQUALS 1.01
+#ASSERT `to the agora` 1.0049 EQUALS 1
+#ASSERT `to the agora` 167.7525 EQUALS 167.75
+#ASSERT `to the agora` (832.62 TIMES 1.002) EQUALS 834.29
+
+§§ `checks against a printed figure`
+
+-- Not a convention: the arithmetic the checks use where the encoding sets a
+-- computed amount beside one the text prints (rounding.printed-figure says
+-- the printed one governs). An issuer's example that drops the third
+-- decimal is reproduced by truncation; a comparison that forgives the
+-- rounding of either side allows one agora.
+GIVEN x IS A NUMBER
+GIVETH A NUMBER
+DECIDE `truncated to the agora` x IS
+    TRUNC x 2
+
+#ASSERT `truncated to the agora` 1.009 EQUALS 1
+#ASSERT NOT (`truncated to the agora` 1.005 EQUALS `to the agora` 1.005)
+
+GIVEN x IS A NUMBER, y IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE x `is within an agora of` y IF
+    x MINUS y AT MOST 0.01 AND y MINUS x AT MOST 0.01
+
+#ASSERT 9399.28 `is within an agora of` 9399.29
+#ASSERT NOT 9399.28 `is within an agora of` 9399.30
+
+§§ `dates.start`
+
+-- A period that begins on a day ("מיום", "החל מ־") includes that day.
+GIVEN d IS A DATE, e IS A DATE
+GIVETH A BOOLEAN
+DECIDE d `is on or after` e IF
+    DATE_SERIAL d AT LEAST DATE_SERIAL e
+
+#ASSERT (DATE_FROM_DMY 1 9 2024) `is on or after` (DATE_FROM_DMY 1 9 2024)
+#ASSERT NOT (DATE_FROM_DMY 31 8 2024) `is on or after` (DATE_FROM_DMY 1 9 2024)
+
+§§ `dates.end`
+
+-- A deadline, and the last day of a period ("עד יום"), are in it.
+GIVEN d IS A DATE, e IS A DATE
+GIVETH A BOOLEAN
+DECIDE d `is on or before` e IF
+    DATE_SERIAL d AT MOST DATE_SERIAL e
+
+#ASSERT (DATE_FROM_DMY 31 8 2029) `is on or before` (DATE_FROM_DMY 31 8 2029)
+#ASSERT NOT (DATE_FROM_DMY 1 9 2029) `is on or before` (DATE_FROM_DMY 31 8 2029)
+
+§§ `dates.school-year-share`
+
+-- A share of a school year is measured over its twelve months, September
+-- to August, unless the text sets another denominator.
+`months in a school year` MEANS 12
+
+GIVEN months IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the share of a school year` months IS
+    months DIVIDED BY `months in a school year`
+
+#ASSERT `the share of a school year` 6 EQUALS 0.5
+#ASSERT `the share of a school year` 10 EQUALS 10 DIVIDED BY 12
+
+§§ `thresholds.above`
+
+-- "מעל N", "יותר מ־N", "למעלה מ־N" do not include N itself. (Where the
+-- text adds "לפחות" or "ומעלה", N is in, and the rule says AT LEAST.)
+GIVEN x IS A NUMBER, n IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE x `is above` n IF
+    x GREATER THAN n
+
+#ASSERT NOT 50 `is above` 50
+#ASSERT 50.5 `is above` 50
+
+§§ `thresholds.until`
+
+-- "עד N" of a quantity, a rate or an age ends at N and does not include it:
+-- "עד 0.3" is below 0.3. ("ועד בכלל" or "כולל" include N, and the rule says
+-- AT MOST; for a date, dates.end applies.)
+GIVEN x IS A NUMBER, n IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE x `is until` n IF
+    x LESS THAN n
+
+#ASSERT 0.29 `is until` 0.3
+#ASSERT NOT 0.3 `is until` 0.3
+
+§§ `thresholds.shared-bound`
+
+-- Where two rows of a table meet at one number, the number belongs to the
+-- row that opens at it. A table read from the top row down asks whether a
+-- value has reached a row's opening bound; a row read on its own is from
+-- its opening bound up to, and not including, the next row's.
+GIVEN x IS A NUMBER, bound IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE x `has reached the row from` bound IF
+    x AT LEAST bound
+
+GIVEN x IS A NUMBER, lower IS A NUMBER, upper IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE x `is in the row from` lower `to` upper IF
+    x `has reached the row from` lower AND NOT x `has reached the row from` upper
+
+#ASSERT 0.5 `has reached the row from` 0.5
+#ASSERT 0.5 `is in the row from` 0.5 `to` 0.7
+#ASSERT NOT 0.5 `is in the row from` 0.3 `to` 0.5
+#ASSERT 0.49 `is in the row from` 0.3 `to` 0.5
+
+§§ `thresholds.per-n`
+
+-- A conversion "for every N" (pupils, hours, units) counts whole blocks of
+-- N only: a remainder adds no block and is not counted in proportion.
+GIVEN n IS A NUMBER, x IS A NUMBER
+GIVETH A NUMBER
+DECIDE `whole blocks of` n `in` x IS
+    FLOOR (x DIVIDED BY n)
+
+#ASSERT `whole blocks of` 25 `in` 60 EQUALS 2
+#ASSERT `whole blocks of` 25 `in` 75 EQUALS 3
+#ASSERT `whole blocks of` 8 `in` 7 EQUALS 0
+
+§§ `position.above-full`
+
+-- An amount "for a full position" is paid in proportion to the position,
+-- above one position too, unless the text sets a ceiling.
+GIVEN amount IS A NUMBER, position IS A NUMBER
+GIVETH A NUMBER
+DECIDE amount `pro rata to a position of` position IS
+    amount TIMES position
+
+#ASSERT 1000 `pro rata to a position of` 1.2 EQUALS 1200
+#ASSERT 1000 `pro rata to a position of` 0.5 EQUALS 500
+
+§§ `amounts.increase`
+
+-- "יגדל ב־X%" multiplies by (1 + X%), also where the quantity is itself a
+-- percentage; it does not add X percentage points.
+GIVEN x IS A NUMBER, rate IS A NUMBER
+GIVETH A NUMBER
+DECIDE x `increased by` rate IS
+    x TIMES (1 PLUS rate)
+
+#ASSERT 1 `increased by` 12.5% EQUALS 1.125
+#ASSERT 80% `increased by` 12.5% EQUALS 90%
+#ASSERT NOT (80% `increased by` 12.5% EQUALS 80% PLUS 12.5%)
+
+§§ `amounts.never-negative`
+
+-- A payment of a difference is never negative and never becomes a debt of
+-- the employee: below zero, it is zero.
+GIVEN x IS A NUMBER
+GIVETH A NUMBER
+DECIDE `not below zero` x IS
+    max 0 x
+
+#ASSERT `not below zero` (100 MINUS 150) EQUALS 0
+#ASSERT `not below zero` 50 EQUALS 50

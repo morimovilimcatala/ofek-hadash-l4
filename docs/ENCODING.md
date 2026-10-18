@@ -106,6 +106,14 @@ reader can see past, a dated amount.
   name: daydate's `Sun`…`Sat`, for one, must not be redefined.
 - `IMPORT prelude` explicitly — `map`, `filter`, `sum`, `min`, `all`,
   `count` come from it.
+- An infix name (`x \`is above\` n`, `a \`pro rata to a position of\` p`)
+  binds tighter than any operator, so bracket what it does not: a
+  function call on its left (`(f g) \`is above\` n`, not `f g \`is
+  above\` n`), a percentage on its right (`\`has reached the row from\`
+  (10%)`), and the whole comparison on a continuation line that begins
+  with AND (`AND (e's \`days\` \`is above\` 151)`). A parameter that
+  shares its name with a record field cannot stand on its left at all
+  ("multiple definitions"); there the rule keeps the plain comparison.
 - Record field names are global within a file and across `IMPORT`: two
   records with a field `days` make every `x's days` ambiguous. Give fields
   specific names (`length in days`, `band days`).
@@ -121,13 +129,29 @@ reader can see past, a dated amount.
 - `common.l4` holds `Party`. Do not edit it; if a section needs an actor it
   lacks, declare a section-local party type (`DECLARE \`1.28 party\` IS ONE
   OF …`) and say so in the hand-off.
+- **A convention's arithmetic is called, never copied.** `l4/conventions.l4`
+  holds one definition for each convention in `conventions.toml` that is a
+  computation — rounding half up (`to the agora`, `to the nearest whole`),
+  a period's first and last day (`is on or after`, `is on or before`), "מעל"
+  (`is above`), "עד" (`is until`), a table's shared bound (`has reached the
+  row from`, `is in the row from … to …`), "לכל N" (`whole blocks of … in`),
+  pro rata above a full position, "יגדל ב־X%" (`increased by`), a difference
+  never below zero — each pinned by its own `#ASSERT`s. A file that applies
+  one says `IMPORT conventions` and calls it; the suite refuses a local
+  definition of any name the module defines. Call it where the convention
+  decides the reading; where the text decides it ("לפחות", "ומעלה", "ועד
+  בכלל"), the rule says AT LEAST or AT MOST itself. Never use L4's `ROUND`: it
+  takes a half to the even neighbour (`ROUND 2.5` is 2), and the convention
+  is half up.
 
 ## Circulars (and any document that is not divided into sections)
 
 A circular is ONE unit: `l4/<collection>/<file>.l4` beside the corpus's
 `akn/<collection>/<file>.xml`, findings in `findings/<collection>/<file>.toml`
 (`l4 = "l4/<collection>/<file>.l4"` in each finding). `common.l4` in each
-collection directory is a link to the takanon's, so `IMPORT common` works.
+collection directory is a link to the takanon's, so `IMPORT common` works;
+`conventions.l4` in each is a link to `l4/conventions.l4`, so `IMPORT
+conventions` does.
 
     python3 tools/rows.py circulars/2016-17_tashaz_05          # its rows and keys
     python3 tools/rows.py circulars/2016-17_tashaz_05 --todo
