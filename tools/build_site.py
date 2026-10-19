@@ -926,7 +926,13 @@ def text_cell(r: akn.Row) -> str:
     if r.kind == "label":
         return num + head
     if r.cells is not None:
-        body = "".join("<tr>" + "".join(f"<td>{esc(c)}</td>" for c in row) + "</tr>" for row in r.cells)
+        spans = r.spans or [[(1, 1)] * len(row) for row in r.cells]
+
+        def td(c: str, span: tuple[int, int]) -> str:
+            attrs = "".join(f' {name}="{n}"' for name, n in zip(("rowspan", "colspan"), span) if n > 1)
+            return f"<td{attrs}>{esc(c)}</td>"
+        body = "".join("<tr>" + "".join(td(c, sp) for c, sp in zip(row, srow)) + "</tr>"
+                       for row, srow in zip(r.cells, spans))
         return f'<div class="ctable"><table>{body}</table></div>'
     # a corpus sic mark is the corpus's: its correction is taken as given and
     # the text is shown plain (the client, 2026-10-06: no כך במקור on this site)

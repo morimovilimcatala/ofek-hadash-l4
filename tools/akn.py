@@ -50,6 +50,9 @@ class Row:
     runs: list[Run] = field(default_factory=list)
     aliases: list[str] = field(default_factory=list)
     cells: list[list[str]] | None = None   # a table: rows of cell texts
+    # each cell's (rowspan, colspan), parallel to `cells`: the corpus
+    # publishes a cell the page's rules merge once, with its span (MMS-497)
+    spans: list[list[tuple[int, int]]] | None = None
 
     @property
     def text(self) -> str:
@@ -157,9 +160,13 @@ def section_rows(sec, notes, holder0: str | None = None) -> list[Row]:
             if t == "table":
                 # a table is one row, cited whole: "<holder>/t<N>"
                 tables[holder] = tables.get(holder, 0) + 1
-                cells = [[squash("".join(c.itertext())) for c in tr if tag(c) in ("td", "th")]
-                         for tr in ch.iter(AKN + "tr")]
-                rows.append(Row(f"{holder}/t{tables[holder]}", depth, "text", cells=cells))
+                trs = [[c for c in tr if tag(c) in ("td", "th")]
+                       for tr in ch.iter(AKN + "tr")]
+                cells = [[squash("".join(c.itertext())) for c in tr] for tr in trs]
+                spans = [[(int(c.get("rowspan") or 1), int(c.get("colspan") or 1))
+                          for c in tr] for tr in trs]
+                rows.append(Row(f"{holder}/t{tables[holder]}", depth, "text",
+                                cells=cells, spans=spans))
                 continue
             if t == "p":
                 counter[holder] = counter.get(holder, 0) + 1
