@@ -411,11 +411,6 @@ MISQUOTED = {
     # was folded into; its bullet half shipped in the corpus's bfacfc2).
     "F-2008-09_tashsat_09-b": "MMS-426",
     "F-2019-20_tashaf_08-b": "MMS-426",
-    # A table cell the corpus publishes flattened and scrambled (MMS-424);
-    # the quote reads the cell off the page.
-    "F-2022-23_tashpag_01-g": "MMS-424",
-    "F-2024-25_tashpah_10-b": "MMS-424",
-    "F-2025-26_tashpo_02-j": "MMS-424",
 }
 
 
