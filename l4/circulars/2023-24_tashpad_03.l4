@@ -12,9 +12,10 @@
 -- worked examples.
 --
 -- Corpus note: the corpus nests the circular's part ב under section ו's
--- stage ה, its sign-off and the owner's undertaking under §17.3, and prints
--- several tables (4.1.1, 4.1.4, 12.2, 14 and annex ה) as loose lines; the
--- keys below are the corpus's.
+-- stage ה, and its sign-off and the owner's undertaking under §17.3; the
+-- keys below are the corpus's. (Until corpus dd5d7de it also printed the
+-- tables of 4.1.1, 4.1.4, 12.2, 14 and annex ה as loose lines, MMS-424;
+-- it publishes them as tables now, and the values here agree with them.)
 
 IMPORT prelude
 IMPORT daydate
@@ -633,8 +634,7 @@ DECIDE `the substitute's post` `in weekly timetable hours over time` `post repla
 
 -- 4.1.1's table (weekly hours of a full position) by post and by age —
 -- under 50; 50 to 55 (not included); 55 and above, a "new" teacher
--- (3.1) apart from an "existing" one. Read off the page: the corpus prints
--- its third row and its labels as loose lines.
+-- (3.1) apart from an "existing" one, as the corpus's table prints them.
 DECLARE `age band` IS ONE OF
     `under 50`
     `50 to 55 not included`
@@ -1647,25 +1647,49 @@ DECIDE `the advance deducted in the month` `deduction` `allowed by the Wage Prot
 -- akn:att_4__hc_1 Annex ד': the form for a request to the exceptions committee not to join (last day 31.12.2023) — the content of 3.6, encoded there.
 -- akn:att_6__hc_1 Annex ו': the addresses for inquiries (districts, portals, the service centre, the Ofek hotline, the Ministry mailboxes); no rule.
 
--- Annex ה': the work-week examples by position base. Each row: the base,
--- the scope printed, and the weekly hours actually worked; a day of
--- 7:55–14:00 (6.08 hours), five days a week (30.4 hours).
+-- Annex ה': the work-week examples by position base, one row per printed
+-- row (att_5/t1 rows 1-7, t2 rows 8-15, t3 rows 16-17): the base, the
+-- scope of the position the column prints and the weekly hours actually
+-- worked where the row prints them. (These were read off the notes while
+-- the corpus scrambled the table, MMS-424; MMS-498 takes them from the
+-- table it publishes now.)
 DECLARE `annex example` HAS
     `example number`       IS A NUMBER
     `example base`         IS A NUMBER
-    `printed scope`        IS A NUMBER  @desc the scope of the position the annex prints, as a share (1 = 100%)
-    `printed hours worked` IS A NUMBER
+    `printed scope`        IS A NUMBER        @desc the scope of the position the annex prints, as a share (1 = 100%)
+    `printed hours worked` IS A MAYBE NUMBER  @desc NOTHING where the row prints none
 
-@ref akn:att_5__hc_1
+@ref akn:att_5__hc_1 akn:att_5__hc_1/t1 akn:att_5__hc_1/t2 akn:att_5__hc_1/t3
 `annex ה's examples` MEANS
-    LIST `annex example` 1  30.4 1    30.4,
-         `annex example` 4  33.8 0.9  30.8,
-         `annex example` 7  28.4 1.07 30.4,
-         `annex example` 8  26.4 1.0363 30.4,
-         `annex example` 10 31.8 0.955 30.4,
-         `annex example` 11 29.8 1.02 30.4,
-         `annex example` 13 30.4 1    30.4,
-         `annex example` 14 34   1    34
+    LIST `annex example` 1  30.4 1     (JUST 30.4),
+         `annex example` 2  30.4 1     (JUST 27.4),
+         `annex example` 3  30.4 1.1   (JUST 30.4),
+         `annex example` 4  33.8 0.9   (JUST 30.8),
+         `annex example` 5  33.8 0.9   (JUST 27.8),
+         `annex example` 6  33.8 1     (JUST 30.8),
+         `annex example` 7  28.4 1.07  NOTHING,
+         `annex example` 8  26.4 1.036 NOTHING,
+         `annex example` 9  28.4 1     NOTHING,
+         `annex example` 10 31.8 0.9   NOTHING,
+         `annex example` 11 29.8 0.9   NOTHING,
+         `annex example` 12 31.8 0.955 NOTHING,
+         `annex example` 13 30.4 1     NOTHING,
+         `annex example` 14 34   1     NOTHING,
+         `annex example` 15 34   1.1   (JUST 34),
+         `annex example` 16 32   1     NOTHING,
+         `annex example` 17 30   1     NOTHING
+
+GIVEN n IS A NUMBER
+GIVETH A LIST OF `annex example`
+DECIDE `annex ה example` n IS
+    filter (GIVEN e YIELD e's `example number` EQUALS n) `annex ה's examples`
+
+GIVEN n IS A NUMBER
+GIVETH A NUMBER
+DECIDE `annex ה's base in row` n IS
+    sum (map (GIVEN e YIELD e's `example base`) (`annex ה example` n))
+
+#ASSERT all (GIVEN n YIELD count (`annex ה example` n) EQUALS 1) (LIST 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17)
 
 `five days of 6.08 hours` MEANS 5 TIMES `the working day ending at 14:00, in hours`
 
@@ -1690,6 +1714,34 @@ DECLARE `annex example` HAS
 `annex ה's examples do not all follow from the 6.08-hour day` MEANS
     `example 4's hours are not five days of 6.08` AND `examples 10 and 12 do not follow the fortnight method`
 #ASSERT `annex ה's examples do not all follow from the 6.08-hour day`
+
+-- F-2023-24_tashpad_03-m: the column "היקף המשרה באחוזים *" is, by its
+-- asterisk (¶5), the position "as far as she works Sunday to Thursday
+-- 7:55-14:00 and Friday 7:55-12:45" — five days of 6.08 hours over the
+-- row's base. Rows 7 and 12 print that figure. Rows 8 to 11 do not, though
+-- each row's own note works out the full week: row 9 has row 7's base and
+-- prints 100% where row 7 prints 107%; row 10 has row 12's base and prints
+-- 90% where row 12 prints 95.5%; row 11 prints 90% (the full week is
+-- 102%); row 8 prints 103.6%, the note's figure for a day off every other
+-- week (the full week is 115.15%). Checked by truncating, as the annex
+-- prints.
+GIVEN n IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `annex ה row prints the full week` n IF
+    all (GIVEN e YIELD TRUNC (`five days of 6.08 hours` DIVIDED BY e's `example base` TIMES 100) 1
+                           EQUALS e's `printed scope` TIMES 100)
+        (`annex ה example` n)
+
+`annex ה's position column prints the full week in some rows and not others` MEANS
+        all (GIVEN n YIELD `annex ה row prints the full week` n) (LIST 7, 12)
+    AND all (GIVEN n YIELD NOT `annex ה row prints the full week` n) (LIST 8, 9, 10, 11)
+    AND `annex ה's base in row` 7 EQUALS `annex ה's base in row` 9
+    AND `annex ה's base in row` 10 EQUALS `annex ה's base in row` 12
+#ASSERT `annex ה's position column prints the full week in some rows and not others`
+
+-- The reading adopted (F-2023-24_tashpad_03-m): the position is 4.1.5's,
+-- the weekly hours actually worked over the base, as each row's note
+-- computes it; the column's figure in rows 8 to 11 is not used.
 
 §§ `Worked examples`
 
