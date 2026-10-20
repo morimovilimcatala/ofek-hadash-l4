@@ -5,6 +5,7 @@
 
 IMPORT prelude
 IMPORT common
+IMPORT conventions
 
 § `1.6 קצובת ביגוד`
 
@@ -14,7 +15,7 @@ DECLARE `clothing year` HAS
     `employed in a teaching role`              IS A BOOLEAN
     `year of teaching seniority`               IS A NUMBER  @desc which year of teaching seniority this is, counting the year being served (F-1.6-a), before the compulsory-service years are taken out
     `years of compulsory army service counted in it` IS A NUMBER @desc years of compulsory IDF service included in that seniority (section 1.6.2, note 3)
-    `position fraction this year`              IS A NUMBER  @desc the share of a full position held (1 = one full position)
+    `position in each month worked`            IS A LIST OF NUMBER  @desc the share of a full position held in each month of the year the employee worked (1 = one full position); one entry where it did not change
     `share of the year worked`                 IS A NUMBER  @desc the extent of work in the year, as a share of the full year (1 = the whole year)
     `level 1 amount`                           IS A NUMBER  @desc the yearly amount at level 1 of the clothing allowance customary for public-facing civil servants (section 1.6.1), set by the Treasury and published by the conditions-of-service department (section 1.6.2); an input
     `level 2 amount`                           IS A NUMBER  @desc the yearly amount at level 2, set the same way; an input
@@ -92,7 +93,17 @@ DECIDE `level amount` y IS
 GIVEN y IS A `clothing year`
 GIVETH A NUMBER
 DECIDE `clothing pro-rating` y IS
-    min (y's `position fraction this year`) 1 TIMES y's `share of the year worked`
+    `the year's position share` (y's `position in each month worked`) TIMES y's `share of the year worked`
+
+-- F-1.6-b: "יחסית לשיעור המשרה, אך לא יותר ממשרה אחת" does not say how a
+-- position that changes within the year is measured, nor whether the cap of
+-- one position binds each month or the year as a whole. Convention
+-- position.yearly: the mean of the months, each month up to one position.
+-- Capping the year's mean instead pays more to a year of 1.2 and 0.6:
+`a year of 1.2 then 0.6 is paid differently if one position caps the year` MEANS
+    NOT (`the year's position share` (LIST 1.2, 1.2, 1.2, 1.2, 1.2, 0.6, 0.6, 0.6, 0.6, 0.6)
+         EQUALS min ((1.2 TIMES 5 PLUS 0.6 TIMES 5) DIVIDED BY 10) 1)
+#ASSERT `a year of 1.2 then 0.6 is paid differently if one position caps the year`
 
 @export default The clothing allowance a teaching employee is owed for one year under section 1.6 of the takanon, before the allowance under other arrangements that section 1.6.4 adds to it
 GIVEN y IS A `clothing year` @desc the employee's year
@@ -139,7 +150,7 @@ DECIDE `payment with July's salary` y IS
         `employed in a teaching role`                     IS TRUE
         `year of teaching seniority`                      IS 28
         `years of compulsory army service counted in it`  IS 3
-        `position fraction this year`                     IS 0.5
+        `position in each month worked`                   IS LIST 0.5
         `share of the year worked`                        IS 1
         `level 1 amount`                                  IS 1000
         `level 2 amount`                                  IS 1200
@@ -191,7 +202,7 @@ DECIDE `a checked clothing year` n a position share entitled IS
         `employed in a teaching role`                     IS TRUE
         `year of teaching seniority`                      IS n
         `years of compulsory army service counted in it`  IS a
-        `position fraction this year`                     IS position
+        `position in each month worked`                   IS LIST position
         `share of the year worked`                        IS share
         `level 1 amount`                                  IS 1000
         `level 2 amount`                                  IS 1200

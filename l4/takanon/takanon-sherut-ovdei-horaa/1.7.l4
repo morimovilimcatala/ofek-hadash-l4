@@ -4,6 +4,7 @@
 
 IMPORT prelude
 IMPORT common
+IMPORT conventions
 
 § `1.7 קצובת הבראה ונופש`
 
@@ -11,7 +12,7 @@ IMPORT common
 @ref akn:chp_1א___sec_1_7__hc_2__para_9
 DECLARE `recuperation year` HAS
     `year of service`                       IS A NUMBER  @desc which year of service this is (the first year is 1), counted per the takanon's seniority rules (§1.7.3)
-    `position fraction`                     IS A NUMBER  @desc the share of a full position held that school year (1 = one full position)
+    `position in each month paid`           IS A LIST OF NUMBER  @desc the share of a full position held in each month of the school year for which salary was received (1 = one full position); one entry where it did not change
     `started after 1 September`             IS A BOOLEAN @desc the employee began work in this school year after 1 September
     `months for which salary was received`  IS A NUMBER  @desc months of this school year for which the employee received salary
     `periods without salary`                IS A LIST OF `period without salary`
@@ -170,7 +171,7 @@ DECIDE `share under §1.7.5` y IS
 `twenty days of unpaid leave` MEANS
     `recuperation year` WITH
         `year of service`                      IS 10
-        `position fraction`                    IS 1
+        `position in each month paid`          IS LIST 1
         `started after 1 September`            IS FALSE
         `months for which salary was received` IS 11
         `periods without salary`               IS LIST `period without salary` `unpaid leave` 20
@@ -198,7 +199,7 @@ DECIDE `a retiree's allowance is not reduced for the months` y IF
 `a half-position retiree` MEANS
     `recuperation year` WITH
         `year of service`                      IS 30
-        `position fraction`                    IS 0.5
+        `position in each month paid`          IS LIST 0.5
         `started after 1 September`            IS FALSE
         `months for which salary was received` IS 4
         `periods without salary`               IS EMPTY
@@ -231,7 +232,18 @@ DECIDE `months share` y IS
 GIVEN y IS A `recuperation year`
 GIVETH A NUMBER
 DECIDE `position share` y IS
-    min (y's `position fraction`) 1
+    `the year's position share` (y's `position in each month paid`)
+
+-- F-1.7-e: "באופן יחסי לחלקיות משרתו באותה שנת לימודים" with "לא יותר
+-- ממשרה אחת" (§1.7.8) does not say how a position that changes within the
+-- school year is measured, nor whether the cap binds each month or the
+-- year. Convention position.yearly: the mean of the months, each month up to
+-- one position. Capping the year's mean instead pays a year of 1.2 then 0.6
+-- for 0.9 of a position, not 0.8:
+`a school year of 1.2 then 0.6 is paid differently if one position caps the year` MEANS
+    NOT (`the year's position share` (LIST 1.2, 1.2, 1.2, 1.2, 1.2, 1.2, 0.6, 0.6, 0.6, 0.6, 0.6, 0.6)
+         EQUALS min ((1.2 TIMES 6 PLUS 0.6 TIMES 6) DIVIDED BY 12) 1)
+#ASSERT `a school year of 1.2 then 0.6 is paid differently if one position caps the year`
 
 @export default The recuperation allowance (havraa) a teaching employee is owed for one school year under section 1.7 of the takanon, before any later law reduces it
 GIVEN y IS A `recuperation year` @desc the employee's school year
@@ -286,7 +298,7 @@ DECIDE `payment with June's salary` y IS
 `a full year at a full position, year 22` MEANS
     `recuperation year` WITH
         `year of service`                      IS 22
-        `position fraction`                    IS 1
+        `position in each month paid`          IS LIST 1
         `started after 1 September`            IS FALSE
         `months for which salary was received` IS 12
         `periods without salary`               IS EMPTY
@@ -354,7 +366,7 @@ GIVETH A `recuperation year`
 DECIDE `a checked recuperation year` n position late months periods retired IS
     `recuperation year` WITH
         `year of service`                      IS n
-        `position fraction`                    IS position
+        `position in each month paid`          IS LIST position
         `started after 1 September`            IS late
         `months for which salary was received` IS months
         `periods without salary`               IS periods
@@ -412,11 +424,11 @@ DECIDE `the recuperation allowance is within its bounds` y IF
 GIVEN y IS A `recuperation year`
 GIVETH A BOOLEAN
 DECIDE `retirement never lowers the allowance` y IF
-    `recuperation allowance` (`a checked recuperation year` (y's `year of service`) (y's `position fraction`)
+    `recuperation allowance` (`a checked recuperation year` (y's `year of service`) (`position share` y)
                                  (y's `started after 1 September`) (y's `months for which salary was received`)
                                  (y's `periods without salary`) FALSE)
     AT MOST
-    `recuperation allowance` (`a checked recuperation year` (y's `year of service`) (y's `position fraction`)
+    `recuperation allowance` (`a checked recuperation year` (y's `year of service`) (`position share` y)
                                  (y's `started after 1 September`) (y's `months for which salary was received`)
                                  (y's `periods without salary`) TRUE)
 
