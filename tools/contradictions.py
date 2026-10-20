@@ -37,8 +37,7 @@ SEV = {"high": "חמור", "medium": "בינוני", "low": "קל"}
 FOLLOWED = {"yes": ("קוים", "fol-yes"), "no": ("לא קוים", "fol-no"),
             "partly": ("קוים בחלקו", "fol-part"), "unknown": ("לא ידוע", "fol-unk"),
             "none": ("אין כלל", "fol-unk")}
-EVIDENCE = {"simulator": "סימולטור השכר של המשרד", "payslips": "תלושי שכר",
-            "ministry": "מסמך של המשרד", "none": "אין ראיה"}
+SOURCES = (("payslips", "בתלוש"), ("simulator", "בסימולטור"))
 KIND = {"render": "עמוד דיגיטלי, מרונדר ב־{dpi} dpi",
         "scan": "סריקה, ברזולוציה המקורית ({dpi} ppi)",
         "html": "דף מהעותק השמור של האתר (1.6.2026), כפי שהדפדפן מציג אותו, בצפיפות כפולה; תשובה מקופלת נפתחה כמו בלחיצה"}
@@ -92,8 +91,10 @@ def rule_html(r: dict, note: str, *, prose, src) -> str:
 
 
 def errors(data: dict) -> list[dict]:
-    """The contradictions whose rule was not followed: errors, each graded."""
-    return [c for c in data["items"] if c["practice"]["followed"] in ("no", "partly")]
+    """The contradictions whose rule was not followed, on a payslip or in the
+    simulator: errors, each graded."""
+    return [c for c in data["items"]
+            if any(v["followed"] in ("no", "partly") for v in c["practice"].values())]
 
 
 def meter(errs: list[dict]) -> str:
@@ -114,13 +115,18 @@ def body(data: dict, *, prose, clause_link, finding_ids: set[str], src) -> tuple
     items = data["items"]
     out = [f'<h1>{esc(data["title"])}</h1>', f'<p class="lede">{prose(data["lede"])}</p>',
            f'<div class="banner cx-how" lang="he">{prose(data["how"])}</div>']
-    counts = {k: sum(c["practice"]["followed"] == k for c in items) for k in FOLLOWED}
-    # the chips filter the cards by whether the rule was followed
-    chips = "".join(f'<button type="button" class="cx-fol {FOLLOWED[k][1]}" data-fol="{k}" aria-pressed="false">'
-                    f'{esc(FOLLOWED[k][0])} <b>{n}</b></button>'
-                    for k, n in counts.items() if n)
+    # the chips filter the cards by whether the rule was followed, on the
+    # payslips and in the simulator separately (the client, 2026-10-20)
+    rows = []
+    for dim, label in SOURCES:
+        counts = {k: sum(c["practice"][dim]["followed"] == k for c in items) for k in FOLLOWED}
+        chips = "".join(f'<button type="button" class="cx-fol {FOLLOWED[k][1]}" data-dim="{dim}" data-val="{k}" '
+                        f'aria-pressed="false">{esc(FOLLOWED[k][0])} <b>{n}</b></button>'
+                        for k, n in counts.items() if n)
+        rows.append(f'<span class="cx-sumh">{esc(label)}:</span>{chips}')
     out.append(f'<div class="cx-sum" role="group" aria-label="סינון לפי: האם הכלל קוים">'
-               f'<button type="button" class="cx-all" aria-pressed="true">הכול <b>{len(items)}</b></button>{chips}</div>')
+               f'<button type="button" class="cx-all" aria-pressed="true">הכול <b>{len(items)}</b></button>'
+               + '<span class="cx-sep"></span>'.join(rows) + '</div>')
     out.append(meter(errors(data)))
 
 
@@ -163,17 +169,18 @@ def card(c: dict, rules: dict, *, prose, clause_link, finding_ids, src) -> str:
     if c.get("delta"):
         links.append(f'<a href="calculator-delta.html#{esc(c["delta"])}">פערי הסימולטור</a>')
     p = c["practice"]
-    fol, cls = FOLLOWED[p["followed"]]
     winner = c.get("winner")
     sides = "".join(side_html(s, clause_link=clause_link, src=src) for s in c["sides"])
-    return (f'<article class="cx-card sev-{sev or "none"}" id="{esc(c["id"])}" data-fol="{esc(p["followed"])}">'
+    return (f'<article class="cx-card sev-{sev or "none"}" id="{esc(c["id"])}" data-payslips="{esc(p["payslips"]["followed"])}" data-simulator="{esc(p["simulator"]["followed"])}">'
             f'<header><p class="cx-pair">{esc(pair)} {badge}</p><h3>{esc(c["title"])}</h3>'
             f'<p class="cx-stake">{prose(c["stake"])}</p></header>'
             f'<div class="cx-sides">{sides}</div>'
             + rule_html(rules[c["rule"]], c["rule_note"], prose=prose, src=src)
             + (f'<p class="cx-win">לפי הכלל גובר: <b>{esc(winner)}</b></p>' if winner else "")
-            + f'<div class="cx-prac"><h4>האם הכלל קוים? <span class="cx-fol {cls}">{esc(fol)}</span></h4>'
-            f'<p>{prose(p["text"])}</p><p class="cx-ev">הראיה: {esc(EVIDENCE[p["by"]])}</p>'
+            + '<div class="cx-prac"><h4>האם הכלל קוים?</h4>'
+            + "".join(f'<p><span class="cx-src">{esc(label)}</span> '
+                      f'<span class="cx-fol {FOLLOWED[p[dim]["followed"]][1]}">{esc(FOLLOWED[p[dim]["followed"]][0])}</span> '
+                      f'{prose(p[dim]["text"])}</p>' for dim, label in SOURCES)
             + (f'<p class="cx-sevwhy"><span class="cx-sev sev-{sev}">{esc(SEV[sev])}</span> {prose(c["severity_why"])}</p>'
                if sev else "") + '</div>'
             + (f'<p class="cx-links">{" · ".join(links)}</p>' if links else "")

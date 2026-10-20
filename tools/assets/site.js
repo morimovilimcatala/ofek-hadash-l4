@@ -360,17 +360,18 @@
   else init();
 })();
 
-// contradictions.html: the "was the rule followed" chips filter the cards
+// contradictions.html: the "was the rule followed" chips filter the cards,
+// on the payslips or in the simulator
 (function () {
   var bar = document.querySelector(".cx-sum");
   if (!bar) return;
   var all = bar.querySelector(".cx-all");
-  function show(fol) {
+  function show(btn) {
     bar.querySelectorAll("button").forEach(function (b) {
-      b.setAttribute("aria-pressed", String(fol ? b.dataset.fol === fol : b === all));
+      b.setAttribute("aria-pressed", String(btn ? b === btn : b === all));
     });
     document.querySelectorAll(".cx-card").forEach(function (c) {
-      c.hidden = !!fol && c.dataset.fol !== fol;
+      c.hidden = !!btn && c.dataset[btn.dataset.dim] !== btn.dataset.val;
     });
     document.querySelectorAll(".cx-group").forEach(function (g) {
       var n = g.querySelectorAll(".cx-card:not([hidden])").length;
@@ -382,6 +383,6 @@
   bar.addEventListener("click", function (e) {
     var b = e.target.closest("button");
     if (!b) return;
-    show(b === all || b.getAttribute("aria-pressed") === "true" ? null : b.dataset.fol);
+    show(b === all || b.getAttribute("aria-pressed") === "true" ? null : b);
   });
 })();

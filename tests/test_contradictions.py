@@ -60,8 +60,16 @@ class EverySideQuotesTheCorpus(unittest.TestCase):
                     self.assertIn(" ".join(r["quote"].split()), row_text(r["doc"], r["key"]))
 
     def test_two_sides_in_two_documents(self):
+        """A contradiction between documents has two sides in two documents;
+        one between a document and what is paid has the document alone (the
+        payment is a payslip's or the simulator's, and no picture of it is
+        published)."""
         for c in DATA["items"]:
             with self.subTest(item=c["id"]):
+                if c["group"] == "payment":
+                    self.assertEqual(len(c["sides"]), 1)
+                    self.assertIn("no", {v["followed"] for v in c["practice"].values()})
+                    continue
                 self.assertEqual(len(c["sides"]), 2)
                 self.assertNotEqual(c["sides"][0]["doc"], c["sides"][1]["doc"])
 
@@ -106,9 +114,12 @@ class TheVerdicts(unittest.TestCase):
         for c in DATA["items"]:
             with self.subTest(item=c["id"]):
                 p = c["practice"]
-                self.assertIn(p["followed"], contradictions.FOLLOWED)
-                self.assertIn(p["by"], contradictions.EVIDENCE)
-                if p["followed"] in ("no", "partly"):
+                # the payslips and the simulator are separate evidence
+                self.assertEqual(set(p), {src for src, _ in contradictions.SOURCES})
+                for v in p.values():
+                    self.assertIn(v["followed"], contradictions.FOLLOWED)
+                    self.assertTrue(v["text"].strip())
+                if any(v["followed"] in ("no", "partly") for v in p.values()):
                     self.assertIn(c.get("severity"), contradictions.SEV)
                     self.assertTrue(c.get("severity_why", "").strip())
                 else:
