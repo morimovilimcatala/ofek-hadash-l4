@@ -106,6 +106,9 @@ class Findings(unittest.TestCase):
                 self.assertIn(f["kind"], site_mod.KINDS)
                 self.assertIn(f["stage"], site_mod.STAGES)
                 self.assertIn(f["review"], site_mod.REVIEW)
+                # every finding is graded, and says why (MMS-504)
+                self.assertIn(f.get("severity"), site_mod.SEVERITY)
+                self.assertTrue(site_mod.is_hebrew(f.get("severity_why", "")))
                 for field in ("title", "body", "reading", "l4", "evidence", "keys", "read_by"):
                     self.assertTrue(f.get(field), field)
                 for d in f.get("depends_on", []):

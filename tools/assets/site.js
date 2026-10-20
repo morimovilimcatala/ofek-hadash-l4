@@ -252,8 +252,8 @@
     if (!root) return;
     var cards = [].slice.call(root.querySelectorAll("details.finding"));
     var groups = [].slice.call(root.querySelectorAll(".fgroup"));
-    var dims = ["kind", "stage", "col"];
-    var sel = { kind: {}, stage: {}, col: {} };
+    var dims = ["sev", "kind", "stage", "col"];
+    var sel = { sev: {}, kind: {}, stage: {}, col: {} };
     var q = "";
     var shown = document.getElementById("fshown");
     var none = document.querySelector(".fnone");
@@ -310,6 +310,16 @@
         var d = box.dataset.dim;
         sel[d][b.dataset.v] = !sel[d][b.dataset.v];
         apply();
+      });
+    });
+    // a part of the severity meter filters to its grade (MMS-504)
+    document.querySelectorAll(".sevseg").forEach(function (b) {
+      b.addEventListener("click", function () {
+        reset();
+        sel.sev[b.dataset.sev] = true;
+        apply();
+        var bar = document.querySelector(".ffilter");
+        if (bar) bar.scrollIntoView({ block: "start" });
       });
     });
     document.querySelectorAll(".mcell").forEach(function (b) {

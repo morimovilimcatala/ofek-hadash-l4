@@ -88,6 +88,12 @@ not from the Catala proofs, the corpus's ambiguity ledger or its sic kinds:
   stands), `compiling`, `examples` (the rules contradict a worked example or
   table the text itself states), `verification`. The tool's message is the
   evidence, not the category.
+- `severity` — what the flaw puts at stake (MMS-504): `high` where it changes
+  an amount, an eligibility or a right and the text alone does not settle
+  which reading is right; `medium` where the text or a convention settles it,
+  or where it touches a procedure or obligation rather than money; `low`
+  where no outcome turns on it. `severity_why` says why in one Hebrew line.
+  The findings page shows them as a meter and a filter.
 - `title`, `body` and `reading` are written in HEBREW; an L4 identifier
   inside them stays in backticks, in English, and the site isolates it.
 - `keys` — the rows it is about; `title` — one line; `body`; `quote` — the

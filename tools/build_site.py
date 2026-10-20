@@ -177,6 +177,15 @@ STAGES = {
     "examples": ("בהרצת הדוגמאות שבטקסט", "הכללים סותרים טבלה או דוגמה שהמסמך עצמו מביא"),
     "verification": ("באימות פורמלי", "פגם שאף דוגמה בודדת אינה מראה"),
 }
+# WHAT A FLAW PUTS AT STAKE (the client, 2026-10-20, MMS-504), read with the
+# finding's own reading. The same scale grades the corpus's sic marks
+# (MMS-505). A grade is a legal reading like the finding's, unreviewed
+# until the lawyer has seen it.
+SEVERITY = {
+    "high": ("גבוהה", "הפגם משנה סכום, זכאות או זכות, והטקסט לבדו אינו מכריע איזו קריאה נכונה"),
+    "medium": ("בינונית", "הפגם בכלל שקובע סכום או זכות, אבל הטקסט או מוסכמה מכריעים בו; או שהוא נוגע לנוהל או לחובה ולא לכסף"),
+    "low": ("נמוכה", "ניסוח שאין לו השפעה על שום תוצאה"),
+}
 REVIEW = {
     "unreviewed": "טרם נבדק על ידי עורך הדין",
     "lawyer-seen": "נבדק על ידי עורך הדין",
@@ -1515,10 +1524,13 @@ def findings_page(findings, views_by_file, key_to_view) -> str:
                 f'<div class="fbody" lang="en" dir="ltr">{"".join(f"<p>{esc(p)}</p>" for p in paras)}</div>')
         quote = (f'<blockquote lang="he" dir="rtl">{esc(f["quote"])}</blockquote>' if f.get("quote") else "")
         g["cards"].append(
-            f'<details class="finding" id="{esc(f["id"])}" data-kind="{f["kind"]}" data-stage="{f["stage"]}" data-col="{col}">'
-            f'<summary><span class="kind-tag {f["kind"]}">{esc(KINDS[f["kind"]][0])}</span>'
+            f'<details class="finding" id="{esc(f["id"])}" data-kind="{f["kind"]}" data-stage="{f["stage"]}" data-col="{col}" data-sev="{f["severity"]}">'
+            f'<summary><span class="sev-dot sev-{f["severity"]}" title="חומרה {esc(SEVERITY[f["severity"]][0])}"></span>'
+            f'<span class="kind-tag {f["kind"]}">{esc(KINDS[f["kind"]][0])}</span>'
             f'<span class="ftitle">{prose(f["title"])}</span><span class="fid" dir="ltr">{esc(f["id"])}</span></summary>'
-            f'<div class="fcard"><p class="fmeta"><span class="stage" title="{esc(sgloss)}">נתגלה {esc(stage)}</span> · '
+            f'<div class="fcard"><p class="fsev"><span class="sev-badge sev-{f["severity"]}">חומרה {esc(SEVERITY[f["severity"]][0])}</span> '
+            f'{prose(f["severity_why"])}</p>'
+            f'<p class="fmeta"><span class="stage" title="{esc(sgloss)}">נתגלה {esc(stage)}</span> · '
             f'{" · ".join(where)}</p>{quote}{body}'
             f'<p class="reading"><strong>הקריאה שהקידוד מאמץ:</strong> {prose(f["reading"], link_ids=True)}</p>'
             + (f'<p class="conv">לפי המוסכמה: <a href="conventions.html#{esc(f["convention"])}">'
@@ -1557,8 +1569,23 @@ def findings_page(findings, views_by_file, key_to_view) -> str:
     n_kind = {k: sum(f["kind"] == k for f in findings) for k in KINDS}
     n_stage = {k: sum(f["stage"] == k for f in findings) for k in STAGES}
     n_col = {c: sum(finding_doc(f).split("/")[0] == c for f in findings) for c in WORK_COLLECTIONS}
+    n_sev = {k: sum(f["severity"] == k for f in findings) for k in SEVERITY}
+    total = len(findings) or 1
+    # the meter: a bar in three parts sized by the counts; each part is a
+    # button that filters to its grade, as a cell of the matrix does
+    meter = ('<div class="sevmeter"><h2>חומרה</h2><div class="sevbar" role="group" aria-label="חומרת הממצאים">'
+             + "".join(f'<button type="button" class="sevseg sev-{k}" data-sev="{k}" style="flex-grow:{n_sev[k]}" '
+                       f'title="{esc(t)}: {n_sev[k]} — {esc(d)}"></button>'
+                       for k, (t, d) in SEVERITY.items() if n_sev[k])
+             + '</div><ul class="sevlegend">'
+             + "".join(f'<li><span class="sev-dot sev-{k}"></span>{esc(t)} <b dir="ltr">{n_sev[k]}</b> '
+                       f'<small dir="ltr">{round(100 * n_sev[k] / total)}%</small> <span class="sevgloss">{esc(d)}</span></li>'
+                       for k, (t, d) in SEVERITY.items())
+             + '</ul><p class="sevnote">הדירוג הוא קריאה שלנו, כמו הקריאה שבממצא עצמו, וטרם נבדק על ידי עורך הדין.</p></div>')
     bar = ('<div class="ffilter" role="search">'
            '<input type="search" id="fq" placeholder="חיפוש בממצאים: מילה, מזהה, סעיף…" aria-label="חיפוש בממצאים">'
+           '<div class="frow"><span class="flabel">חומרה</span>'
+           + chips("sev", [(k, SEVERITY[k][0], n_sev[k]) for k in SEVERITY]) + '</div>'
            '<div class="frow"><span class="flabel">סוג</span>'
            + chips("kind", [(k, KINDS[k][0], n_kind[k]) for k in KINDS]) + '</div>'
            '<div class="frow"><span class="flabel">שלב</span>'
@@ -1578,7 +1605,7 @@ def findings_page(findings, views_by_file, key_to_view) -> str:
              '<p>הממצאים מקובצים לפי הסעיף או החוזר שהם עוסקים בו, וכל ממצא מקופל לכותרתו: '
              'לחיצה פותחת אותו. אפשר לסנן לפי סוג, שלב ואוסף, לחפש מילה, או ללחוץ על משבצת בטבלה.</p>'
              '<p><a href="findings.json">findings.json</a> — אותם ממצאים, למכונות, עם כתובות בקורפוס.</p>')
-    body = (intro + matrix + bar
+    body = (intro + meter + matrix + bar
             + (f'<div class="findings">{sections}</div><p class="empty fnone" hidden>אין ממצאים שמתאימים לסינון.</p>'
                if sections else '<p class="empty">אין עדיין ממצאים.</p>'))
     return page("findings.html", f"ממצאי L4 — {TITLE}", body, tab="findings", sidebar="".join(side))
