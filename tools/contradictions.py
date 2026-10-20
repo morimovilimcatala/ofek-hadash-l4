@@ -115,9 +115,12 @@ def body(data: dict, *, prose, clause_link, finding_ids: set[str], src) -> tuple
     out = [f'<h1>{esc(data["title"])}</h1>', f'<p class="lede">{prose(data["lede"])}</p>',
            f'<div class="banner cx-how" lang="he">{prose(data["how"])}</div>']
     counts = {k: sum(c["practice"]["followed"] == k for c in items) for k in FOLLOWED}
-    chips = "".join(f'<span class="cx-fol {FOLLOWED[k][1]}">{esc(FOLLOWED[k][0])} <b>{n}</b></span>'
+    # the chips filter the cards by whether the rule was followed
+    chips = "".join(f'<button type="button" class="cx-fol {FOLLOWED[k][1]}" data-fol="{k}" aria-pressed="false">'
+                    f'{esc(FOLLOWED[k][0])} <b>{n}</b></button>'
                     for k, n in counts.items() if n)
-    out.append(f'<div class="cx-sum"><span>{len(items)} סתירות</span>{chips}</div>')
+    out.append(f'<div class="cx-sum" role="group" aria-label="סינון לפי: האם הכלל קוים">'
+               f'<button type="button" class="cx-all" aria-pressed="true">הכול <b>{len(items)}</b></button>{chips}</div>')
     out.append(meter(errors(data)))
 
 
@@ -126,7 +129,7 @@ def body(data: dict, *, prose, clause_link, finding_ids: set[str], src) -> tuple
         cs = [c for c in items if c["group"] == group["id"]]
         if not cs:
             continue
-        out.append(f'<section id="g-{esc(group["id"])}"><h2>{esc(group["title"])} <small>{len(cs)}</small></h2>')
+        out.append(f'<section class="cx-group" id="g-{esc(group["id"])}"><h2>{esc(group["title"])} <small>{len(cs)}</small></h2>')
         side.append(f'<li><a href="#g-{esc(group["id"])}">{esc(group["title"])}</a></li>')
         for c in cs:
             out.append(card(c, data["rules"], prose=prose, clause_link=clause_link,
@@ -163,7 +166,7 @@ def card(c: dict, rules: dict, *, prose, clause_link, finding_ids, src) -> str:
     fol, cls = FOLLOWED[p["followed"]]
     winner = c.get("winner")
     sides = "".join(side_html(s, clause_link=clause_link, src=src) for s in c["sides"])
-    return (f'<article class="cx-card sev-{sev or "none"}" id="{esc(c["id"])}">'
+    return (f'<article class="cx-card sev-{sev or "none"}" id="{esc(c["id"])}" data-fol="{esc(p["followed"])}">'
             f'<header><p class="cx-pair">{esc(pair)} {badge}</p><h3>{esc(c["title"])}</h3>'
             f'<p class="cx-stake">{prose(c["stake"])}</p></header>'
             f'<div class="cx-sides">{sides}</div>'

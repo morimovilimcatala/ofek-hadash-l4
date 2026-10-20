@@ -359,3 +359,29 @@
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
   else init();
 })();
+
+// contradictions.html: the "was the rule followed" chips filter the cards
+(function () {
+  var bar = document.querySelector(".cx-sum");
+  if (!bar) return;
+  var all = bar.querySelector(".cx-all");
+  function show(fol) {
+    bar.querySelectorAll("button").forEach(function (b) {
+      b.setAttribute("aria-pressed", String(fol ? b.dataset.fol === fol : b === all));
+    });
+    document.querySelectorAll(".cx-card").forEach(function (c) {
+      c.hidden = !!fol && c.dataset.fol !== fol;
+    });
+    document.querySelectorAll(".cx-group").forEach(function (g) {
+      var n = g.querySelectorAll(".cx-card:not([hidden])").length;
+      g.hidden = !n;
+      var small = g.querySelector("h2 small");
+      if (small) small.textContent = n;
+    });
+  }
+  bar.addEventListener("click", function (e) {
+    var b = e.target.closest("button");
+    if (!b) return;
+    show(b === all || b.getAttribute("aria-pressed") === "true" ? null : b.dataset.fol);
+  });
+})();
