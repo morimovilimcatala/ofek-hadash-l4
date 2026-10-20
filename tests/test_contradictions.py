@@ -99,6 +99,14 @@ class EveryCropIsItsFile(unittest.TestCase):
 
 class TheVerdicts(unittest.TestCase):
 
+    def test_a_simulator_link_names_a_cause_the_delta_page_has(self):
+        delta = json.loads((ROOT / "data" / "calculator-delta.json").read_text(encoding="utf-8"))
+        causes = {c["id"] for c in delta["causes"]}
+        for c in DATA["items"]:
+            if c.get("delta"):
+                with self.subTest(item=c["id"]):
+                    self.assertIn(c["delta"], causes)
+
     def test_findings_and_rules_exist(self):
         ids = set()
         for f in (ROOT / "findings").rglob("*.toml"):
