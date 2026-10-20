@@ -20,6 +20,9 @@ Pages, laid out like the corpus they encode:
   calculator.html                  §1.1's salary, computed in the browser by L4 (WASM)
   calculator-delta.html            where the ministry's salary simulator computes otherwise
                                    than the L4, by cause (data/calculator-delta.json)
+  contradictions.html              where one instrument contradicts another, with a crop of
+                                   each page, the rule that decides and whether it was
+                                   followed (data/contradictions.json)
   coverage.html                    how much of the corpus is encoded
   diagnostics.html                 what the L4 checker reported, file by file
   index.json                       every L4 segment with its corpus address
@@ -45,6 +48,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import akn      # noqa: E402
 import calculator  # noqa: E402
 import calculator_delta  # noqa: E402
+import contradictions  # noqa: E402
 import l4src    # noqa: E402
 import rule_graph  # noqa: E402
 
@@ -876,6 +880,7 @@ def page(here: str, title: str, body: str, *, tab: str = "", desc: str = "",
            ("salary.html", "מבנה השכר", "salary"),
            *([("calculator.html", "מחשבון שכר", "calculator")] if CALCULATOR else []),
            *([(calculator_delta.HERE, calculator_delta.TAB, "delta")] if DELTA else []),
+           *([(contradictions.HERE, contradictions.TAB, "contradictions")] if CONTRA else []),
            ("conventions.html", "מוסכמות", "conventions"),
            ("coverage.html", "כיסוי", "coverage"),
            ("diagnostics.html", "בדיקות", "diagnostics"),
@@ -1710,6 +1715,31 @@ def delta_page(findings: list[dict], by_file: dict[str, "SectionView"], key_to_v
                 desc="היכן שסימולטור השכר של משרד החינוך מחשב אחרת מה־L4, לפי הסיבה", sidebar=side)
 
 
+CONTRA = contradictions.load()
+
+
+def contradictions_page(findings: list[dict], key_to_view) -> str:
+    """Where one instrument contradicts another (tools/contradictions.py;
+    the data is data/contradictions.json, the crops data/contradictions/)."""
+    here = contradictions.HERE
+
+    def clause_link(doc: str, key: str) -> tuple[str, str]:
+        v = key_to_view.get((doc, key))
+        if v is not None:
+            return f"{v.page}#{key}", cite_html(v.section, key, sec_ref(v.section), doc)
+        eid = key.split("/")[0]
+        href = f"{CORPUS_SITE}/{doc.removesuffix('.xml')}.html#{eid}"
+        if not (ROOT / "corpus" / "akn" / doc).exists():  # newer than the vendored snapshot
+            return href, f'בקורפוס <bdi dir="ltr">{esc(key)}</bdi>'
+        return href, f'<span class="cdoc">{esc(doc_label(doc))}</span> <bdi dir="ltr">{esc(key)}</bdi>'
+
+    body, side = contradictions.body(
+        CONTRA, prose=prose, clause_link=clause_link, finding_ids={f["id"] for f in findings},
+        src=lambda f: rel(f"assets/contradictions/{f}", here))
+    return page(here, f"{contradictions.TAB} — {TITLE}", body, tab="contradictions",
+                desc="היכן שמסמך אחד סותר מסמך אחר: תמונה של כל צד, הכלל שמכריע, והאם קוים", sidebar=side)
+
+
 def findings_json(findings, views_by_file, key_to_view) -> str:
     rows = []
     for f in findings:
@@ -2211,6 +2241,11 @@ def build() -> int:
         (OUT / "calculator.html").write_text(calculator_page(all_views, findings), encoding="utf-8")
     if DELTA:
         (OUT / calculator_delta.HERE).write_text(delta_page(findings, by_file, key_to_view), encoding="utf-8")
+    if CONTRA:
+        (OUT / "assets" / "contradictions").mkdir(parents=True, exist_ok=True)
+        for f in contradictions.crops(CONTRA):
+            shutil.copyfile(contradictions.CROPS / f, OUT / "assets" / "contradictions" / f)
+        (OUT / contradictions.HERE).write_text(contradictions_page(findings, key_to_view), encoding="utf-8")
     (OUT / "findings.json").write_text(findings_json(findings, by_file, key_to_view), encoding="utf-8")
     (OUT / "index.json").write_text(index_json(flat), encoding="utf-8")
     (OUT / "coverage.html").write_text(coverage_page(all_views), encoding="utf-8")

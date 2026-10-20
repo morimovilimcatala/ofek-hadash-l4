@@ -1,0 +1,128 @@
+"""The contradictions page (contradictions.html, MMS-515) and its data.
+
+Every side of a contradiction quotes the corpus verbatim at the row it names,
+every crop it shows is a picture file of the size the data says, every
+finding it names is in the register, and every contradiction whose rule was
+not followed -- an error -- carries a severity grade and the reason for it.
+"""
+from __future__ import annotations
+
+import json
+import struct
+import sys
+import tomllib
+import unittest
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "tools"))
+import akn             # noqa: E402
+import contradictions  # noqa: E402
+
+DATA = json.loads(contradictions.DATA.read_text(encoding="utf-8"))
+SIDES = [(c, s) for c in DATA["items"] for s in c["sides"]]
+# documents the corpus published after the vendored snapshot (corpus/SOURCE.toml);
+# a re-sync that brings them in empties this set, and the test says so
+NOT_VENDORED = {"letters/2016-07-10_mof-director-general_nesia-reform-letter.xml"}
+
+
+def row_text(doc: str, key: str) -> str:
+    for s in akn.sections(doc):
+        for r in s.rows:
+            if r.key == key or key in r.aliases:
+                return " ".join(r.text.split())
+    raise KeyError((doc, key))
+
+
+def png_size(path: Path) -> tuple[int, int]:
+    head = path.read_bytes()[:24]
+    assert head[:8] == b"\x89PNG\r\n\x1a\n", path
+    return struct.unpack(">II", head[16:24])
+
+
+class EverySideQuotesTheCorpus(unittest.TestCase):
+
+    def test_the_quote_is_the_row_it_names(self):
+        for c, s in SIDES:
+            if s["doc"] in NOT_VENDORED:
+                continue
+            with self.subTest(item=c["id"], key=s["key"]):
+                self.assertIn(" ".join(s["quote"].split()), row_text(s["doc"], s["key"]))
+
+    def test_the_documents_outside_the_snapshot_are_the_listed_ones(self):
+        absent = {s["doc"] for _, s in SIDES if not (ROOT / "corpus" / "akn" / s["doc"]).exists()}
+        self.assertEqual(absent, NOT_VENDORED)
+
+    def test_a_rule_quoted_from_the_corpus_is_its_row(self):
+        for rid, r in DATA["rules"].items():
+            if r.get("doc"):
+                with self.subTest(rule=rid):
+                    self.assertIn(" ".join(r["quote"].split()), row_text(r["doc"], r["key"]))
+
+    def test_two_sides_in_two_documents(self):
+        for c in DATA["items"]:
+            with self.subTest(item=c["id"]):
+                self.assertEqual(len(c["sides"]), 2)
+                self.assertNotEqual(c["sides"][0]["doc"], c["sides"][1]["doc"])
+
+
+class EveryCropIsItsFile(unittest.TestCase):
+
+    def test_each_crop_exists_at_the_size_the_data_says(self):
+        imgs = [i for _, s in SIDES for i in s["images"]] + [
+            r["image"] for r in DATA["rules"].values() if r.get("image")]
+        self.assertTrue(imgs)
+        for i in imgs:
+            with self.subTest(file=i["file"]):
+                self.assertEqual(list(png_size(contradictions.CROPS / i["file"])), i["size"])
+                self.assertIn(i["kind"], contradictions.KIND)
+                for m in i["marks"]:
+                    self.assertTrue(0 <= m[0] < m[2] <= 1 and 0 <= m[1] < m[3] <= 1.01, m)
+
+    def test_every_side_has_a_picture(self):
+        for c, s in SIDES:
+            with self.subTest(item=c["id"]):
+                self.assertTrue(s["images"])
+
+    def test_no_file_in_the_folder_is_unused(self):
+        used = set(contradictions.crops(DATA))
+        self.assertEqual({p.name for p in contradictions.CROPS.glob("*.png")}, used)
+
+
+class TheVerdicts(unittest.TestCase):
+
+    def test_findings_and_rules_exist(self):
+        ids = set()
+        for f in (ROOT / "findings").rglob("*.toml"):
+            ids |= {x["id"] for x in tomllib.loads(f.read_text(encoding="utf-8")).get("finding", [])}
+        for c in DATA["items"]:
+            with self.subTest(item=c["id"]):
+                self.assertIn(c["rule"], DATA["rules"])
+                self.assertIn(c["group"], {g["id"] for g in DATA["groups"]})
+                for f in c.get("findings", []):
+                    self.assertIn(f, ids)
+
+    def test_an_error_is_graded_and_says_why(self):
+        for c in DATA["items"]:
+            with self.subTest(item=c["id"]):
+                p = c["practice"]
+                self.assertIn(p["followed"], contradictions.FOLLOWED)
+                self.assertIn(p["by"], contradictions.EVIDENCE)
+                if p["followed"] in ("no", "partly"):
+                    self.assertIn(c.get("severity"), contradictions.SEV)
+                    self.assertTrue(c.get("severity_why", "").strip())
+                else:
+                    self.assertNotIn("severity", c)
+
+    def test_the_page_outlines_the_words_and_shows_the_meter(self):
+        html, _ = contradictions.body(DATA, prose=lambda t: t,
+                                      clause_link=lambda d, k: ("#", k), finding_ids=set(),
+                                      src=lambda f: f)
+        self.assertEqual(html.count('class="cx-card'), len(DATA["items"]))
+        self.assertIn('class="cx-meter"', html)
+        self.assertIn('class="cx-mark"', html)
+        self.assertEqual(html.count("<h4>מי גובר?</h4>"), len(DATA["items"]))
+
+
+if __name__ == "__main__":
+    unittest.main()

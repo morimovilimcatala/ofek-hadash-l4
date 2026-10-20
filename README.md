@@ -36,6 +36,7 @@ refused) has nothing to encode until the corpus reads its pages.
 | `conventions.toml`, `l4/conventions.l4` | the rules of reading the encoding follows where the text does not decide, and the one L4 definition of each that is a computation, which the rules import |
 | `findings/<corpus path>/<section>.toml` (one per section) | errors in the text the encoding exposed, each backed by an `#ASSERT` |
 | `data/calculator-delta.json` | the comparison with the ministry's salary simulator: inputs, outputs, mappings, clauses and classifications only (written outside this repository; see the site's simulator page) |
+| `data/contradictions.json`, `data/contradictions/` | where one instrument contradicts another: both sides with a crop of each page, the rule that decides, and whether it was followed |
 | `tools/` | the L4 runner, the AKN reader, the site generator |
 | `toolchain/` | the pinned L4 compiler revision and its build script |
 | `tests/` | alignment, coverage and evidence checks |
@@ -80,6 +81,20 @@ refused) has nothing to encode until the corpus reads its pages.
   simulator code and no recorded traffic, and `tests/test_calculator_delta.py`
   holds it to that. The simulator is the ministry's non-binding tool: what it
   computes is evidence of practice, never a reading of the law.
+- **Contradictions** (`contradictions.html`) — where one instrument says one
+  thing and another says another about the same pay or right: an agreement
+  and the circular that implements it, a circular and the letter it executes,
+  two circulars, a Q&A answer and the takanon (MMS-515). Each shows a crop of
+  both pages — a scan's own pixels, a born-digital page rendered, or the saved
+  web page as a browser draws it, captioned with file, page, resolution and
+  pixel box, never resampled or retouched; the outline is drawn by the page
+  over the picture — the rule that decides which side wins, quoted, and
+  whether practice followed it (the simulator, the payslips in general terms,
+  or a ministry document). One whose rule was not followed is an error and
+  carries a severity grade, on the findings page's scale. The crops are cut
+  outside this repository from the corpus repository's sources;
+  `tests/test_contradictions.py` holds each quote to the corpus and each
+  crop to its file.
 - **L4 findings** — what encoding found wrong in the law itself, by kind and
   by the stage that caught it (`findings.json` for machines), grouped by
   section or circular, folded to a title, and filterable by kind, stage,
