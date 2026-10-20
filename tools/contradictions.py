@@ -199,5 +199,7 @@ def card(c: dict, rules: dict, *, prose, clause_link, finding_ids, src) -> str:
                       f'{prose(p[dim]["text"])}</p>' for dim, label in SOURCES)
             + (f'<p class="cx-sevwhy"><span class="cx-sev sev-{sev}">{esc(SEV[sev])}</span> {prose(c["severity_why"])}</p>'
                if sev else "") + '</div>'
+            # what an error means for a teacher (the client: "a משמעות section")
+            + (f'<div class="cx-mean"><h4>משמעות</h4><p>{prose(c["meaning"])}</p></div>' if c.get("meaning") else "")
             + (f'<p class="cx-links">{" · ".join(links)}</p>' if links else "")
             + '</article>')

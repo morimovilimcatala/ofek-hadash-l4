@@ -92,14 +92,18 @@ refused) has nothing to encode until the corpus reads its pages.
 - **Contradictions** (`contradictions.html`) — where one instrument says one
   thing and another says another about the same pay or right: an agreement
   and the circular that implements it, a circular and the letter it executes,
-  two circulars, a Q&A answer and the takanon (MMS-515). Each shows a crop of
+  two circulars, the takanon and a newer circular or agreement, a Q&A answer
+  and the takanon, and a document and what is actually paid (MMS-515,
+  MMS-517). Each shows a crop of
   both pages — a scan's own pixels, a born-digital page rendered, or the saved
   web page as a browser draws it, captioned with file, page, resolution and
   pixel box, never resampled or retouched; the outline is drawn by the page
   over the picture — the rule that decides which side wins, quoted, and
-  whether practice followed it (the simulator, the payslips in general terms,
-  or a ministry document). One whose rule was not followed is an error and
-  carries a severity grade, on the findings page's scale. The crops are cut
+  whether practice followed it — on the payslips (in general terms) and in
+  the simulator, each its own filter, as is the kind
+  of document. One whose rule was not followed is an error: it carries a
+  severity grade, on the findings page's scale, and a "משמעות" paragraph on
+  what it means for a teacher. The crops are cut
   outside this repository from the corpus repository's sources;
   `tests/test_contradictions.py` holds each quote to the corpus and each
   crop to its file.

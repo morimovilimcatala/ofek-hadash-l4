@@ -122,6 +122,8 @@ class TheVerdicts(unittest.TestCase):
                 if any(v["followed"] in ("no", "partly") for v in p.values()):
                     self.assertIn(c.get("severity"), contradictions.SEV)
                     self.assertTrue(c.get("severity_why", "").strip())
+                    # and says what it means for a teacher
+                    self.assertTrue(c.get("meaning", "").strip())
                 else:
                     self.assertNotIn("severity", c)
 
