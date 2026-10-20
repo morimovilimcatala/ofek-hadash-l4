@@ -1855,8 +1855,28 @@ def coverage_page(all_views: dict[str, list[SectionView]]) -> str:
             tip = f"{name} {v.section.heading}" + (f": {c['missing']} פסקאות לא צוטטו" if c["missing"] else "")
         return (f'<a class="cell" href="{v.href}" title="{esc(tip)}" style="flex:{n}">{segs}</a>')
 
+    def doc_cell(doc: str, vs: list[SectionView]) -> str:
+        """A sectioned document as one cell: its paragraphs, read or not."""
+        c = {"read": 0, "missing": 0, "todo": 0}
+        for v in vs:
+            if v.src is None:
+                c["todo"] += len(v.text_rows)
+            else:
+                t_ = tally(v)
+                c["read"] += t_["rule"] + t_["note"]
+                c["missing"] += t_["missing"]
+        n = max(sum(c.values()), 1)
+        segs = "".join(f'<i class="{k}" style="flex:{m}"></i>' for k, m in c.items() if m)
+        tip = (f"{Path(doc).stem} {akn.title(doc)}: {c['read']} מתוך {sum(c.values())} פסקאות נקראו"
+               "")
+        return (f'<a class="cell" href="{doc.removesuffix(".xml")}.html" title="{esc(tip)}" '
+                f'style="flex:{n}">{segs}</a>')
+
     for doc, vs in all_views.items():
-        if akn.is_whole(doc):
+        # an agreement is one document among its collection's, not a section
+        # of the page (the client, 2026-10-20): it is a cell in its family's
+        # row below, and its own page has the chapter-by-chapter view
+        if akn.is_whole(doc) or doc.startswith("agreements/"):
             continue
         parts.append(f'<h2 class="cov-doc"><a href="{doc.removesuffix(".xml")}.html">{he(akn.title(doc))}</a></h2>'
                      '<p class="meta">רצועה לכל פרק, תא לכל סעיף, ורוחבו כמספר פסקאות הסעיף. '
@@ -1878,19 +1898,24 @@ def coverage_page(all_views: dict[str, list[SectionView]]) -> str:
                          f'<div class="strips"><div class="strip-row"><div class="strip-name">{esc(SITE_GROUP)}</div>'
                          f'<div class="strip">{"".join(cell(v) for v in pages)}</div></div></div>')
     for coll in WORK_COLLECTIONS[1:]:
-        # a sectioned document of the collection has its own strips above
         cvs_all = [v for d, vs in all_views.items() if d.startswith(coll + "/") and akn.is_whole(d) for v in vs]
         if not cvs_all:
             continue
         family = coll == "agreements"
         parts.append(f'<h2><a href="{coll}.html">{esc(coll_name(coll))}</a></h2>'
                      f'<p class="meta">רצועה לכל {"משפחת הסכמים" if family else "שנה"}, תא לכל מסמך, ורוחבו כמספר פסקאות המסמך.</p>')
-        by_year: dict[str, list[SectionView]] = {}
+        by_year: dict[str, list] = {}
         for v in cvs_all:
-            by_year.setdefault(doc_group(v.doc) if family else school_year(v.doc), []).append(v)
+            by_year.setdefault(doc_group(v.doc) if family else school_year(v.doc), []).append((v.doc, cell(v)))
+        # a sectioned document is one cell here: left out, an encoded agreement
+        # made its family's row read as though none of it were encoded (the
+        # client, 2026-10-20)
+        for d, vs in all_views.items():
+            if d.startswith(coll + "/") and not akn.is_whole(d):
+                by_year.setdefault(doc_group(d) if family else school_year(d), []).append((d, doc_cell(d, vs)))
         keys = group_order("agreements", by_year) if family else sorted(by_year)
         rows = [f'<div class="strip-row"><div class="strip-name">{esc(group_label(coll, y))}</div>'
-                f'<div class="strip">{"".join(cell(v) for v in sorted(by_year[y], key=lambda v: v.doc))}</div></div>'
+                f'<div class="strip">{"".join(c for _, c in sorted(by_year[y]))}</div></div>'
                 for y in keys]
         parts.append(f'<div class="strips">{"".join(rows)}</div>')
     names = dict(COLLECTIONS)
