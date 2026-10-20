@@ -18,6 +18,8 @@ Pages, laid out like the corpus they encode:
   findings.html  findings.json     errors in the LAW that encoding exposed
   salary.html                      what §1.1's salary is made of, drawn from its L4
   calculator.html                  §1.1's salary, computed in the browser by L4 (WASM)
+  calculator-delta.html            where the ministry's salary simulator computes otherwise
+                                   than the L4, by cause (data/calculator-delta.json)
   coverage.html                    how much of the corpus is encoded
   diagnostics.html                 what the L4 checker reported, file by file
   index.json                       every L4 segment with its corpus address
@@ -42,6 +44,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import akn      # noqa: E402
 import calculator  # noqa: E402
+import calculator_delta  # noqa: E402
 import l4src    # noqa: E402
 import rule_graph  # noqa: E402
 
@@ -872,6 +875,7 @@ def page(here: str, title: str, body: str, *, tab: str = "", desc: str = "",
            ("findings.html", "ממצאים", "findings"),
            ("salary.html", "מבנה השכר", "salary"),
            *([("calculator.html", "מחשבון שכר", "calculator")] if CALCULATOR else []),
+           *([(calculator_delta.HERE, calculator_delta.TAB, "delta")] if DELTA else []),
            ("conventions.html", "מוסכמות", "conventions"),
            ("coverage.html", "כיסוי", "coverage"),
            ("diagnostics.html", "בדיקות", "diagnostics"),
@@ -1681,6 +1685,31 @@ def calculator_page(all_views: dict[str, list["SectionView"]], findings: list[di
                 desc="השכר החודשי של עובד הוראה לפי סעיף 1.1 לתקנון, מחושב בדפדפן בקוד ה-L4 של האתר")
 
 
+DELTA = calculator_delta.load()
+
+
+def delta_page(findings: list[dict], by_file: dict[str, "SectionView"], key_to_view) -> str:
+    """Where the ministry's simulator and the L4 part, by cause
+    (tools/calculator_delta.py; the data is data/calculator-delta.json)."""
+    def clause_link(doc: str, key: str) -> tuple[str, str]:
+        v = key_to_view.get((doc, key))
+        if v is not None:
+            return f"{v.page}#{key}", cite_html(v.section, key, sec_ref(v.section), doc)
+        eid = key.split("/")[0]
+        return (f"{CORPUS_SITE}/{doc.removesuffix('.xml')}.html#{eid}",
+                f'<span class="cdoc">{esc(doc_label(doc))}</span> <bdi dir="ltr">{esc(key)}</bdi>')
+
+    def l4_link(file: str) -> str:
+        v = by_file.get(file)
+        return v.href if v is not None else ""
+
+    body, side = calculator_delta.body(
+        DELTA, prose=prose, clause_link=clause_link, finding_ids={f["id"] for f in findings},
+        conv_titles=CONVENTION_TITLES, l4_link=l4_link)
+    return page(calculator_delta.HERE, f"{calculator_delta.TAB} — {TITLE}", body, tab="delta",
+                desc="היכן שסימולטור השכר של משרד החינוך מחשב אחרת מה־L4, לפי הסיבה", sidebar=side)
+
+
 def findings_json(findings, views_by_file, key_to_view) -> str:
     rows = []
     for f in findings:
@@ -2180,6 +2209,8 @@ def build() -> int:
     (OUT / "salary.html").write_text(salary_page(all_views), encoding="utf-8")
     if CALCULATOR:
         (OUT / "calculator.html").write_text(calculator_page(all_views, findings), encoding="utf-8")
+    if DELTA:
+        (OUT / calculator_delta.HERE).write_text(delta_page(findings, by_file, key_to_view), encoding="utf-8")
     (OUT / "findings.json").write_text(findings_json(findings, by_file, key_to_view), encoding="utf-8")
     (OUT / "index.json").write_text(index_json(flat), encoding="utf-8")
     (OUT / "coverage.html").write_text(coverage_page(all_views), encoding="utf-8")

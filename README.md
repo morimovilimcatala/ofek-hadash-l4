@@ -35,6 +35,7 @@ refused) has nothing to encode until the corpus reads its pages.
 | `l4/<corpus path>/<section>.l4` | one L4 file per section, laid out like the corpus |
 | `conventions.toml`, `l4/conventions.l4` | the rules of reading the encoding follows where the text does not decide, and the one L4 definition of each that is a computation, which the rules import |
 | `findings/<corpus path>/<section>.toml` (one per section) | errors in the text the encoding exposed, each backed by an `#ASSERT` |
+| `data/calculator-delta.json` | the comparison with the ministry's salary simulator: inputs, outputs, mappings, clauses and classifications only (written outside this repository; see the site's simulator page) |
 | `tools/` | the L4 runner, the AKN reader, the site generator |
 | `toolchain/` | the pinned L4 compiler revision and its build script |
 | `tests/` | alignment, coverage and evidence checks |
@@ -66,6 +67,19 @@ refused) has nothing to encode until the corpus reads its pages.
   `#EVALTRACE` appended, through L4's own evaluator compiled to WebAssembly.
   It shows the total, each component with its clause, and the evaluation
   trace. Nothing in it re-implements a rule.
+- **Simulator delta** (`calculator-delta.html`) — where the Ministry of
+  Education's public salary simulator computes otherwise than the L4, grouped
+  by cause (one rule, not one row per request) and classified as an L4 bug, the
+  simulator departing from the text, or a question both answers survive; each
+  cause quotes the clause that governs it and names its finding or
+  convention. It lists the simulator's own bugs and what was not compared
+  (a line the L4 has no rule for is coverage, not a delta). The page is built
+  from `data/calculator-delta.json`, which a comparison run outside this
+  repository writes from a private extraction of the simulator (MMS-512,
+  MMS-513), asking the L4 evaluator for every figure; the file holds no
+  simulator code and no recorded traffic, and `tests/test_calculator_delta.py`
+  holds it to that. The simulator is the ministry's non-binding tool: what it
+  computes is evidence of practice, never a reading of the law.
 - **L4 findings** — what encoding found wrong in the law itself, by kind and
   by the stage that caught it (`findings.json` for machines), grouped by
   section or circular, folded to a title, and filterable by kind, stage,
