@@ -1,0 +1,117 @@
+-- חוק הסכמים קיבוציים, התשי"ז-1957 — sections 19 to 23: what a collective
+-- agreement's personal provisions are, and which provision governs when an
+-- agreement, a statute, an employment contract or another agreement says
+-- otherwise. The text is laws/collective-agreements-law.toml, pinned from
+-- the live page of ספר החוקים הפתוח; the corpus holds no copy (MMS-516).
+--
+-- Where a section says which provision is "לטובת העובד", the encoding is of
+-- an amount the employee is paid, so the more favourable is the larger. A
+-- provision that is not an amount (a duty, a procedure) is compared by a
+-- reading, not by this file.
+
+IMPORT prelude
+
+§ `חוק הסכמים קיבוציים — הוראות אישיות ועדיפות`
+
+DECLARE `agreement provision` HAS
+    `is about terms of work, the end of work, or a duty or right of the employee and employer` IS A BOOLEAN
+    `the agreement applies to the employer and the employee` IS A BOOLEAN
+    `changed or cancelled lawfully` IS A BOOLEAN
+
+§§ `19`
+
+-- "הוראות אישיות": the provisions on terms of work, the end of work, and
+-- the personal duties and rights they set. They are deemed a contract of
+-- employment between every employer and employee the agreement applies to,
+-- and stay in force after the agreement itself expires, until changed or
+-- cancelled lawfully — so expiry is no input here.
+@ref law:19
+GIVEN p IS AN `agreement provision`
+GIVETH A BOOLEAN
+DECIDE `is a personal provision` p IF
+    p's `is about terms of work, the end of work, or a duty or right of the employee and employer`
+
+GIVEN p IS AN `agreement provision`
+GIVETH A BOOLEAN
+DECIDE `is part of the employee's contract of employment` p IF
+        `is a personal provision` p
+    AND p's `the agreement applies to the employer and the employee`
+    AND NOT p's `changed or cancelled lawfully`
+
+-- the closing words: taking part in a strike is not a breach of a personal duty
+`taking part in a strike breaches a personal duty` MEANS FALSE
+
+`a pay term` MEANS `agreement provision` WITH
+    `is about terms of work, the end of work, or a duty or right of the employee and employer` IS TRUE
+    `the agreement applies to the employer and the employee` IS TRUE
+    `changed or cancelled lawfully` IS FALSE
+
+#ASSERT `is part of the employee's contract of employment` `a pay term`
+`a pay term changed lawfully` MEANS `agreement provision` WITH
+    `is about terms of work, the end of work, or a duty or right of the employee and employer` IS TRUE
+    `the agreement applies to the employer and the employee` IS TRUE
+    `changed or cancelled lawfully` IS TRUE
+
+#ASSERT NOT `is part of the employee's contract of employment` `a pay term changed lawfully`
+#ASSERT NOT `taking part in a strike breaches a personal duty`
+
+§§ `20`
+
+-- A right a personal provision gives the employee cannot be waived: a
+-- waiver of it has no effect, whoever signs it.
+@ref law:20
+GIVEN p IS AN `agreement provision`
+GIVETH A BOOLEAN
+DECIDE `a waiver of the employee's right under it has effect` p IF
+    NOT `is a personal provision` p
+
+#ASSERT NOT `a waiver of the employee's right under it has effect` `a pay term`
+
+§§ `21`
+
+-- A collective agreement may add to a right the statute gives the employee
+-- and may not take from it: of a statutory amount and an agreement's
+-- amount for the same right, the employee gets the larger.
+@ref law:21
+GIVEN `the amount the statute gives` IS A NUMBER, `the amount the agreement gives` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the amount that governs between statute and agreement` `the amount the statute gives` `the amount the agreement gives` IS
+    max `the amount the statute gives` `the amount the agreement gives`
+
+#ASSERT `the amount that governs between statute and agreement` 100 120 EQUALS 120
+#ASSERT `the amount that governs between statute and agreement` 100 80 EQUALS 100
+
+§§ `22`
+
+-- A term of the contract of employment that differs from a personal
+-- provision of the agreement yields to it — unless the difference is in the
+-- employee's favour and the agreement does not expressly forbid that change.
+-- An amount: the contract's term governs only where it is larger and not
+-- forbidden; otherwise the agreement's.
+@ref law:22
+GIVEN `the agreement's amount` IS A NUMBER
+      `the contract's amount` IS A NUMBER
+      `the agreement expressly forbids the change` IS A BOOLEAN
+GIVETH A NUMBER
+DECIDE `the amount that governs between agreement and contract` `the agreement's amount` `the contract's amount` `the agreement expressly forbids the change` IS
+    IF      `the contract's amount` GREATER THAN `the agreement's amount`
+        AND NOT `the agreement expressly forbids the change`
+    THEN `the contract's amount`
+    ELSE `the agreement's amount`
+
+#ASSERT `the amount that governs between agreement and contract` 100 90 FALSE EQUALS 100
+#ASSERT `the amount that governs between agreement and contract` 100 110 FALSE EQUALS 110
+#ASSERT `the amount that governs between agreement and contract` 100 110 TRUE EQUALS 100
+
+§§ `23`
+
+-- Where more than one collective agreement applies to an employee, the
+-- provision in the employee's favour governs: of two agreements' amounts,
+-- the larger.
+@ref law:23
+GIVEN `the one agreement's amount` IS A NUMBER, `the other agreement's amount` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the amount that governs between agreements` `the one agreement's amount` `the other agreement's amount` IS
+    max `the one agreement's amount` `the other agreement's amount`
+
+#ASSERT `the amount that governs between agreements` 6 8 EQUALS 8

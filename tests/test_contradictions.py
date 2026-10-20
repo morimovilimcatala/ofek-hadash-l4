@@ -133,6 +133,10 @@ class TheVerdicts(unittest.TestCase):
         self.assertIn('class="cx-meter"', html)
         self.assertIn('class="cx-mark"', html)
         self.assertEqual(html.count("<h4>מי גובר?</h4>"), len(DATA["items"]))
+        # one filter row per source, and one by the kinds of document
+        self.assertEqual(html.count('class="cx-frow" role="group"'), 3)
+        for c in DATA["items"]:
+            self.assertIn(f'data-types="{" ".join(contradictions.types(c))}"', html)
 
 
 if __name__ == "__main__":

@@ -360,18 +360,26 @@
   else init();
 })();
 
-// contradictions.html: the "was the rule followed" chips filter the cards,
-// on the payslips or in the simulator
+// contradictions.html: the "was the rule followed" chips filter the cards.
+// The payslips and the simulator are separate filters, and they combine: a
+// card shows when it matches every source that has a value chosen.
 (function () {
   var bar = document.querySelector(".cx-sum");
   if (!bar) return;
   var all = bar.querySelector(".cx-all");
-  function show(btn) {
-    bar.querySelectorAll("button").forEach(function (b) {
-      b.setAttribute("aria-pressed", String(btn ? b === btn : b === all));
+  var chosen = {};
+  function apply() {
+    var any = Object.keys(chosen).some(function (k) { return chosen[k]; });
+    all.setAttribute("aria-pressed", String(!any));
+    bar.querySelectorAll("button[data-dim]").forEach(function (b) {
+      b.setAttribute("aria-pressed", String(chosen[b.dataset.dim] === b.dataset.val));
     });
     document.querySelectorAll(".cx-card").forEach(function (c) {
-      c.hidden = !!btn && c.dataset[btn.dataset.dim] !== btn.dataset.val;
+      c.hidden = Object.keys(chosen).some(function (k) {
+        if (!chosen[k]) return false;
+        // a card names several kinds of document; it matches any of them
+        return k === "types" ? c.dataset.types.split(" ").indexOf(chosen[k]) < 0 : c.dataset[k] !== chosen[k];
+      });
     });
     document.querySelectorAll(".cx-group").forEach(function (g) {
       var n = g.querySelectorAll(".cx-card:not([hidden])").length;
@@ -383,6 +391,8 @@
   bar.addEventListener("click", function (e) {
     var b = e.target.closest("button");
     if (!b) return;
-    show(b === all || b.getAttribute("aria-pressed") === "true" ? null : b);
+    if (b === all) chosen = {};
+    else chosen[b.dataset.dim] = chosen[b.dataset.dim] === b.dataset.val ? null : b.dataset.val;
+    apply();
   });
 })();

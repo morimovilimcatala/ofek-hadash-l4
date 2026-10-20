@@ -20,6 +20,8 @@ Pages, laid out like the corpus they encode:
   calculator.html                  §1.1's salary, computed in the browser by L4 (WASM)
   calculator-delta.html            where the ministry's salary simulator computes otherwise
                                    than the L4, by cause (data/calculator-delta.json)
+  laws/<name>.html                 a statute the L4 encodes outside the corpus, each section
+                                   beside its rules (laws/<name>.toml, l4/laws/<name>.l4)
   contradictions.html              where one instrument contradicts another, with a crop of
                                    each page, the rule that decides and whether it was
                                    followed (data/contradictions.json)
@@ -49,6 +51,7 @@ import akn      # noqa: E402
 import calculator  # noqa: E402
 import calculator_delta  # noqa: E402
 import contradictions  # noqa: E402
+import laws  # noqa: E402
 import l4src    # noqa: E402
 import rule_graph  # noqa: E402
 
@@ -1425,6 +1428,12 @@ def index_page(all_views: dict[str, list[SectionView]], findings: list[dict]) ->
         cards.append(f'<li class="coll live"><a href="{coll}.html">'
                      f'<span class="cname">{esc(name)}</span>'
                      f'{progress(vs)}<span class="cstate">{n} מתוך {len(docs)} מסמכים מקודדים</span></a></li>')
+    for name in laws.all_laws():
+        law = laws.load(name)
+        cards.append(f'<li class="coll live"><a href="laws/{name}.html"><span class="cname">חוק</span>'
+                     f'<span class="ctitle" lang="he" dir="rtl">{esc(law["title"])}</span>'
+                     f'<span class="cstate">סעיפים {esc(law["section"][0]["num"])}–{esc(law["section"][-1]["num"])}, '
+                     f'מחוץ לקורפוס</span></a></li>')
     body = (f'<section class="hero"><h1>הכללים של העסקת עובדי ההוראה, '
             f'כתובים כקוד לצד הטקסט.</h1>'
             f'<p class="lede">כל סעיף של <a href="{CORPUS_SITE}/">קורפוס אופק חדש</a> מופיע '
@@ -1738,6 +1747,14 @@ def contradictions_page(findings: list[dict], key_to_view) -> str:
         src=lambda f: rel(f"assets/contradictions/{f}", here))
     return page(here, f"{contradictions.TAB} — {TITLE}", body, tab="contradictions",
                 desc="היכן שמסמך אחד סותר מסמך אחר: תמונה של כל צד, הכלל שמכריע, והאם קוים", sidebar=side)
+
+
+def law_page(name: str) -> str:
+    """A statute the L4 encodes outside the corpus (tools/laws.py, MMS-516)."""
+    here = f"laws/{name}.html"
+    body = laws.page_body(name, code_html=l4src.numbered_html, esc=esc)
+    return page(here, f"{laws.load(name)['title']} — {TITLE}", body,
+                desc="חוק הסכמים קיבוציים ב־L4: סעיף לצד סעיף")
 
 
 def findings_json(findings, views_by_file, key_to_view) -> str:
@@ -2266,6 +2283,9 @@ def build() -> int:
         (OUT / "calculator.html").write_text(calculator_page(all_views, findings), encoding="utf-8")
     if DELTA:
         (OUT / calculator_delta.HERE).write_text(delta_page(findings, by_file, key_to_view), encoding="utf-8")
+    (OUT / "laws").mkdir(parents=True, exist_ok=True)
+    for name in laws.all_laws():
+        (OUT / "laws" / f"{name}.html").write_text(law_page(name), encoding="utf-8")
     if CONTRA:
         (OUT / "assets" / "contradictions").mkdir(parents=True, exist_ok=True)
         for f in contradictions.crops(CONTRA):

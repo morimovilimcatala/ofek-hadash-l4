@@ -32,7 +32,14 @@ HERE = "contradictions.html"
 TAB = "סתירות בין מסמכים"
 
 TYPE = {"agreement": "הסכם קיבוצי", "circular": "חוזר", "letter": "מכתב", "takanon": "תקנון",
-        "qa": "שאלות ותשובות", "table": "טבלת שכר", "law": "חוק"}
+        "qa": "שאלות ותשובות", "table": "טבלת שכר", "law": "חוק", "payment": "התשלום בפועל"}
+
+
+def types(c: dict) -> list[str]:
+    """The kinds of thing a contradiction sets against each other; a
+    document against its payment counts the payment as one."""
+    out = [s["type"] for s in c["sides"]] + (["payment"] if c["group"] == "payment" else [])
+    return sorted(set(out), key=list(TYPE).index)
 SEV = {"high": "חמור", "medium": "בינוני", "low": "קל"}
 FOLLOWED = {"yes": ("קוים", "fol-yes"), "no": ("לא קוים", "fol-no"),
             "partly": ("קוים בחלקו", "fol-part"), "unknown": ("לא ידוע", "fol-unk"),
@@ -84,6 +91,7 @@ def side_html(s: dict, *, clause_link, src) -> str:
 def rule_html(r: dict, note: str, *, prose, src) -> str:
     pic = figure(r["image"], r["quote"], src(r["image"]["file"])) if r.get("image") else ""
     link = (f' · <a href="{esc(r["url"])}">{esc(r["url_label"])}</a>' if r.get("url") else "")
+    link += f' · <a href="{esc(r["l4_page"])}">הסעיפים ב־L4</a>' if r.get("l4_page") else ""
     quote = (f'<blockquote class="cx-quote cx-rq" lang="he" dir="rtl">{esc(r["quote"])}</blockquote>'
              if r.get("quote") else "")
     return (f'<div class="cx-rule"><h4>מי גובר?</h4><p class="cx-rsrc"><b>{esc(r["title"])}</b>'
@@ -123,10 +131,17 @@ def body(data: dict, *, prose, clause_link, finding_ids: set[str], src) -> tuple
         chips = "".join(f'<button type="button" class="cx-fol {FOLLOWED[k][1]}" data-dim="{dim}" data-val="{k}" '
                         f'aria-pressed="false">{esc(FOLLOWED[k][0])} <b>{n}</b></button>'
                         for k, n in counts.items() if n)
-        rows.append(f'<span class="cx-sumh">{esc(label)}:</span>{chips}')
-    out.append(f'<div class="cx-sum" role="group" aria-label="סינון לפי: האם הכלל קוים">'
-               f'<button type="button" class="cx-all" aria-pressed="true">הכול <b>{len(items)}</b></button>'
-               + '<span class="cx-sep"></span>'.join(rows) + '</div>')
+        rows.append(f'<div class="cx-frow" role="group" aria-label="{esc(label)}">'
+                    f'<span class="cx-sumh">קוים {esc(label)}:</span>{chips}</div>')
+    # and by the kinds of document the contradiction sets against each other
+    kinds = {k: sum(k in types(c) for c in items) for k in TYPE}
+    chips = "".join(f'<button type="button" class="cx-tchip" data-dim="types" data-val="{k}" aria-pressed="false">'
+                    f'{esc(TYPE[k])} <b>{n}</b></button>' for k, n in kinds.items() if n)
+    rows.insert(0, f'<div class="cx-frow" role="group" aria-label="סוגי המסמכים">'
+                   f'<span class="cx-sumh">מסמכים:</span>{chips}</div>')
+    out.append(f'<div class="cx-sum" aria-label="סינון לפי: האם הכלל קוים — כל שורה מסננת בנפרד, והשתיים מצטרפות">'
+               + "".join(rows)
+               + f'<div class="cx-frow"><button type="button" class="cx-all" aria-pressed="true">הכול <b>{len(items)}</b></button></div></div>')
     out.append(meter(errors(data)))
 
 
@@ -145,6 +160,7 @@ def body(data: dict, *, prose, clause_link, finding_ids: set[str], src) -> tuple
     for rid, r in data["rules"].items():
         pic = figure(r["image"], r["quote"], src(r["image"]["file"])) if r.get("image") else ""
         link = f' · <a href="{esc(r["url"])}">{esc(r["url_label"])}</a>' if r.get("url") else ""
+        link += f' · <a href="{esc(r["l4_page"])}">הסעיפים ב־L4</a>' if r.get("l4_page") else ""
         if r.get("doc"):
             href, label = clause_link(r["doc"], r["key"])
             link += f' · <a href="{esc(href)}">{label}</a>'
@@ -161,7 +177,7 @@ def body(data: dict, *, prose, clause_link, finding_ids: set[str], src) -> tuple
 def card(c: dict, rules: dict, *, prose, clause_link, finding_ids, src) -> str:
     sev = c.get("severity")
     badge = f'<span class="cx-sev sev-{sev}">טעות · {esc(SEV[sev])}</span>' if sev else ""
-    pair = " ↔ ".join(TYPE[s["type"]] for s in c["sides"])
+    pair = " ↔ ".join([TYPE[s["type"]] for s in c["sides"]] + ([TYPE["payment"]] if c["group"] == "payment" else []))
     links = []
     for f in c.get("findings", []):
         ref = f'<bdi dir="ltr" class="fref">{esc(f)}</bdi>'
@@ -171,7 +187,7 @@ def card(c: dict, rules: dict, *, prose, clause_link, finding_ids, src) -> str:
     p = c["practice"]
     winner = c.get("winner")
     sides = "".join(side_html(s, clause_link=clause_link, src=src) for s in c["sides"])
-    return (f'<article class="cx-card sev-{sev or "none"}" id="{esc(c["id"])}" data-payslips="{esc(p["payslips"]["followed"])}" data-simulator="{esc(p["simulator"]["followed"])}">'
+    return (f'<article class="cx-card sev-{sev or "none"}" id="{esc(c["id"])}" data-types="{esc(" ".join(types(c)))}" data-payslips="{esc(p["payslips"]["followed"])}" data-simulator="{esc(p["simulator"]["followed"])}">'
             f'<header><p class="cx-pair">{esc(pair)} {badge}</p><h3>{esc(c["title"])}</h3>'
             f'<p class="cx-stake">{prose(c["stake"])}</p></header>'
             f'<div class="cx-sides">{sides}</div>'

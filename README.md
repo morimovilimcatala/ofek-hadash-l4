@@ -36,6 +36,7 @@ refused) has nothing to encode until the corpus reads its pages.
 | `conventions.toml`, `l4/conventions.l4` | the rules of reading the encoding follows where the text does not decide, and the one L4 definition of each that is a computation, which the rules import |
 | `findings/<corpus path>/<section>.toml` (one per section) | errors in the text the encoding exposed, each backed by an `#ASSERT` |
 | `data/calculator-delta.json` | the comparison with the ministry's salary simulator: inputs, outputs, mappings, clauses and classifications only (written outside this repository; see the site's simulator page) |
+| `laws/<name>.toml`, `l4/laws/<name>.l4` | a statute encoded though the corpus holds no copy of it (חוק הסכמים קיבוציים, §§19–23): its sections' words pinned from ספר החוקים הפתוח, and their rules |
 | `data/contradictions.json`, `data/contradictions/` | where one instrument contradicts another: both sides with a crop of each page, the rule that decides, and whether it was followed |
 | `tools/` | the L4 runner, the AKN reader, the site generator |
 | `toolchain/` | the pinned L4 compiler revision and its build script |
@@ -81,6 +82,13 @@ refused) has nothing to encode until the corpus reads its pages.
   simulator code and no recorded traffic, and `tests/test_calculator_delta.py`
   holds it to that. The simulator is the ministry's non-binding tool: what it
   computes is evidence of practice, never a reading of the law.
+- **The Collective Agreements Law** (`laws/collective-agreements-law.html`) —
+  §§19–23, which say what an agreement's personal provisions are and which
+  provision governs against a statute, a contract of employment or another
+  agreement, encoded in L4 and set beside their text (MMS-516). The corpus
+  keeps no copy of the law; the text is pinned in `laws/` from the live page.
+  A circular whose rule pays less than the agreement it implements applies
+  §22 through it (`l4/circulars/2008-09_tashsat_03.l4`).
 - **Contradictions** (`contradictions.html`) — where one instrument says one
   thing and another says another about the same pay or right: an agreement
   and the circular that implements it, a circular and the letter it executes,

@@ -57,8 +57,12 @@ class Alignment(unittest.TestCase):
     def test_no_l4_file_without_a_section(self):
         known = {site_mod.l4_path(doc, s.num) for doc in site_mod.DOCUMENTS
                  for s in akn.sections(doc)}
+        import laws
+        statutes = {laws.l4_file(n) for n in laws.all_laws()}
         for f in (ROOT / "l4").rglob("*.l4"):
             if f.name in ("common.l4", "conventions.l4") or f.parent.name == "lib" or f.is_symlink():
+                continue
+            if f in statutes:  # a statute outside the corpus: see StatutesOutsideTheCorpus
                 continue
             self.assertIn(f, known, f"{f.relative_to(ROOT)} encodes no corpus section")
 
@@ -77,6 +81,38 @@ class Alignment(unittest.TestCase):
             with self.subTest(section=v.section.num):
                 missing = [r.key for r in v.text_rows if r.key not in v.covered]
                 self.assertEqual(missing, [], f"§{v.section.num}: paragraphs no segment cites")
+
+
+class StatutesOutsideTheCorpus(unittest.TestCase):
+    """A statute the L4 encodes though the corpus holds no copy (MMS-516):
+    its pinned text and its L4 cite each other section for section."""
+
+    def test_every_section_is_cited_and_every_citation_is_a_section(self):
+        import laws
+        self.assertTrue(laws.all_laws())
+        for name in laws.all_laws():
+            with self.subTest(law=name):
+                law = laws.load(name)
+                nums = [s["num"] for s in law["section"]]
+                self.assertEqual(len(nums), len(set(nums)))
+                self.assertEqual(laws.cited(name), set(nums))
+                _, blocks = laws.blocks(name)
+                self.assertEqual(list(blocks), nums, "a §§ block per section, in order")
+                for s in law["section"]:
+                    self.assertTrue(site_mod.is_hebrew(s["text"]) and s["heading"].strip())
+                self.assertTrue(law["url"].startswith("https://he.wikisource.org/wiki/"))
+
+    def test_a_file_that_imports_it_links_to_it(self):
+        import laws
+        for name in laws.all_laws():
+            module = name.replace("-", "_")
+            for f in (ROOT / "l4").rglob("*.l4"):
+                if f.is_symlink() or f"IMPORT {module}\n" not in f.read_text(encoding="utf-8"):
+                    continue
+                link = f.parent / f"{module}.l4"
+                with self.subTest(file=str(f.relative_to(ROOT))):
+                    self.assertTrue(link.is_symlink())
+                    self.assertEqual(link.resolve(), laws.l4_file(name).resolve())
 
 
 class Layout(unittest.TestCase):
