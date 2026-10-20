@@ -177,14 +177,17 @@ STAGES = {
     "examples": ("בהרצת הדוגמאות שבטקסט", "הכללים סותרים טבלה או דוגמה שהמסמך עצמו מביא"),
     "verification": ("באימות פורמלי", "פגם שאף דוגמה בודדת אינה מראה"),
 }
-# WHAT A FLAW PUTS AT STAKE (the client, 2026-10-20, MMS-504), read with the
-# finding's own reading. The same scale grades the corpus's sic marks
-# (MMS-505). A grade is a legal reading like the finding's, unreviewed
-# until the lawyer has seen it.
+# WHAT A FLAW CHANGES IN THE REAL WORLD (the client, 2026-10-20, MMS-504,
+# MMS-506: "if a mistake won't tickle a court then it isn't severe" and
+# "high = court will most likely rule to change the status quo"). The status
+# quo is how the ministry applies the text, as its own documents in the
+# corpus record it (circulars and later instruments; never a payslip). The
+# same scale grades the corpus's sic marks (MMS-505). A grade is a legal
+# reading like the finding's, unreviewed until the lawyer has seen it.
 SEVERITY = {
-    "high": ("גבוהה", "הפגם משנה סכום, זכאות או זכות, והטקסט לבדו אינו מכריע איזו קריאה נכונה"),
-    "medium": ("בינונית", "הפגם בכלל שקובע סכום או זכות, אבל הטקסט או מוסכמה מכריעים בו; או שהוא נוגע לנוהל או לחובה ולא לכסף"),
-    "low": ("נמוכה", "ניסוח שאין לו השפעה על שום תוצאה"),
+    "high": ("גבוהה", "סכום, זכאות או זכות תלויים בפגם, ובית משפט צפוי לפסוק נגד האופן שבו המשרד מיישם את הטקסט היום"),
+    "medium": ("בינונית", "סכום או זכות נוגעים בפגם, אבל היישום הקיים צפוי לעמוד, או שההכרעה שקולה; או שהפגם נוגע לנוהל ולא לכסף"),
+    "low": ("נמוכה", "שום תוצאה אינה תלויה בפגם"),
 }
 REVIEW = {
     "unreviewed": "טרם נבדק על ידי עורך הדין",
@@ -1581,7 +1584,7 @@ def findings_page(findings, views_by_file, key_to_view) -> str:
              + "".join(f'<li><span class="sev-dot sev-{k}"></span>{esc(t)} <b dir="ltr">{n_sev[k]}</b> '
                        f'<small dir="ltr">{round(100 * n_sev[k] / total)}%</small> <span class="sevgloss">{esc(d)}</span></li>'
                        for k, (t, d) in SEVERITY.items())
-             + '</ul><p class="sevnote">הדירוג הוא קריאה שלנו, כמו הקריאה שבממצא עצמו, וטרם נבדק על ידי עורך הדין.</p></div>')
+             + '</ul><p class="sevnote">הדירוג לפי ההשפעה בעולם: ממצא חמור רק אם בית משפט צפוי לשנות את המצב הקיים — את האופן שבו המשרד מיישם את הטקסט, כפי שחוזריו מתעדים אותו. הדירוג הוא קריאה שלנו, כמו הקריאה שבממצא עצמו, וטרם נבדק על ידי עורך הדין.</p></div>')
     bar = ('<div class="ffilter" role="search">'
            '<input type="search" id="fq" placeholder="חיפוש בממצאים: מילה, מזהה, סעיף…" aria-label="חיפוש בממצאים">'
            '<div class="frow"><span class="flabel">חומרה</span>'
