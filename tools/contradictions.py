@@ -187,9 +187,15 @@ def card(c: dict, rules: dict, *, prose, clause_link, finding_ids, src) -> str:
     p = c["practice"]
     winner = c.get("winner")
     sides = "".join(side_html(s, clause_link=clause_link, src=src) for s in c["sides"])
-    return (f'<article class="cx-card sev-{sev or "none"}" id="{esc(c["id"])}" data-types="{esc(" ".join(types(c)))}" data-payslips="{esc(p["payslips"]["followed"])}" data-simulator="{esc(p["simulator"]["followed"])}">'
-            f'<header><p class="cx-pair">{esc(pair)} {badge}</p><h3>{esc(c["title"])}</h3>'
-            f'<p class="cx-stake">{prose(c["stake"])}</p></header>'
+    # collapsed by default (the client, 2026-10-20): the summary line says what
+    # is set against what, the grade and both verdicts; a tap opens the rest
+    verdicts = "".join(f'<span class="cx-fol {FOLLOWED[p[dim]["followed"]][1]}">'
+                       f'{esc(FOLLOWED[p[dim]["followed"]][0])} {esc(label)}</span>' for dim, label in SOURCES)
+    return (f'<details class="cx-card sev-{sev or "none"}" id="{esc(c["id"])}" data-types="{esc(" ".join(types(c)))}" '
+            f'data-payslips="{esc(p["payslips"]["followed"])}" data-simulator="{esc(p["simulator"]["followed"])}">'
+            f'<summary><p class="cx-pair">{esc(pair)} {badge}</p><h3>{esc(c["title"])}</h3>'
+            f'<p class="cx-verdicts">{verdicts}</p></summary>'
+            f'<p class="cx-stake">{prose(c["stake"])}</p>'
             f'<div class="cx-sides">{sides}</div>'
             + rule_html(rules[c["rule"]], c["rule_note"], prose=prose, src=src)
             + (f'<p class="cx-win">לפי הכלל גובר: <b>{esc(winner)}</b></p>' if winner else "")
@@ -202,4 +208,4 @@ def card(c: dict, rules: dict, *, prose, clause_link, finding_ids, src) -> str:
             # what an error means for a teacher (the client: "a משמעות section")
             + (f'<div class="cx-mean"><h4>משמעות</h4><p>{prose(c["meaning"])}</p></div>' if c.get("meaning") else "")
             + (f'<p class="cx-links">{" · ".join(links)}</p>' if links else "")
-            + '</article>')
+            + '</details>')

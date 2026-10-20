@@ -131,7 +131,9 @@ class TheVerdicts(unittest.TestCase):
         html, _ = contradictions.body(DATA, prose=lambda t: t,
                                       clause_link=lambda d, k: ("#", k), finding_ids=set(),
                                       src=lambda f: f)
-        self.assertEqual(html.count('class="cx-card'), len(DATA["items"]))
+        # collapsed by default (the client, 2026-10-20)
+        self.assertEqual(html.count('<details class="cx-card'), len(DATA["items"]))
+        self.assertNotIn(' open>', html)
         self.assertIn('class="cx-meter"', html)
         self.assertIn('class="cx-mark"', html)
         self.assertEqual(html.count("<h4>מי גובר?</h4>"), len(DATA["items"]))

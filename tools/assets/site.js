@@ -396,3 +396,14 @@
     apply();
   });
 })();
+
+// contradictions.html: a link to a card opens it
+(function () {
+  if (!document.querySelector(".cx-card")) return;
+  function open() {
+    var el = location.hash && document.getElementById(decodeURIComponent(location.hash.slice(1)));
+    if (el && el.classList.contains("cx-card")) { el.open = true; el.scrollIntoView(); }
+  }
+  window.addEventListener("hashchange", open);
+  open();
+})();
