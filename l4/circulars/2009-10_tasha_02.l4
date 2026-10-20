@@ -9,6 +9,7 @@
 IMPORT prelude
 IMPORT common
 IMPORT conventions
+IMPORT collective_agreements_law
 
 § `תש"ע/2 עדכון "תוספת 2008" – השלמה ל-5% (שלב ג')`
 
@@ -62,16 +63,34 @@ DECIDE `the completion as the agreement sets it` `salary components at their Dec
 -- Section 2: as so agreed, the raise may be computed as 5% ÷ 1.04, printed
 -- "= 4.81%", which is the rate computed on the combined salary and tosefet
 -- 2001 at their current value. The division gives 4.8077%
--- (F-2009-10_tasha_02-a). The reading adopted, by convention
--- precedence.agreement (conventions.toml): the circular's derived rate does not
--- prevail over the agreement's rule, so the rate is the division itself,
--- 5% ÷ 1.04 — the agreement's 5% of the December 2007 values — and not the
--- printed 4.81%.
+-- (F-2009-10_tasha_02-a): the agreement's 5% of the December 2007 values.
+-- The printed 4.81% pays a little more.
 @ref akn:art_2
 GIVEN e IS A `tosefet employee`
 GIVETH A NUMBER
-DECIDE `the phase C completion` e IS
+DECIDE `the completion by the agreement's rule` e IS
     (e's `combined salary` PLUS e's `tosefet 2001`) TIMES `the rate section 2's division gives`
+
+GIVEN e IS A `tosefet employee`
+GIVETH A NUMBER
+DECIDE `the completion at the printed rate` e IS
+    (e's `combined salary` PLUS e's `tosefet 2001`) TIMES `the rate section 2 prints`
+
+-- Which governs is the Collective Agreements Law's, section 22
+-- (l4/laws/collective-agreements-law.l4), as circular תשס"ט/3 reads it for
+-- the phase before: the rate the employer pays by is the contract's term,
+-- and a term in the employee's favour that the agreement does not forbid
+-- stands (the agreement of 24.1.2008 forbids none). The printed 4.81% is
+-- the higher on every salary, so it governs. Convention
+-- instruments.favourable-circular, a pick put to the lawyer (MMS-519); it is
+-- the exception to precedence.agreement.
+GIVEN e IS A `tosefet employee`
+GIVETH A NUMBER
+DECIDE `the phase C completion` e IS
+    `the amount that governs between agreement and contract`
+        (`the completion by the agreement's rule` e)
+        (`the completion at the printed rate` e)
+        FALSE
 
 `the rate section 2 prints` MEANS 0.0481
 
@@ -189,12 +208,13 @@ DECIDE `the Ministry's reimbursement` IS
         `combined salary`             IS 9000
         `tosefet 2001`                IS 1000
 
-#ASSERT `to the agora` (`the phase C completion` `an upper-division teacher`) EQUALS 480.77
+#ASSERT `to the agora` (`the completion by the agreement's rule` `an upper-division teacher`) EQUALS 480.77
+#ASSERT `the phase C completion` `an upper-division teacher` EQUALS 481
 
 -- F-2009-10_tasha_02-a: on 10,000 shekels the two rates differ by 23 agorot.
 `the two rates differ on the example` MEANS
-    NOT (`the phase C completion` `an upper-division teacher`
-         EQUALS 10000 TIMES `the rate section 2 prints`)
+    NOT (`the completion by the agreement's rule` `an upper-division teacher`
+         EQUALS `the completion at the printed rate` `an upper-division teacher`)
 #ASSERT `the two rates differ on the example`
 
 #TRACE `the owner's update` `an upper-division teacher` AT 3 WITH
@@ -239,13 +259,13 @@ DECIDE `a checked employee` g p s t IS
             `every population`
 
 -- Section 2 over every salary and tosefet 2001: the completion is never
--- negative and never falls as either grows. F-2009-10_tasha_02-a over the
--- same space: the printed 4.81% and the division's 4.8077% (the rate
--- adopted) part exactly where there is a salary to apply them to, the
--- printed rate always the higher; on components at their December 2007
--- value raised by the 4% erosion addition, the printed rate gives exactly
--- section 1's 5% nowhere but at zero, and the rate adopted gives it
--- everywhere.
+-- negative and never falls as either grows, and it is the printed rate's
+-- (section 22). F-2009-10_tasha_02-a over the same space: the printed
+-- 4.81% and the division's 4.8077% part exactly where there is a salary to
+-- apply them to, the printed rate always the higher; on components at their
+-- December 2007 value raised by the 4% erosion addition, the printed rate
+-- gives exactly section 1's 5% nowhere but at zero, and the division gives
+-- it everywhere.
 #ASSERT all (GIVEN s YIELD
                 all (GIVEN t YIELD
                         LET e MEANS `a checked employee` TRUE `owners' upper-division staff` s t
@@ -253,7 +273,8 @@ DECIDE `a checked employee` g p s t IS
                         IN      c AT LEAST 0
                             AND c AT MOST `the phase C completion` (`a checked employee` TRUE `owners' upper-division staff` (s PLUS 2500) t)
                             AND c AT MOST `the phase C completion` (`a checked employee` TRUE `owners' upper-division staff` s (t PLUS 2500))
-                            AND ((s PLUS t) TIMES `the rate section 2 prints` GREATER THAN c) EQUALS (s PLUS t GREATER THAN 0)
+                            AND c EQUALS (s PLUS t) TIMES `the rate section 2 prints`
+                            AND ((s PLUS t) TIMES `the rate section 2 prints` GREATER THAN `the completion by the agreement's rule` e) EQUALS (s PLUS t GREATER THAN 0)
                             AND s TIMES (1 PLUS `the erosion addition paid in January 2008`) TIMES `the rate section 2's division gives`
                                 EQUALS `the completion as the agreement sets it` s
                             AND ((s TIMES (1 PLUS `the erosion addition paid in January 2008`) TIMES `the rate section 2 prints`
