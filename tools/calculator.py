@@ -16,6 +16,10 @@ order of the rules the page calls. What it adds is the Hebrew: a label per
 field and the corpus row each field and allowance stands for, from which the
 clause citation (§1.1א) and the allowance's own Hebrew name are taken. A
 test holds the Hebrew tables to exactly the names the L4 declares.
+
+§1.1 alone is not a month's pay after the circulars that re-rate its 2008
+and 2011 supplements: `SUPERSEDED` says from which month and by which, and
+the page marks those lines rather than composing the circulars (MMS-514).
 """
 from __future__ import annotations
 
@@ -37,6 +41,17 @@ ALLOWANCE_ENUM = "percentage allowance"
 EXAMPLE = "a full-time teacher in March 2012"
 EXAMPLE_ALLOWANCE = "class education at 10%"
 POPULATION_ENUM = "postponed population"
+
+# Later circulars, already encoded, re-rate two of §1.1's components; §1.1
+# itself was last updated on 2.2.2010 and its own heading says newer
+# circulars prevail. From these months the page marks the component as
+# §1.1's figure, not the month's (MMS-514), and names what replaced it.
+SUPERSEDED = {
+    "2008 supplement": ("2008-12-01", [("תשס\"ט/3", "circulars/2008-09_tashsat_03.html"),
+                                       ("תש\"ע/2", "circulars/2009-10_tasha_02.html")]),
+    "2011 supplement": ("2013-04-01", [("תשע\"ג/6", "circulars/2012-13_tashag_06.html"),
+                                       ("תשע\"ג/9", "circulars/2012-13_tashag_09.html")]),
+}
 
 P = "chp_1א___sec_1_1__hc_2"
 F1, F2, F3 = P + "__para_f__subpara_1", P + "__para_f__subpara_2", P + "__para_f__subpara_3"
@@ -281,6 +296,8 @@ def spec(section, l4: Path, cites: dict[str, str], href=lambda key: "") -> dict:
                  "params": params(lines, ROOT_RULE),
                  "href": href(decls[ROOT_RULE]["refs"][0]) if decls[ROOT_RULE]["refs"] else ""},
         "components": components,
+        "superseded": {k: {"from": f, "by": [{"label": l, "href": h} for l, h in by]}
+                       for k, (f, by) in SUPERSEDED.items()},
         "example": {"fields": ex, "allowances": [{"kind": ex_held[kind_field], "percent": pct}]},
     }
 

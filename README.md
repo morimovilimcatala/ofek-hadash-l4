@@ -68,7 +68,10 @@ refused) has nothing to encode until the corpus reads its pages.
   off the L4 file, and "חישוב" runs that file, with the form's values and an
   `#EVALTRACE` appended, through L4's own evaluator compiled to WebAssembly.
   It shows the total, each component with its clause, and the evaluation
-  trace. Nothing in it re-implements a rule.
+  trace. Nothing in it re-implements a rule. §1.1 was last updated in 2010:
+  from the month a later circular re-rates the 2008 or the 2011 supplement,
+  the page marks that line as §1.1's figure and names the circular, and says
+  the total is §1.1's alone (MMS-514).
 - **Simulator delta** (`calculator-delta.html`) — where the Ministry of
   Education's public salary simulator computes otherwise than the L4, grouped
   by cause (one rule, not one row per request) and classified as an L4 bug, the

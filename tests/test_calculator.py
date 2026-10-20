@@ -62,6 +62,21 @@ class Form(unittest.TestCase):
                           "1994 supplement", "percentage allowances"])
 
 
+    def test_a_component_later_circulars_rerate_names_them(self):
+        """MMS-514: §1.1 alone gives a month after the later circulars the
+        2008 supplement at 5% and the 2011 at 4%; the page marks those lines
+        from the month a circular already encoded replaced them, and links it."""
+        s = spec()
+        names = {c["name"] for c in s["components"]}
+        self.assertEqual(set(s["superseded"]), {"2008 supplement", "2011 supplement"})
+        for name, sup in s["superseded"].items():
+            with self.subTest(component=name):
+                self.assertIn(name, names)
+                self.assertRegex(sup["from"], r"^\d{4}-\d{2}-01$")
+                for b in sup["by"]:
+                    self.assertTrue((ROOT / "l4" / b["href"].replace(".html", ".l4")).exists(), b["href"])
+
+
 class Artefact(unittest.TestCase):
     def test_the_wasm_is_the_pinned_commit_and_patch(self):
         build = tomllib.loads((WASM / "BUILD.toml").read_text(encoding="utf-8"))

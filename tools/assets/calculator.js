@@ -74,6 +74,8 @@ form.querySelector(".example").addEventListener("click", () => {
   for (const a of spec.example.allowances) addRow(a.kind, a.percent);
 });
 
+let lastMonth = "";
+
 function readForm() {
   const fields = {};
   for (const f of spec.fields) {
@@ -135,7 +137,23 @@ function show(r, prog) {
        ...r.failed.map((f) => el("pre", { dir: "ltr", text: f.message }))]);
   }
   const tbody = el("tbody");
+  // a component a later circular re-rates from the chosen month is §1.1's
+  // figure, not the month's: say so, and name the circulars (MMS-514)
+  const month = lastMonth || "";
+  const stale = r.components.filter((c) => spec.superseded[c.name] && month >= spec.superseded[c.name].from);
   for (const c of r.components) {
+    const sup = stale.includes(c) ? spec.superseded[c.name] : null;
+    if (sup) {
+      tbody.append(el("tr", { class: "c superseded" },
+        el("td", {}, el("span", { class: "cl", text: c.label }),
+          el("div", { class: "supnote" }, "מחודש זה הוחלף בחוזר ",
+            ...sup.by.flatMap((b, i) => [i ? " ואחריו " : "", el("a", { href: b.href, text: b.label })]),
+            " — הסכום כאן הוא של סעיף 1.1 כפי שנכתב.")),
+        el("td", {}, cite(c.cite, c.href)),
+        el("td", {}, el("code", { class: "l4n", dir: "ltr", text: c.name })),
+        el("td", { class: "num" }, ltr(money(c.value)))));
+      continue;
+    }
     tbody.append(el("tr", { class: "c" },
       el("td", {}, el("span", { class: "cl", text: c.label })),
       el("td", {}, cite(c.cite, c.href)),
@@ -158,6 +176,9 @@ function show(r, prog) {
   const lookups = el("input", { type: "checkbox" });
   lookups.addEventListener("change", () => tree.classList.toggle("hide-lookups", !lookups.checked));
   out.replaceChildren(
+    ...(stale.length ? [el("div", { class: "calc-warn", role: "note" },
+      "החודש שנבחר מאוחר מהחוזרים שהחליפו את " + stale.map((c) => c.label).join(" ואת ")
+      + ". הסכום הכולל להלן הוא של סעיף 1.1 לבדו, ואינו השכר של החודש הזה.")] : []),
     el("div", { class: "total" },
       el("span", {}, `${spec.root.label} — התקנון `, cite(spec.root.cite, spec.root.href)),
       el("strong", { dir: "ltr", text: "₪ " + money(r.total.value) }),
@@ -187,6 +208,7 @@ form.addEventListener("submit", async (ev) => {
     status.classList.add("bad");
     return;
   }
+  lastMonth = readForm().fields.month || "";
   go.disabled = true;
   status.textContent = "מחשב…";
   try {
