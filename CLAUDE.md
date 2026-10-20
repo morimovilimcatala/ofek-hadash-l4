@@ -100,6 +100,12 @@ not from the Catala proofs, the corpus's ambiguity ledger or its sic kinds:
   it is a toss-up, or it touches a procedure; `low`: no outcome turns on it.
   `severity_why` names the status quo and says why, in one Hebrew line. The
   findings page shows them as a meter and a filter.
+  PAYSLIPS ARE EVIDENCE OF THE STATUS QUO FOR THE GRADE ONLY (the client,
+  2026-10-20: "allow payslips for severity grading"; the corpus repo's
+  decision 17). They never change an encoding or a reading — the law-only
+  rule above stands for those — and a `severity_why` that rests on them says
+  what is paid in general terms, never a name, an identity number, a
+  person's amount or month.
 - `title`, `body` and `reading` are written in HEBREW; an L4 identifier
   inside them stays in backticks, in English, and the site isolates it.
 - `keys` — the rows it is about; `title` — one line; `body`; `quote` — the
