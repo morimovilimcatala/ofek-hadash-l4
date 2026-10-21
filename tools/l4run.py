@@ -6,11 +6,14 @@ For each file under l4/ this writes, to build/l4/<same path>:
   .render.html   `l4 render`      — L4's own rendering of the rules as a document
   .graph.dot     `l4 state-graph` — each regulative rule as a state diagram (GraphViz)
 
-A file's outputs are keyed by the bytes of every .l4 file in its directory
-(a section imports its document's shared vocabulary), of every module it
+A file's outputs are keyed by its own bytes, the bytes of every module it
 imports, transitively, wherever it lives (MMS-524: any file may import any
-other), and by the compiler's own identity, so a changed rule or a changed
-compiler is a different key and a stale reading cannot be served.
+other), and the compiler's own identity, so a changed rule or a changed
+compiler is a different key and a stale reading cannot be served. Nothing
+else can change what `l4 run` says about a file: its neighbours in the
+directory are not keyed, so adding a document re-checks that document and
+what imports it, not the whole collection (2026-10-21: a merge of one batch
+re-checked ~35 agreements, 9–15 minutes).
 
 Every run has l4/modules/ on JL4_LIBRARY_PATH (tools/modules.py): the
 compiler finds an import by its bare name, and that directory holds every
@@ -85,7 +88,7 @@ def imported(path: Path) -> set[Path]:
 
 def key(path: Path, cid: str) -> str:
     h = hashlib.sha256(cid.encode())
-    for f in sorted(set(path.parent.glob("*.l4")) | imported(path)):
+    for f in sorted({path.resolve()} | imported(path)):
         h.update(f.name.encode() + b"\0" + f.read_bytes() + b"\0")
     h.update(path.name.encode())
     return h.hexdigest()
