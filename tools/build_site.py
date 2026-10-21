@@ -18,13 +18,15 @@ Pages, laid out like the corpus they encode:
   findings.html  findings.json     errors in the LAW that encoding exposed
   salary.html                      what §1.1's salary is made of, drawn from its L4
   calculator.html                  §1.1's salary, computed in the browser by L4 (WASM)
-  calculator-delta.html            where the ministry's salary simulator computes otherwise
-                                   than the L4, by cause (data/calculator-delta.json)
+  calculator-delta.html            a redirect: the simulator's gaps are a group of
+                                   contradictions.html now (MMS-522)
   laws/<name>.html                 a statute the L4 encodes outside the corpus, each section
                                    beside its rules (laws/<name>.toml, l4/laws/<name>.l4)
   contradictions.html              where one instrument contradicts another, with a crop of
                                    each page, the rule that decides and whether it was
-                                   followed (data/contradictions.json)
+                                   followed (data/contradictions.json); and where the
+                                   ministry's simulator departs from the text, by cause
+                                   (data/calculator-delta.json)
   coverage.html                    how much of the corpus is encoded
   diagnostics.html                 what the L4 checker reported, file by file
   index.json                       every L4 segment with its corpus address
@@ -882,7 +884,6 @@ def page(here: str, title: str, body: str, *, tab: str = "", desc: str = "",
            ("findings.html", "ממצאים", "findings"),
            ("salary.html", "מבנה השכר", "salary"),
            *([("calculator.html", "מחשבון שכר", "calculator")] if CALCULATOR else []),
-           *([(calculator_delta.HERE, calculator_delta.TAB, "delta")] if DELTA else []),
            *([(contradictions.HERE, contradictions.TAB, "contradictions")] if CONTRA else []),
            ("conventions.html", "מוסכמות", "conventions"),
            ("coverage.html", "כיסוי", "coverage"),
@@ -1702,9 +1703,10 @@ def calculator_page(all_views: dict[str, list["SectionView"]], findings: list[di
 DELTA = calculator_delta.load()
 
 
-def delta_page(findings: list[dict], by_file: dict[str, "SectionView"], key_to_view) -> str:
-    """Where the ministry's simulator and the L4 part, by cause
-    (tools/calculator_delta.py; the data is data/calculator-delta.json)."""
+def simulator_group(findings: list[dict], by_file: dict[str, "SectionView"], key_to_view) -> tuple[str, str, int]:
+    """Where the ministry's simulator and the text part, by cause: a group of
+    the contradictions page (tools/calculator_delta.py; the data is
+    data/calculator-delta.json). (section, sidebar entries, rows)."""
     def clause_link(doc: str, key: str) -> tuple[str, str]:
         v = key_to_view.get((doc, key))
         if v is not None:
@@ -1717,19 +1719,19 @@ def delta_page(findings: list[dict], by_file: dict[str, "SectionView"], key_to_v
         v = by_file.get(file)
         return v.href if v is not None else ""
 
-    body, side = calculator_delta.body(
+    html, side = calculator_delta.section(
         DELTA, prose=prose, clause_link=clause_link, finding_ids={f["id"] for f in findings},
         conv_titles=CONVENTION_TITLES, l4_link=l4_link)
-    return page(calculator_delta.HERE, f"{calculator_delta.TAB} — {TITLE}", body, tab="delta",
-                desc="היכן שסימולטור השכר של משרד החינוך מחשב אחרת מה־L4, לפי הסיבה", sidebar=side)
+    return html, side, len(calculator_delta.group_rows(DELTA))
 
 
 CONTRA = contradictions.load()
 
 
-def contradictions_page(findings: list[dict], key_to_view) -> str:
+def contradictions_page(findings: list[dict], by_file: dict[str, "SectionView"], key_to_view) -> str:
     """Where one instrument contradicts another (tools/contradictions.py;
-    the data is data/contradictions.json, the crops data/contradictions/)."""
+    the data is data/contradictions.json, the crops data/contradictions/),
+    and where the ministry's simulator departs from the text."""
     here = contradictions.HERE
 
     def clause_link(doc: str, key: str) -> tuple[str, str]:
@@ -1744,7 +1746,8 @@ def contradictions_page(findings: list[dict], key_to_view) -> str:
 
     body, side = contradictions.body(
         CONTRA, prose=prose, clause_link=clause_link, finding_ids={f["id"] for f in findings},
-        src=lambda f: rel(f"assets/contradictions/{f}", here))
+        src=lambda f: rel(f"assets/contradictions/{f}", here),
+        simulator=simulator_group(findings, by_file, key_to_view) if DELTA else None)
     return page(here, f"{contradictions.TAB} — {TITLE}", body, tab="contradictions",
                 desc="היכן שמסמך אחד סותר מסמך אחר: תמונה של כל צד, הכלל שמכריע, והאם קוים", sidebar=side)
 
@@ -2282,7 +2285,9 @@ def build() -> int:
     if CALCULATOR:
         (OUT / "calculator.html").write_text(calculator_page(all_views, findings), encoding="utf-8")
     if DELTA:
-        (OUT / calculator_delta.HERE).write_text(delta_page(findings, by_file, key_to_view), encoding="utf-8")
+        (OUT / calculator_delta.HERE).write_text(
+            redirect_page(calculator_delta.HERE, f"{contradictions.HERE}#{calculator_delta.GROUP}",
+                          contradictions.TAB), encoding="utf-8")
     (OUT / "laws").mkdir(parents=True, exist_ok=True)
     for name in laws.all_laws():
         (OUT / "laws" / f"{name}.html").write_text(law_page(name), encoding="utf-8")
@@ -2290,7 +2295,7 @@ def build() -> int:
         (OUT / "assets" / "contradictions").mkdir(parents=True, exist_ok=True)
         for f in contradictions.crops(CONTRA):
             shutil.copyfile(contradictions.CROPS / f, OUT / "assets" / "contradictions" / f)
-        (OUT / contradictions.HERE).write_text(contradictions_page(findings, key_to_view), encoding="utf-8")
+        (OUT / contradictions.HERE).write_text(contradictions_page(findings, by_file, key_to_view), encoding="utf-8")
     (OUT / "findings.json").write_text(findings_json(findings, by_file, key_to_view), encoding="utf-8")
     (OUT / "index.json").write_text(index_json(flat), encoding="utf-8")
     (OUT / "coverage.html").write_text(coverage_page(all_views), encoding="utf-8")

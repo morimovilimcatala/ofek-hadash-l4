@@ -59,8 +59,10 @@ class EverySideQuotesTheCorpus(unittest.TestCase):
                 with self.subTest(rule=rid):
                     self.assertIn(" ".join(r["quote"].split()), row_text(r["doc"], r["key"]))
 
-    def test_two_sides_in_two_documents(self):
-        """A contradiction between documents has two sides in two documents;
+    def test_two_or_more_sides_each_its_own_document(self):
+        """A contradiction between documents has a side per document that
+        gives its own answer — two, or three or more where that many sources
+        disagree (the client, 2026-10-21, MMS-521) — and no document twice;
         one between a document and what is paid has the document alone (the
         payment is a payslip's or the simulator's, and no picture of it is
         published)."""
@@ -70,8 +72,9 @@ class EverySideQuotesTheCorpus(unittest.TestCase):
                     self.assertEqual(len(c["sides"]), 1)
                     self.assertIn("no", {v["followed"] for v in c["practice"].values()})
                     continue
-                self.assertEqual(len(c["sides"]), 2)
-                self.assertNotEqual(c["sides"][0]["doc"], c["sides"][1]["doc"])
+                self.assertGreaterEqual(len(c["sides"]), 2)
+                docs = [s.get("doc") or s["label"] for s in c["sides"]]
+                self.assertEqual(len(docs), len(set(docs)))
 
 
 class EveryCropIsItsFile(unittest.TestCase):
@@ -134,6 +137,21 @@ class TheVerdicts(unittest.TestCase):
                     self.assertTrue(c.get("meaning", "").strip())
                 else:
                     self.assertNotIn("severity", c)
+
+    def test_a_card_shows_every_side_when_three_disagree(self):
+        """Three sources that give three answers are one contradiction with
+        three sides, not three pairs (the client, 2026-10-21)."""
+        import copy
+        c = copy.deepcopy(next(c for c in DATA["items"] if c["group"] != "payment"))
+        third = copy.deepcopy(c["sides"][0])
+        third.update(label="מסמך שלישי", type="takanon", images=[])
+        c["sides"].append(third)
+        html = contradictions.card(c, DATA["rules"], prose=lambda t: t,
+                                   clause_link=lambda d, k: ("#", k), finding_ids=set(),
+                                   src=lambda f: f)
+        self.assertEqual(html.count('<div class="cx-side">'), 3)
+        self.assertEqual(html.count(" ↔ "), 2)
+        self.assertIn("מסמך שלישי", html)
 
     def test_the_page_outlines_the_words_and_shows_the_meter(self):
         html, _ = contradictions.body(DATA, prose=lambda t: t,

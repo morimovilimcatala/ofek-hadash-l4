@@ -1,4 +1,5 @@
-"""The simulator delta page (calculator-delta.html, MMS-513) and its data.
+"""The simulator's group of the contradictions page (contradictions.html#g-simulator;
+a page of its own, calculator-delta.html, from MMS-513 until MMS-522) and its data.
 
 data/calculator-delta.json is written outside this repository, by a
 comparison that reads a private extraction of the ministry's simulator. What
@@ -135,25 +136,48 @@ class ThePage(unittest.TestCase):
     def setUpClass(cls):
         def clause_link(doc, key):
             return f"{doc}#{key}", f"<bdi>{key}</bdi>"
-        cls.body, cls.side = calculator_delta.body(
+        cls.body, cls.side = calculator_delta.section(
             DATA, prose=lambda t: t, clause_link=clause_link, finding_ids=finding_ids(),
             conv_titles={}, l4_link=lambda f: f)
 
     def test_shows_every_cause_quirk_and_the_disclaimer(self):
-        for c in DATA["causes"] + DATA["quirks"]:
+        for c in calculator_delta.group_rows(DATA):
             self.assertIn(f'id="{c["id"]}"', self.body)
+        # every row is a card the page's filters and links know
+        self.assertEqual(self.body.count(" cx-card"), len(calculator_delta.group_rows(DATA)))
         self.assertIn("הסימולטור אינו מחייב", self.body)
-        for anchor in ("what", "summary", "quirks", "coverage"):
+        # the simulator's own words, verbatim (MMS-522)
+        self.assertIn("מודול זה מדמה שכר בלבד ולפיכך אין משרד החינוך "
+                      "מתחייב לתשלום שכר על פי התחשיב המופק ממודול זה.", self.body)
+        for anchor in ("sim-what", "sim-summary", "sim-quirks", "sim-coverage"):
             self.assertIn(f'id="{anchor}"', self.body)
-            self.assertIn(f'href="#{anchor}"', self.side)
+        self.assertIn(f'href="#{calculator_delta.GROUP}"', self.side)
 
     def test_links_every_finding_it_names(self):
         for c in DATA["causes"]:
             for f in c["findings"]:
                 self.assertIn(f'href="findings.html#{f}"', self.body)
 
-    def test_the_site_builds_it_with_a_tab(self):
+    def test_the_contradictions_page_holds_it_and_the_old_page_redirects(self):
+        """No tab of its own (the client, 2026-10-21: "can we remove the
+        simulator page?"); its rows are a group of סתירות בין מסמכים, and
+        calculator-delta.html sends an old link there."""
         import build_site
+        import contradictions
         self.assertTrue(build_site.DELTA)
-        html = build_site.page(calculator_delta.HERE, "t", "", tab="delta")
-        self.assertIn(f'href="{calculator_delta.HERE}" aria-current=page', html)
+        nav = build_site.page(contradictions.HERE, "t", "", tab="contradictions")
+        self.assertNotIn(f'href="{calculator_delta.HERE}"', nav)
+        self.assertIn(f'href="{contradictions.HERE}" aria-current=page', nav)
+        html, side = contradictions.body(contradictions.load(), prose=lambda t: t,
+                                         clause_link=lambda d, k: ("#", k), finding_ids=set(),
+                                         src=lambda f: f,
+                                         simulator=(self.body, self.side,
+                                                    len(calculator_delta.group_rows(DATA))))
+        self.assertIn(f'id="{calculator_delta.GROUP}"', html)
+        self.assertIn('data-val="simulator"', html)
+        # one page, two sets of cards: no anchor twice
+        ids = re.findall(r' id="([^"]+)"', html)
+        self.assertEqual(sorted(i for i in set(ids) if ids.count(i) > 1), [])
+        moved = build_site.redirect_page(calculator_delta.HERE,
+                                         f"{contradictions.HERE}#{calculator_delta.GROUP}", "t")
+        self.assertIn(f'url={contradictions.HERE}#{calculator_delta.GROUP}', moved)

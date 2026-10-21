@@ -1,7 +1,11 @@
-"""פערי הסימולטור (calculator-delta.html, MMS-513): where the Ministry of
-Education's public salary simulator computes something other than the L4.
+"""The simulator's group of סתירות בין מסמכים (contradictions.html#g-simulator):
+where the Ministry of Education's public salary simulator computes something
+other than the text. It was a page of its own, פערי הסימולטור
+(calculator-delta.html, MMS-513), until the client asked for its gaps to sit
+with the other contradictions (2026-10-21, MMS-522); the old address redirects.
 
-The page is built from data/calculator-delta.json and from nothing else. That
+The group is built from data/calculator-delta.json and, besides it, only the
+simulator's own disclaimer, quoted word for word (DISCLAIMER). That
 file holds only what the comparison found: the inputs of each example request,
 the simulator's line and the L4's, the mapping from the simulator's fields and
 pay codes to the L4 rules, the clauses that govern each difference with their
@@ -25,8 +29,8 @@ esc = html.escape
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "data" / "calculator-delta.json"
-HERE = "calculator-delta.html"
-TAB = "פערי הסימולטור"
+HERE = "calculator-delta.html"   # the page's old address, now a redirect
+GROUP = "g-simulator"
 
 CLASS_ORDER = ("simulator", "l4-bug", "ambiguous")
 CLASS_SHORT = {"simulator": "הסימולטור סוטה", "l4-bug": "באג ב־L4", "ambiguous": "שתי קריאות", "quirk": "טעות של הסימולטור"}
@@ -37,6 +41,17 @@ CLASS_GLOSS = {
     "ambiguous": "הטקסט מאפשר את שתי התוצאות, או שההכרעה מחוץ לקורפוס; הממצא או המוסכמה שמכריעים ב־L4 מצוינים.",
 }
 SEV = {"high": "חמור", "medium": "בינוני", "low": "קל"}
+# The simulator's own words about itself, as the client supplied them from its
+# page (MMS-522). They are why it never wins: it binds the ministry to
+# nothing, so in every row of its group the text governs, and the row records
+# what the ministry's own tool computes.
+DISCLAIMER = ("באם הנתונים שהזנת במחשבון אינם משקפים את נתוניך כפי שהם מאושרים "
+              "וקיימים במשרד החינוך, שכרך ישולם לפי הנתונים הקיימים במשרד בלבד. "
+              "למען הסר ספק יודגש, כי מודול זה מדמה שכר בלבד ולפיכך אין משרד החינוך "
+              "מתחייב לתשלום שכר על פי התחשיב המופק ממודול זה.")
+# A row is a card of the page: its "documents" filter knows it as the
+# simulator's, and the "was the rule followed" filters have no verdict for it.
+CARD_DATA = ' data-types="simulator" data-payslips="na" data-simulator="na"'
 STATUS = {"not-encoded": "לא מקודד", "not-comparable": "לא בר־השוואה"}
 
 
@@ -48,27 +63,36 @@ def num(n) -> str:
     return f'<bdi dir="ltr">{n:,}</bdi>' if isinstance(n, int) else f'<bdi dir="ltr">{esc(str(n))}</bdi>'
 
 
-def body(data: dict, *, prose, clause_link, finding_ids: set[str], conv_titles: dict[str, str],
-         l4_link) -> tuple[str, str]:
-    """The page's main column and its sidebar. `clause_link(doc, key)` gives
-    (href, label html) for a corpus row; `l4_link(file)` the page of an L4
-    file; `prose` renders our Hebrew with its identifiers isolated."""
+def group_rows(data: dict) -> list[dict]:
+    """What the group shows as rows: every cause the text and the simulator
+    part on, and every bug of the simulator's own. An `l4-bug` cause is our
+    defect, fixed in the L4 (MMS-514), and is no contradiction."""
+    return [c for c in data["causes"] if c["class"] != "l4-bug"] + data["quirks"]
+
+
+def section(data: dict, *, prose, clause_link, finding_ids: set[str], conv_titles: dict[str, str],
+            l4_link) -> tuple[str, str]:
+    """The group's section of the contradictions page, and its sidebar
+    entries (<li>s). `clause_link(doc, key)` gives (href, label html) for a
+    corpus row; `l4_link(file)` the page of an L4 file; `prose` renders our
+    Hebrew with its identifiers isolated."""
     m = data["meta"]
     calcs = data["summary"]
     total_req = sum(c["requests"] for c in calcs.values())
     total_lines = sum(c["lines"] for c in calcs.values())
     total = {k: sum(c[k] for c in calcs.values()) for k in ("match", "delta", "not_encoded", "not_comparable")}
 
-    out = [f'<h1>{esc(data["title"])}</h1>',
-           '<p class="lede">היכן שסימולטור השכר של משרד החינוך מחשב דבר אחר מהקידוד שלנו לדיני השכר של עובדי ההוראה: '
+    out = [f'<section class="cx-group" id="{GROUP}"><h2>הסימולטור מול הטקסט <small>{len(group_rows(data))}</small></h2>',
+           '<p class="dl-note">היכן שסימולטור השכר של משרד החינוך מחשב דבר אחר ממה שהטקסט קובע: '
            'כל שורת שכר שהסימולטור החזיר הושוותה, עד האגורה, לשורה שה־L4 מחשב מאותם נתונים, והפערים קובצו לפי הסיבה — '
-           'כלל אחד שונה, לא שורה לכל בקשה.</p>',
-           '<div class="banner dl-warn" lang="he"><strong>הסימולטור אינו מחייב.</strong> זהו כלי ציבורי של משרד החינוך '
-           f'({esc(m["source"])}), שלפי הצהרתו רק מדמה שכר. מה שהוא מחשב מראה איך מחשבת התוכנה של המשלם — '
-           'ראיה לנוהג, כמו תלוש — ולא את הדין, ולעולם אינו בוחר קידוד או קריאה. חוזר אינו גובר על הסכם, וגם הסימולטור לא.</div>']
+           'כלל אחד שונה, לא שורה לכל בקשה. ההשוואה היא תוכנה, ולא בחירה ידנית.</p>',
+           '<div class="banner dl-warn" lang="he"><p><strong>הסימולטור אינו מחייב.</strong> זהו כלי ציבורי של משרד החינוך '
+           f'({esc(m["source"])}), ובלשונו שלו:</p><blockquote class="dl-disclaimer">{esc(DISCLAIMER)}</blockquote>'
+           '<p>לכן בכל שורה כאן הטקסט גובר. מה שהסימולטור מחשב מראה לכל היותר איך מחשבת התוכנה של המשלם — '
+           'ראיה חלשה לנוהג — ולעולם אינו בוחר קידוד או קריאה.</p></div>']
 
     # --------------------------------------------------- what is compared
-    out.append('<section id="what"><h2>מה הושווה</h2>'
+    out.append('<details class="dl-method" id="sim-what"><summary>מה הושווה ואיך</summary>'
                f'<p>הבקשות שנרשמו מהסימולטור ב־<bdi dir="ltr">{esc(m["captured"])}</bdi>, לחודש השכר '
                f'<bdi dir="ltr">{esc(m["salary_month"])}</bdi>, בארבעת המחשבונים: {num(total_req)} בקשות ו־{num(total_lines)} שורות שכר. '
                f'הקורפוס בגרסה <bdi dir="ltr"><code>{esc(m["corpus_commit"][:10])}</code></bdi>, '
@@ -76,16 +100,16 @@ def body(data: dict, *, prose, clause_link, finding_ids: set[str], conv_titles: 
                f'<p>{prose(data["compose_note"])}</p><p>{prose(data["cap_note"])}</p>')
     rows = "".join(f'<tr><td><bdi dir="ltr"><code>{esc(f["field"])}</code></bdi></td><td>{esc(f["label"])}</td>'
                    f'<td>{prose(f["l4"])}</td></tr>' for f in data["mapping"]["fields"])
-    out.append('<h3>שדות הטופס ← קלטי ה־L4</h3><div class="scroll-x"><table class="diag dl-map"><thead><tr>'
+    out.append('<h4>שדות הטופס ← קלטי ה־L4</h4><div class="scroll-x"><table class="diag dl-map"><thead><tr>'
                '<th>שדה</th><th>בטופס</th><th>ב־L4</th></tr></thead><tbody>' + rows + '</tbody></table></div>')
     names = data["calculators"]
     hows = {"compared": "הושווה", "proration": "חלקיות המשרה בלבד"}
     rows = "".join(f'<tr><td><bdi dir="ltr">{esc(c["code"])}</bdi></td>'
                    f'<td>{esc(", ".join(names.get(x.strip(), x) for x in c["calc"].split(",")))}</td>'
                    f'<td>{esc(hows[c["how"]])}</td><td>{prose(c["l4"])}</td></tr>' for c in data["mapping"]["codes"])
-    out.append('<h3>קודי השכר של הסימולטור ← כללי ה־L4</h3><div class="scroll-x"><table class="diag dl-map"><thead><tr>'
+    out.append('<h4>קודי השכר של הסימולטור ← כללי ה־L4</h4><div class="scroll-x"><table class="diag dl-map"><thead><tr>'
                '<th>קוד</th><th>מחשבון</th><th>מה נבדק</th><th>הכלל ב־L4</th></tr></thead><tbody>' + rows
-               + '</tbody></table></div></section>')
+               + '</tbody></table></div>')
 
     # --------------------------------------------------- summary
     rows = "".join(f'<tr><th>{esc(c["name"])}</th><td>{num(c["requests"])}</td><td>{num(c["lines"])}</td>'
@@ -97,72 +121,67 @@ def body(data: dict, *, prose, clause_link, finding_ids: set[str], conv_titles: 
              f'<td>{num(total["not_encoded"])}</td><td>{num(total["not_comparable"])}</td>'
              f'<td>{num(sum(c["requests_with_material_delta"] for c in calcs.values()))}</td></tr>')
     bc = data["by_class"]
-    chips = "".join(f'<a class="dl-chip cls-{k}" href="#cls-{k}">{esc(CLASS_SHORT[k])} '
+    chips = "".join(f'<a class="dl-chip cls-{k}" href="#{"sim-quirks" if k == "quirk" else "cls-" + k}">{esc(CLASS_SHORT[k])} '
                     f'<b>{num(bc[k]["lines"])}</b> שורות · <b>{num(bc[k]["requests"])}</b> בקשות</a>'
                     for k in (*CLASS_ORDER, "quirk") if k in bc)
-    out.append('<section id="summary"><h2>סיכום</h2>'
+    out.append('<h4 id="sim-summary">סיכום</h4>'
                '<div class="scroll-x"><table class="diag dl-sum"><thead><tr><th>מחשבון</th><th>בקשות</th><th>שורות</th>'
                '<th>תואמות</th><th>שונות</th><th>לא מקודדות</th><th>לא ברות השוואה</th><th>בקשות עם פער של ממש</th>'
                '</tr></thead><tbody>' + rows + '</tbody></table></div>'
                '<p class="dl-note">"שורות לא מקודדות" הן שורות שאין להן כלל ב־L4: זהו כיסוי, לא פער. '
                '"פער של ממש" — כל פער מלבד אגורות התוספת השקלית, העיגול, שיעור תוספת 2008 המודפס והשורה שנבלעת בשכר המינימום.</p>'
-               f'<div class="dl-chips">{chips}</div></section>')
+               f'<div class="dl-chips">{chips}</div></details>')
 
     # --------------------------------------------------- causes
-    side = ['<li class="sn-group"><details open><summary>בעמוד</summary><ul>'
-            '<li><a href="#what">מה הושווה</a></li><li><a href="#summary">סיכום</a></li>']
+    side = [f'<li><a href="#{GROUP}">הסימולטור מול הטקסט</a></li>']
     for cls in CLASS_ORDER:
-        cs = [c for c in data["causes"] if c["class"] == cls]
+        cs = [c for c in group_rows(data) if c.get("class") == cls]
         if not cs:
             continue
-        out.append(f'<section class="dl-class" id="cls-{cls}"><h2><span class="cls-tag cls-{cls}">'
-                   f'({CLASS_LETTER[cls]})</span> {esc(data["classes"][cls])} <small>{len(cs)}</small></h2>'
+        out.append(f'<section class="dl-class" id="cls-{cls}"><h3><span class="cls-tag cls-{cls}">'
+                   f'({CLASS_LETTER[cls]})</span> {esc(data["classes"][cls])} <small>{len(cs)}</small></h3>'
                    f'<p class="dl-note">{esc(CLASS_GLOSS[cls])}</p>')
-        side.append(f'<li><a href="#cls-{cls}">({CLASS_LETTER[cls]}) {esc(CLASS_SHORT[cls])}</a></li>')
         for c in cs:
             out.append(cause_card(c, prose=prose, clause_link=clause_link, finding_ids=finding_ids,
                                   conv_titles=conv_titles, l4_link=l4_link))
         out.append("</section>")
 
     # --------------------------------------------------- quirks
-    out.append('<section id="quirks"><h2>הטעויות של הסימולטור עצמו</h2>'
+    out.append('<section id="sim-quirks"><h3>הטעויות של הסימולטור עצמו</h3>'
                '<p class="dl-note">התנהגות שהיא באג של הכלי ולא קריאה של הטקסט. גם בה ה־L4 מחשב לפי הטקסט.</p>')
     for q in data["quirks"]:
-        out.append(f'<details class="finding dl-cause" id="{esc(q["id"])}"><summary>'
+        out.append(f'<details class="finding dl-cause cx-card" id="{esc(q["id"])}"{CARD_DATA}><summary>'
                    f'<span class="cls-tag cls-quirk">באג</span><span class="ftitle">{prose(q["title"])}</span>'
                    f'<span class="dl-count">{num(q.get("requests", 0))} בקשות</span></summary><div class="fcard">'
                    f'<p>{prose(q["body"])}</p>{examples_html(q.get("examples", []))}</div></details>')
     out.append("</section>")
-    side.append('<li><a href="#quirks">טעויות הסימולטור</a></li>')
 
     # --------------------------------------------------- coverage
-    rows = []
+    cov = []
     for c in data["coverage"]:
         codes = "، ".join(f'{esc(x["line"] or str(x["code"]))} <bdi dir="ltr">({x["code"]})</bdi>' for x in c["codes"][:6])
         more = f' ועוד {len(c["codes"]) - 6}' if len(c["codes"]) > 6 else ""
-        rows.append(f'<tr><td><span class="dl-st {c["status"]}">{esc(STATUS[c["status"]])}</span></td>'
+        cov.append(f'<tr><td><span class="dl-st {c["status"]}">{esc(STATUS[c["status"]])}</span></td>'
                     f'<th>{esc(c["title"])}</th><td>{prose(c["why"]) if c["why"] else ""}'
                     + (f'<div class="dl-codes">{codes}{more}</div>' if codes else "")
                     + f'</td><td class="n" data-l="שורות:">{num(c["lines"])}</td>'
                     f'<td class="n" data-l="בקשות:">{num(c["requests"])}</td></tr>')
-    out.append('<section id="coverage"><h2>מה לא הושווה</h2>'
+    out.append('<details class="dl-method" id="sim-coverage"><summary>מה לא הושווה</summary>'
                '<p class="dl-note">שורה שאין לה כלל ב־L4 היא שאלה של כיסוי, ולא נספרת כפער. '
                'שורה שהסימולטור מחשב מקלט שהקורפוס אינו מגדיר אינה ברת השוואה.</p>'
                '<div class="scroll-x"><table class="diag dl-cov"><thead><tr><th></th><th>מה</th><th>למה</th>'
-               '<th>שורות</th><th>בקשות</th></tr></thead><tbody>' + "".join(rows) + '</tbody></table></div></section>')
-    side.append('<li><a href="#coverage">מה לא הושווה</a></li>')
+               '<th>שורות</th><th>בקשות</th></tr></thead><tbody>' + "".join(cov) + '</tbody></table></div></details>')
 
     # --------------------------------------------------- the shekel supplement over two years
     sc = data.get("shekel_scan") or []
     if sc:
-        rows = "".join(f'<tr><td>{num(r["year"])}</td><td>{num(r["grade"])}</td><td>{num(r["l4"])}</td>'
+        scan = "".join(f'<tr><td>{num(r["year"])}</td><td>{num(r["grade"])}</td><td>{num(r["l4"])}</td>'
                        f'<td>{num(", ".join(r["simulator"]))}</td></tr>' for r in sc)
-        out.append('<section id="shekel"><h2>התוספת השקלית 2016 בחודשי 2025–2026, במשרה מלאה</h2>'
+        out.append('<details class="dl-method" id="sim-shekel"><summary>התוספת השקלית 2016 בחודשי 2025–2026, במשרה מלאה</summary>'
                    '<p class="dl-note">הסכום לדרגה לפי תשפ"ה/7 (2025) ותשפ"ו/6 (2026), מול מה שהסימולטור משלם באותם חודשים.</p>'
                    '<div class="scroll-x"><table class="diag dl-scan"><thead><tr><th>שנה</th><th>דרגה</th><th>L4 (החוזר)</th>'
-                   '<th>הסימולטור</th></tr></thead><tbody>' + rows + '</tbody></table></div></section>')
-        side.append('<li><a href="#shekel">התוספת השקלית לאורך זמן</a></li>')
-    side.append("</ul></details></li>")
+                   '<th>הסימולטור</th></tr></thead><tbody>' + scan + '</tbody></table></div></details>')
+    out.append("</section>")
     return "".join(out), "".join(side)
 
 
@@ -209,7 +228,7 @@ def cause_card(c: dict, *, prose, clause_link, finding_ids, conv_titles, l4_link
     sev_html = (f'<p class="fsev"><span class="sev-badge sev-{sev["grade"]}">מוצע: {esc(SEV[sev["grade"]])}</span> '
                 f'{prose(sev["why"])}</p>' if sev else "")
     codes = (f' · קוד <bdi dir="ltr">{", ".join(str(x) for x in c["codes"])}</bdi>' if c.get("codes") else "")
-    return (f'<details class="finding dl-cause" id="{esc(c["id"])}" open><summary>'
+    return (f'<details class="finding dl-cause cx-card" id="{esc(c["id"])}"{CARD_DATA}><summary>'
             f'<span class="cls-tag cls-{cls}">{esc(CLASS_SHORT[cls])}</span>'
             f'<span class="ftitle">{prose(c["title"])}</span><span class="dl-count">{count}{codes}</span></summary>'
             f'<div class="fcard">{sev_html}<div class="fbody" lang="he" dir="rtl">{paras}</div>'

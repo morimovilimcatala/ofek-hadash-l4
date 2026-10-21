@@ -14,8 +14,13 @@ quote to the corpus text, each crop to its file, and each finding to the
 register.
 
 Whether a rule was followed is evidence of practice: a ministry document, the
-ministry's simulator (calculator-delta.html), or the payslips described in
-general terms. It never changes a reading.
+ministry's simulator, or the payslips described in general terms. It never
+changes a reading.
+
+The ministry's simulator also has a group of its own (tools/calculator_delta.py,
+MMS-522): every place its computation departs from the text, produced by the
+comparison rather than picked, under the simulator's own disclaimer that it
+binds no one.
 """
 from __future__ import annotations
 
@@ -32,7 +37,8 @@ HERE = "contradictions.html"
 TAB = "סתירות בין מסמכים"
 
 TYPE = {"agreement": "הסכם קיבוצי", "circular": "חוזר", "letter": "מכתב", "takanon": "תקנון",
-        "qa": "שאלות ותשובות", "table": "טבלת שכר", "law": "חוק", "payment": "התשלום בפועל"}
+        "qa": "שאלות ותשובות", "table": "טבלת שכר", "law": "חוק", "payment": "התשלום בפועל",
+        "simulator": "סימולטור"}
 
 
 def types(c: dict) -> list[str]:
@@ -116,11 +122,14 @@ def meter(errs: list[dict]) -> str:
             if errs else "")
 
 
-def body(data: dict, *, prose, clause_link, finding_ids: set[str], src) -> tuple[str, str]:
+def body(data: dict, *, prose, clause_link, finding_ids: set[str], src,
+         simulator: tuple[str, str, int] | None = None) -> tuple[str, str]:
     """The page's main column and its sidebar. `clause_link(doc, key)` gives
     (href, label html) for a corpus row; `src(file)` the published URL of a
-    crop; `prose` renders our Hebrew with its identifiers isolated."""
+    crop; `prose` renders our Hebrew with its identifiers isolated;
+    `simulator` the simulator's group as (section, sidebar entries, rows)."""
     items = data["items"]
+    sim_html, sim_side, sim_n = simulator or ("", "", 0)
     out = [f'<h1>{esc(data["title"])}</h1>', f'<p class="lede">{prose(data["lede"])}</p>',
            f'<div class="banner cx-how" lang="he">{prose(data["how"])}</div>']
     # the chips filter the cards by whether the rule was followed, on the
@@ -135,13 +144,14 @@ def body(data: dict, *, prose, clause_link, finding_ids: set[str], src) -> tuple
                     f'<span class="cx-sumh">קוים {esc(label)}:</span>{chips}</div>')
     # and by the kinds of document the contradiction sets against each other
     kinds = {k: sum(k in types(c) for c in items) for k in TYPE}
+    kinds["simulator"] += sim_n
     chips = "".join(f'<button type="button" class="cx-tchip" data-dim="types" data-val="{k}" aria-pressed="false">'
                     f'{esc(TYPE[k])} <b>{n}</b></button>' for k, n in kinds.items() if n)
     rows.insert(0, f'<div class="cx-frow" role="group" aria-label="סוגי המסמכים">'
                    f'<span class="cx-sumh">מסמכים:</span>{chips}</div>')
     out.append(f'<div class="cx-sum" aria-label="סינון לפי: האם הכלל קוים — כל שורה מסננת בנפרד, והשתיים מצטרפות">'
                + "".join(rows)
-               + f'<div class="cx-frow"><button type="button" class="cx-all" aria-pressed="true">הכול <b>{len(items)}</b></button></div></div>')
+               + f'<div class="cx-frow"><button type="button" class="cx-all" aria-pressed="true">הכול <b>{len(items) + sim_n}</b></button></div></div>')
     out.append(meter(errors(data)))
 
 
@@ -156,6 +166,9 @@ def body(data: dict, *, prose, clause_link, finding_ids: set[str], src) -> tuple
             out.append(card(c, data["rules"], prose=prose, clause_link=clause_link,
                             finding_ids=finding_ids, src=src))
         out.append('</section>')
+    if sim_html:
+        out.append(sim_html)
+        side.append(sim_side)
     out.append('<section id="rules"><h2>הכללים שמכריעים</h2>')
     for rid, r in data["rules"].items():
         pic = figure(r["image"], r["quote"], src(r["image"]["file"])) if r.get("image") else ""
@@ -183,7 +196,7 @@ def card(c: dict, rules: dict, *, prose, clause_link, finding_ids, src) -> str:
         ref = f'<bdi dir="ltr" class="fref">{esc(f)}</bdi>'
         links.append(f'<a href="findings.html#{esc(f)}">{ref}</a>' if f in finding_ids else ref)
     if c.get("delta"):
-        links.append(f'<a href="calculator-delta.html#{esc(c["delta"])}">פערי הסימולטור</a>')
+        links.append(f'<a href="#{esc(c["delta"])}">הסימולטור מול הטקסט</a>')
     p = c["practice"]
     winner = c.get("winner")
     sides = "".join(side_html(s, clause_link=clause_link, src=src) for s in c["sides"])

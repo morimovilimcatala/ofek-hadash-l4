@@ -35,9 +35,9 @@ refused) has nothing to encode until the corpus reads its pages.
 | `l4/<corpus path>/<section>.l4` | one L4 file per section, laid out like the corpus |
 | `conventions.toml`, `l4/conventions.l4` | the rules of reading the encoding follows where the text does not decide, and the one L4 definition of each that is a computation, which the rules import |
 | `findings/<corpus path>/<section>.toml` (one per section) | errors in the text the encoding exposed, each backed by an `#ASSERT` |
-| `data/calculator-delta.json` | the comparison with the ministry's salary simulator: inputs, outputs, mappings, clauses and classifications only (written outside this repository; see the site's simulator page) |
+| `data/calculator-delta.json` | the comparison with the ministry's salary simulator: inputs, outputs, mappings, clauses and classifications only (written outside this repository; shown as the simulator's group of the contradictions page) |
 | `laws/<name>.toml`, `l4/laws/<name>.l4` | a statute encoded though the corpus holds no copy of it (חוק הסכמים קיבוציים, §§19–23): its sections' words pinned from ספר החוקים הפתוח, and their rules |
-| `data/contradictions.json`, `data/contradictions/` | where one instrument contradicts another: both sides with a crop of each page, the rule that decides, and whether it was followed |
+| `data/contradictions.json`, `data/contradictions/` | where one instrument contradicts another: a side per source (two or more), with a crop of each page, the rule that decides, and whether it was followed |
 | `tools/` | the L4 runner, the AKN reader, the site generator |
 | `toolchain/` | the pinned L4 compiler revision and its build script |
 | `tests/` | alignment, coverage and evidence checks |
@@ -72,19 +72,6 @@ refused) has nothing to encode until the corpus reads its pages.
   from the month a later circular re-rates the 2008 or the 2011 supplement,
   the page marks that line as §1.1's figure and names the circular, and says
   the total is §1.1's alone (MMS-514).
-- **Simulator delta** (`calculator-delta.html`) — where the Ministry of
-  Education's public salary simulator computes otherwise than the L4, grouped
-  by cause (one rule, not one row per request) and classified as an L4 bug, the
-  simulator departing from the text, or a question both answers survive; each
-  cause quotes the clause that governs it and names its finding or
-  convention. It lists the simulator's own bugs and what was not compared
-  (a line the L4 has no rule for is coverage, not a delta). The page is built
-  from `data/calculator-delta.json`, which a comparison run outside this
-  repository writes from a private extraction of the simulator (MMS-512,
-  MMS-513), asking the L4 evaluator for every figure; the file holds no
-  simulator code and no recorded traffic, and `tests/test_calculator_delta.py`
-  holds it to that. The simulator is the ministry's non-binding tool: what it
-  computes is evidence of practice, never a reading of the law.
 - **The Collective Agreements Law** (`laws/collective-agreements-law.html`) —
   §§19–23, which say what an agreement's personal provisions are and which
   provision governs against a statute, a contract of employment or another
@@ -97,8 +84,9 @@ refused) has nothing to encode until the corpus reads its pages.
   and the circular that implements it, a circular and the letter it executes,
   two circulars, the takanon and a newer circular or agreement, a Q&A answer
   and the takanon, and a document and what is actually paid (MMS-515,
-  MMS-517). Each shows a crop of
-  both pages — a scan's own pixels, a born-digital page rendered, or the saved
+  MMS-517). A contradiction has a side per source that gives its own answer,
+  two or more. Each shows a crop of
+  every page — a scan's own pixels, a born-digital page rendered, or the saved
   web page as a browser draws it, captioned with file, page, resolution and
   pixel box, never resampled or retouched; the outline is drawn by the page
   over the picture — the rule that decides which side wins, quoted, and
@@ -110,6 +98,20 @@ refused) has nothing to encode until the corpus reads its pages.
   outside this repository from the corpus repository's sources;
   `tests/test_contradictions.py` holds each quote to the corpus and each
   crop to its file.
+  Its last group is **the simulator against the text** (MMS-522; until then a
+  page of its own, `calculator-delta.html`, which now redirects there): where
+  the Ministry of Education's public salary simulator computes otherwise than
+  the text, grouped by cause (one rule, not one row per request), each cause
+  quoting the clause that governs it and classified as the simulator departing
+  from the text or a question both answers survive, with the simulator's own
+  bugs; what was compared, and what was not, is folded under the heading. The
+  group quotes the simulator's own disclaimer — it "מדמה שכר בלבד" and the
+  ministry "אינו מתחייב לתשלום שכר על פי התחשיב" — so in every row the text
+  governs. It is built from `data/calculator-delta.json`, which a comparison
+  run outside this repository writes from a private extraction of the
+  simulator (MMS-512, MMS-513), asking the L4 evaluator for every figure; the
+  file holds no simulator code and no recorded traffic, and
+  `tests/test_calculator_delta.py` holds it to that.
 - **L4 findings** — what encoding found wrong in the law itself, by kind and
   by the stage that caught it (`findings.json` for machines), grouped by
   section or circular, folded to a title, and filterable by kind, stage,
