@@ -1627,10 +1627,48 @@ def findings_page(findings, views_by_file, key_to_view) -> str:
              '<p>הממצאים מקובצים לפי הסעיף או החוזר שהם עוסקים בו, וכל ממצא מקופל לכותרתו: '
              'לחיצה פותחת אותו. אפשר לסנן לפי סוג, שלב ואוסף, לחפש מילה, או ללחוץ על משבצת בטבלה.</p>'
              '<p><a href="findings.json">findings.json</a> — אותם ממצאים, למכונות, עם כתובות בקורפוס.</p>')
+    edges, edge_side = edge_cases_html(views_by_file)
     body = (intro + meter + matrix + bar
             + (f'<div class="findings">{sections}</div><p class="empty fnone" hidden>אין ממצאים שמתאימים לסינון.</p>'
-               if sections else '<p class="empty">אין עדיין ממצאים.</p>'))
-    return page("findings.html", f"ממצאי L4 — {TITLE}", body, tab="findings", sidebar="".join(side))
+               if sections else '<p class="empty">אין עדיין ממצאים.</p>')
+            + edges)
+    return page("findings.html", f"ממצאי L4 — {TITLE}", body, tab="findings", sidebar="".join(side) + edge_side)
+
+
+EDGE_CASES = ROOT / "data" / "edge_cases.toml"
+
+
+def edge_cases() -> list[dict]:
+    """data/edge_cases.toml's cases (MMS-534)."""
+    return tomllib.loads(EDGE_CASES.read_text(encoding="utf-8"))["case"] if EDGE_CASES.exists() else []
+
+
+def edge_cases_html(views_by_file) -> tuple[str, str]:
+    """The findings page's "מקרי קצה": per case the question, the answer the
+    L4 gives, why, and the #ASSERTed lines that prove it (MMS-534)."""
+    cases = edge_cases()
+    if not cases:
+        return "", ""
+    cards = []
+    for c in cases:
+        v = views_by_file.get(c["l4"])
+        where = (f'<a href="{esc(v.href)}"><bdi dir="ltr"><code>{esc(c["l4"])}</code></bdi></a>'
+                 if v is not None else f'<bdi dir="ltr"><code>{esc(c["l4"])}</code></bdi>')
+        proofs = "".join(f'<li dir="ltr"><code>#ASSERT `{esc(n)}`</code></li>' for n in c["asserts"])
+        cx = (f'<p class="cx-proof"><a href="contradictions.html#{esc(c["contradiction"])}">הסתירה בין המקורות</a></p>'
+              if c.get("contradiction") else "")
+        cards.append(f'<details class="finding edge" id="{esc(c["id"])}"><summary>'
+                     f'<span class="kind-tag edge">מקרה קצה</span><span class="ftitle">{esc(c["title"])}</span></summary>'
+                     f'<div class="fcard"><p><b>{esc(c["question"])}</b></p>'
+                     f'<p>{esc(c["answer"])}</p><p>{esc(c["why"])}</p>'
+                     f'<p class="cx-proof">ההוכחה ב־L4, בקובץ {where}:</p><ul class="edge-proofs">{proofs}</ul>{cx}'
+                     '</div></details>')
+    html = ('<section id="edge-cases"><h2>מקרי קצה</h2>'
+            '<p class="lede">קלט בקצה של כלל: מה שהכללים נותנים כשמותחים אותם, או המקום היחיד שבו המקורות נפרדים. '
+            'כל מקרה מוכח בקוד — הערכים שלו בדוקים ב־<code>#ASSERT</code> בקובץ שלו — ואינו תיאור.</p>'
+            + "".join(cards) + '</section>')
+    return html, '<li><a href="#edge-cases">מקרי קצה</a></li>'
+
 
 
 # The salary as the L4 computes it: §1.1's rule and what it is made of.
