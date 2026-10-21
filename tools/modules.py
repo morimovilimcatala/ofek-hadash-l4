@@ -20,6 +20,13 @@ already links to a module (`common` is the takanon's helpers, `conventions`
 the conventions module, `takanon-1-28` takanon §1.28,
 `collective_agreements_law` the statute). Such an alias must name the same
 file wherever it is used.
+
+A NAME WITH A DOT CANNOT BE IMPORTED: the compiler reads `IMPORT `1.29``
+as a path ("I could not find a module with this name: 1", and "Your module
+depends on itself"), measured 2026-10-21 by the batch-1 encoding (MMS-453).
+So every module whose name has one — the takanon's sections, and the
+takanon's terms-service file — is also linked as `takanon-<the name, dots
+as dashes>`: `takanon-1-29` is takanon §1.29.
 """
 from __future__ import annotations
 
@@ -53,7 +60,15 @@ def wanted() -> tuple[dict[str, Path], list[str]]:
         if f.parent == MODULES or not f.is_symlink():
             continue
         add(f.name.removesuffix(".l4"), f)
+    for name, target in list(names.items()):
+        if "." in name:
+            add(importable(name), target)
     return names, clashes
+
+
+def importable(name: str) -> str:
+    """The name a dotted module is imported by."""
+    return "takanon-" + name.replace(".", "-")
 
 
 def problems() -> list[str]:
