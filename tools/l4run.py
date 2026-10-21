@@ -198,11 +198,29 @@ def write_graph(path: Path, exe: str, dest: Path) -> None:
     dest.write_text(g.stdout if g.returncode == 0 else "", encoding="utf-8")
 
 
+# One check of a heavy agreement — one importing the 2012 completion
+# agreement's chain, or the September 2013 copy — peaks at 3.0–3.7 GB
+# (measured 2026-10-21). One check per core ran four of them at once on
+# GitHub's 16 GB runner, and systemd-oomd stopped the job ("make: ***
+# Terminated", exit 143) with no compiler error at all. So no more checks
+# run at once than the memory holds at this much each.
+GB_PER_CHECK = 5
+
+
+def default_jobs() -> int:
+    cores = os.cpu_count() or 2
+    try:
+        memory = os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES") / 2**30
+    except (ValueError, OSError, AttributeError):
+        return min(cores, 2)
+    return max(1, min(cores, int(memory // GB_PER_CHECK)))
+
+
 def main(argv: list[str]) -> int:
     exe = compiler()
     cid = compiler_id(exe)
     targets = [Path(a).resolve() for a in argv] or files()
-    jobs = int(os.environ.get("JOBS", os.cpu_count() or 2))
+    jobs = int(os.environ.get("JOBS", default_jobs()))
     bad = []
     with ThreadPoolExecutor(jobs) as pool:
         for path, ok, fresh in pool.map(lambda p: run_one(p, exe, cid), targets):
