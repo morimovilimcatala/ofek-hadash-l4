@@ -1486,6 +1486,15 @@ def evidence_result(f: dict, views_by_file: dict[str, SectionView]) -> dict:
     return out
 
 
+def msg_html(m: str) -> str:
+    """An evidence line as `l4 run` reports it, "<the #ASSERT line>  →  <value>",
+    with the L4 highlighted as the site's code panels are."""
+    code, arrow, value = m.rpartition("  →  ")
+    if not arrow:
+        return l4src.highlight(m)
+    return f'{l4src.highlight(code)}  →  <span class="w">{esc(value)}</span>'
+
+
 def findings_page(findings, views_by_file, key_to_view) -> str:
     """Every finding, grouped by the section or circular it is about, each
     folded to its title. A bar over them filters by kind, stage, collection
@@ -1559,7 +1568,7 @@ def findings_page(findings, views_by_file, key_to_view) -> str:
                f'{esc(CONVENTION_TITLES.get(f["convention"], f["convention"]))}</a></p>' if f.get("convention") else "")
             + (f'<p class="deps">תלוי בקריאות של: {deps}</p>' if deps else "")
             + (f'<p class="ev"><a href="{ev["url"]}">הראיה ב-L4</a> · {state}</p>'
-               + "".join(f'<pre class="msg" dir="ltr">{esc(m)}</pre>' for m in ev["messages"])
+               + "".join(f'<pre class="msg hl" dir="ltr">{msg_html(m)}</pre>' for m in ev["messages"])
                if ev["url"] else "")
             + f'<p class="who">נקרא על ידי {who(f["read_by"])} · {esc(REVIEW[f["review"]])}</p>'
             + "</div></details>")
@@ -1654,7 +1663,8 @@ def edge_cases_html(views_by_file) -> tuple[str, str]:
         v = views_by_file.get(c["l4"])
         where = (f'<a href="{esc(v.href)}"><bdi dir="ltr"><code>{esc(c["l4"])}</code></bdi></a>'
                  if v is not None else f'<bdi dir="ltr"><code>{esc(c["l4"])}</code></bdi>')
-        proofs = "".join(f'<li dir="ltr"><code>#ASSERT `{esc(n)}`</code></li>' for n in c["asserts"])
+        proofs = "".join(f'<li dir="ltr"><code class="hl">{l4src.highlight(f"#ASSERT `{n}`")}</code></li>'
+                         for n in c["asserts"])
         cx = (f'<p class="cx-proof"><a href="contradictions.html#{esc(c["contradiction"])}">הסתירה בין המקורות</a></p>'
               if c.get("contradiction") else "")
         cards.append(f'<details class="finding edge" id="{esc(c["id"])}"><summary>'

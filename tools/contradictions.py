@@ -33,6 +33,8 @@ from __future__ import annotations
 
 import html
 import json
+
+import l4src
 from pathlib import Path
 
 esc = html.escape
@@ -242,6 +244,7 @@ def card(c: dict, rules: dict, *, prose, clause_link, finding_ids, src, evidence
             + (f'<div class="cx-mean"><h4>משמעות</h4><p>{prose(c["meaning"])}</p></div>' if c.get("meaning") else "")
             + (f'<p class="cx-links">{" · ".join(links)}</p>' if links else "")
             + (('<p class="cx-proof">ההוכחה ב־L4: ' + " · ".join(
-                f'<bdi dir="ltr"><code>#ASSERT `{esc(n)}`</code></bdi>' for _f, n in proofs(c, evidence or {}))
+                f'<bdi dir="ltr"><code class="hl">{l4src.highlight(f"#ASSERT `{n}`")}</code></bdi>'
+                for _f, n in proofs(c, evidence or {}))
                 + "</p>") if proofs(c, evidence or {}) else "")
             + '</details>')
