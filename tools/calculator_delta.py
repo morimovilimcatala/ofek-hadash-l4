@@ -49,9 +49,8 @@ DISCLAIMER = ("באם הנתונים שהזנת במחשבון אינם משקפ
               "וקיימים במשרד החינוך, שכרך ישולם לפי הנתונים הקיימים במשרד בלבד. "
               "למען הסר ספק יודגש, כי מודול זה מדמה שכר בלבד ולפיכך אין משרד החינוך "
               "מתחייב לתשלום שכר על פי התחשיב המופק ממודול זה.")
-# A row is a card of the page: its "documents" filter knows it as the
-# simulator's, and the "was the rule followed" filters have no verdict for it.
-CARD_DATA = ' data-types="simulator" data-payslips="na" data-simulator="na"'
+# A row is a card of the page: its "sources" filter knows it as the simulator's.
+CARD_DATA = ' data-types="simulator"'
 STATUS = {"not-encoded": "לא מקודד", "not-comparable": "לא בר־השוואה"}
 
 

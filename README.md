@@ -37,7 +37,7 @@ refused) has nothing to encode until the corpus reads its pages.
 | `findings/<corpus path>/<section>.toml` (one per section) | errors in the text the encoding exposed, each backed by an `#ASSERT` |
 | `data/calculator-delta.json` | the comparison with the ministry's salary simulator: inputs, outputs, mappings, clauses and classifications only (written outside this repository; shown as the simulator's group of the contradictions page) |
 | `laws/<name>.toml`, `l4/laws/<name>.l4` | a statute encoded though the corpus holds no copy of it (חוק הסכמים קיבוציים, §§19–23): its sections' words pinned from ספר החוקים הפתוח, and their rules |
-| `data/contradictions.json`, `data/contradictions/` | where one instrument contradicts another: a side per source (two or more), with a crop of each page, the rule that decides, and whether it was followed |
+| `data/contradictions.json`, `data/contradictions/` | where sources contradict each other: a side per source (two or more) with its answer — a document with a crop of its page, or what the payslips or the simulator pay — and the rule that decides |
 | `tools/` | the L4 runner, the AKN reader, the site generator |
 | `toolchain/` | the pinned L4 compiler revision and its build script |
 | `tests/` | alignment, coverage and evidence checks |
@@ -85,16 +85,17 @@ refused) has nothing to encode until the corpus reads its pages.
   two circulars, the takanon and a newer circular or agreement, a Q&A answer
   and the takanon, and a document and what is actually paid (MMS-515,
   MMS-517). A contradiction has a side per source that gives its own answer,
-  two or more. Each shows a crop of
-  every page — a scan's own pixels, a born-digital page rendered, or the saved
-  web page as a browser draws it, captioned with file, page, resolution and
-  pixel box, never resampled or retouched; the outline is drawn by the page
-  over the picture — the rule that decides which side wins, quoted, and
-  whether practice followed it — on the payslips (in general terms) and in
-  the simulator, each its own filter, as is the kind
-  of document. One whose rule was not followed is an error: it carries a
-  severity grade, on the findings page's scale, and a "משמעות" paragraph on
-  what it means for a teacher. The crops are cut
+  two or more, and what is PAID is a source like any document (MMS-522): the
+  payslips, in general terms, and the ministry's simulator, each with what it
+  pays and whether that is what the governing rule gives. A document's side
+  shows a crop of its page — a scan's own pixels, a born-digital page
+  rendered, or the saved web page as a browser draws it, captioned with
+  file, page, resolution and pixel box, never resampled or retouched; the
+  outline is drawn by the page over the picture. Each card quotes the rule
+  that decides which side wins; the one filter is the kind of source. A card
+  in which a paying source departs from the governing rule is an error: it
+  carries a severity grade, on the findings page's scale, and a "משמעות"
+  paragraph on what it means for a teacher. The crops are cut
   outside this repository from the corpus repository's sources;
   `tests/test_contradictions.py` holds each quote to the corpus and each
   crop to its file.
