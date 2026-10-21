@@ -126,6 +126,48 @@ class Layout(unittest.TestCase):
                  for n, kind, t in layout_lint.scan(f)]
         self.assertEqual(found, [])
 
+    def test_no_not_runs_on_into_and_or(self):
+        # `IF NOT a AND b` is NOT (a AND b) (tools/layout_lint.py's scan_not);
+        # it was the tool's alone until a new agreement shipped one
+        import layout_lint
+        found = [f"{f.relative_to(ROOT)}:{n}: {t}"
+                 for f in sorted((ROOT / "l4").rglob("*.l4")) if not f.is_symlink()
+                 for n, _, t in layout_lint.scan_not(f)]
+        self.assertEqual(found, [])
+
+    def test_no_bare_percentage_is_a_functions_argument(self):
+        # `x \`increased by\` 12.5%` computes (x \`increased by\` 12.5)% at
+        # the pinned compiler (MMS-510): the argument is written (12.5%)
+        import layout_lint
+        found = [f"{f.relative_to(ROOT)}:{n}: {t}"
+                 for f in sorted((ROOT / "l4").rglob("*.l4")) if not f.is_symlink()
+                 for n, _, t in layout_lint.scan_pct(f)]
+        self.assertEqual(found, [])
+
+    def test_the_percentage_check_sees_every_shape_that_computes_wrong(self):
+        # each of these computed 3.24 for 24 instead of 27 (MMS-510), and
+        # each of the second list computes right and is not refused
+        import layout_lint
+        import tempfile
+        wrong = ["    x `increased by` 12.5%",
+                 "`h` x MEANS x `inc by` 12.5% PLUS 0",
+                 "    IF x EQUALS 24 THEN x `inc by` 12.5% ELSE 0",
+                 "`q` x MEANS `grow` x 12.5%",
+                 "`r` MEANS `the amount` `inc by` 12.5%",
+                 "    `grow` x\n        12.5%"]
+        right = ["    x `increased by` (12.5%)",
+                 "    x PLUS 12.5%",
+                 "    x DIVIDED BY 12.5%",
+                 "`rate` MEANS 12.5%",
+                 "    IF x AT LEAST 50% THEN 1 ELSE 0",
+                 '    BECAUSE "beyond 140%" -- above 150%',
+                 "`a teacher at 40%` MEANS 1"]
+        for text, n in [(t, 1) for t in wrong] + [(t, 0) for t in right]:
+            with self.subTest(text=text), tempfile.TemporaryDirectory() as d:
+                f = Path(d) / "x.l4"
+                f.write_text(text + "\n", encoding="utf-8")
+                self.assertEqual(len(list(layout_lint.scan_pct(f))), n)
+
 
 class Findings(unittest.TestCase):
     def setUp(self):
@@ -390,6 +432,19 @@ class OneNamespace(unittest.TestCase):
 
 
 class Toolchain(unittest.TestCase):
+    def test_the_gate_refuses_a_compiler_warning_about_the_file(self):
+        # the compiler's own `ok` stays true on a warning; the gate does not
+        # (tools/l4run.py's verdict). An import's warning is its own file's.
+        import l4run
+        warn = {"severity": "warning", "file": "a.l4", "range": "1:1-1:2",
+                "message": "AND and OR operators appear at the same indentation level"}
+        held = {"kind": "assertion", "value": "TRUE"}
+        self.assertTrue(l4run.verdict({"ok": True, "results": [held], "diagnostics": []}, "a.l4"))
+        self.assertFalse(l4run.verdict({"ok": True, "results": [held], "diagnostics": [warn]}, "a.l4"))
+        self.assertTrue(l4run.verdict({"ok": True, "results": [held], "diagnostics": [warn]}, "b.l4"))
+        self.assertFalse(l4run.verdict({"ok": True, "results": [{"kind": "assertion", "value": "FALSE"}],
+                                        "diagnostics": []}, "a.l4"))
+
     def test_every_file_checks_and_every_assert_holds(self):
         import l4run
         for f in l4run.files():

@@ -181,8 +181,14 @@ make site      # tools/build_site.py → build/site/
 make test      # python3 -m unittest discover -s tests
 ```
 
-`l4 run` must report ok for every file: no type errors and every `#ASSERT`
-true. Look at the rendered pages (desktop and phone width) for any change
+`l4 run` must report ok for every file: no type errors, every `#ASSERT`
+true, and no compiler warning about the file — a warning is refused like an
+error, because the one the tree carried ("AND and OR operators appear at the
+same indentation level") is a grouping the reader cannot see.
+`tools/layout_lint.py` (run by the suite) refuses three more shapes the
+compiler accepts silently: a continuation line that regroups arithmetic, a
+NOT that runs on into AND/OR, and a bare `N%` as a function's argument,
+which the pinned compiler reads as `(the call)%` (MMS-510) — write `(N%)`. Look at the rendered pages (desktop and phone width) for any change
 that alters what a page looks like — a passing test is not a look.
 
 The compiler is built from source at the revision in `toolchain/L4_COMMIT`

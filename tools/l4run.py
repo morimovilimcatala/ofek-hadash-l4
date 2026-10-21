@@ -132,6 +132,22 @@ def diagnostics(raw) -> list[dict]:
     return out
 
 
+def own_warnings(data: dict, name: str) -> list[dict]:
+    """The compiler's warnings about this file itself (an import's are its
+    own file's to answer). A warning is refused like an error: the one kind
+    the tree has carried is "AND and OR operators appear at the same
+    indentation level", which is a grouping the reader cannot see."""
+    return [d for d in data.get("diagnostics", [])
+            if d.get("severity") == "warning" and d.get("file") in (None, name)]
+
+
+def verdict(data: dict, name: str) -> bool:
+    """The gate: the file checks, every #ASSERT holds, and the compiler
+    warns about nothing in it."""
+    return bool(data.get("l4_ok", data.get("ok"))) and all_asserts_hold(data) \
+        and not own_warnings(data, name)
+
+
 def all_asserts_hold(data: dict) -> bool:
     return all(str(r.get("value")).strip().lower() == "true"
                for r in data.get("results", []) if r.get("kind") == "assertion")
@@ -141,7 +157,7 @@ def run_one(path: Path, exe: str, cid: str) -> tuple[Path, bool, bool]:
     out = outputs(path)
     k = key(path, cid)
     if out["key"].exists() and out["key"].read_text() == k:
-        ok = json.loads(out["run"].read_text()).get("ok", False)
+        ok = verdict(json.loads(out["run"].read_text()), path.name)
         if not out["graph"].exists():
             write_graph(path, exe, out["graph"])
         return path, ok, False
@@ -156,10 +172,10 @@ def run_one(path: Path, exe: str, cid: str) -> tuple[Path, bool, bool]:
                 "diagnostics": [{"severity": "error",
                                  "message": (r.stdout + r.stderr).strip()}]}
     data["diagnostics"] = diagnostics(data.get("diagnostics"))
-    # l4's own `ok` stays true when an #ASSERT comes back FALSE; the gate here
-    # is both: the file checks AND every assertion holds
+    # l4's own `ok` stays true when an #ASSERT comes back FALSE or the
+    # compiler warns; the gate here is all three (`verdict`)
     data["l4_ok"] = bool(data.get("ok"))
-    data["ok"] = data["l4_ok"] and all_asserts_hold(data)
+    data["ok"] = verdict(data, path.name)
     out["run"].write_text(json.dumps(data, ensure_ascii=False, indent=1),
                           encoding="utf-8")
     rr = subprocess.run([exe, "render", "--format", "html",
@@ -192,11 +208,11 @@ def main(argv: list[str]) -> int:
             if not ok:
                 bad.append(rel)
     if bad:
-        print(f"\n{len(bad)} file(s) did not check or had a failing #ASSERT:")
+        print(f"\n{len(bad)} file(s) did not check, had a failing #ASSERT or a compiler warning:")
         for b in bad:
             print("  ", b)
         return 1
-    print(f"\n{len(targets)} file(s) check and every #ASSERT holds")
+    print(f"\n{len(targets)} file(s) check, every #ASSERT holds and nothing warns")
     return 0
 
 

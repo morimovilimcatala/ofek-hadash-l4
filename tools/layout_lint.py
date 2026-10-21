@@ -21,6 +21,16 @@ reads one way and computes another. It is flagged ('not') whichever was
 meant: write `(NOT a) AND b` or `NOT (a AND b)`. One operand per line —
 `c` / `AND NOT a` / `OR b` — is unambiguous and not flagged.
 
+A percentage literal that ends a user function's arguments takes the `%`
+over the whole call (MMS-510, at the compiler pinned in toolchain/L4_COMMIT):
+
+    x `increased by` 12.5%          is (x `increased by` 12.5)%: 24 gives 3.24
+    `grow` x 12.5%                  is (`grow` x 12.5)%, likewise
+
+The built-in operators are not affected (`x PLUS 12.5%` is 24.125), and a
+literal on the left happens to compute right, but the shape is refused
+whatever stands on the left ('pct'): write the argument `(12.5%)`.
+
     python3 tools/layout_lint.py [--fix]     # --fix splits same-operator chains
 """
 from __future__ import annotations
@@ -96,6 +106,37 @@ def scan_not(path: Path):
             yield n, "not", stripped
 
 
+PCT = re.compile(r"(?<![\w.])\d+(?:\.\d+)?\s*%")
+LAST_NAME = re.compile(r"(?:^|\s)(NAME|[a-z_][\w']*)\s*$")
+
+
+def pct_code(line: str) -> str:
+    """The line with its strings, comments, annotations and backticked names
+    masked: a name is NAME, so what is left of a percentage is its context."""
+    code = re.sub(r'"(?:[^"\\]|\\.)*"', '""', line).split("--")[0]
+    code = re.sub(r"@\w[\w-]*\b.*", "", code)
+    return re.sub(r"`[^`]*`", "NAME", code)
+
+
+def scan_pct(path: Path):
+    """(line, 'pct', text): a bare percentage literal that is a user
+    function's argument — the name or the identifier before it is the
+    function or an argument before it, on the same line or, where the
+    percentage begins the line, at the end of the line above."""
+    prev = ""
+    for n, line in enumerate(path.read_text(encoding="utf-8").split("\n"), 1):
+        code = pct_code(line)
+        for m in PCT.finditer(code):
+            before = code[:m.start()]
+            if not before.strip():
+                before = prev
+            if LAST_NAME.search(before):
+                yield n, "pct", line.strip()
+                break
+        if code.strip():
+            prev = code
+
+
 def fix(path: Path) -> int:
     lines = path.read_text(encoding="utf-8").split("\n")
     changed = 0
@@ -125,12 +166,12 @@ def fix(path: Path) -> int:
 
 
 def main(argv: list[str]) -> int:
-    files = sorted((ROOT / "l4").rglob("*.l4"))
+    files = sorted(f for f in (ROOT / "l4").rglob("*.l4") if not f.is_symlink())
     if "--fix" in argv:
         print(sum(fix(f) for f in files), "line(s) split")
     bad = 0
     for f in files:
-        for n, kind, text in [*scan(f), *scan_not(f)]:
+        for n, kind, text in [*scan(f), *scan_not(f), *scan_pct(f)]:
             print(f"{kind:6} {f.relative_to(ROOT)}:{n}: {text}")
             bad += 1
     return 1 if bad else 0
