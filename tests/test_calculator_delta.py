@@ -160,7 +160,7 @@ class ThePage(unittest.TestCase):
 
     def test_the_contradictions_page_holds_it_and_the_old_page_redirects(self):
         """No tab of its own (the client, 2026-10-21: "can we remove the
-        simulator page?"); its rows are a group of סתירות בין מסמכים, and
+        simulator page?"); its rows are a group of מקורות סותרים, and
         calculator-delta.html sends an old link there."""
         import build_site
         import contradictions
@@ -168,6 +168,9 @@ class ThePage(unittest.TestCase):
         nav = build_site.page(contradictions.HERE, "t", "", tab="contradictions")
         self.assertNotIn(f'href="{calculator_delta.HERE}"', nav)
         self.assertIn(f'href="{contradictions.HERE}" aria-current=page', nav)
+        # a calculator is not a document (the client, 2026-10-21): the tab
+        # names sources
+        self.assertIn(">מקורות סותרים</a>", nav)
         html, side = contradictions.body(contradictions.load(), prose=lambda t: t,
                                          clause_link=lambda d, k: ("#", k), finding_ids=set(),
                                          src=lambda f: f,
