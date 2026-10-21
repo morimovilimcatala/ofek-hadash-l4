@@ -1,8 +1,9 @@
 r"""The statutes the L4 encodes outside the corpus (MMS-516).
 
 The corpus holds no copy of a statute (its standing decision 14); the client
-asked for one law in L4 anyway ("don't encode it in AKN, only in L4",
-2026-10-20). Its words are pinned in laws/<name>.toml, a row per section with
+asked for statutes in L4 anyway ("don't encode it in AKN, only in L4",
+2026-10-20) — the Collective Agreements Law (MMS-516) and the Budget
+Foundations Law (MMS-528). Its words are pinned in laws/<name>.toml, a row per section with
 the anchor of the live page of ספר החוקים הפתוח it is read from, and its rules
 are l4/laws/<name>.l4, a `§§ \`N\`` block per section citing `@ref law:N`.
 The site sets each section's text beside its block, as it does for a corpus
@@ -54,6 +55,15 @@ def cited(name: str) -> set[str]:
     return set(REF.findall(l4_file(name).read_text(encoding="utf-8")))
 
 
+def span(law: dict) -> str:
+    """The sections a law's page holds, as a reader names them: a run
+    "19–23", otherwise a list "21, 29, 32"."""
+    nums = [s["num"] for s in law["section"]]
+    if all(n.isdigit() for n in nums) and [int(n) for n in nums] == list(range(int(nums[0]), int(nums[-1]) + 1)):
+        return f"{nums[0]}–{nums[-1]}" if len(nums) > 1 else nums[0]
+    return ", ".join(nums)
+
+
 def anchor(law: dict, num: str) -> str:
     """The live page's anchor for a section, as the corpus links acts."""
     return f'{law["url"]}#{urllib.parse.quote("סעיף_" + num)}'
@@ -66,7 +76,7 @@ def page_body(name: str, *, code_html, esc) -> str:
     shared = [(n, t) for n, t in head if t.strip() and not t.startswith(("--", "IMPORT", "§ "))]
     if shared:
         rows.append('<div class="row d1"><div class="txt" lang="he" dir="rtl"><span class="lawnote">'
-                    'הגדרה משותפת לסעיפים שלהלן: מה נבדק בהוראה של הסכם.</span></div>'
+                    f'הגדרה משותפת לסעיפים שלהלן: {esc(law["shared"])}</span></div>'
                     f'<div class="l4">{code_html(shared)}</div></div>')
     for s in law["section"]:
         block = secs.get(s["num"], [])
@@ -76,8 +86,7 @@ def page_body(name: str, *, code_html, esc) -> str:
                     f'<p>{esc(s["text"])}</p></div>'
                     f'<div class="l4">{code_html(block) if block else ""}</div></div>')
     return (f'<h1 lang="he" dir="rtl">{esc(law["title"])}</h1>'
-            '<p class="lede">החוק שקובע מה מעמדן של הוראות הסכם קיבוצי, ואיזו הוראה גוברת כשהסכם, חוק, '
-            'חוזה עבודה או הסכם אחר אומרים אחרת — מקודד ב־L4, סעיף לצד סעיף. הקורפוס אינו מחזיק עותק של החוק: '
+            f'<p class="lede">{esc(law["about"])} — מקודד ב־L4, סעיף לצד סעיף. הקורפוס אינו מחזיק עותק של החוק: '
             f'הנוסח כאן נקרא מספר החוקים הפתוח, ונבדק מולו לאחרונה ב־{esc(law["text_as_of"])}. '
             '<a href="contradictions.html">עמוד הסתירות</a> מצטט את הסעיפים האלה כשהוא אומר מי גובר.</p>'
             '<div class="colheads"><div class="ch-l4">L4</div><div class="ch-text">הטקסט</div></div>'

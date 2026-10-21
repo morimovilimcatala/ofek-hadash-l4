@@ -1433,7 +1433,7 @@ def index_page(all_views: dict[str, list[SectionView]], findings: list[dict]) ->
         law = laws.load(name)
         cards.append(f'<li class="coll live"><a href="laws/{name}.html"><span class="cname">חוק</span>'
                      f'<span class="ctitle" lang="he" dir="rtl">{esc(law["title"])}</span>'
-                     f'<span class="cstate">סעיפים {esc(law["section"][0]["num"])}–{esc(law["section"][-1]["num"])}, '
+                     f'<span class="cstate">סעיפים {esc(laws.span(law))}, '
                      f'מחוץ לקורפוס</span></a></li>')
     body = (f'<section class="hero"><h1>הכללים של העסקת עובדי ההוראה, '
             f'כתובים כקוד לצד הטקסט.</h1>'

@@ -1,0 +1,122 @@
+-- חוק יסודות התקציב, התשמ"ה-1985 — section 29: a budgeted or supported
+-- body may change wages, or grant another monetary benefit tied to work,
+-- only as agreed or practised for all state employees or with the Finance
+-- Minister's approval, and an agreement or arrangement against that is void
+-- to the extent it departs. Sections 21 and 32 say which bodies those are.
+-- The text is laws/budget-foundations-law.toml, pinned from the live page
+-- of ספר החוקים הפתוח; the corpus holds no copy (MMS-528).
+--
+-- Why it is here: a circular that pays more than the agreement it carries
+-- out stands under section 22 of the Collective Agreements Law
+-- (instruments.favourable-circular), and section 29 is what can void that
+-- excess where the employer is a budgeted or supported body — the owners
+-- of the upper-division schools are. So the amount a contract term gives
+-- passes through `the amount that stands under section 29` first.
+
+IMPORT prelude
+
+§ `חוק יסודות התקציב — שינויים בשכר בגוף מתוקצב ובגוף נתמך`
+
+-- What employs the teacher, as far as these sections tell bodies apart.
+-- A corporation in section 21's sense is decided by its own law, and a
+-- supported body by the Finance Minister's notice in Reshumot (section 32),
+-- so which one an employer is, is an input.
+DECLARE `employing body` IS ONE OF
+    `the State`
+    `a corporation`
+    `a local authority`
+    `a religious council`
+    `the Bank of Israel`
+    `a government company`
+    `a municipal company`
+    `a body declared supported`
+    `another employer`
+
+§§ `21`
+
+-- "גוף מתוקצב": a corporation, a local authority, a religious council, the
+-- Bank of Israel, a government company and a municipal company. The other
+-- definitions of the section (a corporation, a health corporation, a year,
+-- the excess amount, the kinds of company, the minister concerned) decide
+-- matters this encoding takes as inputs or does not use.
+@ref law:21
+GIVEN b IS AN `employing body`
+GIVETH A BOOLEAN
+DECIDE `is a budgeted body` b IF
+        b EQUALS `a corporation`
+    OR b EQUALS `a local authority`
+    OR b EQUALS `a religious council`
+    OR b EQUALS `the Bank of Israel`
+    OR b EQUALS `a government company`
+    OR b EQUALS `a municipal company`
+
+#ASSERT `is a budgeted body` `a local authority`
+#ASSERT NOT `is a budgeted body` `the State`
+
+§§ `29`
+
+-- (a) A budgeted or supported body does not agree to, or put in practice,
+-- a change in wages, retirement terms or pensions, or another monetary
+-- benefit tied to work, except as agreed or practised for all state
+-- employees or with the Finance Minister's approval. (The Minister's power
+-- to exempt a mixed company on its sale, with the committee's approval, is
+-- an input no employer here has: `exempted by the Finance Minister`.)
+@ref law:29
+GIVEN b IS AN `employing body`
+      `as agreed or practised for all state employees` IS A BOOLEAN
+      `approved by the Finance Minister` IS A BOOLEAN
+      `exempted by the Finance Minister` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `section 29 permits the change` b `as agreed or practised for all state employees` `approved by the Finance Minister` `exempted by the Finance Minister` IF
+        NOT `is bound by section 29` b
+    OR `as agreed or practised for all state employees`
+    OR `approved by the Finance Minister`
+    OR `exempted by the Finance Minister`
+
+GIVEN b IS AN `employing body`
+GIVETH A BOOLEAN
+DECIDE `is bound by section 29` b IF
+        `is a budgeted body` b
+    OR `is a supported body` b
+
+-- (b) Notwithstanding any law, an agreement or arrangement is void to the
+-- extent it is contrary to (a): of what it gives, what (a) permits stands
+-- and the excess is void. `the amount section 29 permits` is what was
+-- agreed or practised for all state employees, which is an input.
+GIVEN `the amount agreed or arranged` IS A NUMBER
+      `the amount section 29 permits` IS A NUMBER
+      `the change is permitted` IS A BOOLEAN
+GIVETH A NUMBER
+DECIDE `the amount that stands under section 29` `the amount agreed or arranged` `the amount section 29 permits` `the change is permitted` IS
+    IF `the change is permitted`
+    THEN `the amount agreed or arranged`
+    ELSE min `the amount agreed or arranged` `the amount section 29 permits`
+
+-- (c) and (d): what the Finance Minister may do when a body does not
+-- comply — deduct the amount paid from what the State transfers to it, stop
+-- or reduce a grant — and what a director or director-general who agreed
+-- knowingly is taken to have done. They act on the body, not on what the
+-- teacher is paid, so no rule here.
+
+#ASSERT `section 29 permits the change` `the State` FALSE FALSE FALSE
+#ASSERT NOT `section 29 permits the change` `a local authority` FALSE FALSE FALSE
+#ASSERT `section 29 permits the change` `a local authority` FALSE TRUE FALSE
+#ASSERT `section 29 permits the change` `a body declared supported` TRUE FALSE FALSE
+#ASSERT `the amount that stands under section 29` 481 480.77 TRUE EQUALS 481
+#ASSERT `the amount that stands under section 29` 481 480.77 FALSE EQUALS 480.77
+#ASSERT `the amount that stands under section 29` 470 480.77 FALSE EQUALS 470
+
+§§ `32`
+
+-- "גוף נתמך": a corporation whose budget the government takes part in,
+-- directly or indirectly, and which the Finance Minister has declared a
+-- supported body for this Law by notice in Reshumot. Whether an owner of
+-- schools is one is the notice's, an input: `a body declared supported`.
+@ref law:32
+GIVEN b IS AN `employing body`
+GIVETH A BOOLEAN
+DECIDE `is a supported body` b IF
+    b EQUALS `a body declared supported`
+
+#ASSERT `is a supported body` `a body declared supported`
+#ASSERT NOT `is a supported body` `another employer`
