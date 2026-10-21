@@ -1,0 +1,201 @@
+-- החלטת ועדת מעקב — קידום בדרגות של עובדי הוראה (19.9.2010): the supreme
+-- follow-up committee, under §160 of the base agreement of 25.12.2008,
+-- decides on promotion in grades of Ofek Hadash teachers about to leave the
+-- civil service. One who leaves on 31 August, whose waiting period for the
+-- next grade ends that day and who met every other condition on 31 July,
+-- is promoted as if the waiting period had ended on 31 July, from 1
+-- August; teachers who moved to the reform in November 2007 after teaching
+-- in the civil service in September–October 2007 count their waiting
+-- periods from 1.9.07; and the decision exhausts the parties' claims.
+--
+-- It decides under the base agreement, so it imports what it applies: §160
+-- (the committee and its members) and §38 (promotion in grades: the years
+-- in the grade below and the other conditions). §38 is the teacher's rule;
+-- the other roles' promotion sections set years and conditions of the same
+-- shape (§§68, 95) or apply §38 (§§119, 130, 137), and a role's own rule
+-- takes the decision's fiction the way the teacher's does below.
+
+IMPORT prelude
+IMPORT conventions
+IMPORT `base-agreement-38`
+IMPORT `base-agreement-160`
+
+§ `החלטת ועדת המעקב העליונה — קידום בדרגה לפני סיום ההעסקה — 19.9.2010`
+
+-- akn:preamble The decision's frame: a label row with no text of its own.
+-- akn:preamble/p1 The title, with the handwritten date; no rule.
+-- akn:preamble/p2 A fax header; no rule.
+-- akn:preamble/p3 A fax header; no rule.
+-- akn:preamble/p4 A fax header; no rule.
+-- akn:preamble/p5 The registration stamp's head (the Collective Agreements Law); no rule.
+-- akn:preamble/p6 A handwritten number on the stamp; no rule.
+-- akn:preamble/p7 The registration stamp: registered as a collective agreement; no rule.
+-- akn:preamble/p8 The registration stamp's date, 9.9.2015; no rule.
+-- akn:preamble/p9 The registration number, 168/2015; no rule.
+-- akn:preamble/p10 The registrar's name; no rule.
+-- akn:preamble/p11 The registrar's post; no rule.
+
+-- The opening: the supreme follow-up committee decides under §160 of the
+-- base agreement ("ההסכם הכולל") on promotion in grades of teaching
+-- employees on Ofek Hadash terms who are about to leave the civil service.
+-- The three who sign it are the three §160 seats on that committee.
+@ref akn:preamble/p12 akn:conclusions/p2 akn:conclusions/p3 akn:conclusions/p4
+`the decision's signatories` MEANS
+    LIST `the wages commissioner at the Treasury`, `the Ministry of Education`, `the teachers' union`
+
+#ASSERT `the decision's signatories` EQUALS `the supreme committee's members`
+
+§§ `1 קידום בדרגה של מי שמסיים העסקה ב־31 באוגוסט`
+
+@desc A teaching employee about to leave the civil service, as far as §1 asks.
+DECLARE `employee at the end of service` HAS
+    `employed on Ofek Hadash terms`             IS A BOOLEAN
+    `ends employment in the civil service on`   IS A DATE
+    `the waiting period for the next grade ends on` IS A DATE @desc as the base agreement counts the years in the grade below (§38 for a teacher)
+    `met the other conditions for promotion on 31 July before the end` IS A BOOLEAN @desc every condition the base agreement sets for the promotion but the waiting period
+
+-- The 31 July and the 1 August before a day of leaving.
+GIVEN d IS A DATE
+GIVETH A DATE
+DECIDE `31 July before` d IS
+    DATE_FROM_DMY 31 7 (DATE_YEAR d)
+
+GIVEN d IS A DATE
+GIVETH A DATE
+DECIDE `1 August before` d IS
+    DATE_FROM_DMY 1 8 (DATE_YEAR d)
+
+-- (א)–(ד), which are cumulative: on Ofek Hadash terms; leaving the civil
+-- service on 31 August; the waiting period for the next grade, as the base
+-- agreement sets it, ends on that day; and on the 31 July before it every
+-- other condition for the promotion was met.
+@ref akn:art_1 akn:art_1__para_a akn:art_1__para_b akn:art_1__para_c akn:art_1__para_d
+GIVEN e IS AN `employee at the end of service`
+GIVETH A BOOLEAN
+DECIDE `the decision applies to` e IF
+        e's `employed on Ofek Hadash terms`
+    AND DATE_DAY (e's `ends employment in the civil service on`) EQUALS 31
+    AND DATE_MONTH (e's `ends employment in the civil service on`) EQUALS 8
+    AND DATE_SERIAL (e's `the waiting period for the next grade ends on`) EQUALS DATE_SERIAL (e's `ends employment in the civil service on`)
+    AND e's `met the other conditions for promotion on 31 July before the end`
+
+-- ¶ after (ד): he is promoted under the base agreement as if the waiting
+-- period had ended on the 31 July before he leaves.
+@ref akn:art_1/p2
+GIVEN e IS AN `employee at the end of service`
+GIVETH A DATE
+DECIDE `the day the waiting period is taken to end` e IS
+    IF `the decision applies to` e
+    THEN `31 July before` (e's `ends employment in the civil service on`)
+    ELSE e's `the waiting period for the next grade ends on`
+
+-- For a teacher, §38 is the promotion rule: on 31 July his years in the
+-- grade below are taken as complete, and the decision promotes him where
+-- §38's other conditions — the Ministry's criteria and, to grades 7–9, an
+-- evaluation recommending it — hold. The years are §38's own.
+GIVEN c IS A `candidate`
+GIVETH A `candidate`
+DECIDE `the candidate with the waiting period taken as complete` c IS
+    `candidate` WITH
+        grade                             IS c's grade
+        `periods in the grade`            IS LIST (`a period of` `work in the grade` (`years in the grade below for promotion to` (c's grade PLUS 1)) FALSE FALSE)
+        `meets the Ministry's criteria`   IS c's `meets the Ministry's criteria`
+        `evaluation recommends promotion` IS c's `evaluation recommends promotion`
+        `evaluation score`                IS c's `evaluation score`
+
+GIVEN c IS A `candidate`
+GIVETH A BOOLEAN
+DECIDE `a teacher met §38's other conditions` c IF
+    `meets the conditions for the next grade` (`the candidate with the waiting period taken as complete` c)
+
+§§ `2 מועד תחילת הקידום`
+
+-- The promotion of §1 starts on the 1 August before the day he leaves.
+@ref akn:art_2
+GIVEN e IS AN `employee at the end of service`
+GIVETH A MAYBE DATE
+DECIDE `the promotion of §1 starts on` e IS
+    IF `the decision applies to` e
+    THEN JUST (`1 August before` (e's `ends employment in the civil service on`))
+    ELSE NOTHING
+
+§§ `3 עובדים שעברו לרפורמה בנובמבר 2007`
+
+-- For the waiting periods for promotion in grades only: one who began on
+-- Ofek Hadash terms in November 2007, having taught in the civil service
+-- in September and October 2007, is taken to have begun on 1.9.07.
+@ref akn:art_3
+GIVEN `began on Ofek Hadash terms on` IS A DATE, `taught in the civil service in September and October 2007` IS A BOOLEAN
+GIVETH A DATE
+DECIDE `the day he is taken to have begun on Ofek Hadash terms, for the waiting periods` `began on Ofek Hadash terms on` `taught in the civil service in September and October 2007` IS
+    IF (    DATE_YEAR `began on Ofek Hadash terms on` EQUALS 2007
+        AND DATE_MONTH `began on Ofek Hadash terms on` EQUALS 11
+        AND `taught in the civil service in September and October 2007`)
+    THEN DATE_FROM_DMY 1 9 2007
+    ELSE `began on Ofek Hadash terms on`
+
+-- The day an unbroken period of work in a grade, begun on `start`, makes
+-- up n years: the eve of the n-th anniversary (convention dates.end).
+GIVEN start IS A DATE, n IS A NUMBER
+GIVETH A DATE
+DECIDE `the day n years of work from` start n `are complete` IS
+    DATE_FROM_SERIAL (DATE_SERIAL (DATE_FROM_DMY (DATE_DAY start) (DATE_MONTH start) (DATE_YEAR start PLUS n)) MINUS 1)
+
+-- ¶2: §§1 and 2 apply to them as well.
+@ref akn:art_3/p2
+GIVEN `began on Ofek Hadash terms on` IS A DATE, `taught in the civil service in September and October 2007` IS A BOOLEAN, `to grade` IS A NUMBER
+GIVETH A DATE
+DECIDE `the waiting period for the grade ends on` `began on Ofek Hadash terms on` `taught in the civil service in September and October 2007` `to grade` IS
+    `the day n years of work from` (`the day he is taken to have begun on Ofek Hadash terms, for the waiting periods` `began on Ofek Hadash terms on` `taught in the civil service in September and October 2007`) (`years in the grade below for promotion to` `to grade`) `are complete`
+
+-- Worked example: a teacher in grade 1 who began on 1.11.2007 after
+-- teaching in September–October 2007 completes §38's two years for grade 2
+-- on 31.8.2009, not 31.10.2009; leaving on 31.8.2009 with the other
+-- conditions met on 31.7.2009, he is promoted from 1.8.2009.
+#ASSERT `the waiting period for the grade ends on` (DATE_FROM_DMY 1 11 2007) TRUE 2 EQUALS DATE_FROM_DMY 31 8 2009
+#ASSERT `the waiting period for the grade ends on` (DATE_FROM_DMY 1 11 2007) FALSE 2 EQUALS DATE_FROM_DMY 31 10 2009
+
+`a teacher leaving on 31.8.2009` MEANS
+    `employee at the end of service` WITH
+        `employed on Ofek Hadash terms`             IS TRUE
+        `ends employment in the civil service on`   IS DATE_FROM_DMY 31 8 2009
+        `the waiting period for the next grade ends on` IS `the waiting period for the grade ends on` (DATE_FROM_DMY 1 11 2007) TRUE 2
+        `met the other conditions for promotion on 31 July before the end` IS TRUE
+
+#ASSERT `the day the waiting period is taken to end` `a teacher leaving on 31.8.2009` EQUALS DATE_FROM_DMY 31 7 2009
+#ASSERT `the promotion of §1 starts on` `a teacher leaving on 31.8.2009` EQUALS JUST (DATE_FROM_DMY 1 8 2009)
+
+-- §38's other conditions for a teacher in grade 6, a year short on 31 July:
+-- with the Ministry's criteria and an evaluation recommending grade 7, the
+-- decision promotes him; without the evaluation it does not.
+GIVEN `recommended` IS A BOOLEAN
+GIVETH A `candidate`
+DECIDE `a grade 6 teacher a year short` `recommended` IS
+    `candidate` WITH
+        grade                             IS 6
+        `periods in the grade`            IS LIST (`a period of` `work in the grade` 2 FALSE FALSE)
+        `meets the Ministry's criteria`   IS TRUE
+        `evaluation recommends promotion` IS `recommended`
+        `evaluation score`                IS 0
+
+#ASSERT NOT `meets the conditions for the next grade` (`a grade 6 teacher a year short` TRUE)
+#ASSERT `a teacher met §38's other conditions` (`a grade 6 teacher a year short` TRUE)
+#ASSERT NOT `a teacher met §38's other conditions` (`a grade 6 teacher a year short` FALSE)
+
+§§ `4 מיצוי טענות`
+
+DECLARE `decision action` IS ONE OF `raise a further claim on a matter this decision settles`
+
+-- The decision exhausts every claim of the parties on what it settles.
+@ref akn:art_4
+`no further claims` MEANS
+    (PARTY `the State`
+     SHANT `raise a further claim on a matter this decision settles`)
+    RAND
+    (PARTY `the teachers' union`
+     SHANT `raise a further claim on a matter this decision settles`)
+
+-- akn:conclusions The sign-off: a label row with no text of its own.
+-- akn:conclusions/p1 The signatures; no rule.
+-- akn:conclusions/p5 The Treasury's reference number; no rule.
+-- akn:conclusions/p6 A fax footer; no rule.
