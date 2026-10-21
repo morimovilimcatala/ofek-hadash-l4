@@ -410,6 +410,11 @@ class ConventionsModule(unittest.TestCase):
                                     f"no rule it names calls {code}")
 
 
+# Type names declared in more than one module (test_a_type_name_is_declared_once):
+# each is a pair the compiler will refuse to import into one file.
+DECLARED_MORE_THAN_ONCE = 295
+
+
 class OneNamespace(unittest.TestCase):
     """EVERY L4 MODULE HAS ONE NAME, AND IS REACHABLE BY IT FROM ANY FILE
     (the client, 2026-10-21, MMS-524: "go with unique names"). The pinned
@@ -422,6 +427,23 @@ class OneNamespace(unittest.TestCase):
         import modules
         self.assertEqual(modules.problems(), [],
                          "run python3 tools/modules.py --write (or rename the clashing file)")
+
+    def test_a_type_name_is_declared_once(self):
+        """Two modules declaring the same type name cannot be imported into
+        one file: the compiler refuses "multiple definitions for the
+        identifier". `Party` was six declarations and is one module now
+        (l4/lib/parties.l4, MMS-532). The rest of the class is the yearly
+        circulars, each re-declaring its series' types; the single entry
+        point (MMS-521) has to import them together, so this count is a
+        ratchet, held exactly, and only ever lowered."""
+        declared = {}
+        for f in (ROOT / "l4").rglob("*.l4"):
+            if f.is_symlink() or "modules" in f.parts:
+                continue
+            for m in re.finditer(r"^DECLARE\s+(`[^`]+`|\w+)", f.read_text(encoding="utf-8"), re.M):
+                declared.setdefault(m.group(1), []).append(f)
+        self.assertEqual([f.relative_to(ROOT).as_posix() for f in declared["Party"]], ["l4/lib/parties.l4"])
+        self.assertEqual(sum(1 for files in declared.values() if len(files) > 1), DECLARED_MORE_THAN_ONCE)
 
     def test_a_sectioned_documents_files_carry_its_prefix(self):
         for doc, prefix in akn.MODULE_PREFIX.items():

@@ -79,6 +79,12 @@ with `HENCE`/`LEST`), not booleans standing in for them.
   by name: `` IMPORT `base-agreement-70` `` from a circular works. A file
   imported through a link resolves its own imports from the link's
   directory, which is why the links all live in one directory.
+  A TYPE NAME IS DECLARED ONCE, too: two modules declaring one name cannot
+  be imported into the same file ("multiple definitions for the
+  identifier"). `Party` lives in `l4/lib/parties.l4` (MMS-532) and a new
+  party is added there; a dotted takanon section is imported as
+  `takanon-<dashed>` (`takanon-1-29`). The names still declared twice — the
+  yearly circulars' — are an exact ratchet in `tests.test_repo.OneNamespace`.
 - **Every paragraph is accounted for.** Each text row of the section is
   covered by a segment that cites it or an ancestor:
   - `@ref akn:<key>` on the declaration that encodes it, or

@@ -19,9 +19,12 @@ const cases = JSON.parse(fs.readFileSync(process.argv[3], "utf8"));
 const l4dir = path.dirname(path.join(root, spec.l4));
 const main = fs.readFileSync(path.join(root, spec.l4), "utf8");
 const files = {};
+// an import is reached as every run reaches it: the module directory
+// first (l4/modules, MMS-524), then the file's own directory
 for (const name of spec.imports) {
-  const f = path.join(l4dir, name + ".l4");
-  if (fs.existsSync(f)) files[name] = fs.readFileSync(f, "utf8");
+  for (const f of [path.join(root, "l4", "modules", name + ".l4"), path.join(l4dir, name + ".l4")]) {
+    if (fs.existsSync(f)) { files[name] = fs.readFileSync(f, "utf8"); break; }
+  }
 }
 const module = await WebAssembly.compile(fs.readFileSync(path.join(assets, "l4wasm", "l4.wasm")));
 const l4 = await instantiate(glue, module);

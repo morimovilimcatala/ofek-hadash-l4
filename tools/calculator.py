@@ -281,7 +281,7 @@ def spec(section, l4: Path, cites: dict[str, str], href=lambda key: "") -> dict:
     pct = ex_rate[:-1] if ex_rate.endswith("%") else str(round(float(ex_rate) * 100, 10)).removesuffix(".0")
     return {
         "file": l4.name,
-        "imports": re.findall(r"^IMPORT\s+(\S+)", text, re.M),
+        "imports": import_closure(l4),
         "lines": len(lines),
         "record": MONTH_RECORD,
         "fields": fields,
@@ -302,19 +302,48 @@ def spec(section, l4: Path, cites: dict[str, str], href=lambda key: "") -> dict:
     }
 
 
+MODULES = Path(__file__).resolve().parent.parent / "l4" / "modules"
+
+
+def module_file(name: str, beside: Path) -> Path | None:
+    """The file an `IMPORT name` reaches: the module directory every run
+    puts on the library path (MMS-524), else the importing file's own
+    directory; None for a library built into the evaluator (`prelude`)."""
+    for f in (MODULES / f"{name.strip('`')}.l4", beside / f"{name.strip('`')}.l4"):
+        if f.exists():
+            return f
+    return None
+
+
+def import_closure(l4: Path) -> list[str]:
+    """Every module §1.1 reaches, its own imports first and theirs after:
+    a module a shared vocabulary moved into another file (`parties`,
+    MMS-532) is still shipped, which a list of §1.1's own imports missed."""
+    order, queue = [], re.findall(r"^IMPORT\s+(\S+)", l4.read_text(encoding="utf-8"), re.M)
+    while queue:
+        name = queue.pop(0).strip("`")
+        if name in order:
+            continue
+        order.append(name)
+        f = module_file(name, l4.parent)
+        if f is not None:
+            queue += re.findall(r"^IMPORT\s+(\S+)", f.read_text(encoding="utf-8"), re.M)
+    return order
+
+
 def ship(s: dict, l4: Path, assets: Path) -> dict:
-    """Copy the L4 the page runs — §1.1's file and every import that is a
-    file beside it (`prelude` is built into the evaluator) — to
-    assets/calc/, and say in the spec where it is."""
+    """Copy the L4 the page runs — §1.1's file and every module it reaches
+    (`prelude` is built into the evaluator) — to assets/calc/, each under
+    the name it is imported by, and say in the spec where it is."""
     d = assets / "calc"
     d.mkdir(parents=True, exist_ok=True)
     (d / l4.name).write_text(l4.read_text(encoding="utf-8"), encoding="utf-8")
     files = {}
     for name in s["imports"]:
-        f = l4.parent / f"{name}.l4"
-        if f.exists():
-            (d / f.name).write_text(f.read_text(encoding="utf-8"), encoding="utf-8")
-            files[name] = f"calc/{f.name}"
+        f = module_file(name, l4.parent)
+        if f is not None:
+            (d / f"{name}.l4").write_text(f.read_text(encoding="utf-8"), encoding="utf-8")
+            files[name] = f"calc/{name}.l4"
     return {**s, "source": f"calc/{l4.name}", "files": files}
 
 
