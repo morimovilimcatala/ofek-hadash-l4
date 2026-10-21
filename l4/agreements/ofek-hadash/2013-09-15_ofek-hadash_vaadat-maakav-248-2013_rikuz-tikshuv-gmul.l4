@@ -1,0 +1,160 @@
+-- החלטת ועדת מעקב (15.9.2013, registered 248/2013): the follow-up
+-- committee, under §160 of the base agreement of 25.12.2008, adds §39א to
+-- that agreement — a role allowance for the ICT coordinator of 6% of the
+-- combined salary in a primary school and 8% in a junior high, computed
+-- and paid by the rules of the subject coordinator's allowance (§39), with
+-- §39(ב) (two allowances at most) and §39(ב1) (only while the role is
+-- held) applying to it; gives a teacher off the reform's terms the same
+-- rates, by the rules of a subject coordinator off the reform; from the
+-- school year תשע"ד; and exhausts the parties' claims.
+--
+-- It adds to §39, so it imports §39 (`the role rate`, `the role
+-- allowance`, `role allowances payable at most`), §39(ב1) as the
+-- completion agreement of 29.2.2012 added it (`paid the role's
+-- allowance`), and §160. A subject coordinator's allowance off the reform
+-- is not encoded: it is a named input.
+
+IMPORT prelude
+IMPORT conventions
+IMPORT parties
+IMPORT `base-agreement-common`
+IMPORT `base-agreement-39`
+IMPORT `base-agreement-160`
+IMPORT `2012-02-29_ofek-hadash_amendment_hascam-hashlama`
+
+-- What the parties may not do under this decision.
+DECLARE `decision 248/2013 action` IS ONE OF `raise a further claim on a matter decision 248/2013 settles`
+
+§ `החלטת ועדת המעקב 248/2013 — גמול תפקיד לרכז תקשוב — 15.9.2013`
+
+-- akn:preamble The decision's frame: a label row with no text of its own.
+-- akn:preamble/p1 The registration stamp: registered as a collective agreement on 6.1.2014, number 248/2013; no rule.
+-- akn:preamble/p2 A fax header; no rule.
+-- akn:preamble/p3 The Treasury's filing mark at the foot of the page; no rule.
+-- akn:preamble/p4 The title, with the date; no rule.
+
+-- The opening: the follow-up committee decides under §160 of the base
+-- agreement on a role allowance for the ICT coordinator. §160(ב)–(ג): the
+-- supreme committee is the wages commissioner, the Ministry's
+-- director-general and the union's secretary-general, and decides
+-- unanimously; the sign-off names two of the three
+-- (F-ofek-hadash-vaadat-maakav-248-2013-a). The reading adopted: the
+-- decision binds as the committee's, the State and the union having signed
+-- it and the registrar having registered it.
+@ref akn:preamble/p5 akn:conclusions/p2 akn:conclusions/p3
+`the signatories of decision 248/2013` MEANS
+    LIST `the wages commissioner at the Treasury`, `the teachers' union`
+
+`decision 248/2013 lacks a §160 member's signature` MEANS
+    NOT all (GIVEN m YIELD elem m `the signatories of decision 248/2013`) `the supreme committee's members`
+
+#ASSERT `decision 248/2013 lacks a §160 member's signature`
+
+§§ `1 הוספת סעיף 39א להסכם הכולל — גמול תפקיד לרכז תקשוב`
+
+-- §39א(א): a teacher who is an ICT coordinator is paid a role allowance of
+-- 6% of the combined salary in a primary school and 8% in a junior high.
+-- No rate is printed for another stage: NOTHING.
+@ref akn:art_1
+GIVEN s IS A `school stage`
+GIVETH A MAYBE NUMBER
+DECIDE `the ICT coordinator rate` s IS
+    BRANCH
+        IF s EQUALS `a primary school`     THEN JUST (6%)
+        IF s EQUALS `a junior high school` THEN JUST (8%)
+        OTHERWISE NOTHING
+
+-- §39א(ב): the rules of computing and paying it are the subject
+-- coordinator's (§39): the rate is taken of the base the subject
+-- coordinator's allowance of the same stage is taken of — the full-position
+-- combined salary, so long as the teacher holds a third of a position or
+-- more (§39(א)(11) ¶2).
+GIVEN s IS A `school stage`, c IS AN `allowance case`
+GIVETH A NUMBER
+DECIDE `the ICT coordinator allowance` s c IS
+    CONSIDER `the ICT coordinator rate` s
+    WHEN JUST r THEN r TIMES (`the role allowance` (`subject coordinator` s) c DIVIDED BY `the role rate` (`subject coordinator` s))
+    WHEN NOTHING THEN 0
+
+-- §39א(ג): §39(ב) — two role allowances at most, three with the district
+-- manager's approval, the special-education allowance not counted — and
+-- §39(ב1) — paid only while the role is held — apply to it. The ICT
+-- allowance is one of the role allowances §39(ב) counts, and the two
+-- highest are paid (as §39(ב) is read there, convention amounts.highest).
+GIVEN c IS AN `allowance case`
+      `approved by the district manager` IS A BOOLEAN
+      roles IS A LIST OF `role`
+      s IS A `school stage`
+      `holds the ICT coordinator role` IS A BOOLEAN
+GIVETH A NUMBER
+DECIDE `the role allowances paid, the ICT coordinator's among them` c `approved by the district manager` roles s `holds the ICT coordinator role` IS
+        sum (map (GIVEN r YIELD `the role allowance` r c) (filter `a special-education allowance` roles))
+    PLUS sum (take (`role allowances payable at most` `approved by the district manager`)
+                   (sortBy (GIVEN a, b YIELD a AT LEAST b)
+                           (append (map (GIVEN r YIELD `the role allowance` r c)
+                                        (filter (GIVEN r YIELD NOT `a special-education allowance` r) roles))
+                                   (IF `paid the role's allowance` `holds the ICT coordinator role`
+                                    THEN LIST (`the ICT coordinator allowance` s c)
+                                    ELSE EMPTY))))
+
+-- A placeholder full-time junior-high teacher on a combined salary of
+-- 10,000: the ICT allowance is 800, as a junior-high subject coordinator's
+-- is; with a homeroom (10%) and a road-safety coordination (6%), the two
+-- highest are the homeroom's and the ICT's.
+`a junior-high teacher on 10,000` MEANS
+    `allowance case` WITH
+        `full-position combined salary`              IS 10000
+        `position fraction`                          IS 1
+        `frontal hours`                              IS 23
+        `frontal hours in special-education classes` IS 0
+
+#ASSERT `the ICT coordinator allowance` `a junior high school` `a junior-high teacher on 10,000` EQUALS 800
+#ASSERT `the ICT coordinator allowance` `a primary school` `a junior-high teacher on 10,000` EQUALS 600
+#ASSERT `the ICT coordinator allowance` `the grades from the tenth up` `a junior-high teacher on 10,000` EQUALS 0
+#ASSERT `the role allowances paid, the ICT coordinator's among them` `a junior-high teacher on 10,000` FALSE (LIST `homeroom teacher`, `road-safety coordinator`) `a junior high school` TRUE EQUALS 1800
+#ASSERT `the role allowances paid, the ICT coordinator's among them` `a junior-high teacher on 10,000` FALSE (LIST `homeroom teacher`, `road-safety coordinator`) `a junior high school` FALSE EQUALS 1600
+-- Below a third of a position, nothing, as for a subject coordinator.
+#ASSERT `the ICT coordinator allowance` `a junior high school` (`allowance case` WITH `full-position combined salary` IS 10000, `position fraction` IS 0.3, `frontal hours` IS 7, `frontal hours in special-education classes` IS 0) EQUALS 0
+
+§§ `2 רכז תקשוב שאינו מועסק בתנאי הרפורמה`
+
+-- A teacher off the reform's terms who is an ICT coordinator is paid the
+-- allowance at the rates §39א sets for the reform, by the rules of
+-- computing and paying a subject coordinator's allowance off the reform
+-- (not encoded here; an input that takes the rate).
+@ref akn:art_2
+ASSUME `a subject coordinator's allowance off the reform, at the rate` IS A FUNCTION FROM NUMBER TO NUMBER
+
+GIVEN s IS A `school stage`
+GIVETH A NUMBER
+DECIDE `the ICT coordinator allowance off the reform` s IS
+    CONSIDER `the ICT coordinator rate` s
+    WHEN JUST r THEN `a subject coordinator's allowance off the reform, at the rate` r
+    WHEN NOTHING THEN 0
+
+§§ `3 תחילה`
+
+-- From the school year תשע"ד, which opens on 1.9.2013 (convention
+-- dates.school-year).
+@ref akn:art_3
+GIVEN d IS A DATE
+GIVETH A BOOLEAN
+DECIDE `decision 248/2013 is in force on` d IF
+    d `is on or after` (`the school year opening in` 2013)
+
+#ASSERT `decision 248/2013 is in force on` (DATE_FROM_DMY 1 9 2013)
+#ASSERT NOT `decision 248/2013 is in force on` (DATE_FROM_DMY 31 8 2013)
+
+§§ `4 מיצוי תביעות`
+
+-- The decision exhausts every claim of the parties on what it settles.
+@ref akn:art_4
+`no further claims under decision 248/2013` MEANS
+    (PARTY `the State`
+     SHANT `raise a further claim on a matter decision 248/2013 settles`)
+    RAND
+    (PARTY `the teachers' union`
+     SHANT `raise a further claim on a matter decision 248/2013 settles`)
+
+-- akn:conclusions The sign-off: a label row with no text of its own.
+-- akn:conclusions/p1 The signatures; no rule.
