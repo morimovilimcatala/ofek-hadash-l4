@@ -60,6 +60,18 @@ KIND = {"render": "עמוד דיגיטלי, מרונדר ב־{dpi} dpi",
         "html": "דף מהעותק השמור של האתר (1.6.2026), כפי שהדפדפן מציג אותו, בצפיפות כפולה; תשובה מקופלת נפתחה כמו בלחיצה"}
 
 
+def proofs(c: dict, evidence: dict[str, tuple[str, str]]) -> list[tuple[str, str]]:
+    """The L4 booleans a contradiction rests on, as (file, name): those its
+    findings name as their evidence, and its own `asserts` where no finding
+    carries one. Each is #ASSERTed in its file, so a contradiction the code
+    does not prove is not on the page, and a corrected text turns the build
+    red (the client, 2026-10-21, MMS-533: "Every document contradiction
+    should have an ASSERT")."""
+    out = [evidence[f] for f in c.get("findings", []) if f in evidence]
+    out += [(a["l4"], a["name"]) for a in c.get("asserts", [])]
+    return list(dict.fromkeys(out))
+
+
 def load() -> dict | None:
     return json.loads(DATA.read_text(encoding="utf-8")) if DATA.exists() else None
 
@@ -145,7 +157,8 @@ def meter(grades: list[str]) -> str:
 
 
 def body(data: dict, *, prose, clause_link, finding_ids: set[str], src,
-         simulator: tuple[str, str, int, list[str]] | None = None) -> tuple[str, str]:
+         simulator: tuple[str, str, int, list[str]] | None = None,
+         evidence: dict[str, tuple[str, str]] | None = None) -> tuple[str, str]:
     """The page's main column and its sidebar. `clause_link(doc, key)` gives
     (href, label html) for a corpus row; `src(file)` the published URL of a
     crop; `prose` renders our Hebrew with its identifiers isolated;
@@ -180,7 +193,7 @@ def body(data: dict, *, prose, clause_link, finding_ids: set[str], src,
         side.append(f'<li><a href="#g-{esc(group["id"])}">{esc(group["title"])}</a></li>')
         for c in cs:
             out.append(card(c, data["rules"], prose=prose, clause_link=clause_link,
-                            finding_ids=finding_ids, src=src))
+                            finding_ids=finding_ids, src=src, evidence=evidence))
         out.append('</section>')
     if sim_html:
         out.append(sim_html)
@@ -203,7 +216,7 @@ def body(data: dict, *, prose, clause_link, finding_ids: set[str], src,
     return "".join(out), "".join(side)
 
 
-def card(c: dict, rules: dict, *, prose, clause_link, finding_ids, src) -> str:
+def card(c: dict, rules: dict, *, prose, clause_link, finding_ids, src, evidence=None) -> str:
     sev = c.get("severity")
     badge = f'<span class="cx-sev sev-{sev}">טעות · {esc(SEV[sev])}</span>' if sev else ""
     pair = " ↔ ".join(TYPE[s["type"]] for s in c["sides"])
@@ -228,4 +241,7 @@ def card(c: dict, rules: dict, *, prose, clause_link, finding_ids, src) -> str:
             # what an error means for a teacher (the client: "a משמעות section")
             + (f'<div class="cx-mean"><h4>משמעות</h4><p>{prose(c["meaning"])}</p></div>' if c.get("meaning") else "")
             + (f'<p class="cx-links">{" · ".join(links)}</p>' if links else "")
+            + (('<p class="cx-proof">ההוכחה ב־L4: ' + " · ".join(
+                f'<bdi dir="ltr"><code>#ASSERT `{esc(n)}`</code></bdi>' for _f, n in proofs(c, evidence or {}))
+                + "</p>") if proofs(c, evidence or {}) else "")
             + '</details>')

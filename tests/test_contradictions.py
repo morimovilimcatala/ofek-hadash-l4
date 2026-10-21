@@ -182,3 +182,25 @@ class TheVerdicts(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class EveryContradictionIsAsserted(unittest.TestCase):
+    """The client, 2026-10-21 (MMS-533): "Every document contradiction should
+    have an ASSERT". Each card rests on at least one L4 boolean — its
+    findings' evidence or its own `asserts` — defined in its file and
+    #ASSERTed there."""
+
+    def test_every_card_names_an_asserted_boolean(self):
+        import tomllib
+        evidence = {}
+        for f in (ROOT / "findings").rglob("*.toml"):
+            for x in tomllib.loads(f.read_text(encoding="utf-8")).get("finding", []):
+                if x.get("l4") and x.get("evidence"):
+                    evidence[x["id"]] = (x["l4"], x["evidence"].strip("`"))
+        for c in DATA["items"]:
+            with self.subTest(card=c["id"]):
+                found = contradictions.proofs(c, evidence)
+                self.assertTrue(found, "no L4 boolean proves this contradiction")
+                for file, name in found:
+                    text = (ROOT / file).read_text(encoding="utf-8")
+                    self.assertIn(f"#ASSERT `{name}`", text, f"{file} does not #ASSERT `{name}`")
