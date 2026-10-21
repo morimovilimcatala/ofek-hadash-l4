@@ -1,47 +1,40 @@
-"""The findings page's edge cases (MMS-534): each is proved by the L4. Its
-`asserts` are values its file #ASSERTs, and the page shows every case."""
-import re
+"""Edge cases are a kind of finding (the client, 2026-10-21, MMS-534: "it
+should be a סוג"), and a finding's `trace` is how the L4 computes it
+("Can we do Trace instead of ASSERT in edge cases?")."""
 import sys
-import tomllib
 import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
 
-CASES = tomllib.loads((ROOT / "data" / "edge_cases.toml").read_text(encoding="utf-8"))["case"]
+import build_site  # noqa: E402
+import edge_traces  # noqa: E402
+
+FINDINGS = build_site.load_findings()
 
 
-class EveryEdgeCaseIsAsserted(unittest.TestCase):
-    def test_each_named_value_is_asserted_in_its_file(self):
-        self.assertTrue(CASES)
-        ids = [c["id"] for c in CASES]
-        self.assertEqual(len(ids), len(set(ids)))
-        for c in CASES:
-            text = (ROOT / c["l4"]).read_text(encoding="utf-8")
-            asserted = re.findall(r"^#ASSERT .*$", text, re.M)
-            with self.subTest(case=c["id"]):
-                self.assertTrue(c["asserts"])
-                for name in c["asserts"]:
-                    self.assertTrue(any(f"`{name}`" in line for line in asserted),
-                                    f"{c['l4']} does not #ASSERT `{name}`")
-                for k in ("title", "question", "answer", "why"):
-                    self.assertTrue(re.search("[\u05d0-\u05ea]", c[k]), k)
+class EdgeCases(unittest.TestCase):
+    def test_edge_case_is_a_kind_and_every_one_is_traced(self):
+        self.assertIn("edge-case", build_site.KINDS)
+        edges = [f for f in FINDINGS if f["kind"] == "edge-case"]
+        self.assertTrue(edges)
+        for f in edges:
+            with self.subTest(finding=f["id"]):
+                self.assertTrue(f.get("trace"), "an edge case shows how it is computed")
 
-    def test_a_named_contradiction_is_a_card(self):
-        import json
-        cards = {c["id"] for c in json.loads((ROOT / "data" / "contradictions.json").read_text(encoding="utf-8"))["items"]}
-        for c in CASES:
-            if c.get("contradiction"):
-                self.assertIn(c["contradiction"], cards)
-
-    def test_the_findings_page_shows_every_case(self):
-        import build_site
-        html, side = build_site.edge_cases_html({})
-        self.assertIn('id="edge-cases"', html)
-        self.assertIn("#edge-cases", side)
-        for c in CASES:
-            self.assertIn(f'id="{c["id"]}"', html)
+    def test_every_trace_evaluates_and_shows_its_steps(self):
+        traced = [f for f in FINDINGS if f.get("trace")]
+        out = edge_traces.traces([{"id": f["id"], "l4": f["l4"], "trace": f["trace"]} for f in traced])
+        if out is None:
+            self.skipTest("node is not installed")
+        for f in traced:
+            with self.subTest(finding=f["id"]):
+                got = out[f["id"]]
+                self.assertEqual([t["expr"] for t in got], f["trace"])
+                for t in got:
+                    self.assertIsNotNone(t["value"], t["expr"])
+                    self.assertIn("└", t["traceText"])
 
 
 if __name__ == "__main__":
