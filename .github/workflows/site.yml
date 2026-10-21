@@ -80,6 +80,19 @@ jobs:
         with:
           python-version: "3.12"
 
+      # Each file's result is kept under a key that hashes the compiler, the
+      # file, its directory and everything it imports (tools/l4run.py's
+      # key()), and the verdict is recomputed from it, so a restored result
+      # can never stand in for a changed file. Restoring the last run's
+      # results means a push re-runs only what it touched: the cold check of
+      # every file took 13 of a deploy's 19 minutes (2026-10-21).
+      - name: Restore the previous run's L4 results
+        uses: actions/cache@v4
+        with:
+          path: build/l4
+          key: l4-run-${{ runner.os }}-${{ steps.pin.outputs.l4 }}-${{ github.sha }}
+          restore-keys: l4-run-${{ runner.os }}-${{ steps.pin.outputs.l4 }}-
+
       - name: Check every encoding (l4 run + l4 render)
         run: L4=~/.local/bin/l4 make l4
 
