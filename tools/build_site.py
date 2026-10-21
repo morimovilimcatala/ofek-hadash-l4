@@ -768,10 +768,22 @@ def chapter_items(d: str, here: str, open_page: bool) -> list[str]:
     return items
 
 
+def root_link(coll: str, here: str) -> str:
+    """A collection's root (MMS-521) in its sidebar group, beside the
+    overview: the client, 2026-10-21, "the roots should be in the nav bar
+    under their respective class"."""
+    page = roots.page_for(coll)
+    if not page:
+        return ""
+    cur = ' aria-current="page"' if here == page else ""
+    return f'<a class="sn-hub" href="{rel(page, here)}"{cur}>שורש</a>'
+
+
 def group_html(coll: str, label: str, here: str, items: list[str], open_: bool) -> str:
     return (f'<li class="sn-group"><details{" open" if open_ else ""}>'
             f'<summary>{esc(label.split(" — ")[0])}<span class="n">{coll_count(coll)}</span></summary>'
             f'<a class="sn-hub" href="{rel(coll_hub(coll), here)}">סקירה</a>'
+            f'{root_link(coll, here)}'
             f'<ul>{"".join(items)}</ul></details></li>')
 
 
@@ -784,7 +796,8 @@ def tree_nav(here: str) -> str:
         docs = coll_docs(coll)
         if not docs:
             continue
-        here_in = any(here.startswith(d.removesuffix(".xml")) for d in docs) or here == f"{coll}.html"
+        here_in = (any(here.startswith(d.removesuffix(".xml")) for d in docs) or here == f"{coll}.html"
+                   or here == roots.page_for(coll))
         items = []
         if coll == "takanon":
             for d in docs:
@@ -876,6 +889,11 @@ def nav_html(here: str, inner: str | None = None) -> str:
     if inner is None:
         doc = doc_of(here)
         inner = doc_nav(here, doc) if doc else tree_nav(here)
+    # the root (MMS-521) heads the tree: the one place to ask what the law gives
+    root_page = roots.ROOTS[0][1]
+    cur = ' aria-current="page"' if here == root_page else ""
+    inner = (f'<li class="sn-group"><a class="sn-leaf" href="{rel(root_page, here)}"{cur}>'
+             f'{esc(roots.ROOTS[0][3].split(" — ")[0])}</a></li>' + inner)
     return (f'<aside class="sidenav" id="sidenav" aria-label="עיון במסמכים">'
             f'<div class="sn-head"><span>עיון</span>'
             f'<button type="button" class="sn-close" aria-label="סגירה">×</button></div>'
