@@ -1706,7 +1706,8 @@ DELTA = calculator_delta.load()
 def simulator_group(findings: list[dict], by_file: dict[str, "SectionView"], key_to_view) -> tuple[str, str, int]:
     """Where the ministry's simulator and the text part, by cause: a group of
     the contradictions page (tools/calculator_delta.py; the data is
-    data/calculator-delta.json). (section, sidebar entries, rows)."""
+    data/calculator-delta.json). (section, sidebar entries, rows, the
+    grades of its graded rows)."""
     def clause_link(doc: str, key: str) -> tuple[str, str]:
         v = key_to_view.get((doc, key))
         if v is not None:
@@ -1722,7 +1723,8 @@ def simulator_group(findings: list[dict], by_file: dict[str, "SectionView"], key
     html, side = calculator_delta.section(
         DELTA, prose=prose, clause_link=clause_link, finding_ids={f["id"] for f in findings},
         conv_titles=CONVENTION_TITLES, l4_link=l4_link)
-    return html, side, len(calculator_delta.group_rows(DELTA))
+    rows = calculator_delta.group_rows(DELTA)
+    return html, side, len(rows), [g for g in map(calculator_delta.grade, rows) if g]
 
 
 CONTRA = contradictions.load()

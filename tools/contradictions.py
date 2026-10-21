@@ -128,25 +128,31 @@ def errors(data: dict) -> list[dict]:
     return [c for c in data["items"] if any(s.get("agrees") is False for s in c["sides"])]
 
 
-def meter(errs: list[dict]) -> str:
-    n = {k: sum(c["severity"] == k for c in errs) for k in SEV}
-    total = len(errs) or 1
+def meter(grades: list[str]) -> str:
+    """The errors on the page by grade — the graded contradictions and the
+    simulator's graded rows. Each key is also a filter: it shows the cards
+    of that grade (the client, 2026-10-21: "I should be able to filter
+    based on the severity chip")."""
+    n = {k: grades.count(k) for k in SEV}
     segs = "".join(f'<span class="cx-mseg sev-{k}" style="flex:{n[k]}" title="{esc(SEV[k])}: {n[k]}"></span>'
                    for k in SEV if n[k])
-    keys = "".join(f'<span class="cx-mkey sev-{k}"><i></i>{esc(SEV[k])} <b>{n[k]}</b></span>' for k in SEV)
-    return (f'<div class="cx-meter" aria-label="חומרת הטעויות"><p><b>{len(errs)}</b> מתוך הסתירות הן טעויות — '
-            f'מקור שמשלם סוטה בהן מהכלל הגובר. חומרתן:</p><div class="cx-mbar">{segs}</div><div class="cx-mkeys">{keys}</div></div>'
-            if errs else "")
+    keys = "".join(f'<button type="button" class="cx-mkey sev-{k}" data-dim="sev" data-val="{k}" aria-pressed="false">'
+                   f'<i></i>{esc(SEV[k])} <b>{n[k]}</b></button>' for k in SEV if n[k])
+    return (f'<div class="cx-meter" aria-label="חומרת הטעויות"><p><b>{len(grades)}</b> מהסתירות הן טעויות — '
+            f'מקור שמשלם סוטה בהן מהכלל הגובר. חומרתן (לחיצה מסננת):</p><div class="cx-mbar">{segs}</div>'
+            f'<div class="cx-mkeys" role="group" aria-label="סינון לפי חומרה">{keys}</div></div>'
+            if grades else "")
 
 
 def body(data: dict, *, prose, clause_link, finding_ids: set[str], src,
-         simulator: tuple[str, str, int] | None = None) -> tuple[str, str]:
+         simulator: tuple[str, str, int, list[str]] | None = None) -> tuple[str, str]:
     """The page's main column and its sidebar. `clause_link(doc, key)` gives
     (href, label html) for a corpus row; `src(file)` the published URL of a
     crop; `prose` renders our Hebrew with its identifiers isolated;
-    `simulator` the simulator's group as (section, sidebar entries, rows)."""
+    `simulator` the simulator's group as (section, sidebar entries, rows,
+    the grades of its graded rows)."""
     items = data["items"]
-    sim_html, sim_side, sim_n = simulator or ("", "", 0)
+    sim_html, sim_side, sim_n, sim_grades = simulator or ("", "", 0, [])
     out = [f'<h1>{esc(data["title"])}</h1>', f'<p class="lede">{prose(data["lede"])}</p>',
            f'<div class="banner cx-how" lang="he">{prose(data["how"])}</div>']
     # the chips filter the cards by the kinds of source they set against each
@@ -162,7 +168,7 @@ def body(data: dict, *, prose, clause_link, finding_ids: set[str], src,
     out.append(f'<div class="cx-sum" aria-label="סינון לפי סוג המקור">'
                + "".join(rows)
                + f'<div class="cx-frow"><button type="button" class="cx-all" aria-pressed="true">הכול <b>{len(items) + sim_n}</b></button></div></div>')
-    out.append(meter(errors(data)))
+    out.append(meter([c["severity"] for c in errors(data)] + list(sim_grades)))
 
 
     side = ['<li class="sn-group"><details open><summary>בעמוד</summary><ul>']
@@ -211,7 +217,7 @@ def card(c: dict, rules: dict, *, prose, clause_link, finding_ids, src) -> str:
     # is set against what and the grade; a tap opens the rest
     silent = (f'<p class="cx-silent">אין כאן תשובה: {esc(" ".join(c["silent"]))}</p>'
               if c.get("silent") else "")
-    return (f'<details class="cx-card sev-{sev or "none"}" id="{esc(c["id"])}" data-types="{esc(" ".join(types(c)))}">'
+    return (f'<details class="cx-card sev-{sev or "none"}" id="{esc(c["id"])}" data-types="{esc(" ".join(types(c)))}" data-sev="{sev or "none"}">'
             f'<summary><p class="cx-pair">{esc(pair)} {badge}</p><h3>{esc(c["title"])}</h3></summary>'
             f'<p class="cx-stake">{prose(c["stake"])}</p>'
             f'<div class="cx-sides">{sides}</div>'

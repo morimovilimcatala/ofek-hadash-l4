@@ -49,8 +49,17 @@ DISCLAIMER = ("באם הנתונים שהזנת במחשבון אינם משקפ
               "וקיימים במשרד החינוך, שכרך ישולם לפי הנתונים הקיימים במשרד בלבד. "
               "למען הסר ספק יודגש, כי מודול זה מדמה שכר בלבד ולפיכך אין משרד החינוך "
               "מתחייב לתשלום שכר על פי התחשיב המופק ממודול זה.")
-# A row is a card of the page: its "sources" filter knows it as the simulator's.
+# A row is a card of the page: its "sources" filter knows it as the simulator's,
+# and its severity filter by the grade it is given ("none" when ungraded).
 CARD_DATA = ' data-types="simulator"'
+
+
+def card_data(c: dict) -> str:
+    return f'{CARD_DATA} data-sev="{grade(c) or "none"}"'
+
+
+def grade(c: dict) -> str | None:
+    return (c.get("severity") or {}).get("grade")
 STATUS = {"not-encoded": "לא מקודד", "not-comparable": "לא בר־השוואה"}
 
 
@@ -149,7 +158,7 @@ def section(data: dict, *, prose, clause_link, finding_ids: set[str], conv_title
     out.append('<section id="sim-quirks"><h3>הטעויות של הסימולטור עצמו</h3>'
                '<p class="dl-note">התנהגות שהיא באג של הכלי ולא קריאה של הטקסט. גם בה ה־L4 מחשב לפי הטקסט.</p>')
     for q in data["quirks"]:
-        out.append(f'<details class="finding dl-cause cx-card" id="{esc(q["id"])}"{CARD_DATA}><summary>'
+        out.append(f'<details class="finding dl-cause cx-card" id="{esc(q["id"])}"{card_data(q)}><summary>'
                    f'<span class="cls-tag cls-quirk">באג</span><span class="ftitle">{prose(q["title"])}</span>'
                    f'<span class="dl-count">{num(q.get("requests", 0))} בקשות</span></summary><div class="fcard">'
                    f'<p>{prose(q["body"])}</p>{examples_html(q.get("examples", []))}</div></details>')
@@ -227,7 +236,7 @@ def cause_card(c: dict, *, prose, clause_link, finding_ids, conv_titles, l4_link
     sev_html = (f'<p class="fsev"><span class="sev-badge sev-{sev["grade"]}">מוצע: {esc(SEV[sev["grade"]])}</span> '
                 f'{prose(sev["why"])}</p>' if sev else "")
     codes = (f' · קוד <bdi dir="ltr">{", ".join(str(x) for x in c["codes"])}</bdi>' if c.get("codes") else "")
-    return (f'<details class="finding dl-cause cx-card" id="{esc(c["id"])}"{CARD_DATA}><summary>'
+    return (f'<details class="finding dl-cause cx-card" id="{esc(c["id"])}"{card_data(c)}><summary>'
             f'<span class="cls-tag cls-{cls}">{esc(CLASS_SHORT[cls])}</span>'
             f'<span class="ftitle">{prose(c["title"])}</span><span class="dl-count">{count}{codes}</span></summary>'
             f'<div class="fcard">{sev_html}<div class="fbody" lang="he" dir="rtl">{paras}</div>'

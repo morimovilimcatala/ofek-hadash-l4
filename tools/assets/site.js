@@ -360,19 +360,22 @@
   else init();
 })();
 
-// contradictions.html: the "was the rule followed" chips filter the cards.
-// The payslips and the simulator are separate filters, and they combine: a
-// card shows when it matches every source that has a value chosen.
+// contradictions.html: the chips filter the cards — the kinds of source in
+// the filter bar, the grades in the severity meter's keys. Chosen values
+// combine: a card shows when it matches every one.
 (function () {
   var bar = document.querySelector(".cx-sum");
   if (!bar) return;
+  var boxes = [bar, document.querySelector(".cx-meter")].filter(Boolean);
   var all = bar.querySelector(".cx-all");
   var chosen = {};
   function apply() {
     var any = Object.keys(chosen).some(function (k) { return chosen[k]; });
     all.setAttribute("aria-pressed", String(!any));
-    bar.querySelectorAll("button[data-dim]").forEach(function (b) {
-      b.setAttribute("aria-pressed", String(chosen[b.dataset.dim] === b.dataset.val));
+    boxes.forEach(function (box) {
+      box.querySelectorAll("button[data-dim]").forEach(function (b) {
+        b.setAttribute("aria-pressed", String(chosen[b.dataset.dim] === b.dataset.val));
+      });
     });
     document.querySelectorAll(".cx-card").forEach(function (c) {
       c.hidden = Object.keys(chosen).some(function (k) {
@@ -381,19 +384,23 @@
         return k === "types" ? c.dataset.types.split(" ").indexOf(chosen[k]) < 0 : c.dataset[k] !== chosen[k];
       });
     });
-    document.querySelectorAll(".cx-group").forEach(function (g) {
+    // a section, or a class inside the simulator's group, with nothing left
+    // to show hides with its cards
+    document.querySelectorAll(".cx-group, .dl-class, #sim-quirks").forEach(function (g) {
       var n = g.querySelectorAll(".cx-card:not([hidden])").length;
       g.hidden = !n;
-      var small = g.querySelector("h2 small");
+      var small = g.querySelector(":scope > h2 small, :scope > h3 small");
       if (small) small.textContent = n;
     });
   }
-  bar.addEventListener("click", function (e) {
-    var b = e.target.closest("button");
-    if (!b) return;
-    if (b === all) chosen = {};
-    else chosen[b.dataset.dim] = chosen[b.dataset.dim] === b.dataset.val ? null : b.dataset.val;
-    apply();
+  boxes.forEach(function (box) {
+    box.addEventListener("click", function (e) {
+      var b = e.target.closest("button");
+      if (!b) return;
+      if (b === all) chosen = {};
+      else chosen[b.dataset.dim] = chosen[b.dataset.dim] === b.dataset.val ? null : b.dataset.val;
+      apply();
+    });
   });
 })();
 

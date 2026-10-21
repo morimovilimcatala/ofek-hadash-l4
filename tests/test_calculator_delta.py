@@ -158,6 +158,27 @@ class ThePage(unittest.TestCase):
             for f in c["findings"]:
                 self.assertIn(f'href="findings.html#{f}"', self.body)
 
+    def test_each_severity_key_counts_the_cards_it_shows(self):
+        """The meter's keys filter by grade (the client, 2026-10-21: "I
+        should be able to filter based on the severity chip"), so the number
+        on a key is the number of cards on the page carrying that grade — the
+        contradictions' and the simulator's alike — and every card says its
+        grade, "none" when it has none."""
+        import build_site
+        import contradictions
+        html, _ = contradictions.body(contradictions.load(), prose=lambda t: t,
+                                      clause_link=lambda d, k: ("#", k), finding_ids=set(),
+                                      src=lambda f: f,
+                                      simulator=build_site.simulator_group([], {}, {}))
+        cards = re.findall(r'<details class="[^"]*cx-card[^"]*"[^>]*>', html)
+        self.assertTrue(cards)
+        self.assertTrue(all(" data-sev=" in c for c in cards))
+        keys = dict(re.findall(r'class="cx-mkey sev-\w+" data-dim="sev" data-val="(\w+)" '
+                               r'aria-pressed="false"><i></i>[^<]*<b>(\d+)</b>', html))
+        self.assertEqual(set(keys), {"high", "medium", "low"})
+        for k, n in keys.items():
+            self.assertEqual(sum(f'data-sev="{k}"' in c for c in cards), int(n), k)
+
     def test_the_contradictions_page_holds_it_and_the_old_page_redirects(self):
         """No tab of its own (the client, 2026-10-21: "can we remove the
         simulator page?"); its rows are a group of מקורות סותרים, and
@@ -175,7 +196,7 @@ class ThePage(unittest.TestCase):
                                          clause_link=lambda d, k: ("#", k), finding_ids=set(),
                                          src=lambda f: f,
                                          simulator=(self.body, self.side,
-                                                    len(calculator_delta.group_rows(DATA))))
+                                                    len(calculator_delta.group_rows(DATA)), []))
         self.assertIn(f'id="{calculator_delta.GROUP}"', html)
         self.assertIn('data-val="simulator"', html)
         # one page, two sets of cards: no anchor twice
