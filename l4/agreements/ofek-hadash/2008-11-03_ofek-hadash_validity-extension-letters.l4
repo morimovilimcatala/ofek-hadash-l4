@@ -1,0 +1,133 @@
+-- הסכם רפורמת אופק חדש — מכתבי הארכת התוקף (3.11.2008): an exchange of two
+-- letters of the same day. The wages commissioner agrees that the validity
+-- of the collective agreement of 10.9.07 is extended by 60 more days, or
+-- until a final agreement for the reform is signed, whichever is earlier,
+-- on the terms of his letter of 31.8.08; the union's secretary-general
+-- agrees; and both agree that the correspondence be submitted for
+-- registration as a collective agreement.
+--
+-- Neither instrument this letter extends or rests on is encoded: the
+-- founding agreement of 10.9.07 is not, and the letter of 31.8.08 is not
+-- in the corpus. So the day the validity ran to before this extension, and
+-- the terms of 31.8.08, are named inputs here. The final agreement it
+-- waits for is the base agreement of 25.12.2008, which records this
+-- extension in its preamble; its signing day is an input to the rule, as
+-- the letter was written before it.
+
+IMPORT prelude
+IMPORT conventions
+
+§ `מכתבי הארכת התוקף של ההסכם מיום 10.9.07 — 3.11.2008`
+
+DECLARE Party IS ONE OF
+    `the wages commissioner`
+    `the union's secretary-general`
+
+-- akn:preamble The letter's frame: a label row with no text of its own.
+-- akn:preamble/p1 The corpus's title for the exchange; no rule.
+-- akn:preamble/p2 The letterhead: the Ministry of Finance; no rule.
+-- akn:preamble/p3 The letterhead in English; no rule.
+-- akn:preamble/p4 The letterhead: the wages commissioner; no rule.
+-- akn:preamble/p5 The Hebrew date; no rule.
+-- akn:preamble/p6 The date; no rule.
+-- akn:preamble/p7 The letter's reference number; no rule.
+-- akn:preamble/p8 A received stamp (15.2.2009); no rule.
+-- akn:preamble/p9 A handwritten number, illegible; no rule.
+-- akn:preamble/p10 "To"; no rule.
+-- akn:preamble/p11 The addressee; no rule.
+-- akn:preamble/p12 The addressee's post, the union's secretary-general; no rule.
+-- akn:preamble/p13 The greeting; no rule.
+-- akn:preamble/p14 The subject line; no rule.
+
+§§ `מכתב הממונה על השכר`
+
+-- The day the founding agreement's validity ran to before this extension:
+-- as extended by the letter of 31.8.08, which the corpus does not hold.
+ASSUME `the end of the validity of the agreement of 10.9.07 as extended on 31.8.08` IS A DATE
+
+-- The extension is subject to every term of the letter of 31.8.08.
+ASSUME `the terms of the letter of 31.8.08 are met` IS A BOOLEAN
+
+-- ¶1: following the letter of 31.8.08, the validity of the agreement of
+-- 10.9.07 is extended by 60 more days or until a final agreement for the
+-- reform is signed, whichever is earlier, subject to that letter's terms.
+-- Sixty days are counted on the calendar as it is (convention
+-- dates.calendar), from the day the validity ran to; the day a final
+-- agreement is signed ends it (convention dates.end: that day is in it).
+@ref akn:hc_1/p1
+GIVEN `the validity ran to` IS A DATE, `the day a final agreement is signed` IS A MAYBE DATE
+GIVETH A DATE
+DECIDE `the validity of the agreement of 10.9.07 runs to` `the validity ran to` `the day a final agreement is signed` IS
+    CONSIDER `the day a final agreement is signed`
+    WHEN JUST signed THEN DATE_FROM_SERIAL (min (DATE_SERIAL `the validity ran to` PLUS 60) (DATE_SERIAL signed))
+    WHEN NOTHING THEN DATE_FROM_SERIAL (DATE_SERIAL `the validity ran to` PLUS 60)
+
+GIVEN d IS A DATE, `the validity ran to` IS A DATE, `the day a final agreement is signed` IS A MAYBE DATE
+GIVETH A BOOLEAN
+DECIDE `the agreement of 10.9.07 is in force by this extension on` d `the validity ran to` `the day a final agreement is signed` IF
+        DATE_SERIAL d GREATER THAN DATE_SERIAL `the validity ran to`
+    AND d `is on or before` (`the validity of the agreement of 10.9.07 runs to` `the validity ran to` `the day a final agreement is signed`)
+
+-- The extension as the letters made it: from the day the validity ran to
+-- under the letter of 31.8.08.
+GIVEN `the day a final agreement is signed` IS A MAYBE DATE
+GIVETH A DATE
+DECIDE `the validity as extended on 3.11.08 runs to` `the day a final agreement is signed` IS
+    `the validity of the agreement of 10.9.07 runs to` `the end of the validity of the agreement of 10.9.07 as extended on 31.8.08` `the day a final agreement is signed`
+
+-- With the validity running to 31.10.2008 (an example; the real day is the
+-- input above), 60 days take it to 30.12.2008, and a final agreement
+-- signed on 25.12.2008 ends it that day.
+#ASSERT `the validity of the agreement of 10.9.07 runs to` (DATE_FROM_DMY 31 10 2008) NOTHING EQUALS DATE_FROM_DMY 30 12 2008
+#ASSERT `the validity of the agreement of 10.9.07 runs to` (DATE_FROM_DMY 31 10 2008) (JUST (DATE_FROM_DMY 25 12 2008)) EQUALS DATE_FROM_DMY 25 12 2008
+#ASSERT `the agreement of 10.9.07 is in force by this extension on` (DATE_FROM_DMY 25 12 2008) (DATE_FROM_DMY 31 10 2008) (JUST (DATE_FROM_DMY 25 12 2008))
+#ASSERT NOT `the agreement of 10.9.07 is in force by this extension on` (DATE_FROM_DMY 26 12 2008) (DATE_FROM_DMY 31 10 2008) (JUST (DATE_FROM_DMY 25 12 2008))
+
+-- akn:hc_1/p2 The commissioner asks for a letter in reply agreeing to this one; a request, which the reply answers.
+
+DECLARE `letters action` IS ONE OF `submit the correspondence for registration as a collective agreement`
+
+-- ¶3, and the reply's last paragraph: each side agrees that the
+-- correspondence be submitted for registration as a collective agreement.
+-- The text sets no day for it (convention dates.no-deadline).
+@ref akn:hc_1/p3 akn:att_1__hc_1/p13
+`the registration` MEANS
+    PARTY `the wages commissioner`
+    MAY `submit the correspondence for registration as a collective agreement`
+
+-- akn:conclusions The sign-off: a label row with no text of its own.
+-- akn:conclusions/p1 The closing greeting; no rule.
+-- akn:conclusions/p2 The signature; no rule.
+-- akn:conclusions/p3 The signatory's name; no rule.
+-- akn:conclusions/p4 The union's received stamp (10.11.2008); no rule.
+-- akn:conclusions/p5 The ministry's address; no rule.
+-- akn:conclusions/p6 The ministry's web addresses; no rule.
+
+§§ `מכתב התשובה של מזכ"ל הסתדרות המורים`
+
+-- akn:attachments The annexes' frame: a label row with no text of its own.
+-- akn:att_1__hc_1/p1 The corpus's note naming the reply; no rule.
+-- akn:att_1__hc_1/p2 The Hebrew date; no rule.
+-- akn:att_1__hc_1/p3 The date; no rule.
+-- akn:att_1__hc_1/p4 The letter's reference number; no rule.
+-- akn:att_1__hc_1/p5 "To"; no rule.
+-- akn:att_1__hc_1/p6 The addressee; no rule.
+-- akn:att_1__hc_1/p7 The addressee's post, the wages commissioner; no rule.
+-- akn:att_1__hc_1/p8 The addressee's ministry; no rule.
+-- akn:att_1__hc_1/p9 The greeting; no rule.
+-- akn:att_1__hc_1/p10 The subject line; no rule.
+-- akn:att_1__hc_1/p11 The reference to the commissioner's letter of 3.11.08; no rule.
+
+-- The union's secretary-general agrees to the further extension of the
+-- agreement of 10.9.07, subject to the terms of 31.8.08: the extension of
+-- the commissioner's letter holds once both letters agree to it, on those
+-- terms.
+@ref akn:att_1__hc_1/p12
+GIVEN `the union agreed in writing` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `the extension is agreed` `the union agreed in writing` IF
+    `the union agreed in writing` AND `the terms of the letter of 31.8.08 are met`
+
+-- akn:attachments/p1 The closing greeting; no rule.
+-- akn:attachments/p2 The signature; no rule.
+-- akn:attachments/p3 The signatory's name and post; no rule.
