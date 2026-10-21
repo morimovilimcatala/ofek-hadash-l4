@@ -1,0 +1,56 @@
+-- הסכם אופק חדש (25.12.2008), §35 טבלת השכר המשולב החדשה: the new combined
+-- salary tables, for teachers with a first and with a second degree, as of
+-- 1.12.08, are annexes ד' and ה'; they are raised on 1.12.09 by the rate
+-- that completes 3% over the tables of the interim agreement of 10.9.07,
+-- and on the dates and at the rates of the cost-of-living supplement.
+
+IMPORT prelude
+IMPORT `base-agreement-common`
+IMPORT conventions
+
+§ `35 טבלת השכר המשולב החדשה`
+
+DECLARE `degree table` IS ONE OF `the first-degree table`, `the second-degree table`
+
+-- (א): the tables are annexes ד' and ה', which the corpus does not publish
+-- with the agreement: an input (convention amounts.inputs), by table, grade
+-- and years of seniority.
+@ref akn:art_35__para_a
+ASSUME `the annexed table as of 1.12.08` IS A FUNCTION FROM `degree table` AND NUMBER AND NUMBER TO NUMBER
+
+`the tables are as of` MEANS DATE_FROM_DMY 1 12 2008
+
+-- (ב)(1): on 1.12.09 a rate that completes 3% over the interim agreement's
+-- tables; the rate is not printed, so it is an input. (ב)(2): at each
+-- payment of the cost-of-living supplement, its rate.
+@ref akn:art_35__para_b akn:art_35__para_b__subpara_1 akn:art_35__para_b__subpara_2
+DECLARE `table update` HAS
+    `from`   IS A DATE
+    `rate`   IS A NUMBER
+
+`the completing update falls on` MEANS DATE_FROM_DMY 1 12 2009
+
+-- The rate that completes 3% over a cell of the interim tables: the cell
+-- rises to 103% of the interim cell.
+GIVEN `the interim agreement's cell` IS A NUMBER, `the cell as of 1.12.08` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the completing rate for a cell` `the interim agreement's cell` `the cell as of 1.12.08` IS
+    (1.03 TIMES `the interim agreement's cell` DIVIDED BY `the cell as of 1.12.08`) MINUS 1
+
+-- A cell on a day: the annexed value raised by every update in force by then.
+GIVEN `annexed value` IS A NUMBER
+      d IS A DATE
+      updates IS A LIST OF `table update`
+GIVETH A NUMBER
+DECIDE `the cell on` `annexed value` d updates IS
+    `annexed value` TIMES product (map (GIVEN u YIELD IF d `is on or after` (u's `from`) THEN 1 PLUS u's `rate` ELSE 1) updates)
+
+-- A placeholder cell of 100 in the interim tables and 101 in the annexes:
+-- the completing rate takes it to 103 on 1.12.09.
+`the completing update of the placeholder cell` MEANS
+    `table update` WITH
+        `from` IS `the completing update falls on`
+        `rate` IS `the completing rate for a cell` 100 101
+
+#ASSERT `the cell on` 101 (DATE_FROM_DMY 1 12 2009) (LIST `the completing update of the placeholder cell`) EQUALS 103
+#ASSERT `the cell on` 101 (DATE_FROM_DMY 30 11 2009) (LIST `the completing update of the placeholder cell`) EQUALS 101

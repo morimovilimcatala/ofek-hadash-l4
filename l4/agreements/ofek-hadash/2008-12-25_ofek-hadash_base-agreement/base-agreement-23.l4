@@ -1,0 +1,94 @@
+-- הסכם אופק חדש (25.12.2008), §23: a permanent teacher moved from the
+-- junior-high week to the primary week by the Ministry's demand or the
+-- closing of the school works the primary week and is owed a personal
+-- supplement of 12.5% of the combined salary times the junior-high share of
+-- the position on the eve of the move; the State works for its recognition
+-- in the budgetary pension, and pension and study-fund contributions are
+-- made on it.
+
+IMPORT prelude
+IMPORT `base-agreement-common`
+§ `23`
+
+-- akn:art_23 The clause's heading line ("מורה שעבר מהעסקה לפי מבנה שבוע עבודה של חטיבת ביניים…"); its rules are (א)–(ג).
+
+DECLARE `cause of the move` IS ONE OF
+    `the Ministry's demand`
+    `the closing of the school`
+    `another cause`
+
+@desc A teacher moved from the junior-high week to the primary week, as far as §23 asks.
+DECLARE `moved teacher` HAS
+    `permanent`                                IS A BOOLEAN
+    `was on the reform's junior-high week`     IS A BOOLEAN
+    cause                                      IS A `cause of the move`
+    `junior-high position fraction on the eve of the move` IS A NUMBER
+    `combined salary`                          IS A NUMBER @desc the teacher's combined salary (שכר משולב); from the tables of §35, an input
+
+@ref akn:art_23__para_a
+GIVEN t IS A `moved teacher`
+GIVETH A BOOLEAN
+DECIDE `entitled to the section 23 supplement` t IF
+        t's `permanent`
+    AND t's `was on the reform's junior-high week`
+    AND NOT t's cause EQUALS `another cause`
+
+`the section 23 rate` MEANS 12.5%
+
+-- No rounding is stated (convention rounding.default).
+GIVEN t IS A `moved teacher`
+GIVETH A NUMBER
+DECIDE `the section 23 personal supplement` t IS
+    IF `entitled to the section 23 supplement` t
+    THEN `the section 23 rate` TIMES t's `combined salary` TIMES t's `junior-high position fraction on the eve of the move`
+    ELSE 0
+
+DECLARE `section 23 action` IS ONE OF
+    `act to have the supplement recognised as permanent for the pension law`
+    `make accrual-pension contributions on the supplement`
+    `make study-fund contributions on the supplement`
+
+-- (ב): the State acts for recognition as a permanent supplement under the
+-- State Service (Pensions) Law; for one insured in an accrual pension,
+-- contributions are made on it. (ג): study-fund contributions are made on
+-- it.
+@ref akn:art_23__para_b
+GIVEN `insured in an accrual pension` IS A BOOLEAN
+GIVETH A DEONTIC Party `section 23 action`
+DECIDE `the pension on the section 23 supplement` `insured in an accrual pension` IS
+    IF `insured in an accrual pension`
+    THEN PARTY `the State` MUST `make accrual-pension contributions on the supplement`
+         LEST BREACH BY `the State` BECAUSE "section 23(ב): accrual-pension contributions on the supplement"
+    ELSE PARTY `the State` MUST `act to have the supplement recognised as permanent for the pension law`
+         LEST BREACH BY `the State` BECAUSE "section 23(ב): the State acts for the supplement's recognition"
+
+@ref akn:art_23__para_c
+GIVETH A DEONTIC Party `section 23 action`
+DECIDE `the study fund on the section 23 supplement` IS
+    PARTY `the State` MUST `make study-fund contributions on the supplement`
+    LEST BREACH BY `the State` BECAUSE "section 23(ג): study-fund contributions on the supplement"
+
+-- A teacher wholly in the junior high school, closed down, on a combined
+-- salary of 8,000 (a placeholder): 12.5% of 8,000 = 1,000.
+`a teacher moved when the school closed` MEANS
+    `moved teacher` WITH
+        `permanent`                                IS TRUE
+        `was on the reform's junior-high week`     IS TRUE
+        cause                                      IS `the closing of the school`
+        `junior-high position fraction on the eve of the move` IS 1
+        `combined salary`                          IS 8000
+
+#ASSERT `the section 23 personal supplement` `a teacher moved when the school closed` EQUALS 1000
+
+`a teacher who moved by choice` MEANS
+    `moved teacher` WITH
+        `permanent`                                IS TRUE
+        `was on the reform's junior-high week`     IS TRUE
+        cause                                      IS `another cause`
+        `junior-high position fraction on the eve of the move` IS 0.5
+        `combined salary`                          IS 8000
+
+#ASSERT `the section 23 personal supplement` `a teacher who moved by choice` EQUALS 0
+
+#TRACE `the study fund on the section 23 supplement` AT 0 WITH
+    PARTY `the State` DOES `make study-fund contributions on the supplement` AT 30

@@ -66,6 +66,18 @@ with `HENCE`/`LEST`), not booleans standing in for them.
   INPUT (`GIVEN` / `ASSUME`), never a number made up.
 - **Isomorphic.** One file per section, `l4/<corpus path>/<num>.l4`; inside
   it the clauses in the text's order, a `§§` per numbered paragraph.
+- **One codebase, one namespace (the client, 2026-10-21, MMS-524: "don't
+  patch the compiler … go with unique names").** Every module's file name is
+  unique in the repository, because the pinned compiler finds an import by
+  its bare name. A sectioned document whose numbers would collide carries a
+  prefix (`akn.MODULE_PREFIX`): the base agreement's §70 is
+  `base-agreement-70.l4`, the takanon's §1.1 stays `1.1.l4`. `l4/modules/`
+  links every module under its one name and is on every run's
+  `JL4_LIBRARY_PATH` (`tools/modules.py --write` after adding a file;
+  `tests.test_repo.OneNamespace` holds it), so ANY file imports ANY module
+  by name: `` IMPORT `base-agreement-70` `` from a circular works. A file
+  imported through a link resolves its own imports from the link's
+  directory, which is why the links all live in one directory.
 - **Every paragraph is accounted for.** Each text row of the section is
   covered by a segment that cites it or an ancestor:
   - `@ref akn:<key>` on the declaration that encodes it, or
@@ -80,7 +92,10 @@ with `HENCE`/`LEST`), not booleans standing in for them.
   on a key that is not in the section and on a text row nobody cites.
 - **A cross-reference is an IMPORT or a named input, never a copy.** "כמפורט
   בפרק X" is a call into X's file when X is encoded, and a named `ASSUME`
-  with the target in its `@desc` until it is.
+  with the target in its `@desc` until it is. This holds ACROSS documents
+  (MMS-521): a circular that applies an agreement's rule imports the
+  agreement's module rather than re-encoding the rule; an amendment encodes
+  what it changes, dated, and imports the rest.
 - **Never resolve an ambiguity silently.** Where the text gives two answers,
   or none, the L4 says which reading it takes in a comment beside the rule,
   and the finding is filed (next section).

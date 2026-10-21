@@ -32,7 +32,8 @@ refused) has nothing to encode until the corpus reads its pages.
 | Path | What |
 |---|---|
 | `corpus/` | read-only snapshot of the corpus's Akoma Ntoso (`SOURCE.toml` names the commit) and its document list |
-| `l4/<corpus path>/<section>.l4` | one L4 file per section, laid out like the corpus |
+| `l4/<corpus path>/<section>.l4` | one L4 file per section, laid out like the corpus; every module's file name is unique (the base agreement's sections are `base-agreement-<N>.l4`) |
+| `l4/modules/` | a link to every module under its one name, on every run's `JL4_LIBRARY_PATH`, so any file can import any module (`tools/modules.py`, MMS-524) |
 | `conventions.toml`, `l4/conventions.l4` | the rules of reading the encoding follows where the text does not decide, and the one L4 definition of each that is a computation, which the rules import |
 | `findings/<corpus path>/<section>.toml` (one per section) | errors in the text the encoding exposed, each backed by an `#ASSERT` |
 | `data/calculator-delta.json` | the comparison with the ministry's salary simulator: inputs, outputs, mappings, clauses and classifications only (written outside this repository; shown as the simulator's group of the contradictions page) |

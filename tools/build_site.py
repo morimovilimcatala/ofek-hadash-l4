@@ -366,7 +366,7 @@ class SectionView:
 def l4_path(doc: str, num: str) -> Path:
     if akn.is_whole(doc):
         return ROOT / "l4" / f"{doc.removesuffix('.xml')}.l4"
-    return ROOT / "l4" / doc.removesuffix(".xml") / f"{akn.file_name(num)}.l4"
+    return ROOT / "l4" / doc.removesuffix(".xml") / f"{akn.module_prefix(doc)}{akn.file_name(num)}.l4"
 
 
 def under(key: str, anc: str) -> bool:

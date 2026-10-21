@@ -60,7 +60,8 @@ class Alignment(unittest.TestCase):
         import laws
         statutes = {laws.l4_file(n) for n in laws.all_laws()}
         for f in (ROOT / "l4").rglob("*.l4"):
-            if f.name in ("common.l4", "conventions.l4") or f.parent.name == "lib" or f.is_symlink():
+            if (f.name in ("common.l4", "conventions.l4") or f.name.endswith("-common.l4")
+                    or f.parent.name == "lib" or f.is_symlink() or f.parent.name == "modules"):
                 continue
             if f in statutes:  # a statute outside the corpus: see StatutesOutsideTheCorpus
                 continue
@@ -367,6 +368,27 @@ class ConventionsModule(unittest.TestCase):
                                     f"no rule it names calls {code}")
 
 
+class OneNamespace(unittest.TestCase):
+    """EVERY L4 MODULE HAS ONE NAME, AND IS REACHABLE BY IT FROM ANY FILE
+    (the client, 2026-10-21, MMS-524: "go with unique names"). The pinned
+    compiler finds an import by its bare file name, so two files under one
+    name would make an import ambiguous, and l4/modules/, on every run's
+    library path, is what lets a file import a module in another directory."""
+
+    def test_no_two_files_share_a_name_and_l4_modules_matches_the_tree(self):
+        sys.path.insert(0, str(ROOT / "tools"))
+        import modules
+        self.assertEqual(modules.problems(), [],
+                         "run python3 tools/modules.py --write (or rename the clashing file)")
+
+    def test_a_sectioned_documents_files_carry_its_prefix(self):
+        for doc, prefix in akn.MODULE_PREFIX.items():
+            d = ROOT / "l4" / doc.removesuffix(".xml")
+            real = [f for f in d.glob("*.l4") if not f.is_symlink()]
+            self.assertTrue(real)
+            self.assertEqual([f.name for f in real if not f.name.startswith(prefix)], [])
+
+
 class Toolchain(unittest.TestCase):
     def test_every_file_checks_and_every_assert_holds(self):
         import l4run
@@ -568,7 +590,8 @@ class Agreements(unittest.TestCase):
         self.assertEqual([s.num for s in secs[1:-1]], [str(n) for n in range(1, 161)])
         self.assertTrue(all(s.chapter_eid.startswith("part_") for s in secs[1:-1]))
         # a frame section's file and page are named in ASCII
-        self.assertEqual(site_mod.l4_path(self.BASE, secs[0].num).name, "preamble.l4")
+        # (and prefixed, so every module's name is unique: MMS-524)
+        self.assertEqual(site_mod.l4_path(self.BASE, secs[0].num).name, "base-agreement-preamble.l4")
         keys = [k for s in secs for k in s.keys()]
         self.assertEqual(len(keys), len(set(keys)))
         self.assertEqual(site_mod.citations(secs[0])["preamble/p3"], "פתיח ¶3")

@@ -224,6 +224,19 @@ WHOLE_PARTS = ("preamble", "mainBody", "body", "conclusions", "attachments")
 # זה ... מהווים חלק בלתי נפרד ממנו").
 SECTIONED = {"takanon/takanon-sherut-ovdei-horaa.xml",
              "agreements/ofek-hadash/2008-12-25_ofek-hadash_base-agreement.xml"}
+# EVERY L4 MODULE'S NAME IS UNIQUE IN THE REPOSITORY (the client, 2026-10-21,
+# MMS-524): the pinned compiler finds an import by its bare file name, so one
+# codebase, in which any file imports any other, needs one namespace. A
+# sectioned document's section files carry this prefix where their numbers
+# would collide with another document's: the base agreement's §9 is
+# `base-agreement-9.l4`, its shared helpers `base-agreement-common.l4`, and
+# the takanon's §9 stays `9.l4`. l4/modules/ links every module by its name
+# (tools/modules.py).
+MODULE_PREFIX = {"agreements/ofek-hadash/2008-12-25_ofek-hadash_base-agreement.xml": "base-agreement-"}
+
+
+def module_prefix(relative: str) -> str:
+    return MODULE_PREFIX.get(relative, "")
 
 # how a sectioned document divides: (chapter element, section element)
 DIVISIONS = (("chapter", "section"), ("part", "article"))

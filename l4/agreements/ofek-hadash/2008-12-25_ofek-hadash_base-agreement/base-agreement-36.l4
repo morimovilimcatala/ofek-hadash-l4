@@ -1,0 +1,124 @@
+-- הסכם אופק חדש (25.12.2008), §36 שיבוץ בטבלאות השכר: a new academic
+-- teacher starts at grade 1 and seniority 0 (or the seniority of IDF or
+-- national service in teaching); the table is by degree, a doctorate on the
+-- second-degree table with 5% of the combined salary; and a teacher with a
+-- second degree or a doctorate and no teaching certificate or
+-- certification, under 25 years of seniority, is not promoted until he has
+-- one.
+
+IMPORT prelude
+IMPORT `base-agreement-common`
+IMPORT `base-agreement-35`
+§ `36 שיבוץ בטבלאות השכר`
+
+DECLARE `highest degree` IS ONE OF `a first degree`, `a second degree`, `a doctorate`
+
+-- (א): after the internship year, grade 1 and seniority 0, or the
+-- seniority recognised for IDF or national service in teaching (§37).
+@ref akn:art_36__para_a
+DECLARE `placement` HAS
+    table     IS A `degree table`
+    grade     IS A NUMBER
+    seniority IS A NUMBER
+
+-- (ב)–(ד)(1): the table by the degree; a doctorate on the second-degree table.
+@ref akn:art_36__para_b akn:art_36__para_c akn:art_36__para_d akn:art_36__para_d__subpara_1
+GIVEN d IS A `highest degree`
+GIVETH A `degree table`
+DECIDE `the table for` d IS
+    IF d EQUALS `a first degree` THEN `the first-degree table` ELSE `the second-degree table`
+
+GIVEN d IS A `highest degree`, `service seniority in teaching` IS A NUMBER
+GIVETH A `placement`
+DECIDE `a new academic teacher's placement` d `service seniority in teaching` IS
+    `placement` WITH
+        table     IS `the table for` d
+        grade     IS 1
+        seniority IS `service seniority in teaching`
+
+-- (ד)(2): a doctorate adds 5% of the combined salary in the table. No
+-- rounding is stated (convention rounding.default).
+@ref akn:art_36__para_d__subpara_2
+`the doctorate rate` MEANS 5%
+
+GIVEN d IS A `highest degree`, `combined salary in the table` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the doctorate supplement` d `combined salary in the table` IS
+    IF d EQUALS `a doctorate` THEN `the doctorate rate` TIMES `combined salary in the table` ELSE 0
+
+DECLARE `section 36 action` IS ONE OF
+    `act to have the doctorate supplement recognised as permanent for the pension law`
+    `make accrual-pension contributions on the doctorate supplement`
+    `make study-fund contributions on the doctorate supplement`
+
+-- (ד)(3): the State acts for its recognition under the pensions law; for
+-- one in an accrual pension, contributions are made on it. (ד)(4): study
+-- fund contributions are made on it.
+@ref akn:art_36__para_d__subpara_3
+GIVEN `insured in an accrual pension` IS A BOOLEAN
+GIVETH A DEONTIC Party `section 36 action`
+DECIDE `the pension on the doctorate supplement` `insured in an accrual pension` IS
+    IF `insured in an accrual pension`
+    THEN PARTY `the State` MUST `make accrual-pension contributions on the doctorate supplement`
+         LEST BREACH BY `the State` BECAUSE "section 36(ד)(3): accrual-pension contributions on the supplement"
+    ELSE PARTY `the State` MUST `act to have the doctorate supplement recognised as permanent for the pension law`
+         LEST BREACH BY `the State` BECAUSE "section 36(ד)(3): the State acts for the supplement's recognition"
+
+@ref akn:art_36__para_d__subpara_4
+GIVETH A DEONTIC Party `section 36 action`
+DECIDE `the study fund on the doctorate supplement` IS
+    PARTY `the State` MUST `make study-fund contributions on the doctorate supplement`
+    LEST BREACH BY `the State` BECAUSE "section 36(ד)(4): study-fund contributions on the supplement"
+
+-- (ה): a teacher with a second degree or a doctorate, with no teaching
+-- certificate or certification to teach, and with teaching seniority (§37)
+-- below 25 years, is not promoted until entitled to one. F-ofek-hadash-base-36-a:
+-- the bar names only the second degree and the doctorate ("על אף האמור
+-- בסעיפים קטנים (ג) ו – (ד)"); of a first-degree teacher without
+-- certification the agreement says nothing. The reading adopted (convention
+-- reading.contrast): what is said of the higher degrees is not said of the
+-- first, which is not barred.
+@ref akn:art_36__para_e
+GIVEN d IS A `highest degree`, `certified to teach` IS A BOOLEAN, `years of teaching seniority` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `barred from promotion under 36(ה)` d `certified to teach` `years of teaching seniority` IF
+        NOT d EQUALS `a first degree`
+    AND NOT `certified to teach`
+    AND `years of teaching seniority` LESS THAN 25
+
+-- (ה), its second sentence: once he studies for the certificate, the
+-- promotion period counts from the start of the studies, but no more than
+-- one grade's period; and the studies count toward §38(א)(2)'s criteria.
+GIVEN `months from the start of the studies` IS A NUMBER, `months one grade's promotion asks` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `months counted toward promotion from the studies` `months from the start of the studies` `months one grade's promotion asks` IS
+    min `months from the start of the studies` `months one grade's promotion asks`
+
+-- (ו)(1): "תואר" is an academic degree as §7 defines it; (2): one
+-- certified on the strength of reserve examinations, by the
+-- director-general's circulars, is certified to teach.
+@ref akn:art_36__para_f akn:art_36__para_f__subpara_1 akn:art_36__para_f__subpara_2
+DECLARE `ground of certification` IS ONE OF
+    `a teaching certificate`
+    `certification to teach`
+    `certification on the strength of reserve examinations`
+    `none`
+
+GIVEN g IS A `ground of certification`
+GIVETH A BOOLEAN
+DECIDE `certified to teach under section 36` g IF
+    NOT g EQUALS `none`
+
+`what 36(ה) says of an uncertified first-degree teacher` MEANS
+    `barred from promotion under 36(ה)` `a first degree` FALSE 3
+`the bar of 36(ה) passes over the first degree` MEANS
+        `barred from promotion under 36(ה)` `a second degree` FALSE 3
+    AND NOT `what 36(ה) says of an uncertified first-degree teacher`
+#ASSERT `the bar of 36(ה) passes over the first degree`
+
+#ASSERT `a new academic teacher's placement` `a doctorate` 0 EQUALS (`placement` WITH table IS `the second-degree table`, grade IS 1, seniority IS 0)
+#ASSERT `the doctorate supplement` `a doctorate` 9000 EQUALS 450
+#ASSERT `the doctorate supplement` `a second degree` 9000 EQUALS 0
+#ASSERT NOT `barred from promotion under 36(ה)` `a second degree` FALSE 25
+#ASSERT `months counted toward promotion from the studies` 30 24 EQUALS 24
+#ASSERT `certified to teach under section 36` `certification on the strength of reserve examinations`
