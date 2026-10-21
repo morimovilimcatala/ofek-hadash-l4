@@ -111,21 +111,21 @@ with `HENCE`/`LEST`), not booleans standing in for them.
 
 The client, 2026-10-21: "one source of truth to query the law which 'uses'
 all the files to give one answer", and disagreements raised as errors.
-- **A shared vocabulary**, `l4/lib/vocabulary.l4`: one declaration per thing
-  two instruments speak about (the 2008 supplement's case record first).
-  An instrument's file imports it and adds `<item> according to
-  <instrument>`, a `MAYBE` answer from its own rules (NOTHING where it does
-  not speak).
+- **A shared vocabulary**, `l4/lib/vocabulary.l4`: the `pay item`s two or
+  more instruments speak about, one `teaching case` record of the facts they
+  ask, and the `instrument` record. An instrument's file imports it,
+  describes itself (`instrument`: kind, date, §29 facts) and adds `<item>
+  according to <instrument>`, a `MAYBE` answer from its own rules (NOTHING
+  where it does not speak). Nothing in the roots names an item but data.
 - **Collection roots**, `l4/lib/takanon-root.l4`, `agreements-root.l4`,
-  `circulars-root.l4`: each registers its collection's instruments once (an
-  `instrument` record: kind, date, §29 facts) and gathers their claims. They
-  come before the root, which imports them.
+  `circulars-root.l4`: each lists the instruments it includes and gathers
+  their claims for an item. They come before the root, which imports them.
 - **Precedence once**, `l4/lib/precedence.l4`: the takanon's introduction,
   then the later circular over the earlier (`precedence.later-circular`),
   §23 among agreements, §29 then §22 between an agreement and the
   employer's term. No instrument keeps its own copy of these.
-- **The root**, `l4/lib/root.l4`: for each item, the one public answer
-  (`the 2008 supplement that governs`), and the gate: over a grid of cases,
+- **The root**, `l4/lib/root.l4`: the one public answer, `the answer that
+  governs` item case, and the gate: over a grid of cases,
   any item and case where the claims give two or more answers is a
   contradiction; `unresolved contradictions` is `#ASSERT null`, and a
   contradiction is resolved only by an entry in `the resolutions` naming the

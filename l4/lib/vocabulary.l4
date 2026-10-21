@@ -4,13 +4,31 @@
 -- instrument's file imports this module and adds `<item> according to
 -- <instrument>`, defined from its own rules; nothing here computes a claim.
 --
--- It imports the prelude and the conventions only, so that any module can
--- import it — the takanon's §1.1 among them, which the calculator ships.
+-- It imports the prelude, the conventions and the takanon's introduction
+-- (for the kinds of source) only, so that any module can import it — the
+-- takanon's §1.1 among them, which the calculator ships.
 
 IMPORT prelude
 IMPORT conventions
+IMPORT terms
 
 § `אוצר המילים המשותף — מה שכמה מסמכים מדברים עליו`
+
+§§ `המסמך`
+
+-- How an instrument describes itself, in its own file: which module encodes
+-- it, its name, its kind as the takanon's introduction tells sources apart,
+-- its date, and the two facts §29 of the Budget Foundations Law asks of what
+-- it gives. A collection's root lists the instruments it includes.
+@desc An instrument that may speak to a pay item.
+DECLARE `instrument` HAS
+    `module`        IS A STRING @desc the L4 module that encodes it
+    `title`         IS A STRING @desc its name, in Hebrew
+    `kind`          IS A `kind of source` @desc as the takanon's introduction tells sources apart
+    `is the takanon` IS A BOOLEAN
+    `issued`        IS A DATE
+    `practised for all state employees` IS A BOOLEAN @desc what it gives is as agreed or practised for all state employees (§29(א))
+    `approved by the Finance Minister`  IS A BOOLEAN @desc what it gives was approved by the Finance Minister (§29(א))
 
 §§ `המעסיק`
 
@@ -30,14 +48,28 @@ GIVETH A BOOLEAN
 DECIDE `is an owning body` e IF
     NOT e EQUALS `employed by the State`
 
-§§ `תוספת 2008`
+§§ `פריטי השכר`
 
--- "תוספת 2008": the public-sector wage supplement of 2008 for teaching
--- employees not in a reform. Every instrument that speaks of it gives an
--- amount for a salary month; what each needs to know of the teacher is
--- here, in one record.
-@desc A teaching employee's salary month, as far as any instrument speaking of the 2008 supplement asks about it.
-DECLARE `2008 supplement case` HAS
+-- The pay items two or more instruments speak about. Each is asked of the
+-- root as one question — `the answer that governs` item case — whatever
+-- instruments speak to it; a new item is a new constructor here, its
+-- facts in the case below, and its claims in the instruments' files.
+DECLARE `pay item` IS ONE OF
+    @desc "תוספת 2008": the public-sector wage supplement of 2008 for teaching employees not in a reform
+    `the 2008 public-sector supplement`
+
+GIVEN i IS A `pay item`
+GIVETH A STRING
+DECIDE `the name of the item` i IS
+    CONSIDER i
+    WHEN `the 2008 public-sector supplement` THEN "תוספת 2008"
+
+§§ `המקרה`
+
+-- What any instrument may ask about a teaching employee in a salary month,
+-- in one record: an item uses the facts it needs and ignores the rest.
+@desc A teaching employee's salary month, as far as any instrument speaking to a pay item asks about it.
+DECLARE `teaching case` HAS
     `the salary month`                IS A DATE    @desc any day of the salary month
     `employer`                        IS A `the teacher's employer`
     `in post-primary education`       IS A BOOLEAN @desc employed in post-primary (על-יסודי) education
@@ -51,7 +83,7 @@ DECLARE `2008 supplement case` HAS
 
 -- Whether the case's salary month is month m of year y or later: any day
 -- of the month says which month it is (convention dates.start).
-GIVEN c IS A `2008 supplement case`, y IS A NUMBER, m IS A NUMBER
+GIVEN c IS A `teaching case`, y IS A NUMBER, m IS A NUMBER
 GIVETH A BOOLEAN
 DECIDE `the salary month is at least` c y m IF
     (c's `the salary month`) `is on or after` (DATE_FROM_DMY 1 m y)

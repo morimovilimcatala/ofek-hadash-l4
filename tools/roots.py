@@ -45,7 +45,6 @@ ROOTS = [
 ]
 
 STRING = re.compile(r'"((?:[^"\\]|\\.)*)"')
-REGISTERED = re.compile(r'`module`\s+IS\s+"([^"]+)"\s*\n\s*`title`\s+IS\s+"((?:[^"\\]|\\.)*)"')
 
 
 def page_for(coll: str) -> str | None:
@@ -76,9 +75,12 @@ def evaluated(module: str, name: str) -> str | None:
 
 
 def registered(module: str) -> list[tuple[str, str]]:
-    """The instruments a collection root registers: (module, title)."""
-    text = (LIB / f"{module}.l4").read_text(encoding="utf-8")
-    return [(m, t.replace('\\"', '"')) for m, t in REGISTERED.findall(text)]
+    """The instruments a collection root includes, (module, title), as the
+    root itself evaluates them: each instrument describes itself in its own
+    file, so they are read from `make l4`'s results, not from source text."""
+    src = (LIB / f"{module}.l4").read_text(encoding="utf-8")
+    expr = next(l.strip()[len("#EVAL "):] for l in src.splitlines() if l.startswith("#EVAL map"))
+    return [tuple(x.split(" | ", 1)) for x in strings(evaluated(module, expr) or "")]
 
 
 def page_body(module: str, here: str, coll: str, heading: str, about: str, *,
@@ -97,7 +99,7 @@ def page_body(module: str, here: str, coll: str, heading: str, about: str, *,
              f'<p class="lede">{esc(about)}</p>']
     if module == "root":
         unresolved = strings(evaluated("root", "`unresolved contradictions`") or "")
-        cases = evaluated("root", "count `the 2008 supplement cases`") or "?"
+        cases = evaluated("root", "count `the cases checked`") or "?"
         state = ("אין סתירה שלא הוכרעה" if not unresolved
                  else f"{len(unresolved)} סתירות שלא הוכרעו — הבנייה אדומה")
         parts.append(f'<p class="lede"><b>{esc(state)}</b>, ב־{esc(cases)} המקרים שנבדקו. '
