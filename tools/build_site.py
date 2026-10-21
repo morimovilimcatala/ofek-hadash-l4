@@ -55,6 +55,8 @@ import calculator_delta  # noqa: E402
 import edge_traces  # noqa: E402
 import contradictions  # noqa: E402
 import laws  # noqa: E402
+import modules  # noqa: E402
+import roots  # noqa: E402
 import l4src    # noqa: E402
 import rule_graph  # noqa: E402
 
@@ -1379,7 +1381,9 @@ def collection_page(coll: str, views: list[SectionView]) -> str:
     parts = [f'<header class="sec-head"><nav class="crumbs"><a href="index.html">מסמכים</a></nav>'
              f'<div class="title-row"><h1>{esc(coll_name(coll))}</h1></div>'
              f'<div class="stats"><span><b>{done}</b> מתוך {len(by_doc)} מסמכים מקודדים</span>'
-             f'<a href="{CORPUS_SITE}/">בקורפוס ↗</a></div>{progress(views)}</header>']
+             f'<a href="{CORPUS_SITE}/">בקורפוס ↗</a>'
+             + (f'<a href="{rel(roots.page_for(coll), here)}">שורש האוסף</a>' if roots.page_for(coll) else '')
+             + f'</div>{progress(views)}</header>']
 
     def entry(d: str) -> str:
         vs = by_doc[d]
@@ -1432,6 +1436,9 @@ def index_page(all_views: dict[str, list[SectionView]], findings: list[dict]) ->
         cards.append(f'<li class="coll live"><a href="{coll}.html">'
                      f'<span class="cname">{esc(name)}</span>'
                      f'{progress(vs)}<span class="cstate">{n} מתוך {len(docs)} מסמכים מקודדים</span></a></li>')
+    cards.append(f'<li class="coll live"><a href="{roots.ROOTS[0][1]}"><span class="cname">שורש</span>'
+                 f'<span class="ctitle" lang="he" dir="rtl">{esc(roots.ROOTS[0][3])}</span>'
+                 f'<span class="cstate">מקור אחד לכל שאלה</span></a></li>')
     for name in laws.all_laws():
         law = laws.load(name)
         cards.append(f'<li class="coll live"><a href="laws/{name}.html"><span class="cname">חוק</span>'
@@ -2323,6 +2330,18 @@ def build() -> int:
     (OUT / "laws").mkdir(parents=True, exist_ok=True)
     for name in laws.all_laws():
         (OUT / "laws" / f"{name}.html").write_text(law_page(name), encoding="utf-8")
+    real = {n: str(f.relative_to(ROOT)) for n, f in modules.wanted()[0].items()}
+
+    def href_of(module: str) -> str | None:
+        v = by_file.get(real.get(module, ""))
+        return v.href if v is not None else None
+    for module, here, coll, heading, about in roots.ROOTS:
+        (OUT / here).parent.mkdir(parents=True, exist_ok=True)
+        body = roots.page_body(module, here, coll, heading, about, esc=esc, rel=rel,
+                               code_html=l4src.numbered_html, href_of=href_of,
+                               coll_name=coll_name, coll_href=coll_hub)
+        (OUT / here).write_text(page(here, f"{heading} — {TITLE}", body, tab="docs",
+                                     desc=about), encoding="utf-8")
     if CONTRA:
         (OUT / "assets" / "contradictions").mkdir(parents=True, exist_ok=True)
         for f in contradictions.crops(CONTRA):

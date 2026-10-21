@@ -1,0 +1,330 @@
+-- The root (MMS-521): the one place to ask what the law gives. For each pay
+-- item it imports every instrument that speaks to it, gathers what each
+-- says for a case (its claim, stated in the shared vocabulary), and asks
+-- precedence (l4/lib/precedence.l4, encoded once) which one governs and by
+-- which rule. The calculator, the contradictions page and any other query
+-- ask this module, and an instrument's claim is never the answer by itself.
+--
+-- Where two or more instruments give different answers for an item and a
+-- case, that is a contradiction. The build stays red until the root names
+-- its resolution — which instrument governs and by which rule — and the
+-- ruling precedence computes agrees with it: `unresolved contradictions`,
+-- one list for every item and every number of sources, is asserted empty.
+-- The disagreement itself stays asserted as evidence beside it.
+--
+-- The pilot item: the 2008 supplement (takanon §1.1ג, the agreement of
+-- 24.1.2008, owners' circulars תשס"ט/3 and תש"ע/2).
+
+IMPORT prelude
+IMPORT conventions
+IMPORT vocabulary
+IMPORT precedence
+IMPORT `takanon-root`
+IMPORT `agreements-root`
+IMPORT `circulars-root`
+
+§ `השורש — מקור אחד לשאלה מה הדין נותן`
+
+§§ `המסמכים`
+
+-- The instruments, and what each says, are registered in the collections'
+-- roots: l4/lib/takanon-root.l4, l4/lib/agreements-root.l4 and
+-- l4/lib/circulars-root.l4. This module asks them, in that order.
+
+§§ `תוספת 2008`
+
+-- Every instrument that speaks to the 2008 supplement, and what it says:
+-- the takanon's, the agreements' and the circulars' claims.
+GIVEN c IS A `2008 supplement case`
+GIVETH A LIST OF `claim`
+DECIDE `the claims on the 2008 supplement` c IS
+    concat (LIST `the takanon's claims on the 2008 supplement` c,
+                 `the agreements' claims on the 2008 supplement` c,
+                 `the circulars' claims on the 2008 supplement` c)
+
+GIVEN c IS A `2008 supplement case`
+GIVETH A MAYBE `ruling`
+DECIDE `the ruling on the 2008 supplement` c IS
+    `the ruling on` (`the claims on the 2008 supplement` c) (c's `employer`) `the takanon's 2008 provision was last amended`
+
+@export The 2008 public-sector wage supplement ("תוספת 2008") a teaching employee not in a reform is owed for a salary month, after precedence between every instrument that speaks to it
+GIVEN c IS A `2008 supplement case` @desc the salary month, the employer, the division, the union, and the salary components today and in December 2007
+GIVETH A MAYBE NUMBER
+DECIDE `the 2008 supplement that governs` c IS
+    CONSIDER `the ruling on the 2008 supplement` c
+    WHEN JUST r THEN JUST (r's `the answer`)
+    WHEN NOTHING THEN NOTHING
+
+§§ `מקרים`
+
+-- A case of the 2008 supplement with salary components that make every
+-- instrument's arithmetic visible: a combined salary of 10,000 in December
+-- 2007 raised by the 4% of January 2008, and תוספת 2001 at 3% of it.
+GIVEN `salary month` IS A DATE
+      employer IS A `the teacher's employer`
+      `post-primary` IS A BOOLEAN
+      upper IS A BOOLEAN
+      organised IS A BOOLEAN
+      `put off` IS A BOOLEAN
+GIVETH A `2008 supplement case`
+DECIDE `a teacher` `salary month` employer `post-primary` upper organised `put off` IS
+    `2008 supplement case` WITH
+        `the salary month`                IS `salary month`
+        `employer`                        IS employer
+        `in post-primary education`       IS `post-primary`
+        `in the upper division`           IS upper
+        `represented by the secondary teachers' organisation` IS organised
+        `in a population whose 5% step was put off` IS `put off`
+        `combined salary today`           IS 10400
+        `supplement 2001 today`           IS 312
+        `combined salary in December 2007` IS 10000
+        `supplement 2001 in December 2007` IS 300
+
+-- The cases every contradiction is looked for in: the salary months on
+-- which some instrument starts or changes, and every combination of the
+-- facts the instruments tell teachers apart by.
+`the salary months checked` MEANS
+    LIST DATE_FROM_DMY 1 1 2008, DATE_FROM_DMY 1 2 2008, DATE_FROM_DMY 1 12 2008,
+         DATE_FROM_DMY 1 1 2009, DATE_FROM_DMY 1 12 2009, DATE_FROM_DMY 1 1 2010,
+         DATE_FROM_DMY 1 10 2011
+
+`the employers checked` MEANS
+    LIST `employed by the State`, `employed by a local authority`, `employed by another owning body`
+
+-- For a month and an employer, every combination of the facts the
+-- instruments ask about: outside post-primary education the division and
+-- the organisation do not arise.
+GIVEN d IS A DATE, e IS A `the teacher's employer`
+GIVETH A LIST OF `2008 supplement case`
+DECIDE `the cases for` d e IS
+    LIST `a teacher` d e FALSE FALSE FALSE FALSE,
+         `a teacher` d e FALSE FALSE FALSE TRUE,
+         `a teacher` d e TRUE FALSE FALSE FALSE,
+         `a teacher` d e TRUE FALSE FALSE TRUE,
+         `a teacher` d e TRUE FALSE TRUE FALSE,
+         `a teacher` d e TRUE FALSE TRUE TRUE,
+         `a teacher` d e TRUE TRUE FALSE FALSE,
+         `a teacher` d e TRUE TRUE FALSE TRUE,
+         `a teacher` d e TRUE TRUE TRUE FALSE,
+         `a teacher` d e TRUE TRUE TRUE TRUE
+
+GIVEN d IS A DATE
+GIVETH A LIST OF `2008 supplement case`
+DECIDE `the cases in` d IS
+    concat (map (GIVEN e YIELD `the cases for` d e) `the employers checked`)
+
+`the 2008 supplement cases` MEANS
+    concat (map `the cases in` `the salary months checked`)
+
+§§ `סתירות`
+
+@desc A contradiction: for an item and a case, the instruments that speak give two or more answers.
+DECLARE `contradiction` HAS
+    `item`     IS A STRING
+    `sources`  IS A LIST OF STRING @desc the modules of every instrument that speaks, in the root's order
+    `answers`  IS A LIST OF NUMBER @desc each answer given, once
+    `the ruling` IS A `ruling`
+
+@desc How the root settles a contradiction: which instrument governs and by which rule.
+DECLARE `resolution` HAS
+    `item`           IS A STRING
+    `sources`        IS A LIST OF STRING
+    `governed by`    IS A STRING @desc the module of the instrument that governs
+    `by the rule`    IS A STRING
+
+GIVEN item IS A STRING
+      claims IS A LIST OF `claim`
+      r IS A MAYBE `ruling`
+GIVETH A LIST OF `contradiction`
+DECIDE `the contradiction in` item claims r IS
+    CONSIDER r
+    WHEN NOTHING THEN EMPTY
+    WHEN JUST governing THEN
+        IF count (nub (map (GIVEN c YIELD c's `answer`) claims)) AT LEAST 2
+        THEN LIST (`contradiction` WITH
+                      `item`    IS item
+                      `sources` IS map (GIVEN c YIELD c's `by`'s `module`) claims
+                      `answers` IS nub (map (GIVEN c YIELD c's `answer`) claims)
+                      `the ruling` IS governing)
+        ELSE EMPTY
+
+GIVEN c IS A `2008 supplement case`
+GIVETH A LIST OF `contradiction`
+DECIDE `the contradictions on the 2008 supplement in` c IS
+    `the contradiction in` `the 2008 supplement` (`the claims on the 2008 supplement` c) (`the ruling on the 2008 supplement` c)
+
+`the contradictions` MEANS
+    concat (map `the contradictions on the 2008 supplement in` `the 2008 supplement cases`)
+
+-- The resolutions: one for each set of instruments that disagree and the
+-- instrument precedence makes govern them. Each names the rule; the gate
+-- below holds precedence to it.
+GIVEN item IS A STRING
+      sources IS A LIST OF STRING
+      `governed by` IS A STRING
+      rule IS A STRING
+GIVETH A `resolution`
+DECIDE `resolved` item sources `governed by` rule IS
+    `resolution` WITH `item` IS item, `sources` IS sources, `governed by` IS `governed by`, `by the rule` IS rule
+
+GIVEN instruments IS A LIST OF `instrument`
+GIVETH A LIST OF STRING
+DECIDE `the modules of` instruments IS
+    map (GIVEN i YIELD i's `module`) instruments
+
+`the 2008 supplement` MEANS "תוספת 2008"
+
+`the resolutions` MEANS
+    LIST `the takanon against the agreement`,
+         `the takanon against circular תשס"ט/3`,
+         `the takanon, the agreement and circular תשס"ט/3`,
+         `the takanon against both circulars`,
+         `all four on the 2008 supplement`
+
+-- A state (or local-authority) post-primary teacher of the organisation:
+-- the takanon's 5% of today's combined salary from 1.1.2010, against the
+-- agreement's 5% of the December 2007 values from the salary of December
+-- 2009. The takanon's introduction makes a collective agreement prevail
+-- over it (the card takanon-2008).
+`the takanon against the agreement` MEANS
+    `resolved` `the 2008 supplement`
+        (`the modules of` (LIST `the takanon §1.1`, `the agreement of 24.1.2008`))
+        (`the agreement of 24.1.2008`'s `module`)
+        `the takanon's introduction: an agreement prevails`
+
+-- An owner's teacher whom the agreement does not cover (not of the
+-- organisation, or employed by an owner that is not a local authority):
+-- the takanon against תשס"ט/3's 2.88% of today's values. The circular
+-- (14.12.2008) is not more recent than §1.1 as updated on 2.2.2010, so by
+-- the takanon's own introduction it does not prevail, and nothing else that
+-- prevails over the takanon speaks.
+`the takanon against circular תשס"ט/3` MEANS
+    `resolved` `the 2008 supplement`
+        (`the modules of` (LIST `the takanon §1.1`, `circular תשס"ט/3`))
+        (`the takanon §1.1`'s `module`)
+        `the takanon's introduction: nothing that prevails over it speaks`
+
+-- A local authority's post-primary teacher of the organisation, outside
+-- the upper division (or in it before December 2009): the agreement puts
+-- the takanon out; תשס"ט/3's 2.88% of today's values is below the
+-- agreement's 3% of December 2007's, and a circular does not out-rank the
+-- agreement it carries out (the finding F-2008-09_tashsat_03-a).
+`the takanon, the agreement and circular תשס"ט/3` MEANS
+    `resolved` `the 2008 supplement`
+        (`the modules of` (LIST `the takanon §1.1`, `the agreement of 24.1.2008`, `circular תשס"ט/3`))
+        (`the agreement of 24.1.2008`'s `module`)
+        `a circular never out-ranks the agreement`
+
+-- An owner's upper-division teacher the agreement does not cover, from
+-- December 2009: neither circular is more recent than §1.1 as updated on
+-- 2.2.2010, so the takanon stands over both.
+`the takanon against both circulars` MEANS
+    `resolved` `the 2008 supplement`
+        (`the modules of` (LIST `the takanon §1.1`, `circular תשס"ט/3`, `circular תש"ע/2`))
+        (`the takanon §1.1`'s `module`)
+        `the takanon's introduction: nothing that prevails over it speaks`
+
+-- A local authority's upper-division teacher of the organisation, from
+-- December 2009: all four speak (the card supplement-2008). The agreement
+-- puts the takanon out; of the circulars the later, תש"ע/2, replaces
+-- תשס"ט/3; its printed 4.81% of today's values is above the agreement's 5%
+-- of December 2007's, approved by the Treasury so §29 leaves it, and §22
+-- lets a term in the employee's favour stand.
+`all four on the 2008 supplement` MEANS
+    `resolved` `the 2008 supplement`
+        (`the modules of` (LIST `the takanon §1.1`, `the agreement of 24.1.2008`, `circular תשס"ט/3`, `circular תש"ע/2`))
+        (`circular תש"ע/2`'s `module`)
+        `§22: a term in the employee's favour stands`
+
+GIVEN x IS A `contradiction`
+GIVETH A BOOLEAN
+DECIDE `is resolved` x IF
+    any (GIVEN r YIELD `settles` r x) `the resolutions`
+
+GIVEN x IS A `contradiction`
+GIVETH A STRING
+DECIDE `the contradiction's name` x IS
+    CONCAT x's `item`, ": ", `the sources joined` (x's `sources`), " — ", x's `the ruling`'s `governed by`'s `module`, " ", x's `the ruling`'s `by the rule`
+
+GIVEN names IS A LIST OF STRING
+GIVETH A STRING
+DECIDE `the sources joined` names IS
+    foldr (GIVEN n, acc YIELD IF acc EQUALS "" THEN n ELSE CONCAT n, ", ", acc) "" names
+
+`unresolved contradictions` MEANS
+    nub (map `the contradiction's name` (filter (GIVEN x YIELD NOT `is resolved` x) `the contradictions`))
+
+#EVAL `unresolved contradictions`
+#ASSERT null `unresolved contradictions`
+
+§§ `הדוח`
+
+-- What the site's page of this module shows (tools/roots.py): each
+-- resolution, the instruments it settles by their names, which governs, by
+-- which rule, and in how many of the cases checked.
+`the instruments` MEANS
+    concat (LIST `the takanon's instruments`, `the agreements' instruments`, `the circulars' instruments`)
+
+GIVEN m IS A STRING
+GIVETH A STRING
+DECIDE `the title of` m IS
+    foldr (GIVEN i, acc YIELD IF i's `module` EQUALS m THEN i's `title` ELSE acc) m `the instruments`
+
+GIVEN r IS A `resolution`, x IS A `contradiction`
+GIVETH A BOOLEAN
+DECIDE `settles` r x IF
+        r's `item` EQUALS x's `item`
+    AND r's `sources` EQUALS x's `sources`
+    AND r's `governed by` EQUALS x's `the ruling`'s `governed by`'s `module`
+    AND r's `by the rule` EQUALS x's `the ruling`'s `by the rule`
+
+GIVEN r IS A `resolution`
+GIVETH A STRING
+DECIDE `the report line of` r IS
+    CONCAT r's `item`, " | ",
+           `the titles joined` (map `the title of` (r's `sources`)), " | ",
+           `the title of` (r's `governed by`), " | ",
+           r's `by the rule`, " | ",
+           TOSTRING (count (filter (GIVEN x YIELD `settles` r x) `the contradictions`))
+
+GIVEN titles IS A LIST OF STRING
+GIVETH A STRING
+DECIDE `the titles joined` titles IS
+    foldr (GIVEN n, acc YIELD IF acc EQUALS "" THEN n ELSE CONCAT n, " · ", acc) "" titles
+
+`the resolutions report` MEANS
+    map `the report line of` `the resolutions`
+
+#EVAL `the resolutions report`
+#EVAL count `the 2008 supplement cases`
+
+§§ `ראיות`
+
+-- The disagreements themselves, asserted as evidence: each holds while the
+-- instruments disagree and goes red if one of them is ever brought into
+-- line, so the resolution above is looked at again.
+GIVEN c IS A `2008 supplement case`
+GIVETH A LIST OF NUMBER
+DECIDE `the answers on the 2008 supplement` c IS
+    map (GIVEN x YIELD x's `answer`) (`the claims on the 2008 supplement` c)
+
+#ASSERT ((`the answers on the 2008 supplement` (`a teacher` (DATE_FROM_DMY 1 1 2010) `employed by a local authority` TRUE TRUE TRUE FALSE))
+    EQUALS LIST 520, 515, 308.5056, 515.2472)
+#ASSERT ((`the 2008 supplement that governs` (`a teacher` (DATE_FROM_DMY 1 1 2010) `employed by a local authority` TRUE TRUE TRUE FALSE))
+    EQUALS JUST 515.2472)
+#ASSERT ((`the answers on the 2008 supplement` (`a teacher` (DATE_FROM_DMY 1 1 2010) `employed by the State` TRUE TRUE TRUE FALSE))
+    EQUALS LIST 520, 515)
+#ASSERT ((`the 2008 supplement that governs` (`a teacher` (DATE_FROM_DMY 1 1 2010) `employed by the State` TRUE TRUE TRUE FALSE))
+    EQUALS JUST 515)
+#ASSERT ((`the answers on the 2008 supplement` (`a teacher` (DATE_FROM_DMY 1 12 2008) `employed by a local authority` TRUE FALSE TRUE FALSE))
+    EQUALS LIST 156, 309, 308.5056)
+#ASSERT ((`the 2008 supplement that governs` (`a teacher` (DATE_FROM_DMY 1 12 2008) `employed by a local authority` TRUE FALSE TRUE FALSE))
+    EQUALS JUST 309)
+#ASSERT ((`the answers on the 2008 supplement` (`a teacher` (DATE_FROM_DMY 1 1 2010) `employed by another owning body` TRUE TRUE FALSE FALSE))
+    EQUALS LIST 520, 308.5056, 515.2472)
+#ASSERT ((`the 2008 supplement that governs` (`a teacher` (DATE_FROM_DMY 1 1 2010) `employed by another owning body` TRUE TRUE FALSE FALSE))
+    EQUALS JUST 520)
+-- Where one instrument speaks there is nothing to resolve: a state
+-- primary teacher has only the takanon.
+#ASSERT ((`the answers on the 2008 supplement` (`a teacher` (DATE_FROM_DMY 1 1 2010) `employed by the State` FALSE FALSE FALSE FALSE))
+    EQUALS LIST 520)

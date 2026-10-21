@@ -107,6 +107,37 @@ with `HENCE`/`LEST`), not booleans standing in for them.
   or none, the L4 says which reading it takes in a comment beside the rule,
   and the finding is filed (next section).
 
+## The root: one entry point, precedence once (MMS-521)
+
+The client, 2026-10-21: "one source of truth to query the law which 'uses'
+all the files to give one answer", and disagreements raised as errors.
+- **A shared vocabulary**, `l4/lib/vocabulary.l4`: one declaration per thing
+  two instruments speak about (the 2008 supplement's case record first).
+  An instrument's file imports it and adds `<item> according to
+  <instrument>`, a `MAYBE` answer from its own rules (NOTHING where it does
+  not speak).
+- **Collection roots**, `l4/lib/takanon-root.l4`, `agreements-root.l4`,
+  `circulars-root.l4`: each registers its collection's instruments once (an
+  `instrument` record: kind, date, §29 facts) and gathers their claims. They
+  come before the root, which imports them.
+- **Precedence once**, `l4/lib/precedence.l4`: the takanon's introduction,
+  then the later circular over the earlier (`precedence.later-circular`),
+  §23 among agreements, §29 then §22 between an agreement and the
+  employer's term. No instrument keeps its own copy of these.
+- **The root**, `l4/lib/root.l4`: for each item, the one public answer
+  (`the 2008 supplement that governs`), and the gate: over a grid of cases,
+  any item and case where the claims give two or more answers is a
+  contradiction; `unresolved contradictions` is `#ASSERT null`, and a
+  contradiction is resolved only by an entry in `the resolutions` naming the
+  instrument that governs and the rule, which precedence must agree with.
+  The disagreements stay asserted as evidence.
+- The site shows each root on its own page (`tools/roots.py`: root.html,
+  circulars/root.html, …), read off the module and `make l4`'s results.
+- Traces come from tools/assets/l4wasm/l4.wasm, whose import resolution
+  cannot yet load a module two importers share (a type reached by two paths
+  is "a resolved name that has no additional information"); the CLI is
+  unaffected.
+
 ## Findings: errors the encoding exposes in the text
 
 `findings/<corpus path>/<section>.toml` (one per section) is the register the site's "ממצאי L4" page and
