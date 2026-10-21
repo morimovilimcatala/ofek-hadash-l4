@@ -114,7 +114,18 @@ with `HENCE`/`LEST`), not booleans standing in for them.
 not from the Catala proofs, the corpus's ambiguity ledger or its sic kinds:
 
 - `kind` — what is wrong with the LAW: `gap`, `overlap`, `contradiction`,
-  `undefined-term`, `broken-reference`, `ambiguity`.
+  `undefined-term`, `broken-reference`, `ambiguity`, `edge-case`.
+  AN EDGE CASE IS A FINDING ONLY WHEN IT EXPOSES A FLAW (the client,
+  2026-10-21, MMS-534: "only interesting מקרי קצה should appear in findings,
+  otherwise it isn't a finding"): stretched to an input the text did not
+  picture, the rules give a result it plainly did not intend (no cap where
+  one is expected, an absurd amount) or a result two instruments dispute.
+  An edge case the text answers on purpose — an explicit cap, a stated
+  limit — is an `#ASSERT` in the section's file and not a finding, and so is
+  one no outcome turns on: an `edge-case` graded `low` is refused. One flaw
+  is one row: a further input showing the same flaw goes into that row's
+  body and `trace`, not a row of its own. An edge case carries `trace`, the
+  L4 expressions the site runs to show how the rules compute it.
 - `stage` — what CAUGHT it: `writing` (the text cannot be written as it
   stands), `compiling`, `examples` (the rules contradict a worked example or
   table the text itself states), `verification`. The tool's message is the

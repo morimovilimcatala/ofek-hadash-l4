@@ -23,6 +23,15 @@ class EdgeCases(unittest.TestCase):
             with self.subTest(finding=f["id"]):
                 self.assertTrue(f.get("trace"), "an edge case shows how it is computed")
 
+    def test_an_edge_case_is_a_finding_only_when_something_turns_on_it(self):
+        # "only interesting מקרי קצה should appear in findings" (the client,
+        # 2026-10-21): an edge case no outcome turns on, or one the text
+        # answers on purpose, is an #ASSERT in its file, not a finding
+        for f in FINDINGS:
+            if f["kind"] == "edge-case":
+                with self.subTest(finding=f["id"]):
+                    self.assertNotEqual(f["severity"], "low")
+
     def test_every_trace_evaluates_and_shows_its_steps(self):
         traced = [f for f in FINDINGS if f.get("trace")]
         out = edge_traces.traces([{"id": f["id"], "l4": f["l4"], "trace": f["trace"]} for f in traced])
