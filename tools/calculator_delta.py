@@ -22,6 +22,7 @@ and never a reading of the law.
 from __future__ import annotations
 
 import html
+import hashlib
 import json
 from pathlib import Path
 
@@ -59,7 +60,43 @@ def card_data(c: dict) -> str:
 
 
 def grade(c: dict) -> str | None:
-    return (c.get("severity") or {}).get("grade")
+    """A row's severity grade; a superseded row has none, because the L4
+    side of its comparison is no longer the L4."""
+    return None if c.get("superseded") else (c.get("severity") or {}).get("grade")
+
+
+# The comparison ran on the L4 at meta.l4_commit, and each row records the
+# text of the L4 rules it names as they stood then (`digest`). A rule whose
+# text has changed since makes its row's L4 side stale: the row says so on
+# the page and carries no grade until the comparison is run again
+# (`superseded`, which tests/test_calculator_delta.py holds to exactly the
+# rows whose rules changed).
+def rule_text(text: str, name: str) -> str | None:
+    """The definition of rule `name` in an L4 file — its GIVEN/GIVETH lines,
+    head and body, up to the next blank line, assertion or comment —
+    with its whitespace collapsed; None when the file does not define it."""
+    lines = text.split("\n")
+    tick = f"`{name}`"
+    for i, line in enumerate(lines):
+        s = line.strip()
+        if not ((s.startswith("DECIDE") and tick in s) or (s.startswith(tick) and " MEANS" in s)):
+            continue
+        j = i
+        while j > 0 and lines[j - 1].strip().startswith(("GIVEN", "GIVETH", "      ")) \
+                and not lines[j - 1].strip().startswith("--"):
+            j -= 1
+        k = i + 1
+        while k < len(lines) and lines[k].strip() and not lines[k].strip().startswith(("#", "--", "@", "§")):
+            k += 1
+        return " ".join(" ".join(lines[j:k]).split())
+    return None
+
+
+def rule_digest(text: str, name: str) -> str | None:
+    t = rule_text(text, name)
+    return hashlib.sha256(t.encode("utf-8")).hexdigest()[:16] if t is not None else None
+
+
 STATUS = {"not-encoded": "לא מקודד", "not-comparable": "לא בר־השוואה"}
 
 
@@ -236,9 +273,14 @@ def cause_card(c: dict, *, prose, clause_link, finding_ids, conv_titles, l4_link
     sev_html = (f'<p class="fsev"><span class="sev-badge sev-{sev["grade"]}">מוצע: {esc(SEV[sev["grade"]])}</span> '
                 f'{prose(sev["why"])}</p>' if sev else "")
     codes = (f' · קוד <bdi dir="ltr">{", ".join(str(x) for x in c["codes"])}</bdi>' if c.get("codes") else "")
+    stale = c.get("superseded")
+    if stale:
+        sev_html = (f'<p class="dl-stale"><b>ה־L4 השתנה מאז ההשוואה.</b> {prose(stale["note"])}'
+                    f' <bdi dir="ltr">{esc(stale["commit"])}</bdi> · <bdi dir="ltr">{esc(stale["issue"])}</bdi></p>')
     return (f'<details class="finding dl-cause cx-card" id="{esc(c["id"])}"{card_data(c)}><summary>'
             f'<span class="cls-tag cls-{cls}">{esc(CLASS_SHORT[cls])}</span>'
-            f'<span class="ftitle">{prose(c["title"])}</span><span class="dl-count">{count}{codes}</span></summary>'
+            f'<span class="ftitle">{prose(c["title"])}</span><span class="dl-count">{count}{codes}'
+            + (' · <span class="dl-stalemark">לא עדכני</span>' if stale else "") + '</span></summary>'
             f'<div class="fcard">{sev_html}<div class="fbody" lang="he" dir="rtl">{paras}</div>'
             + examples_html(c["examples"])
             + ("<h4>הטקסט</h4>" + "".join(clauses) if clauses else "")

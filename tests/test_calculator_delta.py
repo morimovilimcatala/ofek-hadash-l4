@@ -158,6 +158,28 @@ class ThePage(unittest.TestCase):
             for f in c["findings"]:
                 self.assertIn(f'href="findings.html#{f}"', self.body)
 
+    def test_a_row_whose_l4_rule_changed_says_so(self):
+        """Each row records the text of the L4 rules it names as they stood
+        when the comparison ran (`digest`). A row is `superseded` exactly
+        when one of those rules has changed since: its L4 side is no longer
+        the L4, so it says so and carries no grade (MMS-527: the 2008 row
+        kept grading the simulator after the L4 had adopted its rate)."""
+        changed = set()
+        for c in calculator_delta.group_rows(DATA):
+            for r in c.get("l4", []):
+                with self.subTest(row=c["id"], rule=r["rule"]):
+                    self.assertIn("digest", r)
+                    now = calculator_delta.rule_digest((ROOT / r["file"]).read_text(encoding="utf-8"), r["rule"])
+                    self.assertIsNotNone(now, "the rule is no longer in its file")
+                    if now != r["digest"]:
+                        changed.add(c["id"])
+        superseded = {c["id"] for c in calculator_delta.group_rows(DATA) if c.get("superseded")}
+        self.assertEqual(superseded, changed)
+        for c in calculator_delta.group_rows(DATA):
+            if c.get("superseded"):
+                self.assertIsNone(calculator_delta.grade(c))
+                self.assertTrue({"commit", "issue", "note"} <= set(c["superseded"]))
+
     def test_each_severity_key_counts_the_cards_it_shows(self):
         """The meter's keys filter by grade (the client, 2026-10-21: "I
         should be able to filter based on the severity chip"), so the number
