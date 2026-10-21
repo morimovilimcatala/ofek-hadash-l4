@@ -52,6 +52,11 @@ reason when work stops, and nothing open written in a markdown file.
 - `corpus/manifest.json` is the corpus's own document list and is the
   coverage page's denominator. A collection nobody has started is a row of
   nothing, not a missing row.
+  It also carries the corpus's own coverage verdict per document (`state`,
+  `row`), computed at sync by the corpus's code (`tools/sync_corpus.py`):
+  the coverage page draws a document the corpus holds only in part yellow
+  from that verdict, never from a reading of the provenance notes of our
+  own (the client, 2026-10-22: "isn't the corpus the source of truth?").
 
 ## What gets encoded: all the logic, not only pay
 

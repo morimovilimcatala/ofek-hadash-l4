@@ -1907,6 +1907,27 @@ def diagnostics_page(views: list[SectionView]) -> str:
     return page("diagnostics.html", f"בדיקות — {TITLE}", body, tab="diagnostics")
 
 
+# the corpus's own words for its "part" state (its coverage page's legend)
+PARTIAL_LABEL = "קריאה או סריקה חלקית"
+
+
+def held_in_part(manifest: list[dict]) -> set[str]:
+    """The documents the corpus's coverage page draws as held in part.
+    Each document's state and row are the corpus's own verdict, recorded by
+    tools/sync_corpus.py; this repeats only its drawing rule, that copies of
+    one date in one row count once and the best-read copy stands for them,
+    so a scan missing a page beside a complete copy is not drawn as a gap."""
+    rank = {"full": 0, "part": 1, "none": 2}
+    def instrument(d):
+        return (d.get("row"), d["date"]) if d.get("row") and d.get("date") else (d["path"],)
+    best: dict = {}
+    for d in manifest:
+        k = instrument(d)
+        best[k] = min(best.get(k, 9), rank.get(d.get("state"), 0))
+    return {d["path"] for d in manifest
+            if d.get("state") == "part" and best[instrument(d)] == rank["part"]}
+
+
 def coverage_page(all_views: dict[str, list[SectionView]]) -> str:
     """What of the corpus is encoded. The denominator is the corpus's own
     document list (corpus/manifest.json), so a collection nobody has started
@@ -1928,7 +1949,8 @@ def coverage_page(all_views: dict[str, list[SectionView]]) -> str:
             f'— {len(manifest)} מסמכים — ולא רק מה שהתחיל. מסמך מתחלק לסעיפים וסעיף לפסקאות; פסקה היא '
             f'<span class="sw read"></span> נקראה — קוד ה־L4 מצטט אותה, בכלל או בהערה שאומרת למה אין בה כלל, '
             f'<span class="sw missing"></span> לא צוטטה — בסעיף מקודד אך אין קוד שמצטט אותה, או '
-            f'<span class="sw todo"></span> טרם קודדה — בסעיף שטרם קודד.</p>'
+            f'<span class="sw todo"></span> טרם קודדה — בסעיף שטרם קודד. '
+            f'<span class="sw gap"></span> קריאה או סריקה חלקית — כך מסמן אותו דף הכיסוי של הקורפוס: חסרים בו עמודים, ואין עותק שלם.</p>'
             f'<div class="kpis">'
             f'<div><b>{n_docs_done}</b> / {len(manifest)}<span>מסמכים מקודדים במלואם</span></div>'
             + (f'<div><b>{len(DOCUMENTS) - n_docs_done}</b><span>מסמכים בעבודה</span></div>'
@@ -1938,38 +1960,57 @@ def coverage_page(all_views: dict[str, list[SectionView]]) -> str:
             f'<div><b>{t["rule"] + t["note"]}</b> / {paras}<span>פסקאות שנקראו</span></div>'
             f'</div>')
     parts = [head]
+    partial = held_in_part(manifest)
+
+    def counts(v: SectionView) -> dict[str, int]:
+        """A section's paragraphs as the strip shows them."""
+        c = {"read": 0, "missing": 0, "todo": 0}
+        for r in v.text_rows:
+            if v.src is None:
+                c["todo"] += 1
+            elif v.kind_of.get(r.key) in ("rule", "note"):
+                c["read"] += 1
+            else:
+                c["missing"] += 1
+        return c
+
+    def segs_of(c: dict[str, int], doc: str) -> str:
+        # a document the corpus holds only in part gets a yellow cap
+        cap = '<i class="gap"></i>' if doc in partial else ""
+        return cap + "".join(f'<i class="{k}" style="flex:{m}"></i>' for k, m in c.items() if m)
+
+    def gap_tip(doc: str) -> str:
+        return " · " + PARTIAL_LABEL if doc in partial else ""
+
+    def gap_class(doc: str) -> str:
+        return " gap" if doc in partial else ""
+
     def cell(v: SectionView) -> str:
         n = max(len(v.text_rows), 1)
         name = v.section.num if not v.whole else Path(v.doc).stem
+        # a paragraph is read or it is not: whether the L4 beside it is a
+        # rule or a note saying why there is none is not coverage
+        c = counts(v)
         if v.src is None:
-            segs = '<i class="todo" style="flex:1"></i>'
             tip = f"{name} {v.section.heading}: טרם קודד ({len(v.text_rows)} פסקאות)"
+            c = c if any(c.values()) else {"todo": 1}
         else:
-            # a paragraph is read or it is not: whether the L4 beside it is a
-            # rule or a note saying why there is none is not coverage
-            c = tally(v)
-            read = c["rule"] + c["note"]
-            segs = "".join(f'<i class="{k}" style="flex:{n}"></i>'
-                           for k, n in (("read", read), ("missing", c["missing"])) if n)
             tip = f"{name} {v.section.heading}" + (f": {c['missing']} פסקאות לא צוטטו" if c["missing"] else "")
-        return (f'<a class="cell" href="{v.href}" title="{esc(tip)}" style="flex:{n}">{segs}</a>')
+        doc = v.doc if v.whole else ""
+        return (f'<a class="cell{gap_class(doc)}" href="{v.href}" '
+                f'title="{esc(tip + gap_tip(doc))}" style="flex:{n}">{segs_of(c, doc)}</a>')
 
     def doc_cell(doc: str, vs: list[SectionView]) -> str:
         """A sectioned document as one cell: its paragraphs, read or not."""
         c = {"read": 0, "missing": 0, "todo": 0}
         for v in vs:
-            if v.src is None:
-                c["todo"] += len(v.text_rows)
-            else:
-                t_ = tally(v)
-                c["read"] += t_["rule"] + t_["note"]
-                c["missing"] += t_["missing"]
+            for k, m in counts(v).items():
+                c[k] += m
         n = max(sum(c.values()), 1)
-        segs = "".join(f'<i class="{k}" style="flex:{m}"></i>' for k, m in c.items() if m)
         tip = (f"{Path(doc).stem} {akn.title(doc)}: {c['read']} מתוך {sum(c.values())} פסקאות נקראו"
-               "")
-        return (f'<a class="cell" href="{doc.removesuffix(".xml")}.html" title="{esc(tip)}" '
-                f'style="flex:{n}">{segs}</a>')
+               + gap_tip(doc))
+        return (f'<a class="cell{gap_class(doc)}" href="{doc.removesuffix(".xml")}.html" '
+                f'title="{esc(tip)}" style="flex:{n}">{segs_of(c, doc)}</a>')
 
     for doc, vs in all_views.items():
         # an agreement is one document among its collection's, not a section

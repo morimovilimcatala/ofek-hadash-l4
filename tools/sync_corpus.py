@@ -47,11 +47,38 @@ def committed_documents(src: Path) -> list[str]:
                   key=lambda p: Path(p).parts)
 
 
+def coverage_verdict(src: Path):
+    """Each document's state and row as the CORPUS's own coverage page
+    decides them, read with its own code (tools/akn_coverage.py) and its
+    committed grammar/coverage.toml. The L4's coverage page draws what this
+    says rather than reading the provenance notes by a rule of its own: a
+    rule of its own drew four documents as missing pages where the corpus
+    draws one (the client, 2026-10-22: "isn't the corpus the source of
+    truth?"). "part" is a reading or scan the corpus holds only in part,
+    unless the client settled it as complete; "row" is the series its page
+    draws the document in, where copies of one date count once."""
+    sys.path.insert(0, str(src / "tools"))
+    import akn_coverage
+    import akn_serve
+    spec = tomllib.loads(committed(src, "grammar/coverage.toml").decode("utf-8"))
+    settled = {e["doc"] for e in spec.get("settled", [])}
+
+    def verdict(relative: str, root) -> dict:
+        state = akn_coverage.state_of(root, akn_serve.INCOMPLETE_NOTES)
+        if state == "part" and relative in settled:
+            state = "full"
+        rows = akn_coverage.row_of(relative, spec["row"])
+        return {"state": state, "row": rows[0] if rows else None}
+    return verdict
+
+
 def manifest(src: Path) -> list[dict]:
+    verdict = coverage_verdict(src)
     out = []
     for path in committed_documents(src):
         p = Path(path)
-        doc = ET.fromstring(committed(src, path))[0]
+        root = ET.fromstring(committed(src, path))
+        doc = root[0]
         title = None
         for tag in ("docTitle", "longTitle", "shortTitle"):
             e = doc.find(f".//{AKN}{tag}")
@@ -63,7 +90,8 @@ def manifest(src: Path) -> list[dict]:
         out.append({"path": str(rel), "collection": rel.parts[0],
                     "title": title or p.stem,
                     "date": d.get("date") if d is not None else None,
-                    "name": doc.get("name")})
+                    "name": doc.get("name"),
+                    **verdict(str(rel), root)})
     return out
 
 
