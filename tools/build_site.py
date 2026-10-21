@@ -779,6 +779,15 @@ def root_link(coll: str, here: str) -> str:
     return f'<a class="sn-hub" href="{rel(page, here)}"{cur}>שורש</a>'
 
 
+def family_root_li(coll: str, family: str, here: str) -> str:
+    """A family of agreements' own root (MMS-548), first in its group."""
+    page_ = roots.family_page(family) if coll == "agreements" else None
+    if not page_:
+        return ""
+    cur = ' aria-current="page"' if here == page_ else ""
+    return f'<li><a class="sn-leaf" href="{rel(page_, here)}"{cur}>שורש</a></li>'
+
+
 def group_html(coll: str, label: str, here: str, items: list[str], open_: bool) -> str:
     return (f'<li class="sn-group"><details{" open" if open_ else ""}>'
             f'<summary>{esc(label.split(" — ")[0])}<span class="n">{coll_count(coll)}</span></summary>'
@@ -817,7 +826,7 @@ def tree_nav(here: str) -> str:
         if not docs:
             continue
         here_in = (any(here.startswith(d.removesuffix(".xml")) for d in docs) or here == f"{coll}.html"
-                   or here == roots.page_for(coll))
+                   or here == roots.page_for(coll) or here.startswith(f"{coll}/") and here.endswith("/root.html"))
         items = []
         if coll == "takanon":
             for d in docs:
@@ -830,9 +839,9 @@ def tree_nav(here: str) -> str:
                 by_year.setdefault(doc_group(d), []).append(d)
             for year in group_order(coll, by_year):
                 ds = sorted(by_year[year])
-                lis = "".join(doc_entry(d, here) for d in ds)
+                lis = family_root_li(coll, year, here) + "".join(doc_entry(d, here) for d in ds)
                 items.append(lis if not year else
-                             f'<li class="toc-ch"><details><summary>{esc(group_label(coll, year))}'
+                             f'<li class="toc-ch"><details{" open" if here == roots.family_page(year) else ""}><summary>{esc(group_label(coll, year))}'
                              f'<span class="n">{len(ds)}</span></summary><ul>{lis}</ul></details></li>')
         groups.append(group_html(coll, label, here, items, here_in))
     groups.append(laws_group(here))
@@ -879,7 +888,7 @@ def doc_nav(here: str, doc: str) -> str:
         for year in group_order(coll, by_year):
             ds = sorted(by_year[year])
             if year == mine:
-                lis = "".join(doc_entry(d, here) for d in ds)
+                lis = family_root_li(coll, year, here) + "".join(doc_entry(d, here) for d in ds)
                 items.append(lis if not year else
                              f'<li class="toc-ch"><details open><summary>{esc(group_label(coll, year))}'
                              f'<span class="n">{len(ds)}</span></summary><ul>{lis}</ul></details></li>')
@@ -1441,7 +1450,9 @@ def collection_page(coll: str, views: list[SectionView]) -> str:
         hdir = "rtl" if coll == "agreements" else "ltr"
         parts.append(f'<section class="chapter" id="y-{esc(year)}" dir="rtl"><div class="chapter-head"><h2 dir="{hdir}">{esc(group_label(coll, year))}</h2>'
                      f'<span class="ccount" dir="ltr">{ndone} מתוך {len(ds)} מקודדים</span></div>'
-                     f'<ul class="secs docs">{lis}</ul></section>')
+                     + (f'<p class="meta"><a href="{rel(fp, here)}">שורש המשפחה</a></p>'
+                        if coll == "agreements" and (fp := roots.family_page(year)) else '')
+                     + f'<ul class="secs docs">{lis}</ul></section>')
     return page(here, f"{coll_name(coll)} — {TITLE}", "".join(parts), tab="docs")
 
 

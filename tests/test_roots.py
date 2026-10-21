@@ -43,9 +43,8 @@ class Roots(unittest.TestCase):
     def test_the_gate_is_empty_and_the_report_is_whole(self):
         self.assertEqual(roots.evaluated("root", "`unresolved contradictions`"), "EMPTY")
         lines = roots.strings(roots.evaluated("root", "`the resolutions report`"))
-        text = (roots.LIB / "root.l4").read_text(encoding="utf-8")
-        listed = text.split("`the resolutions` MEANS", 1)[1].split("\n\n", 1)[0]
-        self.assertEqual(len(lines), listed.count("`,") + 1, "a resolution the report leaves out")
+        self.assertEqual(str(len(lines)), roots.evaluated("root", "count `the resolutions`"),
+                         "a resolution the report leaves out")
         for line in lines:
             self.assertEqual(len(line.split(" | ")), 5, line)
             self.assertGreater(int(line.split(" | ")[4]), 0, f"a resolution that settles no case: {line}")

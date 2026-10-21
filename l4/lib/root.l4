@@ -59,7 +59,10 @@ DECIDE `the answer that governs` i c IS
     WHEN NOTHING THEN NOTHING
 
 -- The items asked about, each checked over the cases below.
-`the items` MEANS LIST `the 2008 public-sector supplement`
+`the items` MEANS
+    LIST `the 2008 public-sector supplement`,
+         `the pedagogical coordinator's allowance rate`,
+         `the mentor's allowance rate`
 
 §§ `מקרים`
 
@@ -85,6 +88,8 @@ DECIDE `a teacher` `salary month` employer `post-primary` upper organised `put o
         `supplement 2001 today`           IS 312
         `combined salary in December 2007` IS 10000
         `supplement 2001 in December 2007` IS 300
+        `the kind of school`               IS `another school`
+        `the interns the teacher mentors`  IS 0
 
 -- The cases every contradiction is looked for in: the salary months on
 -- which some instrument starts or changes, and every combination of the
@@ -119,8 +124,78 @@ GIVETH A LIST OF `teaching case`
 DECIDE `the cases in` d IS
     concat (map (GIVEN e YIELD `the cases for` d e) `the employers checked`)
 
-`the cases checked` MEANS
+`the 2008 supplement's cases` MEANS
     concat (map `the cases in` `the salary months checked`)
+
+-- The role allowances' cases (MMS-548): the first salary month of every
+-- school year from 2017/18, when the agreement of 19.3.2017 adds the roles,
+-- to 2025/26; each employer; each kind of school the owners' circulars tell
+-- apart; and, for the mentor, one intern, three and four (the circulars pay
+-- for three at most).
+`the school years checked` MEANS LIST 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025
+
+`the kinds of school checked` MEANS
+    LIST `a recognised unofficial special-education school`,
+         `a Ma'ayan HaChinuch HaTorani or Chinuch Atzmai primary school`,
+         `another school`
+
+GIVEN `salary month` IS A DATE
+      employer IS A `the teacher's employer`
+      school IS A `the kind of school in the case`
+      interns IS A NUMBER
+GIVETH A `teaching case`
+DECIDE `a role holder` `salary month` employer school interns IS
+    `teaching case` WITH
+        `the salary month`                IS `salary month`
+        `employer`                        IS employer
+        `in post-primary education`       IS FALSE
+        `in the upper division`           IS FALSE
+        `represented by the secondary teachers' organisation` IS FALSE
+        `in a population whose 5% step was put off` IS FALSE
+        `combined salary today`           IS 10400
+        `supplement 2001 today`           IS 312
+        `combined salary in December 2007` IS 10000
+        `supplement 2001 in December 2007` IS 300
+        `the kind of school`               IS school
+        `the interns the teacher mentors`  IS interns
+
+GIVEN y IS A NUMBER
+      e IS A `the teacher's employer`
+      k IS A `the kind of school in the case`
+      interns IS A LIST OF NUMBER
+GIVETH A LIST OF `teaching case`
+DECIDE `the role holders in` y e k interns IS
+    map (GIVEN n YIELD `a role holder` (DATE_FROM_DMY 1 9 y) e k n) interns
+
+GIVEN y IS A NUMBER
+      e IS A `the teacher's employer`
+      interns IS A LIST OF NUMBER
+GIVETH A LIST OF `teaching case`
+DECIDE `the role holders at` y e interns IS
+    concat (map (GIVEN k YIELD `the role holders in` y e k interns) `the kinds of school checked`)
+
+GIVEN y IS A NUMBER
+      interns IS A LIST OF NUMBER
+GIVETH A LIST OF `teaching case`
+DECIDE `the role holders of the year` y interns IS
+    concat (map (GIVEN e YIELD `the role holders at` y e interns) `the employers checked`)
+
+GIVEN interns IS A LIST OF NUMBER
+GIVETH A LIST OF `teaching case`
+DECIDE `the role holders with` interns IS
+    concat (map (GIVEN y YIELD `the role holders of the year` y interns) `the school years checked`)
+
+-- The cases an item is checked over.
+GIVEN i IS A `pay item`
+GIVETH A LIST OF `teaching case`
+DECIDE `the cases checked for` i IS
+    CONSIDER i
+    WHEN `the 2008 public-sector supplement` THEN `the 2008 supplement's cases`
+    WHEN `the pedagogical coordinator's allowance rate` THEN `the role holders with` (LIST 0)
+    WHEN `the mentor's allowance rate` THEN `the role holders with` (LIST 1, 3, 4)
+
+`the cases checked` MEANS
+    concat (map `the cases checked for` `the items`)
 
 §§ `סתירות`
 
@@ -162,7 +237,7 @@ DECIDE `the contradictions on` i c IS
 GIVEN i IS A `pay item`
 GIVETH A LIST OF `contradiction`
 DECIDE `the contradictions on the item` i IS
-    concat (map (GIVEN c YIELD `the contradictions on` i c) `the cases checked`)
+    concat (map (GIVEN c YIELD `the contradictions on` i c) (`the cases checked for` i))
 
 `the contradictions` MEANS
     concat (map `the contradictions on the item` `the items`)
@@ -184,6 +259,11 @@ DECIDE `the modules of` instruments IS
     map (GIVEN i YIELD i's `module`) instruments
 
 `the resolutions` MEANS
+    concat (LIST `the resolutions on the 2008 supplement`,
+                 `the resolutions on the pedagogical coordinator`,
+                 `the resolutions on the mentor`)
+
+`the resolutions on the 2008 supplement` MEANS
     LIST `the takanon against the agreement`,
          `the takanon against circular תשס"ט/3`,
          `the takanon, the agreement and circular תשס"ט/3`,
@@ -245,6 +325,53 @@ DECIDE `the modules of` instruments IS
         (`circular תש"ע/2`'s `module`)
         `§22: a term in the employee's favour stands`
 
+-- The pedagogical coordinator (MMS-548). From 1.9.2023 the agreement of
+-- 19.10.2022 (§12.1) raises the 6% of the agreement of 19.3.2017 (§3(ג)) to
+-- 8%. Read together, the provision in the employee's favour governs (§23),
+-- which is the later agreement's 8%: the rate it set out to give.
+`the two agreements on the pedagogical coordinator` MEANS
+    `resolved` `the pedagogical coordinator's allowance rate`
+        (`the modules of` (LIST `the agreement of 19.3.2017`, `the agreement of 19.10.2022`))
+        (`the agreement of 19.10.2022`'s `module`)
+        `§23: the provision in the employee's favour`
+
+-- An owner's teacher from 1.9.2023: the owners' special-education circulars
+-- תשפ"ד/2, תשפ"ה/1 and תשפ"ו/1 still print 6%, below the agreements' 8%, and a
+-- circular does not out-rank the agreement it carries out (each says so
+-- itself; the findings F-2025-26_tashpo_01-n and MMS-543). תשפ"ד/1, to the
+-- Ma'ayan and Chinuch Atzmai primary schools, prints the 8%: it disagrees
+-- only with the 19.3.2017 agreement's 6%, and the ruling is the 8% it prints.
+GIVEN circular IS AN `instrument`
+GIVETH A `resolution`
+DECIDE `the agreements against an owners' circular on the pedagogical coordinator` circular IS
+    `resolved` `the pedagogical coordinator's allowance rate`
+        (`the modules of` (LIST `the agreement of 19.3.2017`, `the agreement of 19.10.2022`, circular))
+        (`the agreement of 19.10.2022`'s `module`)
+        `a circular never out-ranks the agreement`
+
+`the resolutions on the pedagogical coordinator` MEANS
+    concat (LIST (LIST `the two agreements on the pedagogical coordinator`),
+                 map `the agreements against an owners' circular on the pedagogical coordinator`
+                     (LIST `circular תשפ"ד/1`, `circular תשפ"ד/2`, `circular תשפ"ה/1`, `circular תשפ"ו/1`))
+
+-- The mentor (MMS-548). The agreement of 19.3.2017 (§3(ד)) pays 2.4% "for
+-- each intern"; every owners' employment circular from תש"ף/1 pays it for
+-- three at most. For a fourth intern the circular gives less, and a
+-- circular does not out-rank the agreement it carries out (the finding
+-- F-2025-26_tashpo_01-p, high; MMS-545).
+GIVEN circular IS AN `instrument`
+GIVETH A `resolution`
+DECIDE `the agreement against an owners' circular on the mentor` circular IS
+    `resolved` `the mentor's allowance rate`
+        (`the modules of` (LIST `the agreement of 19.3.2017`, circular))
+        (`the agreement of 19.3.2017`'s `module`)
+        `a circular never out-ranks the agreement`
+
+`the resolutions on the mentor` MEANS
+    map `the agreement against an owners' circular on the mentor`
+        (LIST `circular תש"ף/1`, `circular תשפ"א/1`, `circular תשפ"ב/2`, `circular תשפ"ג/2`,
+              `circular תשפ"ד/1`, `circular תשפ"ד/2`, `circular תשפ"ה/1`, `circular תשפ"ו/1`)
+
 GIVEN x IS A `contradiction`
 GIVETH A BOOLEAN
 DECIDE `is resolved` x IF
@@ -305,6 +432,7 @@ DECIDE `the titles joined` titles IS
     map `the report line of` `the resolutions`
 
 #EVAL `the resolutions report`
+#EVAL count `the resolutions`
 #EVAL count `the cases checked`
 
 §§ `ראיות`
@@ -337,3 +465,19 @@ DECIDE `the answers on` i c IS
 -- primary teacher has only the takanon.
 #ASSERT ((`the answers on` `the 2008 public-sector supplement` (`a teacher` (DATE_FROM_DMY 1 1 2010) `employed by the State` FALSE FALSE FALSE FALSE))
     EQUALS LIST 520)
+-- The role allowances (MMS-548). An owner's special-education teacher in
+-- 2025/26 mentoring four interns: the agreement's 9.6% against the
+-- circular's 7.2%, and the agreement governs.
+#ASSERT ((`the answers on` `the mentor's allowance rate` (`a role holder` (DATE_FROM_DMY 1 9 2025) `employed by another owning body` `a recognised unofficial special-education school` 4))
+    EQUALS LIST 0.096, 0.072)
+#ASSERT ((`the answer that governs` `the mentor's allowance rate` (`a role holder` (DATE_FROM_DMY 1 9 2025) `employed by another owning body` `a recognised unofficial special-education school` 4))
+    EQUALS JUST 0.096)
+-- The same teacher as pedagogical coordinator: the agreements' 6% and 8%
+-- and the circular's 6%; the 8% governs.
+#ASSERT ((`the answers on` `the pedagogical coordinator's allowance rate` (`a role holder` (DATE_FROM_DMY 1 9 2025) `employed by another owning body` `a recognised unofficial special-education school` 0))
+    EQUALS LIST 0.06, 0.08, 0.06)
+#ASSERT ((`the answer that governs` `the pedagogical coordinator's allowance rate` (`a role holder` (DATE_FROM_DMY 1 9 2025) `employed by another owning body` `a recognised unofficial special-education school` 0))
+    EQUALS JUST 0.08)
+-- In 2022/23, before the raise, the circular and the agreement agree on 6%.
+#ASSERT ((`the answers on` `the pedagogical coordinator's allowance rate` (`a role holder` (DATE_FROM_DMY 1 9 2022) `employed by another owning body` `a recognised unofficial special-education school` 0))
+    EQUALS LIST 0.06, 0.06)

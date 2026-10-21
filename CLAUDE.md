@@ -125,12 +125,16 @@ all the files to give one answer", and disagreements raised as errors.
 - **Collection roots**, `l4/lib/takanon-root.l4`, `agreements-root.l4`,
   `circulars-root.l4`: each lists the instruments it includes and gathers
   their claims for an item. They come before the root, which imports them.
+  The agreements' root gathers one root per family of agreements, as the
+  corpus groups them (MMS-548): `ofek-hadash-root.l4`, `oz-latmura-root.l4`,
+  each with its page in its family (agreements/ofek-hadash/root.html).
 - **Precedence once**, `l4/lib/precedence.l4`: the takanon's introduction,
   then the later circular over the earlier (`precedence.later-circular`),
   §23 among agreements, §29 then §22 between an agreement and the
   employer's term. No instrument keeps its own copy of these.
 - **The root**, `l4/lib/root.l4`: the one public answer, `the answer that
-  governs` item case, and the gate: over a grid of cases,
+  governs` item case, and the gate: over each item's grid of cases
+  (`the cases checked for` item),
   any item and case where the claims give two or more answers is a
   contradiction; `unresolved contradictions` is `#ASSERT null`, and a
   contradiction is resolved only by an entry in `the resolutions` naming the
@@ -138,6 +142,9 @@ all the files to give one answer", and disagreements raised as errors.
   The disagreements stay asserted as evidence.
 - The site shows each root on its own page (`tools/roots.py`: root.html,
   circulars/root.html, …), read off the module and `make l4`'s results.
+  A root imports whole families of instruments, so one pass of the compiler
+  over it takes minutes; `make l4` checks it and does not render it
+  (`tools/l4run.py` `is_a_root`).
 - Traces come from tools/assets/l4wasm/l4.wasm, whose import resolution
   cannot yet load a module two importers share (a type reached by two paths
   is "a resolved name that has no additional information"); the CLI is

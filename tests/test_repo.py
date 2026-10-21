@@ -412,7 +412,7 @@ class ConventionsModule(unittest.TestCase):
 
 # Type names declared in more than one module (test_a_type_name_is_declared_once):
 # each is a pair the compiler will refuse to import into one file.
-DECLARED_MORE_THAN_ONCE = 295
+DECLARED_MORE_THAN_ONCE = 294
 
 
 class OneNamespace(unittest.TestCase):

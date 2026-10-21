@@ -57,12 +57,30 @@ DECIDE `is an owning body` e IF
 DECLARE `pay item` IS ONE OF
     @desc "תוספת 2008": the public-sector wage supplement of 2008 for teaching employees not in a reform
     `the 2008 public-sector supplement`
+    @desc "גמול רכז פדגוגי": the pedagogical coordinator's role allowance, as a share of the combined salary
+    `the pedagogical coordinator's allowance rate`
+    @desc "גמול חונך": a mentor's role allowance for the interns the mentor accompanies, as a share of the combined salary
+    `the mentor's allowance rate`
 
 GIVEN i IS A `pay item`
 GIVETH A STRING
 DECIDE `the name of the item` i IS
     CONSIDER i
     WHEN `the 2008 public-sector supplement` THEN "תוספת 2008"
+    WHEN `the pedagogical coordinator's allowance rate` THEN "גמול רכז פדגוגי"
+    WHEN `the mentor's allowance rate` THEN "גמול חונך"
+
+§§ `בית הספר`
+
+-- The schools the owners' employment circulars are addressed to, one
+-- circular a year for each: a recognised-unofficial special-education
+-- school (תש"ף/1 … תשפ"ו/1), and a recognised-unofficial primary school of
+-- the Ma'ayan HaChinuch HaTorani or Chinuch Atzmai networks (תשפ"ד/1).
+-- Any other school is one no owners' circular in the root speaks to.
+DECLARE `the kind of school in the case` IS ONE OF
+    `a recognised unofficial special-education school`
+    `a Ma'ayan HaChinuch HaTorani or Chinuch Atzmai primary school`
+    `another school`
 
 §§ `המקרה`
 
@@ -80,6 +98,8 @@ DECLARE `teaching case` HAS
     `supplement 2001 today`                 IS A NUMBER  @desc תוספת 2001 at its current value
     `combined salary in December 2007` IS A NUMBER @desc the combined salary at its value in December 2007
     `supplement 2001 in December 2007` IS A NUMBER @desc תוספת 2001 at its value in December 2007
+    `the kind of school`               IS A `the kind of school in the case` @desc the school the teacher is employed in, as the owners' circulars tell them apart
+    `the interns the teacher mentors`  IS A NUMBER @desc how many interns the teacher is appointed to mentor; 0 if none
 
 -- Whether the case's salary month is month m of year y or later: any day
 -- of the month says which month it is (convention dates.start).
@@ -87,3 +107,20 @@ GIVEN c IS A `teaching case`, y IS A NUMBER, m IS A NUMBER
 GIVETH A BOOLEAN
 DECIDE `the salary month is at least` c y m IF
     (c's `the salary month`) `is on or after` (DATE_FROM_DMY 1 m y)
+
+-- Whether the case's salary month falls in the school year that starts on
+-- 1 September of year y (a yearly circular's year): from 1.9.y to 31.8.y+1.
+GIVEN c IS A `teaching case`, y IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `the salary month is in the school year from` c y IF
+        `the salary month is at least` c y 9
+    AND NOT `the salary month is at least` c (y PLUS 1) 9
+
+-- Whether a yearly owners' circular reaches the case: an owner's employee,
+-- in the kind of school it is addressed to, in its school year.
+GIVEN c IS A `teaching case`, k IS A `the kind of school in the case`, y IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `an owner's teacher in` c k y IF
+        `is an owning body` (c's `employer`)
+    AND c's `the kind of school` EQUALS k
+    AND `the salary month is in the school year from` c y

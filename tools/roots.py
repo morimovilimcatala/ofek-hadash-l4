@@ -37,6 +37,17 @@ ROOTS = [
      "שורש ההסכמים",
      "כל הסכם קיבוצי שמדבר על פריט באוצר המילים המשותף, רשום פעם אחת כמסמך, ומה הוא אומר "
      "לכל מקרה. השורש מייבא אותו לצד שורשי התקנון והחוזרים."),
+    # one root per family of agreements, as the corpus groups them (MMS-548:
+    # the client, 2026-10-22, "Maybe אופק חדש should have its own root as
+    # well?"); the agreements' root gathers them
+    ("ofek-hadash-root", "agreements/ofek-hadash/root.html", "agreements",
+     "שורש הסכמי אופק חדש",
+     "כל הסכם של רפורמת אופק חדש שמדבר על פריט באוצר המילים המשותף, רשום פעם אחת כמסמך, "
+     "ומה הוא אומר לכל מקרה. שורש ההסכמים מייבא אותו לצד שורשי שאר המשפחות."),
+    ("oz-latmura-root", "agreements/oz-latmura/root.html", "agreements",
+     "שורש הסכמי עוז לתמורה",
+     "כל הסכם של ארגון המורים ורפורמת עוז לתמורה שמדבר על פריט באוצר המילים המשותף, רשום "
+     "פעם אחת כמסמך, ומה הוא אומר לכל מקרה. שורש ההסכמים מייבא אותו לצד שורשי שאר המשפחות."),
     ("circulars-root", "circulars/root.html", "circulars",
      "שורש החוזרים",
      "כל חוזר שמדבר על פריט באוצר המילים המשותף, רשום פעם אחת כמסמך, ומה הוא אומר לכל "
@@ -50,6 +61,15 @@ STRING = re.compile(r'"((?:[^"\\]|\\.)*)"')
 def page_for(coll: str) -> str | None:
     """The root page that sits in a collection, if there is one."""
     return next((here for _, here, c, _, _ in ROOTS if c == coll), None)
+
+
+def family_page(family: str) -> str | None:
+    """The root page of a family of agreements (agreements/<family>/root.html)."""
+    return next((here for _, here, _, _, _ in ROOTS if here == f"agreements/{family}/root.html"), None)
+
+
+def is_family(here: str) -> bool:
+    return here.count("/") == 2
 
 
 def results(module: str) -> list[dict]:
@@ -104,7 +124,7 @@ def page_body(module: str, here: str, coll: str, heading: str, about: str, *,
                  else f"{len(unresolved)} סתירות שלא הוכרעו — הבנייה אדומה")
         parts.append(f'<p class="lede"><b>{esc(state)}</b>, ב־{esc(cases)} המקרים שנבדקו. '
                      'הסתירות עצמן נשארות כבדיקות: אם מסמך יפסיק לחלוק, הבנייה תאדים שוב.</p>')
-        links = " · ".join(f'<a href="{rel(h, here)}">{esc(t)}</a>' for m, h, c, t, _ in ROOTS if c)
+        links = " · ".join(f'<a href="{rel(h, here)}">{esc(t)}</a>' for m, h, c, t, _ in ROOTS if c and not is_family(h))
         parts.append(f'<p class="lede">המסמכים רשומים בשורשי האוספים: {links}. '
                      f'סדר העדיפות: <code dir="ltr">l4/lib/precedence.l4</code>, בקוד שלהלן.</p>')
         rows = []
@@ -122,6 +142,11 @@ def page_body(module: str, here: str, coll: str, heading: str, about: str, *,
         for m, t in registered(module):
             h = href_of(m)
             items.append(f'<li><a href="{rel(h, here)}">{esc(t)}</a></li>' if h else f"<li>{esc(t)}</li>")
+        if module == "agreements-root":
+            fams = " · ".join(f'<a href="{rel(h, here)}">{esc(t)}</a>' for m, h, c, t, _ in ROOTS if is_family(h))
+            parts.append(f'<p class="lede">כל משפחת הסכמים רושמת את הסכמיה בשורש משלה: {fams}.</p>')
+        if is_family(here):
+            parts.append(f'<p class="lede">שורש ההסכמים מייבא אותו: <a href="{rel(page_for("agreements"), here)}">שורש ההסכמים</a>.</p>')
         parts.append('<h2>המסמכים הרשומים</h2><ul class="lede">' + "".join(items) + "</ul>"
                      f'<p class="lede">השורש: <a href="{rel("root.html", here)}">{esc(ROOTS[0][3])}</a>.</p>')
     blocks = [module] + (["precedence", "vocabulary"] if module == "root" else [])

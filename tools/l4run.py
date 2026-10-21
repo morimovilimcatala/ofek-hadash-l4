@@ -6,6 +6,9 @@ For each file under l4/ this writes, to build/l4/<same path>:
   .render.html   `l4 render`      — L4's own rendering of the rules as a document
   .graph.dot     `l4 state-graph` — each regulative rule as a state diagram (GraphViz)
 
+A root (l4/lib/*root.l4) gets the first only: it is checked, not rendered
+(`is_a_root`).
+
 A file's outputs are keyed by its own bytes, the bytes of every module it
 imports, transitively, wherever it lives (MMS-524: any file may import any
 other), and the compiler's own identity, so a changed rule or a changed
@@ -156,13 +159,26 @@ def all_asserts_hold(data: dict) -> bool:
                for r in data.get("results", []) if r.get("kind") == "assertion")
 
 
+def is_a_root(path: Path) -> bool:
+    """A root (l4/lib/*root.l4, MMS-521): it imports whole families of
+    instruments, so each pass of the compiler over it takes minutes and
+    gigabytes (the root: ~10 minutes, 4.6 GB, 2026-10-22). Its page is read
+    off its source and its results (tools/roots.py); no text sits beside it
+    for `l4 render`'s prose, and it declares no obligation for a state
+    graph, so it is checked once and not rendered."""
+    return path.parent == L4_DIR / "lib" and path.name.endswith("root.l4")
+
+
 def run_one(path: Path, exe: str, cid: str) -> tuple[Path, bool, bool]:
     out = outputs(path)
     k = key(path, cid)
     if out["key"].exists() and out["key"].read_text() == k:
         ok = verdict(json.loads(out["run"].read_text()), path.name)
         if not out["graph"].exists():
-            write_graph(path, exe, out["graph"])
+            if is_a_root(path):
+                out["graph"].write_text("", encoding="utf-8")
+            else:
+                write_graph(path, exe, out["graph"])
         return path, ok, False
     out["run"].parent.mkdir(parents=True, exist_ok=True)
     cwd = path.parent
@@ -181,12 +197,16 @@ def run_one(path: Path, exe: str, cid: str) -> tuple[Path, bool, bool]:
     data["ok"] = verdict(data, path.name)
     out["run"].write_text(json.dumps(data, ensure_ascii=False, indent=1),
                           encoding="utf-8")
-    rr = subprocess.run([exe, "render", "--format", "html",
-                         f"--fixed-now={FIXED_NOW}", path.name],
-                        cwd=cwd, capture_output=True, text=True, env=modules.env())
-    out["render"].write_text(rr.stdout if rr.returncode == 0 else "",
-                             encoding="utf-8")
-    write_graph(path, exe, out["graph"])
+    if is_a_root(path):
+        out["render"].write_text("", encoding="utf-8")
+        out["graph"].write_text("", encoding="utf-8")
+    else:
+        rr = subprocess.run([exe, "render", "--format", "html",
+                             f"--fixed-now={FIXED_NOW}", path.name],
+                            cwd=cwd, capture_output=True, text=True, env=modules.env())
+        out["render"].write_text(rr.stdout if rr.returncode == 0 else "",
+                                 encoding="utf-8")
+        write_graph(path, exe, out["graph"])
     out["key"].write_text(k)
     return path, bool(data.get("ok")), True
 
