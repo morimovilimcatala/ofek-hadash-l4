@@ -1,4 +1,4 @@
-"""The simulator's group of סתירות בין מסמכים (contradictions.html#g-simulator):
+"""The simulator's group of מקורות סותרים (contradictions.html#g-simulator):
 where the Ministry of Education's public salary simulator computes something
 other than the text. It was a page of its own, פערי הסימולטור
 (calculator-delta.html, MMS-513), until the client asked for its gaps to sit

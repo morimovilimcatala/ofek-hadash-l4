@@ -1749,7 +1749,7 @@ def contradictions_page(findings: list[dict], by_file: dict[str, "SectionView"],
         src=lambda f: rel(f"assets/contradictions/{f}", here),
         simulator=simulator_group(findings, by_file, key_to_view) if DELTA else None)
     return page(here, f"{contradictions.TAB} — {TITLE}", body, tab="contradictions",
-                desc="היכן שמסמך אחד סותר מסמך אחר: תמונה של כל צד, הכלל שמכריע, והאם קוים", sidebar=side)
+                desc="היכן שמקור אחד סותר מקור אחר — מסמכים, וסימולטור השכר של המשרד מול הטקסט: כל צד, הכלל שמכריע, והאם קוים", sidebar=side)
 
 
 def law_page(name: str) -> str:

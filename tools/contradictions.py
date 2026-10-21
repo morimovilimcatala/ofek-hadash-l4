@@ -1,4 +1,5 @@
-"""סתירות בין מסמכים (contradictions.html, MMS-515): where one instrument
+"""מקורות סותרים (contradictions.html, MMS-515; "סתירות בין מסמכים" until the
+simulator joined it, MMS-522 — a calculator is not a document): where one instrument
 says one thing and another instrument says another about the same pay or
 right — an agreement and the circular that implements it, a circular and the
 letter it executes, two circulars — with a picture of each side, the rule
@@ -34,7 +35,7 @@ ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "data" / "contradictions.json"
 CROPS = ROOT / "data" / "contradictions"
 HERE = "contradictions.html"
-TAB = "סתירות בין מסמכים"
+TAB = "מקורות סותרים"
 
 TYPE = {"agreement": "הסכם קיבוצי", "circular": "חוזר", "letter": "מכתב", "takanon": "תקנון",
         "qa": "שאלות ותשובות", "table": "טבלת שכר", "law": "חוק", "payment": "התשלום בפועל",
@@ -147,8 +148,8 @@ def body(data: dict, *, prose, clause_link, finding_ids: set[str], src,
     kinds["simulator"] += sim_n
     chips = "".join(f'<button type="button" class="cx-tchip" data-dim="types" data-val="{k}" aria-pressed="false">'
                     f'{esc(TYPE[k])} <b>{n}</b></button>' for k, n in kinds.items() if n)
-    rows.insert(0, f'<div class="cx-frow" role="group" aria-label="סוגי המסמכים">'
-                   f'<span class="cx-sumh">מסמכים:</span>{chips}</div>')
+    rows.insert(0, f'<div class="cx-frow" role="group" aria-label="סוגי המקורות">'
+                   f'<span class="cx-sumh">מקורות:</span>{chips}</div>')
     out.append(f'<div class="cx-sum" aria-label="סינון לפי: האם הכלל קוים — כל שורה מסננת בנפרד, והשתיים מצטרפות">'
                + "".join(rows)
                + f'<div class="cx-frow"><button type="button" class="cx-all" aria-pressed="true">הכול <b>{len(items) + sim_n}</b></button></div></div>')
