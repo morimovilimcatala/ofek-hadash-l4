@@ -1,0 +1,99 @@
+-- הסכם אופק חדש (25.12.2008), §27 מורה במשרה חלקית: the part-time week —
+-- the floor of a third of a position and its exceptions, the position of a
+-- teacher on a sabbatical or partial unpaid leave, the hours of a part-time
+-- teacher by the annexed tables, several schools, and a part-time mother's
+-- and age hours.
+
+IMPORT prelude
+IMPORT `base-agreement-common`
+§ `27 מורה במשרה חלקית`
+
+-- akn:art_27 The opening: the part-time week, set out in (א)–(יא).
+
+DECLARE `part-time teacher kind` IS ONE OF
+    `an existing teacher`
+    `a new teacher`
+    `a new special-education teacher`
+    `a paramedical or integrating teacher`
+
+@desc A part-time teacher, as far as §27(א)–(ה) ask.
+DECLARE `part-time teacher` HAS
+    kind                                   IS A `part-time teacher kind`
+    `position fraction`                    IS A NUMBER
+    `position in the year before the school moved` IS A NUMBER @desc for an existing teacher (27(ב))
+    `approved by the head of teaching personnel` IS A BOOLEAN @desc a new teacher below 50% (27(ג))
+
+-- (א): not below a third of a position, subject to what follows; (ב): an
+-- existing teacher employed between a third and 50% the year before the
+-- school moved may move at that position or more; (ג): a new teacher (not
+-- in special education) not below 50% unless the head of teaching personnel
+-- approved the employment and its week; (ד): a new special-education
+-- teacher not below a third; (ה): a paramedical or integrating teacher may
+-- be employed below a third.
+@ref akn:art_27__para_a akn:art_27__para_b akn:art_27__para_c akn:art_27__para_d akn:art_27__para_e
+GIVEN t IS A `part-time teacher`
+GIVETH A BOOLEAN
+DECIDE `the position is allowed under section 27` t IF
+    CONSIDER t's kind
+    WHEN `an existing teacher` THEN
+            t's `position fraction` AT LEAST 1/3
+        AND (   t's `position in the year before the school moved` GREATER THAN 0.5
+             OR t's `position fraction` AT LEAST t's `position in the year before the school moved`)
+    WHEN `a new teacher` THEN
+            t's `position fraction` AT LEAST 0.5
+        OR  (t's `approved by the head of teaching personnel` AND t's `position fraction` AT LEAST 1/3)
+    WHEN `a new special-education teacher` THEN t's `position fraction` AT LEAST 1/3
+    WHEN `a paramedical or integrating teacher` THEN t's `position fraction` GREATER THAN 0
+
+-- (ו): on a sabbatical or partial unpaid leave, a position below a third is
+-- the weekly frontal hours divided by all the weekly hours of a full
+-- position (36, §§15 and 17).
+@ref akn:art_27__para_f
+GIVEN `weekly frontal hours` IS A NUMBER, `weekly hours of a full position` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the position on a sabbatical or partial unpaid leave` `weekly frontal hours` `weekly hours of a full position` IS
+    `weekly frontal hours` DIVIDED BY `weekly hours of a full position`
+
+-- (ז): from a third of a position up, the weekly hours are in proportion to
+-- the full-position hours of §§15 "עד" a word processor's error message
+-- and "23" — a corpus sic (its note: the agreement of 29.2.2012 rewrote the
+-- range as §§15 to 18 and 21 to 23); taken as §§15 to 23. The hours
+-- themselves are those of the annexed tables א' and ב', which the corpus
+-- does not publish with the agreement: an input.
+@ref akn:art_27__para_g
+ASSUME `the hours annexes א and ב give` IS A FUNCTION FROM NUMBER TO `work week`
+
+GIVEN w IS A `work week`, `position fraction` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the part-time weekly hours in proportion` w `position fraction` IS
+    `hours of the week` w TIMES `position fraction`
+
+-- (ח): paramedical and integrating teachers below a third of a position in
+-- a school, and teachers in several reform schools (a third or more in
+-- all) below a third in one of them by the personnel division's approval,
+-- work there by the tables of annexes ג' and ג1' — an input.
+@ref akn:art_27__para_h
+ASSUME `the hours annexes ג and ג1 give` IS A FUNCTION FROM NUMBER TO `work week`
+
+-- (ט): a part-time mother's week, with the stay-hours reduction, is by
+-- annexes א' and ב'; (יא): so is a part-time teacher's age reduction.
+@ref akn:art_27__para_i akn:art_27__para_ja
+ASSUME `the part-time mother's week the annexes give` IS A FUNCTION FROM NUMBER TO `work week`
+ASSUME `the part-time age reduction the annexes give` IS A FUNCTION FROM NUMBER TO NUMBER
+
+-- (י): in several schools, the hours are computed for each school apart.
+@ref akn:art_27__para_j
+GIVEN `positions in each school` IS A LIST OF NUMBER
+GIVETH A LIST OF `work week`
+DECIDE `the hours for each school` `positions in each school` IS
+    map `the hours annexes א and ב give` `positions in each school`
+
+#ASSERT `the position on a sabbatical or partial unpaid leave` 6 36 EQUALS 1/6
+#ASSERT `the part-time weekly hours in proportion` (`a week of` 26 5 5) 0.5 EQUALS 18
+`a new teacher at 40% without approval` MEANS
+    `part-time teacher` WITH
+        kind IS `a new teacher`
+        `position fraction` IS 0.4
+        `position in the year before the school moved` IS 0
+        `approved by the head of teaching personnel` IS FALSE
+#ASSERT NOT `the position is allowed under section 27` `a new teacher at 40% without approval`

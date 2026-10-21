@@ -1,0 +1,91 @@
+-- הסכם אופק חדש (25.12.2008), §46 שיבוץ מורה אקדמאי בטבלת השכר המשולב:
+-- placement after the conversion — the tables with intermediate grades
+-- (annexes ו' and ז'); a first-degree teacher in his seniority row at the
+-- grade or intermediate grade nearest at or above A, never below the row's
+-- starting grade (5,300 ₪, and 5,379.5 ₪ in December 2008, at seniority 0)
+-- and never above grade 9; second-degree and doctorate teachers at the
+-- grade the first-degree table gives, on the second-degree table, the
+-- doctorate with 5%; the pay by the position, at most 100%.
+
+IMPORT prelude
+IMPORT `base-agreement-common`
+IMPORT conventions
+
+§ `46 שיבוץ מורה אקדמאי בטבלת השכר המשולב`
+
+-- (א): for the conversion only, the tables have intermediate grades;
+-- annexes ו' and ז', which the corpus does not publish with the agreement,
+-- updated as §35(ב). A row is the grades and their pay at one seniority.
+@ref akn:art_46__para_a
+DECLARE `grade cell` HAS
+    grade IS A NUMBER @desc a grade, or an intermediate grade (4.5 lies between 4 and 5)
+    pay   IS A NUMBER
+
+-- (ב)–(ד): the first cell at or above A in the row; none being at or above
+-- A, grade 9 (the row's last); the pay never below the row's first cell.
+@ref akn:art_46__para_b akn:art_46__para_d
+GIVEN a IS A NUMBER, `row` IS A LIST OF `grade cell`
+GIVETH A MAYBE `grade cell`
+DECIDE `the placement in the row` a `row` IS
+    CONSIDER filter (GIVEN c YIELD c's pay AT LEAST a) `row`
+    WHEN c FOLLOWED BY rest THEN JUST c
+    WHEN EMPTY THEN listToMaybe (reverse `row`)
+
+-- (ג): the combined salary never below the starting grade of the row; at
+-- the start of תשס"ט never below 5,300 ₪ at seniority 0 for a full
+-- position, and in the December 2008 salary 5,379.5 ₪.
+@ref akn:art_46__para_c
+GIVEN `salary day` IS A DATE
+GIVETH A NUMBER
+DECIDE `the least table pay at seniority 0` `salary day` IS
+    BRANCH IF `salary day` `is on or after` (DATE_FROM_DMY 1 12 2008) THEN 5379.5
+           IF `salary day` `is on or after` (DATE_FROM_DMY 1 9 2008) THEN 5300
+           OTHERWISE 0
+
+DECLARE `degree held` IS ONE OF `a first degree`, `a second degree`, `a doctorate`
+
+-- (ה)–(ו): a second-degree teacher, and a doctorate, take the grade the
+-- first-degree table would give them and are placed at it on the
+-- second-degree table; the doctorate adds 5% of the combined salary
+-- (§36(ד)).
+@ref akn:art_46__para_e akn:art_46__para_e__subpara_1 akn:art_46__para_e__subpara_2 akn:art_46__para_f akn:art_46__para_f__subpara_1 akn:art_46__para_f__subpara_2
+GIVEN d IS A `degree held`, a IS A NUMBER
+      `first-degree row` IS A LIST OF `grade cell`
+      `second-degree row` IS A LIST OF `grade cell`
+GIVETH A MAYBE `grade cell`
+DECIDE `the placement after conversion` d a `first-degree row` `second-degree row` IS
+    IF d EQUALS `a first degree`
+    THEN `the placement in the row` a `first-degree row`
+    ELSE CONSIDER `the placement in the row` a `first-degree row`
+         WHEN JUST c THEN listToMaybe (filter (GIVEN s YIELD s's grade EQUALS c's grade) `second-degree row`)
+         WHEN NOTHING THEN NOTHING
+
+GIVEN d IS A `degree held`, `combined salary` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the doctorate's addition after conversion` d `combined salary` IS
+    IF d EQUALS `a doctorate` THEN 5% TIMES `combined salary` ELSE 0
+
+-- (ז): the pay is by the position under the reform, at most 100% (save
+-- §33(ד)'s hours beyond it).
+@ref akn:art_46__para_g
+GIVEN `table pay` IS A NUMBER, `position fraction` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the converted teacher's pay` `table pay` `position fraction` IS
+    `table pay` TIMES min `position fraction` 1
+
+-- A placeholder seniority row, grades 4 to 5.
+GIVEN g IS A NUMBER, p IS A NUMBER
+GIVETH A `grade cell`
+DECIDE `cell` g p IS
+    `grade cell` WITH
+        grade IS g
+        pay   IS p
+
+`a placeholder row` MEANS LIST `cell` 4 8100, `cell` 4.5 8414, `cell` 5 8700, `cell` 9 9900
+`a placeholder second-degree row` MEANS LIST `cell` 4 8600, `cell` 4.5 8950, `cell` 5 9250, `cell` 9 10500
+
+#ASSERT `the placement in the row` 8190 `a placeholder row` EQUALS JUST (`cell` 4.5 8414)
+#ASSERT `the placement in the row` 8414 `a placeholder row` EQUALS JUST (`cell` 4.5 8414)
+#ASSERT `the placement in the row` 12000 `a placeholder row` EQUALS JUST (`cell` 9 9900)
+#ASSERT `the placement after conversion` `a second degree` 8190 `a placeholder row` `a placeholder second-degree row` EQUALS JUST (`cell` 4.5 8950)
+#ASSERT `the converted teacher's pay` 8414 1.1 EQUALS 8414

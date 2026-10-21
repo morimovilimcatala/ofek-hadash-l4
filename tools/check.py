@@ -21,7 +21,7 @@ import l4run  # noqa: E402
 def main(path: str) -> int:
     f = Path(path).resolve()
     r = subprocess.run([l4run.compiler(), "run", "--json", f"--fixed-now={l4run.FIXED_NOW}", f.name],
-                       cwd=f.parent, capture_output=True, text=True)
+                       cwd=f.parent, capture_output=True, text=True, env=l4run.modules.env())
     try:
         d = json.loads(r.stdout)
     except json.JSONDecodeError:

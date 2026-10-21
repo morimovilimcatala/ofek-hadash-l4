@@ -7,9 +7,14 @@ For each file under l4/ this writes, to build/l4/<same path>:
   .graph.dot     `l4 state-graph` — each regulative rule as a state diagram (GraphViz)
 
 A file's outputs are keyed by the bytes of every .l4 file in its directory
-(a section imports its document's shared vocabulary) and by the compiler's
-own identity, so a changed rule or a changed compiler is a different key
-and a stale reading cannot be served.
+(a section imports its document's shared vocabulary), of every module it
+imports, transitively, wherever it lives (MMS-524: any file may import any
+other), and by the compiler's own identity, so a changed rule or a changed
+compiler is a different key and a stale reading cannot be served.
+
+Every run has l4/modules/ on JL4_LIBRARY_PATH (tools/modules.py): the
+compiler finds an import by its bare name, and that directory holds every
+module under its one name.
 
 The compiler is `$L4` if set, else `l4` on PATH. toolchain/L4_COMMIT pins the
 legalese/l4-ide revision it is built from (toolchain/build-l4.sh).
@@ -25,6 +30,9 @@ import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import modules  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 L4_DIR = ROOT / "l4"
@@ -49,12 +57,35 @@ def files() -> list[Path]:
     IMPORT in a directory that is not its own (a section's `common.l4`, a
     collection's `conventions.l4`, a site page's `takanon-1-11.l4`), and its
     target is run where it lives."""
-    return sorted(p for p in L4_DIR.rglob("*.l4") if not p.is_symlink())
+    return sorted(p for p in L4_DIR.rglob("*.l4")
+                  if not p.is_symlink() and p.parent != modules.MODULES)
+
+
+IMPORT_RE = re.compile(r"^IMPORT\s+`?([^`\n]+?)`?\s*$", re.M)
+
+
+def imported(path: Path) -> set[Path]:
+    """Every file `path` imports, transitively, resolved the compiler's way:
+    beside the importing file, then in l4/modules/. A library the compiler
+    carries (prelude, daydate) is no file here and is keyed by the compiler."""
+    seen: set[Path] = set()
+    todo = [path]
+    while todo:
+        f = todo.pop()
+        for name in IMPORT_RE.findall(f.read_text(encoding="utf-8")):
+            for cand in (f.parent / f"{name}.l4", modules.MODULES / f"{name}.l4"):
+                if cand.exists():
+                    real = cand.resolve()
+                    if real not in seen:
+                        seen.add(real)
+                        todo.append(cand)
+                    break
+    return seen
 
 
 def key(path: Path, cid: str) -> str:
     h = hashlib.sha256(cid.encode())
-    for f in sorted(path.parent.glob("*.l4")):
+    for f in sorted(set(path.parent.glob("*.l4")) | imported(path)):
         h.update(f.name.encode() + b"\0" + f.read_bytes() + b"\0")
     h.update(path.name.encode())
     return h.hexdigest()
@@ -117,7 +148,7 @@ def run_one(path: Path, exe: str, cid: str) -> tuple[Path, bool, bool]:
     out["run"].parent.mkdir(parents=True, exist_ok=True)
     cwd = path.parent
     r = subprocess.run([exe, "run", "--json", f"--fixed-now={FIXED_NOW}",
-                        path.name], cwd=cwd, capture_output=True, text=True)
+                        path.name], cwd=cwd, capture_output=True, text=True, env=modules.env())
     try:
         data = json.loads(r.stdout)
     except json.JSONDecodeError:
@@ -133,7 +164,7 @@ def run_one(path: Path, exe: str, cid: str) -> tuple[Path, bool, bool]:
                           encoding="utf-8")
     rr = subprocess.run([exe, "render", "--format", "html",
                          f"--fixed-now={FIXED_NOW}", path.name],
-                        cwd=cwd, capture_output=True, text=True)
+                        cwd=cwd, capture_output=True, text=True, env=modules.env())
     out["render"].write_text(rr.stdout if rr.returncode == 0 else "",
                              encoding="utf-8")
     write_graph(path, exe, out["graph"])
@@ -144,7 +175,7 @@ def run_one(path: Path, exe: str, cid: str) -> tuple[Path, bool, bool]:
 def write_graph(path: Path, exe: str, dest: Path) -> None:
     """Every MUST/MAY/SHANT the file declares, as L4's own state diagram."""
     g = subprocess.run([exe, "state-graph", path.name], cwd=path.parent,
-                       capture_output=True, text=True)
+                       capture_output=True, text=True, env=modules.env())
     dest.write_text(g.stdout if g.returncode == 0 else "", encoding="utf-8")
 
 

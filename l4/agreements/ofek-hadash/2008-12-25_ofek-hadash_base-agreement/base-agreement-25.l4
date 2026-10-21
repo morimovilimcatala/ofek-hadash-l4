@@ -1,0 +1,64 @@
+-- הסכם אופק חדש (25.12.2008), §25 עובדת הוראה לאחר חופשת לידה: after the
+-- statutory maternity leave, a teaching employee in a position of 90% or
+-- more takes an hour a day (5 weekly hours) off her stay hours for four
+-- months, without cutting her pay or position, and §24 does not apply to
+-- her then; one in a position of 79% to 90% gets the part-time mother's
+-- reduction of §27(ט).
+
+IMPORT prelude
+IMPORT `base-agreement-common`
+§ `25 עובדת הוראה לאחר חופשת לידה`
+
+DECLARE `reduction after maternity leave` IS ONE OF
+    `five stay hours a week for four months`
+    `the part-time mother's reduction of section 27(ט)`
+    `none under section 25`
+
+-- ¶1: 90% and more, for four months from the end of the statutory leave.
+@ref akn:art_25
+GIVEN `position fraction` IS A NUMBER, `months since the leave ended` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `entitled under section 25 ¶1` `position fraction` `months since the leave ended` IF
+        `position fraction` AT LEAST 0.9
+    AND `months since the leave ended` AT LEAST 0
+    AND `months since the leave ended` LESS THAN 4
+
+-- ¶2: "79% עד 90%". F-ofek-hadash-base-25-a: ¶1 takes "90% משרה ומעלה",
+-- so a position of exactly 90% is in ¶1, and in ¶2 too if its "עד 90%"
+-- reaches 90%. The reading adopted follows convention thresholds.until:
+-- "עד 90%" ends before 90%, so ¶2's band is 79% up to and not including
+-- 90%, and a 90% position is ¶1's alone.
+@ref akn:art_25/p2
+GIVEN `position fraction` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `in section 25 ¶2's band` `position fraction` IF
+    `position fraction` AT LEAST 0.79 AND `position fraction` LESS THAN 0.9
+
+`the upper bound ¶2 prints` MEANS 0.9
+
+GIVEN `position fraction` IS A NUMBER, `months since the leave ended` IS A NUMBER
+GIVETH A `reduction after maternity leave`
+DECIDE `the reduction after maternity leave` `position fraction` `months since the leave ended` IS
+    BRANCH IF `entitled under section 25 ¶1` `position fraction` `months since the leave ended`
+           THEN `five stay hours a week for four months`
+           IF `in section 25 ¶2's band` `position fraction`
+           THEN `the part-time mother's reduction of section 27(ט)`
+           OTHERWISE `none under section 25`
+
+`stay hours off a week under ¶1` MEANS 5
+
+-- ¶1: while ¶1 applies, §24 does not.
+GIVEN `position fraction` IS A NUMBER, `months since the leave ended` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `section 24 is set aside` `position fraction` `months since the leave ended` IF
+    `entitled under section 25 ¶1` `position fraction` `months since the leave ended`
+
+`¶2's printed bound is ¶1's threshold` MEANS
+    `entitled under section 25 ¶1` `the upper bound ¶2 prints` 1
+#ASSERT `¶2's printed bound is ¶1's threshold`
+
+#ASSERT `the reduction after maternity leave` 0.9 1 EQUALS `five stay hours a week for four months`
+#ASSERT `the reduction after maternity leave` 0.85 1 EQUALS `the part-time mother's reduction of section 27(ט)`
+#ASSERT `the reduction after maternity leave` 1 4 EQUALS `none under section 25`
+-- An hour a day over the five days of §14(א).
+#ASSERT `stay hours off a week under ¶1` EQUALS 1 TIMES 5

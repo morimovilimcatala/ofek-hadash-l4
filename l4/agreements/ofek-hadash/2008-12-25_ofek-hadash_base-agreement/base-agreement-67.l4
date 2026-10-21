@@ -1,0 +1,87 @@
+-- הסכם אופק חדש (25.12.2008), §67 שינוי בשכר המנהל כתוצאה מרמת מורכבות בית
+-- הספר: a change in the school's own complexity changes the principal's
+-- pay — a rise to the new level's combined salary; a fall by the
+-- complexity supplement, he being taken to have banked 10% of each year's
+-- supplement from his first year there, the new supplement the banked sum
+-- and (100% − 10% × his years there) of the new level's supplement; and
+-- the clause's two worked examples.
+
+IMPORT prelude
+IMPORT `base-agreement-common`
+IMPORT conventions
+
+§ `67 שינוי בשכר המנהל כתוצאה מרמת מורכבות בית הספר`
+
+-- (א): only a change in the school itself, not one caused by other
+-- schools' changes alone, changes the pay.
+@ref akn:art_67__para_a
+GIVEN `the change comes from the school itself` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `the change of level changes the principal's pay` `the change comes from the school itself` IF
+    `the change comes from the school itself`
+
+-- (ב): on a rise, the combined salary of the new level (from the
+-- principals' table, an input).
+@ref akn:art_67__para_b
+GIVEN `the new level's combined salary` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the principal's combined salary after a rise` `the new level's combined salary` IS
+    `the new level's combined salary`
+
+-- (ג): on a fall, the complexity supplement changes; ¶2: the supplement is
+-- the principal's combined salary less a level-1 principal's of the same
+-- grade.
+@ref akn:art_67__para_c akn:art_67__para_c/p2
+GIVEN `combined salary at the level` IS A NUMBER, `combined salary at level 1, same grade` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the complexity supplement` `combined salary at the level` `combined salary at level 1, same grade` IS
+    `combined salary at the level` MINUS `combined salary at level 1, same grade`
+
+-- (ד): the supplement after a fall is (1) the sum banked, 10% of each
+-- year's supplement from the first year in the school, plus (2) [100% −
+-- 10% × years in the school] × the new level's supplement.
+-- F-ofek-hadash-base-67-a: nothing stops the years at ten. From the
+-- eleventh year (2) is below nothing and (1) passes the supplement the
+-- principal had: after twelve years at level 3 and a fall to level 2, the
+-- formula gives more than the level-3 supplement he had before the fall.
+-- The reading adopted: the years count up to ten, so the banked share
+-- reaches 100% and (2) is never below nothing.
+@ref akn:art_67__para_d akn:art_67__para_d__subpara_1 akn:art_67__para_d__subpara_2 akn:art_67__para_d__subpara_2/p2 akn:art_67__para_d__subpara_2/p3
+GIVEN `supplement in each year so far` IS A LIST OF NUMBER
+      `the new level's supplement` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the supplement after a fall, as printed` `supplement in each year so far` `the new level's supplement` IS
+        sum (map (GIVEN s YIELD 10% TIMES s) `supplement in each year so far`)
+    PLUS (100% MINUS 10% TIMES count `supplement in each year so far`) TIMES `the new level's supplement`
+
+GIVEN `supplement in each year so far` IS A LIST OF NUMBER
+      `the new level's supplement` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the supplement after a fall` `supplement in each year so far` `the new level's supplement` IS
+    `the supplement after a fall, as printed` (take 10 `supplement in each year so far`) `the new level's supplement`
+
+-- The examples (cls_1, cls_2), on the supplements they print: 2,436 at
+-- level 3, 1,218 at level 2, none at level 1.
+@ref akn:art_67__para_d__subpara_2/p4 akn:art_67__para_d__subpara_2__cls_1 akn:art_67__para_d__subpara_2__cls_1/p2 akn:art_67__para_d__subpara_2__cls_2 akn:art_67__para_d__subpara_2__cls_2/p2
+`four years at level 3` MEANS LIST 2436, 2436, 2436, 2436
+
+-- (1): 4 × 10% × 2,436 + 60% × 1,218 = 1,705.2, printed 1,705.
+#ASSERT `the supplement after a fall` `four years at level 3` 1218 EQUALS 1705.2
+#ASSERT `to the nearest whole` (`the supplement after a fall` `four years at level 3` 1218) EQUALS 1705
+-- (2): 4 × 10% × 2,436 + 2 × 10% × 1,218 + 40% × 0 = 1,218.
+#ASSERT `the supplement after a fall` (append `four years at level 3` (LIST 1218, 1218)) 0 EQUALS 1218
+
+-- F-ofek-hadash-base-67-a's evidence: twelve years at level 3, then level 2.
+`twelve years at level 3` MEANS replicate 12 2436
+`after twelve years a fall raises the supplement, as printed` MEANS
+    `the supplement after a fall, as printed` `twelve years at level 3` 1218 GREATER THAN 2436
+#ASSERT `after twelve years a fall raises the supplement, as printed`
+#ASSERT `the supplement after a fall` `twelve years at level 3` 1218 EQUALS 2436
+
+-- With the years at most ten, the supplement after a fall is never more
+-- than the one before it, nor less than the new level's — over every span
+-- of 1 to 15 years at level 3 falling to level 2.
+#ASSERT all (GIVEN n YIELD
+                    `the supplement after a fall` (replicate n 2436) 1218 AT MOST 2436
+                AND `the supplement after a fall` (replicate n 2436) 1218 AT LEAST 1218)
+            (range 1 15)
