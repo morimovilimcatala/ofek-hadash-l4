@@ -787,6 +787,26 @@ def group_html(coll: str, label: str, here: str, items: list[str], open_: bool) 
             f'<ul>{"".join(items)}</ul></details></li>')
 
 
+def laws_group(here: str) -> str:
+    """The statutes the L4 encodes outside the corpus (laws/), as one group
+    of the sidebar: the client, 2026-10-21, "maybe the sidebar should have a
+    חוקים section". Open on a statute's own page."""
+    names = laws.all_laws()
+    if not names:
+        return ""
+    lis = []
+    for n in names:
+        page_ = f"laws/{n}.html"
+        cur = ' aria-current="page"' if here == page_ else ""
+        title = laws.load(n)["title"]
+        lis.append(f'<li><a href="{rel(page_, here)}" title="{esc(title)}"{cur}>'
+                   f'<span class="sh" lang="he" dir="rtl">{esc(title)}</span></a></li>')
+    open_ = here.startswith("laws/")
+    return (f'<li class="sn-group"><details{" open" if open_ else ""}>'
+            f'<summary>חוקים<span class="n">{len(names)}</span></summary>'
+            f'<ul>{"".join(lis)}</ul></details></li>')
+
+
 def tree_nav(here: str) -> str:
     """Every encoded document, grouped as the corpus groups them: the
     sidebar of a page that is not a document (the home page, coverage,
@@ -815,6 +835,7 @@ def tree_nav(here: str) -> str:
                              f'<li class="toc-ch"><details><summary>{esc(group_label(coll, year))}'
                              f'<span class="n">{len(ds)}</span></summary><ul>{lis}</ul></details></li>')
         groups.append(group_html(coll, label, here, items, here_in))
+    groups.append(laws_group(here))
     return "".join(groups)
 
 
@@ -870,6 +891,7 @@ def doc_nav(here: str, doc: str) -> str:
     for c, lab in COLLECTIONS:
         if c != coll and coll_docs(c):
             groups.append(other_group(c, lab, here))
+    groups.append(laws_group(here))
     return "".join(groups)
 
 
