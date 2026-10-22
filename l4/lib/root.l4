@@ -1,8 +1,11 @@
--- The root (MMS-521): the one place to ask what the law gives. For each pay
--- item it imports every instrument that speaks to it, gathers what each
--- says for a case (its claim, stated in the shared vocabulary), and asks
--- precedence (l4/lib/precedence.l4, encoded once) which one governs and by
--- which rule. The calculator, the contradictions page and any other query
+-- The root (MMS-521): the one place to ask what the law gives. It holds the
+-- collections' roots, each a `collection root` (l4/lib/precedence.l4) that
+-- says what its instruments claim and rules among them by its own rule —
+-- §23 among the agreements, the later circular among the circulars. For a
+-- pay item and a case it asks every collection for its ruling and settles
+-- between them by the rules between collections (the takanon's
+-- introduction, §§22 and 29 of the Collective Agreements Law and the Budget
+-- Foundations Law), in l4/lib/precedence.l4. The calculator, the contradictions page and any other query
 -- ask this module, and an instrument's claim is never the answer by itself.
 --
 -- Where two or more instruments give different answers for an item and a
@@ -26,25 +29,32 @@ IMPORT `circulars-root`
 
 §§ `המסמכים`
 
--- The instruments, and what each says, are registered in the collections'
--- roots: l4/lib/takanon-root.l4, l4/lib/agreements-root.l4 and
--- l4/lib/circulars-root.l4. This module asks them, in that order.
+-- The collections, each a root of its own: l4/lib/takanon-root.l4,
+-- l4/lib/agreements-root.l4 and l4/lib/circulars-root.l4. This module asks
+-- them, in that order.
+`the collections` MEANS
+    LIST `the takanon's root`, `the agreements' root`, `the circulars' root`
 
 §§ `השאלה`
 
 -- Every instrument that speaks to an item, and what it says for a case:
--- the takanon's, the agreements' and the circulars' claims.
+-- each collection's instruments' claims.
 GIVEN i IS A `pay item`, c IS A `teaching case`
 GIVETH A LIST OF `claim`
 DECIDE `the claims on` i c IS
-    concat (LIST `the takanon's claims on` i c,
-                 `the agreements' claims on` i c,
-                 `the circulars' claims on` i c)
+    concat (map (GIVEN r YIELD `what the collection's instruments say` r i c) `the collections`)
+
+-- Each collection's ruling, by its own rule.
+GIVEN i IS A `pay item`, c IS A `teaching case`
+GIVETH A LIST OF `ruling`
+DECIDE `the collections' rulings on` i c IS
+    catMaybes (map (GIVEN r YIELD `the collection's ruling` r i c) `the collections`)
 
 GIVEN i IS A `pay item`, c IS A `teaching case`
 GIVETH A MAYBE `ruling`
 DECIDE `the ruling on the item` i c IS
-    `the ruling on` (`the claims on` i c) (c's `employer`) (`the date the takanon's provision on it was last amended` i)
+    `the ruling between the collections` (`the collections' rulings on` i c) (c's `employer`)
+        (`the date the takanon's provision on it was last amended` i)
 
 @export What a teaching employee is owed for a pay item in a salary month, after precedence between every instrument that speaks to it; nothing where no instrument speaks
 GIVEN i IS A `pay item` @desc the pay item asked about

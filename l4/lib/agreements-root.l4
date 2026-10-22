@@ -1,26 +1,93 @@
 -- The agreements' root (MMS-521): every collective agreement that speaks to
 -- an item of the shared vocabulary (l4/lib/vocabulary.l4), gathered from
 -- one root per family of agreements, as the corpus groups them (MMS-548):
--- l4/lib/ofek-hadash-root.l4 and l4/lib/oz-latmura-root.l4. The root
--- (l4/lib/root.l4) imports it beside the takanon's and the circulars' roots
--- and leaves precedence to l4/lib/precedence.l4.
+-- l4/lib/ofek-hadash-root.l4 and l4/lib/oz-latmura-root.l4.
+--
+-- It is a `collection root` (l4/lib/precedence.l4), and so is each family:
+-- the agreements' own precedence is this root's to apply (the client,
+-- 2026-10-22: "agreement precedence is the agreement root's
+-- responsibility"). Among collective agreements the provision in the
+-- employee's favour governs (the Collective Agreements Law, §23): each family
+-- rules among its own agreements, and this root among the families. The root
+-- (l4/lib/root.l4) sets this collection's ruling against the takanon's and
+-- the circulars'.
 
 IMPORT prelude
+IMPORT precedence
+IMPORT collective_agreements_law
 IMPORT `ofek-hadash-root`
 IMPORT `oz-latmura-root`
 
 § `שורש ההסכמים — מה ההסכמים אומרים על כל פריט`
+
+§§ `סעיף 23 — ההוראה שלטובת העובד`
+
+GIVEN a IS A `claim`, b IS A `claim`
+GIVETH A `claim`
+DECIDE `the agreement more favourable to the employee` a b IS
+    IF `the amount that governs between agreements` (a's `answer`) (b's `answer`) EQUALS a's `answer` THEN a ELSE b
+
+-- Among agreements that speak, the one whose provision is in the employee's
+-- favour; one alone governs as the only one that speaks.
+GIVEN claims IS A LIST OF `claim`
+GIVETH A MAYBE `ruling`
+DECIDE `the ruling among agreements` claims IS
+    CONSIDER claims
+    WHEN EMPTY THEN NOTHING
+    WHEN a FOLLOWED BY more THEN
+        JUST (`the ruling for`
+                  (foldr (GIVEN c, acc YIELD `the agreement more favourable to the employee` acc c) a more)
+                  (IF null more THEN `the only instrument that speaks` ELSE `§23: the provision in the employee's favour`))
+
+§§ `המשפחות`
+
+-- Each family of agreements is a collection root of its own, ruling among
+-- its agreements by §23.
+`the Ofek Hadash agreements' root` MEANS
+    `collection root` WITH
+        `the collection`  IS "הסכמי אופק חדש"
+        `its instruments` IS `the Ofek Hadash agreements' instruments`
+        `what each says`  IS `the Ofek Hadash agreements' claims on`
+        `its ruling`      IS (GIVEN i, c YIELD `the ruling among agreements` (`the Ofek Hadash agreements' claims on` i c))
+
+`the Oz LaTmura agreements' root` MEANS
+    `collection root` WITH
+        `the collection`  IS "הסכמי עוז לתמורה"
+        `its instruments` IS `the Oz LaTmura agreements' instruments`
+        `what each says`  IS `the Oz LaTmura agreements' claims on`
+        `its ruling`      IS (GIVEN i, c YIELD `the ruling among agreements` (`the Oz LaTmura agreements' claims on` i c))
+
+`the families of agreements` MEANS
+    LIST `the Ofek Hadash agreements' root`, `the Oz LaTmura agreements' root`
 
 §§ `המסמכים`
 
 -- The families' roots register their own agreements; this root includes
 -- them all, family by family.
 `the agreements' instruments` MEANS
-    concat (LIST `the Ofek Hadash agreements' instruments`, `the Oz LaTmura agreements' instruments`)
+    concat (map (GIVEN r YIELD r's `its instruments`) `the families of agreements`)
 
 §§ `מה ההסכמים אומרים, לפי פריט`
 
 GIVEN i IS A `pay item`, c IS A `teaching case`
 GIVETH A LIST OF `claim`
 DECIDE `the agreements' claims on` i c IS
-    concat (LIST `the Ofek Hadash agreements' claims on` i c, `the Oz LaTmura agreements' claims on` i c)
+    concat (map (GIVEN r YIELD `what the collection's instruments say` r i c) `the families of agreements`)
+
+-- Among the families, §23 again: one family that speaks keeps its own
+-- ruling; where more speak, the most favourable of their rulings governs.
+GIVEN i IS A `pay item`, c IS A `teaching case`
+GIVETH A MAYBE `ruling`
+DECIDE `the agreements' ruling on` i c IS
+    CONSIDER catMaybes (map (GIVEN r YIELD `the collection's ruling` r i c) `the families of agreements`)
+    WHEN EMPTY THEN NOTHING
+    WHEN f FOLLOWED BY fs THEN
+        IF null fs THEN JUST f
+        ELSE `the ruling among agreements` (map `the claim of the ruling` (f FOLLOWED BY fs))
+
+`the agreements' root` MEANS
+    `collection root` WITH
+        `the collection`  IS "ההסכמים הקיבוציים"
+        `its instruments` IS `the agreements' instruments`
+        `what each says`  IS `the agreements' claims on`
+        `its ruling`      IS `the agreements' ruling on`

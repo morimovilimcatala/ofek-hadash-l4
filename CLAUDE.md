@@ -134,16 +134,23 @@ all the files to give one answer", and disagreements raised as errors.
   describes itself (`instrument`: kind, date, §29 facts) and adds `<item>
   according to <instrument>`, a `MAYBE` answer from its own rules (NOTHING
   where it does not speak). Nothing in the roots names an item but data.
-- **Collection roots**, `l4/lib/takanon-root.l4`, `agreements-root.l4`,
-  `circulars-root.l4`: each lists the instruments it includes and gathers
-  their claims for an item. They come before the root, which imports them.
-  The agreements' root gathers one root per family of agreements, as the
-  corpus groups them (MMS-548): `ofek-hadash-root.l4`, `oz-latmura-root.l4`,
-  each with its page in its family (agreements/ofek-hadash/root.html).
-- **Precedence once**, `l4/lib/precedence.l4`: the takanon's introduction,
-  then the later circular over the earlier (`precedence.later-circular`),
-  §23 among agreements, §29 then §22 between an agreement and the
-  employer's term. No instrument keeps its own copy of these.
+- **Every root is an interface** (the client, 2026-10-22: "each root should
+  be an interface, agreement precedence is the agreement root's
+  responsibility"): a `collection root` record (`l4/lib/precedence.l4`) —
+  the instruments it includes, `what each says` for an item and a case, and
+  `its ruling`, by the collection's own rule. `l4/lib/takanon-root.l4` (one
+  provision speaks), `agreements-root.l4` (§23, the provision in the
+  employee's favour) and `circulars-root.l4` (the later circular over the
+  earlier, `precedence.later-circular`). The agreements' root holds one root
+  per family of agreements, as the corpus groups them (MMS-548):
+  `ofek-hadash-root.l4`, `oz-latmura-root.l4` (each family rules among its
+  own agreements by §23, the agreements' root among the families), each with
+  its page in its family (agreements/ofek-hadash/root.html). A collection's
+  tests hold its own ruling.
+- **Precedence between collections, once**, `l4/lib/precedence.l4`: the
+  takanon's introduction, then §29 and §22 between an agreement and the
+  employer's term. The root folds over the list of collection roots and
+  settles their rulings by these alone. No instrument keeps its own copy.
 - **Tests sit beside what they test, not in it** (the client, 2026-10-22:
   "assertions about a file should sit next to it, not be included in it").
   A root's every `#EVAL` and `#ASSERT` is in `l4/tests/<root>-tests.l4`,
@@ -159,13 +166,6 @@ all the files to give one answer", and disagreements raised as errors.
   instrument that governs and the rule, which precedence must agree with —
   and the gate, `unresolved contradictions`, `#ASSERT null`. The
   disagreements stay asserted there as evidence.
-- The site shows each root on its own page (`tools/roots.py`: root.html,
-  circulars/root.html, …), read off the module and `make l4`'s results.
-  A root imports whole families of instruments, the heaviest check there
-  is; `make l4` checks it and does not render it (`tools/l4run.py`
-  `is_a_root`). A check's memory grows with the source it imports (under
-  1.5 GB per MB at l4-ide unstable; the root ~1.5 GB, about a minute):
-  `make l4` reserves each check's estimate out of the machine's memory.
 - **The month by the law**, `l4/lib/salary-root.l4` (MMS-525; the client,
   2026-10-22: "if a teacher wants to know his salary he wants to know the
   law, he doesn't care about the underlying documents"): what the
@@ -179,6 +179,13 @@ all the files to give one answer", and disagreements raised as errors.
   module it reaches without their `#EVAL`/`#ASSERT` lines
   (`calculator.without_tests`): loading the law then takes the browser
   half a minute to two minutes, and an answer after it about a second.
+- The site shows each root on its own page (`tools/roots.py`: root.html,
+  circulars/root.html, …), read off the module and `make l4`'s results.
+  A root imports whole families of instruments, the heaviest check there
+  is; `make l4` checks it and does not render it (`tools/l4run.py`
+  `is_a_root`). A check's memory grows with the source it imports (under
+  1.5 GB per MB at l4-ide unstable; the root ~1.5 GB, about a minute):
+  `make l4` reserves each check's estimate out of the machine's memory.
   (At the old pin the root took ~21 GB and 25 minutes, and was checked on
   demand only; MMS-551.)
 - Traces and the calculator run tools/assets/l4wasm/l4.wasm, built from
