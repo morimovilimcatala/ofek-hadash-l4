@@ -176,8 +176,9 @@ def tested_through(path: Path) -> Path | None:
 
 def is_a_root(path: Path) -> bool:
     """A root (l4/lib/*root.l4, MMS-521): it imports whole families of
-    instruments, so each pass of the compiler over it takes minutes and
-    gigabytes (the root: ~10 minutes, 4.6 GB, 2026-10-22). Its page is read
+    instruments, so it is the heaviest check there is (the root: about a
+    minute and 1.5 GB at l4-ide unstable; 25 minutes and 21 GB at the old
+    pin, MMS-551). Its page is read
     off its source and its results (tools/roots.py); no text sits beside it
     for `l4 render`'s prose, and it declares no obligation for a state
     graph, so it is checked once and not rendered."""
@@ -189,12 +190,11 @@ def is_a_root_or_its_tests(path: Path) -> bool:
 
 
 def roots_checked() -> bool:
-    """For now the roots are checked on demand only (the client,
-    2026-10-22: "in the meantime we don't compile the root, so we can speed
-    up the development process"): `make roots`, or L4_ROOTS=check. A root's
-    check loads every instrument it asks, ~16-21 GB and 10-25 minutes
-    (MMS-551), and only 65 of the corpus's files are in its tree."""
-    return os.environ.get("L4_ROOTS") == "check"
+    """The roots are checked in every build again. They were checked on
+    demand only while a root's check cost ~21 GB and 25 minutes (MMS-551);
+    at l4-ide unstable it is about a minute and 1.5 GB (2026-10-22).
+    L4_ROOTS=skip leaves them out of one run, for a quick local pass."""
+    return os.environ.get("L4_ROOTS") != "skip"
 
 
 def rendered(path: Path) -> bool:
@@ -261,19 +261,17 @@ def write_graph(path: Path, exe: str, dest: Path) -> None:
 
 
 # What a check costs is the source it compiles: the file and everything it
-# imports. Measured on a Mac, 2026-10-22, as macOS's "peak memory footprint"
-# (resident and compressed together, what Linux would hold in RAM):
-#   the completion agreement of 2012 (0.26 MB imported)   1.7 GB
-#   circular תש"ף/1 (0.38 MB)                              2.3 GB
-#   the agreement of 19.3.2017 (0.74 MB)                   5.2 GB
-#   the Ofek Hadash agreements' root (0.84 MB)             8.8 GB
-#   the root (2.02 MB)                                    21.0 GB
-# about 10 GB per MB. A fixed number of checks at once (5 GB each, then the
-# roots one at a time) still stopped GitHub's 16 GB runner twice (exit 143;
-# "the hosted runner lost communication"), so each check now reserves what
-# it is estimated to need out of the machine's memory, and one that needs
-# more than all of it runs alone (the workflow gives the runner swap for it).
-GB_PER_MB_IMPORTED = 10.5
+# imports. Measured at l4-ide unstable (c9a3fe3), 2026-10-22, as Linux's peak
+# resident memory:
+#   the completion agreement of 2012 (0.26 MB imported)   0.62 GB
+#   circular תש"ף/1 (0.38 MB)                              0.76 GB
+#   the agreement of 19.3.2017 (0.74 MB)                   1.46 GB
+#   the root (2.03 MB)                                    ≤1.53 GB
+# under 1.5 GB per MB. (At the old pin it was ~10 GB per MB, the root 21 GB,
+# and a fixed number of checks at once stopped GitHub's 16 GB runner twice.)
+# Each check still reserves what it is estimated to need out of the
+# machine's memory, and one that needs more than all of it runs alone.
+GB_PER_MB_IMPORTED = 1.5
 GB_BASE = 0.5
 
 
@@ -323,7 +321,7 @@ def main(argv: list[str]) -> int:
     if not argv and not roots_checked():
         skipped = [p for p in targets if is_a_root_or_its_tests(p)]
         targets = [p for p in targets if not is_a_root_or_its_tests(p)]
-        print(f"skip {len(skipped)} roots and their tests: `make roots` checks them", flush=True)
+        print(f"skip {len(skipped)} roots and their tests (L4_ROOTS=skip)", flush=True)
     jobs = int(os.environ.get("JOBS", os.cpu_count() or 2))
     budget = float(os.environ.get("L4_MEMORY_GB", memory_gb() - 2))
     bad = []

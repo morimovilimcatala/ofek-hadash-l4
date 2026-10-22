@@ -148,9 +148,7 @@ all the files to give one answer", and disagreements raised as errors.
   "assertions about a file should sit next to it, not be included in it").
   A root's every `#EVAL` and `#ASSERT` is in `l4/tests/<root>-tests.l4`,
   which imports it; `make l4` checks the root through that file (so it is
-  loaded once), and the root's page shows the tests below its code. (Moving
-  them did not cut the memory a root costs — 21.4 GB with no evaluation at
-  all — which is the source it imports: MMS-551.)
+  loaded once), and the root's page shows the tests below its code.
 - **The root**, `l4/lib/root.l4`: the one public answer, `the answer that
   governs` item case, for any case, and whether a case's claims disagree
   (`the contradictions on` item case). It holds no question (the client,
@@ -163,13 +161,13 @@ all the files to give one answer", and disagreements raised as errors.
   disagreements stay asserted there as evidence.
 - The site shows each root on its own page (`tools/roots.py`: root.html,
   circulars/root.html, …), read off the module and `make l4`'s results.
-  A root imports whole families of instruments, so one pass of the compiler
-  over it takes minutes; `make l4` checks it and does not render it
-  (`tools/l4run.py` `is_a_root`). A check's memory grows with the source
-  it imports (~10 GB per MB; the root ~21 GB): `make l4` reserves each
-  check's estimate and runs one larger than the machine alone, and the
-  workflow gives the runner swap for the root (MMS-551 asks whether the
-  root should read the instruments' claims as data instead).
+  A root imports whole families of instruments, the heaviest check there
+  is; `make l4` checks it and does not render it (`tools/l4run.py`
+  `is_a_root`). A check's memory grows with the source it imports (under
+  1.5 GB per MB at l4-ide unstable; the root ~1.5 GB, about a minute):
+  `make l4` reserves each check's estimate out of the machine's memory.
+  (At the old pin the root took ~21 GB and 25 minutes, and was checked on
+  demand only; MMS-551.)
 - Traces and the calculator run tools/assets/l4wasm/l4.wasm, built from
   l4-ide `unstable` at `toolchain/L4_WASM_COMMIT` (MMS-535). It loads a module
   two importers share, so it loads the root, and a second call on the same
@@ -278,15 +276,13 @@ corpus reader (MMS-414).
 make l4        # tools/l4run.py: l4 run + l4 render on every file (needs `l4`)
 make site      # tools/build_site.py → build/site/
 make test      # python3 -m unittest discover -s tests
-make roots     # the roots and their tests, on demand (see below)
+make roots     # only the roots and their tests
 ```
 
-For now `make l4` and the deploy skip the roots and their tests (the
-client, 2026-10-22: "in the meantime we don't compile the root, so we can
-speed up the development process"): a root's check loads every instrument
-it asks, ~16-21 GB and 10-25 minutes (MMS-551). `make roots` checks them;
-run it after a change inside a root's tree and before showing the root's
-rulings to anyone. Until it runs, nothing holds the gate.
+`make l4` and the deploy check the roots and their tests with every other
+file (since the pin moved to l4-ide unstable, 2026-10-22; they were checked
+on demand while a root cost ~21 GB and 25 minutes). `L4_ROOTS=skip make l4`
+leaves them out of one local run; nothing that skips them holds the gate.
 
 `l4 run` must report ok for every file: no type errors, every `#ASSERT`
 true, and no compiler warning about the file — a warning is refused like an

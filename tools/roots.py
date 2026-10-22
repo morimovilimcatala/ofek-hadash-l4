@@ -154,10 +154,10 @@ def page_body(module: str, here: str, coll: str, heading: str, about: str, *,
              + (f'<span><b>{held}</b> מתוך {len(asserts)} בדיקות מתקיימות</span>' if asserts else '')
              + f'<code dir="ltr">l4/lib/{esc(module)}.l4</code></div></header>',
              f'<p class="lede">{esc(about)}</p>']
-    # the roots are checked on demand for now (`make roots`, MMS-551)
-    parts.append('<div class="banner">השורשים נבדקים עכשיו לפי דרישה בלבד, ולא בכל בנייה, כי בדיקת השורש כבדה מאוד '
-                 '(MMS-551). ' + ('התוצאות שבעמוד הן מהבדיקה האחרונה, ועשויות להקדים שינוי במסמכים.'
-                                  if rs else 'השורש הזה עוד לא נבדק בבנייה הזו.') + '</div>')
+    # the roots are checked in every build again (MMS-551, at l4-ide
+    # unstable); a page says so only where a root has no results
+    if not rs:
+        parts.append('<div class="banner">השורש הזה עוד לא נבדק בבנייה הזו.</div>')
     if module == "root":
         unresolved = strings(evaluated("root", "`unresolved contradictions`") or "")
         cases = evaluated("root", "count `the cases checked`") or "?"
