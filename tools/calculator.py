@@ -1,12 +1,18 @@
-"""The salary calculator (calculator.html): a form for §1.1's
-`salary of a teaching employee`, evaluated in the browser by L4 itself.
+"""The salary calculator (calculator.html): a month's salary by the law,
+evaluated in the browser by L4 itself (MMS-525; the client, 2026-10-22: "if
+a teacher wants to know his salary he wants to know the law, he doesn't care
+about the underlying documents").
 
-Nothing here computes a salary. The page ships §1.1's own L4 file and the
-`common` and `conventions` modules it imports; on "חישוב" the browser
-appends the form's values and an `#EVALTRACE` to that source and runs it
-through the L4 evaluator
-compiled to WebAssembly (tools/assets/l4wasm/, built by
-toolchain/build-wasm.sh). There is no second implementation of the rules.
+The page asks l4/lib/salary-root.l4: §1.1's components, each the root's
+governing answer where the root has a pay item for it and §1.1's figure
+where it has none yet, and why — the instrument that governs, the rule of
+precedence, what every instrument that speaks says. Nothing here computes a
+salary. The page ships salary-root and every module it reaches, without
+their own tests (`#EVAL`, `#ASSERT`: `make roots` runs those); on "חישוב"
+the browser writes the form's values as a small L4 program that imports
+salary-root, and runs it through the L4 evaluator compiled to WebAssembly
+(tools/assets/l4wasm/, built by toolchain/build-wasm.sh). There is no
+second implementation of the rules.
 
 What this module reads off the L4 file at build time, so a renamed field,
 allowance or rule changes the form with it: the fields of the `salary month`
@@ -19,7 +25,11 @@ test holds the Hebrew tables to exactly the names the L4 declares.
 
 §1.1 alone is not a month's pay after the circulars that re-rate its 2008
 and 2011 supplements: `SUPERSEDED` says from which month and by which, and
-the page marks those lines rather than composing the circulars (MMS-514).
+the page marks those lines rather than composing the circulars (MMS-514),
+for a component the root does not answer yet. The case's facts, which
+§1.1 does not ask about and the other instruments do, are the `teaching
+case` of the shared vocabulary (l4/lib/vocabulary.l4): `CASE_FIELDS_HE` and
+`CHOICES_HE` are their Hebrew, held by a test to the names the L4 declares.
 """
 from __future__ import annotations
 
@@ -33,6 +43,30 @@ import rule_graph
 esc = html.escape
 
 ROOT_RULE = "salary of a teaching employee"
+REPO = Path(__file__).resolve().parent.parent
+SALARY_ROOT = REPO / "l4" / "lib" / "salary-root.l4"
+SALARY_TESTS = REPO / "l4" / "tests" / "salary-root-tests.l4"
+VOCABULARY = REPO / "l4" / "lib" / "vocabulary.l4"
+LAW_RULE = "the salary that governs"
+COMPONENT_RULE = "the component that governs"
+FIGURE_RULE = "§1.1's figure for"
+PAY_ITEM_OF = "the pay item of"
+CASE_OF_MONTH = "the case of the month"
+CASE_RECORD = "teaching case"
+CASE_EXAMPLE = "a State teacher in a primary school"
+ITEM_ENUM = "pay item"
+ITEM_NAME_RULE = "the name of the item"
+# what the page asks salary-root about each pay item, by what it shows
+ITEM_RULES = {
+    "answer": "the item's answer in the month",
+    "module": "the module that governs the item",
+    "title": "the title that governs the item",
+    "rule": "the rule that governs the item",
+    "modules": "the modules that speak to the item",
+    "titles": "the titles that speak to the item",
+    "says": "what each says of the item",
+    "contradicted": "the item is contradicted in the month",
+}
 ALLOWANCE_RULE = "percentage allowance amount"
 MONTH_RECORD = "salary month"
 HELD_RECORD = "allowance held"
@@ -98,6 +132,42 @@ ALLOWANCE_ROWS: dict[str, str] = {
     "incentives": F3 + "__cls_e__pnt_1",
     "jubilee grant": F3 + "__cls_e__pnt_2",
     "framework agreement": F3 + "__cls_f",
+}
+
+# The facts of the case §1.1 does not ask about: the Hebrew a reader is
+# asked. The month's own facts (the month, the 5% step's population, the
+# combined salary and תוספת 2001 of today) come from §1.1's month, as
+# salary-root's `the case of the month` says, and are not asked twice.
+CASE_FIELDS_HE: dict[str, str] = {
+    "employer": "המעסיק",
+    "in post-primary education": "מועסק/ת בחינוך העל־יסודי",
+    "in the upper division": "מועסק/ת בחטיבה העליונה",
+    "represented by the secondary teachers' organisation": "מיוצג/ת בידי ארגון המורים בבתי הספר העל־יסודיים",
+    "combined salary in December 2007": "השכר המשולב בדצמבר 2007 (₪)",
+    "supplement 2001 in December 2007": "תוספת 2001 בדצמבר 2007 (₪)",
+    "the kind of school": "סוג בית הספר",
+    "the interns the teacher mentors": "מספר המתמחים שהמורה חונך/ת (0 אם אין)",
+    "the classes in each grade": "מספר הכיתות בכל שכבה, בחטיבה שבראשה או שאותה מרכזים",
+    "the roles the teacher holds": "מספר התפקידים שבעדם משולם גמול תפקיד (0 אם אין)",
+    "a further role approved by the district manager": "מנהל/ת המחוז אישר/ה גמול תפקיד מעבר לשני",
+}
+CASE_HINTS = {
+    "combined salary in December 2007": "חלק מההסכמים מחשבים את תוספת 2008 על השכר של דצמבר 2007.",
+    "the kind of school": "חוזרי הבעלויות פונים לבתי ספר מסוגים אלה בלבד.",
+}
+# each choice of an enum field, in Hebrew
+CHOICES_HE: dict[str, dict[str, str]] = {
+    "the teacher's employer": {
+        "employed by the State": "המדינה",
+        "employed by a local authority": "רשות מקומית",
+        "employed by another owning body": "בעלות אחרת (רשת, תאגיד)",
+    },
+    "the kind of school in the case": {
+        "a recognised unofficial special-education school": "בית ספר לחינוך מיוחד, מוכר שאינו רשמי",
+        "a Ma'ayan HaChinuch HaTorani or Chinuch Atzmai primary school": "בית ספר יסודי של מעיין החינוך התורני או של החינוך העצמאי",
+        "a recognised unofficial special-education kindergarten": "גן לחינוך מיוחד, מוכר שאינו רשמי",
+        "another school": "בית ספר אחר",
+    },
 }
 
 FIELD_LINE = re.compile(r"^\s+`([^`]+)`\s+IS\s+AN?\s+(.+?)\s*(?:@desc\s+(.*))?$")
@@ -200,6 +270,58 @@ def example(lines: list[str], name: str) -> dict:
     return out
 
 
+def cases(lines: list[str], rule: str) -> list[tuple[str, str]]:
+    """`DECIDE <rule> … IS CONSIDER …` → [(constructor, what its WHEN gives)]."""
+    _, body = _block(lines, re.compile(rf"^DECIDE\s+`{re.escape(rule)}`"))
+    return re.findall(r"^\s+WHEN\s+`([^`]+)`\s+THEN\s+(.+?)\s*$", "\n".join(body), re.M)
+
+
+def law(components: list[dict]) -> dict:
+    """What the page asks salary-root, read off it, the vocabulary and the
+    tests beside it: the case's fields, which of §1.1's components the root
+    answers and by which pay item, the root's other items, and the example
+    case."""
+    root = SALARY_ROOT.read_text(encoding="utf-8").splitlines()
+    vocab = VOCABULARY.read_text(encoding="utf-8").splitlines()
+    # §1.1's rule for each component, and the pay item the root answers it by
+    figure = {re.sub(r"\s+m$", "", v).strip("`"): k for k, v in cases(root, FIGURE_RULE)}
+    item_of = {k: re.fullmatch(r"JUST\s+`([^`]+)`", v).group(1) for k, v in cases(root, PAY_ITEM_OF)}
+    for c in components:
+        c["ctor"] = figure.get(c["name"])
+        c["item"] = item_of.get(c["ctor"])
+    assert {c["ctor"] for c in components} - {None} == set(figure.values()), "§1.1's figure for: not §1.1's components"
+    # the case: every field of `teaching case` but those the month supplies
+    _, body = _block(root, re.compile(rf"^DECIDE\s+`{re.escape(CASE_OF_MONTH)}`"))
+    set_by = dict(re.findall(r"^\s+`([^`]+)`\s+IS\s+(.+?)\s*$", "\n".join(body), re.M))
+    fields = record_fields(vocab, CASE_RECORD)
+    assert set(set_by) == {f["name"] for f in fields}, "the case of the month does not set every field"
+    from_month = [f["name"] for f in fields if not set_by[f["name"]].startswith("c's ")]
+    asked = [f for f in fields if f["name"] not in from_month]
+    assert set(CASE_FIELDS_HE) == {f["name"] for f in asked}, "CASE_FIELDS_HE does not match the L4 record"
+    for f in asked:
+        f.update(label=CASE_FIELDS_HE[f["name"]], hint=CASE_HINTS.get(f["name"], ""))
+        if f["type"] not in ("NUMBER", "BOOLEAN", "DATE"):
+            ctors, _ = enum_ctors(vocab, f["type"])
+            assert set(CHOICES_HE[f["type"]]) == set(ctors), f"CHOICES_HE does not match {f['type']}"
+            f["choices"] = [{"name": k, "label": CHOICES_HE[f["type"]][k]} for k in ctors]
+    items, _ = enum_ctors(vocab, ITEM_ENUM)
+    names = {k: v.strip('"') for k, v in cases(vocab, ITEM_NAME_RULE)}
+    assert set(names) == set(items), "the name of the item does not name every item"
+    tests = SALARY_TESTS.read_text(encoding="utf-8").splitlines()
+    ex = example(tests, CASE_EXAMPLE)
+    return {
+        "module": SALARY_ROOT.name.removesuffix(".l4"),
+        "rule": LAW_RULE, "component": COMPONENT_RULE, "figure": FIGURE_RULE,
+        "caseRecord": CASE_RECORD, "caseOfMonth": CASE_OF_MONTH,
+        "fields": asked,
+        "fromMonth": [{"name": f["name"], "type": f["type"]} for f in fields if f["name"] in from_month],
+        "items": [{"name": i, "label": names[i], "component": next((c["name"] for c in components if c["item"] == i), None)}
+                  for i in items],
+        "itemRules": ITEM_RULES,
+        "example": {k: v for k, v in ex.items() if k not in from_month},
+    }
+
+
 def spec(section, l4: Path, cites: dict[str, str], href=lambda key: "") -> dict:
     """Everything the page needs to know about §1.1's L4, read off the file.
     `href(key)` is the link to a row on the section's own page."""
@@ -296,9 +418,13 @@ def spec(section, l4: Path, cites: dict[str, str], href=lambda key: "") -> dict:
                  "params": params(lines, ROOT_RULE),
                  "href": href(decls[ROOT_RULE]["refs"][0]) if decls[ROOT_RULE]["refs"] else ""},
         "components": components,
+        "law": (lw := law(components)),
+        # a component the root answers is the law's, not §1.1's: no mark
         "superseded": {k: {"from": f, "by": [{"label": l, "href": h} for l, h in by]}
-                       for k, (f, by) in SUPERSEDED.items()},
-        "example": {"fields": ex, "allowances": [{"kind": ex_held[kind_field], "percent": pct}]},
+                       for k, (f, by) in SUPERSEDED.items()
+                       if not next(c for c in components if c["name"] == k)["item"]},
+        "example": {"fields": ex, "case": lw["example"],
+                    "allowances": [{"kind": ex_held[kind_field], "percent": pct}]},
     }
 
 
@@ -331,20 +457,44 @@ def import_closure(l4: Path) -> list[str]:
     return order
 
 
-def ship(s: dict, l4: Path, assets: Path) -> dict:
-    """Copy the L4 the page runs — §1.1's file and every module it reaches
-    (`prelude` is built into the evaluator) — to assets/calc/, each under
-    the name it is imported by, and say in the spec where it is."""
+DIRECTIVE = re.compile(r"^#[A-Z]+\b")
+# a line that starts a new declaration, not one that continues a directive
+DECL_START = re.compile(r"^\s*(GIVEN|GIVETH|DECIDE|DECLARE|IMPORT|MEANS|ASSUME|@|§|--)")
+
+
+def without_tests(text: str) -> str:
+    """A module as the page ships it: its own tests (`#EVAL`, `#ASSERT`,
+    and the lines that continue one) left out, each kept as an empty line
+    so that every other line keeps its number. The page does not run them;
+    `make l4` and `make roots` do. Measured on the root (MMS-525, in Node):
+    112 s to a first answer with them, 44 s without."""
+    out, inside = [], False
+    for line in text.split("\n"):
+        if DIRECTIVE.match(line):
+            inside = True
+            out.append("")
+        elif inside and line[:1].isspace() and line.strip() and not DECL_START.match(line):
+            out.append("")
+        else:
+            inside = False
+            out.append(line)
+    return "\n".join(out)
+
+
+def ship(s: dict, assets: Path) -> dict:
+    """Write the L4 the page runs — salary-root and every module it reaches
+    (`prelude` is built into the evaluator), without their tests — to
+    assets/calc/modules.json, each under the name it is imported by, and
+    say in the spec where it is."""
     d = assets / "calc"
     d.mkdir(parents=True, exist_ok=True)
-    (d / l4.name).write_text(l4.read_text(encoding="utf-8"), encoding="utf-8")
-    files = {}
-    for name in s["imports"]:
-        f = module_file(name, l4.parent)
+    files = {s["law"]["module"]: without_tests(SALARY_ROOT.read_text(encoding="utf-8"))}
+    for name in import_closure(SALARY_ROOT):
+        f = module_file(name, SALARY_ROOT.parent)
         if f is not None:
-            (d / f"{name}.l4").write_text(f.read_text(encoding="utf-8"), encoding="utf-8")
-            files[name] = f"calc/{name}.l4"
-    return {**s, "source": f"calc/{l4.name}", "files": files}
+            files[name] = without_tests(f.read_text(encoding="utf-8"))
+    (d / "modules.json").write_text(json.dumps(files, ensure_ascii=False), encoding="utf-8")
+    return {**s, "modules": "calc/modules.json", "imports": list(files)}
 
 
 HEB = re.compile(r"([\u05d0-\u05ea])")
@@ -387,6 +537,7 @@ def form_html(s: dict) -> str:
                  'type="text" inputmode="decimal" dir="ltr" required autocomplete="off"')
         out.append(f'<div class="fld"><label for="{fid}">{esc(f["label"])}</label>{meta}'
                    f'<input id="{fid}" {attrs} data-field="{name}">{hint}</div>')
+    out.append(case_html(s))
     a = s["allowance"]
     opts = "".join(f'<option value="{esc(k["name"])}">{esc(k["label"])}</option>' for k in a["kinds"])
     pct = next(c for c in s["components"] if c["name"] == "percentage allowances")
@@ -404,6 +555,39 @@ def form_html(s: dict) -> str:
     return "".join(out)
 
 
+def case_html(s: dict) -> str:
+    """The facts of the case §1.1 does not ask about and the other
+    instruments do: one control per field of `teaching case` the month does
+    not supply, in the record's order."""
+    lw = s["law"]
+    out = []
+    for f in lw["fields"]:
+        fid = "c-" + re.sub(r"\W+", "-", f["name"]).strip("-")
+        name = esc(f["name"])
+        meta = f'<code class="l4n" dir="ltr">{name}</code>'
+        hint = f'<span class="hint">{esc(f["hint"])}</span>' if f["hint"] else ""
+        if f["type"] == "BOOLEAN":
+            out.append(f'<div class="fld chk"><label><input type="checkbox" id="{fid}" data-case="{name}"> '
+                       f'{esc(f["label"])}</label>{meta}{hint}</div>')
+        elif f.get("choices"):
+            # the example's choice is the default: a select shows its first
+            # option otherwise, which is no more likely than the others
+            ex = lw["example"].get(f["name"])
+            opts = "".join(f'<option value="{esc(c["name"])}"{" selected" if c["name"] == ex else ""}>'
+                           f'{esc(c["label"])}</option>' for c in f["choices"])
+            out.append(f'<div class="fld"><label for="{fid}">{esc(f["label"])}</label>{meta}'
+                       f'<select id="{fid}" data-case="{name}">{opts}</select>{hint}</div>')
+        else:
+            out.append(f'<div class="fld"><label for="{fid}">{esc(f["label"])}</label>{meta}'
+                       f'<input id="{fid}" type="text" inputmode="decimal" dir="ltr" required autocomplete="off" '
+                       f'data-case="{name}">{hint}</div>')
+    return ('<fieldset class="case"><legend>עובדות שהדין שואל עליהן</legend>'
+            f'<code class="l4n" dir="ltr">{esc(lw["caseRecord"])}</code>'
+            '<p class="hint">התקנון אינו שואל עליהן. ההסכמים והחוזרים ששורש הדין שואל — כן: '
+            'מי המעסיק, באיזה חינוך ובאיזו חטיבה, ומה התפקידים.</p>'
+            + "".join(out) + '</fieldset>')
+
+
 def body(s: dict, section_link: str, findings: list[dict], findings_href: str) -> str:
     data = json.dumps(s, ensure_ascii=False).replace("</", "<\\/")
     fl = "".join(
@@ -412,15 +596,21 @@ def body(s: dict, section_link: str, findings: list[dict], findings_href: str) -
         for f in findings)
     return (
         '<h1>מחשבון שכר</h1>'
-        f'<p class="lede">השכר החודשי של עובד הוראה לפי {section_link} בלבד: השכר המשולב, תוספת 3%, '
-        'תוספת 2008, תוספת 2011, תוספת "הסכם הוראה 94" והתוספות האחוזיות שמזינים. '
+        '<p class="lede">השכר החודשי של עובד הוראה לפי הדין: לכל רכיב, מה שהדין נותן אחרי שנשקל כל מסמך '
+        'שמדבר עליו — התקנון, ההסכמים הקיבוציים והחוזרים — לפי סדר העדיפות ביניהם. '
+        f'הרכיבים הם אלה שמונה {section_link}: השכר המשולב, תוספת 3%, תוספת 2008, תוספת 2011, '
+        'תוספת "הסכם הוראה 94" והתוספות האחוזיות שמזינים. '
         'לא נכללים כאן תשלומים שנתיים ורכיבים שנקבעים בסעיפים אחרים (הבראה, ביגוד, נסיעות, טלפון ועוד).</p>'
         '<ul class="calc-notes">'
+        '<li><strong>התשובה היא של הדין; המסמכים הם הנימוק.</strong> לכל רכיב מוצג הסכום שהדין נותן. '
+        'מתחתיו, בלחיצה, המסמך שגובר ולפי איזה כלל, ומה אומר כל מסמך אחר שמדבר על הרכיב.</li>'
+        '<li><strong>רכיב ששורש הדין עוד אינו עונה עליו מסומן.</strong> הסכום שלו הוא של סעיף 1.1 בלבד, '
+        'בלי מה שמסמכים מאוחרים אומרים עליו.</li>'
         '<li><strong>השכר המשולב מוזן ביד.</strong> הוא נקבע בטבלאות השכר, לפי ותק ודרגה, והטבלאות אינן מקודדות. '
         'כך גם תוספת "הסכם הוראה 94" ושיעור כל תוספת אחוזית: הטקסט קובע אותם במקום אחר, והמחשבון אינו ממציא אותם.</li>'
-        '<li><strong>החישוב הוא הקוד של האתר.</strong> הדפדפן מריץ את קובץ ה־L4 של §1.1 כפי שהוא מוצג באתר, '
+        '<li><strong>החישוב הוא הקוד של האתר.</strong> הדפדפן מריץ את קוד ה־L4 של האתר — שורש הדין וכל המסמכים שהוא מייבא — '
         'במעריך של L4 עצמו שהודר ל־WebAssembly: אין כאן מימוש שני של הכללים. '
-        'לכל רכיב מצוין הסעיף שהוא מקודד, ומתחת לתוצאה — עקבות החישוב כפי ש־L4 מדפיס אותם.</li>'
+        'הטעינה הראשונה אורכת כחצי דקה עד דקה; מתחת לתוצאה מוצגות עקבות החישוב כפי ש־L4 מדפיס אותן.</li>'
         f'<li><strong>הקריאות הן ממצאים שטרם נבדקו.</strong> היכן שהטקסט אינו מכריע, הקוד מאמץ קריאה, '
         f'ועורך הדין טרם בדק אותה:<ul class="calc-findings">{fl}</ul></li>'
         '</ul>'

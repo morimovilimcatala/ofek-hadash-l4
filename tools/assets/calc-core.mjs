@@ -43,10 +43,14 @@ export async function instantiate(glue, module) {
   Object.assign(exp, inst.exports);
   inst.exports._initialize();
   return {
-    // run the source's directives; `files` are the modules it imports
-    async evaluate(source, files) {
-      const pairs = Object.entries(files || {});
-      return JSON.parse(await inst.exports.l4_eval_files(source, JSON.stringify(pairs)));
+    // run the source's directives; `files` are the modules it imports. Each
+    // call reuses the type-checked imports of the last call on the same
+    // ones; with `keep`, their evaluation too (the page, click after click),
+    // at the price that a constant an earlier call forced is a value in a
+    // later trace rather than its steps.
+    async evaluate(source, files, { keep = false } = {}) {
+      const pairs = JSON.stringify(Object.entries(files || {}));
+      return JSON.parse(await (keep ? inst.exports.l4_eval_files_keep : inst.exports.l4_eval_files)(source, pairs));
     },
   };
 }
@@ -54,6 +58,7 @@ export async function instantiate(glue, module) {
 // --------------------------------------------------------------- the program
 
 const CALC_MONTH = "calculator month";
+const CALC_CASE = "calculator case";
 const CALC_ALLOWANCES = "calculator allowances";
 
 export class InputError extends Error {}
@@ -74,8 +79,16 @@ function literal(field, raw) {
     return `DATE_FROM_DMY ${+m[3]} ${+m[2]} ${+m[1]}`;
   }
   if (field.type === "NUMBER") return number(raw, field.label);
+  if (field.choices) {
+    if (!field.choices.some((c) => c.name === raw)) throw new InputError(`${field.label}: יש לבחור מן הרשימה.`);
+    return tick(raw);
+  }
   throw new Error("a field of an unknown type: " + field.type);
 }
+
+// a field the month supplies (`the case of the month` replaces it): any
+// value of its type will do
+const placeholder = { DATE: "DATE_FROM_DMY 1 1 2000", BOOLEAN: "FALSE", NUMBER: "0" };
 
 // The arguments of a rule, by the type of each parameter.
 function args(params, values) {
@@ -86,15 +99,20 @@ function args(params, values) {
   }).join(" ");
 }
 
-// `input` = {fields: {name: value}, allowances: [{kind, percent}]}.
-// Returns the L4 to append to §1.1's source and what each directive is.
+// The program the page runs: it imports salary-root (and through it the
+// root, §1.1 and every instrument), declares the form's values and asks.
+// `input` = {fields: {name: value}, case: {name: value}, allowances: [{kind, percent}]}.
 export function program(spec, input) {
   const L = [];
-  const a = spec.allowance;
+  const a = spec.allowance, law = spec.law;
   const kinds = new Set(a.kinds.map((k) => k.name));
-  L.push("", "", "-- calculator.html: the form's values, and what the page asks of them");
+  L.push("-- calculator.html: the form's values, and what the page asks of them", `IMPORT ${tick(law.module)}`, "");
   L.push(`GIVETH A ${tick(spec.record)}`, `DECIDE ${tick(CALC_MONTH)} IS`, `    ${tick(spec.record)} WITH`);
   for (const f of spec.fields) L.push(`        ${tick(f.name)} IS ${literal(f, input.fields[f.name])}`);
+  L.push(`-- the month supplies ${law.fromMonth.map((f) => tick(f.name)).join(", ")} (${tick(law.caseOfMonth)})`);
+  L.push(`GIVETH A ${tick(law.caseRecord)}`, `DECIDE ${tick(CALC_CASE)} IS`, `    ${tick(law.caseRecord)} WITH`);
+  for (const f of law.fromMonth) L.push(`        ${tick(f.name)} IS ${placeholder[f.type]}`);
+  for (const f of law.fields) L.push(`        ${tick(f.name)} IS ${literal(f, (input.case || {})[f.name])}`);
   const held = (input.allowances || []).map((h, i) => {
     if (!kinds.has(h.kind)) throw new InputError("תוספת שאינה ברשימה.");
     const rate = number(h.percent, `שיעור התוספת ה־${i + 1}`) + "%";
@@ -105,19 +123,51 @@ export function program(spec, input) {
   });
   L.push(`GIVETH A LIST OF ${tick(a.record)}`, `DECIDE ${tick(CALC_ALLOWANCES)} IS`,
     "    LIST" + (held.length ? " " + held.map((h) => tick(h.name)).join(", ") : ""));
+  L.push("");
   const values = { [spec.record]: tick(CALC_MONTH), ["LIST OF " + a.record]: tick(CALC_ALLOWANCES) };
+  const cm = `${tick(CALC_CASE)} ${tick(CALC_MONTH)}`;
   const directives = [];
   const directive = (kind, text, extra) => {
-    directives.push({ kind, line: spec.lines + L.length, ...extra });   // 0-based line it lands on
+    directives.push({ kind, line: L.length, ...extra });   // 0-based line it lands on
     L.push(text);
   };
-  for (const c of spec.components) directive("component", `#EVAL ${tick(c.name)} ${args(c.params, values)}`, { name: c.name });
+  for (const c of spec.components) {
+    if (c.ctor) directive("component", `#EVAL ${tick(law.component)} ${tick(c.ctor)} ${cm}`, { name: c.name });
+    else directive("component", `#EVAL ${tick(c.name)} ${args(c.params, values)}`, { name: c.name });
+    if (c.item) directive("figure", `#EVAL ${tick(law.figure)} ${tick(c.ctor)} ${tick(CALC_MONTH)}`, { name: c.name });
+  }
   held.forEach((h, i) => {
     const v = { ...values, [a.params[0].type]: tick(h.kind), NUMBER: h.rate };
     directive("allowance", `#EVAL ${tick(a.rule)} ${args(a.params, v)}`, { index: i, allowance: h.kind, rate: h.rate });
   });
-  directive("total", `#EVALTRACE ${tick(spec.root.name)} ${args(spec.root.params, values)}`, {});
+  for (const it of law.items) {
+    for (const [key, rule] of Object.entries(law.itemRules)) {
+      directive("item", `#EVAL ${tick(rule)} ${tick(it.name)} ${cm}`, { item: it.name, key });
+    }
+  }
+  directive("total", `#EVALTRACE ${tick(law.rule)} ${cm} ${tick(CALC_ALLOWANCES)}`, {});
   return { text: L.join("\n") + "\n", directives };
+}
+
+// ------------------------------------------------------- reading values back
+
+// The values the page reads are printed by L4: a number, a string in
+// quotes, TRUE or FALSE, JUST x or NOTHING, a LIST of these or EMPTY.
+export function value(text) {
+  const t = (text || "").trim();
+  if (t === "EMPTY") return [];
+  if (t === "NOTHING") return null;
+  if (t === "TRUE" || t === "FALSE") return t === "TRUE";
+  if (t.startsWith("JUST ")) return value(t.slice(5).replace(/^OF\s+/, ""));
+  if (t.startsWith("LIST ")) {
+    const out = [], re = /\s*("(?:[^"\\]|\\.)*"|[^,]+)\s*(?:,|$)/gy;
+    let m;
+    const rest = t.slice(5);
+    while (re.lastIndex < rest.length && (m = re.exec(rest))) out.push(value(m[1]));
+    return out;
+  }
+  if (/^"(?:[^"\\]|\\.)*"$/.test(t)) return JSON.parse(t);
+  return t;
 }
 
 // --------------------------------------------------------------- the results
@@ -130,7 +180,7 @@ export function results(spec, prog, answer) {
       ok: false,
       errors: (answer.diagnostics || []).map((d) => ({
         line: d.range ? d.range.start.line : null,
-        ours: d.range ? d.range.start.line >= spec.lines : false,
+        ours: !!d.range,
         message: d.message,
       })),
     };
@@ -139,21 +189,29 @@ export function results(spec, prog, answer) {
   const read = (d) => {
     const r = at.get(d.line);
     if (!r) return { value: null, failed: true, message: "no result" };
-    return { value: r.success ? r.result.trim() : null, failed: !r.success, message: r.success ? "" : r.result, raw: r };
+    return { value: r.success ? r.result.trim() : null, failed: r.success !== true, message: r.success ? "" : r.result, raw: r };
   };
-  const out = { ok: true, components: [], allowances: [], total: null };
+  const out = { ok: true, components: [], allowances: [], items: {}, total: null };
   for (const d of prog.directives) {
     const r = read(d);
     if (d.kind === "component") {
       const c = spec.components.find((c) => c.name === d.name);
       out.components.push({ ...c, ...r });
+    } else if (d.kind === "figure") {
+      const c = out.components.find((c) => c.name === d.name);
+      c.figure = r.value;
+      if (r.failed) out.components.push({ ...c, ...r });
     } else if (d.kind === "allowance") {
       const k = spec.allowance.kinds.find((k) => k.name === d.allowance);
       out.allowances.push({ ...k, rate: d.rate, ...r });
+    } else if (d.kind === "item") {
+      const it = (out.items[d.item] ||= { failed: false, message: "" });
+      it[d.key] = r.failed ? null : value(r.value);
+      if (r.failed) Object.assign(it, { failed: true, message: r.message });
     } else {
       out.total = { ...r, trace: r.raw && r.raw.trace, traceText: r.raw && r.raw.traceText };
     }
   }
-  out.failed = [...out.components, ...out.allowances, out.total].filter((r) => r.failed);
+  out.failed = [...out.components, ...out.allowances, ...Object.values(out.items), out.total].filter((r) => r.failed);
   return out;
 }

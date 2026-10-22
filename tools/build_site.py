@@ -1737,7 +1737,16 @@ def calculator_page(all_views: dict[str, list["SectionView"]], findings: list[di
     v = next(v for v in all_views[SALARY[0]] if v.section.num == SALARY[1])
     s = calculator.spec(v.section, v.l4, {k: clause(v.section, k, k) for k in citations(v.section)},
                         href=lambda k: f"{v.page}#{k}")
-    s = calculator.ship(s, v.l4, OUT / "assets")
+    s = calculator.ship(s, OUT / "assets")
+    # each instrument the root may name, by its module: its page on the site
+    flat = [x for vs in all_views.values() for x in vs]
+    by_file = {str(x.l4.relative_to(ROOT)): x for x in flat if x.l4}
+    s["pages"] = {}
+    for name, f in modules.wanted()[0].items():
+        x = by_file.get(str(f.relative_to(ROOT)))
+        if x is not None:
+            s["pages"][name] = rel(x.href, here)
+    s["contradictions"] = rel(contradictions.HERE, here)
     # the document is named: "§1.1 השכר" alone does not say which text it is
     link = (f'<a href="{v.href}">סעיף {esc(v.section.num)} ("{esc(v.section.heading)}") '
             f'ב{esc(akn.title(v.doc))}</a>')

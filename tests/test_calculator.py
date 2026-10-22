@@ -1,6 +1,8 @@
-"""The salary calculator (calculator.html): its form is read off §1.1's L4,
-its evaluator is the committed WebAssembly build, and run in Node on the same
-files the page loads it reproduces the worked example 1.1.l4 asserts."""
+"""The salary calculator (calculator.html): its form is read off §1.1's L4
+and the shared vocabulary's case, its evaluator is the committed WebAssembly
+build, and run in Node on the same files the page loads it gives the law's
+month (l4/lib/salary-root.l4): §1.1's worked example where only the takanon
+speaks, and the agreement's 2008 supplement where the agreement governs."""
 from __future__ import annotations
 
 import hashlib
@@ -65,16 +67,61 @@ class Form(unittest.TestCase):
     def test_a_component_later_circulars_rerate_names_them(self):
         """MMS-514: §1.1 alone gives a month after the later circulars the
         2008 supplement at 5% and the 2011 at 4%; the page marks those lines
-        from the month a circular already encoded replaced them, and links it."""
+        from the month a circular already encoded replaced them, and links it.
+        The 2008 supplement is the root's answer now (MMS-525), not §1.1's,
+        and is not marked."""
         s = spec()
         names = {c["name"] for c in s["components"]}
-        self.assertEqual(set(s["superseded"]), {"2008 supplement", "2011 supplement"})
+        self.assertEqual(set(s["superseded"]), {"2011 supplement"})
         for name, sup in s["superseded"].items():
             with self.subTest(component=name):
                 self.assertIn(name, names)
                 self.assertRegex(sup["from"], r"^\d{4}-\d{2}-01$")
                 for b in sup["by"]:
                     self.assertTrue((ROOT / "l4" / b["href"].replace(".html", ".l4")).exists(), b["href"])
+
+
+class Law(unittest.TestCase):
+    """MMS-525: what the page asks salary-root, read off it."""
+
+    def test_the_root_answers_the_2008_supplement_and_section_1_1_the_rest(self):
+        s = spec()
+        self.assertEqual({c["name"]: c["item"] for c in s["components"]},
+                         {"combined salary": None, "3% supplement": None,
+                          "2008 supplement": "the 2008 public-sector supplement",
+                          "2011 supplement": None, "1994 supplement": None, "percentage allowances": None})
+
+    def test_the_month_supplies_four_facts_and_the_form_asks_the_rest(self):
+        law = spec()["law"]
+        self.assertEqual([f["name"] for f in law["fromMonth"]],
+                         ["the salary month", "in a population whose 5% step was put off",
+                          "combined salary today", "supplement 2001 today"])
+        vocab = calculator.VOCABULARY.read_text(encoding="utf-8").splitlines()
+        every = [f["name"] for f in calculator.record_fields(vocab, calculator.CASE_RECORD)]
+        self.assertEqual([f["name"] for f in law["fields"]] + [f["name"] for f in law["fromMonth"]],
+                         [n for n in every if n not in {f["name"] for f in law["fromMonth"]}]
+                         + [f["name"] for f in law["fromMonth"]])
+        self.assertEqual(set(law["example"]), {f["name"] for f in law["fields"]})
+
+    def test_every_pay_item_is_asked(self):
+        law = spec()["law"]
+        vocab = calculator.VOCABULARY.read_text(encoding="utf-8").splitlines()
+        self.assertEqual([i["name"] for i in law["items"]], calculator.enum_ctors(vocab, calculator.ITEM_ENUM)[0])
+        self.assertTrue(all(i["label"] for i in law["items"]))
+
+    def test_the_page_ships_every_module_without_its_tests(self):
+        s = spec()
+        with tempfile.TemporaryDirectory() as d:
+            shipped = calculator.ship(s, Path(d))
+            files = json.loads((Path(d) / shipped["modules"]).read_text(encoding="utf-8"))
+        reached = {n for n in calculator.import_closure(calculator.SALARY_ROOT)
+                   if calculator.module_file(n, calculator.SALARY_ROOT.parent)}   # not the built-in libraries
+        self.assertEqual(set(files), {"salary-root"} | reached)
+        for name, text in files.items():
+            with self.subTest(module=name):
+                self.assertFalse([l for l in text.splitlines() if calculator.DIRECTIVE.match(l)])
+                f = calculator.module_file(name, calculator.SALARY_ROOT.parent) or calculator.SALARY_ROOT
+                self.assertEqual(len(text.split("\n")), len(f.read_text(encoding="utf-8").split("\n")))
 
 
 class Artefact(unittest.TestCase):
@@ -141,26 +188,38 @@ class SharedImport(unittest.TestCase):
         self.assertEqual(self.value(3), "2")
 
 
+UPPER = {"in post-primary education": True, "in the upper division": True,
+         "represented by the secondary teachers' organisation": True}
+
+
 @unittest.skipUnless(shutil.which("node"), "needs Node")
 class WorkedExample(unittest.TestCase):
     """1.1.l4's own example: a full-time teacher in March 2012, combined
     salary 10,000 and a 1994 supplement of 200, is paid 11,432, and 12,575.2
-    with class education at 10% (the file #ASSERTs both)."""
+    with class education at 10% (the file #ASSERTs both); a State teacher in
+    a primary school, where only the takanon speaks to the 2008 supplement,
+    is paid that by the law too. In an upper division, represented by the
+    secondary teachers' organisation, the agreement of 24.1.2008 governs the
+    2008 supplement: 494.4, and the month 11,426.4
+    (l4/tests/salary-root-tests.l4 asserts the same)."""
 
     @classmethod
     def setUpClass(cls):
-        s = {**spec(), "l4": str(L4.relative_to(ROOT))}
+        s = spec()
         ex = s["example"]
-        cases = [{"fields": ex["fields"], "allowances": []},
-                 {"fields": ex["fields"], "allowances": ex["allowances"]},
-                 {"fields": {**ex["fields"], "position fraction of the month": "0.5"},
+        cases = [{"fields": ex["fields"], "case": ex["case"], "allowances": []},
+                 {"fields": ex["fields"], "case": ex["case"], "allowances": ex["allowances"]},
+                 {"fields": {**ex["fields"], "position fraction of the month": "0.5"}, "case": ex["case"],
                   "allowances": [{"kind": "class education", "percent": "10"},
-                                 {"kind": "MA or PhD degree", "percent": "12.5"}]}]
+                                 {"kind": "MA or PhD degree", "percent": "12.5"}]},
+                 {"fields": ex["fields"], "case": {**ex["case"], **UPPER}, "allowances": []}]
         with tempfile.TemporaryDirectory() as d:
+            s = calculator.ship(s, Path(d))
             (Path(d) / "spec.json").write_text(json.dumps(s), encoding="utf-8")
             (Path(d) / "cases.json").write_text(json.dumps(cases), encoding="utf-8")
-            p = subprocess.run(["node", str(ROOT / "tests/calc_node.mjs"), f"{d}/spec.json", f"{d}/cases.json"],
-                               capture_output=True, text=True, timeout=300)
+            p = subprocess.run(["node", str(ROOT / "tests/calc_node.mjs"), f"{d}/spec.json",
+                                f"{d}/{s['modules']}", f"{d}/cases.json"],
+                               capture_output=True, text=True, timeout=900)
         if p.returncode:
             raise AssertionError(p.stderr)
         cls.runs = [json.loads(l) for l in p.stdout.splitlines()]
@@ -168,6 +227,7 @@ class WorkedExample(unittest.TestCase):
     def test_no_allowances(self):
         r = self.runs[0]
         self.assertTrue(r["ok"], r)
+        self.assertFalse(r["failed"], r["failed"])
         self.assertEqual(r["total"]["value"], "11432")
         self.assertEqual({c["name"]: c["value"] for c in r["components"]},
                          {"combined salary": "10000", "3% supplement": "300", "2008 supplement": "500",
@@ -189,5 +249,26 @@ class WorkedExample(unittest.TestCase):
     def test_the_trace_is_l4s(self):
         t = self.runs[1]["total"]
         self.assertEqual(t["trace"]["value"], "12575.2")
-        self.assertTrue(t["trace"]["steps"][0]["expr"].startswith("`salary of a teaching employee`"))
+        self.assertTrue(t["trace"]["steps"][0]["expr"].startswith("`the salary that governs`"))
         self.assertIn("12575.2", t["traceText"])
+
+    def test_where_only_the_takanon_speaks_it_governs(self):
+        it = self.runs[0]["items"]["the 2008 public-sector supplement"]
+        self.assertEqual((it["answer"], it["module"], it["modules"], it["contradicted"]),
+                         ("500", "takanon-1-1", ["takanon-1-1"], False))
+
+    def test_where_the_agreement_speaks_it_governs(self):
+        r = self.runs[3]
+        c = next(c for c in r["components"] if c["name"] == "2008 supplement")
+        self.assertEqual((c["value"], c["figure"]), ("494.4", "500"))
+        self.assertEqual(r["total"]["value"], "11426.4")
+        it = r["items"]["the 2008 public-sector supplement"]
+        self.assertEqual(it["module"], "2008-01-24_oz-latmura_tosefet-sachar_reform-model")
+        self.assertEqual(it["says"], ["500", "494.4"])
+        self.assertTrue(it["contradicted"] and it["rule"] and it["title"])
+
+    def test_every_pay_item_is_answered(self):
+        names = [i["name"] for i in spec()["law"]["items"]]
+        for r in self.runs:
+            self.assertEqual(sorted(r["items"]), sorted(names))
+            self.assertFalse([k for k, v in r["items"].items() if v["failed"]])

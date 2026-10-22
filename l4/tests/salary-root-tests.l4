@@ -1,0 +1,86 @@
+-- Tests of the month's salary by the law (l4/lib/salary-root.l4). They sit
+-- beside it and not in it (the client, 2026-10-22); the calculator's
+-- "example" button reads its case, `a State teacher in a primary school`,
+-- from here.
+
+IMPORT prelude
+IMPORT `salary-root`
+
+§ `בדיקות השכר לחודש לפי הדין`
+
+§§ `המקרים`
+
+-- The facts §1.1 does not ask about, for a teacher employed by the State
+-- and holding no role. The four facts the month supplies (the month, the
+-- 5% step's population, the combined salary and תוספת 2001 of today) are
+-- given here too, and `the case of the month` replaces them.
+`a State teacher in a primary school` MEANS
+    `teaching case` WITH
+        `the salary month`                IS DATE_FROM_DMY 1 1 2000
+        `employer`                        IS `employed by the State`
+        `in post-primary education`       IS FALSE
+        `in the upper division`           IS FALSE
+        `represented by the secondary teachers' organisation` IS FALSE
+        `in a population whose 5% step was put off` IS FALSE
+        `combined salary today`           IS 0
+        `supplement 2001 today`           IS 0
+        `combined salary in December 2007` IS 9600
+        `supplement 2001 in December 2007` IS 288
+        `the kind of school`               IS `another school`
+        `the interns the teacher mentors`  IS 0
+        `the classes in each grade`        IS 0
+        `the roles the teacher holds`      IS 0
+        `a further role approved by the district manager` IS FALSE
+
+-- In the upper division of post-primary education, represented by the
+-- secondary teachers' organisation: the agreement of 24.1.2008 speaks to
+-- the 2008 supplement.
+`a State teacher in an upper division` MEANS
+    `teaching case` WITH
+        `the salary month`                IS DATE_FROM_DMY 1 1 2000
+        `employer`                        IS `employed by the State`
+        `in post-primary education`       IS TRUE
+        `in the upper division`           IS TRUE
+        `represented by the secondary teachers' organisation` IS TRUE
+        `in a population whose 5% step was put off` IS FALSE
+        `combined salary today`           IS 0
+        `supplement 2001 today`           IS 0
+        `combined salary in December 2007` IS 9600
+        `supplement 2001 in December 2007` IS 288
+        `the kind of school`               IS `another school`
+        `the interns the teacher mentors`  IS 0
+        `the classes in each grade`        IS 0
+        `the roles the teacher holds`      IS 0
+        `a further role approved by the district manager` IS FALSE
+
+-- §1.1's own worked example: a full-time teacher in March 2012, combined
+-- salary 10,000, a 1994 supplement of 200.
+`the month` MEANS `a full-time teacher in March 2012`
+
+§§ `לפי הדין`
+
+-- Where only the takanon speaks to the 2008 supplement, the law's month is
+-- §1.1's: 11,432, as 1.1.l4 asserts.
+#ASSERT `the salary that governs` `a State teacher in a primary school` `the month` (LIST) EQUALS 11432
+#ASSERT `the module that governs the item` `the 2008 public-sector supplement` `a State teacher in a primary school` `the month` EQUALS "takanon-1-1"
+
+-- Where the agreement of 24.1.2008 speaks, it governs (the takanon's
+-- introduction: a collective agreement prevails over the takanon), and the
+-- month is 5.60 less: 494.40 for the 2008 supplement instead of §1.1's 500.
+#ASSERT `the component that governs` `the 2008 supplement` `a State teacher in an upper division` `the month` EQUALS 494.4
+#ASSERT `the module that governs the item` `the 2008 public-sector supplement` `a State teacher in an upper division` `the month` EQUALS "2008-01-24_oz-latmura_tosefet-sachar_reform-model"
+#ASSERT `the salary that governs` `a State teacher in an upper division` `the month` (LIST) EQUALS 11426.4
+
+-- Every instrument that speaks is listed, with what it says.
+#ASSERT `the modules that speak to the item` `the 2008 public-sector supplement` `a State teacher in an upper division` `the month` EQUALS LIST "takanon-1-1", "2008-01-24_oz-latmura_tosefet-sachar_reform-model"
+#ASSERT `what each says of the item` `the 2008 public-sector supplement` `a State teacher in an upper division` `the month` EQUALS LIST 500, 494.4
+#ASSERT `the item is contradicted in the month` `the 2008 public-sector supplement` `a State teacher in an upper division` `the month`
+
+§§ `מה שהשורש עוד אינו עונה עליו`
+
+-- A component no pay item stands for is §1.1's figure, and says so.
+#ASSERT all (GIVEN s YIELD `answered by the root` s EQUALS (s EQUALS `the 2008 supplement`)) `§1.1's components`
+#ASSERT all (GIVEN s YIELD (`answered by the root` s) OR (`the component that governs` s `a State teacher in an upper division` `the month` EQUALS `§1.1's figure for` s `the month`)) `§1.1's components`
+
+-- The percentage allowances are §1.1's, on top of the components.
+#ASSERT `the salary that governs` `a State teacher in a primary school` `the month` (LIST `class education at 10%`) EQUALS 12575.2

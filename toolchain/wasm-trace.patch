@@ -1,16 +1,17 @@
 diff --git a/jl4-core/src/L4/API.hs b/jl4-core/src/L4/API.hs
-index c0887158..ffaff70c 100644
+index c0887158..3c63c393 100644
 --- a/jl4-core/src/L4/API.hs
 +++ b/jl4-core/src/L4/API.hs
-@@ -19,6 +19,7 @@ module L4.API
+@@ -19,6 +19,8 @@ module L4.API
    , l4Completions
    , l4SemanticTokens
    , l4Eval
 +  , l4EvalWithFiles
++  , l4EvalWithFilesKeeping
    , l4VisualizeByName
    , l4StateGraphByName
    , l4CodeLenses
-@@ -35,6 +36,7 @@ import qualified Data.Text.Lazy as LazyText
+@@ -35,6 +37,7 @@ import qualified Data.Text.Lazy as LazyText
  import qualified Data.Text.Lazy.Encoding as LazyText
  import qualified Data.List as List
  import qualified Data.Vector as Vector
@@ -18,7 +19,7 @@ index c0887158..ffaff70c 100644
  
  import L4.Lexer (execLexer, PosToken(..), TokenType(..), TLiterals(..), TSpaces(..), TIdentifiers(..))
  
-@@ -42,12 +44,14 @@ import L4.Annotation (HasSrcRange(..), rangeOfNode)
+@@ -42,12 +45,14 @@ import L4.Annotation (HasSrcRange(..), rangeOfNode)
  import L4.Parser.SrcSpan (SrcRange(..), SrcPos(..))
  import L4.TypeCheck (severity, prettyCheckErrorWithContext, applyFinalSubstitution)
  import L4.TypeCheck.Types (CheckResult(..), CheckErrorWithContext(..), Severity(..), Substitution)
@@ -34,7 +35,7 @@ index c0887158..ffaff70c 100644
  
  import L4.TracePolicy (lspDefaultPolicy)
  import L4.EvaluateLazy.GraphVizOptions (defaultGraphVizOptions)
-@@ -57,7 +61,7 @@ import L4.FindDefinition (findDefinition)
+@@ -57,7 +62,7 @@ import L4.FindDefinition (findDefinition)
  import L4.FindReferences (findReferences)
  
  -- Import resolution (VFS + embedded libs)
@@ -43,7 +44,7 @@ index c0887158..ffaff70c 100644
  import qualified L4.Evaluate.ValueLazy as ValLazy
  
  
-@@ -223,8 +227,40 @@ l4SemanticTokens source =
+@@ -223,14 +228,64 @@ l4SemanticTokens source =
  --
  -- If there are parse or type errors, returns diagnostics instead.
  l4Eval :: Text -> IO Text
@@ -56,9 +57,11 @@ index c0887158..ffaff70c 100644
 +-- small programs against one large set of modules (the salary calculator, on
 +-- the root) type-checks the modules once; only the program itself is checked
 +-- again. Imports are still evaluated afresh each call, so a trace through
-+-- them is the same on every call.
-+-- Its fields: the module sources, the import names, the resolved imports.
-+data ImportCache = ImportCache [(Text, Text)] [Text] [ResolvedImport]
++-- them is the same on every call; 'l4EvalWithFilesKeeping' keeps their
++-- evaluation too.
++-- Its fields: the module sources, the import names, the resolved imports,
++-- and the imports' evaluated environment, once a keeping call made it.
++data ImportCache = ImportCache [(Text, Text)] [Text] [ResolvedImport] (Maybe ValLazy.Environment)
 +
 +importCache :: IORef (Maybe ImportCache)
 +importCache = unsafePerformIO (newIORef Nothing)
@@ -66,27 +69,84 @@ index c0887158..ffaff70c 100644
 +
 +-- | 'l4Eval' with the modules the source imports, as (module name, source).
 +l4EvalWithFiles :: [(Text, Text)] -> Text -> IO Text
-+l4EvalWithFiles files source = do
++l4EvalWithFiles = l4EvalWithFilesKeeping False
++
++-- | 'l4EvalWithFiles'; with @keep@, the imports' evaluation is kept too, and
++-- a later keeping call on the same imports and sources reuses it instead of
++-- evaluating them again (the salary calculator: one page, many clicks). A
++-- constant an import defines that an earlier call forced is then a value in
++-- a later trace, not the steps that reached it.
++l4EvalWithFilesKeeping :: Bool -> [(Text, Text)] -> Text -> IO Text
++l4EvalWithFilesKeeping keep files source = do
 +  cached <- readIORef importCache
 +  let uri = moduleNameToProjectUri "main"
 +      names = importNamesOf uri source
-+      reuse = case cached of
-+        Just (ImportCache cFiles cNames cResolved) | cNames == names && cFiles == files -> Just cResolved
++      same = case cached of
++        Just (ImportCache cFiles cNames cResolved cEnv) | cNames == names && cFiles == files -> Just (cResolved, cEnv)
 +        _ -> Nothing
-+      Identity checked = typecheckWithDependenciesReusing (apiModuleLookup (vfsFromList files)) reuse uri source
++      Identity checked = typecheckWithDependenciesReusing (apiModuleLookup (vfsFromList files)) (fmap fst same) uri source
 +  case checked of
-+    Right r | isNothing reuse, null (filter (\e -> severity e == SError) (concatMap (\ri -> ri.riTypeChecked.errors) r.tcdResolvedImports)) ->
-+      writeIORef importCache (Just (ImportCache files names r.tcdResolvedImports))
++    Right r | isNothing same, null (filter (\e -> severity e == SError) (concatMap (\ri -> ri.riTypeChecked.errors) r.tcdResolvedImports)) ->
++      writeIORef importCache (Just (ImportCache files names r.tcdResolvedImports Nothing))
 +    _ -> pure ()
-+  l4EvalChecked checked
++  (json, evaluated) <- l4EvalChecked (if keep then same >>= snd else Nothing) checked
++  -- keep the evaluation only under the imports and sources it was made for
++  when keep $ forM_ evaluated $ \env -> modifyIORef' importCache $ \case
++    Just (ImportCache cFiles cNames cResolved _) | cNames == names && cFiles == files ->
++      Just (ImportCache cFiles cNames cResolved (Just env))
++    other -> other
++  pure json
 +
-+l4EvalChecked :: Either [Text] TypeCheckWithDepsResult -> IO Text
-+l4EvalChecked checked =
++-- | Evaluate a checked module, with the imports' environment if one is
++-- given, else evaluating them; returns the JSON and the imports' environment.
++l4EvalChecked :: Maybe ValLazy.Environment -> Either [Text] TypeCheckWithDepsResult -> IO (Text, Maybe ValLazy.Environment)
++l4EvalChecked kept checked =
 +  case checked of
      Left errors ->
        -- Return import/parse errors as diagnostics
-       pure $ encodeJson $ Aeson.object
-@@ -348,14 +384,26 @@ l4EvalDirective source line col directiveType =
+-      pure $ encodeJson $ Aeson.object
++      pure (encodeJson $ Aeson.object
+         [ "success" .= False
+         , "diagnostics" .= Vector.fromList (map importErrorToDiagnostic errors)
+-        ]
++        ], Nothing)
+     Right result ->
+       -- Only fail on actual errors: SInfo items (e.g. #CHECK type annotations)
+       -- are informational, and SWarn items (exhaustiveness, the ASSUME
+@@ -241,25 +296,25 @@ l4Eval source =
+       in if not (null actualErrors)
+         then
+           -- Return type check errors as diagnostics
+-          pure $ encodeJson $ Aeson.object
++          pure (encodeJson $ Aeson.object
+             [ "success" .= False
+             , "diagnostics" .= Vector.fromList (map checkErrorToDiagnostic actualErrors)
+-            ]
++            ], Nothing)
+         else do
+           -- First, evaluate all imported modules to build up the evaluation environment
+           evalConfig <- EL.resolveEvalConfigWithSafeMode Nothing (lspDefaultPolicy defaultGraphVizOptions) True  -- safe mode = True
+           
+-          -- Evaluate each import and collect their environments
+-          -- We evaluate in order (dependencies first)
+-          importEnv <- evaluateImports evalConfig result.tcdResolvedImports
++          -- Evaluate each import and collect their environments (or reuse
++          -- the ones a keeping call made for the same imports)
++          importEnv <- maybe (evaluateImports evalConfig result.tcdResolvedImports) pure kept
+           
+           -- Now evaluate the main module with the combined import environment
+           (_env, results) <- EL.execEvalModuleWithEnv evalConfig result.tcdEntityInfo importEnv result.tcdModule
+           let conFields = extractConstructorFieldNames result.tcdEntityInfo
+-          pure $ encodeJson $ Aeson.object
++          pure (encodeJson $ Aeson.object
+             [ "success" .= True
+             , "results" .= Vector.fromList (map (evalResultToJson conFields) results)
+-            ]
++            ], Just importEnv)
+ 
+ -- | Evaluate a specific directive at a given source position.
+ --
+@@ -348,14 +403,26 @@ l4EvalDirective source line col directiveType =
  evaluateImports :: EL.EvalConfig -> [ResolvedImport] -> IO ValLazy.Environment
  evaluateImports _evalConfig [] = pure mempty
  evaluateImports evalConfig imports = do
@@ -121,7 +181,7 @@ index c0887158..ffaff70c 100644
  
  -- ----------------------------------------------------------------------------
  -- JavaScript FFI Exports (WASM backend only)
-@@ -400,6 +448,17 @@ js_l4_eval source = do
+@@ -400,6 +467,28 @@ js_l4_eval source = do
    result <- l4Eval $ Text.pack $ fromJSString source
    pure $ toJSString $ Text.unpack result
  
@@ -136,26 +196,37 @@ index c0887158..ffaff70c 100644
 +  result <- l4EvalWithFiles vfs $ Text.pack $ fromJSString source
 +  pure $ toJSString $ Text.unpack result
 +
++-- | 'l4_eval_files', keeping the imports' evaluation for the next call on
++-- the same imports ('l4EvalWithFilesKeeping').
++foreign export javascript "l4_eval_files_keep"
++  js_l4_eval_files_keep :: JSString -> JSString -> IO JSString
++
++js_l4_eval_files_keep :: JSString -> JSString -> IO JSString
++js_l4_eval_files_keep source files = do
++  let vfs = fromMaybe [] (Aeson.decode (LazyText.encodeUtf8 (LazyText.pack (fromJSString files))))
++  result <- l4EvalWithFilesKeeping True vfs $ Text.pack $ fromJSString source
++  pure $ toJSString $ Text.unpack result
++
  -- | Evaluate a specific directive at a position.
  foreign export javascript "l4_eval_directive"
    js_l4_eval_directive :: JSString -> Int -> Int -> JSString -> IO JSString
-@@ -564,9 +623,13 @@ evalResultToJson fields edr = Aeson.object $
+@@ -564,9 +653,13 @@ evalResultToJson fields edr = Aeson.object $
    [ "result" .= prettyEvalResult fields edr.result
    , "success" .= isSuccess edr.result
    ] ++
 -  case edr.range of
 +  (case edr.range of
-     Nothing -> []
--    Just r -> ["range" .= rangeToJson r]
++    Nothing -> []
 +    Just r -> ["range" .= rangeToJson r])
 +  -- #EVALTRACE: the trace `l4 run` prints, as text and as a tree
 +  ++ (case edr.trace of
-+    Nothing -> []
+     Nothing -> []
+-    Just r -> ["range" .= rangeToJson r]
 +    Just tr -> ["traceText" .= prettyLayout tr, "trace" .= traceToJson tr])
    -- the run's notes (an early act, R-X6; an empty window), only when there
    -- are any, so a directive with none is unchanged
    ++ [ "notes" .= edr.notes | not (null edr.notes) ]
-@@ -598,6 +661,18 @@ evalResultToJson fields edr = Aeson.object $
+@@ -598,6 +691,18 @@ evalResultToJson fields edr = Aeson.object $
      isSuccess (EL.Assertion (EL.Undetermined _)) = Aeson.Null
      isSuccess (EL.Reduction (EL.ReducedUndetermined _)) = Aeson.Null
  

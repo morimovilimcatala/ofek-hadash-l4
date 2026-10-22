@@ -1,0 +1,159 @@
+-- A month's salary by the law (MMS-525): what the salary calculator asks.
+-- The client, 2026-10-22: "if a teacher wants to know his salary he wants
+-- to know the law, he doesn't care about the underlying documents."
+--
+-- The takanon's §1.1 says what a teaching employee's salary is made of
+-- (`salary of a teaching employee`). Here each of those components is
+-- the law's answer where the root has one: the root (l4/lib/root.l4) asks
+-- every instrument that speaks to the component and applies precedence.
+-- A component no pay item of the shared vocabulary stands for yet is
+-- §1.1's own figure, and says so (`answered by the root`): the root does
+-- not know what the later instruments say about it.
+--
+-- Nothing here re-encodes a rule: §1.1's components are §1.1's functions,
+-- and the law's answer is the root's.
+
+IMPORT prelude
+IMPORT `root`
+IMPORT `takanon-1-1`
+
+§ `השכר לחודש לפי הדין`
+
+§§ `המקרה`
+
+-- The case the root is asked about, for a salary month as §1.1 describes
+-- it: the month, the 5% step's population and the two amounts §1.1
+-- computes come from the month, so that the form asks each fact once.
+-- "תוספת 2001" is §1.1's 3% supplement, as §1.1ד reads it.
+GIVEN c IS A `teaching case` @desc the facts of the case §1.1 does not ask about
+      m IS A `salary month` @desc the salary month, as §1.1 describes it
+GIVETH A `teaching case`
+DECIDE `the case of the month` c m IS
+    `teaching case` WITH
+        `the salary month`                IS m's `month`
+        `employer`                        IS c's `employer`
+        `in post-primary education`       IS c's `in post-primary education`
+        `in the upper division`           IS c's `in the upper division`
+        `represented by the secondary teachers' organisation` IS c's `represented by the secondary teachers' organisation`
+        `in a population whose 5% step was put off` IS m's `in a population whose 5% step was postponed`
+        `combined salary today`           IS `combined salary` m
+        `supplement 2001 today`           IS `3% supplement` m
+        `combined salary in December 2007` IS c's `combined salary in December 2007`
+        `supplement 2001 in December 2007` IS c's `supplement 2001 in December 2007`
+        `the kind of school`               IS c's `the kind of school`
+        `the interns the teacher mentors`  IS c's `the interns the teacher mentors`
+        `the classes in each grade`        IS c's `the classes in each grade`
+        `the roles the teacher holds`      IS c's `the roles the teacher holds`
+        `a further role approved by the district manager` IS c's `a further role approved by the district manager`
+
+§§ `הרכיבים`
+
+-- §1.1's components, in the text's order (א–ה); the percentage allowances
+-- (ו) are computed on them and follow.
+`§1.1's components` MEANS
+    LIST `the combined salary`, `the 3% supplement`, `the 2008 supplement`,
+         `the 2011 supplement`, `the 1994 teaching-agreement supplement`
+
+-- The pay item of the shared vocabulary that a component is, where there
+-- is one: the takanon's own claim on the 2008 supplement is §1.1ג's
+-- (`the 2008 supplement according to the takanon`).
+GIVEN s IS A `salary component`
+GIVETH A MAYBE `pay item`
+DECIDE `the pay item of` s IS
+    CONSIDER s
+    WHEN `the 2008 supplement` THEN JUST `the 2008 public-sector supplement`
+    OTHERWISE NOTHING
+
+GIVEN s IS A `salary component`
+GIVETH A BOOLEAN
+DECIDE `answered by the root` s IS
+    CONSIDER `the pay item of` s
+    WHEN JUST i THEN TRUE
+    WHEN NOTHING THEN FALSE
+
+-- §1.1's own figure for a component.
+GIVEN s IS A `salary component`, m IS A `salary month`
+GIVETH A NUMBER
+DECIDE `§1.1's figure for` s m IS
+    CONSIDER s
+    WHEN `the combined salary`                    THEN `combined salary` m
+    WHEN `the 3% supplement`                      THEN `3% supplement` m
+    WHEN `the 2008 supplement`                    THEN `2008 supplement` m
+    WHEN `the 2011 supplement`                    THEN `2011 supplement` m
+    WHEN `the 1994 teaching-agreement supplement` THEN `1994 supplement` m
+
+@export A component of a teaching employee's salary for a month: the law's answer where the root has one, else section 1.1's figure
+GIVEN s IS A `salary component` @desc the component
+      c IS A `teaching case` @desc the facts of the case §1.1 does not ask about
+      m IS A `salary month` @desc the salary month, as §1.1 describes it
+GIVETH A NUMBER
+DECIDE `the component that governs` s c m IS
+    CONSIDER `the pay item of` s
+    WHEN JUST i THEN
+        -- no instrument gives the item to this case
+        CONSIDER `the answer that governs` i (`the case of the month` c m)
+        WHEN JUST a THEN a
+        WHEN NOTHING THEN 0
+    WHEN NOTHING THEN `§1.1's figure for` s m
+
+@export A teaching employee's salary for a month, by the law: section 1.1's components, each the law's answer where the root has one, and the percentage allowances held
+GIVEN c IS A `teaching case` @desc the facts of the case §1.1 does not ask about
+      m IS A `salary month` @desc the salary month, as §1.1 describes it
+      `the allowances held` IS A LIST OF `allowance held` @desc the percentage allowances held that month, with their rates
+GIVETH A NUMBER
+DECIDE `the salary that governs` c m `the allowances held` IS
+    sum (map (GIVEN s YIELD `the component that governs` s c m) `§1.1's components`)
+        PLUS `percentage allowances` m `the allowances held`
+
+§§ `הנימוק`
+
+-- Why the law gives what it gives for a pay item in the month: its answer,
+-- the instrument that governs and the rule of precedence by which it does,
+-- and what every instrument that speaks to it says, as the page shows
+-- them (a module or title of "" where no instrument speaks).
+GIVEN i IS A `pay item`, c IS A `teaching case`, m IS A `salary month`
+GIVETH A MAYBE NUMBER
+DECIDE `the item's answer in the month` i c m IS
+    `the answer that governs` i (`the case of the month` c m)
+
+GIVEN i IS A `pay item`, c IS A `teaching case`, m IS A `salary month`
+GIVETH A STRING
+DECIDE `the module that governs the item` i c m IS
+    CONSIDER `the ruling on the item` i (`the case of the month` c m)
+    WHEN JUST r THEN r's `governed by`'s `module`
+    WHEN NOTHING THEN ""
+
+GIVEN i IS A `pay item`, c IS A `teaching case`, m IS A `salary month`
+GIVETH A STRING
+DECIDE `the title that governs the item` i c m IS
+    CONSIDER `the ruling on the item` i (`the case of the month` c m)
+    WHEN JUST r THEN r's `governed by`'s `title`
+    WHEN NOTHING THEN ""
+
+GIVEN i IS A `pay item`, c IS A `teaching case`, m IS A `salary month`
+GIVETH A STRING
+DECIDE `the rule that governs the item` i c m IS
+    CONSIDER `the ruling on the item` i (`the case of the month` c m)
+    WHEN JUST r THEN r's `by the rule`
+    WHEN NOTHING THEN ""
+
+GIVEN i IS A `pay item`, c IS A `teaching case`, m IS A `salary month`
+GIVETH A LIST OF STRING
+DECIDE `the modules that speak to the item` i c m IS
+    map (GIVEN x YIELD x's `by`'s `module`) (`the claims on` i (`the case of the month` c m))
+
+GIVEN i IS A `pay item`, c IS A `teaching case`, m IS A `salary month`
+GIVETH A LIST OF STRING
+DECIDE `the titles that speak to the item` i c m IS
+    map (GIVEN x YIELD x's `by`'s `title`) (`the claims on` i (`the case of the month` c m))
+
+GIVEN i IS A `pay item`, c IS A `teaching case`, m IS A `salary month`
+GIVETH A LIST OF NUMBER
+DECIDE `what each says of the item` i c m IS
+    map (GIVEN x YIELD x's `answer`) (`the claims on` i (`the case of the month` c m))
+
+-- Whether the instruments that speak give the case two or more answers.
+GIVEN i IS A `pay item`, c IS A `teaching case`, m IS A `salary month`
+GIVETH A BOOLEAN
+DECIDE `the item is contradicted in the month` i c m IF
+    NOT null (`the contradictions on` i (`the case of the month` c m))

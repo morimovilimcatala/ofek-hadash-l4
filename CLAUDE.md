@@ -166,6 +166,19 @@ all the files to give one answer", and disagreements raised as errors.
   `is_a_root`). A check's memory grows with the source it imports (under
   1.5 GB per MB at l4-ide unstable; the root ~1.5 GB, about a minute):
   `make l4` reserves each check's estimate out of the machine's memory.
+- **The month by the law**, `l4/lib/salary-root.l4` (MMS-525; the client,
+  2026-10-22: "if a teacher wants to know his salary he wants to know the
+  law, he doesn't care about the underlying documents"): what the
+  calculator asks. §1.1's components, each `the component that governs` —
+  the root's answer where a pay item stands for the component (`the pay
+  item of`), §1.1's own figure, marked as such on the page, where none does
+  yet — and why: the instrument that governs, the rule, what each one says.
+  A new pay item for a §1.1 component is one line in `the pay item of`. Its
+  tests, `l4/tests/salary-root-tests.l4`, hold §1.1's worked example and a
+  case the agreement of 24.1.2008 governs. The page ships it and every
+  module it reaches without their `#EVAL`/`#ASSERT` lines
+  (`calculator.without_tests`): loading the law then takes the browser
+  half a minute to two minutes, and an answer after it about a second.
   (At the old pin the root took ~21 GB and 25 minutes, and was checked on
   demand only; MMS-551.)
 - Traces and the calculator run tools/assets/l4wasm/l4.wasm, built from
