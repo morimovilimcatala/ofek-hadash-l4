@@ -4,11 +4,389 @@
 -- its page. `make l4` checks root through this file, which imports it.
 
 IMPORT prelude
-IMPORT vocabulary
-IMPORT precedence
 IMPORT `root`
 
 § `בדיקות השורש`
+
+§§ `מקרים`
+
+-- A case with salary components that make every instrument's arithmetic
+-- visible: a combined salary of 10,000 in December 2007 raised by the 4% of
+-- January 2008, and תוספת 2001 at 3% of it.
+GIVEN `salary month` IS A DATE
+      employer IS A `the teacher's employer`
+      `post-primary` IS A BOOLEAN
+      upper IS A BOOLEAN
+      organised IS A BOOLEAN
+      `put off` IS A BOOLEAN
+GIVETH A `teaching case`
+DECIDE `a teacher` `salary month` employer `post-primary` upper organised `put off` IS
+    `teaching case` WITH
+        `the salary month`                IS `salary month`
+        `employer`                        IS employer
+        `in post-primary education`       IS `post-primary`
+        `in the upper division`           IS upper
+        `represented by the secondary teachers' organisation` IS organised
+        `in a population whose 5% step was put off` IS `put off`
+        `combined salary today`           IS 10400
+        `supplement 2001 today`           IS 312
+        `combined salary in December 2007` IS 10000
+        `supplement 2001 in December 2007` IS 300
+        `the kind of school`               IS `another school`
+        `the interns the teacher mentors`  IS 0
+        `the classes in each grade`        IS 0
+
+-- The cases every contradiction is looked for in: the salary months on
+-- which some instrument starts or changes, and every combination of the
+-- facts the instruments tell teachers apart by.
+`the salary months checked` MEANS
+    LIST DATE_FROM_DMY 1 1 2008, DATE_FROM_DMY 1 2 2008, DATE_FROM_DMY 1 12 2008,
+         DATE_FROM_DMY 1 1 2009, DATE_FROM_DMY 1 12 2009, DATE_FROM_DMY 1 1 2010,
+         DATE_FROM_DMY 1 10 2011
+
+`the employers checked` MEANS
+    LIST `employed by the State`, `employed by a local authority`, `employed by another owning body`
+
+-- For a month and an employer, every combination of the facts the
+-- instruments ask about: outside post-primary education the division and
+-- the organisation do not arise.
+GIVEN d IS A DATE, e IS A `the teacher's employer`
+GIVETH A LIST OF `teaching case`
+DECIDE `the cases for` d e IS
+    LIST `a teacher` d e FALSE FALSE FALSE FALSE,
+         `a teacher` d e FALSE FALSE FALSE TRUE,
+         `a teacher` d e TRUE FALSE FALSE FALSE,
+         `a teacher` d e TRUE FALSE FALSE TRUE,
+         `a teacher` d e TRUE FALSE TRUE FALSE,
+         `a teacher` d e TRUE FALSE TRUE TRUE,
+         `a teacher` d e TRUE TRUE FALSE FALSE,
+         `a teacher` d e TRUE TRUE FALSE TRUE,
+         `a teacher` d e TRUE TRUE TRUE FALSE,
+         `a teacher` d e TRUE TRUE TRUE TRUE
+
+GIVEN d IS A DATE
+GIVETH A LIST OF `teaching case`
+DECIDE `the cases in` d IS
+    concat (map (GIVEN e YIELD `the cases for` d e) `the employers checked`)
+
+`the 2008 supplement's cases` MEANS
+    concat (map `the cases in` `the salary months checked`)
+
+-- The role allowances' cases (MMS-548): the first salary month of every
+-- school year from 2017/18, when the agreement of 19.3.2017 adds the roles,
+-- to 2025/26; each employer; each kind of school the owners' circulars tell
+-- apart; for the mentor, one intern, three and four (the circulars pay for
+-- three at most); for the junior-division head, three classes in a grade
+-- and five (the circulars' 7% and 6%).
+`the school years checked` MEANS LIST 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025
+
+`the kinds of school checked` MEANS
+    LIST `a recognised unofficial special-education school`,
+         `a Ma'ayan HaChinuch HaTorani or Chinuch Atzmai primary school`,
+         `a recognised unofficial special-education kindergarten`,
+         `another school`
+
+GIVEN `salary month` IS A DATE
+      employer IS A `the teacher's employer`
+      school IS A `the kind of school in the case`
+      interns IS A NUMBER
+      classes IS A NUMBER
+GIVETH A `teaching case`
+DECIDE `a role holder` `salary month` employer school interns classes IS
+    `teaching case` WITH
+        `the salary month`                IS `salary month`
+        `employer`                        IS employer
+        `in post-primary education`       IS FALSE
+        `in the upper division`           IS FALSE
+        `represented by the secondary teachers' organisation` IS FALSE
+        `in a population whose 5% step was put off` IS FALSE
+        `combined salary today`           IS 10400
+        `supplement 2001 today`           IS 312
+        `combined salary in December 2007` IS 10000
+        `supplement 2001 in December 2007` IS 300
+        `the kind of school`               IS school
+        `the interns the teacher mentors`  IS interns
+        `the classes in each grade`        IS classes
+
+GIVEN y IS A NUMBER
+      e IS A `the teacher's employer`
+      k IS A `the kind of school in the case`
+      n IS A NUMBER
+      classes IS A LIST OF NUMBER
+GIVETH A LIST OF `teaching case`
+DECIDE `the role holders mentoring` y e k n classes IS
+    map (GIVEN m YIELD `a role holder` (DATE_FROM_DMY 1 9 y) e k n m) classes
+
+GIVEN y IS A NUMBER
+      e IS A `the teacher's employer`
+      k IS A `the kind of school in the case`
+      interns IS A LIST OF NUMBER
+      classes IS A LIST OF NUMBER
+GIVETH A LIST OF `teaching case`
+DECIDE `the role holders in` y e k interns classes IS
+    concat (map (GIVEN n YIELD `the role holders mentoring` y e k n classes) interns)
+
+GIVEN y IS A NUMBER
+      e IS A `the teacher's employer`
+      interns IS A LIST OF NUMBER
+      classes IS A LIST OF NUMBER
+GIVETH A LIST OF `teaching case`
+DECIDE `the role holders at` y e interns classes IS
+    concat (map (GIVEN k YIELD `the role holders in` y e k interns classes) `the kinds of school checked`)
+
+GIVEN y IS A NUMBER
+      interns IS A LIST OF NUMBER
+      classes IS A LIST OF NUMBER
+GIVETH A LIST OF `teaching case`
+DECIDE `the role holders of the year` y interns classes IS
+    concat (map (GIVEN e YIELD `the role holders at` y e interns classes) `the employers checked`)
+
+GIVEN interns IS A LIST OF NUMBER
+      classes IS A LIST OF NUMBER
+GIVETH A LIST OF `teaching case`
+DECIDE `the role holders with` interns classes IS
+    concat (map (GIVEN y YIELD `the role holders of the year` y interns classes) `the school years checked`)
+
+-- The cases an item is checked over.
+GIVEN i IS A `pay item`
+GIVETH A LIST OF `teaching case`
+DECIDE `the cases checked for` i IS
+    CONSIDER i
+    WHEN `the 2008 public-sector supplement` THEN `the 2008 supplement's cases`
+    WHEN `the pedagogical coordinator's allowance rate` THEN `the role holders with` (LIST 0) (LIST 4)
+    WHEN `the mentor's allowance rate` THEN `the role holders with` (LIST 1, 3, 4) (LIST 4)
+    WHEN `the junior-division head's allowance` THEN `the role holders with` (LIST 0) (LIST 3, 5)
+
+`the cases checked` MEANS
+    concat (map `the cases checked for` `the items`)
+
+§§ `המחלוקות הידועות`
+
+-- The contradictions the root finds over the grid, and the resolution of
+-- each: data about the instruments, kept with the tests.
+@desc How the root settles a contradiction: which instrument governs and by which rule.
+DECLARE `resolution` HAS
+    `item`           IS A `pay item`
+    `sources`        IS A LIST OF STRING
+    `governed by`    IS A STRING @desc the module of the instrument that governs
+    `by the rule`    IS A STRING
+
+GIVEN i IS A `pay item`
+GIVETH A LIST OF `contradiction`
+DECIDE `the contradictions on the item` i IS
+    concat (map (GIVEN c YIELD `the contradictions on` i c) (`the cases checked for` i))
+
+`the contradictions` MEANS
+    concat (map `the contradictions on the item` `the items`)
+
+-- The resolutions: one for each set of instruments that disagree and the
+-- instrument precedence makes govern them. Each names the rule; the gate
+-- below holds precedence to it.
+GIVEN item IS A `pay item`
+      sources IS A LIST OF STRING
+      `governed by` IS A STRING
+      rule IS A STRING
+GIVETH A `resolution`
+DECIDE `resolved` item sources `governed by` rule IS
+    `resolution` WITH `item` IS item, `sources` IS sources, `governed by` IS `governed by`, `by the rule` IS rule
+
+GIVEN instruments IS A LIST OF `instrument`
+GIVETH A LIST OF STRING
+DECIDE `the modules of` instruments IS
+    map (GIVEN i YIELD i's `module`) instruments
+
+`the resolutions` MEANS
+    concat (LIST `the resolutions on the 2008 supplement`,
+                 `the resolutions on the pedagogical coordinator`,
+                 `the resolutions on the mentor`,
+                 `the resolutions on the junior-division head`)
+
+`the resolutions on the 2008 supplement` MEANS
+    LIST `the takanon against the agreement`,
+         `the takanon against circular תשס"ט/3`,
+         `the takanon, the agreement and circular תשס"ט/3`,
+         `the takanon against both circulars`,
+         `all four on the 2008 supplement`
+
+-- A state (or local-authority) post-primary teacher of the organisation:
+-- the takanon's 5% of today's combined salary from 1.1.2010, against the
+-- agreement's 5% of the December 2007 values from the salary of December
+-- 2009. The takanon's introduction makes a collective agreement prevail
+-- over it (the card takanon-2008).
+`the takanon against the agreement` MEANS
+    `resolved` `the 2008 public-sector supplement`
+        (`the modules of` (LIST `the takanon §1.1`, `the agreement of 24.1.2008`))
+        (`the agreement of 24.1.2008`'s `module`)
+        `the takanon's introduction: an agreement prevails`
+
+-- An owner's teacher whom the agreement does not cover (not of the
+-- organisation, or employed by an owner that is not a local authority):
+-- the takanon against תשס"ט/3's 2.88% of today's values. The circular
+-- (14.12.2008) is not more recent than §1.1 as updated on 2.2.2010, so by
+-- the takanon's own introduction it does not prevail, and nothing else that
+-- prevails over the takanon speaks.
+`the takanon against circular תשס"ט/3` MEANS
+    `resolved` `the 2008 public-sector supplement`
+        (`the modules of` (LIST `the takanon §1.1`, `circular תשס"ט/3`))
+        (`the takanon §1.1`'s `module`)
+        `the takanon's introduction: nothing that prevails over it speaks`
+
+-- A local authority's post-primary teacher of the organisation, outside
+-- the upper division (or in it before December 2009): the agreement puts
+-- the takanon out; תשס"ט/3's 2.88% of today's values is below the
+-- agreement's 3% of December 2007's, and a circular does not out-rank the
+-- agreement it carries out (the finding F-2008-09_tashsat_03-a).
+`the takanon, the agreement and circular תשס"ט/3` MEANS
+    `resolved` `the 2008 public-sector supplement`
+        (`the modules of` (LIST `the takanon §1.1`, `the agreement of 24.1.2008`, `circular תשס"ט/3`))
+        (`the agreement of 24.1.2008`'s `module`)
+        `a circular never out-ranks the agreement`
+
+-- An owner's upper-division teacher the agreement does not cover, from
+-- December 2009: neither circular is more recent than §1.1 as updated on
+-- 2.2.2010, so the takanon stands over both.
+`the takanon against both circulars` MEANS
+    `resolved` `the 2008 public-sector supplement`
+        (`the modules of` (LIST `the takanon §1.1`, `circular תשס"ט/3`, `circular תש"ע/2`))
+        (`the takanon §1.1`'s `module`)
+        `the takanon's introduction: nothing that prevails over it speaks`
+
+-- A local authority's upper-division teacher of the organisation, from
+-- December 2009: all four speak (the card supplement-2008). The agreement
+-- puts the takanon out; of the circulars the later, תש"ע/2, replaces
+-- תשס"ט/3; its printed 4.81% of today's values is above the agreement's 5%
+-- of December 2007's, approved by the Treasury so §29 leaves it, and §22
+-- lets a term in the employee's favour stand.
+`all four on the 2008 supplement` MEANS
+    `resolved` `the 2008 public-sector supplement`
+        (`the modules of` (LIST `the takanon §1.1`, `the agreement of 24.1.2008`, `circular תשס"ט/3`, `circular תש"ע/2`))
+        (`circular תש"ע/2`'s `module`)
+        `§22: a term in the employee's favour stands`
+
+-- The pedagogical coordinator (MMS-548). From 1.9.2023 the agreement of
+-- 19.10.2022 (§12.1) raises the 6% of the agreement of 19.3.2017 (§3(ג)) to
+-- 8%. Read together, the provision in the employee's favour governs (§23),
+-- which is the later agreement's 8%: the rate it set out to give.
+`the two agreements on the pedagogical coordinator` MEANS
+    `resolved` `the pedagogical coordinator's allowance rate`
+        (`the modules of` (LIST `the agreement of 19.3.2017`, `the agreement of 19.10.2022`))
+        (`the agreement of 19.10.2022`'s `module`)
+        `§23: the provision in the employee's favour`
+
+-- An owner's teacher from 1.9.2023: the owners' special-education circulars
+-- תשפ"ד/2, תשפ"ה/1 and תשפ"ו/1 still print 6%, below the agreements' 8%, and a
+-- circular does not out-rank the agreement it carries out (each says so
+-- itself; the findings F-2025-26_tashpo_01-n and MMS-543). תשפ"ד/1, to the
+-- Ma'ayan and Chinuch Atzmai primary schools, prints the 8%: it disagrees
+-- only with the 19.3.2017 agreement's 6%, and the ruling is the 8% it prints.
+GIVEN circular IS AN `instrument`
+GIVETH A `resolution`
+DECIDE `the agreements against an owners' circular on the pedagogical coordinator` circular IS
+    `resolved` `the pedagogical coordinator's allowance rate`
+        (`the modules of` (LIST `the agreement of 19.3.2017`, `the agreement of 19.10.2022`, circular))
+        (`the agreement of 19.10.2022`'s `module`)
+        `a circular never out-ranks the agreement`
+
+`the resolutions on the pedagogical coordinator` MEANS
+    concat (LIST (LIST `the two agreements on the pedagogical coordinator`),
+                 map `the agreements against an owners' circular on the pedagogical coordinator`
+                     (LIST `circular תשפ"ד/1`, `circular תשפ"ד/2`, `circular תשפ"ה/1`, `circular תשפ"ו/1`))
+
+-- The mentor (MMS-548). The agreement of 19.3.2017 (§3(ד)) pays 2.4% "for
+-- each intern"; every owners' employment circular from תש"ף/1 pays it for
+-- three at most, and so do the special-education kindergartens' circulars
+-- from תשפ"ד/3. For a fourth intern the circular gives less, and a
+-- circular does not out-rank the agreement it carries out (the finding
+-- F-2025-26_tashpo_01-p, high; MMS-545).
+GIVEN circular IS AN `instrument`
+GIVETH A `resolution`
+DECIDE `the agreement against an owners' circular on the mentor` circular IS
+    `resolved` `the mentor's allowance rate`
+        (`the modules of` (LIST `the agreement of 19.3.2017`, circular))
+        (`the agreement of 19.3.2017`'s `module`)
+        `a circular never out-ranks the agreement`
+
+`the resolutions on the mentor` MEANS
+    map `the agreement against an owners' circular on the mentor`
+        (LIST `circular תש"ף/1`, `circular תשפ"א/1`, `circular תשפ"ב/2`, `circular תשפ"ג/2`,
+              `circular תשפ"ד/1`, `circular תשפ"ד/2`, `circular תשפ"ה/1`, `circular תשפ"ו/1`,
+              `circular תשפ"ד/3`, `circular תשפ"ה/2`, `circular תשפ"ו/2`)
+
+-- The junior-division head (MMS-548, MMS-542). From 1.9.2023 the agreement
+-- of 19.10.2022 pays 20% of the combined salary, at least ₪1,100 (§§9–10);
+-- the owners' circulars of תשפ"ד to תשפ"ו pay the grade coordinator's 7%
+-- (6% above four classes), at least ₪1,100 — the row looks copied from the
+-- grade coordinator's (F-2025-26_tashpo_01-o). A circular does not out-rank
+-- the agreement it carries out. (Before 1.9.2023 the 13% is the base
+-- agreement's §124(ב), which the root does not ask yet.)
+GIVEN circular IS AN `instrument`
+GIVETH A `resolution`
+DECIDE `the agreement against an owners' circular on the junior-division head` circular IS
+    `resolved` `the junior-division head's allowance`
+        (`the modules of` (LIST `the agreement of 19.10.2022`, circular))
+        (`the agreement of 19.10.2022`'s `module`)
+        `a circular never out-ranks the agreement`
+
+`the resolutions on the junior-division head` MEANS
+    map `the agreement against an owners' circular on the junior-division head`
+        (LIST `circular תשפ"ד/1`, `circular תשפ"ד/2`, `circular תשפ"ה/1`, `circular תשפ"ו/1`)
+
+GIVEN x IS A `contradiction`
+GIVETH A BOOLEAN
+DECIDE `is resolved` x IF
+    any (GIVEN r YIELD `settles` r x) `the resolutions`
+
+GIVEN x IS A `contradiction`
+GIVETH A STRING
+DECIDE `the contradiction's name` x IS
+    CONCAT `the name of the item` (x's `item`), ": ", `the sources joined` (x's `sources`), " — ", x's `the ruling`'s `governed by`'s `module`, " ", x's `the ruling`'s `by the rule`
+
+GIVEN names IS A LIST OF STRING
+GIVETH A STRING
+DECIDE `the sources joined` names IS
+    foldr (GIVEN n, acc YIELD IF acc EQUALS "" THEN n ELSE CONCAT n, ", ", acc) "" names
+
+`unresolved contradictions` MEANS
+    nub (map `the contradiction's name` (filter (GIVEN x YIELD NOT `is resolved` x) `the contradictions`))
+
+
+§§ `הדוח — ההגדרות`
+
+-- What the site's page of this module shows (tools/roots.py): each
+-- resolution, the instruments it settles by their names, which governs, by
+-- which rule, and in how many of the cases checked.
+`the instruments` MEANS
+    concat (LIST `the takanon's instruments`, `the agreements' instruments`, `the circulars' instruments`)
+
+GIVEN m IS A STRING
+GIVETH A STRING
+DECIDE `the title of` m IS
+    foldr (GIVEN i, acc YIELD IF i's `module` EQUALS m THEN i's `title` ELSE acc) m `the instruments`
+
+GIVEN r IS A `resolution`, x IS A `contradiction`
+GIVETH A BOOLEAN
+DECIDE `settles` r x IF
+        r's `item` EQUALS x's `item`
+    AND r's `sources` EQUALS x's `sources`
+    AND r's `governed by` EQUALS x's `the ruling`'s `governed by`'s `module`
+    AND r's `by the rule` EQUALS x's `the ruling`'s `by the rule`
+
+GIVEN r IS A `resolution`
+GIVETH A STRING
+DECIDE `the report line of` r IS
+    CONCAT `the name of the item` (r's `item`), " | ",
+           `the titles joined` (map `the title of` (r's `sources`)), " | ",
+           `the title of` (r's `governed by`), " | ",
+           r's `by the rule`, " | ",
+           TOSTRING (count (filter (GIVEN x YIELD `settles` r x) `the contradictions`))
+
+GIVEN titles IS A LIST OF STRING
+GIVETH A STRING
+DECIDE `the titles joined` titles IS
+    foldr (GIVEN n, acc YIELD IF acc EQUALS "" THEN n ELSE CONCAT n, " · ", acc) "" titles
+
+`the resolutions report` MEANS
+    map `the report line of` `the resolutions`
 
 §§ `השער`
 

@@ -149,14 +149,15 @@ all the files to give one answer", and disagreements raised as errors.
   them did not cut the memory a root costs — 21.4 GB with no evaluation at
   all — which is the source it imports: MMS-551.)
 - **The root**, `l4/lib/root.l4`: the one public answer, `the answer that
-  governs` item case, and the gate: over each item's grid of cases
-  (`the cases checked for` item),
-  any item and case where the claims give two or more answers is a
-  contradiction; `unresolved contradictions` is `#ASSERT null` in the
-  root's tests, and a
-  contradiction is resolved only by an entry in `the resolutions` naming the
-  instrument that governs and the rule, which precedence must agree with.
-  The disagreements stay asserted as evidence.
+  governs` item case, for any case, and whether a case's claims disagree
+  (`the contradictions on` item case). It holds no question (the client,
+  2026-10-22: "the root shouldn't be asking questions at all, they should
+  be in the test file"). Its tests, `l4/tests/root-tests.l4`, hold what was
+  checked: each item's grid of cases (`the cases checked for` item), the
+  contradictions found over it, `the resolutions` — each naming the
+  instrument that governs and the rule, which precedence must agree with —
+  and the gate, `unresolved contradictions`, `#ASSERT null`. The
+  disagreements stay asserted there as evidence.
 - The site shows each root on its own page (`tools/roots.py`: root.html,
   circulars/root.html, …), read off the module and `make l4`'s results.
   A root imports whole families of instruments, so one pass of the compiler
@@ -261,7 +262,15 @@ corpus reader (MMS-414).
 make l4        # tools/l4run.py: l4 run + l4 render on every file (needs `l4`)
 make site      # tools/build_site.py → build/site/
 make test      # python3 -m unittest discover -s tests
+make roots     # the roots and their tests, on demand (see below)
 ```
+
+For now `make l4` and the deploy skip the roots and their tests (the
+client, 2026-10-22: "in the meantime we don't compile the root, so we can
+speed up the development process"): a root's check loads every instrument
+it asks, ~16-21 GB and 10-25 minutes (MMS-551). `make roots` checks them;
+run it after a change inside a root's tree and before showing the root's
+rulings to anyone. Until it runs, nothing holds the gate.
 
 `l4 run` must report ok for every file: no type errors, every `#ASSERT`
 true, and no compiler warning about the file — a warning is refused like an

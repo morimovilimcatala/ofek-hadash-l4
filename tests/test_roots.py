@@ -20,7 +20,7 @@ import roots  # noqa: E402
 SITE = ROOT / "build" / "site"
 
 
-@unittest.skipUnless((roots.BUILD / "root.run.json").exists(), "run `make l4` first")
+@unittest.skipUnless(roots.current(), "the roots' results are not current: `make roots`")
 class Roots(unittest.TestCase):
     def test_every_root_is_a_module(self):
         names = modules.wanted()[0]

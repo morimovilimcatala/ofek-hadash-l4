@@ -80,6 +80,17 @@ def is_family(here: str) -> bool:
     return here.count("/") == 2
 
 
+def current() -> bool:
+    """Whether the root's tests were checked against the files as they are
+    now: the roots are checked on demand (`make roots`), and a build that
+    skipped them carries an earlier check's results."""
+    import l4run
+    try:
+        return l4run.is_kept(tests_of("root").resolve(), l4run.compiler_id(l4run.compiler()))
+    except (SystemExit, OSError):
+        return False
+
+
 def results(module: str) -> list[dict]:
     """What `make l4` recorded of a root's tests."""
     f = TESTS_BUILD / f"{module}-tests.run.json"
@@ -97,9 +108,14 @@ def evaluated(module: str, name: str) -> str | None:
     """The value of the `#EVAL <name>` line of a root's tests, as `make l4`
     recorded it."""
     src = tests_of(module).read_text(encoding="utf-8").splitlines()
-    line = next((i + 1 for i, l in enumerate(src) if l.strip() == f"#EVAL {name}"), None)
+    want = f"#EVAL {name}"
+    line = next((i + 1 for i, l in enumerate(src) if l.strip() == want), None)
     for r in results(module):
-        if r.get("kind") == "value" and line and re.search(rf":{line}:", r.get("range", "")):
+        if r.get("kind") != "value":
+            continue
+        # by the line's own text where the check recorded it, which survives
+        # an edit that moves it; by its number otherwise
+        if r.get("line") == want or ("line" not in r and line and re.search(rf":{line}:", r.get("range", ""))):
             return r.get("value")
     return None
 
@@ -138,6 +154,10 @@ def page_body(module: str, here: str, coll: str, heading: str, about: str, *,
              + (f'<span><b>{held}</b> מתוך {len(asserts)} בדיקות מתקיימות</span>' if asserts else '')
              + f'<code dir="ltr">l4/lib/{esc(module)}.l4</code></div></header>',
              f'<p class="lede">{esc(about)}</p>']
+    # the roots are checked on demand for now (`make roots`, MMS-551)
+    parts.append('<div class="banner">השורשים נבדקים עכשיו לפי דרישה בלבד, ולא בכל בנייה, כי בדיקת השורש כבדה מאוד '
+                 '(MMS-551). ' + ('התוצאות שבעמוד הן מהבדיקה האחרונה, ועשויות להקדים שינוי במסמכים.'
+                                  if rs else 'השורש הזה עוד לא נבדק בבנייה הזו.') + '</div>')
     if module == "root":
         unresolved = strings(evaluated("root", "`unresolved contradictions`") or "")
         cases = evaluated("root", "count `the cases checked`") or "?"

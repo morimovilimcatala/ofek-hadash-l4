@@ -470,6 +470,8 @@ class Toolchain(unittest.TestCase):
     def test_every_file_checks_and_every_assert_holds(self):
         import l4run
         for f in l4run.files():
+            if l4run.is_a_root_or_its_tests(f) and not l4run.roots_checked():
+                continue  # checked on demand: `make roots`
             out = l4run.outputs(f)
             with self.subTest(file=str(f.relative_to(ROOT))):
                 self.assertTrue(out["run"].exists(), "not run")

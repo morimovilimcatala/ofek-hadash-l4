@@ -85,8 +85,8 @@ class TheRootDecides(unittest.TestCase):
 
     def test_a_cards_root_item_is_one_the_root_decides(self):
         import roots
-        if not (roots.BUILD / "root.run.json").exists():
-            self.skipTest("run `make l4` first")
+        if not roots.current():
+            self.skipTest("the roots' results are not current: `make roots`")
         decided = roots.rulings()
         named = [c for c in DATA["items"] if c.get("root_item")]
         self.assertTrue(named)

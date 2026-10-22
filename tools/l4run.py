@@ -184,6 +184,19 @@ def is_a_root(path: Path) -> bool:
     return path.parent == L4_DIR / "lib" and path.name.endswith("root.l4")
 
 
+def is_a_root_or_its_tests(path: Path) -> bool:
+    return is_a_root(path) or (path.parent == TESTS and path.name.endswith("root-tests.l4"))
+
+
+def roots_checked() -> bool:
+    """For now the roots are checked on demand only (the client,
+    2026-10-22: "in the meantime we don't compile the root, so we can speed
+    up the development process"): `make roots`, or L4_ROOTS=check. A root's
+    check loads every instrument it asks, ~16-21 GB and 10-25 minutes
+    (MMS-551), and only 65 of the corpus's files are in its tree."""
+    return os.environ.get("L4_ROOTS") == "check"
+
+
 def rendered(path: Path) -> bool:
     """Neither a root nor a tests file is rendered: no corpus text sits
     beside either for `l4 render`'s prose."""
@@ -212,6 +225,14 @@ def run_one(path: Path, exe: str, cid: str) -> tuple[Path, bool, bool]:
                 "diagnostics": [{"severity": "error",
                                  "message": (r.stdout + r.stderr).strip()}]}
     data["diagnostics"] = diagnostics(data.get("diagnostics"))
+    # each result keeps the line it came from, so a reader can find it by
+    # its text when a later edit has moved it (the roots are checked on
+    # demand, and their results outlive edits to their tests files)
+    src = path.read_text(encoding="utf-8").splitlines()
+    for r in data.get("results", []):
+        m = re.match(rf"{re.escape(path.name)}:(\d+):", str(r.get("range", "")))
+        if m and 0 < int(m.group(1)) <= len(src):
+            r["line"] = src[int(m.group(1)) - 1].strip()
     # l4's own `ok` stays true when an #ASSERT comes back FALSE or the
     # compiler warns; the gate here is all three (`verdict`)
     data["l4_ok"] = bool(data.get("ok"))
@@ -299,6 +320,10 @@ def main(argv: list[str]) -> int:
     exe = compiler()
     cid = compiler_id(exe)
     targets = [Path(a).resolve() for a in argv] or files()
+    if not argv and not roots_checked():
+        skipped = [p for p in targets if is_a_root_or_its_tests(p)]
+        targets = [p for p in targets if not is_a_root_or_its_tests(p)]
+        print(f"skip {len(skipped)} roots and their tests: `make roots` checks them", flush=True)
     jobs = int(os.environ.get("JOBS", os.cpu_count() or 2))
     budget = float(os.environ.get("L4_MEMORY_GB", memory_gb() - 2))
     bad = []
