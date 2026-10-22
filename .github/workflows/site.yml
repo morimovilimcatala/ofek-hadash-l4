@@ -26,7 +26,9 @@ jobs:
     # pinned, never -latest: an image bump changes GHC's environment under
     # the compiler and would show up here as a diff nobody made
     runs-on: ubuntu-24.04
-    timeout-minutes: 120
+    # the root's check alone takes ~12 minutes and more memory than the
+    # runner has (tools/l4run.py); a deploy that re-checks it can run long
+    timeout-minutes: 300
     steps:
       - uses: actions/checkout@v5
 
@@ -92,6 +94,19 @@ jobs:
           path: build/l4
           key: l4-run-${{ runner.os }}-${{ steps.pin.outputs.l4 }}-${{ github.sha }}
           restore-keys: l4-run-${{ runner.os }}-${{ steps.pin.outputs.l4 }}-
+
+      # The root imports every instrument the root asks, and its check peaks
+      # at ~21 GB (macOS's footprint, 2026-10-22) on a 16 GB runner: swap on
+      # the runner's scratch disk lets it finish, slowly, where the kernel
+      # would otherwise stop the job. tools/l4run.py runs it alone.
+      - name: Give the runner swap for the root
+        run: |
+          sudo swapoff -a || true
+          sudo fallocate -l 28G /mnt/l4.swap
+          sudo chmod 600 /mnt/l4.swap
+          sudo mkswap /mnt/l4.swap
+          sudo swapon /mnt/l4.swap
+          free -g
 
       - name: Check every encoding (l4 run + l4 render)
         run: L4=~/.local/bin/l4 make l4

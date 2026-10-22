@@ -34,6 +34,7 @@ import re
 import shutil
 import subprocess
 import sys
+import threading
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -218,49 +219,73 @@ def write_graph(path: Path, exe: str, dest: Path) -> None:
     dest.write_text(g.stdout if g.returncode == 0 else "", encoding="utf-8")
 
 
-# One check of a heavy agreement — one importing the 2012 completion
-# agreement's chain, or the September 2013 copy — peaks at 3.0–3.7 GB
-# (measured 2026-10-21). One check per core ran four of them at once on
-# GitHub's 16 GB runner, and systemd-oomd stopped the job ("make: ***
-# Terminated", exit 143) with no compiler error at all. So no more checks
-# run at once than the memory holds at this much each.
-GB_PER_CHECK = 5
+# What a check costs is the source it compiles: the file and everything it
+# imports. Measured on a Mac, 2026-10-22, as macOS's "peak memory footprint"
+# (resident and compressed together, what Linux would hold in RAM):
+#   the completion agreement of 2012 (0.26 MB imported)   1.7 GB
+#   circular תש"ף/1 (0.38 MB)                              2.3 GB
+#   the agreement of 19.3.2017 (0.74 MB)                   5.2 GB
+#   the Ofek Hadash agreements' root (0.84 MB)             8.8 GB
+#   the root (2.02 MB)                                    21.0 GB
+# about 10 GB per MB. A fixed number of checks at once (5 GB each, then the
+# roots one at a time) still stopped GitHub's 16 GB runner twice (exit 143;
+# "the hosted runner lost communication"), so each check now reserves what
+# it is estimated to need out of the machine's memory, and one that needs
+# more than all of it runs alone (the workflow gives the runner swap for it).
+GB_PER_MB_IMPORTED = 10.5
+GB_BASE = 0.5
 
 
-def default_jobs() -> int:
-    cores = os.cpu_count() or 2
+def estimated_gb(path: Path) -> float:
+    size = sum(f.stat().st_size for f in imported(path) | {path.resolve()})
+    return GB_BASE + GB_PER_MB_IMPORTED * size / 1e6
+
+
+def memory_gb() -> float:
     try:
-        memory = os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES") / 2**30
+        return os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES") / 2**30
     except (ValueError, OSError, AttributeError):
-        return min(cores, 2)
-    return max(1, min(cores, int(memory // GB_PER_CHECK)))
+        return 8.0
+
+
+def is_kept(path: Path, cid: str) -> bool:
+    out = outputs(path)
+    return out["key"].exists() and out["key"].read_text() == key(path, cid)
 
 
 def main(argv: list[str]) -> int:
     exe = compiler()
     cid = compiler_id(exe)
     targets = [Path(a).resolve() for a in argv] or files()
-    jobs = int(os.environ.get("JOBS", default_jobs()))
+    jobs = int(os.environ.get("JOBS", os.cpu_count() or 2))
+    budget = float(os.environ.get("L4_MEMORY_GB", memory_gb() - 2))
     bad = []
-    # A root imports whole families of heavy instruments: one check of it
-    # takes the memory of several ordinary ones (the root: 4.6 GB on a Mac,
-    # 2026-10-22), and three roots at once stopped GitHub's 16 GB runner
-    # (exit 143, as in MMS-521's first deploy). So the roots run last, one
-    # at a time, when nothing else holds memory.
-    rest = [p for p in targets if not is_a_root(p)]
-    roots_last = [p for p in targets if is_a_root(p)]
+    # the roots last, and the heaviest first among the rest, so that the
+    # light checks fill the memory the heavy ones leave
+    order = sorted(targets, key=lambda p: (is_a_root(p), -estimated_gb(p)))
+    lock = threading.Condition()
+    held = {"gb": 0.0}
 
-    def checked():
-        with ThreadPoolExecutor(jobs) as pool:
-            yield from pool.map(lambda p: run_one(p, exe, cid), rest)
-        for p in roots_last:
-            yield run_one(p, exe, cid)
+    def check(p: Path):
+        if is_kept(p, cid):
+            return run_one(p, exe, cid)
+        need = min(estimated_gb(p), budget)
+        with lock:
+            lock.wait_for(lambda: held["gb"] == 0 or held["gb"] + need <= budget)
+            held["gb"] += need
+        try:
+            return run_one(p, exe, cid)
+        finally:
+            with lock:
+                held["gb"] -= need
+                lock.notify_all()
 
-    for path, ok, fresh in checked():
-        rel = path.relative_to(ROOT)
-        print(f"{'ok ' if ok else 'ERR'} {'ran ' if fresh else 'kept'} {rel}", flush=True)
-        if not ok:
-            bad.append(rel)
+    with ThreadPoolExecutor(jobs) as pool:
+        for path, ok, fresh in pool.map(check, order):
+            rel = path.relative_to(ROOT)
+            print(f"{'ok ' if ok else 'ERR'} {'ran ' if fresh else 'kept'} {rel}", flush=True)
+            if not ok:
+                bad.append(rel)
     if bad:
         print(f"\n{len(bad)} file(s) did not check, had a failing #ASSERT or a compiler warning:")
         for b in bad:

@@ -153,7 +153,11 @@ all the files to give one answer", and disagreements raised as errors.
   circulars/root.html, …), read off the module and `make l4`'s results.
   A root imports whole families of instruments, so one pass of the compiler
   over it takes minutes; `make l4` checks it and does not render it
-  (`tools/l4run.py` `is_a_root`).
+  (`tools/l4run.py` `is_a_root`). A check's memory grows with the source
+  it imports (~10 GB per MB; the root ~21 GB): `make l4` reserves each
+  check's estimate and runs one larger than the machine alone, and the
+  workflow gives the runner swap for the root (MMS-551 asks whether the
+  root should read the instruments' claims as data instead).
 - Traces come from tools/assets/l4wasm/l4.wasm, whose import resolution
   cannot yet load a module two importers share (a type reached by two paths
   is "a resolved name that has no additional information"); the CLI is
