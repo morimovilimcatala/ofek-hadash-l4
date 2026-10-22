@@ -11,6 +11,7 @@ IMPORT prelude
 IMPORT vocabulary
 IMPORT common
 IMPORT conventions
+IMPORT `base-agreement-common`
 IMPORT collective_agreements_law
 
 -- Time in the regulative rules is counted in DAYS from the circular's date,
@@ -426,13 +427,10 @@ DECLARE `school kind` IS ONE OF
     `multi-stage special-education school`
     `secondary special-education school`
 
-@desc A full-time work week: its total and how it divides.
-DECLARE `work week` HAS
-    `week total hours`       IS A NUMBER
-    `frontal hours`          IS A NUMBER
-    `individual hours`       IS A NUMBER
-    `stay hours`             IS A NUMBER
-    `meeting hours at most`  IS A NUMBER
+-- The week is the base agreement's `work week` (base-agreement-common:
+-- frontal, individual and stay hours; MMS-538, one vocabulary); the
+-- meetings §4 allows out of the stay hours are `the meeting hours at most
+-- in` the week's kind.
 
 -- 4.1: a full-time teacher works five days a week, also in schools that
 -- work six.
@@ -462,8 +460,15 @@ GIVEN k IS A `work week kind`
 GIVETH A `work week`
 DECIDE `the teacher's week` k IS
     CONSIDER k
-    WHEN `primary special-education week` THEN `work week` 36 26 5 5 2
-    WHEN `secondary special-education week` THEN `work week` 36 23 4 9 4
+    WHEN `primary special-education week` THEN `a week of` 26 5 5
+    WHEN `secondary special-education week` THEN `a week of` 23 4 9
+
+GIVEN k IS A `work week kind`
+GIVETH A NUMBER
+DECIDE `the meeting hours at most in` k IS
+    CONSIDER k
+    WHEN `primary special-education week` THEN 2
+    WHEN `secondary special-education week` THEN 4
 
 -- 4.5 / 4.7: health-profession teachers and arts therapists have the
 -- teacher's week with 3 individual and 7 stay hours (primary), or 2 and 11
@@ -473,8 +478,8 @@ GIVEN k IS A `work week kind`
 GIVETH A `work week`
 DECIDE `the therapist's week` k IS
     CONSIDER k
-    WHEN `primary special-education week` THEN `work week` 36 26 3 7 2
-    WHEN `secondary special-education week` THEN `work week` 36 23 2 11 4
+    WHEN `primary special-education week` THEN `a week of` 26 3 7
+    WHEN `secondary special-education week` THEN `a week of` 23 2 11
 
 `stay hours a therapist may use for moving between institutions` MEANS 2
 
@@ -494,7 +499,7 @@ DECIDE `the therapist's week` k IS
 GIVEN w IS A `work week`
 GIVETH A BOOLEAN
 DECIDE `the week adds up` w IF
-    w's `frontal hours` PLUS w's `individual hours` PLUS w's `stay hours` EQUALS w's `week total hours`
+    `hours of the week` w EQUALS 36
 
 #ASSERT all `the week adds up` (LIST `the teacher's week` `primary special-education week`, `the teacher's week` `secondary special-education week`,
                                     `the therapist's week` `primary special-education week`, `the therapist's week` `secondary special-education week`)
@@ -523,11 +528,14 @@ DECIDE `the minimum position` t `school year opening in` IS
 GIVEN w IS A `work week`, `position fraction` IS A NUMBER
 GIVETH A `work week`
 DECIDE `the part-time week` w `position fraction` IS
-    `work week` (w's `week total hours` TIMES `position fraction`)
-                (w's `frontal hours` TIMES `position fraction`)
+    `a week of` (w's `frontal hours` TIMES `position fraction`)
                 (w's `individual hours` TIMES `position fraction`)
                 (w's `stay hours` TIMES `position fraction`)
-                (w's `meeting hours at most` TIMES `position fraction`)
+
+GIVEN k IS A `work week kind`, `position fraction` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the meeting hours at most in a part-time week` k `position fraction` IS
+    `the meeting hours at most in` k TIMES `position fraction`
 
 @ref akn:art_5__para_5-4/p2
 GIVEN `single frontal hours` IS A NUMBER, `position base` IS A NUMBER
