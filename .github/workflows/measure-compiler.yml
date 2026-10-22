@@ -1,0 +1,121 @@
+# What one L4 check costs — time and peak memory — under the pinned
+# compiler and under another legalese/l4-ide commit, on the files that cost
+# most (MMS-551: the root peaks at ~21 GB under the pin). Run by hand; it
+# changes nothing the site is built from, and the pin stays where it is
+# until a change to toolchain/L4_COMMIT says otherwise.
+name: measure-compiler
+
+on:
+  workflow_dispatch:
+    inputs:
+      l4_commit:
+        description: the legalese/l4-ide commit to compare with the pin
+        required: true
+        default: b816b0c602d02585e4fe671a253c206d7dfd45f6
+
+permissions:
+  contents: read
+
+jobs:
+  measure:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Read the toolchain pins
+        id: pin
+        run: |
+          echo "l4=$(cat toolchain/L4_COMMIT)" >> "$GITHUB_OUTPUT"
+          echo "ghc=$(cat toolchain/GHC_VERSION)" >> "$GITHUB_OUTPUT"
+
+      # the site workflow's cached binary at the pin
+      - name: Restore the pinned l4 binary
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.local/bin/l4
+          key: l4-bin-${{ runner.os }}-${{ steps.pin.outputs.l4 }}-ghc${{ steps.pin.outputs.ghc }}
+          fail-on-cache-miss: true
+
+      - name: Keep it apart, with the libraries of its pin
+        run: |
+          mkdir -p ~/pinned/data/jl4/libraries
+          mv ~/.local/bin/l4 ~/pinned/l4
+          git clone --depth 1 --filter=blob:none --sparse https://github.com/legalese/l4-ide /tmp/l4-pin
+          git -C /tmp/l4-pin fetch --depth 1 origin ${{ steps.pin.outputs.l4 }}
+          git -C /tmp/l4-pin checkout --detach ${{ steps.pin.outputs.l4 }}
+          git -C /tmp/l4-pin sparse-checkout set jl4-core/libraries
+          cp /tmp/l4-pin/jl4-core/libraries/*.l4 ~/pinned/data/jl4/libraries/
+
+      - name: Set up GHC
+        id: ghc
+        uses: haskell-actions/setup@v2
+        with:
+          ghc-version: ${{ steps.pin.outputs.ghc }}
+          cabal-version: latest
+
+      - name: Restore the cabal store
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.ghc.outputs.cabal-store }}
+          key: cabal-${{ runner.os }}-ghc${{ steps.pin.outputs.ghc }}-${{ inputs.l4_commit }}
+          restore-keys: cabal-${{ runner.os }}-ghc${{ steps.pin.outputs.ghc }}-
+
+      - name: Build l4 at the commit to compare
+        run: |
+          sudo apt-get update && sudo apt-get install -y pkg-config liblzma-dev libgmp-dev
+          mkdir -p ~/candidate/data
+          XDG_DATA_HOME=~/candidate/data L4_COMMIT=${{ inputs.l4_commit }} toolchain/build-l4.sh ~/candidate/l4
+
+      # the pinned compiler cannot hold the root in 16 GB; swap lets it
+      # finish, and the sampler below says how much of it was used
+      - name: Give the runner swap
+        run: |
+          sudo swapoff -a || true
+          sudo fallocate -l 28G /mnt/l4.swap
+          sudo chmod 600 /mnt/l4.swap
+          sudo mkswap /mnt/l4.swap
+          sudo swapon /mnt/l4.swap
+
+      - name: Measure
+        run: |
+          set -u
+          python3 tools/modules.py --write > /dev/null
+          files="l4/agreements/ofek-hadash/2012-02-29_ofek-hadash_amendment_hascam-hashlama.l4
+          l4/circulars/2019-20_tashaf_01.l4
+          l4/agreements/ofek-hadash/2017-03-19_ofek-hadash_march-2017-amendment.l4
+          l4/lib/ofek-hadash-root.l4
+          l4/lib/root.l4"
+          out="$GITHUB_STEP_SUMMARY"
+          echo "Pin \`${{ steps.pin.outputs.l4 }}\` against \`${{ inputs.l4_commit }}\`" >> "$out"
+          echo "" >> "$out"
+          echo "| compiler | file | seconds | peak RSS GB | peak swap GB | l4 ok | asserts false | errors |" >> "$out"
+          echo "|---|---|---|---|---|---|---|---|" >> "$out"
+          for who in pinned candidate; do
+            for f in $files; do
+              base0=$(free -b | awk '/Swap/ {print $3}')
+              echo "$base0" > /tmp/swap.peak
+              ( peak=$base0; while sleep 1; do s=$(free -b | awk '/Swap/ {print $3}'); [ "$s" -gt "$peak" ] && peak=$s && echo $peak > /tmp/swap.peak; done ) &
+              sampler=$!
+              ( cd "$(dirname "$f")" && JL4_LIBRARY_PATH="$GITHUB_WORKSPACE/l4/modules" XDG_DATA_HOME=~/$who/data \
+                  /usr/bin/time -v -o /tmp/time.txt ~/$who/l4 run --json --fixed-now=2026-06-01T00:00:00Z "$(basename "$f")" \
+                  > /tmp/run.json 2> /tmp/run.err ) || true
+              kill $sampler 2>/dev/null; wait $sampler 2>/dev/null || true
+              secs=$(awk -F': ' '/Elapsed \(wall clock\)/ {print $2}' /tmp/time.txt)
+              rss=$(awk -F': ' '/Maximum resident set size/ {printf "%.1f", $2/1048576}' /tmp/time.txt)
+              swap=$(python3 -c "print(round((int(open('/tmp/swap.peak').read()) - $base0) / 2**30, 1))")
+              verdict=$(python3 - <<'PY'
+          import json
+          try:
+              d = json.load(open("/tmp/run.json"))
+          except Exception:
+              print("no json | - | " + open("/tmp/run.err").read()[:80].replace("|", "/").replace("\n", " "))
+          else:
+              false = sum(1 for r in d.get("results", []) if r.get("kind") == "assertion" and str(r.get("value")).lower() != "true")
+              errors = sum(1 for x in d.get("diagnostics", []) if "Error" in str(x))
+              print(f"{d.get('ok')} | {false} | {errors}")
+          PY
+              )
+              echo "| $who | $(basename "$f") | $secs | $rss | $swap | $verdict |" | tee -a "$out"
+            done
+          done

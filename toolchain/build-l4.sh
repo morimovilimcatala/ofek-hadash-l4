@@ -9,7 +9,9 @@
 set -euo pipefail
 export LANG=C.UTF-8 LC_ALL=C.UTF-8
 here="$(cd "$(dirname "$0")" && pwd)"
-commit="$(cat "$here/L4_COMMIT")"
+# L4_COMMIT overrides the pin for an experiment (.github/workflows/
+# measure-compiler.yml); the site is always built at the pin
+commit="${L4_COMMIT:-$(cat "$here/L4_COMMIT")}"
 ghc_version="$(cat "$here/GHC_VERSION")"
 dest="${1:-$HOME/.local/bin/l4}"
 src="${L4_SRC:-$HOME/.cache/l4-ide}"
