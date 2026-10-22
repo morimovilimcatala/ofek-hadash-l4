@@ -180,6 +180,17 @@ not from the Catala proofs, the corpus's ambiguity ledger or its sic kinds:
 
 - `kind` — what is wrong with the LAW: `gap`, `overlap`, `contradiction`,
   `undefined-term`, `broken-reference`, `ambiguity`, `edge-case`.
+  A `contradiction` IS BETWEEN SOURCES OF EQUAL POWER (the client,
+  2026-10-22: "a weaker one departing from a stronger one has its own page,
+  סתירה in finding means equal power"): a document against itself, or two of
+  the same rank (two circulars). A weaker source departing from a stronger
+  one — a circular from the agreement or the letter it carries out, an
+  answer on the site from the takanon, the takanon from a circular or an
+  agreement — is a card on מקורות סותרים (`data/contradictions.json`, the
+  groups in `contradictions.CROSS_RANK`). The finding that records it stays in
+  the register, its `#ASSERT` the card's evidence, and is shown on its card
+  only: the findings page, its counts and the rows' flags leave it out
+  (`contradictions.homes`).
   AN EDGE CASE IS A FINDING ONLY WHEN IT EXPOSES A FLAW (the client,
   2026-10-21, MMS-534: "only interesting מקרי קצה should appear in findings,
   otherwise it isn't a finding"): stretched to an input the text did not

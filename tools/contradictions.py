@@ -78,6 +78,26 @@ def load() -> dict | None:
     return json.loads(DATA.read_text(encoding="utf-8")) if DATA.exists() else None
 
 
+# A weaker source departing from a stronger one — a circular from the agreement
+# or the letter it carries out, an answer on the site from the takanon, the
+# takanon from a circular or an agreement — is a card on this page and not a
+# finding (the client, 2026-10-22: "a weaker one departing from a stronger one
+# has its own page, סתירה in finding means equal power"). Two circulars, or a
+# document against itself, are of equal power and stay findings.
+CROSS_RANK = ("agreement", "letter", "qa", "takanon")
+
+
+def homes(data: dict | None) -> dict[str, str]:
+    """finding id -> the card it lives on, for every finding a card of a
+    weaker-against-stronger group cites: these leave the findings page."""
+    out: dict[str, str] = {}
+    for c in (data or {}).get("items", []):
+        if c.get("group") in CROSS_RANK:
+            for f in c.get("findings", []):
+                out.setdefault(f, c["id"])
+    return out
+
+
 def crops(data: dict) -> list[str]:
     """Every crop file the page shows, for the build to copy."""
     out = [i["file"] for c in data["items"] for s in c["sides"] for i in s.get("images", [])]

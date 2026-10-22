@@ -147,6 +147,26 @@ class TheVerdicts(unittest.TestCase):
                 for f in c.get("findings", []):
                     self.assertIn(f, ids)
 
+    def test_a_weaker_source_departing_from_a_stronger_one_lives_on_its_card(self):
+        """The client, 2026-10-22: "a weaker one departing from a stronger
+        one has its own page, סתירה in finding means equal power". Every
+        finding a weaker-against-stronger card cites is that card's, and the
+        findings page leaves it out; two circulars stay findings."""
+        homes = contradictions.homes(DATA)
+        self.assertTrue(homes)
+        groups = {c["id"]: c["group"] for c in DATA["items"]}
+        for fid, cid in homes.items():
+            self.assertIn(groups[cid], contradictions.CROSS_RANK)
+        self.assertNotIn("circulars", contradictions.CROSS_RANK)
+        self.assertNotIn("payment", contradictions.CROSS_RANK)
+        import build_site
+        page = (build_site.OUT / "findings.html")
+        if page.exists():  # after `make site`
+            html = page.read_text(encoding="utf-8")
+            for fid in homes:
+                with self.subTest(finding=fid):
+                    self.assertNotIn(f'id="{fid}"', html)
+
     def test_an_error_is_graded_and_says_why(self):
         """An error is a card in which a paying source departs from what the
         governing rule gives; it, and only it, is graded."""

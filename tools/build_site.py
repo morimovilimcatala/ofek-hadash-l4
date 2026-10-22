@@ -1068,6 +1068,9 @@ def segment_html(v: SectionView, s: l4src.Segment, graphs: dict[str, str] | None
 # circular has an `art_1` and a `preamble`, so a key alone names a row in
 # 210 documents at once.
 FINDINGS_BY_KEY: dict[tuple[str, str], list[dict]] = {}
+# every finding, and those that live on a card of מקורות סותרים (id -> card)
+REGISTER: list[dict] = []
+HOMES: dict[str, str] = {}
 
 
 def row_findings(v, r) -> list[dict]:
@@ -1607,7 +1610,8 @@ def findings_page(findings, views_by_file, key_to_view) -> str:
                     where.append(f'<a href="{kv.page}#{esc(k)}">{label}</a>')
         state = ('<span class="okay">ה־<bdi dir="ltr">#ASSERT</bdi> מתקיים: הפגם עדיין בטקסט</span>' if ev["held"] else
                  '<span class="notok">הראיה אינה מתקיימת — ראו בדיקות</span>')
-        deps = "".join(f'<a href="#{esc(d)}"><bdi dir="ltr" class="fref">{esc(d)}</bdi></a> ' for d in f.get("depends_on", []) if d in by_id)
+        deps = "".join(f'<a href="{f"#{d}" if d in by_id else f"{contradictions.HERE}#{HOMES[d]}"}"><bdi dir="ltr" class="fref">{esc(d)}</bdi></a> '
+                       for d in f.get("depends_on", []) if d in by_id or d in HOMES)
         stage, sgloss = STAGES[f["stage"]]
         paras = f["body"].strip().split("\n\n")
         body = (f'<div class="fbody" lang="he" dir="rtl">{"".join(f"<p>{prose(p, link_ids=True)}</p>" for p in paras)}</div>'
@@ -1793,7 +1797,7 @@ def contradictions_page(findings: list[dict], by_file: dict[str, "SectionView"],
         CONTRA, prose=prose, clause_link=clause_link, finding_ids={f["id"] for f in findings},
         src=lambda f: rel(f"assets/contradictions/{f}", here),
         simulator=simulator_group(findings, by_file, key_to_view) if DELTA else None,
-        evidence={f["id"]: (f["l4"], f["evidence"].strip("`")) for f in findings if f.get("l4") and f.get("evidence")},
+        evidence={f["id"]: (f["l4"], f["evidence"].strip("`")) for f in (REGISTER or findings) if f.get("l4") and f.get("evidence")},
         root=roots.rulings(), root_href=rel(roots.ROOTS[0][1], here))
     return page(here, f"{contradictions.TAB} — {TITLE}", body, tab="contradictions",
                 desc="היכן שמקור אחד סותר מקור אחר — מסמכים, תלושים וסימולטור השכר של המשרד: כל מקור ותשובתו, והכלל שמכריע", sidebar=side)
@@ -2312,7 +2316,13 @@ def build() -> int:
             shutil.copytree(f, OUT / "assets" / f.name)
         else:
             shutil.copy(f, OUT / "assets" / f.name)
-    findings = load_findings()
+    # a finding a weaker-against-stronger card cites lives on that card only
+    # (contradictions.homes): it leaves the findings page, its counts and the
+    # rows' flags; the whole register still backs the cards' evidence
+    REGISTER[:] = load_findings()
+    HOMES.clear()
+    HOMES.update(contradictions.homes(CONTRA))
+    findings = [f for f in REGISTER if f["id"] not in HOMES]
     FINDINGS_BY_KEY.clear()
     for f in findings:
         for k in f.get("keys", []):
