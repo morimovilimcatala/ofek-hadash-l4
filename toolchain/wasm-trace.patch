@@ -1,5 +1,5 @@
 diff --git a/jl4-core/src/L4/API.hs b/jl4-core/src/L4/API.hs
-index eb9c9b8..4943032 100644
+index c0887158..ffaff70c 100644
 --- a/jl4-core/src/L4/API.hs
 +++ b/jl4-core/src/L4/API.hs
 @@ -19,6 +19,7 @@ module L4.API
@@ -8,9 +8,17 @@ index eb9c9b8..4943032 100644
    , l4Eval
 +  , l4EvalWithFiles
    , l4VisualizeByName
+   , l4StateGraphByName
    , l4CodeLenses
-   , l4EvalDirective
-@@ -41,12 +42,13 @@ import L4.Annotation (HasSrcRange(..), rangeOfNode)
+@@ -35,6 +36,7 @@ import qualified Data.Text.Lazy as LazyText
+ import qualified Data.Text.Lazy.Encoding as LazyText
+ import qualified Data.List as List
+ import qualified Data.Vector as Vector
++import qualified Data.Map.Strict as Map
+ 
+ import L4.Lexer (execLexer, PosToken(..), TokenType(..), TLiterals(..), TSpaces(..), TIdentifiers(..))
+ 
+@@ -42,12 +44,14 @@ import L4.Annotation (HasSrcRange(..), rangeOfNode)
  import L4.Parser.SrcSpan (SrcRange(..), SrcPos(..))
  import L4.TypeCheck (severity, prettyCheckErrorWithContext, applyFinalSubstitution)
  import L4.TypeCheck.Types (CheckResult(..), CheckErrorWithContext(..), Severity(..), Substitution)
@@ -20,21 +28,22 @@ index eb9c9b8..4943032 100644
  import L4.Annotation (emptyAnno)
  import qualified L4.Utils.IntervalMap as IV
  import qualified L4.EvaluateLazy as EL
- import L4.EvaluateLazy.Machine (prettyEvalException)
+ import L4.EvaluateLazy.Machine (prettyEvalException, prettyRefusal)
 +import L4.EvaluateLazy.Trace (EvalTrace(..), printExceptionOrNF)
++import System.IO.Unsafe (unsafePerformIO)
  
  import L4.TracePolicy (lspDefaultPolicy)
  import L4.EvaluateLazy.GraphVizOptions (defaultGraphVizOptions)
-@@ -55,7 +57,7 @@ import L4.FindDefinition (findDefinition)
+@@ -57,7 +61,7 @@ import L4.FindDefinition (findDefinition)
  import L4.FindReferences (findReferences)
  
  -- Import resolution (VFS + embedded libs)
 -import L4.API.VirtualFS (checkWithImports, emptyVFS, TypeCheckWithDepsResult(..), ResolvedImport(..))
-+import L4.API.VirtualFS (vfsFromList, checkWithImports, emptyVFS, TypeCheckWithDepsResult(..), ResolvedImport(..))
++import L4.API.VirtualFS (checkWithImports, emptyVFS, vfsFromList, extractImportNames, apiModuleLookup, moduleNameToProjectUri, typecheckWithDependenciesReusing, importNamesOf, TypeCheckWithDepsResult(..), ResolvedImport(..))
  import qualified L4.Evaluate.ValueLazy as ValLazy
  
  
-@@ -219,8 +221,12 @@ l4SemanticTokens source =
+@@ -223,8 +227,40 @@ l4SemanticTokens source =
  --
  -- If there are parse or type errors, returns diagnostics instead.
  l4Eval :: Text -> IO Text
@@ -42,14 +51,77 @@ index eb9c9b8..4943032 100644
 -  case checkWithImports emptyVFS source of
 +l4Eval = l4EvalWithFiles []
 +
++-- | The imports the last 'l4EvalWithFiles' resolved, with the module sources
++-- and the import names they were resolved for. A caller that evaluates many
++-- small programs against one large set of modules (the salary calculator, on
++-- the root) type-checks the modules once; only the program itself is checked
++-- again. Imports are still evaluated afresh each call, so a trace through
++-- them is the same on every call.
++-- Its fields: the module sources, the import names, the resolved imports.
++data ImportCache = ImportCache [(Text, Text)] [Text] [ResolvedImport]
++
++importCache :: IORef (Maybe ImportCache)
++importCache = unsafePerformIO (newIORef Nothing)
++{-# NOINLINE importCache #-}
++
 +-- | 'l4Eval' with the modules the source imports, as (module name, source).
 +l4EvalWithFiles :: [(Text, Text)] -> Text -> IO Text
-+l4EvalWithFiles files source =
-+  case checkWithImports (vfsFromList files) source of
++l4EvalWithFiles files source = do
++  cached <- readIORef importCache
++  let uri = moduleNameToProjectUri "main"
++      names = importNamesOf uri source
++      reuse = case cached of
++        Just (ImportCache cFiles cNames cResolved) | cNames == names && cFiles == files -> Just cResolved
++        _ -> Nothing
++      Identity checked = typecheckWithDependenciesReusing (apiModuleLookup (vfsFromList files)) reuse uri source
++  case checked of
++    Right r | isNothing reuse, null (filter (\e -> severity e == SError) (concatMap (\ri -> ri.riTypeChecked.errors) r.tcdResolvedImports)) ->
++      writeIORef importCache (Just (ImportCache files names r.tcdResolvedImports))
++    _ -> pure ()
++  l4EvalChecked checked
++
++l4EvalChecked :: Either [Text] TypeCheckWithDepsResult -> IO Text
++l4EvalChecked checked =
++  case checked of
      Left errors ->
        -- Return import/parse errors as diagnostics
        pure $ encodeJson $ Aeson.object
-@@ -377,6 +383,17 @@ js_l4_eval source = do
+@@ -348,14 +384,26 @@ l4EvalDirective source line col directiveType =
+ evaluateImports :: EL.EvalConfig -> [ResolvedImport] -> IO ValLazy.Environment
+ evaluateImports _evalConfig [] = pure mempty
+ evaluateImports evalConfig imports = do
+-  -- Evaluate each import and collect environments
+-  envs <- forM imports $ \ri -> do
+-    let tcResult = ri.riTypeChecked
+-    -- Evaluate this imported module (without any #EVAL directives of its own)
+-    (env, _) <- EL.execEvalModuleWithEnv evalConfig tcResult.entityInfo mempty tcResult.program
+-    pure env
+-  -- Combine all environments (left-biased - later imports override earlier)
+-  pure $ mconcat envs
++  -- Each module is evaluated once, in the environment of the modules it
++  -- imports, and its environment is its own definitions and theirs, as the
++  -- LSP's GetLazyEvaluationDependenciesFile does: evaluated in an empty
++  -- environment, a module that uses a record field another module declares
++  -- finds it "not in scope" when it runs.
++  let byName = Map.fromList [ (ri.riModuleName, ri) | ri <- imports ]
++  done <- newIORef (Map.empty :: Map.Map Text ValLazy.Environment)
++  let envOf name = do
++        seen <- readIORef done
++        case (Map.lookup name seen, Map.lookup name byName) of
++          (Just env, _) -> pure env
++          (Nothing, Nothing) -> pure mempty
++          (Nothing, Just ri) -> do
++            deps <- mconcat <$> traverse envOf (extractImportNames ri.riParsed)
++            let tcResult = ri.riTypeChecked
++            (own, _) <- EL.execEvalModuleWithEnv evalConfig tcResult.entityInfo deps tcResult.program
++            let env = own <> deps
++            modifyIORef' done (Map.insert name env)
++            pure env
++  mconcat <$> traverse (\ri -> envOf ri.riModuleName) imports
+ 
+ -- ----------------------------------------------------------------------------
+ -- JavaScript FFI Exports (WASM backend only)
+@@ -400,6 +448,17 @@ js_l4_eval source = do
    result <- l4Eval $ Text.pack $ fromJSString source
    pure $ toJSString $ Text.unpack result
  
@@ -67,23 +139,25 @@ index eb9c9b8..4943032 100644
  -- | Evaluate a specific directive at a position.
  foreign export javascript "l4_eval_directive"
    js_l4_eval_directive :: JSString -> Int -> Int -> JSString -> IO JSString
-@@ -533,14 +550,30 @@ evalResultToJson fields edr = Aeson.object $
+@@ -564,9 +623,13 @@ evalResultToJson fields edr = Aeson.object $
    [ "result" .= prettyEvalResult fields edr.result
    , "success" .= isSuccess edr.result
    ] ++
 -  case edr.range of
 +  (case edr.range of
-+    Nothing -> []
-+    Just r -> ["range" .= rangeToJson r]) ++
-+  -- #EVALTRACE: the trace `l4 run` prints, as text and as a tree
-+  (case edr.trace of
      Nothing -> []
 -    Just r -> ["range" .= rangeToJson r]
++    Just r -> ["range" .= rangeToJson r])
++  -- #EVALTRACE: the trace `l4 run` prints, as text and as a tree
++  ++ (case edr.trace of
++    Nothing -> []
 +    Just tr -> ["traceText" .= prettyLayout tr, "trace" .= traceToJson tr])
-   where
-     isSuccess (EL.Assertion b) = b
-     isSuccess (EL.Reduction (Right _)) = True
-     isSuccess (EL.Reduction (Left _)) = False
+   -- the run's notes (an early act, R-X6; an empty window), only when there
+   -- are any, so a directive with none is unchanged
+   ++ [ "notes" .= edr.notes | not (null edr.notes) ]
+@@ -598,6 +661,18 @@ evalResultToJson fields edr = Aeson.object $
+     isSuccess (EL.Assertion (EL.Undetermined _)) = Aeson.Null
+     isSuccess (EL.Reduction (EL.ReducedUndetermined _)) = Aeson.Null
  
 +-- | An evaluation trace as JSON: each node is the steps its expression
 +-- took (each with the traces of the sub-expressions it forced) and the
@@ -99,4 +173,172 @@ index eb9c9b8..4943032 100644
 +
  -- | Pretty print an evaluation directive result value.
  prettyEvalResult :: ConstructorFieldNames -> EL.EvalDirectiveValue -> Text
- prettyEvalResult _fields (EL.Assertion True)       = "assertion satisfied"
+ prettyEvalResult _fields (EL.Assertion a)                    = EL.prettyAssertionOutcome a
+diff --git a/jl4-core/src/L4/API/VirtualFS.hs b/jl4-core/src/L4/API/VirtualFS.hs
+index 1f557eb6..46d88dd2 100644
+--- a/jl4-core/src/L4/API/VirtualFS.hs
++++ b/jl4-core/src/L4/API/VirtualFS.hs
+@@ -32,6 +32,9 @@ module L4.API.VirtualFS
+     -- * Type Checking with Imports
+   , checkWithImports
+   , checkWithImportsAndUri
++  , apiModuleLookup
++  , typecheckWithDependenciesReusing
++  , importNamesOf
+     -- * Re-exports from shared resolution
+   , TypeCheckWithDepsResult(..)
+   , ResolvedImport(..)
+@@ -53,6 +56,8 @@ import L4.Import.Resolution
+   , extractImportNames
+   , moduleNameToProjectUri
+   , typecheckWithDependencies
++  , typecheckWithDependenciesReusing
++  , importNamesOf
+   , TypeCheckWithDepsResult(..)
+   , ResolvedImport(..)
+   )
+diff --git a/jl4-core/src/L4/Import/Resolution.hs b/jl4-core/src/L4/Import/Resolution.hs
+index de2cc225..08a2293d 100644
+--- a/jl4-core/src/L4/Import/Resolution.hs
++++ b/jl4-core/src/L4/Import/Resolution.hs
+@@ -48,6 +48,8 @@ module L4.Import.Resolution
+   , ImportResolutionError(..)
+     -- * Type Checking with Dependencies
+   , typecheckWithDependencies
++  , typecheckWithDependenciesReusing
++  , importNamesOf
+   , TypeCheckWithDepsResult(..)
+   ) where
+ 
+@@ -59,7 +61,7 @@ import qualified Data.Set as Set
+ import L4.Annotation (emptyAnno)
+ import L4.Lexer (PError(..))
+ import L4.Syntax
+-import L4.Parser (execProgramParserWithHintPass)
++import L4.Parser (execProgramParserWithHints, MixfixHintRegistry, buildMixfixHintRegistry, emptyMixfixHintRegistry)
+ import L4.TypeCheck (doCheckProgramWithDependencies, initialCheckState, initialCheckEnv, applyFinalSubstitution)
+ import L4.TypeCheck.Types (CheckResult(..), CheckErrorWithContext, Substitution, Environment, EntityInfo, MixfixRegistry, InfoMap, ScopeMap, NlgMap, DescMap, SectionPaths)
+ import qualified L4.TypeCheck as TypeCheck
+@@ -147,9 +149,30 @@ data ResolvedImport = ResolvedImport
+   , riSource :: Text
+   , riParsed :: Module Name
+   , riTypeChecked :: CheckResult
++  , riHints :: MixfixHintRegistry
++    -- ^ The mixfix keywords this module parsed with: its own and those of
++    -- every module it imports, transitively, as the LSP's GetMixfixRegistry
++    -- gives them.
+   }
+   deriving stock (Generic)
+ 
++-- | Parse a module as the LSP does (GetMixfixRegistry, GetParsedAst): a
++-- first pass without hints finds the module's imports and its own mixfix
++-- keywords ...
++firstPass :: NormalizedUri -> Text -> Either [Text] (Module Name)
++firstPass uri source = case execProgramParserWithHints emptyMixfixHintRegistry uri source of
++  Left errs -> Left (map (\(PError msg _ _ _) -> msg) (toList errs))
++  Right (parsed, _warnings) -> Right parsed
++
++-- | ... and the final pass knows its own keywords and those of every module
++-- it imports, once they are resolved. Returns the module and those keywords.
++finalPass :: [ResolvedImport] -> NormalizedUri -> Text -> Module Name -> Either [Text] (Module Name, MixfixHintRegistry)
++finalPass imports uri source firstParsed =
++  let hints = buildMixfixHintRegistry firstParsed <> mconcat (map (.riHints) imports)
++  in case execProgramParserWithHints hints uri source of
++       Left errs -> Left (map (\(PError msg _ _ _) -> msg) (toList errs))
++       Right (parsed, _warnings) -> Right (parsed, hints)
++
+ -- | Errors that can occur during import resolution.
+ data ImportResolutionError
+   = ModuleNotFound Text [Text]  -- ^ Module name, list of places searched
+@@ -202,22 +225,22 @@ resolveImports lookupModule inProgress resolved (modName : rest)
+         Just source -> do
+           let uri = moduleNameToProjectUri modName
+           
+-          -- Parse the module
+-          case execProgramParserWithHintPass uri source of
++          -- Parse the module, first without hints to find its imports
++          case firstPass uri source of
+             Left parseErrors ->
+-              pure $ Left $ ParseError modName $ map (\(PError msg _ _ _) -> msg) (toList parseErrors)
++              pure $ Left $ ParseError modName parseErrors
+             
+-            Right (parsed, _hints, _warnings) -> do
++            Right firstParsed -> do
+               -- Extract and resolve transitive imports first
+               -- Add this module to inProgress while resolving its imports
+-              let transitiveImports = extractImportNames parsed
++              let transitiveImports = extractImportNames firstParsed
+                   newInProgress = Set.insert modName inProgress
+               
+               transitiveResult <- resolveImports lookupModule newInProgress resolved transitiveImports
+               
+-              case transitiveResult of
++              case transitiveResult >>= \ts -> either (Left . ParseError modName) (\ph -> Right (ts, ph)) (finalPass ts uri source firstParsed) of
+                 Left err -> pure $ Left err
+-                Right transitiveResolved -> do
++                Right (transitiveResolved, (parsed, hints)) -> do
+                   -- Type-check this module with its dependencies
+                   let (depState, depEnv) = combineResolvedImports uri transitiveResolved
+                       updatedParsed = updateModuleImports transitiveResolved parsed
+@@ -229,6 +252,7 @@ resolveImports lookupModule inProgress resolved (modName : rest)
+                         , riSource = source
+                         , riParsed = parsed
+                         , riTypeChecked = tcResult
++                        , riHints = hints
+                         }
+                   
+                   -- This module is now fully resolved.
+@@ -294,17 +318,35 @@ typecheckWithDependencies
+   -> NormalizedUri      -- ^ URI of the main module
+   -> Text               -- ^ Source code of the main module
+   -> m (Either [Text] TypeCheckWithDepsResult)
+-typecheckWithDependencies lookupModule uri source = do
+-  -- Parse the main module
+-  case execProgramParserWithHintPass uri source of
++typecheckWithDependencies lookupModule = typecheckWithDependenciesReusing lookupModule Nothing
++
++-- | The names a module's source imports, in order; none if it does not parse.
++importNamesOf :: NormalizedUri -> Text -> [Text]
++importNamesOf uri source = either (const []) extractImportNames (firstPass uri source)
++
++-- | 'typecheckWithDependencies', handed the imports an earlier call resolved
++-- for the same import names from the same sources (the caller vouches for
++-- both), so that only the main module is checked again.
++typecheckWithDependenciesReusing
++  :: forall m. Monad m
++  => ModuleLookup m          -- ^ How to find module sources
++  -> Maybe [ResolvedImport]  -- ^ The imports an earlier call resolved, to reuse
++  -> NormalizedUri           -- ^ URI of the main module
++  -> Text                    -- ^ Source code of the main module
++  -> m (Either [Text] TypeCheckWithDepsResult)
++typecheckWithDependenciesReusing lookupModule reuse uri source = do
++  -- Parse the main module, first without hints to find its imports
++  case firstPass uri source of
+     Left parseErrors ->
+-      pure $ Left $ map (\(PError msg _ _ _) -> msg) (toList parseErrors)
++      pure $ Left parseErrors
+     
+-    Right (parsed, _hints, _warnings) -> do
++    Right firstParsed -> do
+       -- Extract and resolve imports
+-      let importNames = extractImportNames parsed
++      let importNames = extractImportNames firstParsed
+       
+-      importResult <- resolveImports lookupModule Set.empty Map.empty importNames
++      importResult <- case reuse of
++        Just resolved -> pure (Right resolved)
++        Nothing -> resolveImports lookupModule Set.empty Map.empty importNames
+       
+       case importResult of
+         Left (ModuleNotFound modName searched) ->
+@@ -314,7 +356,9 @@ typecheckWithDependencies lookupModule uri source = do
+         Left (CyclicImport cycleModules) ->
+           pure $ Left ["Cyclic import detected: " <> Text.intercalate " -> " cycleModules]
+         
+-        Right resolvedImports -> do
++        Right resolvedImports -> case finalPass resolvedImports uri source firstParsed of
++         Left parseErrors -> pure $ Left parseErrors
++         Right (parsed, _hints) -> do
+           -- Combine environments from imports
+           let (initState, initEnv) = combineResolvedImports uri resolvedImports
+               updatedParsed = updateModuleImports resolvedImports parsed

@@ -167,10 +167,12 @@ all the files to give one answer", and disagreements raised as errors.
   check's estimate and runs one larger than the machine alone, and the
   workflow gives the runner swap for the root (MMS-551 asks whether the
   root should read the instruments' claims as data instead).
-- Traces come from tools/assets/l4wasm/l4.wasm, whose import resolution
-  cannot yet load a module two importers share (a type reached by two paths
-  is "a resolved name that has no additional information"); the CLI is
-  unaffected.
+- Traces and the calculator run tools/assets/l4wasm/l4.wasm, built from
+  l4-ide `unstable` at `toolchain/L4_WASM_COMMIT` (MMS-535). It loads a module
+  two importers share, so it loads the root, and a second call on the same
+  imports reuses the first call's type-checked modules: a page pays for
+  checking the root once, not per click. Each call still evaluates the
+  imports afresh, so a trace through them is the same on every call.
 
 ## Findings: errors the encoding exposes in the text
 
@@ -296,7 +298,10 @@ that alters what a page looks like — a passing test is not a look.
 The compiler is built from source at the revision in `toolchain/L4_COMMIT`
 (`toolchain/build-l4.sh`); no Linux binary is published. Bumping the pin is
 a deliberate change: rebuild, re-run everything, read the diff of
-`build/l4/`.
+`build/l4/`. The wasm has its own pin, `toolchain/L4_WASM_COMMIT`
+(`toolchain/build-wasm.sh`, in an arm64 Linux container on a Mac): it is
+already `unstable`, and `L4_COMMIT` joins it once every file is checked with
+`unstable`.
 
 ## Documentation discipline
 

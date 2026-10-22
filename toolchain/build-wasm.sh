@@ -1,7 +1,15 @@
 #!/usr/bin/env bash
 # Build the L4 evaluator as WebAssembly for the site's salary calculator, at
-# the revision pinned in toolchain/L4_COMMIT with toolchain/wasm-trace.patch
+# the revision pinned in toolchain/L4_WASM_COMMIT with toolchain/wasm-trace.patch
 # applied, and write it to tools/assets/l4wasm/ with BUILD.toml beside it.
+#
+# The wasm has its own pin (MMS-535): l4-ide `unstable`, which loads a module
+# two importers share (#649) and keeps one copy of each module whatever the
+# number of paths to it (#573/#575), so the root loads. toolchain/L4_COMMIT,
+# the CLI's pin, moves to `unstable` on its own, after every file is checked
+# with it. The patch adds `l4_eval_files` (the imports as files), the trace
+# JSON of #EVALTRACE, and the reuse of one call's type-checked imports by the
+# next call on the same imports.
 #
 # The toolchain is GHC's WASM backend from ghc-wasm-meta, pinned to the
 # commit in toolchain/GHC_WASM_META (flavour 9.10, as legalese/l4-ide's own
@@ -10,11 +18,12 @@
 # an hour cold on four cores, minutes once the WASM cabal store is warm.
 #
 #   toolchain/build-wasm.sh [DEST]     # default tools/assets/l4wasm
+#   WASM_JOBS=4 toolchain/build-wasm.sh  # fewer parallel jobs, for a small machine
 set -euo pipefail
 export LANG=C.UTF-8 LC_ALL=C.UTF-8
 here="$(cd "$(dirname "$0")" && pwd)"
 root="$(dirname "$here")"
-commit="$(cat "$here/L4_COMMIT")"
+commit="$(cat "$here/L4_WASM_COMMIT")"
 read -r meta flavour < "$here/GHC_WASM_META"
 patch="$here/wasm-trace.patch"
 dest="${1:-$root/tools/assets/l4wasm}"
@@ -45,7 +54,7 @@ git -C "$src" apply "$patch"
 
 cd "$src"
 wasm32-wasi-cabal update
-wasm32-wasi-cabal build -j jl4-wasm --project-file=cabal-wasm.project
+wasm32-wasi-cabal build -j"${WASM_JOBS:-}" jl4-wasm --project-file=cabal-wasm.project
 wasm="$(find dist-newstyle/build/wasm32-wasi -path '*/jl4-wasm/jl4-wasm.wasm' -type f | head -1)"
 "$(wasm32-wasi-ghc --print-libdir)/post-link.mjs" -i "$wasm" -o dist-newstyle/jl4-wasm.mjs
 wasm-opt -Oz "$wasm" -o dist-newstyle/jl4-wasm.opt.wasm

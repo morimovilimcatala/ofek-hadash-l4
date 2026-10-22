@@ -80,12 +80,65 @@ class Form(unittest.TestCase):
 class Artefact(unittest.TestCase):
     def test_the_wasm_is_the_pinned_commit_and_patch(self):
         build = tomllib.loads((WASM / "BUILD.toml").read_text(encoding="utf-8"))
-        self.assertEqual(build["l4_commit"], (ROOT / "toolchain/L4_COMMIT").read_text().strip())
+        self.assertEqual(build["l4_commit"], (ROOT / "toolchain/L4_WASM_COMMIT").read_text().strip())
         patch = ROOT / build["patch"]
         self.assertEqual(build["patch_sha256"], hashlib.sha256(patch.read_bytes()).hexdigest(),
                          "the patch changed: rebuild with toolchain/build-wasm.sh")
         for name, digest in build["files"].items():
             self.assertEqual(hashlib.sha256((WASM / name).read_bytes()).hexdigest(), digest, name)
+
+
+def wasm_runs(runs: list[dict]) -> list[dict]:
+    """Each run's answer from one instance of the committed l4.wasm."""
+    with tempfile.TemporaryDirectory() as d:
+        (Path(d) / "runs.json").write_text(json.dumps(runs), encoding="utf-8")
+        p = subprocess.run(["node", str(ROOT / "tests/wasm_eval.mjs"), f"{d}/runs.json"],
+                           capture_output=True, text=True, timeout=300)
+    if p.returncode:
+        raise AssertionError(p.stderr)
+    return [json.loads(l)["answer"] for l in p.stdout.splitlines()]
+
+
+V = "DECLARE `box` HAS\n    `contents` IS A NUMBER\n"
+A = "IMPORT v\n\nGIVETH A `box`\nDECIDE `a box of one` IS\n    `box` WITH `contents` IS 1\n"
+B = "IMPORT v\n\nGIVEN x IS A `box`\nGIVETH A NUMBER\nDECIDE `what is in` x IS\n    x's `contents`{}\n"
+MAIN = "IMPORT a\nIMPORT b\n\n#EVAL{} `what is in` `a box of one`\n"
+
+
+@unittest.skipUnless(shutil.which("node"), "needs Node")
+class SharedImport(unittest.TestCase):
+    """MMS-535: a module two importers share (v, under a and b) loads in the
+    wasm, as every instrument shares the vocabulary under the root; and the
+    imports one call resolved are reused by the next only while the modules
+    and the names imported are the same."""
+
+    @classmethod
+    def setUpClass(cls):
+        files = {"v": V, "a": A, "b": B.format("")}
+        cls.runs = wasm_runs([
+            {"source": MAIN.format(""), "files": files},
+            {"source": MAIN.format("TRACE"), "files": files},           # same imports: reused
+            {"source": MAIN.format("TRACE"), "files": files},
+            {"source": MAIN.format(""), "files": {**files, "b": B.format(" PLUS 1")}},  # b changed
+        ])
+
+    def value(self, i: int) -> str:
+        r = self.runs[i]
+        self.assertTrue(r["success"], r)
+        return r["results"][0]["result"].strip()
+
+    def test_the_shared_type_reaches_both_importers(self):
+        self.assertEqual(self.value(0), "1")
+
+    def test_a_second_call_on_the_same_imports(self):
+        self.assertEqual(self.value(1), "1")
+        self.assertIn("what is in", self.runs[1]["results"][0]["traceText"])
+
+    def test_the_trace_is_the_same_on_every_call(self):
+        self.assertEqual(self.runs[1]["results"][0]["traceText"], self.runs[2]["results"][0]["traceText"])
+
+    def test_a_changed_module_is_checked_again(self):
+        self.assertEqual(self.value(3), "2")
 
 
 @unittest.skipUnless(shutil.which("node"), "needs Node")
