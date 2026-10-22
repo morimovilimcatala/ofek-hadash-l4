@@ -69,7 +69,10 @@ with `HENCE`/`LEST`), not booleans standing in for them.
   sections it cites. Never import a rate, a threshold or a reading from a
   payslip, a circular the section does not cite, or the Catala kernel. An
   amount the text says is set elsewhere ("הסכומים נקבעים על-ידי האוצר") is an
-  INPUT (`GIVEN` / `ASSUME`), never a number made up.
+  INPUT, never a number made up: a section `GIVEN`, indented under the `§`
+  heading of the section whose rules read it, its `@ref` on the line above.
+  `ASSUME` is retired (l4-ide `unstable` warns on it, and a warning fails the
+  build); the 70 there were moved on 2026-10-22.
 - **Say why there is no answer (MMS-538).** Where a provision gives no
   answer, the file states which kind of gap it is, once, as data, with
   `why there is no answer` (`l4/lib/vocabulary.l4`): `the text is missing`
@@ -112,8 +115,8 @@ with `HENCE`/`LEST`), not booleans standing in for them.
   N-th paragraph an element holds without an eId of its own. The tests fail
   on a key that is not in the section and on a text row nobody cites.
 - **A cross-reference is an IMPORT or a named input, never a copy.** "כמפורט
-  בפרק X" is a call into X's file when X is encoded, and a named `ASSUME`
-  with the target in its `@desc` until it is. This holds ACROSS documents
+  בפרק X" is a call into X's file when X is encoded, and a named input (a
+  section `GIVEN`) with the target in its `@desc` until it is. This holds ACROSS documents
   (MMS-521): a circular that applies an agreement's rule imports the
   agreement's module rather than re-encoding the rule; an amendment encodes
   what it changes, dated, and imports the rest.
@@ -298,10 +301,15 @@ that alters what a page looks like — a passing test is not a look.
 The compiler is built from source at the revision in `toolchain/L4_COMMIT`
 (`toolchain/build-l4.sh`); no Linux binary is published. Bumping the pin is
 a deliberate change: rebuild, re-run everything, read the diff of
-`build/l4/`. The wasm has its own pin, `toolchain/L4_WASM_COMMIT`
-(`toolchain/build-wasm.sh`, in an arm64 Linux container on a Mac): it is
-already `unstable`, and `L4_COMMIT` joins it once every file is checked with
-`unstable`.
+`build/l4/`. Both pins are l4-ide `unstable` (the client, 2026-10-22: "we
+should always use unstable"): `L4_COMMIT` joined `L4_WASM_COMMIT` at c9a3fe3,
+and the two are kept equal. c9a3fe3 is the commit MMS-551 measured (the
+root in ~40 s and ~1 GB, against ~25 min and ~27 GB at the old pin). The wasm is built by `toolchain/build-wasm.sh`, in an
+arm64 Linux container on a Mac. On a Mac the CLI does not build natively
+(GHC 9.10.2 cannot read the Xcode 26 linker's output): run the Linux `l4` at
+the pin in Docker (`--platform linux/amd64`, an Ubuntu 24.04 image with
+libgmp10, libffi8, libnuma1, python3), with the repo copied out of
+`~/Documents`, which Docker may not mount.
 
 ## Documentation discipline
 

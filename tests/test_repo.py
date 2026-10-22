@@ -247,9 +247,10 @@ class Conventions(unittest.TestCase):
         text = (ROOT / path).read_text(encoding="utf-8")
         n = re.escape(name)
         # a DECIDE may put its first parameter before the name ("DECIDE d `is on
-        # or after` e"); a record field is a definition too
+        # or after` e"); a record field is a definition too, and so is a
+        # section GIVEN's input (what ASSUME declared until l4-ide retired it)
         return bool(re.search(rf"^(?:DECIDE\s+(?:\w+\s+)?`{n}`|`{n}`\s+MEANS|DECLARE\s+`{n}`|ASSUME\s+`{n}`)"
-                              rf"|^\s+`{n}`\s+IS AN?\s", text, re.M))
+                              rf"|^\s+(?:GIVEN\s+)?`{n}`\s+IS AN?\s", text, re.M))
 
     def test_the_register_is_well_formed(self):
         groups = [g["id"] for g in self.reg.get("group", [])]
