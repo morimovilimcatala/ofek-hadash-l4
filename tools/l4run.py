@@ -242,12 +242,25 @@ def main(argv: list[str]) -> int:
     targets = [Path(a).resolve() for a in argv] or files()
     jobs = int(os.environ.get("JOBS", default_jobs()))
     bad = []
-    with ThreadPoolExecutor(jobs) as pool:
-        for path, ok, fresh in pool.map(lambda p: run_one(p, exe, cid), targets):
-            rel = path.relative_to(ROOT)
-            print(f"{'ok ' if ok else 'ERR'} {'ran ' if fresh else 'kept'} {rel}")
-            if not ok:
-                bad.append(rel)
+    # A root imports whole families of heavy instruments: one check of it
+    # takes the memory of several ordinary ones (the root: 4.6 GB on a Mac,
+    # 2026-10-22), and three roots at once stopped GitHub's 16 GB runner
+    # (exit 143, as in MMS-521's first deploy). So the roots run last, one
+    # at a time, when nothing else holds memory.
+    rest = [p for p in targets if not is_a_root(p)]
+    roots_last = [p for p in targets if is_a_root(p)]
+
+    def checked():
+        with ThreadPoolExecutor(jobs) as pool:
+            yield from pool.map(lambda p: run_one(p, exe, cid), rest)
+        for p in roots_last:
+            yield run_one(p, exe, cid)
+
+    for path, ok, fresh in checked():
+        rel = path.relative_to(ROOT)
+        print(f"{'ok ' if ok else 'ERR'} {'ran ' if fresh else 'kept'} {rel}", flush=True)
+        if not ok:
+            bad.append(rel)
     if bad:
         print(f"\n{len(bad)} file(s) did not check, had a failing #ASSERT or a compiler warning:")
         for b in bad:
