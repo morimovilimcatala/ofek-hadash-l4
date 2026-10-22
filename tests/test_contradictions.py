@@ -79,6 +79,22 @@ class EverySideQuotesTheCorpus(unittest.TestCase):
                 self.assertTrue(any(s["type"] not in contradictions.PAYING for s in c["sides"]))
 
 
+class TheRootDecides(unittest.TestCase):
+    """A card about an item the root asks (MMS-521) names it, and the
+    page shows what the root decides on it, from the root's own report."""
+
+    def test_a_cards_root_item_is_one_the_root_decides(self):
+        import roots
+        if not (roots.BUILD / "root.run.json").exists():
+            self.skipTest("run `make l4` first")
+        decided = roots.rulings()
+        named = [c for c in DATA["items"] if c.get("root_item")]
+        self.assertTrue(named)
+        for c in named:
+            with self.subTest(item=c["id"]):
+                self.assertIn(c["root_item"], decided)
+
+
 class EveryCropIsItsFile(unittest.TestCase):
 
     def test_each_crop_exists_at_the_size_the_data_says(self):

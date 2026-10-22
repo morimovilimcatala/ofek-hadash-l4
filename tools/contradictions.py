@@ -160,12 +160,16 @@ def meter(grades: list[str]) -> str:
 
 def body(data: dict, *, prose, clause_link, finding_ids: set[str], src,
          simulator: tuple[str, str, int, list[str]] | None = None,
-         evidence: dict[str, tuple[str, str]] | None = None) -> tuple[str, str]:
+         evidence: dict[str, tuple[str, str]] | None = None,
+         root: dict[str, list[list[str]]] | None = None,
+         root_href: str = "root.html") -> tuple[str, str]:
     """The page's main column and its sidebar. `clause_link(doc, key)` gives
     (href, label html) for a corpus row; `src(file)` the published URL of a
     crop; `prose` renders our Hebrew with its identifiers isolated;
     `simulator` the simulator's group as (section, sidebar entries, rows,
-    the grades of its graded rows)."""
+    the grades of its graded rows); `root` the root's resolutions by the
+    name of their item (MMS-521: the one place that decides), each as
+    [sources, governs, rule, cases]."""
     items = data["items"]
     sim_html, sim_side, sim_n, sim_grades = simulator or ("", "", 0, [])
     out = [f'<h1>{esc(data["title"])}</h1>', f'<p class="lede">{prose(data["lede"])}</p>',
@@ -195,7 +199,8 @@ def body(data: dict, *, prose, clause_link, finding_ids: set[str], src,
         side.append(f'<li><a href="#g-{esc(group["id"])}">{esc(group["title"])}</a></li>')
         for c in cs:
             out.append(card(c, data["rules"], prose=prose, clause_link=clause_link,
-                            finding_ids=finding_ids, src=src, evidence=evidence))
+                            finding_ids=finding_ids, src=src, evidence=evidence,
+                            root=root or {}, root_href=root_href))
         out.append('</section>')
     if sim_html:
         out.append(sim_html)
@@ -218,7 +223,27 @@ def body(data: dict, *, prose, clause_link, finding_ids: set[str], src,
     return "".join(out), "".join(side)
 
 
-def card(c: dict, rules: dict, *, prose, clause_link, finding_ids, src, evidence=None) -> str:
+def root_html(item: str, lines: list[list[str]], href: str) -> str:
+    """What the root decides on the card's item: every set of instruments
+    that disagree on it, which governs and by which rule, and in how many of
+    the cases it checks — read off the root's own report (MMS-521)."""
+    # one line for each instrument that governs by one rule, naming what it
+    # governs over, so eight circulars set against one agreement read once
+    groups: dict[tuple[str, str], tuple[list[str], int]] = {}
+    for sources, governs, rule, n in lines:
+        over, total = groups.get((governs, rule), ([], 0))
+        over += [t for t in sources.split(" · ") if t != governs and t not in over]
+        groups[(governs, rule)] = (over, total + int(n or 0))
+    lis = "".join(f'<li>גובר <b>{esc(governs)}</b> על {esc(" · ".join(over))} — לפי {esc(rule)} '
+                  f'<small>({total} מקרים)</small></li>'
+                  for (governs, rule), (over, total) in groups.items())
+    return (f'<div class="cx-mean cx-root"><h4>מה השורש מכריע</h4>'
+            f'<p>בפריט <b>{esc(item)}</b> השורש שואל כל מסמך שמדבר עליו, ומכריע בכל מחלוקת לפי סדר העדיפות:</p>'
+            f'<ul>{lis}</ul><p><a href="{esc(href)}">השורש</a></p></div>')
+
+
+def card(c: dict, rules: dict, *, prose, clause_link, finding_ids, src, evidence=None,
+         root: dict | None = None, root_href: str = "root.html") -> str:
     sev = c.get("severity")
     badge = f'<span class="cx-sev sev-{sev}">טעות · {esc(SEV[sev])}</span>' if sev else ""
     pair = " ↔ ".join(TYPE[s["type"]] for s in c["sides"])
@@ -242,6 +267,8 @@ def card(c: dict, rules: dict, *, prose, clause_link, finding_ids, src, evidence
                if sev else "") + silent
             # what an error means for a teacher (the client: "a משמעות section")
             + (f'<div class="cx-mean"><h4>משמעות</h4><p>{prose(c["meaning"])}</p></div>' if c.get("meaning") else "")
+            + (root_html(c["root_item"], (root or {})[c["root_item"]], root_href)
+               if c.get("root_item") and (root or {}).get(c["root_item"]) else "")
             + (f'<p class="cx-links">{" · ".join(links)}</p>' if links else "")
             + (('<p class="cx-proof">ההוכחה ב־L4: ' + " · ".join(
                 f'<bdi dir="ltr"><code class="hl">{l4src.highlight(f"#ASSERT `{n}`")}</code></bdi>'

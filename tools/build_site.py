@@ -1837,7 +1837,8 @@ def contradictions_page(findings: list[dict], by_file: dict[str, "SectionView"],
         CONTRA, prose=prose, clause_link=clause_link, finding_ids={f["id"] for f in findings},
         src=lambda f: rel(f"assets/contradictions/{f}", here),
         simulator=simulator_group(findings, by_file, key_to_view) if DELTA else None,
-        evidence={f["id"]: (f["l4"], f["evidence"].strip("`")) for f in findings if f.get("l4") and f.get("evidence")})
+        evidence={f["id"]: (f["l4"], f["evidence"].strip("`")) for f in findings if f.get("l4") and f.get("evidence")},
+        root=roots.rulings(), root_href=rel(roots.ROOTS[0][1], here))
     return page(here, f"{contradictions.TAB} — {TITLE}", body, tab="contradictions",
                 desc="היכן שמקור אחד סותר מקור אחר — מסמכים, תלושים וסימולטור השכר של המשרד: כל מקור ותשובתו, והכלל שמכריע", sidebar=side)
 
