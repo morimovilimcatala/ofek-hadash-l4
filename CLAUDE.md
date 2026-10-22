@@ -70,6 +70,15 @@ with `HENCE`/`LEST`), not booleans standing in for them.
   payslip, a circular the section does not cite, or the Catala kernel. An
   amount the text says is set elsewhere ("הסכומים נקבעים על-ידי האוצר") is an
   INPUT (`GIVEN` / `ASSUME`), never a number made up.
+- **Say why there is no answer (MMS-538).** Where a provision gives no
+  answer, the file states which kind of gap it is, once, as data, with
+  `why there is no answer` (`l4/lib/vocabulary.l4`): `the text is missing`
+  (a page the scan lacks, a document held without its words),
+  `outside the corpus`, `not yet encoded`, `set elsewhere` (delegated, no
+  flaw), or `the text is silent` (a lacuna, naming its gap finding). A
+  lacuna is declared only where the whole provision and all it cites are
+  held. A document the corpus holds in part states what it lacks
+  (`tests.test_missing`); the של"ח is the first.
 - **Isomorphic.** One file per section, `l4/<corpus path>/<num>.l4`; inside
   it the clauses in the text's order, a `§§` per numbered paragraph.
 - **One codebase, one namespace (the client, 2026-10-21, MMS-524: "don't
