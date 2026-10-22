@@ -140,6 +140,8 @@
       requestAnimationFrame(step);
     })();
   }
+  // the findings page opens a linked card itself and settles on it with this
+  window.l4Settle = settle;
   function settleOnHash() {
     if (!location.hash) return;
     var el = document.getElementById(decodeURIComponent(location.hash.slice(1)));
@@ -351,9 +353,14 @@
       if (!el || !el.matches("details.finding")) return;
       if (el.hidden) { reset(); apply(); }
       el.open = true;
-      el.scrollIntoView({ block: "start" });
+      // one jump is not enough: the cards above it are laid out only as they
+      // near the screen, and each one laid out moves it (a link to a finding
+      // opened it 7,870 px off the screen, 2026-10-22)
+      if (window.l4Settle) window.l4Settle(el);
+      else el.scrollIntoView({ block: "start" });
     }
     window.addEventListener("hashchange", openHash);
+    window.addEventListener("load", openHash);
     openHash();
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);

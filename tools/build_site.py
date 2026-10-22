@@ -16,7 +16,8 @@ Pages, laid out like the corpus they encode:
                                    not read by sections): its text | L4, row by row
   <collection>.html                a collection's documents, by year or by family
   findings.html  findings.json     errors in the LAW that encoding exposed
-  salary.html                      what §1.1's salary is made of, drawn from its L4
+  salary.html                      a redirect to calculator.html: the salary-structure
+                                   diagram was dropped (the client, 2026-10-22)
   calculator.html                  §1.1's salary, computed in the browser by L4 (WASM)
   calculator-delta.html            a redirect: the simulator's gaps are a group of
                                    contradictions.html now (MMS-522)
@@ -58,7 +59,6 @@ import laws  # noqa: E402
 import modules  # noqa: E402
 import roots  # noqa: E402
 import l4src    # noqa: E402
-import rule_graph  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "build" / "site"
@@ -936,7 +936,6 @@ def page(here: str, title: str, body: str, *, tab: str = "", desc: str = "",
          wide: bool = False, sidebar: str | None = None) -> str:
     nav = [("index.html", "מסמכים", "docs"),
            ("findings.html", "ממצאים", "findings"),
-           ("salary.html", "מבנה השכר", "salary"),
            *([("calculator.html", "מחשבון שכר", "calculator")] if CALCULATOR else []),
            *([(contradictions.HERE, contradictions.TAB, "contradictions")] if CONTRA else []),
            ("conventions.html", "מוסכמות", "conventions"),
@@ -1105,10 +1104,8 @@ def section_block(v: SectionView, here: str, headless: bool = False) -> str:
             if f not in found:
                 found.append(f)
     links = [f'<a href="{corpus}">בקורפוס ↗</a>']
-    if (v.doc, v.section.num) == SALARY:
-        links.append(f'<a href="{rel("salary.html", here)}">מבנה השכר</a>')
-        if CALCULATOR:
-            links.append(f'<a href="{rel("calculator.html", here)}">מחשבון שכר</a>')
+    if (v.doc, v.section.num) == SALARY and CALCULATOR:
+        links.append(f'<a href="{rel("calculator.html", here)}">מחשבון שכר</a>')
     if v.l4:
         links += [f'<a href="{REPO}/blob/main/{v.l4.relative_to(ROOT)}">קוד מקור ↗</a>',
                   f'<a href="{rel(v.render_href, here)}">כפרוזה</a>']
@@ -1720,49 +1717,8 @@ def trace_html(traces: list[dict]) -> str:
     return f'<details class="trace"><summary>איך ה־L4 מחשב את זה (מעקב)</summary>{items}</details>'
 
 
-# The salary as the L4 computes it: §1.1's rule and what it is made of.
+# The salary rule the calculator asks: §1.1's.
 SALARY = ("takanon/takanon-sherut-ovdei-horaa.xml", "1.1")
-SALARY_RULE = "salary of a teaching employee"
-
-
-def salary_page(all_views: dict[str, list["SectionView"]]) -> str:
-    """What the salary is made of, drawn from the L4 itself (tools/rule_graph.py):
-    every rule §1.1's salary calls is a box, every input it leaves to the case
-    an oval. Not an example: no figure is in it."""
-    here = "salary.html"
-    v = next((v for v in all_views.get(SALARY[0], []) if v.section.num == SALARY[1]), None)
-    drawing = ""
-    sec = (f'<a href="{v.href}"><bdi dir="ltr">§{esc(v.section.num)}</bdi> {esc(v.section.heading)}</a>'
-           if v is not None else "§1.1")
-    if v is not None and v.l4 is not None:
-        src = rule_graph.dot(rule_graph.declarations(v.l4), SALARY_RULE,
-                             rule_graph.clause_labeller(v.section, citations(v.section)),
-                             rule_graph.field_descs(v.l4))
-        svg = rule_graph.svg(src)
-        if svg:
-            (OUT / "assets").mkdir(parents=True, exist_ok=True)
-            (OUT / "assets" / "salary.svg").write_text(svg, encoding="utf-8")
-            legend = "".join(
-                f'<li><span class="swatch{" oval" if k in ("elsewhere", "case") else ""}" '
-                f'style="background:{rule_graph.KINDS[k][0]};border-color:{rule_graph.KINDS[k][1]}"></span>{t}</li>'
-                for k, t in (("clause", f"כלל שמקודד סעיף של {sec}"),
-                             ("helper", "כלל עזר ב־L4, שאינו מצטט סעיף"),
-                             ("elsewhere", "סכום שמסמך אחר קובע — טבלת השכר, הסכם"),
-                             ("case", "עובדה מנסיבות העובד")))
-            drawing = (f'<ul class="salary-legend">{legend}</ul>'
-                       '<div class="salary-box"><a href="assets/salary.svg" target="_blank" rel="noopener" '
-                       'title="פתיחה בגודל מלא"><img src="assets/salary.svg" alt="מבנה השכר"></a></div>')
-    body = ('<h1>מבנה השכר</h1>'
-            f'<p class="lede">ממה מורכב שכרו של עובד הוראה, כפי שהקוד של {sec} מחשב אותו. '
-            'הציור נגזר מן הקוד עצמו: כל תיבה היא כלל, והחצים מובילים מכל רכיב אל מה שהוא חלק ממנו, '
-            'עד השכר שבראש הציור. בכל תיבה: מילות הסעיף שהכלל מקודד ומספרו, ומתחתיהן שם הכלל ב־L4. '
-            'האליפסות הן הנתונים שהטקסט אינו קובע בעצמו — סכום שמסמך אחר קובע, כמו השכר המשולב למשרה מלאה '
-            'לפי טבלת השכר, או עובדה מנסיבות העובד, כמו החודש והיקף המשרה — וכל אחת מחוברת למקום שבו נדרשת '
-            'לראשונה. הצבעים לפי סוג, כמפורט במקרא.</p>'
-            '<p>אין בציור סכומים: הוא מראה את המבנה, לא חישוב. כלל עזר שאינו מצטט סעיף משלו מופיע בשמו ב־L4 בלבד. '
-            'לחיצה על הציור פותחת אותו בגודל מלא.</p>'
-            + (drawing or '<p class="empty">הציור דורש GraphViz בעת הבנייה.</p>'))
-    return page(here, f"מבנה השכר — {TITLE}", body, tab="salary")
 
 
 # the calculator runs L4's evaluator built to WebAssembly (toolchain/build-wasm.sh);
@@ -2413,7 +2369,11 @@ def build() -> int:
             (OUT / f"{coll}.html").write_text(collection_page(coll, vs), encoding="utf-8")
     (OUT / "index.html").write_text(index_page(all_views, findings), encoding="utf-8")
     (OUT / "findings.html").write_text(findings_page(findings, by_file, key_to_view), encoding="utf-8")
-    (OUT / "salary.html").write_text(salary_page(all_views), encoding="utf-8")
+    # the salary-structure page was dropped (the client, 2026-10-22): its old
+    # address goes to the calculator, or home where there is none
+    (OUT / "salary.html").write_text(
+        redirect_page("salary.html", "calculator.html" if CALCULATOR else "index.html",
+                      "מחשבון שכר" if CALCULATOR else TITLE), encoding="utf-8")
     if CALCULATOR:
         (OUT / "calculator.html").write_text(calculator_page(all_views, findings), encoding="utf-8")
     if DELTA:

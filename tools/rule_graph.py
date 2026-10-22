@@ -1,36 +1,21 @@
-"""What a rule is made of, drawn from the L4 itself.
+"""What a rule is made of, read off the L4 itself.
 
-`l4 state-graph` draws obligations and `l4 trace` draws one evaluation; neither
-shows how a computed figure is BUILT. This walks a rule's body: every rule of
-the same file it calls is a component, every record field it reads (`m's
-`month``) is an input the text leaves to the case. Each box says which clause
-of the corpus it encodes, in the text's own words, and its L4 name.
-
-    python3 tools/rule_graph.py l4/takanon/takanon-sherut-ovdei-horaa/1.1.l4 \\
-        "salary of a teaching employee" > salary.dot
+This walks a rule's body: every rule of the same file it calls is a
+component, every record field it reads (`m's `month``) is an input the text
+leaves to the case, and each rule's clause is named in the corpus's own
+words. The calculator (tools/calculator.py) uses it to lay out and label its
+form. The salary-structure diagram that drew it (salary.html) was dropped
+(the client, 2026-10-22).
 """
 from __future__ import annotations
 
 import re
-import sys
 from pathlib import Path
 
 START = re.compile(r"^(?:DECIDE\s+`([^`]+)`|`([^`]+)`\s+MEANS)")
 REF = re.compile(r"akn:(\S+)")
 FIELD = re.compile(r"'s\s+`([^`]+)`")
 NAME = re.compile(r"`([^`]+)`")
-FIELD_DESC = re.compile(r"^\s+`([^`]+)`\s+IS AN?\s.*?@desc\s+(.*)$")
-
-# what a box is, by colour: (fill, border). A clause of the section; a helper
-# of the L4 that cites no clause; an amount another instrument sets (a field
-# whose @desc ends "an input", the convention CLAUDE.md gives an amount the
-# text says is set elsewhere); a fact of the employee's own case.
-KINDS = {
-    "clause": ("#eef3fb", "#9db0cf"),
-    "helper": ("#f4f5f7", "#c3c8d1"),
-    "elsewhere": ("#fbe9d7", "#d9a46c"),
-    "case": ("#e6f4ea", "#93c4a2"),
-}
 
 
 def declarations(path: Path) -> dict[str, dict]:
@@ -58,20 +43,6 @@ def declarations(path: Path) -> dict[str, dict]:
     return out
 
 
-def field_descs(path: Path) -> dict[str, str]:
-    """field -> its @desc, from the file's DECLAREs."""
-    out = {}
-    for line in path.read_text(encoding="utf-8").splitlines():
-        m = FIELD_DESC.match(line)
-        if m:
-            out.setdefault(m.group(1), m.group(2).strip())
-    return out
-
-
-def input_kind(desc: str) -> str:
-    return "elsewhere" if re.search(r"\ban input\s*$", desc) else "case"
-
-
 def walk(decls: dict[str, dict], root: str) -> tuple[list[str], list[tuple[str, str]], list[str]]:
     """(rules in the order reached, edges, inputs). An edge (a, b): a is
     built from b; b is a rule, or "in:<field>" for an input."""
@@ -86,9 +57,8 @@ def walk(decls: dict[str, dict], root: str) -> tuple[list[str], list[tuple[str, 
         body = head.split(" IS", 1)[1] if " IS" in head else ""
         body += "\n" + rest
         subs = [r for r in dict.fromkeys(NAME.findall(FIELD.sub("", body))) if r in decls and r != n]
-        # an input is drawn where it is FIRST needed: a rule built from other
-        # rules reaches the month or the position through them, and an arrow
-        # from every box to "month" says nothing a reader can use
+        # an input belongs where it is FIRST needed: a rule built from other
+        # rules reaches the month or the position through them
         if not subs:
             for f in dict.fromkeys(FIELD.findall(body)):
                 edges.append((n, "in:" + f))
@@ -101,58 +71,15 @@ def walk(decls: dict[str, dict], root: str) -> tuple[list[str], list[tuple[str, 
     return order, edges, inputs
 
 
-def dot(decls, root: str, label_of, descs: dict[str, str] | None = None) -> str:
-    """GraphViz, top to bottom: the root at the top, what it is made of below
-    it (the client, 2026-10-13: "make the salary tree vertical"; it was drawn
-    right to left until then, wider than the page). `label_of(name, refs)` gives a box's clause as
-    (the text's own words, its citation); either may be empty. A box is
-    coloured by its KIND; `descs` (field -> @desc) tells an amount another
-    instrument sets from a fact of the case."""
-    order, edges, inputs = walk(decls, root)
-    def q(s: str) -> str:
-        return s.replace("\\", "\\\\").replace('"', '\\"')
-    out = ['digraph {', '  graph [rankdir=TB, nodesep=0.25, ranksep=0.5, fontname="DejaVu Sans"];',
-           '  node [shape=box, style="rounded,filled", fontname="DejaVu Sans", fontsize=11, '
-           'fillcolor="#eef3fb", color="#9db0cf"];',
-           '  edge [color="#8a94a6", arrowsize=0.6, dir=back];']
-    def h(s: str) -> str:
-        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
-    for i, n in enumerate(order):
-        words, cite = label_of(n, decls[n]["refs"])
-        lines = ([f'<FONT POINT-SIZE="13">{h(words)}</FONT>'] if words else [])
-        lines.append(f'<FONT POINT-SIZE="9" COLOR="#5b6474">{h(n)}{"  ·  " + h(cite) if cite else ""}</FONT>')
-        fill, line = KINDS["clause" if decls[n]["refs"] else "helper"]
-        extra = f', fillcolor="{fill}", color="{line}"'
-        if n == root:
-            extra = ', fillcolor="#dbe6f8", color="#6f88b3", penwidth=1.6'
-        out.append(f'  r{i} [label=<{"<BR/>".join(lines)}>{extra}];')
-    for j, f in enumerate(inputs):
-        fill, line = KINDS[input_kind((descs or {}).get(f, ""))]
-        out.append(f'  i{j} [label="{q(f)}", shape=ellipse, style=filled, fillcolor="{fill}", color="{line}"];')
-    idx = {n: f"r{i}" for i, n in enumerate(order)}
-    idx.update({"in:" + f: f"i{j}" for j, f in enumerate(inputs)})
-    for a, b in dict.fromkeys(edges):
-        out.append(f"  {idx[a]} -> {idx[b]};")
-    out.append("}")
-    return "\n".join(out)
-
-
-if __name__ == "__main__":
-    p, root = Path(sys.argv[1]), sys.argv[2]
-    print(dot(declarations(p), root, lambda n, refs: ("", refs[0] if refs else "")))
-
-
-# ------------------------------------------------- the site's salary diagram
-
 HEAD_SPLIT = re.compile(r":|–| - ")
 
 
 def clause_labeller(section, citations: dict[str, str]):
-    """`label_of` for the corpus section a file encodes: a box gets the
-    clause's own heading ("תוספת 2008") where the text gives one, else its
-    first words, and its citation (§1.1ג). It climbs from the cited row to
-    the paragraph that holds it, never above: the section's own first row is
-    its update stamp, not a heading."""
+    """A rule's clause, for the corpus section a file encodes: the clause's
+    own heading ("תוספת 2008") where the text gives one, else its first
+    words, and its citation (§1.1ג). It climbs from the cited row to the
+    paragraph that holds it, never above: the section's own first row is its
+    update stamp, not a heading."""
     rows: dict[str, object] = {}
     for r in section.rows:
         rows.setdefault(r.key, r)
@@ -182,15 +109,3 @@ def clause_labeller(section, citations: dict[str, str]):
         text = " ".join(r.text.split()) if r is not None else ""
         return ((" ".join(text.split()[:5]) + "…") if text else ""), citations.get(k0, "")
     return label
-
-
-def svg(dot_src: str) -> str:
-    """Drawn by GraphViz through Cairo, which shapes Hebrew right to left and
-    sizes its boxes to it; the plain SVG renderer measured Hebrew as if it
-    were Latin and clipped every label. "" when GraphViz is not installed."""
-    import shutil
-    import subprocess
-    if not shutil.which("dot"):
-        return ""
-    r = subprocess.run(["dot", "-Tsvg:cairo"], input=dot_src, capture_output=True, text=True)
-    return r.stdout if r.returncode == 0 else ""
