@@ -49,13 +49,27 @@ class EverySideQuotesTheCorpus(unittest.TestCase):
 
     def test_the_quote_is_the_row_it_names(self):
         for c, s in SIDES:
+            if s.get("law"):
+                continue  # quoted from the pinned statute: the next test
             if s["doc"] in NOT_VENDORED:
                 continue
             with self.subTest(item=c["id"], key=s["key"]):
                 self.assertIn(" ".join(s["quote"].split()), row_text(s["doc"], s["key"]))
 
+    def test_a_statute_is_quoted_from_its_pinned_text(self):
+        """A statute side (the corpus holds no copy of a statute) quotes the
+        section as laws/<name>.toml pins it."""
+        import laws
+        for c, s in SIDES:
+            if not s.get("law"):
+                continue
+            with self.subTest(item=c["id"], law=s["law"]):
+                sec = next(x for x in laws.load(s["law"])["section"] if x["num"] == s["section"])
+                self.assertIn(" ".join(s["quote"].split()), " ".join(sec["text"].split()))
+
     def test_the_documents_outside_the_snapshot_are_the_listed_ones(self):
-        absent = {s["doc"] for _, s in SIDES if not (ROOT / "corpus" / "akn" / s["doc"]).exists()}
+        absent = {s["doc"] for _, s in SIDES
+                  if not s.get("law") and not (ROOT / "corpus" / "akn" / s["doc"]).exists()}
         self.assertEqual(absent, NOT_VENDORED)
 
     def test_a_rule_quoted_from_the_corpus_is_its_row(self):
@@ -98,7 +112,7 @@ class TheRootDecides(unittest.TestCase):
 class EveryCropIsItsFile(unittest.TestCase):
 
     def test_each_crop_exists_at_the_size_the_data_says(self):
-        imgs = [i for _, s in SIDES for i in s["images"]] + [
+        imgs = [i for _, s in SIDES for i in s.get("images", [])] + [
             r["image"] for r in DATA["rules"].values() if r.get("image")]
         self.assertTrue(imgs)
         for i in imgs:
@@ -110,6 +124,8 @@ class EveryCropIsItsFile(unittest.TestCase):
 
     def test_every_side_has_a_picture(self):
         for c, s in SIDES:
+            if s.get("law"):
+                continue  # a statute's words are its pinned text, linked to its page
             with self.subTest(item=c["id"]):
                 self.assertTrue(s["images"])
 

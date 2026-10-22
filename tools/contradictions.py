@@ -83,8 +83,9 @@ def load() -> dict | None:
 # takanon from a circular or an agreement — is a card on this page and not a
 # finding (the client, 2026-10-22: "a weaker one departing from a stronger one
 # has its own page, סתירה in finding means equal power"). Two circulars, or a
-# document against itself, are of equal power and stay findings.
-CROSS_RANK = ("agreement", "letter", "qa", "takanon")
+# document against itself, are of equal power and stay findings. A document
+# that gives less than a statute is the same: the statute is stronger.
+CROSS_RANK = ("agreement", "letter", "qa", "takanon", "law")
 
 
 def homes(data: dict | None) -> dict[str, str]:
@@ -136,7 +137,12 @@ def paying_side_html(s: dict) -> str:
 def side_html(s: dict, *, clause_link, src) -> str:
     if s["type"] in PAYING:
         return paying_side_html(s)
-    href, label = clause_link(s["doc"], s["key"]) if s.get("doc") else ("", esc(s["label"]))
+    # a statute is quoted from its pinned text (laws/<name>.toml) and links to
+    # its page beside its L4; the corpus holds no copy of it, so no crop
+    if s.get("law"):
+        href, label = f'laws/{s["law"]}.html#s{s["section"]}', esc(s["label"])
+    else:
+        href, label = clause_link(s["doc"], s["key"]) if s.get("doc") else ("", esc(s["label"]))
     lab = f'<a href="{esc(href)}">{label}</a>' if href else label
     pic = "".join(figure(i, s["quote"], src(i["file"])) for i in s.get("images", []))
     return (f'<div class="cx-side"><p class="cx-who"><span class="cx-type t-{esc(s["type"])}">{esc(TYPE[s["type"]])}</span> '
