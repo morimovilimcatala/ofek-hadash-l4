@@ -61,7 +61,7 @@ class Alignment(unittest.TestCase):
         statutes = {laws.l4_file(n) for n in laws.all_laws()}
         for f in (ROOT / "l4").rglob("*.l4"):
             if (f.name in ("common.l4", "conventions.l4") or f.name.endswith("-common.l4")
-                    or f.parent.name == "lib" or f.is_symlink() or f.parent.name == "modules"):
+                    or f.parent.name in ("lib", "tests") or f.is_symlink() or f.parent.name == "modules"):
                 continue
             if f in statutes:  # a statute outside the corpus: see StatutesOutsideTheCorpus
                 continue

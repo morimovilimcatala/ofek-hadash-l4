@@ -6,8 +6,9 @@ For each file under l4/ this writes, to build/l4/<same path>:
   .render.html   `l4 render`      — L4's own rendering of the rules as a document
   .graph.dot     `l4 state-graph` — each regulative rule as a state diagram (GraphViz)
 
-A root (l4/lib/*root.l4) gets the first only: it is checked, not rendered
-(`is_a_root`).
+A root (l4/lib/*root.l4) and a tests file (l4/tests/) get the first only:
+they are checked, not rendered. A library module with a tests file
+(l4/tests/<name>-tests.l4) is checked through it (`tested_through`).
 
 A file's outputs are keyed by its own bytes, the bytes of every module it
 imports, transitively, wherever it lives (MMS-524: any file may import any
@@ -160,6 +161,19 @@ def all_asserts_hold(data: dict) -> bool:
                for r in data.get("results", []) if r.get("kind") == "assertion")
 
 
+TESTS = L4_DIR / "tests"
+
+
+def tested_through(path: Path) -> Path | None:
+    """The tests file a library module is checked through, if it has one:
+    l4/tests/<name>-tests.l4 imports it and holds every #EVAL and #ASSERT
+    about it (the client, 2026-10-22: "assertions about a file should sit
+    next to it, not be included in it"). Checking the module on its own as
+    well would load it twice, and a root costs ~21 GB a load."""
+    t = TESTS / f"{path.name.removesuffix('.l4')}-tests.l4"
+    return t if path.parent == L4_DIR / "lib" and t.exists() else None
+
+
 def is_a_root(path: Path) -> bool:
     """A root (l4/lib/*root.l4, MMS-521): it imports whole families of
     instruments, so each pass of the compiler over it takes minutes and
@@ -170,13 +184,19 @@ def is_a_root(path: Path) -> bool:
     return path.parent == L4_DIR / "lib" and path.name.endswith("root.l4")
 
 
+def rendered(path: Path) -> bool:
+    """Neither a root nor a tests file is rendered: no corpus text sits
+    beside either for `l4 render`'s prose."""
+    return not is_a_root(path) and path.parent != TESTS
+
+
 def run_one(path: Path, exe: str, cid: str) -> tuple[Path, bool, bool]:
     out = outputs(path)
     k = key(path, cid)
     if out["key"].exists() and out["key"].read_text() == k:
         ok = verdict(json.loads(out["run"].read_text()), path.name)
         if not out["graph"].exists():
-            if is_a_root(path):
+            if not rendered(path):
                 out["graph"].write_text("", encoding="utf-8")
             else:
                 write_graph(path, exe, out["graph"])
@@ -198,7 +218,7 @@ def run_one(path: Path, exe: str, cid: str) -> tuple[Path, bool, bool]:
     data["ok"] = verdict(data, path.name)
     out["run"].write_text(json.dumps(data, ensure_ascii=False, indent=1),
                           encoding="utf-8")
-    if is_a_root(path):
+    if not rendered(path):
         out["render"].write_text("", encoding="utf-8")
         out["graph"].write_text("", encoding="utf-8")
     else:
@@ -248,6 +268,28 @@ def memory_gb() -> float:
         return 8.0
 
 
+def record_through(path: Path, tests: Path, cid: str) -> tuple[Path, bool, bool]:
+    """A module checked through its tests file: the compiler checked it when
+    the tests file imported it, so its outputs are what that check said of
+    this file — its own diagnostics, no results (they are the tests')."""
+    out = outputs(path)
+    k = key(path, cid)
+    if out["key"].exists() and out["key"].read_text() == k:
+        return path, verdict(json.loads(out["run"].read_text()), path.name), False
+    t = json.loads(outputs(tests)["run"].read_text())
+    own = [d for d in t.get("diagnostics", []) if str(d.get("file", "")).endswith(path.name)]
+    data = {"file": path.name, "checked through": str(tests.relative_to(ROOT)),
+            "l4_ok": bool(t.get("l4_ok")) and not any(d.get("severity") == "error" for d in own),
+            "results": [], "diagnostics": own}
+    data["ok"] = verdict(data, path.name)
+    out["run"].parent.mkdir(parents=True, exist_ok=True)
+    out["run"].write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
+    out["render"].write_text("", encoding="utf-8")
+    out["graph"].write_text("", encoding="utf-8")
+    out["key"].write_text(k)
+    return path, bool(data["ok"]), True
+
+
 def is_kept(path: Path, cid: str) -> bool:
     out = outputs(path)
     return out["key"].exists() and out["key"].read_text() == key(path, cid)
@@ -262,7 +304,13 @@ def main(argv: list[str]) -> int:
     bad = []
     # the roots last, and the heaviest first among the rest, so that the
     # light checks fill the memory the heavy ones leave
-    order = sorted(targets, key=lambda p: (is_a_root(p), -estimated_gb(p)))
+    # a module with a tests file is checked through it, after it
+    through = {p: tested_through(p) for p in targets if tested_through(p)}
+    for t in through.values():
+        if t.resolve() not in targets:
+            targets.append(t.resolve())
+    order = sorted((p for p in targets if p not in through),
+                   key=lambda p: (is_a_root(p), -estimated_gb(p)))
     lock = threading.Condition()
     held = {"gb": 0.0}
 
@@ -280,12 +328,17 @@ def main(argv: list[str]) -> int:
                 held["gb"] -= need
                 lock.notify_all()
 
+    def report(path, ok, fresh):
+        rel = path.relative_to(ROOT)
+        print(f"{'ok ' if ok else 'ERR'} {'ran ' if fresh else 'kept'} {rel}", flush=True)
+        if not ok:
+            bad.append(rel)
+
     with ThreadPoolExecutor(jobs) as pool:
         for path, ok, fresh in pool.map(check, order):
-            rel = path.relative_to(ROOT)
-            print(f"{'ok ' if ok else 'ERR'} {'ran ' if fresh else 'kept'} {rel}", flush=True)
-            if not ok:
-                bad.append(rel)
+            report(path, ok, fresh)
+    for p, t in through.items():
+        report(*record_through(p, t, cid))
     if bad:
         print(f"\n{len(bad)} file(s) did not check, had a failing #ASSERT or a compiler warning:")
         for b in bad:

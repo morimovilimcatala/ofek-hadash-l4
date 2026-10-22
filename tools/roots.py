@@ -20,6 +20,14 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 LIB = ROOT / "l4" / "lib"
 BUILD = ROOT / "build" / "l4" / "lib"
+# a root's tests sit beside it (l4/tests/<module>-tests.l4, the client,
+# 2026-10-22): every #EVAL and #ASSERT about it, and what its page reads
+TESTS = ROOT / "l4" / "tests"
+TESTS_BUILD = ROOT / "build" / "l4" / "tests"
+
+
+def tests_of(module: str) -> Path:
+    return TESTS / f"{module}-tests.l4"
 
 # (module, page, collection it sits in or "", its heading, what it is)
 ROOTS = [
@@ -73,7 +81,8 @@ def is_family(here: str) -> bool:
 
 
 def results(module: str) -> list[dict]:
-    f = BUILD / f"{module}.run.json"
+    """What `make l4` recorded of a root's tests."""
+    f = TESTS_BUILD / f"{module}-tests.run.json"
     if not f.exists():
         return []
     return json.loads(f.read_text(encoding="utf-8")).get("results", [])
@@ -85,8 +94,9 @@ def strings(value: str) -> list[str]:
 
 
 def evaluated(module: str, name: str) -> str | None:
-    """The value of the `#EVAL <name>` line of a module, as `make l4` recorded it."""
-    src = (LIB / f"{module}.l4").read_text(encoding="utf-8").splitlines()
+    """The value of the `#EVAL <name>` line of a root's tests, as `make l4`
+    recorded it."""
+    src = tests_of(module).read_text(encoding="utf-8").splitlines()
     line = next((i + 1 for i, l in enumerate(src) if l.strip() == f"#EVAL {name}"), None)
     for r in results(module):
         if r.get("kind") == "value" and line and re.search(rf":{line}:", r.get("range", "")):
@@ -98,7 +108,7 @@ def registered(module: str) -> list[tuple[str, str]]:
     """The instruments a collection root includes, (module, title), as the
     root itself evaluates them: each instrument describes itself in its own
     file, so they are read from `make l4`'s results, not from source text."""
-    src = (LIB / f"{module}.l4").read_text(encoding="utf-8")
+    src = tests_of(module).read_text(encoding="utf-8")
     expr = next(l.strip()[len("#EVAL "):] for l in src.splitlines() if l.startswith("#EVAL map"))
     return [tuple(x.split(" | ", 1)) for x in strings(evaluated(module, expr) or "")]
 
@@ -165,4 +175,13 @@ def page_body(module: str, here: str, coll: str, heading: str, about: str, *,
         lines = (LIB / f"{b}.l4").read_text(encoding="utf-8").splitlines()
         parts.append(f'<h2 dir="ltr"><code>l4/lib/{esc(b)}.l4</code></h2>'
                      f'<div class="l4">{code_html(list(enumerate(lines, 1)))}</div>')
+        if b == module and tests_of(module).exists():
+            # the tests sit beside the module in the repository, and on its
+            # page below it (the client, 2026-10-22)
+            t = tests_of(module).read_text(encoding="utf-8").splitlines()
+            state = (f'{held} מתוך {len(asserts)} בדיקות מתקיימות' if asserts else "אין בדיקות")
+            parts.append(f'<h2>הבדיקות</h2><p class="lede">מה שואלים את {esc(heading)}, ומה הוא עונה: '
+                         f'{esc(state)}. הבדיקות יושבות בקובץ משלהן, לצד הקובץ ולא בתוכו.</p>'
+                         f'<h3 dir="ltr"><code>l4/tests/{esc(module)}-tests.l4</code></h3>'
+                         f'<div class="l4">{code_html(list(enumerate(t, 1)))}</div>')
     return "".join(parts)

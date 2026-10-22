@@ -141,11 +141,19 @@ all the files to give one answer", and disagreements raised as errors.
   then the later circular over the earlier (`precedence.later-circular`),
   §23 among agreements, §29 then §22 between an agreement and the
   employer's term. No instrument keeps its own copy of these.
+- **Tests sit beside what they test, not in it** (the client, 2026-10-22:
+  "assertions about a file should sit next to it, not be included in it").
+  A root's every `#EVAL` and `#ASSERT` is in `l4/tests/<root>-tests.l4`,
+  which imports it; `make l4` checks the root through that file (so it is
+  loaded once), and the root's page shows the tests below its code. (Moving
+  them did not cut the memory a root costs — 21.4 GB with no evaluation at
+  all — which is the source it imports: MMS-551.)
 - **The root**, `l4/lib/root.l4`: the one public answer, `the answer that
   governs` item case, and the gate: over each item's grid of cases
   (`the cases checked for` item),
   any item and case where the claims give two or more answers is a
-  contradiction; `unresolved contradictions` is `#ASSERT null`, and a
+  contradiction; `unresolved contradictions` is `#ASSERT null` in the
+  root's tests, and a
   contradiction is resolved only by an entry in `the resolutions` naming the
   instrument that governs and the rule, which precedence must agree with.
   The disagreements stay asserted as evidence.
