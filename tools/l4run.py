@@ -337,20 +337,28 @@ def main(argv: list[str]) -> int:
     order = sorted((p for p in targets if p not in through),
                    key=lambda p: (is_a_root(p), -estimated_gb(p)))
     lock = threading.Condition()
-    held = {"gb": 0.0}
+    # what the running checks hold, and how many run: a check larger than
+    # the budget waits until none runs. Counted, not compared to 0.0 — the
+    # sum of fractional reservations does not return to exactly 0, and a
+    # root waited on 2e-15 GB forever (2026-10-22)
+    held = {"gb": 0.0, "running": 0}
 
     def check(p: Path):
         if is_kept(p, cid):
             return run_one(p, exe, cid)
         need = min(estimated_gb(p), budget)
         with lock:
-            lock.wait_for(lambda: held["gb"] == 0 or held["gb"] + need <= budget)
+            lock.wait_for(lambda: held["running"] == 0 or held["gb"] + need <= budget + 1e-9)
             held["gb"] += need
+            held["running"] += 1
         try:
             return run_one(p, exe, cid)
         finally:
             with lock:
                 held["gb"] -= need
+                held["running"] -= 1
+                if held["running"] == 0:
+                    held["gb"] = 0.0
                 lock.notify_all()
 
     def report(path, ok, fresh):
