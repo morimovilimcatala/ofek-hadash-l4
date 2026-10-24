@@ -1213,7 +1213,7 @@ def render_page(v: SectionView) -> str:
     return page(here, f"{sec_ref(v.section)} — פרוזה (l4 render)", body, tab="docs")
 
 
-def progress(vs: list[SectionView]) -> str:
+def progress(vs: list[SectionView], always: bool = False) -> str:
     """How much of the text is encoded, and only while something is not:
     "77% carry a rule, 23% carry none" told the reader nothing they could use
     (the client, 2026-10-11), and a finished collection's "N of N" line says
@@ -1226,7 +1226,8 @@ def progress(vs: list[SectionView]) -> str:
             for k, n in tally(v).items():
                 t["done" if k in ("rule", "note") else k] += n
     if not (t["missing"] or t["todo"]):
-        return ""
+        # the index's cards all carry a bar (MMS-553): a finished one is full
+        return '<span class="pbar"><i class="rule" style="width:100%"></i></span>' if always else ""
     total = max(sum(t.values()), 1)
     names = {"done": "מקודדות", "missing": "לא צוטטו", "todo": "טרם קודדו"}
     cls = {"done": "rule", "missing": "missing", "todo": "todo"}   # the sheet's colours
@@ -1460,12 +1461,15 @@ def index_page(all_views: dict[str, list[SectionView]], findings: list[dict]) ->
     flat = [v for vs in all_views.values() for v in vs]
     done = sum(v.status == "done" for v in flat)
     rules = sum(tally(v)["rule"] for v in flat if v.src is not None)
-    cards = []
+    # the index's grid (MMS-553): the root first, then every collection with
+    # the same bar, then the laws outside the corpus, and the collections
+    # nobody has started in a muted row at the end
+    cards, todo = [], []
     for coll, name in COLLECTIONS:
         docs = [d for d in DOCUMENTS if d.startswith(coll + "/")]
         if not docs:
-            cards.append(f'<li class="coll todo"><span class="cname">{esc(name)}</span>'
-                         f'<span class="cstate">טרם התחיל</span></li>')
+            todo.append(f'<li class="coll todo"><span class="cname">{esc(name)}</span>'
+                        f'<span class="cstate">טרם התחיל</span></li>')
             continue
         if coll == "takanon":
             pages = [v for d in docs if is_site_page(d) for v in all_views[d]]
@@ -1475,27 +1479,32 @@ def index_page(all_views: dict[str, list[SectionView]], findings: list[dict]) ->
                 cards.append(f'<li class="coll live wide"><a href="{d.removesuffix(".xml")}.html">'
                              f'<span class="cname">{esc(name)}</span>'
                              f'<span class="ctitle" lang="he" dir="rtl">{esc(akn.title(d))}</span>'
-                             f'{progress(vs)}<span class="cstate">{n} מתוך {len(vs)} סעיפים מקודדים</span></a></li>')
+                             f'{progress(vs, always=True)}<span class="cstate">{n} מתוך {len(vs)} סעיפים מקודדים</span></a></li>')
             if pages:
                 n = sum(v.status == "done" for v in pages)
                 cards.append(f'<li class="coll live"><a href="{coll_hub(coll)}#{SITE_ANCHOR}">'
                              f'<span class="cname">{esc(SITE_GROUP)}</span>'
-                             f'{progress(pages)}<span class="cstate">{n} מתוך {len(pages)} דפים מקודדים</span></a></li>')
+                             f'{progress(pages, always=True)}<span class="cstate">{n} מתוך {len(pages)} דפים מקודדים</span></a></li>')
             continue
         vs = [v for d in docs for v in all_views[d]]
         n = sum(doc_status(all_views[d]) == "done" for d in docs)
         cards.append(f'<li class="coll live"><a href="{coll}.html">'
                      f'<span class="cname">{esc(name)}</span>'
-                     f'{progress(vs)}<span class="cstate">{n} מתוך {len(docs)} מסמכים מקודדים</span></a></li>')
-    cards.append(f'<li class="coll live"><a href="{roots.ROOTS[0][1]}"><span class="cname">שורש</span>'
+                     f'{progress(vs, always=True)}<span class="cstate">{n} מתוך {len(docs)} מסמכים מקודדים</span></a></li>')
+    root_card = (f'<li class="coll live wide root"><a href="{roots.ROOTS[0][1]}"><span class="cname">שורש</span>'
                  f'<span class="ctitle" lang="he" dir="rtl">{esc(roots.ROOTS[0][3])}</span>'
                  f'<span class="cstate">מקור אחד לכל שאלה</span></a></li>')
+    law_cards = []
     for name in laws.all_laws():
         law = laws.load(name)
-        cards.append(f'<li class="coll live"><a href="laws/{name}.html"><span class="cname">חוק</span>'
-                     f'<span class="ctitle" lang="he" dir="rtl">{esc(law["title"])}</span>'
-                     f'<span class="cstate">סעיפים {esc(laws.span(law))}, '
-                     f'מחוץ לקורפוס</span></a></li>')
+        law_cards.append(f'<li class="coll live"><a href="laws/{name}.html"><span class="cname">חוק</span>'
+                         f'<span class="ctitle" lang="he" dir="rtl">{esc(law["title"])}</span>'
+                         f'<span class="cstate">סעיפים {esc(laws.span(law))}, '
+                         f'מחוץ לקורפוס</span></a></li>')
+    grid = (f'<h2 class="sect">השורש</h2><ul class="colls">{root_card}</ul>'
+            f'<h2 class="sect">אוספים</h2><ul class="colls">{"".join(cards)}</ul>'
+            + (f'<h2 class="sect">חוקים</h2><ul class="colls">{"".join(law_cards)}</ul>' if law_cards else "")
+            + (f'<h2 class="sect">טרם התחילו</h2><ul class="colls todo-row">{"".join(todo)}</ul>' if todo else ""))
     body = (f'<section class="hero"><h1>הכללים של העסקת עובדי ההוראה, '
             f'כתובים כקוד לצד הטקסט.</h1>'
             f'<p class="lede">כל סעיף של <a href="{CORPUS_SITE}/">קורפוס אופק חדש</a> מופיע '
@@ -1509,7 +1518,7 @@ def index_page(all_views: dict[str, list[SectionView]], findings: list[dict]) ->
             f'<div><b>{rules}</b><span>פסקאות עם כלל</span></div>'
             f'<div><a href="findings.html"><b>{len(findings)}</b><span>ממצאים בטקסט</span></a></div></div>'
             f'</section>'
-            f'<h2 class="sect">אוספים</h2><ul class="colls">{"".join(cards)}</ul>')
+            + grid)
     return page("index.html", TITLE, body, tab="docs",
                 desc="תקנון שירות עובדי הוראה והחוזרים, לצד קידוד ה-L4 שלהם")
 

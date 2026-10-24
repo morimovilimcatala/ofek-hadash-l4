@@ -140,6 +140,88 @@ def rulings() -> dict[str, list[list[str]]]:
     return out
 
 
+DIRECTIVE = re.compile(r"^#(EVAL|ASSERT|EVALTRACE)\s+(.*)$")
+SECTION = re.compile(r"^§+\s+`([^`]*)`")
+
+
+def test_questions(module: str) -> list[tuple[str, list[tuple[str, list[tuple[int, str, str]]]]]]:
+    """A root's tests as the questions they ask (MMS-553): [(section,
+    [(question, [(line, kind, expression)])])]. A question is the comment
+    block above a run of #EVAL/#ASSERT lines, through any helper code
+    between them; a new comment starts the next question. The section is
+    the `§§` heading they sit under. A directive's indented continuation
+    lines are part of its expression."""
+    out: list = []
+    comment: list[str] = []
+    fresh = False        # the comment has not been asked of yet
+    last = None          # the directive whose continuation lines may follow
+    for n, line in enumerate(tests_of(module).read_text(encoding="utf-8").splitlines(), 1):
+        s = line.strip()
+        if last is not None and s and line[:1].isspace() and not s.startswith("--"):
+            last[2] = last[2] + " " + s
+            continue
+        last = None
+        m = SECTION.match(s)
+        if m:
+            out.append((m.group(1), []))
+            comment, fresh = [], False
+            continue
+        if s.startswith("--"):
+            if not fresh:
+                comment, fresh = [], True
+            comment.append(s.lstrip("-").strip())
+            continue
+        d = DIRECTIVE.match(s)
+        if d:
+            if not out:
+                out.append(("", []))
+            qs = out[-1][1]
+            if fresh or not qs:
+                qs.append((" ".join(comment), []))
+                fresh = False
+            last = [n, d.group(1), d.group(2)]
+            qs[-1][1].append(last)
+    return [(sec, [(q, [tuple(x) for x in ds]) for q, ds in qs]) for sec, qs in out if qs]
+
+
+def answer_html(r: dict | None, kind: str, esc) -> str:
+    """What `make l4` recorded for one directive."""
+    if r is None:
+        return '<li class="res bad"><span class="rk">אין תוצאה</span></li>'
+    if kind == "ASSERT":
+        ok = r.get("value") is True
+        return (f'<li class="res{"" if ok else " bad"}"><span class="rk">{"מתקיים" if ok else "נכשל"}</span></li>')
+    v = str(r.get("value", ""))
+    short = v if len(v) <= 240 else v[:240] + " …"
+    body = (f'<code dir="ltr">{esc(short)}</code>' if short == v else
+            f'<details class="tval"><summary><code dir="ltr">{esc(short)}</code></summary>'
+            f'<code dir="ltr">{esc(v)}</code></details>')
+    return f'<li class="res eval"><span class="rk">ערך</span>{body}</li>'
+
+
+def tests_html(module: str, esc) -> str:
+    """The tests as cards: what each asks, the expression, what the
+    compiler answered. The source stays one click away (below)."""
+    by_line: dict[int, dict] = {}
+    for r in results(module):
+        m = re.search(r":(\d+):", r.get("range", ""))
+        if m:
+            by_line[int(m.group(1))] = r
+    parts = []
+    for sec, qs in test_questions(module):
+        if sec:
+            parts.append(f'<h3>{esc(sec)}</h3>')
+        for q, ds in qs:
+            items = []
+            for n, kind, expr in ds:
+                items.append(f'<li class="tq-expr"><span class="rl">{n}</span>'
+                             f'<code dir="ltr">{esc(expr)}</code></li>'
+                             + answer_html(by_line.get(n), kind, esc))
+            ask = f'<p class="tq-ask" dir="ltr">{esc(q)}</p>' if q else ""
+            parts.append(f'<div class="tcard">{ask}<ul class="results">{"".join(items)}</ul></div>')
+    return "".join(parts)
+
+
 def page_body(module: str, here: str, coll: str, heading: str, about: str, *,
               esc, rel, code_html, href_of, coll_name, coll_href) -> str:
     rs = results(module)
@@ -201,7 +283,10 @@ def page_body(module: str, here: str, coll: str, heading: str, about: str, *,
             t = tests_of(module).read_text(encoding="utf-8").splitlines()
             state = (f'{held} מתוך {len(asserts)} בדיקות מתקיימות' if asserts else "אין בדיקות")
             parts.append(f'<h2>הבדיקות</h2><p class="lede">מה שואלים את {esc(heading)}, ומה הוא עונה: '
-                         f'{esc(state)}. הבדיקות יושבות בקובץ משלהן, לצד הקובץ ולא בתוכו.</p>'
-                         f'<h3 dir="ltr"><code>l4/tests/{esc(module)}-tests.l4</code></h3>'
-                         f'<div class="l4">{code_html(list(enumerate(t, 1)))}</div>')
+                         f'{esc(state)}. בכל כרטיס: מה הבדיקה שואלת, הביטוי, ומה המהדר ענה. '
+                         f'הבדיקות יושבות בקובץ משלהן, לצד הקובץ ולא בתוכו.</p>'
+                         + tests_html(module, esc)
+                         + f'<details class="tsrc"><summary>קוד הבדיקות: '
+                         f'<code dir="ltr">l4/tests/{esc(module)}-tests.l4</code></summary>'
+                         f'<div class="l4">{code_html(list(enumerate(t, 1)))}</div></details>')
     return "".join(parts)

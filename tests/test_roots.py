@@ -61,5 +61,31 @@ class Roots(unittest.TestCase):
                 self.assertIn(rule, page)
 
 
+class TestsAreQuestions(unittest.TestCase):
+    """A root's page shows its tests as questions with what the compiler
+    answered, not as a dump of source (the client, 2026-10-22, MMS-553)."""
+
+    def test_every_directive_is_in_a_question_with_its_answer(self):
+        import re
+        for module, *_ in roots.ROOTS:
+            src = roots.tests_of(module)
+            if not src.exists():
+                continue
+            lines = [n for n, l in enumerate(src.read_text(encoding="utf-8").splitlines(), 1)
+                     if roots.DIRECTIVE.match(l.strip())]
+            asked = [n for _, qs in roots.test_questions(module) for _, ds in qs for n, *_ in ds]
+            with self.subTest(module=module):
+                self.assertEqual(asked, lines)
+                answered = {int(m.group(1)) for r in roots.results(module)
+                            if (m := re.search(r":(\d+):", r.get("range", "")))}
+                if answered:   # `make l4` has run
+                    self.assertEqual(set(lines) - answered, set(), "a test the page shows with no answer")
+
+    def test_a_continued_directive_is_one_expression(self):
+        qs = [d for _, q in roots.test_questions("root") for _, ds in q for d in ds]
+        self.assertTrue(any("EQUALS" in expr and expr.startswith("((") for _, _, expr in qs))
+        self.assertFalse([expr for _, _, expr in qs if expr.count("(") != expr.count(")")])
+
+
 if __name__ == "__main__":
     unittest.main()
