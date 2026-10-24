@@ -314,18 +314,25 @@ NOT that runs on into AND/OR, and a bare `N%` as a function's argument,
 which the pinned compiler reads as `(the call)%` (MMS-510) — write `(N%)`. Look at the rendered pages (desktop and phone width) for any change
 that alters what a page looks like — a passing test is not a look.
 
-The compiler is built from source at the revision in `toolchain/L4_COMMIT`
-(`toolchain/build-l4.sh`); no Linux binary is published. Bumping the pin is
-a deliberate change: rebuild, re-run everything, read the diff of
-`build/l4/`. Both pins are l4-ide `unstable` (the client, 2026-10-22: "we
-should always use unstable"): `L4_COMMIT` joined `L4_WASM_COMMIT` at c9a3fe3,
-and the two are kept equal. c9a3fe3 is the commit MMS-551 measured (the
-root in ~40 s and ~1 GB, against ~25 min and ~27 GB at the old pin). The wasm is built by `toolchain/build-wasm.sh`, in an
-arm64 Linux container on a Mac. On a Mac the CLI does not build natively
-(GHC 9.10.2 cannot read the Xcode 26 linker's output): run the Linux `l4` at
-the pin in Docker (`--platform linux/amd64`, an Ubuntu 24.04 image with
-libgmp10, libffi8, libnuma1, python3), with the repo copied out of
-`~/Documents`, which Docker may not mount.
+The compiler is l4-ide at the revision in `toolchain/L4_COMMIT`, installed by
+`toolchain/fetch-l4.sh` from legalese/prereleases (MMS-558), Legalese's shelf
+of standalone builds from `unstable` (the client, 2026-10-24: "a recent
+unstable binary which will run much cooler"). `toolchain/L4_SHELF` names the
+release and pins each archive's sha256; the script refuses a release that is
+not a build of the pin, an archive whose hash differs, or a platform the
+shelf does not build (linux-x64 and darwin-arm64 are), and never falls back
+to another build. The darwin-arm64 build is a native arm64 binary linking
+only system libraries (the shelf smoke-tests it on macOS), which replaces
+running the Linux `l4` in Docker under x86 emulation. Bumping the pin is a deliberate change: the shelf needs
+a release at the new commit (cut by Legalese, `prerelease.yml`), then new
+lines in `L4_SHELF`; rebuild the wasm, re-run everything, read the diff of
+`build/l4/`. `toolchain/build-l4.sh` builds a commit from source for an
+experiment the shelf has no release for (`measure-compiler.yml`). Both pins
+are l4-ide `unstable` (the client, 2026-10-22: "we should always use
+unstable"): `L4_COMMIT` joined `L4_WASM_COMMIT` at c9a3fe3, and the two are
+kept equal. c9a3fe3 is the commit MMS-551 measured (the root in ~40 s and
+~1 GB, against ~25 min and ~27 GB at the old pin). The shelf ships no wasm:
+`toolchain/build-wasm.sh` builds it, in an arm64 Linux container on a Mac.
 
 ## Documentation discipline
 

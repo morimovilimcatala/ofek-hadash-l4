@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
 # Build the `l4` CLI at the revision pinned in toolchain/L4_COMMIT.
-# legalese/l4-ide publishes no Linux binary (its VSIX ships macOS and
-# Windows only), so it is built from source: GHC (toolchain/GHC_VERSION)
-# via ghcup, then `cabal build exe:l4`. Cold, that is 30-60 minutes on four
-# cores; the cabal store makes later builds minutes.
+# The pin itself is installed from Legalese's prebuilt shelf by
+# toolchain/fetch-l4.sh, in seconds. This script is for a commit the shelf
+# has no release for (.github/workflows/measure-compiler.yml's candidate):
+# GHC (toolchain/GHC_VERSION) via ghcup, then `cabal build exe:l4`. Cold,
+# that is 30-60 minutes on four cores; the cabal store makes later builds
+# minutes. It does not build on a Mac (GHC 9.10.2 cannot read the Xcode 26
+# linker's output).
 #
 #   toolchain/build-l4.sh [DEST]     # installs to DEST (default ~/.local/bin/l4)
 set -euo pipefail

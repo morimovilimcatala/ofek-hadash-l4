@@ -29,23 +29,9 @@ jobs:
           echo "l4=$(cat toolchain/L4_COMMIT)" >> "$GITHUB_OUTPUT"
           echo "ghc=$(cat toolchain/GHC_VERSION)" >> "$GITHUB_OUTPUT"
 
-      # the site workflow's cached binary at the pin
-      - name: Restore the pinned l4 binary
-        uses: actions/cache/restore@v4
-        with:
-          path: ~/.local/bin/l4
-          key: l4-bin-${{ runner.os }}-${{ steps.pin.outputs.l4 }}-ghc${{ steps.pin.outputs.ghc }}
-          fail-on-cache-miss: true
-
-      - name: Keep it apart, with the libraries of its pin
-        run: |
-          mkdir -p ~/pinned/data/jl4/libraries
-          mv ~/.local/bin/l4 ~/pinned/l4
-          git clone --depth 1 --filter=blob:none --sparse https://github.com/legalese/l4-ide /tmp/l4-pin
-          git -C /tmp/l4-pin fetch --depth 1 origin ${{ steps.pin.outputs.l4 }}
-          git -C /tmp/l4-pin checkout --detach ${{ steps.pin.outputs.l4 }}
-          git -C /tmp/l4-pin sparse-checkout set jl4-core/libraries
-          cp /tmp/l4-pin/jl4-core/libraries/*.l4 ~/pinned/data/jl4/libraries/
+      # the pinned compiler, kept apart with the libraries of its pin
+      - name: Install the pinned l4
+        run: XDG_DATA_HOME=~/pinned/data toolchain/fetch-l4.sh ~/pinned/l4
 
       - name: Set up GHC
         id: ghc

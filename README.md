@@ -139,7 +139,7 @@ The site is in Hebrew, right to left (the client, 2026-10-10). The L4 code and t
 ## Building
 
 ```sh
-toolchain/build-l4.sh          # once: GHC 9.10.2 + cabal, builds `l4` (~30-60 min cold)
+toolchain/fetch-l4.sh          # once: installs `l4` at the pin (linux-x64, darwin-arm64; seconds)
 toolchain/build-wasm.sh        # only to rebuild the calculator's evaluator (see below)
 make l4 site test
 python3 -m http.server -d build/site

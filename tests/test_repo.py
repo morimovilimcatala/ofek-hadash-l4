@@ -468,6 +468,23 @@ class Toolchain(unittest.TestCase):
         self.assertFalse(l4run.verdict({"ok": True, "results": [{"kind": "assertion", "value": "FALSE"}],
                                         "diagnostics": []}, "a.l4"))
 
+    def test_the_shelf_release_is_a_build_of_the_pin(self):
+        # toolchain/fetch-l4.sh installs the release L4_SHELF names (MMS-558)
+        pin = (ROOT / "toolchain/L4_COMMIT").read_text().strip()
+        shelf = {}
+        for line in (ROOT / "toolchain/L4_SHELF").read_text().splitlines():
+            if line.strip() and not line.startswith("#"):
+                k, v = line.split()
+                shelf[k] = v
+        self.assertRegex(shelf.get("tag", ""), rf"^unstable-\d{{8}}-{pin[:7]}(-[A-Za-z0-9._-]+)?$")
+        for platform in ("linux-x64", "darwin-arm64"):
+            self.assertRegex(shelf.get(platform, ""), r"^[0-9a-f]{64}$", platform)
+
+    def test_the_site_installs_the_pin_from_the_shelf(self):
+        wf = (ROOT / ".github/workflows/site.yml").read_text(encoding="utf-8")
+        self.assertIn("toolchain/fetch-l4.sh", wf)
+        self.assertNotIn("build-l4.sh", wf)
+
     def test_every_file_checks_and_every_assert_holds(self):
         import l4run
         for f in l4run.files():

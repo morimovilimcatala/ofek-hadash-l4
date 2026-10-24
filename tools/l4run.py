@@ -24,7 +24,7 @@ compiler finds an import by its bare name, and that directory holds every
 module under its one name.
 
 The compiler is `$L4` if set, else `l4` on PATH. toolchain/L4_COMMIT pins the
-legalese/l4-ide revision it is built from (toolchain/build-l4.sh).
+legalese/l4-ide revision; toolchain/fetch-l4.sh installs Legalese's build of it.
 """
 from __future__ import annotations
 
@@ -51,7 +51,7 @@ FIXED_NOW = "2026-06-01T00:00:00Z"   # the corpus snapshot's date
 def compiler() -> str:
     exe = os.environ.get("L4") or shutil.which("l4")
     if not exe:
-        sys.exit("l4 not found: set $L4 or put it on PATH (toolchain/build-l4.sh)")
+        sys.exit("l4 not found: set $L4 or put it on PATH (toolchain/fetch-l4.sh)")
     return exe
 
 
