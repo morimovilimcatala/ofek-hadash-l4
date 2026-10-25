@@ -110,11 +110,12 @@ DECLARE `Oz role` IS ONE OF
     `another Oz role`
 
 -- What a salary component is "brought into account" for (§16(ב), §20(ז),
--- and §§38(ג), 39(ב)): the hour value, severance pay under the Severance
--- Pay Law, contributions to a pension provident fund, to a training fund
--- and to the Dafna fund, and computing a percentage supplement on the
--- combined salary — the agreement's own supplements by name, the rest
--- (role allowances among them) together.
+-- §38(ג), §39(ב)): the hour value, severance pay under the Severance Pay
+-- Law, contributions to a pension provident fund, to a training fund and to
+-- the Dafna fund, and computing a percentage supplement on the combined
+-- salary — the supplements those sections name by name (the Oz LaTmura
+-- supplement among them, which §§38(ג) and 39(ב) keep their supplements
+-- out of), the rest (role allowances among them) together.
 DECLARE `what an Oz salary component counts for` IS ONE OF
     `computing the hour value`
     `Oz severance pay under the Severance Pay Law`
@@ -123,27 +124,88 @@ DECLARE `what an Oz salary component counts for` IS ONE OF
     `contributions to the Dafna fund`
     `computing supplement 2001`
     `computing supplement 2008`
+    `computing the Oz LaTmura supplement`
     `computing supplement 2011`
     `computing erosion supplement 2011`
     `computing the promotion-grade supplement`
     `computing another percentage supplement on the combined salary`
 
 `what an Oz salary component may count for` MEANS
-    LIST `computing the hour value`, `Oz severance pay under the Severance Pay Law`, `contributions to a pension provident fund`, `contributions to a training fund`, `contributions to the Dafna fund`, `computing supplement 2001`, `computing supplement 2008`, `computing supplement 2011`, `computing erosion supplement 2011`, `computing the promotion-grade supplement`, `computing another percentage supplement on the combined salary`
+    LIST `computing the hour value`, `Oz severance pay under the Severance Pay Law`, `contributions to a pension provident fund`, `contributions to a training fund`, `contributions to the Dafna fund`, `computing supplement 2001`, `computing supplement 2008`, `computing the Oz LaTmura supplement`, `computing supplement 2011`, `computing erosion supplement 2011`, `computing the promotion-grade supplement`, `computing another percentage supplement on the combined salary`
 
 GIVEN p IS A `what an Oz salary component counts for`
 GIVETH A BOOLEAN
 DECIDE `computing a percentage supplement` p IF
         p EQUALS `computing supplement 2001`
     OR p EQUALS `computing supplement 2008`
+    OR p EQUALS `computing the Oz LaTmura supplement`
     OR p EQUALS `computing supplement 2011`
     OR p EQUALS `computing erosion supplement 2011`
     OR p EQUALS `computing the promotion-grade supplement`
     OR p EQUALS `computing another percentage supplement on the combined salary`
 
+-- A salary month, counted as twelve to the year so that months compare in
+-- order: the salary of August 2012 is `the Oz salary month` 2012 8. "In the
+-- salary of month X" is that month itself (convention dates.salary-month).
+GIVEN y IS A NUMBER, m IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the Oz salary month` y m IS
+    y TIMES 12 PLUS m
+
+-- Part י's one-time grants (§§35–37) are paid "for a teacher employed at
+-- 100% of a position" and, to one employed part-time or in part of the
+-- school year, in proportion to his position and to the part of the year he
+-- was employed; employment beyond a full position does not count (§§35(ג),
+-- 36(ה), and §37 through its "100% משרה"). The share of the year each
+-- section measures is its own.
+GIVEN `the grant for a full position` IS A NUMBER
+      `position share` IS A NUMBER @desc 1 is a full position
+      `share of the school year` IS A NUMBER @desc 1 is the whole year, as the section measures it
+GIVETH A NUMBER
+DECIDE `an Oz grant pro rata` `the grant for a full position` `position share` `share of the school year` IS
+    `the grant for a full position` TIMES min `position share` 1 TIMES `share of the school year`
+
+-- A teacher in a school year, as part י's one-time grants (§§35–37) ask
+-- about him. Months are counted in the school year, which runs September
+-- to August (convention dates.school-year); a share of it is the section's
+-- to measure.
+@desc A teacher in a school year, as the one-time grants of §§35–37 ask about him.
+DECLARE `Oz grant teacher` HAS
+    `position share` IS A NUMBER @desc his position in the school year; 1 is a full position
+    `months employed` IS A NUMBER @desc months of the school year (September to August) he was employed and at work: a month of unpaid leave, sabbatical or maternity leave is not among them
+    `months on maternity leave` IS A NUMBER @desc months of the school year on maternity leave under the Women's Employment Law, 1954 (unpaid leave after it not among them)
+    `months employed from September to June` IS A NUMBER @desc the months employed, of September to June only
+    `months on maternity leave from September to June` IS A NUMBER @desc the months on maternity leave, of September to June only
+    `months on unpaid leave or sabbatical` IS A NUMBER @desc months of the school year on unpaid leave (חל"ת) or on sabbatical
+    `a substitute only` IS A BOOLEAN @desc employed by the employer as a substitute only
+    `on the reform's terms` IS A `extent of the Oz reform` @desc how far the reform reached him in the school year
+
+-- Part י's grants are updated every June, from June 2012, by the change in
+-- the consumer price index between the index published for May before the
+-- update and that for May of the year before (§§35(ה), 36(ז)). Each update
+-- applies to the amount in force on its day (convention
+-- dates.update-in-force), exactly (convention rounding.default): given the
+-- May indices in order, from May 2011 to the May before the last update,
+-- the amount moves by each year's ratio in turn.
+GIVEN amount IS A NUMBER
+      `the May indices` IS A LIST OF NUMBER @desc the CPI published for May of each year, from May 2011 to the May before the last update, in order
+GIVETH A NUMBER
+DECIDE `an Oz grant updated each June` amount `the May indices` IS
+    CONSIDER `the May indices`
+    WHEN EMPTY THEN amount
+    WHEN earlier FOLLOWED BY later THEN
+        CONSIDER later
+        WHEN EMPTY THEN amount
+        WHEN next FOLLOWED BY rest THEN `an Oz grant updated each June` (amount TIMES next DIVIDED BY earlier) later
+
 #ASSERT `the hours of the Oz week` (`an Oz week of` 24 6 10) EQUALS 40
-#ASSERT count (filter `computing a percentage supplement` `what an Oz salary component may count for`) EQUALS 6
+#ASSERT count (filter `computing a percentage supplement` `what an Oz salary component may count for`) EQUALS 7
 #ASSERT `the school year` 2012 `is from` `the school year 5772` `to` `the school year 5774`
 #ASSERT `by the year of part application` `the school year 5773` 1 2 3 EQUALS JUST 2
 #ASSERT `by the year of part application` `the school year 5775` 1 2 3 EQUALS NOTHING
 #ASSERT NOT `a year of the Oz part application` `the school year 5775`
+#ASSERT `the Oz salary month` 2011 9 GREATER THAN `the Oz salary month` 2011 8 AND `the Oz salary month` 2012 1 GREATER THAN `the Oz salary month` 2011 12
+#ASSERT `an Oz grant pro rata` 5500 1.2 1 EQUALS 5500 AND `an Oz grant pro rata` 5500 0.5 0.5 EQUALS 1375
+-- two updates, by +2% and then +1%: 5,500 × 102/100 × 103.02/102
+#ASSERT `an Oz grant updated each June` 5500 (LIST 100, 102, 103.02) EQUALS 5666.1
+#ASSERT `an Oz grant updated each June` 5500 (LIST 100) EQUALS 5500 AND `an Oz grant updated each June` 5500 EMPTY EQUALS 5500

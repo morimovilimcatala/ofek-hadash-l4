@@ -12,6 +12,8 @@ IMPORT parties
 IMPORT vocabulary
 IMPORT `oz-founding-common`
 IMPORT `oz-founding-10`
+IMPORT `oz-founding-38`
+IMPORT `oz-founding-39`
 IMPORT `oz-founding-41`
 
 § `17 גמולים למורים בעלי תפקידים`
@@ -35,16 +37,28 @@ DECLARE `Oz role holder` HAS
     `classes in the upper division in his charge` IS A NUMBER @desc the classes an educational counsellor is responsible for
     `role hours the principal gives him` IS A NUMBER @desc a deputy's share of the deputies' management hours; a teacher's hours for the tasks the principal assigns; a subject coordinator's hours out of §41's basket
 
-@desc The salary components a §17 allowance is computed on, at the teacher's own values.
+@desc The salary components a §17 allowance is computed on, at the teacher's own values; the 2011 and erosion supplements are §§38 and 39's, computed from these.
 DECLARE `Oz role allowance base` HAS
+    `the day`                     IS A DATE   @desc the day the allowance is paid for
     `the base by the rules on the eve of the signing` IS A NUMBER @desc the components the collective agreements of 13.8.2011 put in the allowance's base, together
     `the combined salary`         IS A NUMBER
+    `the 1987 supplement`         IS A NUMBER
     `the 1994 supplement`         IS A NUMBER
     `the 2001 supplement`         IS A NUMBER
     `the 2008 supplement`         IS A NUMBER
-    `the 2011 supplement`         IS A NUMBER @desc §38
-    `the 2011 erosion supplement` IS A NUMBER @desc §39
-    `the Oz LaTmura supplement`   IS A NUMBER @desc §16
+    `the Oz LaTmura supplement`   IS A NUMBER @desc §16, or §28 in a year of part application
+
+-- The 2011 supplement (§38) and the 2011 erosion supplement (§39) on the
+-- teacher's own components, on the day.
+GIVEN b IS A `Oz role allowance base`
+GIVETH A NUMBER
+DECIDE `the 2011 supplement in the allowance base` b IS
+    `the 2011 supplement under section 38` (b's `the day`) (b's `the combined salary`) (b's `the 2001 supplement`) (b's `the 2008 supplement`)
+
+GIVEN b IS A `Oz role allowance base`
+GIVETH A NUMBER
+DECIDE `the erosion supplement in the allowance base` b IS
+    `the erosion supplement under section 39` (b's `the day`) (b's `the combined salary`) (b's `the 1987 supplement`) (b's `the 1994 supplement`) (b's `the 2008 supplement`) (b's `the 2001 supplement`)
 
 @desc The role hours §17 gives a role holder, by the hours they take the place of (§10).
 DECLARE `Oz role hours` HAS
@@ -72,15 +86,17 @@ GIVETH A NUMBER
 DECIDE `the eve base with the Oz, 2011 and erosion supplements` b IS
       b's `the base by the rules on the eve of the signing`
     + b's `the Oz LaTmura supplement`
-    + b's `the 2011 supplement`
-    + b's `the 2011 erosion supplement`
+    + `the 2011 supplement in the allowance base` b
+    + `the erosion supplement in the allowance base` b
 
 -- Rows 4 and 6 name their base instead: the combined salary and the 1994,
 -- 2001, 2008, 2011 erosion and Oz LaTmura supplements. The 2011 supplement
--- is not in it, though §38(ג) brings it into every percentage supplement on
--- the combined salary save five that are not role allowances
--- (F-oz-founding-17-a). The reading adopted (convention
--- precedence.specific): the row's own list, which speaks of this allowance.
+-- is not in it, though §38(ג) (`the 2011 supplement under section 38 counts
+-- for`) brings it into every percentage supplement on the combined salary
+-- save five that are not role allowances; the erosion supplement, which
+-- §39(ב) brings in the same way, the rows do list (F-oz-founding-17-a). The
+-- reading adopted (convention precedence.specific): the row's own list,
+-- which speaks of this allowance.
 @ref akn:art_17__para_a__hc_4__subpara_1 akn:art_17__para_a__hc_6 akn:art_17__para_a__hc_6/p1
 GIVEN b IS A `Oz role allowance base`
 GIVETH A NUMBER
@@ -89,7 +105,7 @@ DECIDE `the base rows 4 and 6 list` b IS
     + b's `the 1994 supplement`
     + b's `the 2001 supplement`
     + b's `the 2008 supplement`
-    + b's `the 2011 erosion supplement`
+    + `the erosion supplement in the allowance base` b
     + b's `the Oz LaTmura supplement`
 
 GIVEN r IS A `Oz role`, b IS A `Oz role allowance base`
@@ -440,23 +456,30 @@ DECIDE `an Oz role holder of` r classes grade given IS
 
 `a full Oz week` MEANS `an Oz week of` 24 6 10
 
-GIVEN e IS A NUMBER, s11 IS A NUMBER
+GIVEN e IS A NUMBER, d IS A DATE
 GIVETH A `Oz role allowance base`
-DECIDE `an allowance base of 10,000 with` e s11 IS
+DECIDE `an allowance base of 10,000 on` e d IS
     `Oz role allowance base` WITH
+        `the day`                     IS d
         `the base by the rules on the eve of the signing` IS e
         `the combined salary`         IS 10000
+        `the 1987 supplement`         IS 400
         `the 1994 supplement`         IS 500
         `the 2001 supplement`         IS 300
         `the 2008 supplement`         IS 200
-        `the 2011 supplement`         IS s11
-        `the 2011 erosion supplement` IS 200
         `the Oz LaTmura supplement`   IS 4000
 
--- A homeroom teacher: 10% of an eve base of 10,500 and 4,000 + 700 + 200
-#ASSERT `the section 17 role allowance` (`an Oz role holder of` `the Oz homeroom teacher` 30 6 0) (`an allowance base of 10,000 with` 10500 700) EQUALS JUST 1540
--- the adjustments coordinator: 6% of 10,000 + 500 + 300 + 200 + 200 + 4,000
-#ASSERT `the section 17 role allowance` (`an Oz role holder of` `the Oz adjustments coordinator` 30 6 0) (`an allowance base of 10,000 with` 10500 700) EQUALS JUST 912
+`1.9.2011` MEANS DATE_FROM_DMY 1 9 2011
+`1.1.2012` MEANS DATE_FROM_DMY 1 1 2012
+
+-- On 1.1.2012 the 2011 supplement is 4% of 10,500 (§38) and the erosion
+-- supplement 2.1% of 11,400 (§39).
+#ASSERT `the 2011 supplement in the allowance base` (`an allowance base of 10,000 on` 10500 `1.1.2012`) EQUALS 420
+#ASSERT `the erosion supplement in the allowance base` (`an allowance base of 10,000 on` 10500 `1.1.2012`) EQUALS 239.4
+-- A homeroom teacher: 10% of an eve base of 10,500 and 4,000 + 420 + 239.4
+#ASSERT `the section 17 role allowance` (`an Oz role holder of` `the Oz homeroom teacher` 30 6 0) (`an allowance base of 10,000 on` 10500 `1.1.2012`) EQUALS JUST 1515.94
+-- the adjustments coordinator: 6% of 10,000 + 500 + 300 + 200 + 239.4 + 4,000
+#ASSERT `the section 17 role allowance` (`an Oz role holder of` `the Oz adjustments coordinator` 30 6 0) (`an allowance base of 10,000 on` 10500 `1.1.2012`) EQUALS JUST 914.364
 -- two mathematics coordinators share the 9%
 `one of two mathematics coordinators` MEANS
     `Oz role holder` WITH
@@ -507,14 +530,18 @@ DECIDE `an allowance base of 10,000 with` e s11 IS
 #ASSERT `section 17's table sets the role allowances in` `the school year 5772` `the Oz reform in part`
 #ASSERT count `the allowances section 17(ג) keeps` EQUALS 6
 
--- F-oz-founding-17-a's evidence: for the adjustments and measurement
--- coordinators the 2011 supplement moves nothing in the base, where for the
--- homeroom teacher (and the other rows) it is in.
+-- F-oz-founding-17-a's evidence: §38(ג) brings the 2011 supplement into
+-- the percentage supplements on the combined salary; between 1.9.2011 and
+-- 1.1.2012 it grows from 2.25% to 4% (the erosion supplement stays at
+-- 2.1%), and for the adjustments and measurement coordinators that moves
+-- nothing in the base, where for the homeroom teacher (and the other rows)
+-- it does.
 `rows 4 and 6 leave the 2011 supplement out of their base` MEANS
-        `the section 17 allowance base` `the Oz adjustments coordinator` (`an allowance base of 10,000 with` 10500 700)
-            EQUALS `the section 17 allowance base` `the Oz adjustments coordinator` (`an allowance base of 10,000 with` 10500 0)
-    AND `the section 17 allowance base` `the Oz measurement and evaluation coordinator` (`an allowance base of 10,000 with` 10500 700)
-            EQUALS `the section 17 allowance base` `the Oz measurement and evaluation coordinator` (`an allowance base of 10,000 with` 10500 0)
-    AND NOT `the section 17 allowance base` `the Oz homeroom teacher` (`an allowance base of 10,000 with` 10500 700)
-            EQUALS `the section 17 allowance base` `the Oz homeroom teacher` (`an allowance base of 10,000 with` 10500 0)
+        `the 2011 supplement under section 38 counts for` `computing another percentage supplement on the combined salary`
+    AND `the section 17 allowance base` `the Oz adjustments coordinator` (`an allowance base of 10,000 on` 10500 `1.1.2012`)
+            EQUALS `the section 17 allowance base` `the Oz adjustments coordinator` (`an allowance base of 10,000 on` 10500 `1.9.2011`)
+    AND `the section 17 allowance base` `the Oz measurement and evaluation coordinator` (`an allowance base of 10,000 on` 10500 `1.1.2012`)
+            EQUALS `the section 17 allowance base` `the Oz measurement and evaluation coordinator` (`an allowance base of 10,000 on` 10500 `1.9.2011`)
+    AND NOT `the section 17 allowance base` `the Oz homeroom teacher` (`an allowance base of 10,000 on` 10500 `1.1.2012`)
+            EQUALS `the section 17 allowance base` `the Oz homeroom teacher` (`an allowance base of 10,000 on` 10500 `1.9.2011`)
 #ASSERT `rows 4 and 6 leave the 2011 supplement out of their base`
