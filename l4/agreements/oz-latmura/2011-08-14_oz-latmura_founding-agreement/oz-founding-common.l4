@@ -5,6 +5,7 @@
 
 IMPORT prelude
 IMPORT parties
+IMPORT conventions
 
 § `הסכם עוז לתמורה (14.8.2011) — אוצר מילים משותף`
 
@@ -209,3 +210,397 @@ DECIDE `an Oz grant updated each June` amount `the May indices` IS
 -- two updates, by +2% and then +1%: 5,500 × 102/100 × 103.02/102
 #ASSERT `an Oz grant updated each June` 5500 (LIST 100, 102, 103.02) EQUALS 5666.1
 #ASSERT `an Oz grant updated each June` 5500 (LIST 100) EQUALS 5500 AND `an Oz grant updated each June` 5500 EMPTY EQUALS 5500
+
+§§ `טבלאות שבוע העבודה בנספחים א'–ג'3`
+
+-- Twelve annexes print the Oz week as tables: א'–א'3 a mother's (§§11 and
+-- 26(ד)), ב'–ב'3 a teacher's entitled to the full age reduction (§§12 and
+-- 26(ד)), ג'–ג'3 a part-time teacher's (§§13 and 26(ב)); the annex without
+-- a number is the reform in full, those numbered 1–3 its part application
+-- in תשע"ב, תשע"ג and תשע"ד. A table's columns run from the full position
+-- down, a frontal hour at a time. Its rows are "היקף משרה", in a mother's
+-- table also "היקף משרה אילולא הייתה אם", "שעות פרונטאליות (כולל שעות חינוך
+-- שעות הכנה לבגרות ושעות תפקיד אחרות)", "שעות פרטנית", "שעות תומכות הוראה"
+-- and "משך הנוכחות השבועית בבית הספר (שעות של 60 דקות)". Each column in the
+-- annexes' files is one printed column, its cells in that order, as the
+-- corpus publishes them; a cell that departs from its table's pattern stays
+-- as printed, and the checks below name it.
+@desc One printed column of a work-week table in the Oz agreement's annexes.
+DECLARE `Oz annexed column` HAS
+    `the position printed`               IS A NUMBER @desc "היקף משרה" as printed; in a mother's table, the position she is paid on
+    `the would-have position printed`    IS A MAYBE NUMBER @desc "היקף משרה אילולא הייתה אם", printed in a mother's table only
+    `the frontal hours printed`          IS A NUMBER @desc with the homeroom, bagrut-preparation and other role hours
+    `the individual hours printed`       IS A NUMBER
+    `the teaching-support hours printed` IS A NUMBER
+    `the presence printed`               IS A NUMBER @desc the weekly presence in the school, in hours of 60 minutes
+
+GIVEN p IS A NUMBER, f IS A NUMBER, i IS A NUMBER, s IS A NUMBER, w IS A NUMBER
+GIVETH AN `Oz annexed column`
+DECIDE `an Oz annexed column` p f i s w IS
+    `Oz annexed column` WITH
+        `the position printed`               IS p
+        `the would-have position printed`    IS NOTHING
+        `the frontal hours printed`          IS f
+        `the individual hours printed`       IS i
+        `the teaching-support hours printed` IS s
+        `the presence printed`               IS w
+
+GIVEN p IS A NUMBER, would IS A NUMBER, f IS A NUMBER, i IS A NUMBER, s IS A NUMBER, w IS A NUMBER
+GIVETH AN `Oz annexed column`
+DECIDE `an Oz annexed mother's column` p would f i s w IS
+    `Oz annexed column` WITH
+        `the position printed`               IS p
+        `the would-have position printed`    IS JUST would
+        `the frontal hours printed`          IS f
+        `the individual hours printed`       IS i
+        `the teaching-support hours printed` IS s
+        `the presence printed`               IS w
+
+-- The ages a table is for, as its caption prints them: none (the teacher
+-- under 50), "מגיל 50 עד גיל 55" (or "ועד"), "מעל גיל 55". Which band a
+-- teacher is in is the age-reduction rules' (§12): a fact of the case.
+@desc The age band an annexed work-week table is for.
+DECLARE `Oz annexed age band` IS ONE OF
+    `the Oz band under 50`
+    `the Oz band from 50 to 55`
+    `the Oz band over 55`
+
+`the Oz age bands` MEANS LIST `the Oz band under 50`, `the Oz band from 50 to 55`, `the Oz band over 55`
+
+-- What a table is for: a teacher's week by the position, or a mother's
+-- under §11(א) (she cuts her hours) or §11(ב) (she keeps the week she would
+-- have had), as the caption's "(א)" or "(ב)" names the sub-section.
+@desc What an annexed work-week table is for.
+DECLARE `Oz annexed table's use` IS ONE OF
+    `the week by the position`
+    `a mother cutting her hours, section 11(א)`
+    `a mother keeping her week, section 11(ב)`
+
+@desc A work-week table in the Oz agreement's annexes.
+DECLARE `Oz annexed table` HAS
+    `the annex printing it` IS A STRING
+    `the age band it is for` IS AN `Oz annexed age band`
+    `what it is for`         IS AN `Oz annexed table's use`
+    `its columns`            IS A LIST OF `Oz annexed column`
+
+-- A mother's two tables for one age band (annexes א'–א'3): the (א) table
+-- prints the (ב) table's columns cut by one, as the checks below compare.
+@desc A mother's two tables for one age band, under §11(א) and under §11(ב).
+DECLARE `Oz mother's tables` HAS
+    `the table under (א)` IS AN `Oz annexed table`
+    `the table under (ב)` IS AN `Oz annexed table`
+
+-- What a table gives a teacher: the week he works, the position he is
+-- employed in (for a mother, the one she would have had, which §11(ה)
+-- keeps her tenure in) and the position his salary is computed on (larger
+-- for a mother, §11(ב) and §26(ה)).
+@desc What an annexed work-week table gives a teacher.
+DECLARE `Oz annexed week` HAS
+    `the week it gives`           IS AN `Oz work week`
+    `the position employed in`    IS A NUMBER @desc 1 is a full position
+    `the position paid on`        IS A NUMBER @desc 1 is a full position
+
+GIVEN c IS AN `Oz annexed column`
+GIVETH A NUMBER
+DECIDE `the hours of the annexed column` c IS
+    c's `the frontal hours printed` PLUS c's `the individual hours printed` PLUS c's `the teaching-support hours printed`
+
+GIVEN c IS AN `Oz annexed column`
+GIVETH AN `Oz work week`
+DECIDE `the annexed column's week` c IS
+    `an Oz week of` (c's `the frontal hours printed`) (c's `the individual hours printed`) (c's `the teaching-support hours printed`)
+
+-- A table's full position, in hours: the presence its first column prints,
+-- the column of a position of 100% (for a mother's table, of the position
+-- she would have had). Every table's first column is that position, as the
+-- annexes' checks confirm; the sections that send to them hold it to their
+-- own full week (§§9(ו), 12 and 26(א)).
+GIVEN t IS AN `Oz annexed table`
+GIVETH A NUMBER
+DECIDE `the full position's hours in the annexed table` t IS
+    CONSIDER t's `its columns`
+    WHEN c FOLLOWED BY rest THEN c's `the presence printed`
+    WHEN EMPTY THEN 0
+
+GIVEN t IS AN `Oz annexed table`, hours IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the share of the annexed table's full position` t hours IS
+    hours DIVIDED BY `the full position's hours in the annexed table` t
+
+-- A position the tables print, to the hundredth of a percent (96.05% is
+-- 36.5 of 38 hours), with an exact half going up (convention rounding.half).
+GIVEN x IS A NUMBER
+GIVETH A NUMBER
+DECIDE `to the hundredth of a percent` x IS
+    x `to the nearest` 0.0001
+
+GIVEN t IS AN `Oz annexed table`, f IS A NUMBER
+GIVETH A MAYBE `Oz annexed column`
+DECIDE `the column the annexed table prints for` t f IS
+    listToMaybe (filter (GIVEN c YIELD c's `the frontal hours printed` EQUALS f) (t's `its columns`))
+
+-- The note under every table ("הערה: במקרה בו סך שעות הפרונטאליות ושעות
+-- התפקיד ... אינו מספר שלם"): frontal and role hours that are not whole take
+-- the individual and support hours of the column whose frontal hours are
+-- nearest to them "על פי כללי העיגול" — an exact half going up (convention
+-- rounding.half) — and the position is all the hours together over the
+-- full position's. Whole hours are a column's own.
+GIVEN t IS AN `Oz annexed table`, f IS A NUMBER
+GIVETH A MAYBE `Oz annexed column`
+DECIDE `the column the annexes' note takes for` t f IS
+    `the column the annexed table prints for` t (`to the nearest whole` f)
+
+GIVEN t IS AN `Oz annexed table`, f IS A NUMBER
+GIVETH A MAYBE `Oz work week`
+DECIDE `the week the annexed table gives` t f IS
+    CONSIDER `the column the annexes' note takes for` t f
+    WHEN JUST c THEN JUST (`an Oz week of` f (c's `the individual hours printed`) (c's `the teaching-support hours printed`))
+    WHEN NOTHING THEN NOTHING
+
+-- The position of a week: its hours over the full position's. For whole
+-- frontal hours it is the column's, to the hundredth of a percent the
+-- table prints (convention rounding.printed-figure), and where a printed
+-- cell departs from its hours (F-oz-founding-annex-g-a), the hours decide
+-- (convention reading.misprint). For hours the note computes it is exact:
+-- the note names no rounding (convention rounding.default).
+GIVEN t IS AN `Oz annexed table`, w IS AN `Oz work week`
+GIVETH A NUMBER
+DECIDE `the position of the week in the annexed table` t w IS
+    IF w's `frontal teaching hours` EQUALS FLOOR (w's `frontal teaching hours`)
+    THEN `to the hundredth of a percent` share
+    ELSE share
+    WHERE
+        share MEANS `the share of the annexed table's full position` t (`the hours of the Oz week` w)
+
+-- What a table of the week by the position gives a teacher with f frontal
+-- and role hours.
+GIVEN t IS AN `Oz annexed table`, f IS A NUMBER
+GIVETH A MAYBE `Oz annexed week`
+DECIDE `what the annexed table gives for` t f IS
+    CONSIDER `the week the annexed table gives` t f
+    WHEN JUST w THEN
+        LET p MEANS `the position of the week in the annexed table` t w
+        IN  JUST (`an Oz annexed week of` w p p)
+    WHEN NOTHING THEN NOTHING
+
+GIVEN w IS AN `Oz work week`, employed IS A NUMBER, paid IS A NUMBER
+GIVETH AN `Oz annexed week`
+DECIDE `an Oz annexed week of` w employed paid IS
+    `Oz annexed week` WITH
+        `the week it gives`        IS w
+        `the position employed in` IS employed
+        `the position paid on`     IS paid
+
+-- The note under the tables of annexes ב'–ג'3: a teacher with fewer frontal
+-- hours (with his homeroom and role hours) than the note names works
+-- frontal hours only, at those hours over the full position's. The note
+-- divides by "בסיס המשרה ברפורמה": the table's own full position, the
+-- reading F-oz-founding-annex-b-a adopts.
+GIVEN t IS AN `Oz annexed table`, fewest IS A NUMBER, f IS A NUMBER
+GIVETH A MAYBE `Oz annexed week`
+DECIDE `what the annexed table gives, frontal hours only below` t fewest f IS
+    IF f LESS THAN fewest
+    THEN JUST (`an Oz annexed week of` (`an Oz week of` f 0 0) share share)
+    ELSE `what the annexed table gives for` t f
+    WHERE
+        share MEANS `the share of the annexed table's full position` t f
+
+-- §11(ב)'s step in a mother's tables: the points the (ב) table's first
+-- column adds to the position she would have had (107.00% over 100.00% in
+-- annex א'). §§11(ב) and 26(ה) hold each annex's step to their own rate.
+GIVEN m IS AN `Oz mother's tables`
+GIVETH A NUMBER
+DECIDE `the points the mother's tables add` m IS
+    CONSIDER m's `the table under (ב)`'s `its columns`
+    WHEN c FOLLOWED BY rest THEN c's `the position printed` MINUS fromMaybe 0 (c's `the would-have position printed`)
+    WHEN EMPTY THEN 0
+
+-- §11(ב): a mother keeping the week she would have had (f frontal and role
+-- hours) works its week, is employed in its position and is paid on that
+-- position and the annex's step.
+GIVEN m IS AN `Oz mother's tables`, f IS A NUMBER
+GIVETH A MAYBE `Oz annexed week`
+DECIDE `what the mother's tables give a mother keeping her week` m f IS
+    CONSIDER `the week the annexed table gives` t f
+    WHEN JUST w THEN
+        LET p MEANS `the position of the week in the annexed table` t w
+        IN  JUST (`an Oz annexed week of` w p (p PLUS `the points the mother's tables add` m))
+    WHEN NOTHING THEN NOTHING
+    WHERE
+        t MEANS m's `the table under (ב)`
+
+-- §11(א): a mother cutting her hours, whose week would have been the (ב)
+-- table's column for f frontal and role hours, works the column after it —
+-- one frontal hour less — and is paid on that week's position and the
+-- annex's step, her position staying the one she would have had. This is
+-- the (א) table as every one of its columns prints it, but those
+-- F-oz-founding-annex-a-a names, read by the same pattern (convention
+-- reading.consistent). The (ב) table's last column has none after it.
+GIVEN m IS AN `Oz mother's tables`, f IS A NUMBER
+GIVETH A MAYBE `Oz annexed week`
+DECIDE `what the mother's tables give a mother cutting her hours` m f IS
+    CONSIDER `the column the annexes' note takes for` t f
+    WHEN NOTHING THEN NOTHING
+    WHEN JUST c THEN
+        CONSIDER `the column the annexed table prints for` t (c's `the frontal hours printed` MINUS 1)
+        WHEN NOTHING THEN NOTHING
+        WHEN JUST next THEN
+            LET cut MEANS `an Oz week of` (f MINUS 1) (next's `the individual hours printed`) (next's `the teaching-support hours printed`)
+            IN  LET would MEANS `the position of the week in the annexed table` t (`an Oz week of` f (c's `the individual hours printed`) (c's `the teaching-support hours printed`))
+                IN  JUST (`an Oz annexed week of` cut would (`the position of the week in the annexed table` t cut PLUS `the points the mother's tables add` m))
+    WHERE
+        t MEANS m's `the table under (ב)`
+
+-- A table as a finding reads it: the printed table with one column read
+-- otherwise (the first column is 1). The printed table stays the data the
+-- checks run on; a lookup that must get past the departing cell runs on
+-- this.
+GIVEN t IS AN `Oz annexed table`, k IS A NUMBER, c IS AN `Oz annexed column`
+GIVETH AN `Oz annexed table`
+DECIDE `the annexed table with its column` t k `read as` c IS
+    `Oz annexed table` WITH
+        `the annex printing it`  IS t's `the annex printing it`
+        `the age band it is for` IS t's `the age band it is for`
+        `what it is for`         IS t's `what it is for`
+        `its columns`            IS append (take (k MINUS 1) (t's `its columns`)) (c FOLLOWED BY drop k (t's `its columns`))
+
+-- The checks. A printed cell that departs from its table's pattern is named
+-- by its table, its row and its column (the first column is 1), with the
+-- figure printed there.
+@desc A row of an annexed work-week table.
+DECLARE `Oz annexed row` IS ONE OF
+    `the position row`
+    `the would-have position row`
+    `the frontal hours row`
+    `the individual hours row`
+    `the teaching-support hours row`
+    `the presence row`
+
+@desc A printed cell of an annexed table that departs from the table's pattern.
+DECLARE `Oz annexed cell` HAS
+    `in the annex`  IS A STRING
+    `in the band`   IS AN `Oz annexed age band`
+    `in the table`  IS AN `Oz annexed table's use`
+    `in the row`    IS AN `Oz annexed row`
+    `in the column` IS A NUMBER
+    `printed there` IS A NUMBER
+
+GIVEN t IS AN `Oz annexed table`, r IS AN `Oz annexed row`, k IS A NUMBER, x IS A NUMBER
+GIVETH AN `Oz annexed cell`
+DECIDE `the cell of` t r k x IS
+    `Oz annexed cell` WITH
+        `in the annex`  IS t's `the annex printing it`
+        `in the band`   IS t's `the age band it is for`
+        `in the table`  IS t's `what it is for`
+        `in the row`    IS r
+        `in the column` IS k
+        `printed there` IS x
+
+-- The columns of a table numbered from 1, for the checks.
+GIVEN t IS AN `Oz annexed table`
+GIVETH A LIST OF PAIR NUMBER `Oz annexed column`
+DECIDE `the numbered columns of` t IS
+    zip (range 1 (count (t's `its columns`))) (t's `its columns`)
+
+-- The table's own arithmetic: (1) each column's presence is its hours
+-- together, every hour being of 60 minutes (§§9(יא), 26(י)); (2) each
+-- position — in a mother's table, the position she would have had — is its
+-- hours over the full position's, to the hundredth of a percent. A mother's
+-- (א) table is held to its (ב) table instead (below), its positions not
+-- being its own hours'.
+GIVEN t IS AN `Oz annexed table`, k IS A NUMBER, c IS AN `Oz annexed column`
+GIVETH A LIST OF `Oz annexed cell`
+DECIDE `the cells of the column off its arithmetic` t k c IS
+    append presence position
+    WHERE
+        presence MEANS
+            IF `the hours of the annexed column` c EQUALS c's `the presence printed`
+            THEN EMPTY
+            ELSE LIST (`the cell of` t `the presence row` k (c's `the presence printed`))
+        share MEANS `to the hundredth of a percent` (`the share of the annexed table's full position` t (`the hours of the annexed column` c))
+        position MEANS
+            IF t's `what it is for` EQUALS `a mother cutting her hours, section 11(א)`
+            THEN EMPTY
+            ELSE CONSIDER c's `the would-have position printed`
+                 WHEN JUST would THEN IF would EQUALS share THEN EMPTY ELSE LIST (`the cell of` t `the would-have position row` k would)
+                 WHEN NOTHING THEN IF c's `the position printed` EQUALS share THEN EMPTY ELSE LIST (`the cell of` t `the position row` k (c's `the position printed`))
+
+GIVEN t IS AN `Oz annexed table`
+GIVETH A LIST OF `Oz annexed cell`
+DECIDE `the cells of the annexed table off its arithmetic` t IS
+    concat (map (GIVEN kc YIELD CONSIDER kc WHEN PAIR OF k, c THEN `the cells of the column off its arithmetic` t k c) (`the numbered columns of` t))
+
+-- The columns step down a frontal hour at a time, from the full position.
+GIVEN t IS AN `Oz annexed table`
+GIVETH A BOOLEAN
+DECIDE `the annexed table steps down an hour a column` t IF
+    all (GIVEN pair YIELD CONSIDER pair WHEN PAIR OF a, b THEN a's `the frontal hours printed` MINUS b's `the frontal hours printed` EQUALS 1)
+        (zip (t's `its columns`) (drop 1 (t's `its columns`)))
+
+-- The week of a table's first column, its full position.
+GIVEN t IS AN `Oz annexed table`
+GIVETH A MAYBE `Oz work week`
+DECIDE `the week of the annexed table's full position` t IS
+    CONSIDER t's `its columns`
+    WHEN c FOLLOWED BY rest THEN JUST (`the annexed column's week` c)
+    WHEN EMPTY THEN NOTHING
+
+-- The frontal hours of a table's last column: the fewest it prints.
+GIVEN t IS AN `Oz annexed table`
+GIVETH A NUMBER
+DECIDE `the frontal hours of the annexed table's last column` t IS
+    minimum (map (GIVEN c YIELD c's `the frontal hours printed`) (t's `its columns`))
+
+-- The first column is the full position: 100% (in a mother's (ב) table,
+-- the position she would have had).
+GIVEN t IS AN `Oz annexed table`
+GIVETH A BOOLEAN
+DECIDE `the annexed table opens at the full position` t IF
+    CONSIDER t's `its columns`
+    WHEN c FOLLOWED BY rest THEN fromMaybe (c's `the position printed`) (c's `the would-have position printed`) EQUALS 1
+    WHEN EMPTY THEN FALSE
+
+-- A mother's tables: (3) in the (ב) table, each position she is paid on is
+-- the one she would have had and the annex's step; (4) the (א) table's
+-- column k is the (ב) table's column k+1 — the hours she works — with the
+-- position she would have had of the (ב) column k, and paid on the (ב)
+-- column k+1's position and the step.
+GIVEN m IS AN `Oz mother's tables`, c IS AN `Oz annexed column`
+GIVETH A NUMBER
+DECIDE `the position the mother's tables pay on the column` m c IS
+    `to the hundredth of a percent` (`the share of the annexed table's full position` (m's `the table under (ב)`) (`the hours of the annexed column` c))
+        PLUS `the points the mother's tables add` m
+
+GIVEN m IS AN `Oz mother's tables`, k IS A NUMBER, c IS AN `Oz annexed column`
+GIVETH A LIST OF `Oz annexed cell`
+DECIDE `the cells of the (ב) column off the step` m k c IS
+    IF c's `the position printed` EQUALS fromMaybe 0 (c's `the would-have position printed`) PLUS `the points the mother's tables add` m
+    THEN EMPTY
+    ELSE LIST (`the cell of` (m's `the table under (ב)`) `the position row` k (c's `the position printed`))
+
+GIVEN t IS AN `Oz annexed table`, r IS AN `Oz annexed row`, k IS A NUMBER, printed IS A NUMBER, pattern IS A NUMBER
+GIVETH A LIST OF `Oz annexed cell`
+DECIDE `the cell if it departs` t r k printed pattern IS
+    IF printed EQUALS pattern THEN EMPTY ELSE LIST (`the cell of` t r k printed)
+
+GIVEN m IS AN `Oz mother's tables`, k IS A NUMBER, c IS AN `Oz annexed column`
+GIVETH A LIST OF `Oz annexed cell`
+DECIDE `the cells of the (א) column off the (ב) table` m k c IS
+    CONSIDER `the column the annexed table prints for` b (c's `the frontal hours printed`)
+    WHEN NOTHING THEN LIST (`the cell of` a `the frontal hours row` k (c's `the frontal hours printed`))
+    WHEN JUST twin THEN
+        concat (LIST
+            `the cell if it departs` a `the individual hours row` k (c's `the individual hours printed`) (twin's `the individual hours printed`),
+            `the cell if it departs` a `the teaching-support hours row` k (c's `the teaching-support hours printed`) (twin's `the teaching-support hours printed`),
+            `the cell if it departs` a `the would-have position row` k (fromMaybe 0 (c's `the would-have position printed`)) (fromMaybe 0 ((at (b's `its columns`) (k MINUS 1))'s `the would-have position printed`)),
+            `the cell if it departs` a `the position row` k (c's `the position printed`) (`the position the mother's tables pay on the column` m twin))
+    WHERE
+        a MEANS m's `the table under (א)`
+        b MEANS m's `the table under (ב)`
+
+GIVEN m IS AN `Oz mother's tables`
+GIVETH A LIST OF `Oz annexed cell`
+DECIDE `the cells of the mother's tables off their pattern` m IS
+    append
+        (concat (map (GIVEN kc YIELD CONSIDER kc WHEN PAIR OF k, c THEN `the cells of the (ב) column off the step` m k c) (`the numbered columns of` (m's `the table under (ב)`))))
+        (concat (map (GIVEN kc YIELD CONSIDER kc WHEN PAIR OF k, c THEN `the cells of the (א) column off the (ב) table` m k c) (`the numbered columns of` (m's `the table under (א)`))))
