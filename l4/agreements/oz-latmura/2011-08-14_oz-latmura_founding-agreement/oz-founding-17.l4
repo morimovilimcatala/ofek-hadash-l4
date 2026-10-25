@@ -12,6 +12,7 @@ IMPORT parties
 IMPORT vocabulary
 IMPORT `oz-founding-common`
 IMPORT `oz-founding-10`
+IMPORT `oz-founding-41`
 
 § `17 גמולים למורים בעלי תפקידים`
 
@@ -32,7 +33,7 @@ DECLARE `Oz role holder` HAS
     `classes in the school` IS A NUMBER
     `classes in his grade` IS A NUMBER @desc the grade a grade coordinator coordinates
     `classes in the upper division in his charge` IS A NUMBER @desc the classes an educational counsellor is responsible for
-    `role hours the principal gives him` IS A NUMBER @desc a deputy's share of the deputies' management hours; a teacher's hours for the tasks the principal assigns
+    `role hours the principal gives him` IS A NUMBER @desc a deputy's share of the deputies' management hours; a teacher's hours for the tasks the principal assigns; a subject coordinator's hours out of §41's basket
 
 @desc The salary components a §17 allowance is computed on, at the teacher's own values.
 DECLARE `Oz role allowance base` HAS
@@ -234,10 +235,13 @@ DECIDE `a rate a subject coordinator outside English and mathematics may have` r
     r AT LEAST 5% AND r AT MOST 7%
 
 -- (2): his role hours are §41's (which applies to every teaching
--- employee).
+-- employee): what the principal allots him out of the subject
+-- coordinators' basket, an hour at most, in place of frontal hours.
 @ref akn:art_17__para_a__hc_5__subpara_2
-`why a subject coordinator's role hours have no figure here` MEANS
-    `not yet encoded` "סעיף 41 להסכם עוז לתמורה (14.8.2011), שעות תפקיד לרכז מקצוע"
+GIVEN h IS A `Oz role holder`
+GIVETH A NUMBER
+DECIDE `a subject coordinator's role hours` h IS
+    `the role hours section 41 gives a subject coordinator` (h's `role hours the principal gives him`)
 
 §§§ `17(א) מחנך כיתה`
 
@@ -316,25 +320,25 @@ DECIDE `the section 17 role allowance` h b IS
 -- replace, kept within the frontal hours the role holder must still teach
 -- ((ד) and the rows' own floors) and within the individual hours his
 -- position holds. The week is §10's: the role hours stand where the hours
--- they replace stood. NOTHING for the subject coordinator, whose hours are
--- §41's; a role the table gives no hours, none. (2)(ב) of the deputy's
--- row, and (2)(ב) of the counsellor's: all the individual hours.
+-- they replace stood; the subject coordinator's are §41's; a role the
+-- table gives no hours, none. (2)(ב) of the deputy's row, and (2)(ב) of
+-- the counsellor's: all the individual hours.
 @ref akn:art_17__para_a__hc_1__subpara_2__cls_a akn:art_17__para_a__hc_1__subpara_2__cls_b akn:art_17__para_a__hc_2__subpara_2 akn:art_17__para_a__hc_3__subpara_2 akn:art_17__para_a__hc_7__subpara_2 akn:art_17__para_a__hc_8__subpara_2__cls_a akn:art_17__para_a__hc_8__subpara_2__cls_b akn:art_17__para_a__hc_9/p1 akn:art_17__para_d
 GIVEN h IS A `Oz role holder`, w IS A `Oz work week`
-GIVETH A MAYBE `Oz role hours`
+GIVETH A `Oz role hours`
 DECIDE `the role hours section 17 gives` h w IS
     CONSIDER h's `the role`
-    WHEN `the Oz deputy principal` THEN JUST (hours (h's `role hours the principal gives him`) individual)
+    WHEN `the Oz deputy principal` THEN hours (h's `role hours the principal gives him`) individual
     WHEN `the Oz grade coordinator` THEN
-        JUST (hours (half (`a grade coordinator's role hours` (h's `classes in his grade`)))
-                    (min (half (`a grade coordinator's role hours` (h's `classes in his grade`))) individual))
-    WHEN `the Oz social-education coordinator` THEN JUST (hours (`a social-education coordinator's role hours` (h's `classes in the school`)) 0)
-    WHEN `the Oz subject coordinator` THEN NOTHING
-    WHEN `the Oz homeroom teacher` THEN JUST (hours `a homeroom teacher's role hours` 0)
-    WHEN `the Oz educational counsellor` THEN JUST (hours (`an educational counsellor's role hours` (h's `classes in the upper division in his charge`)) individual)
+        hours (half (`a grade coordinator's role hours` (h's `classes in his grade`)))
+              (min (half (`a grade coordinator's role hours` (h's `classes in his grade`))) individual)
+    WHEN `the Oz social-education coordinator` THEN hours (`a social-education coordinator's role hours` (h's `classes in the school`)) 0
+    WHEN `the Oz subject coordinator` THEN hours (`a subject coordinator's role hours` h) 0
+    WHEN `the Oz homeroom teacher` THEN hours `a homeroom teacher's role hours` 0
+    WHEN `the Oz educational counsellor` THEN hours (`an educational counsellor's role hours` (h's `classes in the upper division in his charge`)) individual
     WHEN `the Oz teacher with tasks the principal assigns` THEN
-        JUST (hours (min (h's `role hours the principal gives him`) `the most role hours for tasks the principal assigns`) 0)
-    OTHERWISE JUST (hours 0 0)
+        hours (min (h's `role hours the principal gives him`) `the most role hours for tasks the principal assigns`) 0
+    OTHERWISE hours 0 0
     WHERE
         individual MEANS w's `individual hours with pupils`
         room MEANS max 0 (w's `frontal teaching hours` MINUS `the frontal hours a role holder teaches at least` (h's `the role`))
@@ -344,11 +348,11 @@ DECIDE `the role hours section 17 gives` h w IS
             `in place of individual hours` IS i
 
 GIVEN h IS A `Oz role holder`, w IS A `Oz work week`
-GIVETH A MAYBE `Oz work week`
+GIVETH A `Oz work week`
 DECIDE `the Oz week of a role holder` h w IS
-    CONSIDER `the role hours section 17 gives` h w
-    WHEN JUST r THEN JUST (`the hours left besides the role hours` w (r's `in place of frontal hours`) (r's `in place of individual hours`))
-    WHEN NOTHING THEN NOTHING
+    `the hours left besides the role hours` w (r's `in place of frontal hours`) (r's `in place of individual hours`)
+    WHERE
+        r MEANS `the role hours section 17 gives` h w
 
 §§ `17(ב)`
 
@@ -484,17 +488,19 @@ DECIDE `an allowance base of 10,000 with` e s11 IS
 -- the role hours, and the week §10 leaves
 #ASSERT `the management hours of all the deputies` 30 EQUALS 15
 #ASSERT `a grade coordinator's role hours` 4 EQUALS 4 AND `a grade coordinator's role hours` 3 EQUALS 0 AND `a grade coordinator's role hours` 15 EQUALS 12
-#ASSERT `the Oz week of a role holder` (`an Oz role holder of` `the Oz grade coordinator` 30 8 0) `a full Oz week` EQUALS JUST (`an Oz week of` 20 2 10)
-#ASSERT `the Oz week of a role holder` (`an Oz role holder of` `the Oz homeroom teacher` 30 6 0) `a full Oz week` EQUALS JUST (`an Oz week of` 21 6 10)
-#ASSERT `the Oz week of a role holder` (`an Oz role holder of` `the Oz deputy principal` 30 6 15) `a full Oz week` EQUALS JUST (`an Oz week of` 9 0 10)
-#ASSERT `the Oz week of a role holder` (`an Oz role holder of` `the Oz subject coordinator` 30 6 0) `a full Oz week` EQUALS NOTHING
+#ASSERT `the Oz week of a role holder` (`an Oz role holder of` `the Oz grade coordinator` 30 8 0) `a full Oz week` EQUALS `an Oz week of` 20 2 10
+#ASSERT `the Oz week of a role holder` (`an Oz role holder of` `the Oz homeroom teacher` 30 6 0) `a full Oz week` EQUALS `an Oz week of` 21 6 10
+#ASSERT `the Oz week of a role holder` (`an Oz role holder of` `the Oz deputy principal` 30 6 15) `a full Oz week` EQUALS `an Oz week of` 9 0 10
+-- a subject coordinator: what §41's basket gives him, an hour at most
+#ASSERT `the Oz week of a role holder` (`an Oz role holder of` `the Oz subject coordinator` 30 6 1) `a full Oz week` EQUALS `an Oz week of` 23 6 10
+#ASSERT `the Oz week of a role holder` (`an Oz role holder of` `the Oz subject coordinator` 30 6 2) `a full Oz week` EQUALS `an Oz week of` 23 6 10
 -- The floors bind on purpose: in a school of 35 classes the social-education
 -- coordinator's 14 hours stop at the 12 frontal hours he must keep, and a
 -- counsellor with 10 classes in his charge keeps 8 of his 24, not 7.
-#ASSERT `the Oz week of a role holder` (`an Oz role holder of` `the Oz social-education coordinator` 35 6 0) `a full Oz week` EQUALS JUST (`an Oz week of` 12 6 10)
-#ASSERT `the Oz week of a role holder` (`an Oz role holder of` `the Oz educational counsellor` 10 6 0) `a full Oz week` EQUALS JUST (`an Oz week of` 8 0 10)
+#ASSERT `the Oz week of a role holder` (`an Oz role holder of` `the Oz social-education coordinator` 35 6 0) `a full Oz week` EQUALS `an Oz week of` 12 6 10
+#ASSERT `the Oz week of a role holder` (`an Oz role holder of` `the Oz educational counsellor` 10 6 0) `a full Oz week` EQUALS `an Oz week of` 8 0 10
 -- tasks: four hours at most
-#ASSERT `the Oz week of a role holder` (`an Oz role holder of` `the Oz teacher with tasks the principal assigns` 30 6 5) `a full Oz week` EQUALS JUST (`an Oz week of` 20 6 10)
+#ASSERT `the Oz week of a role holder` (`an Oz role holder of` `the Oz teacher with tasks the principal assigns` 30 6 5) `a full Oz week` EQUALS `an Oz week of` 20 6 10
 -- (2)(ג) and (ב): the conditions together
 #ASSERT `giving a deputy further management hours` TRUE TRUE 8 EQUALS FULFILLED
 #ASSERT `giving role hours to a role holder the agreement gives none` TRUE TRUE 5 EQUALS FULFILLED

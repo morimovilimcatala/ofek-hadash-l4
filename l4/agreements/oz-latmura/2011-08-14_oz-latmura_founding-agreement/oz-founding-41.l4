@@ -1,0 +1,94 @@
+-- הסכם עוז לתמורה (14.8.2011), §41 שעות תפקיד לרכז מקצוע: from תשע"ב the
+-- school principal allots a subject coordinator role hours in place of his
+-- frontal teaching hours, out of one basket for all the school's subject
+-- coordinators together — half an hour for each class of the upper grades
+-- the school counts — and no coordinator more than one hour of it. Part י
+-- speaks of every teaching employee; §17's table sends the subject
+-- coordinator's role hours here.
+
+IMPORT prelude
+IMPORT parties
+IMPORT `oz-founding-common`
+IMPORT `oz-founding-2`
+
+§ `41 שעות תפקיד לרכז מקצוע`
+
+DECLARE `Oz section 41 action` IS ONE OF
+    `allot the subject coordinators role hours out of the basket`
+    `allot one subject coordinator more than an hour out of the basket`
+
+-- ¶1: from the school year תשע"ב (convention dates.school-year).
+@ref akn:art_41
+GIVEN y IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `section 41 allots role hours in` y IF
+    y AT LEAST `the school year 5772`
+
+-- ¶1: the basket is half an hour for each class of grades ט'–י"ב, and
+-- י"ג–י"ד where the school has them, in a four-year school; of grades
+-- י'–י"ב (י"ג–י"ד) in a three-year or a six-year school. A school of another
+-- kind is no school of the agreement (§§2, 4(ח)) and has no basket.
+@ref akn:art_41
+GIVEN k IS A `kind of Oz school`
+      `classes in grade 9` IS A NUMBER
+      `classes in grades 10 to 14` IS A NUMBER @desc grades י'–י"ב, and י"ג–י"ד where the school has them
+GIVETH A NUMBER
+DECIDE `the subject coordinators' basket of role hours` k `classes in grade 9` `classes in grades 10 to 14` IS
+    `half an hour a class` TIMES counted
+    WHERE
+        `half an hour a class` MEANS 0.5
+        counted MEANS
+            CONSIDER k
+            WHEN `a four-year school, grades 9 to 12` THEN `classes in grade 9` PLUS `classes in grades 10 to 14`
+            WHEN `a three-year school, grades 10 to 12` THEN `classes in grades 10 to 14`
+            WHEN `a six-year school, grades 7 to 12` THEN `classes in grades 10 to 14`
+            WHEN `a school of another kind` THEN 0
+
+-- ¶1: the principal allots the role hours out of the basket (no deadline:
+-- convention dates.no-deadline); they take the place of the coordinator's
+-- frontal teaching hours.
+@ref akn:art_41
+`allotting the subject coordinators' role hours` MEANS
+    PARTY `the school principal`
+    MUST  `allot the subject coordinators role hours out of the basket`
+
+-- ¶2: no single subject coordinator is allotted more than one hour out of
+-- the basket ("לא ... יותר משעה אחת": an hour is in).
+@ref akn:art_41/p2
+`the most a subject coordinator is allotted out of the basket` MEANS 1
+
+`allotting one coordinator more than an hour` MEANS
+    PARTY `the school principal`
+    SHANT `allot one subject coordinator more than an hour out of the basket`
+
+-- An allotment keeps to the section: no coordinator more than an hour,
+-- none less than nothing, and all of them together within the basket.
+GIVEN basket IS A NUMBER
+      allotted IS A LIST OF NUMBER
+GIVETH A BOOLEAN
+DECIDE `an allotment within section 41` basket allotted IF
+        all (GIVEN h YIELD h AT LEAST 0 AND h AT MOST `the most a subject coordinator is allotted out of the basket`) allotted
+    AND sum allotted AT MOST basket
+
+-- The role hours a subject coordinator is given: what the principal
+-- allotted him, an hour at most. They come in place of frontal hours
+-- (§17's table keeps them within the frontal hours he must still teach).
+@ref akn:art_41 akn:art_41/p2
+GIVEN `allotted him out of the basket` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the role hours section 41 gives a subject coordinator` `allotted him out of the basket` IS
+    min `allotted him out of the basket` `the most a subject coordinator is allotted out of the basket`
+
+§§ `41 -- illustrations`
+
+-- A four-year school of 4 classes in grade ט' and 12 in י'–י"ב: 8 hours;
+-- a six-year school counts only its י'–י"ב: 6.
+#ASSERT `the subject coordinators' basket of role hours` `a four-year school, grades 9 to 12` 4 12 EQUALS 8
+#ASSERT `the subject coordinators' basket of role hours` `a six-year school, grades 7 to 12` 4 12 EQUALS 6
+#ASSERT `section 41 allots role hours in` `the school year 5772` AND NOT `section 41 allots role hours in` 2010
+-- six coordinators of an hour each fit a basket of 6; one of an hour and a
+-- half does not, nor do seven hours in all
+#ASSERT `an allotment within section 41` 6 (LIST 1, 1, 1, 1, 1, 1)
+#ASSERT NOT `an allotment within section 41` 6 (LIST 1.5, 1, 1)
+#ASSERT NOT `an allotment within section 41` 6 (LIST 1, 1, 1, 1, 1, 1, 1)
+#ASSERT `the role hours section 41 gives a subject coordinator` 0.5 EQUALS 0.5 AND `the role hours section 41 gives a subject coordinator` 2 EQUALS 1
