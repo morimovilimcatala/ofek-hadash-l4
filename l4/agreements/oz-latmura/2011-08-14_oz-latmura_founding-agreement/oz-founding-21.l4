@@ -1,0 +1,185 @@
+-- הסכם עוז לתמורה (14.8.2011), §21 ליווי טיולים ופעילות חוץ בית ספרית:
+-- from תשע"ב, for a teaching employee under the reform in full, the
+-- activity units of the agreement of 8.9.1998 are counted from 16:00 by a
+-- new table (in place of its §4.ד); escorting on a free day, or on a day
+-- not placed for a full 8-hour day, is paid in hours at the value of a
+-- substitution hour (in place of its annex א'); an activity on such a day
+-- earns both (in place of its §4.ח); and its other rules stand.
+
+IMPORT prelude
+IMPORT vocabulary
+IMPORT conventions
+IMPORT `oz-founding-common`
+
+§ `21 ליווי טיולים ופעילות חוץ בית ספרית`
+
+-- The opening: from תשע"ב, for teaching employees employed under the
+-- reform in full, this is the reward for escorting trips and for
+-- out-of-school activity.
+@ref akn:art_21/p1
+GIVEN y IS A NUMBER, e IS A `extent of the Oz reform`
+GIVETH A BOOLEAN
+DECIDE `section 21 governs the reward for activity in` y e IF
+        y AT LEAST `the school year 5772`
+    AND e EQUALS `the Oz reform in full`
+
+-- What an activity is, and what a unit is worth (0.7% of the monthly
+-- combined salary), are the agreement of 8.9.1998's (§§4.ב, 4.ג), which
+-- the corpus holds and the L4 has not encoded.
+`why a unit's value and the kinds of activity are not here` MEANS
+    `not yet encoded` "הסכם קיבוצי מיום 8.9.1998 (ארגון המורים) — תגמול בגין ליווי טיולים ופעילות חוץ בית ספרית, סעיפים 4.ב–4.ג"
+
+§§ `21(א)`
+
+-- (א), in place of §4.ד of the agreement of 8.9.1998: the units each
+-- activity earns go by the hour it ends — ending between 16:00 and 18:00, 1
+-- unit; between 18:00 and 21:00, 2.5; between 21:00 and 24:00, 4; a
+-- detached activity (between 16:00 and 24:00), 3; an activity with a night
+-- away, 6. Hours are numbers of the clock (18.5 is 18:30; past midnight,
+-- 24.5 is 00:30). F-oz-founding-21-b: "בין 16:00 לבין 18:00" and "בין
+-- 18:00 לבין 21:00" both hold 18:00, and so at 21:00. The reading adopted
+-- (convention thresholds.shared-bound): the hour belongs to the row that
+-- opens at it, so ending at 18:00 is 2.5. An activity ending before 16:00
+-- ends in the working day (§9(ב)) and earns none.
+-- F-oz-founding-21-a: the table stops at 24:00, and an activity that ends
+-- later, with no night away, is in no row. The reading adopted (convention
+-- reading.analogy): the nearest row, 21:00 to 24:00.
+@ref akn:art_21__para_a akn:art_21__para_a/p2 akn:art_21__para_a/t1
+DECLARE `Oz out-of-school activity` IS ONE OF
+    `an activity ending at` HAS `the hour it ends` IS A NUMBER
+    `a detached activity`
+    `an activity with nights away` HAS `the nights` IS A NUMBER
+
+GIVEN h IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `section 21(א)'s table has a row for an activity ending at` h IF
+    h AT LEAST 16 AND h AT MOST 24
+
+GIVEN h IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the units section 21(א) gives an activity ending at` h IS
+    BRANCH
+        IF h `has reached the row from` 21 THEN 4
+        IF h `has reached the row from` 18 THEN 2.5
+        IF h `has reached the row from` 16 THEN 1
+        OTHERWISE 0
+
+-- (א) ¶3–¶4: each outing earns only the units beside the hour it ends; the
+-- units of column ב are not added up for one activity — save one with more
+-- than one night away, whose units go by the nights.
+@ref akn:art_21__para_a/p3 akn:art_21__para_a/p4
+GIVEN a IS A `Oz out-of-school activity`
+GIVETH A NUMBER
+DECIDE `the units an activity earns` a IS
+    CONSIDER a
+    WHEN `an activity ending at` h THEN `the units section 21(א) gives an activity ending at` h
+    WHEN `a detached activity` THEN 3
+    WHEN `an activity with nights away` n THEN 6 TIMES max 1 n
+
+§§ `21(ב)`
+
+-- (ב), in place of annex א' to the agreement of 8.9.1998: a teaching
+-- employee who escorts a trip, or takes part in an out-of-school activity,
+-- on his free day, or on a day he is not placed for a full working day (8
+-- hours), is paid for hours at the value of a substitution hour: (1) on a
+-- free day, 8 hours or the activity's hours, the fewer; (2) on a day not
+-- placed in full, the difference between those and the hours he was placed
+-- for that day — never below zero (convention amounts.never-negative).
+-- The substitution hour's value is §15(א)(1)'s, by the rules of the eve of
+-- the signing: an input.
+@ref akn:art_21__para_b akn:art_21__para_b/p2 akn:art_21__para_b__subpara_1 akn:art_21__para_b__subpara_2
+DECLARE `the teacher's day of the activity` IS ONE OF
+    `his free day`
+    `a day he is placed for` HAS `the hours he is placed for` IS A NUMBER
+
+`the hours of a full working day for section 21` MEANS 8
+
+GIVEN d IS A `the teacher's day of the activity`
+GIVETH A BOOLEAN
+DECIDE `a day section 21(ב) pays for` d IF
+    CONSIDER d
+    WHEN `his free day` THEN TRUE
+    WHEN `a day he is placed for` placed THEN placed LESS THAN `the hours of a full working day for section 21`
+
+GIVEN d IS A `the teacher's day of the activity`, `the activity's hours` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the hours section 21(ב) pays` d `the activity's hours` IS
+    CONSIDER d
+    WHEN `his free day` THEN paid
+    WHEN `a day he is placed for` placed THEN
+        IF `a day section 21(ב) pays for` d
+        THEN `not below zero` (paid MINUS placed)
+        ELSE 0
+    WHERE
+        paid MEANS min `the hours of a full working day for section 21` `the activity's hours`
+
+§§ `21(ג)`
+
+-- (ג), in place of §4.ח of the agreement of 8.9.1998: an activity (א)
+-- covers, on the free day or a day not placed in full, earns both (א)'s
+-- units and (ב)'s hours.
+@ref akn:art_21__para_c
+GIVEN a IS A `Oz out-of-school activity`
+      d IS A `the teacher's day of the activity`
+      `the activity's hours` IS A NUMBER
+      `the value of a unit` IS A NUMBER              @desc by §4.ג of the agreement of 8.9.1998
+      `the value of a substitution hour` IS A NUMBER @desc by §15(א)(1), the rules of the eve of the signing
+GIVETH A NUMBER
+DECIDE `the reward for the activity` a d `the activity's hours` `the value of a unit` `the value of a substitution hour` IS
+        `the units an activity earns` a TIMES `the value of a unit`
+    PLUS `the hours section 21(ב) pays` d `the activity's hours` TIMES `the value of a substitution hour`
+
+§§ `21(ד)`
+
+-- (ד): the section changes none of the other rules on the reward for
+-- escorting trips and taking part in school activity.
+@ref akn:art_21__para_d
+`why the other rules on escorting trips are not here` MEANS
+    `not yet encoded` "הסכם קיבוצי מיום 8.9.1998 (ארגון המורים) — תגמול בגין ליווי טיולים ופעילות חוץ בית ספרית, יתר הכללים"
+
+§§ `21 -- illustrations`
+
+#ASSERT `the units an activity earns` (`an activity ending at` 17) EQUALS 1
+#ASSERT `the units an activity earns` (`an activity ending at` 18) EQUALS 2.5
+#ASSERT `the units an activity earns` (`an activity ending at` 24) EQUALS 4
+#ASSERT `the units an activity earns` (`an activity ending at` 15.5) EQUALS 0
+#ASSERT `the units an activity earns` (`an activity with nights away` 2) EQUALS 12
+#ASSERT `the units an activity earns` `a detached activity` EQUALS 3
+#ASSERT `the hours section 21(ב) pays` `his free day` 11 EQUALS 8
+#ASSERT `the hours section 21(ב) pays` (`a day he is placed for` 5) 11 EQUALS 3
+#ASSERT `the hours section 21(ב) pays` (`a day he is placed for` 5) 4 EQUALS 0
+#ASSERT `the hours section 21(ב) pays` (`a day he is placed for` 8) 11 EQUALS 0
+-- an activity to 22:00 on the short day (5 hours placed), 12 hours long:
+-- 4 units at 70 and 3 hours at 100
+#ASSERT `the reward for the activity` (`an activity ending at` 22) (`a day he is placed for` 5) 12 70 100 EQUALS 580
+#ASSERT `section 21 governs the reward for activity in` `the school year 5772` `the Oz reform in full` AND NOT `section 21 governs the reward for activity in` `the school year 5772` `the Oz reform in part`
+
+-- F-oz-founding-21-a's evidence: no row holds an activity ending at 00:30,
+-- one minute past 23:59's 4 units; the reading gives it the last row's.
+`section 21(א)'s table stops at midnight` MEANS
+        NOT `section 21(א)'s table has a row for an activity ending at` 24.5
+    AND `section 21(א)'s table has a row for an activity ending at` 23.99
+    AND `the units an activity earns` (`an activity ending at` 24.5) EQUALS `the units an activity earns` (`an activity ending at` 23.99)
+#ASSERT `section 21(א)'s table stops at midnight`
+
+-- F-oz-founding-21-b's evidence: read as printed, each row from its first
+-- hour to its last, both in, an activity ending at 18:00 is in two rows.
+DECLARE `row of section 21(א)'s table as printed` HAS
+    `from the hour` IS A NUMBER
+    `to the hour`   IS A NUMBER
+    `its units`     IS A NUMBER
+
+`the rows section 21(א) prints` MEANS
+    LIST (`row of section 21(א)'s table as printed` OF 16, 18, 1),
+         (`row of section 21(א)'s table as printed` OF 18, 21, 2.5),
+         (`row of section 21(א)'s table as printed` OF 21, 24, 4)
+
+GIVEN h IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the printed rows holding an end at` h IS
+    count (filter (GIVEN r YIELD h AT LEAST r's `from the hour` AND h AT MOST r's `to the hour`) `the rows section 21(א) prints`)
+
+`an activity ending at 18:00 is in two rows` MEANS
+        `the printed rows holding an end at` 18 EQUALS 2
+    AND `the printed rows holding an end at` 21 EQUALS 2
+#ASSERT `an activity ending at 18:00 is in two rows`

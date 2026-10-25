@@ -1,0 +1,273 @@
+-- הסכם עוז לתמורה (14.8.2011), §20 דרגות קידום: a teacher under the reform
+-- accrues credit points — for a role held a whole year (from תשע"ב), and
+-- for being among the best 30% evaluated in his school (from תשע"ג) — and
+-- every 10 points bring a promotion grade of 2% of the combined salary
+-- alone, three years apart at least and four at most; what the supplement's
+-- base holds, what it counts for, and the cumulative table.
+
+IMPORT prelude
+IMPORT vocabulary
+IMPORT conventions
+IMPORT `oz-founding-common`
+
+§ `20 דרגות קידום`
+
+-- The opening: a teacher employed on the reform's terms may accrue credit
+-- points, from the start of that employment on, toward a promotion-grade
+-- supplement, as (א)–(יא) set out.
+@ref akn:art_20/p1
+GIVEN e IS A `extent of the Oz reform`
+GIVETH A BOOLEAN
+DECIDE `may accrue credit points` e IF
+    NOT e EQUALS `off the Oz reform`
+
+§§ `20(א)`
+
+-- (א)(1), from תשע"ב: a teacher who holds one of the roles listed for a
+-- whole school year, at a reasonable level, earns the points beside it.
+-- The list is closed (convention reading.closed-list): the deputy
+-- principal, the educational counsellor and the teacher given tasks earn
+-- none for their role.
+@ref akn:art_20__para_a akn:art_20__para_a__subpara_1 akn:art_20__para_a__subpara_1/t1
+GIVEN r IS A `Oz role`
+GIVETH A NUMBER
+DECIDE `the credit points for the role` r IS
+    CONSIDER r
+    WHEN `the Oz grade coordinator` THEN 4
+    WHEN `the Oz social-education coordinator` THEN 3
+    WHEN `the Oz subject coordinator` THEN 3
+    WHEN `the Oz measurement and evaluation coordinator` THEN 2.5
+    WHEN `the Oz adjustments coordinator` THEN 2.5
+    WHEN `the Oz trips coordinator` THEN 2.5
+    WHEN `the Oz homeroom teacher` THEN 2
+    OTHERWISE 0
+
+-- (א)(2): a teacher holding more than one role in a school year earns the
+-- points of one only, the role that gives the most.
+@ref akn:art_20__para_a__subpara_2
+GIVEN y IS A NUMBER
+      roles IS A LIST OF `Oz role`
+      `held the whole year at a reasonable level` IS A BOOLEAN
+GIVETH A NUMBER
+DECIDE `the role points of the year` y roles `held the whole year at a reasonable level` IS
+    IF y AT LEAST `the school year 5772` AND `held the whole year at a reasonable level`
+    THEN maximum (0 FOLLOWED BY map `the credit points for the role` roles)
+    ELSE 0
+
+§§ `20(ב)`
+
+-- (ב), from תשע"ג (teachers who began on the reform's terms in תשע"ב
+-- too): the teachers whose evaluation (by §19's model) is the highest in
+-- their school in a school year earn points — 30% of the school's teachers,
+-- in three bands of 10%. A teacher is in a band when his place in the
+-- ranking is within its share of the school's teachers, counted exactly
+-- (convention rounding.default: a share is not rounded to whole teachers),
+-- and teachers with equal results share a place (convention
+-- thresholds.ties).
+@ref akn:art_20__para_b akn:art_20__para_b/p2 akn:art_20__para_b/p3
+GIVEN `teachers evaluated above him` IS A NUMBER
+      `the school's teachers` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the evaluation band` `teachers evaluated above him` `the school's teachers` IS
+    BRANCH
+        IF place AT MOST 10% TIMES `the school's teachers` THEN 1
+        IF place AT MOST 20% TIMES `the school's teachers` THEN 2
+        IF place AT MOST 30% TIMES `the school's teachers` THEN 3
+        OTHERWISE 0
+    WHERE
+        place MEANS `teachers evaluated above him` PLUS 1
+
+-- The table: a column for the homeroom teacher, one for the grade,
+-- subject, evaluation, adjustments, social-education and trips
+-- coordinators, one for "a teacher who is not a role holder".
+DECLARE `column of section 20(ב)'s table` IS ONE OF
+    `the homeroom teachers' column`
+    `the coordinators' column`
+    `the column of a teacher who is not a role holder`
+
+@ref akn:art_20__para_b/t1
+GIVEN c IS A `column of section 20(ב)'s table`, band IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the evaluation points in` c band IS
+    CONSIDER c
+    WHEN `the homeroom teachers' column` THEN
+        BRANCH IF band EQUALS 1 THEN 3
+               IF band EQUALS 2 THEN 2
+               IF band EQUALS 3 THEN 1
+               OTHERWISE 0
+    WHEN `the coordinators' column` THEN
+        BRANCH IF band EQUALS 1 THEN 2
+               IF band EQUALS 2 THEN 1
+               IF band EQUALS 3 THEN 0.5
+               OTHERWISE 0
+    WHEN `the column of a teacher who is not a role holder` THEN
+        BRANCH IF band EQUALS 1 THEN 4
+               IF band EQUALS 2 THEN 3
+               IF band EQUALS 3 THEN 2
+               OTHERWISE 0
+
+GIVEN r IS A `Oz role`
+GIVETH A BOOLEAN
+DECIDE `a coordinator the table names` r IF
+        r EQUALS `the Oz grade coordinator`
+    OR r EQUALS `the Oz subject coordinator`
+    OR r EQUALS `the Oz measurement and evaluation coordinator`
+    OR r EQUALS `the Oz adjustments coordinator`
+    OR r EQUALS `the Oz social-education coordinator`
+    OR r EQUALS `the Oz trips coordinator`
+
+-- The columns as printed: a homeroom teacher's, the six coordinators', and
+-- a teacher with no role at all.
+GIVEN roles IS A LIST OF `Oz role`
+GIVETH A LIST OF `column of section 20(ב)'s table`
+DECIDE `the columns the table prints for` roles IS
+    append (IF elem `the Oz homeroom teacher` roles THEN LIST `the homeroom teachers' column` ELSE EMPTY)
+           (append (IF any `a coordinator the table names` roles THEN LIST `the coordinators' column` ELSE EMPTY)
+                   (IF null roles THEN LIST `the column of a teacher who is not a role holder` ELSE EMPTY))
+
+-- F-oz-founding-20-a: the columns leave out a role holder whose role is in
+-- neither — the deputy principal, the educational counsellor, the teacher
+-- given tasks, the holder of another role — and give two to a homeroom
+-- teacher who coordinates. The reading adopted (convention
+-- reading.analogy): any other role holder is in the coordinators' column,
+-- that of the role holders who are not homeroom teachers; and a teacher in
+-- two columns earns the more, as (א)(2) does for roles.
+GIVEN roles IS A LIST OF `Oz role`
+GIVETH A LIST OF `column of section 20(ב)'s table`
+DECIDE `the columns a teacher's roles put him in` roles IS
+    IF null roles OR NOT null (`the columns the table prints for` roles)
+    THEN `the columns the table prints for` roles
+    ELSE LIST `the coordinators' column`
+
+GIVEN y IS A NUMBER
+      roles IS A LIST OF `Oz role`
+      `teachers evaluated above him` IS A NUMBER
+      `the school's teachers` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the evaluation points of the year` y roles `teachers evaluated above him` `the school's teachers` IS
+    IF y AT LEAST `the school year 5773`
+    THEN maximum (0 FOLLOWED BY map (GIVEN c YIELD `the evaluation points in` c band) (`the columns a teacher's roles put him in` roles))
+    ELSE 0
+    WHERE
+        band MEANS `the evaluation band` `teachers evaluated above him` `the school's teachers`
+
+§§ `20(ג)`
+
+-- (ג): the points are due at the end of the school year in which the role
+-- was held or for which the evaluation was given: 31 August, the school
+-- year being from 1 September (convention dates.school-year).
+@ref akn:art_20__para_c
+GIVEN y IS A NUMBER
+GIVETH A DATE
+DECIDE `the day the points are due for school year` y IS
+    DATE_FROM_DMY 31 8 (y PLUS 1)
+
+§§ `20(ד)–(ז)`
+
+-- (ד): a teacher who accrues 10 points is entitled, from the day he is
+-- entitled to them, to a promotion-grade supplement of 2% of the combined
+-- salary (alone). (ה): no percentage or shekel supplement is in its base,
+-- those that count toward percentage supplements on the combined salary
+-- among them.
+@ref akn:art_20__para_d akn:art_20__para_e
+`the points a promotion grade takes` MEANS 10
+`the rate of a promotion grade` MEANS 2%
+
+GIVEN grades IS A NUMBER, `the combined salary` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the promotion-grade supplement for` grades `the combined salary` IS
+    `the rate of a promotion grade` TIMES grades TIMES `the combined salary`
+
+-- (ו): the supplement is in the base of no percentage supplement. (ז): it
+-- counts for the hour value, severance pay, and contributions to a pension
+-- provident fund, a training fund and the Dafna fund.
+@ref akn:art_20__para_f akn:art_20__para_g
+GIVEN p IS A `what an Oz salary component counts for`
+GIVETH A BOOLEAN
+DECIDE `the promotion-grade supplement counts for` p IF
+    NOT `computing a percentage supplement` p
+
+§§ `20(ח)–(י)`
+
+-- (ח): on the day a teacher is entitled to a grade he starts accruing
+-- anew, from zero; points beyond the 10 do not count toward the next.
+-- (ט): a further grade waits until three years at least have passed since
+-- the last ("לפחות": 3 is in); points accrued meanwhile stay until it is
+-- due. (י): four grades at most in a teacher's employment in the upper
+-- divisions. Points are due at the end of a school year ((ג)), so years
+-- are counted in school years. The rule takes the points due at the end of
+-- each school year, from the first.
+@ref akn:art_20__para_h akn:art_20__para_i akn:art_20__para_j
+`the most promotion grades` MEANS 4
+`the school years between promotion grades at least` MEANS 3
+
+GIVEN `this school year` IS A NUMBER
+      `the points of each year` IS A LIST OF NUMBER
+      `points accrued` IS A NUMBER
+      grades IS A NUMBER
+      `the year of the last grade` IS A MAYBE NUMBER
+GIVETH A NUMBER
+DECIDE `the promotion grades from` `this school year` `the points of each year` `points accrued` grades `the year of the last grade` IS
+    CONSIDER `the points of each year`
+    WHEN EMPTY THEN grades
+    WHEN p FOLLOWED BY rest THEN
+        IF      total AT LEAST `the points a promotion grade takes`
+            AND waited
+            AND grades LESS THAN `the most promotion grades`
+        THEN `the promotion grades from` (`this school year` PLUS 1) rest 0 (grades PLUS 1) (JUST `this school year`)
+        ELSE `the promotion grades from` (`this school year` PLUS 1) rest total grades `the year of the last grade`
+        WHERE
+            total MEANS `points accrued` PLUS p
+            waited MEANS CONSIDER `the year of the last grade`
+                         WHEN NOTHING THEN TRUE
+                         WHEN JUST last THEN `this school year` MINUS last AT LEAST `the school years between promotion grades at least`
+
+GIVEN `the first school year` IS A NUMBER
+      `the points of each year` IS A LIST OF NUMBER
+GIVETH A NUMBER
+DECIDE `the promotion grades earned` `the first school year` `the points of each year` IS
+    `the promotion grades from` `the first school year` `the points of each year` 0 0 NOTHING
+
+§§ `20(יא)`
+
+-- (יא), "for the avoidance of doubt": the cumulative rate of the
+-- supplement at each entitlement.
+@ref akn:art_20__para_ja akn:art_20__para_ja/t1
+GIVEN n IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the cumulative promotion-grade rate (יא) prints at entitlement` n IS
+    BRANCH IF n EQUALS 1 THEN 2%
+           IF n EQUALS 2 THEN 4%
+           IF n EQUALS 3 THEN 6%
+           IF n EQUALS 4 THEN 8%
+           OTHERWISE 0
+
+§§ `20 -- illustrations`
+
+-- (יא)'s table is (ד)'s rate, grade on grade
+#ASSERT all (GIVEN n YIELD `the cumulative promotion-grade rate (יא) prints at entitlement` n EQUALS `the rate of a promotion grade` TIMES n) (LIST 1, 2, 3, 4)
+#ASSERT `the promotion-grade supplement for` 2 10000 EQUALS 400
+#ASSERT `the role points of the year` `the school year 5772` (LIST `the Oz homeroom teacher`, `the Oz grade coordinator`) TRUE EQUALS 4
+#ASSERT `the role points of the year` `the school year 5772` (LIST `the Oz deputy principal`) TRUE EQUALS 0
+-- 25 teachers: places 1–2 are the top band, 3–5 the next, 6–7 the last
+#ASSERT `the evaluation band` 1 25 EQUALS 1 AND `the evaluation band` 2 25 EQUALS 2 AND `the evaluation band` 6 25 EQUALS 3 AND `the evaluation band` 7 25 EQUALS 0
+#ASSERT `the evaluation points of the year` `the school year 5773` EMPTY 0 25 EQUALS 4
+#ASSERT `the evaluation points of the year` `the school year 5772` EMPTY 0 25 EQUALS 0
+#ASSERT `the evaluation points of the year` `the school year 5773` (LIST `the Oz homeroom teacher`, `the Oz subject coordinator`) 0 25 EQUALS 3
+#ASSERT NOT `the promotion-grade supplement counts for` `computing another percentage supplement on the combined salary`
+#ASSERT `the promotion-grade supplement counts for` `contributions to the Dafna fund`
+-- a grade coordinator (4) with top evaluations as one (2): 6 points a year
+-- reach 10 in the second year; the next waits three years; four at most
+#ASSERT `the promotion grades earned` `the school year 5773` (LIST 6, 6) EQUALS 1
+#ASSERT `the promotion grades earned` `the school year 5773` (LIST 6, 6, 6, 6) EQUALS 1
+#ASSERT `the promotion grades earned` `the school year 5773` (LIST 6, 6, 6, 6, 6) EQUALS 2
+#ASSERT `the promotion grades earned` `the school year 5773` (LIST 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10) EQUALS 4
+#ASSERT `the day the points are due for school year` `the school year 5773` EQUALS DATE_FROM_DMY 31 8 2013
+
+-- F-oz-founding-20-a's evidence: as printed, a deputy principal is in no
+-- column and a homeroom teacher who coordinates a subject in two.
+`section 20(ב)'s columns do not part the teachers` MEANS
+        null (`the columns the table prints for` (LIST `the Oz deputy principal`))
+    AND null (`the columns the table prints for` (LIST `the Oz educational counsellor`))
+    AND count (`the columns the table prints for` (LIST `the Oz homeroom teacher`, `the Oz subject coordinator`)) EQUALS 2
+#ASSERT `section 20(ב)'s columns do not part the teachers`
