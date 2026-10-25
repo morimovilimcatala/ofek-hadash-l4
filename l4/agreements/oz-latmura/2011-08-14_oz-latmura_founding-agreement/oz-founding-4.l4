@@ -1,0 +1,246 @@
+-- הסכם עוז לתמורה (14.8.2011), §4 הגדרות לעניין הסכם זה: a teaching
+-- employee, a teacher, an existing and a new teaching employee or teacher,
+-- a principal, an existing and a new principal, and a school.
+
+IMPORT prelude
+IMPORT `oz-founding-common`
+IMPORT `oz-founding-2`
+IMPORT vocabulary
+
+§ `4 הגדרות לעניין הסכם זה`
+
+@desc Where a teaching employee stood on a given eve, as §4(ג)(1) and (ו)(1) ask.
+DECLARE `standing on an eve under section 4` IS ONE OF
+    @desc taught, in fact, with an employer–employee relation with one of the employers
+    `teaching for one of the employers`
+    @desc served, in fact, as a school principal, with an employer–employee relation with one of the employers
+    `managing a school for one of the employers`
+    @desc on unpaid leave (חל"ת) or a sabbatical, in employment as a teaching employee or teacher with one of the employers
+    `on leave from teaching for one of the employers`
+    @desc on unpaid leave or a sabbatical, in employment as a school principal with one of the employers
+    `on leave from managing a school for one of the employers`
+    `none of these`
+
+@desc A teaching employee, as far as the definitions of §4 ask.
+DECLARE `Oz staff member` HAS
+    `as section 2 sees them`                    IS A `Oz section 2 employee`
+    `teaches grades 10 to 14`                   IS A BOOLEAN @desc teaches pupils in grades י'–י"ב, or י"ג–י"ד where the school has them
+    `teaches grade 9`                           IS A BOOLEAN
+    `serves as a school principal`              IS A BOOLEAN
+    `appointed principal by the employer's rules` IS A BOOLEAN
+    `standing on the eve of signing`            IS A `standing on an eve under section 4` @desc on 13.8.2011
+    `standing on the eve of moving to the reform` IS A `standing on an eve under section 4`
+    `began with one of the employers in 5772 to 5775` IS A BOOLEAN
+    `teaching years recognised for salary seniority` IS A NUMBER @desc with another employer, or with the same one before a break in teaching
+    `of them an internship year`                IS A NUMBER
+    `of them teaching in army or national service` IS A NUMBER
+    `of them seniority for compulsory army or national service` IS A NUMBER
+    `first appointed a principal in 5772`       IS A BOOLEAN
+    `under the reform in 5772, fully or in part` IS A BOOLEAN
+
+§§ `4(א)`
+
+-- "עובד הוראה" is as §2 defines it: one the agreement covers.
+@ref akn:art_4__para_a
+GIVEN m IS A `Oz staff member`
+GIVETH A BOOLEAN
+DECIDE `a teaching employee under the Oz agreement` m IF
+    `the Oz agreement covers` (m's `as section 2 sees them`)
+
+§§ `4(ב)`
+
+-- "מורה": one who teaches pupils in grades 10–12 (in a four-year school,
+-- 9–12), or in grades 13–14 where the school has them, and is not a school
+-- principal.
+@ref akn:art_4__para_b
+GIVEN m IS A `Oz staff member`
+GIVETH A BOOLEAN
+DECIDE `a teacher under the Oz agreement` m IF
+        (    m's `teaches grades 10 to 14`
+         OR (    m's `teaches grade 9`
+             AND m's `as section 2 sees them`'s `the kind of school` EQUALS `a four-year school, grades 9 to 12`))
+    AND NOT m's `serves as a school principal`
+
+§§ `4(ג)`
+
+-- (ג)(2) ¶2–¶3: the years that count leave out an internship year,
+-- teaching done in army or national service, and seniority for compulsory
+-- army or national service.
+@ref akn:art_4__para_c__subpara_2/p2 akn:art_4__para_c__subpara_2/p3
+GIVEN s IS A `standing on an eve under section 4`
+GIVETH A BOOLEAN
+DECIDE `teaching, managing or on leave for one of the employers` s IF
+    NOT s EQUALS `none of these`
+
+GIVEN m IS A `Oz staff member`
+GIVETH A NUMBER
+DECIDE `the teaching years that count under 4(ג)(2)` m IS
+    max 0 (m's `teaching years recognised for salary seniority`
+           MINUS m's `of them an internship year`
+           MINUS m's `of them teaching in army or national service`
+           MINUS m's `of them seniority for compulsory army or national service`)
+
+-- (ג): an existing teaching employee or teacher is one of two. (1): on the
+-- eve of the signing AND on the eve of his own move to the reform, he
+-- taught or managed a school in fact for one of the employers (א), or was
+-- on unpaid leave or a sabbatical from such employment (ב). (2): he began
+-- with one of the employers in the school years תשע"ב–תשע"ה and is
+-- entitled, for salary seniority, to recognition of teaching years with
+-- another employer, or with the same one before a break.
+@ref akn:art_4__para_c akn:art_4__para_c__subpara_1 akn:art_4__para_c__subpara_1__cls_a akn:art_4__para_c__subpara_1__cls_b akn:art_4__para_c__subpara_2
+GIVEN m IS A `Oz staff member`
+GIVETH A BOOLEAN
+DECIDE `an existing teaching employee under the Oz agreement` m IF
+        (    `teaching, managing or on leave for one of the employers` (m's `standing on the eve of signing`)
+         AND `teaching, managing or on leave for one of the employers` (m's `standing on the eve of moving to the reform`))
+    OR  (    m's `began with one of the employers in 5772 to 5775`
+         AND `the teaching years that count under 4(ג)(2)` m GREATER THAN 0)
+
+§§ `4(ד)`
+
+@ref akn:art_4__para_d
+GIVEN m IS A `Oz staff member`
+GIVETH A BOOLEAN
+DECIDE `a new teaching employee under the Oz agreement` m IF
+    NOT `an existing teaching employee under the Oz agreement` m
+
+§§ `4(ה)`
+
+-- "מנהל": a teaching employee who serves as principal of a six-year school
+-- (7–12) or a four-year school (9–12), grades 13–14 included, appointed by
+-- the employer's rules. The clause does not name the three-year school,
+-- which (ח) makes a school of the agreement and §2 covers: read from the
+-- nearest provision (convention reading.analogy), its principal is a
+-- principal too (F-oz-founding-4-a).
+@ref akn:art_4__para_e
+GIVEN m IS A `Oz staff member`
+GIVETH A BOOLEAN
+DECIDE `a principal under the Oz agreement` m IF
+        `a teaching employee under the Oz agreement` m
+    AND m's `serves as a school principal`
+    AND m's `appointed principal by the employer's rules`
+    AND `has a three- or four-year upper division` (m's `as section 2 sees them`'s `the kind of school`)
+
+-- The kinds of school (ה)'s words name.
+`the kinds of school 4(ה) names` MEANS
+    LIST `a six-year school, grades 7 to 12`, `a four-year school, grades 9 to 12`
+
+§§ `4(ו)`
+
+-- (ו): an existing principal is one of two. (1): on the eve of the
+-- signing AND on the eve of his own move to the reform, he served in fact
+-- as a principal for one of the employers (א), or was on unpaid leave or a
+-- sabbatical from that post (ב). (2): he was first appointed a principal
+-- in תשע"ב and is employed under the reform, fully or in part, in תשע"ב.
+@ref akn:art_4__para_f akn:art_4__para_f__subpara_1 akn:art_4__para_f__subpara_1__cls_a akn:art_4__para_f__subpara_1__cls_b akn:art_4__para_f__subpara_2
+GIVEN s IS A `standing on an eve under section 4`
+GIVETH A BOOLEAN
+DECIDE `managing or on leave from managing for one of the employers` s IF
+       s EQUALS `managing a school for one of the employers`
+    OR s EQUALS `on leave from managing a school for one of the employers`
+
+GIVEN m IS A `Oz staff member`
+GIVETH A BOOLEAN
+DECIDE `an existing principal under the Oz agreement` m IF
+        `a principal under the Oz agreement` m
+    AND (    (    `managing or on leave from managing for one of the employers` (m's `standing on the eve of signing`)
+              AND `managing or on leave from managing for one of the employers` (m's `standing on the eve of moving to the reform`))
+         OR  (m's `first appointed a principal in 5772` AND m's `under the reform in 5772, fully or in part`))
+
+§§ `4(ז)`
+
+@ref akn:art_4__para_g
+GIVEN m IS A `Oz staff member`
+GIVETH A BOOLEAN
+DECIDE `a new principal under the Oz agreement` m IF
+    `a principal under the Oz agreement` m AND NOT `an existing principal under the Oz agreement` m
+
+§§ `4(ח)`
+
+-- "בית ספר": an education institution under the Compulsory Education Law,
+-- 1949, teaching grades 10–12 within a six-year institution, 9–12 in a
+-- four-year one, or a three-year one (10–12), grades 13–14 included.
+-- Whether an institution is one under that law is a fact of the case: the
+-- law is outside the corpus.
+@ref akn:art_4__para_h
+GIVEN k IS A `kind of Oz school`, `an education institution under the Compulsory Education Law` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `a school under the Oz agreement` k `an education institution under the Compulsory Education Law` IF
+        `an education institution under the Compulsory Education Law`
+    AND `has a three- or four-year upper division` k
+
+`why whether an institution is one under the Compulsory Education Law is a fact` MEANS
+    `outside the corpus` "חוק לימוד חובה, תש\"ט-1949"
+
+§§ `4 -- illustrations`
+
+GIVEN k IS A `kind of Oz school`
+GIVETH A `Oz section 2 employee`
+DECIDE `a covered upper-division employee in` k IS
+    `Oz section 2 employee` WITH
+        `ranked on the teaching employees' grade`          IS TRUE
+        `represented by the organisation of secondary teachers` IS TRUE
+        `employed by one of the employers`                 IS TRUE
+        `the kind of school`                               IS k
+        `employed in the school's upper division`          IS TRUE
+        `the school is supervised by the Ministry`         IS TRUE
+
+-- A principal appointed by the rules, in office on both eves.
+GIVEN k IS A `kind of Oz school`
+GIVETH A `Oz staff member`
+DECIDE `a serving principal of` k IS
+    `Oz staff member` WITH
+        `as section 2 sees them`                    IS `a covered upper-division employee in` k
+        `teaches grades 10 to 14`                   IS TRUE
+        `teaches grade 9`                           IS FALSE
+        `serves as a school principal`              IS TRUE
+        `appointed principal by the employer's rules` IS TRUE
+        `standing on the eve of signing`            IS `managing a school for one of the employers`
+        `standing on the eve of moving to the reform` IS `managing a school for one of the employers`
+        `began with one of the employers in 5772 to 5775` IS FALSE
+        `teaching years recognised for salary seniority` IS 0
+        `of them an internship year`                IS 0
+        `of them teaching in army or national service` IS 0
+        `of them seniority for compulsory army or national service` IS 0
+        `first appointed a principal in 5772`       IS FALSE
+        `under the reform in 5772, fully or in part` IS FALSE
+
+-- A teacher hired in תשע"ג, whose only earlier teaching was his internship
+-- year: none of his years counts, so he is a new teacher.
+`a teacher hired in 5773 after an internship year` MEANS
+    `Oz staff member` WITH
+        `as section 2 sees them`                    IS `a covered upper-division employee in` `a three-year school, grades 10 to 12`
+        `teaches grades 10 to 14`                   IS TRUE
+        `teaches grade 9`                           IS FALSE
+        `serves as a school principal`              IS FALSE
+        `appointed principal by the employer's rules` IS FALSE
+        `standing on the eve of signing`            IS `none of these`
+        `standing on the eve of moving to the reform` IS `teaching for one of the employers`
+        `began with one of the employers in 5772 to 5775` IS TRUE
+        `teaching years recognised for salary seniority` IS 1
+        `of them an internship year`                IS 1
+        `of them teaching in army or national service` IS 0
+        `of them seniority for compulsory army or national service` IS 0
+        `first appointed a principal in 5772`       IS FALSE
+        `under the reform in 5772, fully or in part` IS FALSE
+
+#ASSERT `a teacher under the Oz agreement` `a teacher hired in 5773 after an internship year`
+#ASSERT `a new teaching employee under the Oz agreement` `a teacher hired in 5773 after an internship year`
+#ASSERT `an existing principal under the Oz agreement` (`a serving principal of` `a six-year school, grades 7 to 12`)
+#ASSERT NOT `a teacher under the Oz agreement` (`a serving principal of` `a six-year school, grades 7 to 12`)
+
+-- F-oz-founding-4-a: a three-year school is a school of the agreement
+-- (ח), and its principal a teaching employee of it (§2); (ה)'s words name
+-- only the six- and four-year school, so by them he would be no "מנהל",
+-- and no "מורה" either, for (ב) leaves out every principal.
+GIVEN k IS A `kind of Oz school`
+GIVETH A BOOLEAN
+DECIDE `4(ה)'s words leave out the principal of a school of the agreement` k IF
+        `a school under the Oz agreement` k TRUE
+    AND `a teaching employee under the Oz agreement` (`a serving principal of` k)
+    AND NOT elem k `the kinds of school 4(ה) names`
+    AND NOT `a teacher under the Oz agreement` (`a serving principal of` k)
+
+#ASSERT `4(ה)'s words leave out the principal of a school of the agreement` `a three-year school, grades 10 to 12`
+#ASSERT NOT `4(ה)'s words leave out the principal of a school of the agreement` `a four-year school, grades 9 to 12`
+#ASSERT `a principal under the Oz agreement` (`a serving principal of` `a three-year school, grades 10 to 12`)

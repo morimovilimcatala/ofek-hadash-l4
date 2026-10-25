@@ -222,8 +222,15 @@ WHOLE_PARTS = ("preamble", "mainBody", "body", "conclusions", "attachments")
 # <section>s; an agreement into <part>s of <article>s, with its preamble and
 # its sign-off each a section of its own (the agreement's §1: "המבוא להסכם
 # זה ... מהווים חלק בלתי נפרד ממנו").
+#
+# An agreement's annexes, where it has them, are a section each, after its
+# sign-off: the Oz LaTmura agreement of 14.8.2011 prints fourteen (נספח א'
+# … נספח ו'), and §1 makes them "חלק בלתי נפרד" of it. An annex is cited by
+# its label ("נספח א'1") and its file and page are named in ASCII
+# (`annex-a1`), as the preamble's are.
 SECTIONED = {"takanon/takanon-sherut-ovdei-horaa.xml",
-             "agreements/ofek-hadash/2008-12-25_ofek-hadash_base-agreement.xml"}
+             "agreements/ofek-hadash/2008-12-25_ofek-hadash_base-agreement.xml",
+             "agreements/oz-latmura/2011-08-14_oz-latmura_founding-agreement.xml"}
 # EVERY L4 MODULE'S NAME IS UNIQUE IN THE REPOSITORY (the client, 2026-10-21,
 # MMS-524): the pinned compiler finds an import by its bare file name, so one
 # codebase, in which any file imports any other, needs one namespace. A
@@ -232,7 +239,8 @@ SECTIONED = {"takanon/takanon-sherut-ovdei-horaa.xml",
 # `base-agreement-9.l4`, its shared helpers `base-agreement-common.l4`, and
 # the takanon's §9 stays `9.l4`. l4/modules/ links every module by its name
 # (tools/modules.py).
-MODULE_PREFIX = {"agreements/ofek-hadash/2008-12-25_ofek-hadash_base-agreement.xml": "base-agreement-"}
+MODULE_PREFIX = {"agreements/ofek-hadash/2008-12-25_ofek-hadash_base-agreement.xml": "base-agreement-",
+                 "agreements/oz-latmura/2011-08-14_oz-latmura_founding-agreement.xml": "oz-founding-"}
 
 
 def module_prefix(relative: str) -> str:
@@ -243,6 +251,17 @@ DIVISIONS = (("chapter", "section"), ("part", "article"))
 # the parts of an agreement outside its parts and articles, each one section,
 # keyed and cited the way a whole document's are
 FRAME_PARTS = {"preamble": "פתיח", "conclusions": "חתימה"}
+# an annex's label, and the chapter its annexes are listed under
+ANNEX = "נספח "
+ANNEXES = "נספחים"
+HEB_LATIN = dict(zip("אבגדהוזחטיכלמנסעפצקרשת",
+                     "a b g d h v z ch t y k l m n s e p ts q r sh t".split()))
+
+
+def unnumbered(num: str) -> bool:
+    """A section cited by its name, not as "§<num>": an agreement's
+    preamble, sign-off and annexes."""
+    return num in FRAME_PARTS.values() or num.startswith(ANNEX)
 
 
 def is_whole(relative: str) -> bool:
@@ -271,6 +290,8 @@ def whole_section(relative: str) -> Section:
 
 
 def file_name(num: str) -> str:
+    if num.startswith(ANNEX):    # "נספח א'1" -> "annex-a1"
+        return "annex-" + "".join(HEB_LATIN.get(c, c) for c in num[len(ANNEX):] if c.isalnum())
     return {v: k for k, v in FRAME_PARTS.items()}.get(num, num)
 
 
@@ -285,6 +306,17 @@ def frame_section(part, notes) -> Section | None:
     return Section(key, name, "", key, "", name, rows)
 
 
+def annex_section(att, notes) -> Section | None:
+    """An agreement's annex as a section of its own, under the chapter of
+    its annexes: its rows keyed from its own eId down, as a whole document
+    keys them."""
+    rows = section_rows(att, notes, att.get("eId"))
+    if not rows:
+        return None
+    _, label = label_of(att)
+    return Section(att.get("eId"), label, "", "attachments", "", ANNEXES, rows)
+
+
 def sections(relative: str) -> list[Section]:
     if is_whole(relative):
         return [whole_section(relative)]
@@ -292,7 +324,7 @@ def sections(relative: str) -> list[Section]:
     notes = sic_notes(root)
     out = []
     chapter_tag, section_tag = next(d for d in DIVISIONS if root.find(f".//{AKN}{d[0]}") is not None)
-    frame = {tag(p): p for p in root[0] if tag(p) in FRAME_PARTS}
+    frame = {tag(p): p for p in root[0] if tag(p) in FRAME_PARTS or tag(p) == "attachments"}
     if "preamble" in frame and (s := frame_section(frame["preamble"], notes)):
         out.append(s)
     for chap in root.iter(AKN + chapter_tag):
@@ -312,6 +344,9 @@ def sections(relative: str) -> list[Section]:
                                cnum, chead, rows))
     if "conclusions" in frame and (s := frame_section(frame["conclusions"], notes)):
         out.append(s)
+    for att in frame.get("attachments", []):
+        if tag(att) == "attachment" and (s := annex_section(att, notes)):
+            out.append(s)
     return out
 
 

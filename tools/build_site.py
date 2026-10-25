@@ -159,8 +159,15 @@ def chapter_name(s: akn.Section) -> str:
 
 def sec_ref(sec: akn.Section) -> str:
     """A section as a reader cites it: "§1.11", "§7"; an agreement's
-    preamble and sign-off by their names, which carry no number."""
-    return sec.num if sec.num in akn.FRAME_PARTS.values() else f"§{sec.num}"
+    preamble, sign-off and annexes by their names, which carry no number."""
+    return sec.num if akn.unnumbered(sec.num) else f"§{sec.num}"
+
+
+def num_dir(num: str) -> str:
+    """The direction a section's number is set in: a number ("§1.7א") left
+    to right, a name ("נספח א'1") right to left, or its geresh lands on
+    the wrong side."""
+    return "rtl" if HEB.match(num) else "ltr"
 
 
 # the corpus's collections, so the reader sees what is not started as well
@@ -276,8 +283,7 @@ def who(read_by: str) -> str:
 
 # ----------------------------------------------------------------- model
 
-HEB_LATIN = dict(zip("אבגדהוזחטיכלמנסעפצקרשת",
-                     "a b g d h v z ch t y k l m n s e p ts q r sh t".split()))
+HEB_LATIN = akn.HEB_LATIN
 
 
 def chapter_slug(num: str) -> str:
@@ -718,7 +724,7 @@ def site_group_li(here: str, open_: bool) -> str:
 
 
 def sec_li(v: SectionView, href: str) -> str:
-    return (f'<li><a href="{href}" title="{esc(v.section.heading)}"><span class="secnum" dir="ltr">{esc(v.section.num)}</span>'
+    return (f'<li><a href="{href}" title="{esc(v.section.heading)}"><span class="secnum" dir="{num_dir(v.section.num)}">{esc(v.section.num)}</span>'
             f'<span class="sh" lang="he" dir="rtl">{esc(v.section.heading)}</span></a></li>')
 
 
@@ -1125,7 +1131,7 @@ def section_block(v: SectionView, here: str, headless: bool = False) -> str:
     head = (f'<header class="tsec-head">'
             + ("" if headless else
                f'<div class="title-row"><h2 lang="he" dir="rtl"><a class="anchor" href="#{esc(sec.eid)}">'
-               f'<span class="secnum" dir="ltr">{esc(sec_ref(sec))}</span>{esc(sec.heading)}</a></h2>'
+               f'<span class="secnum" dir="{num_dir(sec.num)}">{esc(sec_ref(sec))}</span>{esc(sec.heading)}</a></h2>'
                f'<div class="tsec-meta">{badge(v.status)}<span class="links">{"".join(links)}</span></div></div>')
             + f'{stats}</header>')
     if found:
@@ -1206,7 +1212,7 @@ def render_page(v: SectionView) -> str:
     here = v.render_href
     body = (f'<header class="sec-head"><nav class="crumbs"><a href="{rel(v.href, here)}">→ {"" if v.whole else esc(sec_ref(v.section)) + " "}זה לצד זה</a></nav>'
             f'<div class="title-row"><h1 lang="he" dir="rtl">'
-            + ("" if v.whole else f'<span class="secnum" dir="ltr">{esc(sec_ref(v.section))}</span>')
+            + ("" if v.whole else f'<span class="secnum" dir="{num_dir(v.section.num)}">{esc(sec_ref(v.section))}</span>')
             + f'{esc(v.section.heading)}</h1></div>'
             f'<p class="lede">{"המסמך" if v.whole else "החלק"} כולו, כפי ש־<code>l4 render</code> כותב את הכללים בחזרה כפרוזה (באנגלית).</p></header>'
             f'<div class="render-frame" dir="ltr" lang="en">{inner or "<p>l4 render לא הפיק דבר לקובץ זה.</p>"}</div>')
@@ -1283,7 +1289,7 @@ def contents_page(doc: str, views: list[SectionView]) -> str:
         s0 = vs[0].section
         lis = "".join(
             f'<li class="{v.status}"><a href="{rel(v.href, here)}">{dot(v.status)}'
-            f'<span class="secnum" dir="ltr">{esc(v.section.num)}</span>'
+            f'<span class="secnum" dir="{num_dir(v.section.num)}">{esc(v.section.num)}</span>'
             f'<span class="sh" lang="he">{esc(v.section.heading)}</span></a></li>' for v in vs)
         parts.append(f'<section class="chapter" dir="rtl"><div class="chapter-head"><h2>'
                      f'<a href="{rel(vs[0].page, here)}" lang="he" dir="rtl">{esc(chapter_name(s0))}</a></h2>'
@@ -1292,12 +1298,15 @@ def contents_page(doc: str, views: list[SectionView]) -> str:
     crumb = ("" if takanon else
              f'<span>/</span><a href="{rel(coll_hub(coll), here)}">{esc(coll_name(coll))}</a>')
     meta = doc_meta(doc)
+    articles = [v for v in views if not akn.unnumbered(v.section.num)]
+    annexes = [v for v in views if v.section.num.startswith(akn.ANNEX)]
     lede = (f'תקנון שירות עובדי הוראה של משרד החינוך, במלואו, '
             f'כפי שהקורפוס מפרסם אותו: {len(views)} סעיפים ב־{len(chapters)} פרקים, עמוד לכל פרק.'
             if takanon else
             f'ההסכם הקיבוצי מיום {esc(".".join(str(int(x)) for x in reversed((meta.get("date") or "").split("-"))) if meta.get("date") else "")}, '
             f'כפי שהקורפוס מפרסם אותו: המבוא, '
-            f'{len(views) - 2} סעיפים ב־{len(chapters) - 2} פרקים, והחתימה; עמוד לכל פרק.')
+            f'{len(articles)} סעיפים ב־{len({v.section.chapter_eid for v in articles})} פרקים, והחתימה'
+            + (f' ו־{len(annexes)} נספחים' if annexes else "") + '; עמוד לכל פרק.')
     head = (f'<header class="sec-head doc-head"><nav class="crumbs"><a href="{rel("index.html", here)}">מסמכים</a>{crumb}</nav>'
             f'<div class="title-row"><h1 lang="he" dir="rtl">{esc(akn.title(doc))}</h1></div>'
             f'<p class="lede">{lede} כל פסקה '
@@ -2175,7 +2184,7 @@ def conventions_page(reg: dict, by_file: dict[str, "SectionView"], findings: lis
         v = by_file.get(a["l4"])
         name = f'<code class="rule" dir="ltr">{esc(a["rule"])}</code>' if a.get("rule") else ""
         # a whole document's one "section" is numbered by its slug: no § for it
-        num = "" if v is None or akn.is_whole(v.doc) else f' <bdi dir="ltr">{esc(sec_ref(v.section))}</bdi>'
+        num = "" if v is None or akn.is_whole(v.doc) else f' <bdi dir="{num_dir(v.section.num)}">{esc(sec_ref(v.section))}</bdi>'
         sec = (f'<a href="{rel(v.href, here)}">{esc(akn.title(v.doc))}{num}</a>'
                if v is not None else f'<code dir="ltr">{esc(a["l4"])}</code>')
         why = f' <span class="why">— {esc(a["why"])}</span>' if a.get("why") else ""

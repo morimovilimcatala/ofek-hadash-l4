@@ -1,0 +1,140 @@
+-- הסכם עוז לתמורה (14.8.2011), §14 היקף העסקה: a teacher under the reform
+-- is employed up to a full position in all; in subjects short of teachers
+-- he may be employed beyond it, with the Ministry's approval for the year —
+-- in one school, in frontal hours only, up to 10 weekly hours, paid as a
+-- larger position at a full position's hour value with a summer share of
+-- 28%; in several schools, as part-time in each, up to 25% beyond — under
+-- the Hours of Work and Rest Law, and with pension and training-fund
+-- contributions on that pay.
+
+IMPORT prelude
+IMPORT parties
+IMPORT vocabulary
+IMPORT `oz-founding-common`
+IMPORT `oz-founding-9`
+IMPORT `oz-founding-15`
+
+§ `14 היקף העסקה`
+
+§§ `14(א)`
+
+-- (א): a teacher under the reform is employed up to a full position only,
+-- in all the schools he works in together. "עד 100% בלבד" is the full
+-- position itself, which is in (an exception to convention
+-- thresholds.until: the reform's whole week is 100%).
+@ref akn:art_14__para_a
+GIVEN `the position in all his schools` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `within section 14(א)'s full position` `the position in all his schools` IF
+    `the position in all his schools` AT MOST 1
+
+§§ `14(ב)–(ג)`
+
+-- (ב): notwithstanding (א), in a subject short of teachers (as the
+-- Ministry or the owner determines) a teacher may be employed beyond a full
+-- position, if (1) the Ministry approved it, and — in one school — (2) the
+-- hours beyond it are frontal hours only, with no further individual or
+-- teaching-support hours; (ג): the approval holds for the school year it
+-- was given for. (ה): in one school, up to 10 weekly hours at most; (ז):
+-- across several schools, up to 25% beyond the full position.
+@ref akn:art_14__para_b akn:art_14__para_b__subpara_1 akn:art_14__para_b__subpara_2 akn:art_14__para_c akn:art_14__para_e akn:art_14__para_g
+@desc Employment beyond a full position, as §14(ב)–(ז) ask.
+DECLARE `Oz employment beyond a full position` HAS
+    `a subject short of teachers`         IS A BOOLEAN @desc as the Ministry, or the school's owner, determines from time to time
+    `approved by the Ministry for the school year` IS A BOOLEAN @desc (ב)(1); (ג): the approval holds for the school year it was given for
+    `in one school`                       IS A BOOLEAN @desc beyond 100% in one school; otherwise across several, part-time in each
+    `the weekly hours beyond the full position` IS A NUMBER @desc in one school, frontal hours only ((ב)(2))
+    `the position in all his schools`     IS A NUMBER  @desc across several schools
+
+GIVEN e IS A `Oz employment beyond a full position`
+GIVETH A BOOLEAN
+DECIDE `may be employed beyond a full position` e IF
+        e's `a subject short of teachers`
+    AND e's `approved by the Ministry for the school year`
+    AND (IF e's `in one school`
+         THEN e's `the weekly hours beyond the full position` AT MOST 10
+         ELSE e's `the position in all his schools` MINUS 1 AT MOST 25%)
+
+-- (ב)(2): the hours beyond a full position in one school are frontal hours
+-- only.
+GIVEN w IS A `Oz work week`, `hours beyond` IS A NUMBER
+GIVETH A `Oz work week`
+DECIDE `the week beyond a full position in one school` w `hours beyond` IS
+    `an Oz week of` (w's `frontal teaching hours` PLUS `hours beyond`) (w's `individual hours with pupils`) (w's `teaching-support hours`)
+
+§§ `14(ד)–(ה)`
+
+-- (ד): in one school, the hours beyond a full position are paid by
+-- enlarging the position, at the hour value of a full position (§15(ב)):
+-- each weekly hour is 4.33 hours a month at that value. On top of it, in
+-- the months of the school year, a summer share of 28% of that part of the
+-- position; that part is left out of the pay for the summer months. (ה)'s
+-- 10 hours are 25% of the 40-hour position — (ז)'s ceiling for several
+-- schools.
+@ref akn:art_14__para_d
+GIVEN `hours beyond` IS A NUMBER, `the base of a full position` IS A NUMBER, `a summer month` IS A BOOLEAN
+GIVETH A NUMBER
+DECIDE `the month's pay for hours beyond a full position in one school` `hours beyond` `the base of a full position` `a summer month` IS
+    IF `a summer month`
+    THEN 0
+    ELSE `hours beyond` TIMES `weeks in a month, for the hour value` TIMES `the Oz hour value` `the base of a full position`
+         TIMES (1 PLUS 28%)
+
+GIVEN `hours beyond` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the position added for hours beyond a full position` `hours beyond` IS
+    `hours beyond` DIVIDED BY `the Oz position base`
+
+§§ `14(ו)–(ז)`
+
+-- (ו): beyond a full position across several schools (part-time in each),
+-- each school sets the position, the week and the pay by the part-time
+-- rules of §13, and (ד) does not apply. (ז)'s ceiling is in
+-- `may be employed beyond a full position`.
+@ref akn:art_14__para_f
+GIVEN e IS A `Oz employment beyond a full position`
+GIVETH A BOOLEAN
+DECIDE `section 14(ד) pays the hours beyond` e IF
+    e's `in one school`
+
+§§ `14(ח)–(ט)`
+
+-- (ח): the Hours of Work and Rest Law, 1951, as it stands from time to
+-- time, applies to such a teacher. The law is outside the corpus.
+@ref akn:art_14__para_h
+DECLARE `Oz section 14 action` IS ONE OF
+    `contribute to a training fund and a pension fund on the pay beyond a full position`
+
+`why the Hours of Work and Rest Law is not encoded` MEANS
+    `outside the corpus` "חוק שעות עבודה ומנוחה, תשי\"א-1951"
+
+-- (ט): on the pay for work beyond a full position, the employer makes the
+-- contributions to a training fund and to a pension provident fund (no
+-- deadline: convention dates.no-deadline).
+@ref akn:art_14__para_i
+`contributions on the pay beyond a full position` MEANS
+    PARTY `the employer`
+    MUST  `contribute to a training fund and a pension fund on the pay beyond a full position`
+
+§§ `14 -- illustrations`
+
+GIVEN one IS A BOOLEAN, hours IS A NUMBER, position IS A NUMBER
+GIVETH A `Oz employment beyond a full position`
+DECIDE `approved shortage employment` one hours position IS
+    `Oz employment beyond a full position` WITH
+        `a subject short of teachers`         IS TRUE
+        `approved by the Ministry for the school year` IS TRUE
+        `in one school`                       IS one
+        `the weekly hours beyond the full position` IS hours
+        `the position in all his schools`     IS position
+
+#ASSERT `within section 14(א)'s full position` 1
+#ASSERT `may be employed beyond a full position` (`approved shortage employment` TRUE 10 0)
+#ASSERT NOT `may be employed beyond a full position` (`approved shortage employment` TRUE 11 0)
+#ASSERT `may be employed beyond a full position` (`approved shortage employment` FALSE 0 1.25)
+#ASSERT NOT `may be employed beyond a full position` (`approved shortage employment` FALSE 0 1.3)
+-- (ה) and (ז) agree: 10 hours are 25% of a full position
+#ASSERT `the position added for hours beyond a full position` 10 EQUALS 25%
+-- on a base of 17,320 (an hour value of 100), 5 hours beyond: 5 × 4.33 × 100 × 1.28
+#ASSERT `the month's pay for hours beyond a full position in one school` 5 17320 FALSE EQUALS 2771.2
+#ASSERT `the month's pay for hours beyond a full position in one school` 5 17320 TRUE EQUALS 0

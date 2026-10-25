@@ -693,6 +693,31 @@ class Agreements(unittest.TestCase):
         self.assertEqual(len(keys), len(set(keys)))
         self.assertEqual(site_mod.citations(secs[0])["preamble/p3"], "פתיח ¶3")
 
+    OZ = "agreements/oz-latmura/2011-08-14_oz-latmura_founding-agreement.xml"
+
+    def test_the_oz_agreement_reads_by_article_and_annex(self):
+        """The Oz LaTmura agreement of 14.8.2011 (MMS-569): its preamble,
+        63 articles, sign-off, and each of its fourteen annexes a section,
+        the annexes under a chapter of their own, cited by their label and
+        filed in ASCII. Sectioning it keeps every row the whole document
+        read, in the same order."""
+        self.assertFalse(akn.is_whole(self.OZ))
+        secs = akn.sections(self.OZ)
+        nums = [s.num for s in secs]
+        self.assertEqual(nums[:65], ["פתיח", *[str(n) for n in range(1, 64)], "חתימה"])
+        annexes = secs[65:]
+        self.assertEqual(len(annexes), 14)
+        self.assertTrue(all(s.chapter_eid == "attachments" and s.num.startswith(akn.ANNEX) for s in annexes))
+        self.assertEqual(site_mod.l4_path(self.OZ, "נספח א'1").name, "oz-founding-annex-a1.l4")
+        self.assertEqual(site_mod.sec_ref(annexes[0]), "נספח א'")
+        self.assertEqual(site_mod.num_dir(annexes[0].num), "rtl")
+        self.assertEqual(site_mod.num_dir("1.7א"), "ltr")
+        whole = akn.whole_section(self.OZ)
+        self.assertEqual([r.text for r in whole.rows if r.kind == "text"],
+                         [r.text for s in secs for r in s.rows if r.kind == "text"])
+        keys = [k for s in secs for k in s.keys()]
+        self.assertEqual(len(keys), len(set(keys)))
+
 
 class Citations(unittest.TestCase):
     def test_every_row_of_every_document_has_a_label(self):

@@ -1,0 +1,92 @@
+-- הסכם עוז לתמורה (14.8.2011), §5 יישום הדרגתי בבתי הספר: in תשע"ב–תשע"ד
+-- the reform is applied in some schools in full and in others in part, by
+-- lists the Ministry draws up each year in consultation with the
+-- organisation, and only where 75% of the school's eligible teaching
+-- employees consent in writing; from תשע"ה in every school.
+
+IMPORT prelude
+IMPORT parties
+IMPORT `oz-founding-common`
+IMPORT `oz-founding-7`
+
+§ `5 יישום הדרגתי בבתי הספר`
+
+§§ `5(ב)`
+
+@desc A teaching employee of the school, as far as §5(ב)'s count asks.
+DECLARE `member of the school's teaching staff under section 5` HAS
+    `qualifications`              IS A `Oz teaching employee's qualifications`
+    `consented in writing to the reform` IS A BOOLEAN
+
+-- (ב): in תשע"ב–תשע"ד, the written consent of 75% of the teaching
+-- employees employed in the school who meet the conditions for the
+-- reform — that is, all but those §7(ח) keeps off it — is a threshold
+-- condition for applying the reform there, in full or in part. The clause
+-- calls 75% a threshold ("תנאי-סף"), so 75% exactly is enough.
+@ref akn:art_5__para_b
+GIVEN staff IS A LIST OF `member of the school's teaching staff under section 5`
+GIVETH A BOOLEAN
+DECIDE `the school meets section 5(ב)'s consent threshold` staff IF
+    count consenting AT LEAST 75% TIMES count eligible
+    WHERE
+        eligible MEANS filter (GIVEN m YIELD NOT `section 7(ח) keeps the existing teaching employee off the reform` (m's `qualifications`)) staff
+        consenting MEANS filter (GIVEN m YIELD m's `consented in writing to the reform`) eligible
+
+§§ `5(א)`
+
+-- (א): the Ministry draws up, for each of the school years תשע"ב–תשע"ד,
+-- the lists of the schools that apply the reform in full and in part,
+-- consulting the organisation (no deadline: convention dates.no-deadline).
+@ref akn:art_5__para_a
+DECLARE `Oz section 5 action` IS ONE OF
+    `draw up the year's lists of Oz reform schools, consulting the organisation`
+
+`drawing up the lists of reform schools` MEANS
+    PARTY `the Ministry of Education`
+    MUST  `draw up the year's lists of Oz reform schools, consulting the organisation`
+
+-- (א): the reform is applied gradually over תשע"ב–תשע"ד, in each school as
+-- far as the year's list says, where (ב)'s threshold is met; from תשע"ה in
+-- every school, and in full, for the part-time application of part ז is
+-- for the school years תשע"ב–תשע"ד only (§26).
+GIVEN y IS A NUMBER
+      `the year's list` IS A `extent of the Oz reform`
+      staff IS A LIST OF `member of the school's teaching staff under section 5`
+GIVETH A `extent of the Oz reform`
+DECIDE `how far the reform is applied in the school in` y `the year's list` staff IS
+    BRANCH
+        IF y AT LEAST `the school year 5775` THEN `the Oz reform in full`
+        IF y AT LEAST `the school year 5772` AND `the school meets section 5(ב)'s consent threshold` staff
+        THEN `the year's list`
+        OTHERWISE `off the Oz reform`
+
+§§ `5 -- illustrations`
+
+GIVEN consented IS A BOOLEAN
+GIVETH A `member of the school's teaching staff under section 5`
+DECIDE `a qualified staff member who` consented IS
+    `member of the school's teaching staff under section 5` WITH
+        `qualifications`              IS `the qualifications of a teacher at` 1 TRUE TRUE FALSE
+        `consented in writing to the reform` IS consented
+
+-- one below a third of a position, whom §7(ח) keeps off the reform and
+-- the count leaves out
+`a staff member at a fifth of a position` MEANS
+    `member of the school's teaching staff under section 5` WITH
+        `qualifications`              IS `the qualifications of a teacher at` 0.2 TRUE TRUE FALSE
+        `consented in writing to the reform` IS FALSE
+
+`three of four consent` MEANS
+    LIST `a qualified staff member who` TRUE, `a qualified staff member who` TRUE,
+         `a qualified staff member who` TRUE, `a qualified staff member who` FALSE,
+         `a staff member at a fifth of a position`
+
+`two of four consent` MEANS
+    LIST `a qualified staff member who` TRUE, `a qualified staff member who` TRUE,
+         `a qualified staff member who` FALSE, `a qualified staff member who` FALSE
+
+#ASSERT `the school meets section 5(ב)'s consent threshold` `three of four consent`
+#ASSERT NOT `the school meets section 5(ב)'s consent threshold` `two of four consent`
+#ASSERT `how far the reform is applied in the school in` `the school year 5773` `the Oz reform in part` `three of four consent` EQUALS `the Oz reform in part`
+#ASSERT `how far the reform is applied in the school in` `the school year 5773` `the Oz reform in full` `two of four consent` EQUALS `off the Oz reform`
+#ASSERT `how far the reform is applied in the school in` `the school year 5775` `off the Oz reform` `two of four consent` EQUALS `the Oz reform in full`

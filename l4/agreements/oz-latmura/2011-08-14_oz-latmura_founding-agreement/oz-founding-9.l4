@@ -1,0 +1,262 @@
+-- הסכם עוז לתמורה (14.8.2011), §9: the work week of a teacher under the
+-- reform in full — a full position of 40 weekly hours; the working day
+-- (8:00–16:00, and 8:00–13:00 on the short day) and its exceptions for
+-- morning prayer, for completing the 40 hours and for special occasions;
+-- the 40 hours as 24 frontal, 6 individual and 10 teaching-support hours,
+-- and what each is for; no conversion between them; a substitution hour in
+-- a teaching-support hour's place and its pay; and the 60-minute hour.
+
+IMPORT prelude
+IMPORT parties
+IMPORT vocabulary
+IMPORT `oz-founding-common`
+IMPORT `oz-founding-15`
+
+§ `9 מבנה שבוע העבודה של מורה ברפורמה`
+
+-- akn:art_9 The opening: the work week of a teacher under the reform in full, as (א)–(יא) set out.
+
+§§ `9(א)`
+
+-- (א): a full (100%) position is 40 weekly hours (ש"ש).
+@ref akn:art_9__para_a
+`the Oz position base` MEANS 40
+
+§§ `9(ב)`
+
+-- (ב): a full-position teacher's working hours are 8:00–16:00 on Sunday to
+-- Thursday, and 8:00–13:00 on Friday (in a non-Jewish sector, Saturday or
+-- Sunday): the short day. Hours are written as numbers of the clock (13.5
+-- is 13:30).
+@ref akn:art_9__para_b akn:art_9__para_b/p2 akn:art_9__para_b/p3
+DECLARE `day of the Oz week` IS ONE OF
+    `a long working day`
+    `the short working day`
+
+GIVEN d IS A `day of the Oz week`
+GIVETH A NUMBER
+DECIDE `the hour the Oz working day ends` d IS
+    CONSIDER d
+    WHEN `a long working day` THEN 16
+    WHEN `the short working day` THEN 13
+
+GIVEN d IS A `day of the Oz week`
+GIVETH A NUMBER
+DECIDE `the length of the Oz working day` d IS
+    `the hour the Oz working day ends` d MINUS 8
+
+`long working days in the Oz week` MEANS 5
+
+§§ `9(ג)`
+
+-- (ג): where there is a morning prayer, a teaching employee whose presence
+-- the principal's list requires may start that day at the prayer's start,
+-- but not before 7:00, and the day ends earlier by as much. A prayer at
+-- or after 8:00 moves nothing: the permission is to start early.
+@ref akn:art_9__para_c
+GIVEN d IS A `day of the Oz week`, `required at the morning prayer` IS A BOOLEAN, `the prayer starts at` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the hour the working day starts` d `required at the morning prayer` `the prayer starts at` IS
+    IF `required at the morning prayer` AND `the prayer starts at` LESS THAN 8
+    THEN max 7 `the prayer starts at`
+    ELSE 8
+
+GIVEN d IS A `day of the Oz week`, `required at the morning prayer` IS A BOOLEAN, `the prayer starts at` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the hour that working day ends` d `required at the morning prayer` `the prayer starts at` IS
+    `the hour the working day starts` d `required at the morning prayer` `the prayer starts at`
+    PLUS `the length of the Oz working day` d
+
+§§ `9(ד)`
+
+-- (ד): a full-position teacher whose free day is not the short day does
+-- the hours that complete the 40 on Sunday to Thursday from 16:00 to
+-- 17:00, and on the short day from 13:00 to 14:00: an hour more on each
+-- working day. The rule counts the hours the windows hold, and the checks
+-- below show they hold the 40 whichever day is free.
+@ref akn:art_9__para_d
+DECLARE `the teacher's free day in the Oz week` IS ONE OF
+    `a long day is free`
+    `the short day is free`
+    `no day is free`
+
+GIVEN free IS A `the teacher's free day in the Oz week`
+GIVETH A NUMBER
+DECIDE `the hours the working windows hold` free IS
+    long TIMES (`the length of the Oz working day` `a long working day` PLUS extra)
+    PLUS short TIMES (`the length of the Oz working day` `the short working day` PLUS extra)
+    WHERE
+        long MEANS IF free EQUALS `a long day is free` THEN `long working days in the Oz week` MINUS 1 ELSE `long working days in the Oz week`
+        short MEANS IF free EQUALS `the short day is free` THEN 0 ELSE 1
+        extra MEANS IF free EQUALS `a long day is free` THEN 1 ELSE 0
+
+§§ `9(ה)`
+
+-- (ה): on special occasions (a parents' evening and the like) the
+-- principal may, with the consent of the school's teachers' committee and
+-- for those occasions only, set working hours other than (ב)'s; but not
+-- the number of the weekly hours ((א)) nor their make-up ((ו)).
+@ref akn:art_9__para_e
+DECLARE `Oz section 9 action` IS ONE OF
+    `set other working hours for a special occasion`
+    `do a substitution hour in place of a teaching-support hour`
+
+GIVEN `the teachers' committee consented` IS A BOOLEAN
+GIVETH A DEONTIC Party `Oz section 9 action`
+DECIDE `setting other hours for a special occasion` `the teachers' committee consented` IS
+    IF `the teachers' committee consented`
+    THEN PARTY `the school principal`
+         MAY   `set other working hours for a special occasion`
+    ELSE FULFILLED
+
+`special hours may change the number or make-up of the weekly hours` MEANS FALSE
+
+§§ `9(ו)`
+
+-- (ו): the 40 hours are 24 frontal hours in front of a class (subject to
+-- §§10–12), 6 individual hours and 10 teaching-support hours.
+@ref akn:art_9__para_f akn:art_9__para_f__subpara_1 akn:art_9__para_f__subpara_3
+`the Oz full-position week` MEANS `an Oz week of` 24 6 10
+
+-- (ו)(2): an individual hour is with a group of up to 3 pupils, or, by
+-- decision of a pedagogical team the principal heads, up to 5. "עד 3" and
+-- "עד 5" describe the group, which has whole pupils: a group of 3, or of
+-- 5, is the case the words describe (an exception to convention
+-- thresholds.until, as in the Ofek Hadash agreement's §§15 and 17).
+@ref akn:art_9__para_f__subpara_2
+GIVEN pupils IS A NUMBER, `the pedagogical team allowed five` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `an Oz individual-hours group` pupils `the pedagogical team allowed five` IF
+        pupils AT LEAST 1
+    AND (   pupils AT MOST 3
+         OR (`the pedagogical team allowed five` AND pupils AT MOST 5))
+
+-- (ו)(2) ¶2: what the individual hours are for — a closed list (convention
+-- reading.closed-list).
+@ref akn:art_9__para_f__subpara_2/p2
+DECLARE `use of an Oz individual hour` IS ONE OF
+    `learning reinforcement`
+    `broadening and deepening, for a range of pupils`
+    `deepening the dialogue between the teacher and his pupils`
+    `another use`
+
+GIVEN u IS A `use of an Oz individual hour`
+GIVETH A BOOLEAN
+DECIDE `an Oz individual hour may be used for` u IF
+    NOT u EQUALS `another use`
+
+-- (ו)(3)(א)–(ד): the 10 teaching-support hours, in the school, are work
+-- meetings (2), team training (2), talks with parents (1), and preparing
+-- teaching materials and checking work and tests (5).
+@ref akn:art_9__para_f__subpara_3__cls_a akn:art_9__para_f__subpara_3__cls_b akn:art_9__para_f__subpara_3__cls_c akn:art_9__para_f__subpara_3__cls_d
+DECLARE `Oz teaching-support activity` IS ONE OF
+    `work meetings`
+    `team training`
+    `talks with parents`
+    `preparing teaching materials and checking work and tests`
+
+GIVEN a IS A `Oz teaching-support activity`
+GIVETH A NUMBER
+DECIDE `the weekly teaching-support hours for` a IS
+    CONSIDER a
+    WHEN `work meetings` THEN 2
+    WHEN `team training` THEN 2
+    WHEN `talks with parents` THEN 1
+    WHEN `preparing teaching materials and checking work and tests` THEN 5
+
+`the teaching-support activities` MEANS
+    LIST `work meetings`, `team training`, `talks with parents`, `preparing teaching materials and checking work and tests`
+
+§§ `9(ז)`
+
+-- (ז): by the principal's decision, or with his approval of teachers'
+-- request, the mix of the teaching-support activities may change from
+-- week to week, provided that on a monthly average it is (ו)'s mix. The
+-- rule takes the month's weekly average for each activity.
+@ref akn:art_9__para_g
+GIVEN `every week keeps (ו)'s mix` IS A BOOLEAN
+      `decided or approved by the principal` IS A BOOLEAN
+      `the month's weekly average for` IS A FUNCTION FROM `Oz teaching-support activity` TO NUMBER
+GIVETH A BOOLEAN
+DECIDE `the month's teaching-support mix is allowed` `every week keeps (ו)'s mix` `decided or approved by the principal` `the month's weekly average for` IF
+        `every week keeps (ו)'s mix`
+    OR  (    `decided or approved by the principal`
+         AND all (GIVEN a YIELD `the month's weekly average for` a EQUALS `the weekly teaching-support hours for` a) `the teaching-support activities`)
+
+§§ `9(ח)`
+
+-- (ח): no individual hour may be converted into a teaching-support hour,
+-- nor one into the other, nor a frontal hour into either. (ח) does not
+-- list a conversion into a frontal hour; (ו) fixes the make-up of the 40
+-- hours (save as §§10–12 change it), so none is open there either.
+@ref akn:art_9__para_h
+DECLARE `kind of Oz hour` IS ONE OF
+    `a frontal hour`
+    `an individual hour`
+    `a teaching-support hour`
+
+GIVEN from IS A `kind of Oz hour`, to IS A `kind of Oz hour`
+GIVETH A BOOLEAN
+DECIDE `an Oz hour may be converted` from to IF
+    from EQUALS to
+
+§§ `9(ט)–(י)`
+
+-- (ט): a teaching employee may do a substitution hour in a teaching-support
+-- hour's place.
+@ref akn:art_9__para_i
+`a substitution hour in a support hour's place` MEANS
+    PARTY `the teaching employee`
+    MAY   `do a substitution hour in place of a teaching-support hour`
+
+-- (ט): one who chose not to make the teaching-support hour up is paid 125%
+-- of the hour value for the substitution (on §15(א)(2)'s base), and not
+-- the regular pay of the teaching-support hour. (י): one who chose to make
+-- it up is paid for the substitution by the rules in force on the eve of
+-- the signing (§15(א)(1)), and (ט) does not apply.
+@ref akn:art_9__para_i akn:art_9__para_j
+GIVEN `made the support hour up` IS A BOOLEAN
+      `the base of the Oz hour value` IS A NUMBER
+      `the pay by the rules on the eve of the signing` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the pay for a substitution hour in a support hour's place` `made the support hour up` `the base of the Oz hour value` `the pay by the rules on the eve of the signing` IS
+    IF `made the support hour up`
+    THEN `the pay by the rules on the eve of the signing`
+    ELSE 125% TIMES `the Oz hour value` `the base of the Oz hour value`
+
+GIVEN `made the support hour up` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `the support hour's regular pay is kept` `made the support hour up` IF
+    `made the support hour up`
+
+§§ `9(יא)`
+
+-- (יא): for the weekly presence in the school (only), an hour is 60
+-- minutes; the length of a teaching period stays as the Ministry set it.
+@ref akn:art_9__para_ja
+`minutes in an hour of Oz presence` MEANS 60
+
+GIVEN w IS A `Oz work week`
+GIVETH A NUMBER
+DECIDE `the minutes of weekly presence` w IS
+    `the hours of the Oz week` w TIMES `minutes in an hour of Oz presence`
+
+§§ `9 -- illustrations`
+
+#ASSERT `the hours of the Oz week` `the Oz full-position week` EQUALS `the Oz position base`
+#ASSERT sum (map `the weekly teaching-support hours for` `the teaching-support activities`) EQUALS `the Oz full-position week`'s `teaching-support hours`
+#ASSERT `the minutes of weekly presence` `the Oz full-position week` EQUALS 2400
+-- (ב) and (ד): whichever day is free, the windows hold the 40 hours, and
+-- with the short day free (ב)'s own hours are the 40 exactly
+#ASSERT `the hours the working windows hold` `a long day is free` AT LEAST `the Oz position base`
+#ASSERT `the hours the working windows hold` `the short day is free` EQUALS `the Oz position base`
+#ASSERT `the hours the working windows hold` `no day is free` AT LEAST `the Oz position base`
+-- (ג): a prayer at 7:30 opens the day at 7:30 and closes it at 15:30; at 6:45, at 7:00
+#ASSERT `the hour that working day ends` `a long working day` TRUE 7.5 EQUALS 15.5
+#ASSERT `the hour the working day starts` `a long working day` TRUE 6.75 EQUALS 7
+#ASSERT `an Oz individual-hours group` 5 TRUE AND NOT `an Oz individual-hours group` 5 FALSE
+#ASSERT NOT `an Oz hour may be converted` `a frontal hour` `an individual hour`
+-- (ט): on a base of 17,320, a substitution in a support hour's place pays 125
+#ASSERT `the pay for a substitution hour in a support hour's place` FALSE 17320 0 EQUALS 125
+#ASSERT `the month's teaching-support mix is allowed` FALSE TRUE `the weekly teaching-support hours for`
+#ASSERT NOT `the month's teaching-support mix is allowed` FALSE FALSE `the weekly teaching-support hours for`
