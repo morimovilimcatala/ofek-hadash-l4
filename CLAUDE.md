@@ -102,6 +102,11 @@ with `HENCE`/`LEST`), not booleans standing in for them.
   party is added there; a dotted takanon section is imported as
   `takanon-<dashed>` (`takanon-1-29`). The names still declared twice — the
   yearly circulars' — are an exact ratchet in `tests.test_repo.OneNamespace`.
+  A CONSTRUCTOR NAME (a case of `IS ONE OF`) is shared the same way
+  (MMS-603): two with one name fail wherever the use does not fix the type
+  (`PARTY \`x\``). The modules every collection reaches, `l4/lib/` and
+  `l4/laws/`, declare none another module declares, and the rest's count is
+  an exact ratchet in the same test.
 - **Every paragraph is accounted for.** Each text row of the section is
   covered by a segment that cites it or an ancestor:
   - `@ref akn:<key>` on the declaration that encodes it, or

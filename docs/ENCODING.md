@@ -134,9 +134,9 @@ reader can see past, a dated amount.
   keys on one line are allowed: `@ref akn:<key1> akn:<key2>`.
 - A `§§` heading may sit above a blank line before its rule; it is shown
   with the rule below it.
-- `common.l4` holds `Party`. Do not edit it; if a section needs an actor it
-  lacks, declare a section-local party type (`DECLARE \`1.28 party\` IS ONE
-  OF …`) and say so in the hand-off.
+- `Party` lives in `l4/lib/parties.l4` (MMS-532), which the takanon's
+  `common.l4` imports. A section that needs an actor it lacks adds it there,
+  under a name no other module declares (see the constructor rule above).
 - **A convention's arithmetic is called, never copied.** `l4/conventions.l4`
   holds one definition for each convention in `conventions.toml` that is a
   computation — rounding half up (`to the agora`, `to the nearest whole`),
