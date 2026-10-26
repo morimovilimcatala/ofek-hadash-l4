@@ -36,6 +36,7 @@ IMPORT `base-agreement-140`
 IMPORT `base-agreement-144`
 IMPORT `base-agreement-153`
 IMPORT `base-agreement-155`
+IMPORT `1998-09-08_histadrut-hamorim_out-of-school-activity_livui-tiyulim-gmul`
 
 -- The day the agreement was signed.
 `the signing of the completion agreement` MEANS DATE_FROM_DMY 29 2 2012
@@ -1076,11 +1077,12 @@ DECIDE `a homeroom allowance for the employment` `the employment is in Matia hou
 
 §§ `29 תיקון סעיף 40 להסכם הכולל — גמול ליווי טיולים`
 
--- §40(ב): instead of §4.ד of the agreement of 8.9.98, the trip allowance is
--- paid in units by the hour the activity ends. "עד 15:00" ends at 15:00
--- (convention thresholds.until) and an hour that closes one row and opens
--- the next is in the row it opens (convention thresholds.shared-bound) —
--- as the circulars of 2023–2026 read the same table.
+-- §40(ב): instead of §4.ד of the agreement of 8.9.98 (the one with
+-- הסתדרות המורים, imported), the trip allowance is paid in units by the
+-- hour the activity ends. "עד 15:00" ends at 15:00 (convention
+-- thresholds.until) and an hour that closes one row and opens the next is
+-- in the row it opens (convention thresholds.shared-bound) — as the
+-- circulars of 2023–2026 read the same table.
 @ref akn:art_29/p1
 GIVEN `ending hour` IS A NUMBER
 GIVETH A NUMBER
@@ -1098,15 +1100,54 @@ DECIDE `escort units for an end at` `ending hour` IS
 #ASSERT `escort units for an end at` 16 EQUALS 1.5
 #ASSERT `escort units for an end at` 14.5 EQUALS 0
 
+-- The units of an activity of the kinds of §4.ב of the agreement of 8.9.98
+-- by (ב)'s table; one with more than one night away goes by the nights, as
+-- the note under §4.ד of that agreement says, which (ג) keeps.
+GIVEN a IS A `1998 Oz out-of-school activity`
+GIVETH A NUMBER
+DECIDE `the units section 40(ב) gives an activity` a IS
+    CONSIDER a
+    WHEN `a 1998 activity from the morning ending at` h THEN `escort units for an end at` h
+    WHEN `a 1998 detached activity` THEN `the units of a detached activity between 16:00 and 24:00`
+    WHEN `a 1998 activity with nights away` n THEN `the units of an activity with an overnight stay` TIMES max 1 n
+
 -- (ג): the agreement of 8.9.98's other rules go on for teachers on the
--- reform's terms; (ד): the pay of its annex א (escorting on a free day or a
--- day of under 4 hours) is on the reform's substitute-hour value.
+-- reform's terms (imported): what an activity is (§4.ב), a unit at 0.7% of
+-- the monthly combined salary (§4.ג), paid with the next month's salary
+-- (§4.ה), and nothing under §4 for a של"ח teacher (§4.ט).
+GIVEN d IS A DATE
+      a IS A `1998 Oz out-of-school activity`
+      `the monthly combined salary` IS A NUMBER
+      `a של"ח teacher` IS A BOOLEAN
+GIVETH A NUMBER
+DECIDE `the trip allowance under the reform` d a `the monthly combined salary` `a של"ח teacher` IS
+    IF     `§4 of the 1998 Histadrut agreement pays the teacher` `a של"ח teacher`
+       AND `an out-of-school activity under the 1998 Histadrut agreement` a
+       AND d `is on or after` `the 1998 Histadrut reward for out-of-school activity starts on`
+    THEN `the units section 40(ב) gives an activity` a TIMES `the value of an activity unit under the 1998 Histadrut agreement` `the monthly combined salary`
+    ELSE 0
+
 `the other rules of the trips agreement of 8.9.98 go on under the reform` MEANS TRUE
 
-GIVEN `hours of annex א` IS A NUMBER, `the reform's substitute-hour value` IS A NUMBER
+-- (ד): the pay of its annex א (escorting on a free day or a day of under 4
+-- hours, by the hours taught that day) is on the reform's substitute-hour
+-- value.
+GIVEN `hours taught that day` IS A NUMBER, `the reform's substitute-hour value` IS A NUMBER
 GIVETH A NUMBER
-DECIDE `the pay of annex א of the trips agreement` `hours of annex א` `the reform's substitute-hour value` IS
-    `hours of annex א` TIMES `the reform's substitute-hour value`
+DECIDE `the pay of annex א of the trips agreement` `hours taught that day` `the reform's substitute-hour value` IS
+    IF `annex א' of the 1998 Histadrut agreement adds to the reward on a day of` `hours taught that day`
+    THEN `the hours annex א' of the 1998 Histadrut agreement pays an escort` `hours taught that day` TIMES `the reform's substitute-hour value`
+    ELSE 0
+
+-- An activity ending at 20:00: 3 units under the reform, 3.5 by the
+-- agreement of 8.9.98; at 70 a unit, 210. Two hours taught on the day of
+-- the escort: annex א's 2 hours at the substitute-hour value; four, none.
+#ASSERT `the trip allowance under the reform` (DATE_FROM_DMY 1 3 2012) (`a 1998 activity from the morning ending at` 20) 10000 FALSE EQUALS 210
+#ASSERT `the trip allowance under the reform` (DATE_FROM_DMY 1 3 2012) (`a 1998 activity with nights away` 2) 10000 FALSE EQUALS 910
+#ASSERT `the trip allowance under the reform` (DATE_FROM_DMY 1 3 2012) (`a 1998 activity from the morning ending at` 20) 10000 TRUE EQUALS 0
+#ASSERT `the units a 1998 Histadrut activity earns` (`a 1998 activity from the morning ending at` 20) EQUALS 3.5
+#ASSERT `the pay of annex א of the trips agreement` 2 62.5 EQUALS 125
+#ASSERT `the pay of annex א of the trips agreement` 4 62.5 EQUALS 0
 
 §§ `30 תיקון סעיף 43 להסכם הכולל`
 
