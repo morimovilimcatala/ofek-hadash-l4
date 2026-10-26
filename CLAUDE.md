@@ -42,7 +42,8 @@ reason when work stops, and nothing open written in a markdown file.
 - **One exception: statutes (the client, 2026-10-20, MMS-516: "don't
   encode it in AKN, only in L4").** The corpus holds no copy of a law (its
   standing decision 14), and two are encoded here anyway — חוק הסכמים
-  קיבוציים §§19–23 and חוק יסודות התקציב §§21, 29, 32 (MMS-528): their
+  קיבוציים §§2, 15, 16, 19–23 (MMS-600 pinned §§2, 15 and 16) and חוק יסודות
+  התקציב §§21, 29, 32 (MMS-528): their
   sections' words are pinned in `laws/<name>.toml` with the live ספר החוקים
   הפתוח page they are read from and the date they were last checked against
   it, and its rules are `l4/laws/<name>.l4`, a `§§` block per section citing
