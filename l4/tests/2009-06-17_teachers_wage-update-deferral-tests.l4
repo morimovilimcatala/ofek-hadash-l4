@@ -1,0 +1,113 @@
+-- Tests of Histadrut HaMorim's deferral agreement of 17.6.2009
+-- (l4/agreements/teachers-general/2009-06-17_teachers_wage-update-deferral.l4):
+-- the agreement held against its round (MMS-600). They sit beside it and
+-- not in it (the client, 2026-10-22: "assertions about a file should sit
+-- next to it, not be included in it"); agreements/teachers-general has no
+-- family root yet (MMS-548).
+
+IMPORT prelude
+IMPORT vocabulary
+IMPORT `2009-06-17_teachers_wage-update-deferral`
+IMPORT `2010-06-07_framework-agreement_public-sector_havraa-reduction-deferral`
+
+§ `בדיקות ההסכם הקיבוצי מיום 17.6.2009 (הסתדרות המורים) — מול סבב 2009`
+
+GIVEN y IS A NUMBER, m IS A NUMBER
+GIVETH A `teaching case`
+DECIDE `a put-off teacher of the State in` y m IS
+    `teaching case` WITH
+        `the salary month`                IS DATE_FROM_DMY 1 m y
+        `employer`                        IS `employed by the State`
+        `in post-primary education`       IS FALSE
+        `in the upper division`           IS FALSE
+        `represented by the secondary teachers' organisation` IS FALSE
+        `in a population whose 5% step was put off` IS TRUE
+        `combined salary today`           IS 10000
+        `supplement 2001 today`           IS 300
+        `combined salary in December 2007` IS 10000
+        `supplement 2001 in December 2007` IS 300
+        `the kind of school`              IS `another school`
+        `the interns the teacher mentors` IS 0
+        `the classes in each grade`       IS 0
+        `the roles the teacher holds`     IS 0
+        `a further role approved by the district manager` IS FALSE
+
+`the months of 2007–2011, for the 2009 deferral` MEANS
+    concat (map (GIVEN y YIELD map (GIVEN m YIELD LIST y, m) (LIST 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12))
+                (LIST 2007, 2008, 2009, 2010, 2011))
+
+GIVEN ym IS A LIST OF NUMBER
+GIVETH A `teaching case`
+DECIDE `the put-off teacher in` ym IS
+    CONSIDER ym
+    WHEN y FOLLOWED BY rest THEN
+        (CONSIDER rest
+         WHEN m FOLLOWED BY more THEN `a put-off teacher of the State in` y m
+         OTHERWISE `a put-off teacher of the State in` y 1)
+    OTHERWISE `a put-off teacher of the State in` 2007 1
+
+§§ `מול מסגרת העלות של 2008`
+
+-- The 2008 round's frame, which the agreement of 21.2.2008 follows to the
+-- month (its tests file), against the deferred rate: the deferral gives
+-- less in exactly the 22 salary months from December 2009 to September
+-- 2011, and by the last step, 2 points (5% against 3%); in every other
+-- month of 2007–2011 the two are equal. It says so in its own words
+-- (preamble ¶15: a reduction of pay), so this is no hidden departure: no
+-- finding and no card.
+GIVEN ym IS A LIST OF NUMBER
+GIVETH A NUMBER
+DECIDE `what the deferral gives below the frame in` ym IS
+    `the 2008 framework cost frame on` ((`the put-off teacher in` ym)'s `the salary month`)
+    MINUS `the 2008 Histadrut HaMorim supplement rate as amended on 17.6.2009, after §4(יא)` (`the put-off teacher in` ym)
+
+`the months the deferral gives less than the frame` MEANS
+    filter (GIVEN ym YIELD `what the deferral gives below the frame in` ym GREATER THAN 0) `the months of 2007–2011, for the 2009 deferral`
+
+`the deferral gives less in the 22 months it says, and 2 points less` MEANS
+        count `the months the deferral gives less than the frame` EQUALS 22
+    AND all (GIVEN ym YIELD `in the months the 2009 deferral holds back` (`the put-off teacher in` ym)) `the months the deferral gives less than the frame`
+    AND all (GIVEN ym YIELD `what the deferral gives below the frame in` ym EQUALS 2%) `the months the deferral gives less than the frame`
+    AND all (GIVEN ym YIELD `what the deferral gives below the frame in` ym AT LEAST 0) `the months of 2007–2011, for the 2009 deferral`
+
+#ASSERT `the deferral gives less in the 22 months it says, and 2 points less`
+#ASSERT `the 2009 deferral agreement says it reduces pay`
+
+§§ `מול הסכמי ההבראה של 2009 ו־2010`
+
+-- The general public sector's share: the framework agreement of 16.6.2009
+-- halves the havraa day of 2009 and 2010, and its amendment of 7.6.2010
+-- moves 2010's half to 2011 — for the scales the Histadrut represents, which
+-- no teacher is in. The teachers' share is this deferral instead, over the
+-- same two years: it holds back 2009's December and the months to
+-- September 2011, and both wait on the same statute (§4 here, §6 there).
+-- The two cannot be set against each other in shekels without the havraa
+-- day's price and the State employees' reduction, which that statute sets
+-- (an input there): what is held is that they fall in the same years.
+`a teacher, as the havraa agreement asks` MEANS
+    `havraa agreement employee` WITH
+        `employed by an employer that signed the 2009 havraa agreement` IS TRUE
+        `paid by agreements of a scale the Histadrut represents` IS FALSE
+        `the employing body` IS `the State as an employing body`
+        `employed by a health corporation` IS FALSE
+        `employed by a funded education institution` IS FALSE
+        `the employer joined the 2009 havraa agreement` IS FALSE
+
+#ASSERT NOT `the 2009 havraa agreement applies to` `a teacher, as the havraa agreement asks`
+
+`the years the general sector's havraa is halved` MEANS
+    filter (GIVEN y YIELD `the havraa day is halved in, as amended in 2010` y) (LIST 2008, 2009, 2010, 2011, 2012)
+
+GIVEN ym IS A LIST OF NUMBER
+GIVETH A NUMBER
+DECIDE `the year of the month` ym IS
+    CONSIDER ym
+    WHEN y FOLLOWED BY rest THEN y
+    OTHERWISE 0
+
+`the years the deferral holds the teachers back in` MEANS
+    nub (map `the year of the month` `the months the deferral gives less than the frame`)
+
+#ASSERT `the years the general sector's havraa is halved` EQUALS LIST 2009, 2011
+#ASSERT all (GIVEN y YIELD elem y `the years the deferral holds the teachers back in`) `the years the general sector's havraa is halved`
+#ASSERT `why the havraa statute is not in the 2009 deferral` EQUALS `why the statute's enactment is an input`
