@@ -38,7 +38,7 @@ refused) has nothing to encode until the corpus reads its pages.
 | `conventions.toml`, `l4/conventions.l4` | the rules of reading the encoding follows where the text does not decide, and the one L4 definition of each that is a computation, which the rules import |
 | `findings/<corpus path>/<section>.toml` (one per section) | errors in the text the encoding exposed, each backed by an `#ASSERT` |
 | `data/calculator-delta.json` | the comparison with the ministry's salary simulator: inputs, outputs, mappings, clauses and classifications only (written outside this repository; shown as the simulator's group of the contradictions page) |
-| `laws/<name>.toml`, `l4/laws/<name>.l4` | a statute encoded though the corpus holds no copy of it (חוק הסכמים קיבוציים §§19–23; חוק יסודות התקציב §§21, 29, 32): its sections' words pinned from ספר החוקים הפתוח, and their rules |
+| `laws/<name>.toml`, `l4/laws/<name>.l4` | a statute encoded though the corpus holds no copy of it (חוק הסכמים קיבוציים §§2, 15–16, 19–23; חוק יסודות התקציב §§21, 29, 32): its sections' words pinned from ספר החוקים הפתוח, and their rules |
 | `data/contradictions.json`, `data/contradictions/` | where sources contradict each other: a side per source (two or more) with its answer — a document with a crop of its page, or what the payslips or the simulator pay — and the rule that decides |
 | `tools/` | the L4 runner, the AKN reader, the site generator |
 | `toolchain/` | the pinned L4 compiler revision and its build script |
@@ -77,7 +77,10 @@ refused) has nothing to encode until the corpus reads its pages.
 - **The Collective Agreements Law** (`laws/collective-agreements-law.html`) —
   §§19–23, which say what an agreement's personal provisions are and which
   provision governs against a statute, a contract of employment or another
-  agreement, encoded in L4 and set beside their text (MMS-516). The corpus
+  agreement, and §§2, 15–16, the two kinds of agreement (special and
+  general) and whom each applies to, encoded in L4 and set beside their text
+  (MMS-516, MMS-600). The law ranks neither kind above the other: two
+  agreements that both apply meet in §23. The corpus
   keeps no copy of the law; the text is pinned in `laws/` from the live page.
   A circular whose rule pays less than the agreement it implements applies
   §22 through it (`l4/circulars/2008-09_tashsat_03.l4`).

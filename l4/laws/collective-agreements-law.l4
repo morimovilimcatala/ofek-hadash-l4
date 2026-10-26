@@ -1,8 +1,16 @@
--- חוק הסכמים קיבוציים, התשי"ז-1957 — sections 19 to 23: what a collective
--- agreement's personal provisions are, and which provision governs when an
--- agreement, a statute, an employment contract or another agreement says
--- otherwise. The text is laws/collective-agreements-law.toml, pinned from
--- the live page of ספר החוקים הפתוח; the corpus holds no copy (MMS-516).
+-- חוק הסכמים קיבוציים, התשי"ז-1957 — sections 2, 15 and 16: the two kinds
+-- of collective agreement, special and general, and whom each applies to;
+-- and sections 19 to 23: what a collective agreement's personal provisions
+-- are, and which provision governs when an agreement, a statute, an
+-- employment contract or another agreement says otherwise. The text is
+-- laws/collective-agreements-law.toml, pinned from the live page of ספר
+-- החוקים הפתוח; the corpus holds no copy (MMS-516).
+--
+-- The law ranks no kind of agreement above the other: a special agreement
+-- and a general one that both apply to an employee meet in §23, as any two
+-- agreements do. What §§15–16 decide first is whether an agreement applies
+-- to the employee at all — and an agreement that does not is not one of the
+-- agreements §23 compares.
 --
 -- Where a section says which provision is "לטובת העובד", the encoding is of
 -- an amount the employee is paid, so the more favourable is the larger. A
@@ -17,6 +25,92 @@ DECLARE `agreement provision` HAS
     `is about terms of work, the end of work, or a duty or right of the employee and employer` IS A BOOLEAN
     `the agreement applies to the employer and the employee` IS A BOOLEAN
     `changed or cancelled lawfully` IS A BOOLEAN
+
+§§ `2`
+
+-- Two kinds: (1) a special agreement, for a particular undertaking or a
+-- particular employer, between the employer (or an employers' organisation
+-- representing it) and the representative organisation of the employees it
+-- will apply to; (2) a general agreement, for the whole country or a part
+-- of it, for some branches of work or all of them, between the
+-- representative workers' organisation in the branch or area and an
+-- employers' organisation there. What tells them apart is the reach the
+-- agreement is made for.
+@ref law:2
+DECLARE `kind of collective agreement` IS ONE OF
+    `a special collective agreement`
+    `a general collective agreement`
+
+GIVEN `made for a particular undertaking or employer` IS A BOOLEAN
+GIVETH A `kind of collective agreement`
+DECIDE `the kind of the collective agreement` `made for a particular undertaking or employer` IS
+    IF `made for a particular undertaking or employer`
+    THEN `a special collective agreement`
+    ELSE `a general collective agreement`
+
+§§ `15`
+
+@desc An employee and his employer, as far as sections 15 and 16 ask whether a collective agreement applies to them.
+DECLARE `employee a collective agreement may reach` HAS
+    `his employer is a party to the agreement`  IS A BOOLEAN
+    `his employer is represented for it by an employers' organisation that is a party` IS A BOOLEAN @desc section 15(2)
+    `his employer was or became a member of an employers' organisation that is a party` IS A BOOLEAN @desc at the signing, or while the agreement is in force, in the branches or area it covers (section 16(2))
+    `his employer was expressly left out of the agreement` IS A BOOLEAN @desc section 16(2)
+    `he is of a kind of employee the agreement includes` IS A BOOLEAN
+    `he is in an occupation or post the agreement includes` IS A BOOLEAN
+
+-- A special agreement applies to (1) its parties; (2) the employers an
+-- employers' organisation that is a party represents for it; (3) every
+-- employee of the kinds it includes, employed by an employer that is a
+-- party or is so represented, in the occupations or posts it includes.
+@ref law:15
+GIVEN e IS AN `employee a collective agreement may reach`
+GIVETH A BOOLEAN
+DECIDE `a special collective agreement applies to the employee` e IF
+        (   e's `his employer is a party to the agreement`
+         OR e's `his employer is represented for it by an employers' organisation that is a party`)
+    AND e's `he is of a kind of employee the agreement includes`
+    AND e's `he is in an occupation or post the agreement includes`
+
+`a collective agreement binds its own parties` MEANS TRUE
+
+§§ `16`
+
+-- A general agreement applies to (1) its parties; (2) the employers, in the
+-- branches or area it covers, that were members of the employers'
+-- organisation that is a party when it was signed, or became members while
+-- it is in force, save members expressly left out; (3) every employee of
+-- the kinds it includes, employed by such an employer, in the occupations
+-- or posts it includes.
+@ref law:16
+GIVEN e IS AN `employee a collective agreement may reach`
+GIVETH A BOOLEAN
+DECIDE `a general collective agreement applies to the employee` e IF
+        e's `his employer was or became a member of an employers' organisation that is a party`
+    AND NOT e's `his employer was expressly left out of the agreement`
+    AND e's `he is of a kind of employee the agreement includes`
+    AND e's `he is in an occupation or post the agreement includes`
+
+GIVEN k IS A `kind of collective agreement`, e IS AN `employee a collective agreement may reach`
+GIVETH A BOOLEAN
+DECIDE `the collective agreement applies to the employee` k e IF
+    CONSIDER k
+    WHEN `a special collective agreement` THEN `a special collective agreement applies to the employee` e
+    WHEN `a general collective agreement` THEN `a general collective agreement applies to the employee` e
+
+-- Of either kind, an employee of a kind the agreement does not include is
+-- outside it, whoever employs him.
+`an employee of a kind it leaves out, of a party employer` MEANS `employee a collective agreement may reach` WITH
+    `his employer is a party to the agreement`  IS TRUE
+    `his employer is represented for it by an employers' organisation that is a party` IS TRUE
+    `his employer was or became a member of an employers' organisation that is a party` IS TRUE
+    `his employer was expressly left out of the agreement` IS FALSE
+    `he is of a kind of employee the agreement includes` IS FALSE
+    `he is in an occupation or post the agreement includes` IS TRUE
+
+#ASSERT NOT `the collective agreement applies to the employee` `a special collective agreement` `an employee of a kind it leaves out, of a party employer`
+#ASSERT NOT `the collective agreement applies to the employee` `a general collective agreement` `an employee of a kind it leaves out, of a party employer`
+#ASSERT `the kind of the collective agreement` FALSE EQUALS `a general collective agreement`
 
 §§ `19`
 
@@ -115,3 +209,13 @@ DECIDE `the amount that governs between agreements` `the one agreement's amount`
     max `the one agreement's amount` `the other agreement's amount`
 
 #ASSERT `the amount that governs between agreements` 6 8 EQUALS 8
+
+-- The section speaks only where more than one agreement applies to the
+-- employee (§§15–16 say which do): an agreement that does not apply to him
+-- is not weighed, however much it gives.
+GIVEN `the agreements that apply to the employee` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `section 23 weighs the agreements` `the agreements that apply to the employee` IF
+    `the agreements that apply to the employee` GREATER THAN 1
+
+#ASSERT NOT `section 23 weighs the agreements` 1
