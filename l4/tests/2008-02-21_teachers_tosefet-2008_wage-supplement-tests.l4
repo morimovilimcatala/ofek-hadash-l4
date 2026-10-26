@@ -1,0 +1,133 @@
+-- Tests of Histadrut HaMorim's wage agreement of 21.2.2008
+-- (l4/agreements/teachers-general/2008-02-21_teachers_tosefet-2008_wage-supplement.l4):
+-- the agreement held against its round (MMS-600). They sit beside it and
+-- not in it (the client, 2026-10-22: "assertions about a file should sit
+-- next to it, not be included in it"). Its claim on the 2008 supplement
+-- is in no root yet — agreements/teachers-general has no family root
+-- (MMS-548) — so the round is held here, the way l4/tests/oz-latmura-root-tests.l4
+-- holds the Oz LaTmura agreement of 24.1.2008.
+
+IMPORT prelude
+IMPORT vocabulary
+IMPORT `2008-02-21_teachers_tosefet-2008_wage-supplement`
+IMPORT `2008-01-24_oz-latmura_tosefet-sachar_reform-model`
+IMPORT `2008-04-17_framework-agreement_public-sector`
+IMPORT `2007-09-10_ofek-hadash_reform-founding-agreement`
+
+§ `בדיקות ההסכם הקיבוצי מיום 21.2.2008 (הסתדרות המורים) — מול סבב 2008`
+
+-- A teacher of the State, in month m of year y.
+GIVEN y IS A NUMBER, m IS A NUMBER
+GIVETH A `teaching case`
+DECIDE `a teacher of the State under the agreement of 21.2.2008 in` y m IS
+    `a teacher of the agreement of 21.2.2008 in` y m `employed by the State` FALSE
+
+`the months of 2007–2011` MEANS
+    concat (map (GIVEN y YIELD map (GIVEN m YIELD LIST y, m) (LIST 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12))
+                (LIST 2007, 2008, 2009, 2010, 2011))
+
+#ASSERT count `the months of 2007–2011` EQUALS 60
+
+GIVEN ym IS A LIST OF NUMBER
+GIVETH A NUMBER
+DECIDE `the year of` ym IS
+    CONSIDER ym
+    WHEN y FOLLOWED BY rest THEN y
+    OTHERWISE 0
+
+GIVEN ym IS A LIST OF NUMBER
+GIVETH A NUMBER
+DECIDE `the month of` ym IS
+    CONSIDER ym
+    WHEN y FOLLOWED BY rest THEN
+        (CONSIDER rest
+         WHEN m FOLLOWED BY more THEN m
+         OTHERWISE 0)
+    OTHERWISE 0
+
+GIVEN ym IS A LIST OF NUMBER
+GIVETH A `teaching case`
+DECIDE `the teacher in` ym IS
+    `a teacher of the State under the agreement of 21.2.2008 in` (`the year of` ym) (`the month of` ym)
+
+§§ `מול הסכם המסגרת מיום 17.4.2008`
+
+-- The round: the public-sector framework agreement of 17.4.2008 covers no
+-- teacher (its §3; the Collective Agreements Law, §§15–16), so §23 never
+-- weighs it against this agreement; it reaches the teachers only through
+-- §4(יא), which this agreement's module imports (convention
+-- instruments.general-wage-agreement). In every month of 2007–2011 its cost
+-- frame is (א)'s rate exactly — the same 1.5%, 3% and 5% at the same
+-- months — so (יא) corrects nothing, for the supplement or for the shekel
+-- supplements.
+GIVEN ym IS A LIST OF NUMBER
+GIVETH A BOOLEAN
+DECIDE `the round's frame is the agreement's rate in` ym IF
+    `the 2008 framework cost frame on` (DATE_FROM_DMY 1 (`the month of` ym) (`the year of` ym))
+    EQUALS `the 2008 Histadrut HaMorim supplement rate` (`the teacher in` ym)
+
+#ASSERT all `the round's frame is the agreement's rate in` `the months of 2007–2011`
+#ASSERT all (GIVEN ym YIELD `the 2008 Histadrut HaMorim supplement rate after §4(יא)` (`the teacher in` ym)
+                            EQUALS `the 2008 Histadrut HaMorim supplement rate` (`the teacher in` ym))
+            `the months of 2007–2011`
+#ASSERT all (GIVEN ym YIELD `the 2008 Histadrut HaMorim shekel update rate after §4(יא)` (`the teacher in` ym)
+                            EQUALS `the 2008 Histadrut HaMorim shekel update rate` (`the teacher in` ym))
+            `the months of 2007–2011`
+
+-- What the framework puts into monthly pay is never more than (א) gives:
+-- in 2008 none of its 1.5% (it is the one-time grant of its §8), where
+-- this agreement's teachers have it as a rise from January 2008. The
+-- teachers have no less than their round in any month.
+#ASSERT all (GIVEN ym YIELD `the 2008 framework frame allocated to monthly pay on` (DATE_FROM_DMY 1 (`the month of` ym) (`the year of` ym))
+                            AT MOST `the 2008 Histadrut HaMorim supplement rate` (`the teacher in` ym))
+            `the months of 2007–2011`
+#ASSERT `the 2008 supplement according to the agreement of 21.2.2008` (`a teacher of the State under the agreement of 21.2.2008 in` 2009 12) EQUALS JUST 515
+
+-- And the grant is no further supplement that §4(יב) passes on (F-hh-2008-a).
+#ASSERT NOT `the 2008 grant is a further supplement for §4(יב)`
+
+§§ `מול סעיפים 76 ו־88 להסכם הרפורמה מיום 10.9.2007`
+
+-- §88 of the reform agreement promises a wage agreement between the State
+-- and הסתדרות המורים at §76's rates and dates; this is it (preamble ¶10–¶11,
+-- §6 ¶2). In every month of 2007–2011 (א)'s rate is §76(ב)'s as §76(ג)
+-- corrects it to the framework; against §76(ב) as printed it differs in
+-- December 2009 alone, where it gives the 5% a month earlier.
+GIVEN ym IS A LIST OF NUMBER
+GIVETH A NUMBER
+DECIDE `the reform agreement's month` ym IS
+    `the year of` ym TIMES 12 PLUS `the month of` ym
+
+#ASSERT all (GIVEN ym YIELD `the old salary's update as corrected` (`the reform agreement's month` ym)
+                            EQUALS `the 2008 Histadrut HaMorim supplement rate` (`the teacher in` ym))
+            `the months of 2007–2011`
+`the months §76(ב) as printed parts from (א)` MEANS
+    filter (GIVEN ym YIELD NOT (`the update of the old salary` (`the reform agreement's month` ym)
+                                EQUALS `the 2008 Histadrut HaMorim supplement rate` (`the teacher in` ym)))
+           `the months of 2007–2011`
+
+`(א) gives the 5% a month before §76(ב) as printed` MEANS
+        `the months §76(ב) as printed parts from (א)` EQUALS LIST (LIST 2009, 12)
+    AND `the update of the old salary` (`the reform agreement's month` (LIST 2009, 12))
+        LESS THAN `the 2008 Histadrut HaMorim supplement rate` (`the teacher in` (LIST 2009, 12))
+
+#ASSERT `(א) gives the 5% a month before §76(ב) as printed`
+
+§§ `מול ההסכם של ארגון המורים מיום 24.1.2008`
+
+-- The twin: the Oz LaTmura agreement of 24.1.2008 prints the same rates at
+-- the same months for ארגון המורים's teachers (its §4(א)); its §4(י) takes
+-- this agreement's rates where they are higher or earlier, and they are
+-- never either. A State teacher of ארגון המורים in post-primary education
+-- is reached by both (§2 here names no union), and both give him the same.
+#ASSERT all (GIVEN ym YIELD `the wage supplement rate` (`the teacher in` ym)
+                            EQUALS `the 2008 Histadrut HaMorim supplement rate` (`the teacher in` ym))
+            `the months of 2007–2011`
+`a State teacher of ארגון המורים in December 2009` MEANS
+    `a teacher of the agreement of 21.2.2008 in` 2009 12 `employed by the State` TRUE
+
+`the twins give a State teacher of ארגון המורים the same in December 2009` MEANS
+    `the 2008 supplement according to the agreement of 21.2.2008` `a State teacher of ארגון המורים in December 2009`
+    EQUALS `the 2008 supplement according to the agreement of 24.1.2008` `a State teacher of ארגון המורים in December 2009`
+
+#ASSERT `the twins give a State teacher of ארגון המורים the same in December 2009`
