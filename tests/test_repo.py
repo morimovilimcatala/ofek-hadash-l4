@@ -415,6 +415,44 @@ class ConventionsModule(unittest.TestCase):
 # each is a pair the compiler will refuse to import into one file.
 DECLARED_MORE_THAN_ONCE = 294
 
+# Constructor names (the cases of a `DECLARE … IS ONE OF`) declared in more
+# than one module (test_a_constructor_name_is_declared_once). Two of them
+# imported into one file compile while the type around each use decides
+# which is meant, and fail "multiple definitions" where it does not.
+CONSTRUCTOR_DECLARED_MORE_THAN_ONCE = 854
+
+_NAME = re.compile(r"`[^`]+`|[A-Za-z_][\w']*")
+
+
+def constructors(text: str) -> list[str]:
+    """Every constructor a file declares: the names after `IS ONE OF` on
+    its own line, or the lines indented one step under it (a `HAS` after a
+    name, a deeper field line, a comment or an `@ref`/`@desc` is not one)."""
+    out: list[str] = []
+    lines = text.splitlines()
+    i = 0
+    while i < len(lines):
+        m = re.match(r"^DECLARE\s.*?\bIS ONE OF\b(.*)$", lines[i])
+        i += 1
+        if not m:
+            continue
+        if m.group(1).strip():
+            out += _NAME.findall(m.group(1))
+            continue
+        step = None
+        while i < len(lines):
+            line = lines[i]
+            s = line.strip()
+            if s and not s.startswith("--"):
+                indent = len(line) - len(line.lstrip())
+                if indent == 0:
+                    break
+                step = step or indent
+                if indent == step and not s.startswith("@"):
+                    out.append(_NAME.match(s).group(0))
+            i += 1
+    return out
+
 
 class OneNamespace(unittest.TestCase):
     """EVERY L4 MODULE HAS ONE NAME, AND IS REACHABLE BY IT FROM ANY FILE
@@ -445,6 +483,35 @@ class OneNamespace(unittest.TestCase):
                 declared.setdefault(m.group(1), []).append(f)
         self.assertEqual([f.relative_to(ROOT).as_posix() for f in declared["Party"]], ["l4/lib/parties.l4"])
         self.assertEqual(sum(1 for files in declared.values() if len(files) > 1), DECLARED_MORE_THAN_ONCE)
+
+    def test_a_constructor_name_is_declared_once(self):
+        """The same, for the names a type is ONE OF. `the State` was a
+        `Party` (l4/lib/parties.l4) and a Budget Foundations Law `employing
+        body` both, and imports are transitive, so a file that imported the
+        2011 framework agreement (which imports the law) and named a party
+        could not be written (MMS-603). The law's is `the State as an
+        employing body` now. The modules every collection reaches — the
+        shared vocabulary under l4/lib/ and the statutes under l4/laws/ —
+        declare no constructor any other module declares; across the rest,
+        the count is a ratchet, held exactly, and only ever lowered."""
+        declared: dict[str, set[str]] = {}
+        for f in (ROOT / "l4").rglob("*.l4"):
+            if f.is_symlink() or "modules" in f.parts:
+                continue
+            for c in constructors(f.read_text(encoding="utf-8")):
+                declared.setdefault(c, set()).add(f.relative_to(ROOT).as_posix())
+        shared = ("l4/lib/", "l4/laws/")
+        self.assertEqual(sorted(c for c, files in declared.items()
+                                if sum(f.startswith(shared) for f in files) > 1), [])
+        self.assertEqual(sum(1 for files in declared.values() if len(files) > 1),
+                         CONSTRUCTOR_DECLARED_MORE_THAN_ONCE)
+
+    def test_the_constructor_reader_sees_every_shape(self):
+        src = ("DECLARE a IS ONE OF `x`, y\n"
+               "DECLARE b IS ONE OF\n    -- a note\n    @desc d\n    `p` HAS `f` IS A NUMBER\n"
+               "    `q` HAS\n        `g` IS A STRING\n    @ref akn:k\n\n    r\n\n§§ `2`\n"
+               "DECLARE c HAS\n    `h` IS A NUMBER\n")
+        self.assertEqual(constructors(src), ["`x`", "y", "`p`", "`q`", "r"])
 
     def test_a_sectioned_documents_files_carry_its_prefix(self):
         for doc, prefix in akn.MODULE_PREFIX.items():

@@ -117,6 +117,14 @@ reader can see past, a dated amount.
 - Record field names are global within a file and across `IMPORT`: two
   records with a field `days` make every `x's days` ambiguous. Give fields
   specific names (`length in days`, `band days`).
+- A constructor name (a case of `IS ONE OF`) is global across `IMPORT`
+  too, and imports are transitive. Two of them with one name compile only
+  where the type around the use decides which is meant; `PARTY \`x\`` or
+  a bare `\`x\` MEANS …` does not, and fails "multiple definitions". The
+  modules every collection reaches (`l4/lib/`, `l4/laws/`) declare no
+  constructor another module declares — the Budget Foundations Law's is
+  `the State as an employing body`, beside `Party`'s `the State` — and
+  `tests.test_repo.OneNamespace` holds that and the rest's count.
 - `§` inside an annotation's text (`@desc`, `@export`) starts a section and
   breaks the parse. Write "section 1.7", not "§1.7", in annotations.
 - In `MUST`/`MAY`/`SHANT`, the action is a PATTERN, not an expression:
