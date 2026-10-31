@@ -217,15 +217,26 @@ function show(r, prog) {
     el("thead", {}, el("tr", {}, ...["רכיב", "מקור התשובה", "₪"].map((t) => el("th", { text: t })))),
     tbody);
   // the root's other items: what the law answers for the case beyond §1.1's
-  // components (not added to the month: which §1.1ו allowance each is, is a
-  // reading still to make)
+  // components; a role allowance is shown as the §1.1ו allowance it is
+  // (convention reading.role-allowance-kinds) and what it comes to on this
+  // month's base, beside the sum and not in it — the form does not ask
+  // which roles the teacher holds
   const others = law.items.filter((i) => !i.component);
+  const kindLabel = (k) => {
+    const name = String(k || "").replace(/^`|`$/g, "");
+    const kind = spec.allowance.kinds.find((x) => x.name === name);
+    return kind ? kind.label : name;
+  };
   const otherRows = others.map((i) => {
     const it = r.items[i.name];
+    const asAllowance = it.kind == null ? null : el("div", { class: "supnote" },
+      "תוספת אחוזית לפי סעיף 1.1ו: ", kindLabel(it.kind),
+      it.asAllowance == null ? "" : " — בחודש הזה ", it.asAllowance == null ? "" : ltr(shekels(it.asAllowance)));
     return el("li", {},
       el("div", { class: "item-head" }, el("span", { class: "cl", text: i.label }), " ",
         it.answer == null ? el("span", { class: "hint", text: "אין מסמך שמדבר על כך במקרה הזה" }) : ltr(it.answer, "num"),
         " ", el("code", { class: "l4n", dir: "ltr", text: i.name })),
+      it.answer == null ? null : asAllowance,
       it.answer == null ? null : el("details", {}, el("summary", { text: "למה?" }), why(it, (v) => v)));
   });
   const tree = el("div", { class: "tree hide-lookups" }, traceNode(r.total.trace, true));
@@ -242,8 +253,9 @@ function show(r, prog) {
     el("div", { class: "scroll-x" }, table),
     others.length ? el("section", { class: "others" },
       el("h2", { text: "מה עוד הדין עונה למקרה הזה" }),
-      el("p", { class: "hint", text: "פריטים ששורש הדין שואל עליהם ואינם נכללים בסכום שלמעלה: עוד לא נקבע לאיזו "
-        + "תוספת אחוזית של סעיף 1.1ו כל אחד מהם שייך. שיעור — כחלק מהשכר המשולב (0.02 הם 2%)." }),
+      el("p", { class: "hint", text: "פריטים ששורש הדין שואל עליהם ואינם נכללים בסכום שלמעלה: הטופס אינו שואל "
+        + "אילו תפקידים המורה ממלא. לכל גמול תפקיד מוצגת התוספת האחוזית של סעיף 1.1ו שהוא נחשב לה (בחירה שממתינה "
+        + "לעיון עורך הדין) ומה הוא מגיע לו בחודש הזה. שיעור — כחלק מהשכר המשולב (0.02 הם 2%)." }),
       el("ul", { class: "items" }, ...otherRows)) : null,
     el("details", { class: "trace" },
       el("summary", {}, el("h2", { text: "עקבות החישוב" })),

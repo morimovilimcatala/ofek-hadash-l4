@@ -308,6 +308,21 @@ class WorkedExample(unittest.TestCase):
         self.assertIsNone(it["answer"])
         self.assertIn("1.1.2012", it["gap"])
 
+    def test_a_role_allowance_is_shown_as_the_1_1_allowance_it_is(self):
+        """Convention reading.role-allowance-kinds (MMS-555, put to the
+        lawyer): the pedagogical coordinator's allowance is §1.1ו's
+        coordination allowance, the mentor's its training allowance, the
+        junior-division head's its management allowance; the count is none."""
+        items = self.runs[4]["items"]
+        kinds = {k: (v["kind"] or "").strip("`") for k, v in items.items()}
+        self.assertEqual(kinds["the pedagogical coordinator's allowance rate"],
+                         "subject, laboratory, grade-level and social coordination")
+        self.assertEqual(kinds["the mentor's allowance rate"], "training")
+        self.assertEqual(kinds["the junior-division head's allowance"], "management")
+        self.assertEqual(kinds["the role allowances counted"], "")
+        # 8% of §1.1ו's base as the law gives it: the cell alone, 10,250.12
+        self.assertEqual(items["the pedagogical coordinator's allowance rate"]["asAllowance"], "820.0096")
+
     def test_every_pay_item_is_answered(self):
         names = [i["name"] for i in spec()["law"]["items"]]
         for r in self.runs:

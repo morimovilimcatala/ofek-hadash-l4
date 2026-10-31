@@ -74,6 +74,8 @@ ITEM_RULES = {
     "says": "what each says of the item",
     "contradicted": "the item is contradicted in the month",
     "gap": "why the item has no answer in the month",
+    "kind": "the §1.1ו allowance the item is",
+    "asAllowance": "the item as a percentage allowance in the month",
 }
 # the month §1.1 computes on, with the law's amounts for a full position
 MONTH_BY_LAW = "the month by the law"
