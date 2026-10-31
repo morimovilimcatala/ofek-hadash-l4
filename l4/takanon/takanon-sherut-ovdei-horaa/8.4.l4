@@ -7,6 +7,7 @@ IMPORT prelude
 IMPORT common
 IMPORT daydate
 IMPORT conventions
+IMPORT `2001-12-18_histadrut-hamorim_wage-agreement-1999-2001`
 
 § `8.4 מפקח`
 
@@ -14,7 +15,7 @@ IMPORT conventions
 DECLARE `supervisor` HAS
     `personal combined salary`  IS A NUMBER @desc the personal combined salary (השכר המשולב האישי); an input
     `position fraction`         IS A NUMBER @desc the share of a full position held in supervision (1 = full)
-    `table rate`                IS A NUMBER @desc the percentage the table of section 8.4.6.1 gives this supervisor (in force from 1.1.01); the table is not part of the text this file encodes, so the rate is an input, as a fraction
+    `years of seniority in supervision` IS A NUMBER @desc the supervisor's years of seniority in supervision or instruction, by which the table of section 8.4.6.1 runs
     `civil-service work unit`   IS A NUMBER @desc the weekly work unit customary for state employees, which section 8.4.1.1 adopts; an input
     `civil-service annual leave` IS A NUMBER @desc the annual rest leave customary for state employees, which section 8.4.1.2(a) adopts; an input
 
@@ -67,13 +68,21 @@ DECIDE `a fixed holiday` h IS
 -- F-8.4-c: §8.4.6.1 says "a percentage of his personal salary by the
 -- table below"; §8.4.6.2(a) multiplies the rate by the personal COMBINED
 -- salary. Read as one base: (a) states the multiplication the table is
--- applied by. The table itself is not in the text as the corpus holds it:
--- `table rate` is an input.
+-- applied by. The page prints no table under "the table below"; its note
+-- (2) names the collective agreement of 18.12.01 as the table's source
+-- from 1.1.01, and that agreement's annex א is the table — the
+-- supervisor's column, by years of seniority in supervision or instruction
+-- (imported; convention reading.referral).
 @ref akn:chp_8__sec_8_4__ssec_8_4_6__para_1 akn:chp_8__sec_8_4__ssec_8_4_6__para_2__subpara_a
 GIVEN s IS A `supervisor`
 GIVETH A NUMBER
+DECIDE `the supervisor's table rate` s IS
+    `the 2001 annex rate for` `a supervisor, for the 2001 annex` (s's `years of seniority in supervision`)
+
+GIVEN s IS A `supervisor`
+GIVETH A NUMBER
 DECIDE `full-position supervision allowance` s IS
-    s's `table rate` TIMES s's `personal combined salary`
+    `the supervisor's table rate` s TIMES s's `personal combined salary`
 
 `the base paragraph 1 names` MEANS "שכרו האישי"
 `the base (a) names` MEANS "השכר המשולב האישי של המפקח"
@@ -191,7 +200,7 @@ DECIDE `seniority carried into supervision` m IS
 
 -- akn:chp_8__sec_8_4__ssec_8_4_6/p1 Heading of the source list (אסמכתא).
 -- akn:chp_8__sec_8_4__ssec_8_4_6/p2 Source: collective agreement of 23.10.90.
--- akn:chp_8__sec_8_4__ssec_8_4_6/p3 Source: collective agreement of 18.12.01.
+-- akn:chp_8__sec_8_4__ssec_8_4_6/p3 Source: collective agreement of 18.12.01 (imported: its annex א is the table).
 -- akn:chp_8__sec_8_4__ssec_8_4_6/p4 Source: special collective agreement of 10.3.83, annex D.
 -- akn:chp_8__sec_8_4__ssec_8_4_6/p5 Source: a Treasury wage-department clarification of 6.5.91.
 
@@ -304,16 +313,17 @@ DECIDE `savings-fund contribution rate` w IS
 
 §§ `Worked examples`
 
--- Examples. The salary and table rate are placeholders.
+-- Examples. The salary is a placeholder; one year of seniority is 65.5%
+-- by the table.
 `a half-position supervisor` MEANS
     `supervisor` WITH
         `personal combined salary`   IS 10000
         `position fraction`          IS 0.5
-        `table rate`                 IS 0.6
+        `years of seniority in supervision` IS 1
         `civil-service work unit`    IS 42.5
         `civil-service annual leave` IS 26
 
-#ASSERT `supervision allowance` `a half-position supervisor` EQUALS 3000
+#ASSERT `supervision allowance` `a half-position supervisor` EQUALS 3275
 
 `additional teaching in 1990` MEANS
     `additional work` WITH
@@ -334,7 +344,7 @@ DECIDE `savings-fund contribution rate` w IS
 
 -- The section's rules over their whole finite space: every move into
 -- supervision, 0 to 20 years, ceilings of 13 and 20; positions of 0 to 6
--- sixths and table rates of 0 to 100% in tenths; every fixed holiday;
+-- sixths and 0 to 15 years of seniority in the table; every fixed holiday;
 -- every additional work (approved or not, same owners or not, overtime or
 -- not, earlier in the fund or not) at 1/4 to 5/4 of a position in
 -- supervision and in all, on 31.8.84 and 1.9.84; and every research work.
@@ -374,16 +384,18 @@ DECIDE `a checked additional work` a o x e s t d IS
 -- base grows by exactly the allowance.
 #ASSERT all (GIVEN k YIELD
                 all (GIVEN r YIELD
-                        LET s MEANS `supervisor` WITH `personal combined salary` IS 10000, `position fraction` IS k DIVIDED BY 6, `table rate` IS r DIVIDED BY 10, `civil-service work unit` IS 42.5, `civil-service annual leave` IS 26
-                            u MEANS `supervisor` WITH `personal combined salary` IS 10000, `position fraction` IS (k PLUS 1) DIVIDED BY 6, `table rate` IS r DIVIDED BY 10, `civil-service work unit` IS 42.5, `civil-service annual leave` IS 26
+                        LET s MEANS `supervisor` WITH `personal combined salary` IS 10000, `position fraction` IS k DIVIDED BY 6, `years of seniority in supervision` IS r, `civil-service work unit` IS 42.5, `civil-service annual leave` IS 26
+                            u MEANS `supervisor` WITH `personal combined salary` IS 10000, `position fraction` IS (k PLUS 1) DIVIDED BY 6, `years of seniority in supervision` IS r, `civil-service work unit` IS 42.5, `civil-service annual leave` IS 26
+                            o MEANS `supervisor` WITH `personal combined salary` IS 10000, `position fraction` IS k DIVIDED BY 6, `years of seniority in supervision` IS r PLUS 1, `civil-service work unit` IS 42.5, `civil-service annual leave` IS 26
                             a MEANS `supervision allowance` s
-                        IN      a EQUALS 10000 TIMES (r DIVIDED BY 10) TIMES (k DIVIDED BY 6)
+                        IN      a EQUALS 10000 TIMES `the supervisor's table rate` s TIMES (k DIVIDED BY 6)
                             AND a AT LEAST 0
                             AND a AT MOST 10000
                             AND a AT MOST `full-position supervision allowance` s
                             AND ((k EQUALS 6) OR a AT MOST `supervision allowance` u)
+                            AND a AT MOST `supervision allowance` o
                             AND `overtime hourly-value base` s 5000 EQUALS 5000 PLUS a)
-                    (range 0 10))
+                    (range 0 15))
             (range 0 6)
 
 `the table runs from its day and not the day before` MEANS
