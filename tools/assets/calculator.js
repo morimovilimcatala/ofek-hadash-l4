@@ -178,12 +178,19 @@ function show(r, prog) {
   const stale = r.components.filter((c) => !c.item && spec.superseded[c.name] && month >= spec.superseded[c.name].from);
   for (const c of r.components) {
     const it = c.item ? r.items[c.item] : null;
+    // the root answers the item, or it has no answer for this case and
+    // §1.1's figure on the form's values stands (and the page says why)
+    const byLaw = it && it.answer != null;
     const sup = stale.includes(c) ? spec.superseded[c.name] : null;
-    const whence = it
+    const whence = byLaw
       ? el("span", { class: "badge law", text: "לפי הדין" })
       : el("span", { class: "badge only", text: "לפי סעיף 1.1 בלבד" });
     const notes = [];
-    if (it && c.figure !== c.value) notes.push(el("div", { class: "supnote" }, "סעיף 1.1 לבדו נותן ", ltr(shekels(c.figure)), "."));
+    if (byLaw && c.figure !== c.value) notes.push(el("div", { class: "supnote" }, "סעיף 1.1 לבדו נותן ", ltr(shekels(c.figure)), "."));
+    if (it && !byLaw && it.gap) {
+      notes.push(el("div", { class: "supnote" }, "לדין אין כאן תשובה — ", it.gap,
+        ". הסכום הוא של סעיף 1.1, לפי מה שהוזן."));
+    }
     if (sup) {
       notes.push(el("div", { class: "supnote" }, "מחודש זה הוחלף בחוזר ",
         ...sup.by.flatMap((b, i) => [i ? " ואחריו " : "", el("a", { href: b.href, text: b.label })]),

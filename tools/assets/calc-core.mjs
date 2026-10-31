@@ -124,8 +124,10 @@ export function program(spec, input) {
   L.push(`GIVETH A LIST OF ${tick(a.record)}`, `DECIDE ${tick(CALC_ALLOWANCES)} IS`,
     "    LIST" + (held.length ? " " + held.map((h) => tick(h.name)).join(", ") : ""));
   L.push("");
-  const values = { [spec.record]: tick(CALC_MONTH), ["LIST OF " + a.record]: tick(CALC_ALLOWANCES) };
   const cm = `${tick(CALC_CASE)} ${tick(CALC_MONTH)}`;
+  // §1.1's rules run on the month by the law: the law's amounts for a full
+  // position (the reform's tables) in place of the form's, where it has them
+  const values = { [spec.record]: `${tick(law.monthByLaw)} ${cm}`, ["LIST OF " + a.record]: tick(CALC_ALLOWANCES) };
   const directives = [];
   const directive = (kind, text, extra) => {
     directives.push({ kind, line: L.length, ...extra });   // 0-based line it lands on
@@ -137,8 +139,8 @@ export function program(spec, input) {
     if (c.item) directive("figure", `#EVAL ${tick(law.figure)} ${tick(c.ctor)} ${tick(CALC_MONTH)}`, { name: c.name });
   }
   held.forEach((h, i) => {
-    const v = { ...values, [a.params[0].type]: tick(h.kind), NUMBER: h.rate };
-    directive("allowance", `#EVAL ${tick(a.rule)} ${args(a.params, v)}`, { index: i, allowance: h.kind, rate: h.rate });
+    directive("allowance", `#EVAL ${tick(law.allowanceRule)} ${tick(h.kind)} (${h.rate}) ${cm}`,
+      { index: i, allowance: h.kind, rate: h.rate });
   });
   for (const it of law.items) {
     for (const [key, rule] of Object.entries(law.itemRules)) {

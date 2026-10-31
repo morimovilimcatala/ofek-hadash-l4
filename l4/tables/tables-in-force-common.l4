@@ -7,8 +7,10 @@
 -- third parts of the 2011 framework for 1.1.2011 and 1.4.2013); every table
 -- it reads is checked against what produces it in its own file.
 --
--- What a lookup does NOT decide (MMS-555, the salary root, will): which
--- table governs a teacher. A table here governs from the day it applies
+-- Which table a teacher of the reform is paid by — his post, his education
+-- and his seniority read onto the tables' families and rows — is the last
+-- section's (MMS-555), which states the combined salary the tables give a
+-- full position as this collection's claim to the root. A table here governs from the day it applies
 -- until the next one the corpus holds; an update the corpus knows of and
 -- does not hold the table of gives no answer (the completion agreement's
 -- tables of 1.1.2012, MMS-116: `the text is missing`), and an update the
@@ -29,6 +31,7 @@
 
 IMPORT prelude
 IMPORT conventions
+IMPORT vocabulary
 IMPORT `base-agreement-46`
 IMPORT `tables-common`
 IMPORT `2008-12-25_ofek-hadash_base-agreement_signed-registry-copy-with-annex-tables`
@@ -320,3 +323,126 @@ DECIDE `the managers' table pay on` d f level grade IS
 #ASSERT `the managers' table pay on` (DATE_FROM_DMY 1 9 2022) `the certified principals' tables` 3 2 EQUALS NOTHING
 #ASSERT `the managers' table pay on` (DATE_FROM_DMY 1 9 2022) `the academic first deputies' tables` 1 1 EQUALS NOTHING
 #ASSERT `the managers' table pay on` (DATE_FROM_DMY 31 12 2014) `the academic principals' tables` 1 1 EQUALS NOTHING
+
+§§ `השכר המשולב של מורה ברפורמה — מה הטבלאות אומרות לשורש`
+
+-- The table a teacher of the reform is paid by (MMS-555). The family: a
+-- first degree on the first-degree tables, a second degree on the
+-- second-degree tables and a doctorate on them too (the base agreement's
+-- §36(ב)–(ד)(1)); a teacher without a degree on the tables of his rank,
+-- as their titles print it (בכיר 104, מוסמך 105, בלתי מוסמך 106).
+GIVEN e IS A `the education the tables ask`
+GIVETH A `teachers' table family`
+DECIDE `the teachers' table family for` e IS
+    CONSIDER e
+    WHEN `with a first degree`            THEN `the first-degree tables (rating 101)`
+    WHEN `with a second degree`           THEN `the second-degree tables (rating 102)`
+    WHEN `with a doctorate`               THEN `the second-degree tables (rating 102)`
+    WHEN `non-academic of senior rank`    THEN `the senior-rank tables (rating 104)`
+    WHEN `non-academic of certified rank` THEN `the certified-rank tables (rating 105)`
+    WHEN `non-academic and uncertified`   THEN `the uncertified-rank tables (rating 106)`
+
+-- A principal's or first deputy's family: the post, and the rank (any
+-- degree is the academic tables).
+GIVEN p IS A `the post in the reform's tables`, e IS A `the education the tables ask`
+GIVETH A MAYBE `managers' table family`
+DECIDE `the managers' table family for` p e IS
+    CONSIDER p
+    WHEN `a principal in the tables` THEN
+        JUST (`by rank` e `the academic principals' tables` `the senior-rank principals' tables` `the certified principals' tables` `the uncertified principals' tables`)
+    WHEN `an adjacent junior-high principal in the tables` THEN
+        JUST (`by rank` e `the academic adjacent junior-high principals' tables` `the senior-rank adjacent junior-high principals' tables` `the certified adjacent junior-high principals' tables` `the uncertified adjacent junior-high principals' tables`)
+    WHEN `a first deputy in the tables` THEN
+        JUST (`by rank` e `the academic first deputies' tables` `the senior-rank first deputies' tables` `the certified first deputies' tables` `the uncertified first deputies' tables`)
+    WHEN `a teacher in the tables` THEN NOTHING
+    WHERE
+        GIVEN x IS A `the education the tables ask`
+              academic IS A `managers' table family`
+              senior IS A `managers' table family`
+              certified IS A `managers' table family`
+              uncertified IS A `managers' table family`
+        GIVETH A `managers' table family`
+        DECIDE `by rank` x academic senior certified uncertified IS
+            CONSIDER x
+            WHEN `non-academic of senior rank`    THEN senior
+            WHEN `non-academic of certified rank` THEN certified
+            WHEN `non-academic and uncertified`   THEN uncertified
+            OTHERWISE academic
+
+-- The row a teacher's seniority reads (convention thresholds.seniority-row,
+-- put to the lawyer): the completion agreement of 29.2.2012 (§23(א)) put
+-- "בותק 1" in the place of "בותק 0" and the tables it brings start at
+-- seniority 1, as every table from 1.1.2011 prints them; so a seniority
+-- counted that way reads the row of its own label in those tables, and in
+-- the tables of 1.12.2008, printed 0 to 36, the row one below it (a new
+-- teacher, 1, at row 0). From 36 on, the last row.
+GIVEN d IS A DATE, seniority IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the seniority row on` d seniority IS
+    IF d `is on or after` `the annexed tables are updated from`
+    THEN min 36 seniority
+    ELSE min 36 (seniority MINUS 1)
+
+#ASSERT `the seniority row on` (DATE_FROM_DMY 1 12 2008) 1 EQUALS 0
+#ASSERT `the seniority row on` (DATE_FROM_DMY 1 1 2011) 1 EQUALS 1
+#ASSERT `the seniority row on` (DATE_FROM_DMY 1 9 2023) 40 EQUALS 36
+
+-- The combined salary of a full position the tables give a teacher of the
+-- reform on the case's salary month: a teacher's on the teachers' tables,
+-- a principal's or first deputy's on theirs.
+GIVEN c IS A `teaching case`
+GIVETH A MAYBE NUMBER
+DECIDE `the full-position table pay of` c IS
+    CONSIDER `the managers' table family for` (c's `the post in the reform`) (c's `the education`)
+    WHEN JUST f THEN `the managers' table pay on` (c's `the salary month`) f (c's `the school's complexity level`) (c's `the grade in the tables`)
+    WHEN NOTHING THEN
+        `the teachers' table pay on` (c's `the salary month`) (`the teachers' table family for` (c's `the education`))
+            (`the seniority row on` (c's `the salary month`) (c's `the seniority the tables count`)) (c's `the grade in the tables`)
+
+-- The claim (MMS-521, MMS-555): for a teacher paid by the reform's tables,
+-- the cell of the table in force. Of no one else do the tables speak.
+GIVEN c IS A `teaching case`
+GIVETH A MAYBE NUMBER
+DECIDE `the full-position combined salary according to the Ofek Hadash tables` c IS
+    IF c's `paid by the Ofek Hadash tables` THEN `the full-position table pay of` c ELSE NOTHING
+
+-- Why the tables give a teacher of the reform no figure (MMS-538): the
+-- period's tables are not in the corpus (the completion agreement's of
+-- 1.1.2012; the non-academic principals' and deputies' from 1.9.2022, which
+-- the decision of 14.1.2025 adds in annexes the corpus does not hold), a
+-- period this lookup does not read yet, or no cell at that seniority and
+-- grade. NOTHING where they give one, or where they do not speak.
+GIVEN c IS A `teaching case`
+GIVETH A MAYBE `why there is no answer`
+DECIDE `why the Ofek Hadash tables give no combined salary` c IS
+    IF (NOT c's `paid by the Ofek Hadash tables`) OR NOT (`the full-position table pay of` c EQUALS NOTHING)
+    THEN NOTHING
+    ELSE JUST `the gap`
+    WHERE
+        d MEANS c's `the salary month`
+        `a manager` MEANS NOT (c's `the post in the reform` EQUALS `a teacher in the tables`)
+        `the gap` MEANS
+            BRANCH
+                IF `a manager` AND d `is on or after` `annex א'8 of the principals is updated from`
+                THEN `the text is missing` "טבלאות השכר של מנהלים וסגנים שאינם אקדמאים מ־1.9.2022 (נספחים א'8 ו־א'9 להחלטת ועדת המעקב מיום 14.1.2025)"
+                IF `a manager` AND NOT d `is on or after` `the teachers' tables of 1.1.2015 apply from`
+                THEN `not yet encoded` "טבלאות השכר של המנהלים והסגנים הראשונים שלפני 1.1.2015"
+                IF `a manager` THEN `the text is missing` "התא בטבלה שבתוקף ברמת המורכבות ובדרגה האלה (אין כזה, או שהקורפוס קורא אותו [לא קריא])"
+                IF NOT d `is on or after` `the annexed salary tables are updated from`
+                THEN `not yet encoded` "טבלאות השכר של הרפורמה שלפני 1.12.2008"
+                IF d `is on or after` `1 January 2012` AND NOT d `is on or after` `the third part's tables are updated from`
+                THEN `the text is missing` "טבלאות השכר של הסכם ההשלמה מיום 1.1.2012 (MMS-116)"
+                OTHERWISE `the text is missing` "התא בטבלה שבתוקף בוותק ובדרגה האלה (אין כזה, או שהקורפוס קורא אותו [לא קריא])"
+
+-- How the tables describe themselves as an instrument (MMS-521): the
+-- annexes of the reform's collective agreements, from the base agreement
+-- of 25.12.2008 on, as this collection reads them.
+`the Ofek Hadash salary tables` MEANS
+    `instrument` WITH
+        `module`        IS "tables-in-force-common"
+        `title`         IS "טבלאות השכר של אופק חדש (נספחי ההסכמים)"
+        `kind`          IS `a collective agreement`
+        `is the takanon` IS FALSE
+        `issued`        IS DATE_FROM_DMY 25 12 2008
+        `practised for all state employees` IS FALSE
+        `approved by the Finance Minister`  IS FALSE

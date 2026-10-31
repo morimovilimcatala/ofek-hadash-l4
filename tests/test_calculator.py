@@ -84,18 +84,18 @@ class Form(unittest.TestCase):
 class Law(unittest.TestCase):
     """MMS-525: what the page asks salary-root, read off it."""
 
-    def test_the_root_answers_the_2008_supplement_and_section_1_1_the_rest(self):
+    def test_the_root_answers_the_combined_salary_and_the_2008_supplement(self):
         s = spec()
         self.assertEqual({c["name"]: c["item"] for c in s["components"]},
-                         {"combined salary": None, "3% supplement": None,
+                         {"combined salary": "the combined salary of a full position", "3% supplement": None,
                           "2008 supplement": "the 2008 public-sector supplement",
                           "2011 supplement": None, "1994 supplement": None, "percentage allowances": None})
 
-    def test_the_month_supplies_four_facts_and_the_form_asks_the_rest(self):
+    def test_the_month_supplies_five_facts_and_the_form_asks_the_rest(self):
         law = spec()["law"]
         self.assertEqual([f["name"] for f in law["fromMonth"]],
                          ["the salary month", "in a population whose 5% step was put off",
-                          "combined salary today", "supplement 2001 today"])
+                          "combined salary today", "supplement 2001 today", "supplement 2008 today"])
         vocab = calculator.VOCABULARY.read_text(encoding="utf-8").splitlines()
         every = [f["name"] for f in calculator.record_fields(vocab, calculator.CASE_RECORD)]
         self.assertEqual([f["name"] for f in law["fields"]] + [f["name"] for f in law["fromMonth"]],
@@ -190,6 +190,11 @@ class SharedImport(unittest.TestCase):
 
 UPPER = {"in post-primary education": True, "in the upper division": True,
          "represented by the secondary teachers' organisation": True}
+# A State teacher of Ofek Hadash with a second degree, seniority 10, grade 5
+# (MMS-555): the law takes his combined salary from the reform's tables.
+OFEK = {"paid by the Ofek Hadash tables": True, "the post in the reform": "a teacher in the tables",
+        "the education": "with a second degree", "the seniority the tables count": "10",
+        "the grade in the tables": "5"}
 
 
 @unittest.skipUnless(shutil.which("node"), "needs Node")
@@ -212,7 +217,11 @@ class WorkedExample(unittest.TestCase):
                  {"fields": {**ex["fields"], "position fraction of the month": "0.5"}, "case": ex["case"],
                   "allowances": [{"kind": "class education", "percent": "10"},
                                  {"kind": "MA or PhD degree", "percent": "12.5"}]},
-                 {"fields": ex["fields"], "case": {**ex["case"], **UPPER}, "allowances": []}]
+                 {"fields": ex["fields"], "case": {**ex["case"], **UPPER}, "allowances": []},
+                 {"fields": {**ex["fields"], "month": "2023-10-01"}, "case": {**ex["case"], **OFEK},
+                  "allowances": [{"kind": "class education", "percent": "10"}]},
+                 {"fields": {**ex["fields"], "month": "2012-06-01"}, "case": {**ex["case"], **OFEK},
+                  "allowances": []}]
         with tempfile.TemporaryDirectory() as d:
             s = calculator.ship(s, Path(d))
             (Path(d) / "spec.json").write_text(json.dumps(s), encoding="utf-8")
@@ -266,6 +275,28 @@ class WorkedExample(unittest.TestCase):
         self.assertEqual(it["module"], "2008-01-24_oz-latmura_tosefet-sachar_reform-model")
         self.assertEqual(it["says"], ["500", "494.4"])
         self.assertTrue(it["contradicted"] and it["rule"] and it["title"])
+
+    def test_a_teacher_of_the_reform_is_paid_by_its_tables(self):
+        """MMS-555: annex א'4 of 1.9.2022 at seniority 10 and grade 5, in
+        place of the form's 10,000; the 2008 supplement is in the converted
+        table salary (the base agreement's §44); class education at 10% is
+        on the month by the law. In June 2012 the corpus holds no table:
+        the form's figure stands, and the page says why."""
+        r = self.runs[4]
+        self.assertTrue(r["ok"] and not r["failed"], r)
+        comp = {c["name"]: c for c in r["components"]}
+        self.assertEqual((comp["combined salary"]["value"], comp["combined salary"]["figure"]), ("10250.12", "10000"))
+        self.assertEqual(comp["2008 supplement"]["value"], "0")
+        it = r["items"]["the combined salary of a full position"]
+        self.assertEqual((it["answer"], it["module"], it["gap"]), ("10250.12", "tables-in-force-common", ""))
+        self.assertEqual(r["items"]["the 2008 public-sector supplement"]["module"], "base-agreement-44")
+        self.assertNotEqual(r["allowances"][0]["value"], "1143.2")
+        r = self.runs[5]
+        comp = {c["name"]: c for c in r["components"]}
+        self.assertEqual(comp["combined salary"]["value"], "10000")
+        it = r["items"]["the combined salary of a full position"]
+        self.assertIsNone(it["answer"])
+        self.assertIn("1.1.2012", it["gap"])
 
     def test_every_pay_item_is_answered(self):
         names = [i["name"] for i in spec()["law"]["items"]]

@@ -23,6 +23,12 @@ field and the corpus row each field and allowance stands for, from which the
 clause citation (§1.1א) and the allowance's own Hebrew name are taken. A
 test holds the Hebrew tables to exactly the names the L4 declares.
 
+Where the root answers an amount §1.1 takes for a full position — the
+reform's tables give a teacher of Ofek Hadash his combined salary (MMS-555)
+— §1.1's rules run on `the month by the law`, with the law's amount in place
+of the form's: the page writes that month into every call it makes. Where
+the root has no answer it says why (`gap`).
+
 §1.1 alone is not a month's pay after the circulars that re-rate its 2008
 and 2011 supplements: `SUPERSEDED` says from which month and by which, and
 the page marks those lines rather than composing the circulars (MMS-514),
@@ -66,7 +72,11 @@ ITEM_RULES = {
     "titles": "the titles that speak to the item",
     "says": "what each says of the item",
     "contradicted": "the item is contradicted in the month",
+    "gap": "why the item has no answer in the month",
 }
+# the month §1.1 computes on, with the law's amounts for a full position
+MONTH_BY_LAW = "the month by the law"
+ALLOWANCE_BY_LAW = "the percentage allowance by the law"
 ALLOWANCE_RULE = "percentage allowance amount"
 MONTH_RECORD = "salary month"
 HELD_RECORD = "allowance held"
@@ -102,7 +112,7 @@ FIELDS_HE: dict[str, tuple[str, list[str]]] = {
     "1994 supplement per full position": ('תוספת "הסכם הוראה 94" למשרה מלאה (₪)', [P + "__para_e"]),
 }
 FIELD_HINTS = {
-    "full-position combined salary": "לפי טבלת השכר, הוותק והדרגה (סעיף 1.29). טבלאות השכר אינן מקודדות, ולכן הסכום מוזן כאן.",
+    "full-position combined salary": "לפי טבלת השכר, הוותק והדרגה (סעיף 1.29). למורה באופק חדש הדין לוקח אותו מטבלאות השכר של הרפורמה, ומה שמוזן כאן חל רק היכן שאין להן תשובה; לכל מורה אחר הסכום מוזן כאן.",
     "position fraction of the month": "למשל 0.5 לחצי משרה, 1.2 למשרה ועוד חמישית.",
     "is a principal": "משנה את תוספת 1994 רק בחודשים שלפני 1.9.2001.",
     "1994 supplement per full position": "הסכום מתעדכן עם תוספות היוקר (§1.1ה) ואינו מקודד, ולכן מוזן כאן.",
@@ -136,7 +146,7 @@ ALLOWANCE_ROWS: dict[str, str] = {
 
 # The facts of the case §1.1 does not ask about: the Hebrew a reader is
 # asked. The month's own facts (the month, the 5% step's population, the
-# combined salary and תוספת 2001 of today) come from §1.1's month, as
+# combined salary, תוספת 2001 and תוספת 2008 of today) come from §1.1's month, as
 # salary-root's `the case of the month` says, and are not asked twice.
 CASE_FIELDS_HE: dict[str, str] = {
     "employer": "המעסיק",
@@ -150,10 +160,19 @@ CASE_FIELDS_HE: dict[str, str] = {
     "the classes in each grade": "מספר הכיתות בכל שכבה, בחטיבה שבראשה או שאותה מרכזים",
     "the roles the teacher holds": "מספר התפקידים שבעדם משולם גמול תפקיד (0 אם אין)",
     "a further role approved by the district manager": "מנהל/ת המחוז אישר/ה גמול תפקיד מעבר לשני",
+    "paid by the Ofek Hadash tables": "מועסק/ת ברפורמת אופק חדש, לפי טבלאות השכר שלה",
+    "the post in the reform": "התפקיד בטבלאות אופק חדש",
+    "the education": "ההשכלה (או הדרגה, למורה שאינו אקדמאי)",
+    "the seniority the tables count": "הוותק בטבלאות אופק חדש (מורה חדש: 1)",
+    "the grade in the tables": "הדרגה בטבלאות אופק חדש",
+    "the school's complexity level": "רמת המורכבות של בית הספר (למנהל/ת או לסגן/ית ראשון/ה)",
 }
 CASE_HINTS = {
     "combined salary in December 2007": "חלק מההסכמים מחשבים את תוספת 2008 על השכר של דצמבר 2007.",
     "the kind of school": "חוזרי הבעלויות פונים לבתי ספר מסוגים אלה בלבד.",
+    "paid by the Ofek Hadash tables": "אם כן, השכר המשולב הוא התא בטבלה שבתוקף בחודש, לפי השדות שלהלן.",
+    "the seniority the tables count": "הסכם ההשלמה מיום 29.2.2012 (סעיף 23(א)) מונה מורה חדש בוותק 1. בטבלאות 1.12.2008, שמודפסות מ־0, הוא נקרא בשורה שמתחתיו.",
+    "the grade in the tables": "1 עד 9, או דרגת ביניים (4.5). למנהל/ת ולסגן/ית: א 1, א+ 1.5, ב 2, ב+ 2.5, ג 3, ג+ 3.5, ד 4.",
 }
 # each choice of an enum field, in Hebrew
 CHOICES_HE: dict[str, dict[str, str]] = {
@@ -161,6 +180,20 @@ CHOICES_HE: dict[str, dict[str, str]] = {
         "employed by the State": "המדינה",
         "employed by a local authority": "רשות מקומית",
         "employed by another owning body": "בעלות אחרת (רשת, תאגיד)",
+    },
+    "the post in the reform's tables": {
+        "a teacher in the tables": "מורה",
+        "a principal in the tables": "מנהל/ת בית ספר",
+        "an adjacent junior-high principal in the tables": "מנהל/ת חטיבת ביניים צמודה",
+        "a first deputy in the tables": "סגן/ית ראשון/ה",
+    },
+    "the education the tables ask": {
+        "with a first degree": "תואר ראשון",
+        "with a second degree": "תואר שני",
+        "with a doctorate": "תואר שלישי",
+        "non-academic of senior rank": "לא אקדמאי/ת, בדרגת בכיר",
+        "non-academic of certified rank": "לא אקדמאי/ת, בדרגת מוסמך",
+        "non-academic and uncertified": "לא אקדמאי/ת, בלתי מוסמך",
     },
     "the kind of school in the case": {
         "a recognised unofficial special-education school": "בית ספר לחינוך מיוחד, מוכר שאינו רשמי",
@@ -318,6 +351,7 @@ def law(components: list[dict]) -> dict:
         "items": [{"name": i, "label": names[i], "component": next((c["name"] for c in components if c["item"] == i), None)}
                   for i in items],
         "itemRules": ITEM_RULES,
+        "monthByLaw": MONTH_BY_LAW, "allowanceRule": ALLOWANCE_BY_LAW,
         "example": {k: v for k, v in ex.items() if k not in from_month},
     }
 
@@ -606,7 +640,8 @@ def body(s: dict, section_link: str, findings: list[dict], findings_href: str) -
         'מתחתיו, בלחיצה, המסמך שגובר ולפי איזה כלל, ומה אומר כל מסמך אחר שמדבר על הרכיב.</li>'
         '<li><strong>רכיב ששורש הדין עוד אינו עונה עליו מסומן.</strong> הסכום שלו הוא של סעיף 1.1 בלבד, '
         'בלי מה שמסמכים מאוחרים אומרים עליו.</li>'
-        '<li><strong>השכר המשולב מוזן ביד.</strong> הוא נקבע בטבלאות השכר, לפי ותק ודרגה, והטבלאות אינן מקודדות. '
+        '<li><strong>השכר המשולב של מורה באופק חדש נלקח מטבלאות השכר של הרפורמה</strong>, לפי התפקיד, ההשכלה, הוותק והדרגה. '
+        'היכן שהקורפוס אינו מחזיק את הטבלה, ולכל מורה אחר, הוא מוזן ביד, והעמוד אומר למה. '
         'כך גם תוספת "הסכם הוראה 94" ושיעור כל תוספת אחוזית: הטקסט קובע אותם במקום אחר, והמחשבון אינו ממציא אותם.</li>'
         '<li><strong>החישוב הוא הקוד של האתר.</strong> הדפדפן מריץ את קוד ה־L4 של האתר — שורש הדין וכל המסמכים שהוא מייבא — '
         'במעריך של L4 עצמו שהודר ל־WebAssembly: אין כאן מימוש שני של הכללים. '
