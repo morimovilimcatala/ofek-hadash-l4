@@ -74,7 +74,7 @@ TITLE = "אופק חדש ב-L4"
 # what is encoded, by the corpus document it encodes; the l4/ directory
 # mirrors the corpus's akn/ path without the extension
 # the collections in work: every document of them, by the corpus's own list
-WORK_COLLECTIONS = ("takanon", "agreements", "circulars", "circulars-sachar", "circulars-tnai-sherut")
+WORK_COLLECTIONS = ("takanon", "agreements", "circulars", "circulars-sachar", "circulars-tnai-sherut", "tables")
 
 
 def _documents() -> list[str]:
@@ -110,6 +110,8 @@ def doc_num(doc: str) -> str:
     stem = Path(doc).stem
     if doc.startswith("circulars/"):
         return stem.split("_", 1)[-1]
+    if doc.startswith("tables/") and doc_group(doc) != TABLES_OWN:
+        return ""      # a portal table is named by its title, and carries no date
     return "" if is_site_page(doc) else stem[:10]
 
 # The agreements collection, as the corpus files it: a folder per family of
@@ -123,25 +125,46 @@ AGREEMENT_GROUPS = {
 }
 
 
+# The tables collection, as the corpus files it: the salary tables the
+# agreements annex, dated, at its top, and the tables the takanon's portal
+# publishes in a folder of their own (MMS-610).
+TABLES_OWN = "agreements-annexed"
+TABLE_GROUPS = {
+    TABLES_OWN: "טבלאות השכר שבנספחי ההסכמים",
+    "takanon-portal": "טבלאות פורטל התקנון",
+}
+# the collections listed by the corpus's folders, not by year
+FOLDER_GROUPS = {"agreements": AGREEMENT_GROUPS, "tables": TABLE_GROUPS}
+
+
+def by_folder(coll: str) -> bool:
+    return coll in FOLDER_GROUPS
+
+
 def doc_group(doc: str) -> str:
     """The group a whole document is listed under: a circular's school year,
-    an agreement's family (its folder in the corpus), or none."""
-    coll = doc.split("/")[0]
+    an agreement's family or a table's folder (its folder in the corpus), or
+    none."""
+    parts = doc.split("/")
+    coll = parts[0]
     if coll == "agreements":
-        return doc.split("/")[1]
+        return parts[1]
+    if coll == "tables":
+        return parts[1] if len(parts) > 2 else TABLES_OWN
     if coll == "circulars":
         return school_year(doc)
     return ""
 
 
 def group_label(coll: str, key: str) -> str:
-    return AGREEMENT_GROUPS.get(key, key) if coll == "agreements" else key
+    return FOLDER_GROUPS.get(coll, {}).get(key, key)
 
 
 def group_order(coll: str, keys) -> list[str]:
-    """Newest year first; an agreement's families in the order above."""
-    if coll == "agreements":
-        known = list(AGREEMENT_GROUPS)
+    """Newest year first; an agreement's families, a table's folders, in the
+    order above."""
+    if by_folder(coll):
+        known = list(FOLDER_GROUPS[coll])
         return sorted(keys, key=lambda k: (known.index(k) if k in known else len(known), k))
     return sorted(keys, reverse=True)
 
@@ -900,7 +923,7 @@ def doc_nav(here: str, doc: str) -> str:
                              f'<span class="n">{len(ds)}</span></summary><ul>{lis}</ul></details></li>')
             else:
                 items.append(f'<li class="toc-ch"><a class="sn-leaf" href="{rel(coll + ".html", here)}#y-{esc(year)}">'
-                             f'<span dir="{"rtl" if coll == "agreements" else "ltr"}">{esc(group_label(coll, year))}</span>'
+                             f'<span dir="{"rtl" if by_folder(coll) else "ltr"}">{esc(group_label(coll, year))}</span>'
                              f'<span class="n">{len(ds)}</span></a></li>')
     groups = [group_html(coll, label, here, items, True)]
     for c, lab in COLLECTIONS:
@@ -1435,7 +1458,7 @@ def collection_page(coll: str, views: list[SectionView]) -> str:
         by_doc.setdefault(v.doc, []).append(v)
     by_year: dict[str, list[str]] = {}
     for d in by_doc:
-        by_year.setdefault(doc_group(d) if coll == "agreements" else school_year(d), []).append(d)
+        by_year.setdefault(doc_group(d) if by_folder(coll) else school_year(d), []).append(d)
     done = sum(doc_status(vs) == "done" for vs in by_doc.values())
     parts = [f'<header class="sec-head"><nav class="crumbs"><a href="index.html">מסמכים</a></nav>'
              f'<div class="title-row"><h1>{esc(coll_name(coll))}</h1></div>'
@@ -1448,16 +1471,16 @@ def collection_page(coll: str, views: list[SectionView]) -> str:
         vs = by_doc[d]
         st = doc_status(vs)
         href = vs[0].href if akn.is_whole(d) else f"{d.removesuffix('.xml')}.html"
-        num = doc_num(d) if coll == "agreements" else Path(d).stem.split("_", 1)[-1]
+        num = doc_num(d) if by_folder(coll) else Path(d).stem.split("_", 1)[-1]
         title = vs[0].section.heading if akn.is_whole(d) else akn.title(d)
         return (f'<li class="{st}"><a href="{rel(href, here)}">{dot(st)}'
                 f'<span class="secnum" dir="ltr">{esc(num)}</span>'
                 f'<span class="sh" lang="he">{esc(title)}</span></a></li>')
-    for year in group_order(coll if coll == "agreements" else "", by_year):
+    for year in group_order(coll if by_folder(coll) else "", by_year):
         ds = sorted(by_year[year])
         lis = "".join(entry(d) for d in ds)
         ndone = sum(doc_status(by_doc[d]) == "done" for d in ds)
-        hdir = "rtl" if coll == "agreements" else "ltr"
+        hdir = "rtl" if by_folder(coll) else "ltr"
         parts.append(f'<section class="chapter" id="y-{esc(year)}" dir="rtl"><div class="chapter-head"><h2 dir="{hdir}">{esc(group_label(coll, year))}</h2>'
                      f'<span class="ccount" dir="ltr">{ndone} מתוך {len(ds)} מקודדים</span></div>'
                      + (f'<p class="meta"><a href="{rel(fp, here)}">שורש המשפחה</a></p>'
@@ -2040,9 +2063,10 @@ def coverage_page(all_views: dict[str, list[SectionView]]) -> str:
         cvs_all = [v for d, vs in all_views.items() if d.startswith(coll + "/") and akn.is_whole(d) for v in vs]
         if not cvs_all:
             continue
-        family = coll == "agreements"
+        family = by_folder(coll)
+        row_of = {"agreements": "משפחת הסכמים", "tables": "קבוצת טבלאות"}.get(coll, "שנה")
         parts.append(f'<h2><a href="{coll}.html">{esc(coll_name(coll))}</a></h2>'
-                     f'<p class="meta">רצועה לכל {"משפחת הסכמים" if family else "שנה"}, תא לכל מסמך, ורוחבו כמספר פסקאות המסמך.</p>')
+                     f'<p class="meta">רצועה לכל {row_of}, תא לכל מסמך, ורוחבו כמספר פסקאות המסמך.</p>')
         by_year: dict[str, list] = {}
         for v in cvs_all:
             by_year.setdefault(doc_group(v.doc) if family else school_year(v.doc), []).append((v.doc, cell(v)))
@@ -2052,7 +2076,7 @@ def coverage_page(all_views: dict[str, list[SectionView]]) -> str:
         for d, vs in all_views.items():
             if d.startswith(coll + "/") and not akn.is_whole(d):
                 by_year.setdefault(doc_group(d) if family else school_year(d), []).append((d, doc_cell(d, vs)))
-        keys = group_order("agreements", by_year) if family else sorted(by_year)
+        keys = group_order(coll, by_year) if family else sorted(by_year)
         rows = [f'<div class="strip-row"><div class="strip-name">{esc(group_label(coll, y))}</div>'
                 f'<div class="strip">{"".join(c for _, c in sorted(by_year[y]))}</div></div>'
                 for y in keys]

@@ -28,6 +28,13 @@ section of its own (`tools/akn.py`'s `SECTIONED`).
 An agreement the corpus publishes without its text (an OCR layer it
 refused) has nothing to encode until the corpus reads its pages.
 
+The salary tables are in work too (MMS-610): every table the corpus's
+`tables/` collection publishes — the tables the agreements annex, and the
+tables of the conditions-of-service portal — is data, cell for cell, in the
+collection's types (`l4/tables/tables-common.l4`), and each file checks its
+table against what produces it: the agreement whose annex it is, the round
+that updated it, the steps it prints.
+
 ## Layout
 
 | Path | What |
@@ -53,7 +60,8 @@ refused) has nothing to encode until the corpus reads its pages.
   their own (in the sidebar, on the contents page and on the coverage page).
   The agreements are listed by family (the corpus's folders: Ofek Hadash, Oz
   LaTmura, the teachers' general agreements, the public-sector framework
-  agreements), the circulars by school year. Each section
+  agreements), the tables by folder (the agreements' annexes, the portal's
+  tables), the circulars by school year. Each section
   is a two-column comparison, paragraph by paragraph: the text, and the L4
   that encodes it (switchable to `l4 render`'s natural-language rendering). The
   results of the file's `#EVAL`/`#ASSERT`/`#TRACE` sit under the code they test.

@@ -1,0 +1,311 @@
+-- טבלאות השכר — the vocabulary the tables collection's documents share
+-- (MMS-610). The corpus files under tables/ the salary tables the
+-- agreements annex and the ministry's portal publishes: a teachers' table
+-- by seniority for pay (rows) and grade (columns), a conversion table with
+-- the intermediate grades, a principals' or first deputies' table by
+-- complexity level and grade, and a table of the Ofek 2022 supplement by
+-- grade. Each document is DATA here, cell for cell as the corpus publishes
+-- it, in the types below; its own file checks it against the rules that
+-- produce it — the base agreement's steps, each round's supplement, the
+-- agreement whose annex it is — with the checks below, each a list of the
+-- cells a rule reaches, set beside what the rule makes of them.
+--
+-- A cell is the base agreement's §46 `grade cell`, so the placement rules
+-- of §§46 and 71 run on a printed row unchanged. A principals' or deputies'
+-- table prints its grades as letters; the base agreement numbers them
+-- ("הדרגה המקסימאלית (4)", §71(ג)): א is 1, א+ 1.5, ב 2, ב+ 2.5, ג 3, ג+ 3.5,
+-- ד 4.
+
+IMPORT prelude
+IMPORT conventions
+IMPORT `base-agreement-46`
+
+§ `טבלאות השכר — אוצר מילים משותף`
+
+@desc One printed row of a salary table of the tables collection.
+DECLARE `published row` HAS
+    `published row label` IS A NUMBER       @desc the seniority for pay ("ותק") or the complexity level ("רמת מורכבות") printed at its head
+    `published row rate`  IS A MAYBE NUMBER @desc the rise over the row above printed beside the label (2%, 1%); NOTHING where the row prints none
+    `published row cells` IS A LIST OF `grade cell` @desc its amounts by grade, as printed; a blank cell is not in the row
+
+@desc A grade's rise over the grade before it, as a table's header prints it.
+DECLARE `published grade rate` HAS
+    `published rate's grade` IS A NUMBER
+    `published rate`         IS A NUMBER
+
+@desc A salary table of the tables collection, as the corpus publishes it.
+DECLARE `published table` HAS
+    `published table title`  IS A STRING
+    `published table code`   IS A MAYBE NUMBER @desc קוד דירוג, where the title prints one
+    `published table from`   IS A DATE         @desc the day it prints under it ("טבלה מעודכנת החל מיום")
+    `published grade rates`  IS A LIST OF `published grade rate`
+    `published table rows`   IS A LIST OF `published row`
+
+@desc A table of a supplement by grade: one amount for each grade.
+DECLARE `published supplement` HAS
+    `published supplement title` IS A STRING
+    `published supplement code`  IS A MAYBE NUMBER @desc קוד דירוג, where the title prints one
+    `published supplement from`  IS A DATE         @desc the day it prints under it ("מעודכן החל מיום")
+    `published supplement cells` IS A LIST OF `grade cell`
+
+GIVEN l IS A NUMBER, r IS A MAYBE NUMBER, cs IS A LIST OF `grade cell`
+GIVETH A `published row`
+DECIDE `a published row` l r cs IS
+    `published row` WITH
+        `published row label` IS l
+        `published row rate`  IS r
+        `published row cells` IS cs
+
+GIVEN g IS A NUMBER, r IS A NUMBER
+GIVETH A `published grade rate`
+DECIDE `a published rate` g r IS
+    `published grade rate` WITH
+        `published rate's grade` IS g
+        `published rate`         IS r
+
+GIVEN title IS A STRING, code IS A MAYBE NUMBER, day IS A DATE
+      rates IS A LIST OF `published grade rate`
+      rows  IS A LIST OF `published row`
+GIVETH A `published table`
+DECIDE `a published table` title code day rates rows IS
+    `published table` WITH
+        `published table title` IS title
+        `published table code`  IS code
+        `published table from`  IS day
+        `published grade rates` IS rates
+        `published table rows`  IS rows
+
+GIVEN title IS A STRING, code IS A MAYBE NUMBER, day IS A DATE, cs IS A LIST OF `grade cell`
+GIVETH A `published supplement`
+DECIDE `a published supplement` title code day cs IS
+    `published supplement` WITH
+        `published supplement title` IS title
+        `published supplement code`  IS code
+        `published supplement from`  IS day
+        `published supplement cells` IS cs
+
+§§ `קריאת טבלה`
+
+-- A row's amount at a grade.
+GIVEN g IS A NUMBER, cs IS A LIST OF `grade cell`
+GIVETH A MAYBE NUMBER
+DECIDE `the published amount at grade` g cs IS
+    CONSIDER filter (GIVEN c YIELD c's grade EQUALS g) cs
+    WHEN c FOLLOWED BY rest THEN JUST (c's pay)
+    WHEN EMPTY THEN NOTHING
+
+-- A table's row at the seniority or level it prints, and its cell there at
+-- a grade.
+GIVEN t IS A `published table`, l IS A NUMBER
+GIVETH A LIST OF `grade cell`
+DECIDE `the published row at` t l IS
+    concat (map (GIVEN r YIELD r's `published row cells`)
+                (filter (GIVEN r YIELD r's `published row label` EQUALS l) (t's `published table rows`)))
+
+GIVEN t IS A `published table`, l IS A NUMBER, g IS A NUMBER
+GIVETH A MAYBE NUMBER
+DECIDE `the published cell at` t l g IS
+    `the published amount at grade` g (`the published row at` t l)
+
+GIVEN s IS A `published supplement`, g IS A NUMBER
+GIVETH A MAYBE NUMBER
+DECIDE `the published supplement at` s g IS
+    `the published amount at grade` g (s's `published supplement cells`)
+
+-- The labels a table prints, top to bottom, and how many cells it prints.
+GIVEN t IS A `published table`
+GIVETH A LIST OF NUMBER
+DECIDE `the published labels of` t IS
+    map (GIVEN r YIELD r's `published row label`) (t's `published table rows`)
+
+GIVEN t IS A `published table`
+GIVETH A NUMBER
+DECIDE `the published cell count of` t IS
+    sum (map (GIVEN r YIELD count (r's `published row cells`)) (t's `published table rows`))
+
+-- The grades a table's columns are, as the cells of its rows print them.
+GIVEN t IS A `published table`
+GIVETH A LIST OF NUMBER
+DECIDE `the published grades of` t IS
+    sort (nub (concat (map (GIVEN r YIELD map (GIVEN c YIELD c's grade) (r's `published row cells`)) (t's `published table rows`))))
+
+-- A table's pay on a day: its cell, from the day it prints under it.
+GIVEN d IS A DATE, t IS A `published table`, l IS A NUMBER, g IS A NUMBER
+GIVETH A MAYBE NUMBER
+DECIDE `the published table pay on` d t l g IS
+    IF d `is on or after` (t's `published table from`)
+    THEN `the published cell at` t l g
+    ELSE NOTHING
+
+GIVEN d IS A DATE, s IS A `published supplement`, g IS A NUMBER
+GIVETH A MAYBE NUMBER
+DECIDE `the published supplement on` d s g IS
+    IF d `is on or after` (s's `published supplement from`)
+    THEN `the published supplement at` s g
+    ELSE NOTHING
+
+§§ `בדיקת טבלה מול הכלל שמפיק אותה`
+
+-- A printed cell beside what a rule makes of it: the agorot the printed
+-- cell is above (or, negative, below) the rule's figure. The rule governs
+-- nothing here: the printed cell is the table (convention
+-- rounding.printed-figure); a check says only how far the two are apart.
+@desc A printed cell set beside a rule's figure for it.
+DECLARE `published cell check` HAS
+    `checked label`        IS A NUMBER
+    `checked grade`        IS A NUMBER
+    `agorot over the rule` IS A NUMBER
+
+GIVEN l IS A NUMBER, g IS A NUMBER, printed IS A NUMBER, computed IS A NUMBER
+GIVETH A `published cell check`
+DECIDE `a published check` l g printed computed IS
+    `published cell check` WITH
+        `checked label`        IS l
+        `checked grade`        IS g
+        `agorot over the rule` IS (printed MINUS computed) TIMES 100
+
+-- Every cell of a table the rule reaches, set beside the rule's figure; a
+-- cell the rule says nothing of (NOTHING) is not checked, and is counted by
+-- `the published cells no rule reaches`.
+GIVEN rule IS A FUNCTION FROM NUMBER AND NUMBER TO MAYBE NUMBER, t IS A `published table`
+GIVETH A LIST OF `published cell check`
+DECIDE `the published cells beside` rule `in` t IS
+    concat (map (GIVEN r YIELD
+                     concat (map (GIVEN c YIELD
+                                      CONSIDER rule (r's `published row label`) (c's grade)
+                                      WHEN JUST x THEN LIST (`a published check` (r's `published row label`) (c's grade) (c's pay) x)
+                                      WHEN NOTHING THEN EMPTY)
+                                 (r's `published row cells`)))
+                (t's `published table rows`))
+
+GIVEN rule IS A FUNCTION FROM NUMBER AND NUMBER TO MAYBE NUMBER, t IS A `published table`
+GIVETH A NUMBER
+DECIDE `the published cells no rule reaches` rule `in` t IS
+    `the published cell count of` t MINUS count (`the published cells beside` rule `in` t)
+
+GIVEN cs IS A LIST OF `published cell check`
+GIVETH A LIST OF `published cell check`
+DECIDE `the published misses in` cs IS
+    filter (GIVEN c YIELD NOT (c's `agorot over the rule` EQUALS 0)) cs
+
+-- The largest distance, in agorot either way, between a printed cell and
+-- the rule's figure.
+GIVEN cs IS A LIST OF `published cell check`
+GIVETH A NUMBER
+DECIDE `the published worst miss in` cs IS
+    maximum (0 FOLLOWED BY map (GIVEN c YIELD max (c's `agorot over the rule`) (0 MINUS c's `agorot over the rule`)) cs)
+
+-- The same for a supplement by grade.
+GIVEN rule IS A FUNCTION FROM NUMBER TO MAYBE NUMBER, s IS A `published supplement`
+GIVETH A LIST OF `published cell check`
+DECIDE `the published supplement beside` rule `in` s IS
+    concat (map (GIVEN c YIELD
+                     CONSIDER rule (c's grade)
+                     WHEN JUST x THEN LIST (`a published check` 0 (c's grade) (c's pay) x)
+                     WHEN NOTHING THEN EMPTY)
+                (s's `published supplement cells`))
+
+§§ `הכללים שהבדיקות מריצות`
+
+-- Another table's cell at the same row and grade: two printings of one
+-- table, or a table and the one it repeats.
+GIVEN other IS A `published table`
+GIVETH A FUNCTION FROM NUMBER AND NUMBER TO MAYBE NUMBER
+DECIDE `the same published cell of` other IS
+    GIVEN l, g YIELD `the published cell at` other l g
+
+-- Another table's cell raised by a factor, to the agora (convention
+-- rounding.half): a uniform update of a table.
+GIVEN other IS A `published table`, factor IS A NUMBER
+GIVETH A FUNCTION FROM NUMBER AND NUMBER TO MAYBE NUMBER
+DECIDE `the published cell of` other `raised by` factor IS
+    GIVEN l, g YIELD
+        CONSIDER `the published cell at` other l g
+        WHEN JUST x THEN JUST (`to the agora` (x TIMES factor))
+        WHEN NOTHING THEN NOTHING
+
+-- The rate a row prints beside its label: the cell at the same grade one
+-- row up, raised by it, to the agora (2% a year to the seventh year, 1%
+-- from the eighth, as the tables print it).
+GIVEN t IS A `published table`
+GIVETH A FUNCTION FROM NUMBER AND NUMBER TO MAYBE NUMBER
+DECIDE `the published row rate of` t IS
+    GIVEN l, g YIELD
+        CONSIDER filter (GIVEN r YIELD r's `published row label` EQUALS l) (t's `published table rows`)
+        WHEN r FOLLOWED BY rest THEN
+            CONSIDER r's `published row rate`
+            WHEN JUST rate THEN
+                CONSIDER `the published cell at` t (l MINUS 1) g
+                WHEN JUST above THEN JUST (`to the agora` (above `increased by` rate))
+                WHEN NOTHING THEN NOTHING
+            WHEN NOTHING THEN NOTHING
+        WHEN EMPTY THEN NOTHING
+
+-- The rate a header prints over a whole grade: the cell of the whole grade
+-- before it in the same row, raised by it, to the agora.
+GIVEN t IS A `published table`
+GIVETH A FUNCTION FROM NUMBER AND NUMBER TO MAYBE NUMBER
+DECIDE `the published grade rate of` t IS
+    GIVEN l, g YIELD
+        CONSIDER filter (GIVEN st YIELD st's `published rate's grade` EQUALS g) (t's `published grade rates`)
+        WHEN st FOLLOWED BY rest THEN
+            CONSIDER `the published cell at` t l (g MINUS 1)
+            WHEN JUST before THEN JUST (`to the agora` (before `increased by` (st's `published rate`)))
+            WHEN NOTHING THEN NOTHING
+        WHEN EMPTY THEN NOTHING
+
+-- An intermediate grade (1.5, …, 8.5; א+, ב+, ג+), "for the conversion
+-- only" (the base agreement's §46(א)): the mean of the two whole grades
+-- beside it in its row, to the agora. No table states the rule; the tables
+-- print it.
+GIVEN t IS A `published table`
+GIVETH A FUNCTION FROM NUMBER AND NUMBER TO MAYBE NUMBER
+DECIDE `the published midway of` t IS
+    GIVEN l, g YIELD
+        IF FLOOR g EQUALS g
+        THEN NOTHING
+        ELSE CONSIDER `the published cell at` t l (g MINUS 0.5)
+             WHEN JUST below THEN
+                 CONSIDER `the published cell at` t l (g PLUS 0.5)
+                 WHEN JUST above THEN JUST (`to the agora` ((below PLUS above) DIVIDED BY 2))
+                 WHEN NOTHING THEN NOTHING
+             WHEN NOTHING THEN NOTHING
+
+-- A table rises along its grades and down its rows, so "the grade nearest
+-- at or above A" (§46(ב), §71(ב)) is one cell.
+GIVEN cs IS A LIST OF `grade cell`
+GIVETH A BOOLEAN
+DECIDE `a published row rises along its grades` cs IF
+    and (zipWith (GIVEN x, y YIELD x's grade LESS THAN y's grade AND x's pay LESS THAN y's pay) cs (drop 1 cs))
+
+GIVEN t IS A `published table`
+GIVETH A BOOLEAN
+DECIDE `the published table rises along its grades and down its rows` t IF
+        all (GIVEN r YIELD `a published row rises along its grades` (r's `published row cells`)) (t's `published table rows`)
+    AND and (zipWith (GIVEN upper, lower YIELD
+                          all (GIVEN c YIELD
+                                   CONSIDER `the published amount at grade` (c's grade) (upper's `published row cells`)
+                                   WHEN JUST above THEN above LESS THAN c's pay
+                                   WHEN NOTHING THEN TRUE)
+                              (lower's `published row cells`))
+                     (t's `published table rows`) (drop 1 (t's `published table rows`)))
+
+§§ `בדיקות על טבלה לדוגמה`
+
+`a sample published table` MEANS
+    `a published table` "דוגמה" (JUST 101) (DATE_FROM_DMY 1 9 2016)
+        (LIST `a published rate` 2 (7.5%))
+        (LIST `a published row` 1 NOTHING (LIST `cell` 1 1000, `cell` 1.5 1037.5, `cell` 2 1075),
+              `a published row` 2 (JUST (2%)) (LIST `cell` 1 1020, `cell` 1.5 1058.25, `cell` 2 1096.51))
+
+#ASSERT `the published cell at` `a sample published table` 2 1.5 EQUALS JUST 1058.25
+#ASSERT `the published cell at` `a sample published table` 3 1 EQUALS NOTHING
+#ASSERT `the published grades of` `a sample published table` EQUALS LIST 1, 1.5, 2
+#ASSERT `the published table pay on` (DATE_FROM_DMY 31 8 2016) `a sample published table` 1 1 EQUALS NOTHING
+#ASSERT `the published table pay on` (DATE_FROM_DMY 1 9 2016) `a sample published table` 1 1 EQUALS JUST 1000
+#ASSERT map (GIVEN c YIELD c's `agorot over the rule`) (`the published cells beside` (`the published row rate of` `a sample published table`) `in` `a sample published table`) EQUALS LIST 0, 0, 1
+#ASSERT `the published worst miss in` (`the published cells beside` (`the published row rate of` `a sample published table`) `in` `a sample published table`) EQUALS 1
+#ASSERT map (GIVEN c YIELD c's `checked label`) (`the published misses in` (`the published cells beside` (`the published grade rate of` `a sample published table`) `in` `a sample published table`)) EQUALS LIST 2
+#ASSERT count (`the published cells beside` (`the published midway of` `a sample published table`) `in` `a sample published table`) EQUALS 2
+#ASSERT `the published cells no rule reaches` (`the published midway of` `a sample published table`) `in` `a sample published table` EQUALS 4
+#ASSERT `the published table rises along its grades and down its rows` `a sample published table`
