@@ -24,7 +24,8 @@ clause citation (§1.1א) and the allowance's own Hebrew name are taken. A
 test holds the Hebrew tables to exactly the names the L4 declares.
 
 Where the root answers an amount §1.1 takes for a full position — the
-reform's tables give a teacher of Ofek Hadash his combined salary (MMS-555)
+reform's tables give a teacher of Ofek Hadash his combined salary, the
+owners' circulars print the 1994 supplement (MMS-555)
 — §1.1's rules run on `the month by the law`, with the law's amount in place
 of the form's: the page writes that month into every call it makes. Where
 the root has no answer it says why (`gap`).
@@ -77,6 +78,7 @@ ITEM_RULES = {
 # the month §1.1 computes on, with the law's amounts for a full position
 MONTH_BY_LAW = "the month by the law"
 ALLOWANCE_BY_LAW = "the percentage allowance by the law"
+ALLOWANCES_BY_LAW = "the percentage allowances by the law"
 ALLOWANCE_RULE = "percentage allowance amount"
 MONTH_RECORD = "salary month"
 HELD_RECORD = "allowance held"
@@ -89,7 +91,9 @@ POPULATION_ENUM = "postponed population"
 # Later circulars, already encoded, re-rate two of §1.1's components; §1.1
 # itself was last updated on 2.2.2010 and its own heading says newer
 # circulars prevail. From these months the page marks the component as
-# §1.1's figure, not the month's (MMS-514), and names what replaced it.
+# §1.1's figure, not the month's (MMS-514), and names what replaced it —
+# but only while the root does not answer the component: both are the
+# root's now (MMS-525, MMS-555), so neither is marked.
 SUPERSEDED = {
     "2008 supplement": ("2008-12-01", [("תשס\"ט/3", "circulars/2008-09_tashsat_03.html"),
                                        ("תש\"ע/2", "circulars/2009-10_tasha_02.html")]),
@@ -115,7 +119,7 @@ FIELD_HINTS = {
     "full-position combined salary": "לפי טבלת השכר, הוותק והדרגה (סעיף 1.29). למורה באופק חדש הדין לוקח אותו מטבלאות השכר של הרפורמה, ומה שמוזן כאן חל רק היכן שאין להן תשובה; לכל מורה אחר הסכום מוזן כאן.",
     "position fraction of the month": "למשל 0.5 לחצי משרה, 1.2 למשרה ועוד חמישית.",
     "is a principal": "משנה את תוספת 1994 רק בחודשים שלפני 1.9.2001.",
-    "1994 supplement per full position": "הסכום מתעדכן עם תוספות היוקר (§1.1ה) ואינו מקודד, ולכן מוזן כאן.",
+    "1994 supplement per full position": "הסכום מתעדכן עם תוספות היוקר (§1.1ה). לעובד של בעלות הדין לוקח אותו מחוזרי הבעלויות שמדפיסים אותו, ולמורה באופק חדש הוא 0; מה שמוזן כאן חל רק היכן שלדין אין תשובה.",
     "month": "יום כלשהו בחודש. החודש קובע אילו שיעורים של תוספות 3%, 2008 ו־2011 חלים.",
 }
 
@@ -351,7 +355,7 @@ def law(components: list[dict]) -> dict:
         "items": [{"name": i, "label": names[i], "component": next((c["name"] for c in components if c["item"] == i), None)}
                   for i in items],
         "itemRules": ITEM_RULES,
-        "monthByLaw": MONTH_BY_LAW, "allowanceRule": ALLOWANCE_BY_LAW,
+        "monthByLaw": MONTH_BY_LAW, "allowanceRule": ALLOWANCE_BY_LAW, "allowancesRule": ALLOWANCES_BY_LAW,
         "example": {k: v for k, v in ex.items() if k not in from_month},
     }
 

@@ -135,6 +135,10 @@ export function program(spec, input) {
   };
   for (const c of spec.components) {
     if (c.ctor) directive("component", `#EVAL ${tick(law.component)} ${tick(c.ctor)} ${cm}`, { name: c.name });
+    // §1.1ו's allowances on the base the law gives (salary-root)
+    else if (c.name === "percentage allowances") {
+      directive("component", `#EVAL ${tick(law.allowancesRule)} ${cm} ${tick(CALC_ALLOWANCES)}`, { name: c.name });
+    }
     else directive("component", `#EVAL ${tick(c.name)} ${args(c.params, values)}`, { name: c.name });
     if (c.item) directive("figure", `#EVAL ${tick(law.figure)} ${tick(c.ctor)} ${tick(CALC_MONTH)}`, { name: c.name });
   }

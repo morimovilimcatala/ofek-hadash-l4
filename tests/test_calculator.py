@@ -72,7 +72,7 @@ class Form(unittest.TestCase):
         and is not marked."""
         s = spec()
         names = {c["name"] for c in s["components"]}
-        self.assertEqual(set(s["superseded"]), {"2011 supplement"})
+        self.assertEqual(set(s["superseded"]), set())   # the root answers both (MMS-555)
         for name, sup in s["superseded"].items():
             with self.subTest(component=name):
                 self.assertIn(name, names)
@@ -84,12 +84,14 @@ class Form(unittest.TestCase):
 class Law(unittest.TestCase):
     """MMS-525: what the page asks salary-root, read off it."""
 
-    def test_the_root_answers_the_combined_salary_and_the_2008_supplement(self):
+    def test_the_root_answers_every_component_of_1_1(self):
         s = spec()
         self.assertEqual({c["name"]: c["item"] for c in s["components"]},
-                         {"combined salary": "the combined salary of a full position", "3% supplement": None,
+                         {"combined salary": "the combined salary of a full position",
+                          "3% supplement": "the 3% supplement of 2001",
                           "2008 supplement": "the 2008 public-sector supplement",
-                          "2011 supplement": None, "1994 supplement": None, "percentage allowances": None})
+                          "2011 supplement": "the 2011 public-sector supplement",
+                          "1994 supplement": "the 1994 supplement of a full position", "percentage allowances": None})
 
     def test_the_month_supplies_five_facts_and_the_form_asks_the_rest(self):
         law = spec()["law"]
@@ -205,7 +207,8 @@ class WorkedExample(unittest.TestCase):
     a primary school, where only the takanon speaks to the 2008 supplement,
     is paid that by the law too. In an upper division, represented by the
     secondary teachers' organisation, the agreement of 24.1.2008 governs the
-    2008 supplement: 494.4, and the month 11,426.4
+    2008 supplement: 494.4, the 2011 supplement on it 431.776, and the
+    month 11,426.176
     (l4/tests/salary-root-tests.l4 asserts the same)."""
 
     @classmethod
@@ -270,7 +273,9 @@ class WorkedExample(unittest.TestCase):
         r = self.runs[3]
         c = next(c for c in r["components"] if c["name"] == "2008 supplement")
         self.assertEqual((c["value"], c["figure"]), ("494.4", "500"))
-        self.assertEqual(r["total"]["value"], "11426.4")
+        # §92 of the completion agreement's 4% on the 2008 supplement the law
+        # gives: 431.776 for the 2011 supplement (MMS-555)
+        self.assertEqual(r["total"]["value"], "11426.176")
         it = r["items"]["the 2008 public-sector supplement"]
         self.assertEqual(it["module"], "2008-01-24_oz-latmura_tosefet-sachar_reform-model")
         self.assertEqual(it["says"], ["500", "494.4"])
@@ -278,19 +283,24 @@ class WorkedExample(unittest.TestCase):
 
     def test_a_teacher_of_the_reform_is_paid_by_its_tables(self):
         """MMS-555: annex א'4 of 1.9.2022 at seniority 10 and grade 5, in
-        place of the form's 10,000; the 2008 supplement is in the converted
-        table salary (the base agreement's §44); class education at 10% is
+        place of the form's 10,000; the 2001, 2008 and '94 supplements are in
+        the converted table salary (the base agreement's §44) and the 2011
+        raise is the tables' (the deferral of 22.7.2013); class education at 10% is
         on the month by the law. In June 2012 the corpus holds no table:
         the form's figure stands, and the page says why."""
         r = self.runs[4]
         self.assertTrue(r["ok"] and not r["failed"], r)
         comp = {c["name"]: c for c in r["components"]}
         self.assertEqual((comp["combined salary"]["value"], comp["combined salary"]["figure"]), ("10250.12", "10000"))
-        self.assertEqual(comp["2008 supplement"]["value"], "0")
+        for name in ("3% supplement", "2008 supplement", "2011 supplement", "1994 supplement"):
+            self.assertEqual(comp[name]["value"], "0", name)
+        self.assertEqual(r["items"]["the 2011 public-sector supplement"]["module"], "2013-07-22_ofek-hadash_last-phase-deferral")
         it = r["items"]["the combined salary of a full position"]
         self.assertEqual((it["answer"], it["module"], it["gap"]), ("10250.12", "tables-in-force-common", ""))
         self.assertEqual(r["items"]["the 2008 public-sector supplement"]["module"], "base-agreement-44")
-        self.assertNotEqual(r["allowances"][0]["value"], "1143.2")
+        # class education at 10% of §1.1ו's base as the law gives it: the cell alone
+        self.assertEqual(r["allowances"][0]["value"], "1025.012")
+        self.assertEqual(r["total"]["value"], "11275.132")
         r = self.runs[5]
         comp = {c["name"]: c for c in r["components"]}
         self.assertEqual(comp["combined salary"]["value"], "10000")
