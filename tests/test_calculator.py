@@ -1,8 +1,10 @@
 """The salary calculator (calculator.html): its form is read off §1.1's L4
 and the shared vocabulary's case, its evaluator is the committed WebAssembly
 build, and run in Node on the same files the page loads it gives the law's
-month (l4/lib/salary-root.l4): §1.1's worked example where only the takanon
-speaks, and the agreement's 2008 supplement where the agreement governs."""
+month (l4/lib/salary-root.l4): §1.1's worked example, where the State
+teachers' agreement of 21.2.2008, as its latest amendment in force has it,
+gives the 2008 supplement, and the organisation's agreement where it speaks
+too."""
 from __future__ import annotations
 
 import hashlib
@@ -207,14 +209,18 @@ ROLES = {"holds the pedagogical coordinator's role": True, "the interns the teac
 @unittest.skipUnless(shutil.which("node"), "needs Node")
 class WorkedExample(unittest.TestCase):
     """1.1.l4's own example: a full-time teacher in March 2012, combined
-    salary 10,000 and a 1994 supplement of 200, is paid 11,432, and 12,575.2
-    with class education at 10% (the file #ASSERTs both); a State teacher in
-    a primary school, where only the takanon speaks to the 2008 supplement,
-    is paid that by the law too. In an upper division, represented by the
-    secondary teachers' organisation, the agreement of 24.1.2008 governs the
-    2008 supplement: 494.4, the 2011 supplement on it 431.776, and the
-    month 11,426.176
-    (l4/tests/salary-root-tests.l4 asserts the same)."""
+    salary 10,000 and a 1994 supplement of 200, is paid 11,432 by §1.1, and
+    12,575.2 with class education at 10% (the file #ASSERTs both). By the law
+    a State teacher in a primary school is paid 11,426.176 and 12,568.7936
+    (MMS-518): the State teachers' agreement of 21.2.2008, as the
+    advancement of 24.11.2010 last amended it, gives the 2008 supplement,
+    5% of December 2007's 9,600 and 288 — 494.4 for §1.1's 500 — and the
+    2011 supplement on it is 431.776. In an upper division, represented by
+    the secondary teachers' organisation, the agreement of 24.1.2008 says
+    the same, and §23 takes it. In January 2011 a teacher whose 5% step was
+    put off has it back by the advancement: 494.4, where the deferral as
+    signed still says 296.64 (l4/tests/salary-root-tests.l4 asserts the
+    same)."""
 
     @classmethod
     def setUpClass(cls):
@@ -233,7 +239,10 @@ class WorkedExample(unittest.TestCase):
                  {"fields": {**ex["fields"], "month": "2023-10-01"}, "case": {**ex["case"], **OFEK, **ROLES},
                   "allowances": []},
                  {"fields": {**ex["fields"], "month": "2022-10-01", "position fraction of the month": "0.5"},
-                  "case": {**ex["case"], **OFEK}, "allowances": []}]
+                  "case": {**ex["case"], **OFEK}, "allowances": []},
+                 {"fields": {**ex["fields"], "month": "2011-01-01",
+                             "in a population whose 5% step was postponed": True},
+                  "case": ex["case"], "allowances": []}]
         with tempfile.TemporaryDirectory() as d:
             s = calculator.ship(s, Path(d))
             (Path(d) / "spec.json").write_text(json.dumps(s), encoding="utf-8")
@@ -249,34 +258,53 @@ class WorkedExample(unittest.TestCase):
         r = self.runs[0]
         self.assertTrue(r["ok"], r)
         self.assertFalse(r["failed"], r["failed"])
-        self.assertEqual(r["total"]["value"], "11432")
+        self.assertEqual(r["total"]["value"], "11426.176")
         self.assertEqual({c["name"]: c["value"] for c in r["components"]},
-                         {"combined salary": "10000", "3% supplement": "300", "2008 supplement": "500",
-                          "2011 supplement": "432", "1994 supplement": "200", "percentage allowances": "0"})
+                         {"combined salary": "10000", "3% supplement": "300", "2008 supplement": "494.4",
+                          "2011 supplement": "431.776", "1994 supplement": "200", "percentage allowances": "0"})
 
     def test_class_education_at_ten_percent(self):
         r = self.runs[1]
-        self.assertEqual(r["total"]["value"], "12575.2")
+        self.assertEqual(r["total"]["value"], "12568.7936")
         self.assertEqual([(a["name"], a["rate"], a["value"]) for a in r["allowances"]],
-                         [("class education", "10%", "1143.2")])
+                         [("class education", "10%", "1142.6176")])
 
     def test_half_position(self):
         # class education is paid as for a full position, the MA allowance
-        # in proportion: 5,000 + 150 + 250 + 216 + 100 + 1,143.2 + 714.5
+        # in proportion: 5,000 + 150 + 247.2 + 215.888 + 100 + 1,142.6176
+        # + 714.136 (the 2008 supplement the agreement of 21.2.2008's 5% of
+        # December 2007's full-position 9,600 and 288, at half a position)
         r = self.runs[2]
-        self.assertEqual([a["value"] for a in r["allowances"]], ["1143.2", "714.5"])
-        self.assertEqual(r["total"]["value"], "7573.7")
+        self.assertEqual([a["value"] for a in r["allowances"]], ["1142.6176", "714.136"])
+        self.assertEqual(r["total"]["value"], "7569.8416")
 
     def test_the_trace_is_l4s(self):
         t = self.runs[1]["total"]
-        self.assertEqual(t["trace"]["value"], "12575.2")
+        self.assertEqual(t["trace"]["value"], "12568.7936")
         self.assertTrue(t["trace"]["steps"][0]["expr"].startswith("`the salary that governs`"))
-        self.assertIn("12575.2", t["traceText"])
+        self.assertIn("12568.7936", t["traceText"])
 
-    def test_where_only_the_takanon_speaks_it_governs(self):
+    CHAIN = ["2008-02-21_teachers_tosefet-2008_wage-supplement", "2009-06-17_teachers_wage-update-deferral",
+             "2010-11-24_teachers_wage-update-advancement"]
+
+    def test_the_state_teachers_agreement_as_amended_governs(self):
+        """MMS-518: the agreement of 21.2.2008 and the agreements that amend
+        it speak; the latest in force, the advancement of 24.11.2010, governs
+        over the takanon (its introduction)."""
         it = self.runs[0]["items"]["the 2008 public-sector supplement"]
         self.assertEqual((it["answer"], it["module"], it["modules"], it["contradicted"]),
-                         ("500", "takanon-1-1", ["takanon-1-1"], False))
+                         ("494.4", self.CHAIN[2], ["takanon-1-1", *self.CHAIN], True))
+        self.assertEqual(it["says"], ["500", "494.4", "494.4", "494.4"])
+
+    def test_the_latest_amendment_in_force_speaks(self):
+        """January 2011, a teacher whose 5% step was put off: the deferral of
+        17.6.2009 as signed says 3% (296.64), the advancement of 24.11.2010
+        5% from November 2010 (494.4), and the advancement governs."""
+        r = self.runs[8]
+        self.assertTrue(r["ok"] and not r["failed"], r)
+        it = r["items"]["the 2008 public-sector supplement"]
+        self.assertEqual((it["answer"], it["module"]), ("494.4", self.CHAIN[2]))
+        self.assertEqual(it["says"], ["300", "494.4", "296.64", "494.4"])
 
     def test_where_the_agreement_speaks_it_governs(self):
         r = self.runs[3]
@@ -287,7 +315,7 @@ class WorkedExample(unittest.TestCase):
         self.assertEqual(r["total"]["value"], "11426.176")
         it = r["items"]["the 2008 public-sector supplement"]
         self.assertEqual(it["module"], "2008-01-24_oz-latmura_tosefet-sachar_reform-model")
-        self.assertEqual(it["says"], ["500", "494.4"])
+        self.assertEqual(it["says"], ["500", "494.4", "494.4", "494.4", "494.4"])
         self.assertTrue(it["contradicted"] and it["rule"] and it["title"])
 
     def test_a_teacher_of_the_reform_is_paid_by_its_tables(self):

@@ -181,8 +181,8 @@ CASE_FIELDS_HE: dict[str, str] = {
     "in post-primary education": "מועסק/ת בחינוך העל־יסודי",
     "in the upper division": "מועסק/ת בחטיבה העליונה",
     "represented by the secondary teachers' organisation": "מיוצג/ת בידי ארגון המורים בבתי הספר העל־יסודיים",
-    "combined salary in December 2007": "השכר המשולב בדצמבר 2007 (₪)",
-    "supplement 2001 in December 2007": "תוספת 2001 בדצמבר 2007 (₪)",
+    "combined salary in December 2007": "השכר המשולב בדצמבר 2007 למשרה מלאה (₪)",
+    "supplement 2001 in December 2007": "תוספת 2001 בדצמבר 2007 למשרה מלאה (₪)",
     "the kind of school": "סוג בית הספר",
     "holds the pedagogical coordinator's role": "רכז/ת פדגוגי/ת (תכנון לימודים)",
     "the interns the teacher mentors": "מספר המתמחים שהמורה חונך/ת (0 אם אין)",
@@ -198,7 +198,7 @@ CASE_FIELDS_HE: dict[str, str] = {
     "the school's complexity level": "רמת המורכבות של בית הספר (למנהל/ת או לסגן/ית ראשון/ה)",
 }
 CASE_HINTS = {
-    "combined salary in December 2007": "חלק מההסכמים מחשבים את תוספת 2008 על השכר של דצמבר 2007.",
+    "combined salary in December 2007": "חלק מההסכמים מחשבים את תוספת 2008 על השכר בערכו בדצמבר 2007. מוזן למשרה מלאה, והחישוב לוקח אותו לפי חלקיות המשרה של החודש.",
     "the kind of school": "חוזרי הבעלויות פונים לבתי ספר מסוגים אלה בלבד.",
     "holds the pedagogical coordinator's role": "גמול התפקיד נוסף לשכר החודש, בשיעור שהדין נותן.",
     "the interns the teacher mentors": "חונך/ת מתמחה אחד לפחות: גמול החונך נוסף לשכר החודש, בשיעור שהדין נותן.",

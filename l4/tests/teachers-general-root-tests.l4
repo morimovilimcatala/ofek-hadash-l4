@@ -1,0 +1,101 @@
+-- Tests of the teachers' general agreements' root (l4/lib/teachers-general-root.l4): what it is asked, asserted. They sit
+-- beside it and not in it (the client, 2026-10-22: "assertions about a file
+-- should sit next to it, not be included in it"); the site shows them on
+-- its page. `make l4` checks teachers-general-root through this file, which imports it.
+
+IMPORT prelude
+IMPORT `teachers-general-root`
+
+§ `בדיקות שורש ההסכמים הכלליים לעובדי הוראה`
+
+-- What the site's page of this root lists (tools/roots.py): each
+-- instrument it includes, its module and its name.
+#EVAL map (GIVEN i YIELD CONCAT i's `module`, " | ", i's `title`) `the teachers' general agreements' instruments`
+
+-- It includes 4 instruments, each once.
+#ASSERT count `the teachers' general agreements' instruments` EQUALS 4
+#ASSERT count (nub (map (GIVEN i YIELD i's `module`) `the teachers' general agreements' instruments`)) EQUALS 4
+
+-- A teacher of the State in a salary month, off the reform or paid by its
+-- tables, of a population whose 5% step was put off or not: a combined
+-- salary of 10,000 and תוספת 2001 of 300 in December 2007, 10,400 and 312
+-- today.
+GIVEN y IS A NUMBER, m IS A NUMBER, `put off` IS A BOOLEAN, `of the reform` IS A BOOLEAN
+GIVETH A `teaching case`
+DECIDE `a State teacher in` y m `put off` `of the reform` IS
+    `teaching case` WITH
+        `the salary month`                IS DATE_FROM_DMY 1 m y
+        `employer`                        IS `employed by the State`
+        `in post-primary education`       IS FALSE
+        `in the upper division`           IS FALSE
+        `represented by the secondary teachers' organisation` IS FALSE
+        `in a population whose 5% step was put off` IS `put off`
+        `combined salary today`           IS 10400
+        `supplement 2001 today`           IS 312
+        `supplement 2008 today`           IS 520
+        `combined salary in December 2007` IS 10000
+        `supplement 2001 in December 2007` IS 300
+        `the kind of school`              IS `another school`
+        `holds the pedagogical coordinator's role` IS FALSE
+        `the interns the teacher mentors` IS 0
+        `heads the junior division`       IS FALSE
+        `the classes in each grade`       IS 0
+        `the roles the teacher holds`     IS 0
+        `a further role approved by the district manager` IS FALSE
+        `paid by the Ofek Hadash tables`  IS `of the reform`
+        `the post in the reform`          IS `a teacher in the tables`
+        `the education`                   IS `with a first degree`
+        `the seniority the tables count`  IS 0
+        `the grade in the tables`         IS 0
+        `the school's complexity level`   IS 0
+
+GIVEN i IS A `pay item`, c IS A `teaching case`
+GIVETH A LIST OF STRING
+DECIDE `who says what on` i c IS
+    map (GIVEN x YIELD CONCAT x's `by`'s `module`, " | ", TOSTRING (x's `answer`)) (`the teachers' general agreements' claims on` i c)
+
+GIVEN i IS A `pay item`, c IS A `teaching case`
+GIVETH A LIST OF STRING
+DECIDE `who is left on` i c IS
+    map (GIVEN x YIELD x's `by`'s `module`) (`the teachers' general agreements' claims in force on` i c)
+
+-- The chain's rule (§19, convention instruments.amendment-chain), month by
+-- month, for a teacher whose 5% step was put off. In March 2008 the
+-- agreement of 21.2.2008 alone speaks: 1.5% of 10,300.
+`March 2008, put off` MEANS `a State teacher in` 2008 3 TRUE FALSE
+#EVAL `who says what on` `the 2008 public-sector supplement` `March 2008, put off`
+#ASSERT map (GIVEN x YIELD x's `answer`) (`the teachers' general agreements' claims on` `the 2008 public-sector supplement` `March 2008, put off`) EQUALS LIST 154.5
+#ASSERT `who is left on` `the 2008 public-sector supplement` `March 2008, put off` EQUALS LIST "2008-02-21_teachers_tosefet-2008_wage-supplement"
+
+-- In January 2010 the deferral of 17.6.2009 is in force: the agreement as
+-- signed says 5% (515), the deferral 3% (309), and the deferral alone is
+-- left. The advancement of 24.11.2010 does not speak of the month yet.
+`January 2010, put off` MEANS `a State teacher in` 2010 1 TRUE FALSE
+#EVAL `who says what on` `the 2008 public-sector supplement` `January 2010, put off`
+#ASSERT map (GIVEN x YIELD x's `answer`) (`the teachers' general agreements' claims on` `the 2008 public-sector supplement` `January 2010, put off`) EQUALS LIST 515, 309
+#ASSERT `who is left on` `the 2008 public-sector supplement` `January 2010, put off` EQUALS LIST "2009-06-17_teachers_wage-update-deferral"
+
+-- In January 2011 the advancement is in force and brought the step back
+-- to November 2010: the agreement 515, the deferral still 309, the
+-- advancement 515, which alone is left. §23 alone would have given 515 in
+-- January 2010 too, undoing the deferral the parties signed.
+`January 2011, put off` MEANS `a State teacher in` 2011 1 TRUE FALSE
+#EVAL `who says what on` `the 2008 public-sector supplement` `January 2011, put off`
+#ASSERT map (GIVEN x YIELD x's `answer`) (`the teachers' general agreements' claims on` `the 2008 public-sector supplement` `January 2011, put off`) EQUALS LIST 515, 309, 515
+#ASSERT `who is left on` `the 2008 public-sector supplement` `January 2011, put off` EQUALS LIST "2010-11-24_teachers_wage-update-advancement"
+
+-- An amendment speaks from the salary month it was signed in: the
+-- advancement in November 2010 (5%), the deferral in June 2009.
+#ASSERT `who is left on` `the 2008 public-sector supplement` (`a State teacher in` 2010 11 TRUE FALSE) EQUALS LIST "2010-11-24_teachers_wage-update-advancement"
+#ASSERT `who is left on` `the 2008 public-sector supplement` (`a State teacher in` 2010 10 TRUE FALSE) EQUALS LIST "2009-06-17_teachers_wage-update-deferral"
+#ASSERT `who is left on` `the 2008 public-sector supplement` (`a State teacher in` 2009 6 TRUE FALSE) EQUALS LIST "2009-06-17_teachers_wage-update-deferral"
+#ASSERT `who is left on` `the 2008 public-sector supplement` (`a State teacher in` 2009 5 TRUE FALSE) EQUALS LIST "2008-02-21_teachers_tosefet-2008_wage-supplement"
+
+-- The 3% supplement: the agreement of 18.12.2001's 3% of the combined
+-- salary of today, alone.
+#ASSERT `who says what on` `the 3% supplement of 2001` (`a State teacher in` 2011 1 FALSE FALSE) EQUALS LIST "2001-12-18_histadrut-hamorim_wage-agreement-1999-2001 | 312"
+
+-- A teacher paid by the Ofek Hadash tables: none of them speaks of him
+-- (convention instruments.converted-supplements).
+#ASSERT null (`the teachers' general agreements' claims on` `the 2008 public-sector supplement` (`a State teacher in` 2011 1 FALSE TRUE))
+#ASSERT null (`the teachers' general agreements' claims on` `the 3% supplement of 2001` (`a State teacher in` 2011 1 FALSE TRUE))
