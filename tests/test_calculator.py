@@ -231,7 +231,9 @@ class WorkedExample(unittest.TestCase):
                  {"fields": {**ex["fields"], "month": "2012-06-01"}, "case": {**ex["case"], **OFEK},
                   "allowances": []},
                  {"fields": {**ex["fields"], "month": "2023-10-01"}, "case": {**ex["case"], **OFEK, **ROLES},
-                  "allowances": []}]
+                  "allowances": []},
+                 {"fields": {**ex["fields"], "month": "2022-10-01", "position fraction of the month": "0.5"},
+                  "case": {**ex["case"], **OFEK}, "allowances": []}]
         with tempfile.TemporaryDirectory() as d:
             s = calculator.ship(s, Path(d))
             (Path(d) / "spec.json").write_text(json.dumps(s), encoding="utf-8")
@@ -293,8 +295,11 @@ class WorkedExample(unittest.TestCase):
         place of the form's 10,000; the 2001, 2008 and '94 supplements are in
         the converted table salary (the base agreement's §44) and the 2011
         raise is the tables' (the deferral of 22.7.2013); class education at 10% is
-        on the month by the law. In June 2012 the corpus holds no table:
-        the form's figure stands, and the page says why."""
+        on the month by the law. From 1.9.2022 the month adds the Ofek
+        2022 supplement (annex ג'4 at grade 5 from 1.9.2023: 614.87), which
+        §5.4 of the agreement of 19.10.2022 counts in §1.1ו's base. In June
+        2012 the corpus holds no table: the form's figure stands, and the page
+        says why."""
         r = self.runs[4]
         self.assertTrue(r["ok"] and not r["failed"], r)
         comp = {c["name"]: c for c in r["components"]}
@@ -305,9 +310,10 @@ class WorkedExample(unittest.TestCase):
         it = r["items"]["the combined salary of a full position"]
         self.assertEqual((it["answer"], it["module"], it["gap"]), ("10250.12", "tables-in-force-common", ""))
         self.assertEqual(r["items"]["the 2008 public-sector supplement"]["module"], "base-agreement-44")
-        # class education at 10% of §1.1ו's base as the law gives it: the cell alone
-        self.assertEqual(r["allowances"][0]["value"], "1025.012")
-        self.assertEqual(r["total"]["value"], "11275.132")
+        # class education at 10% of §1.1ו's base as the law gives it: the
+        # cell and the Ofek 2022 supplement, 10,864.99
+        self.assertEqual(r["allowances"][0]["value"], "1086.499")
+        self.assertEqual(r["total"]["value"], "11951.489")
         r = self.runs[5]
         comp = {c["name"]: c for c in r["components"]}
         self.assertEqual(comp["combined salary"]["value"], "10000")
@@ -327,28 +333,50 @@ class WorkedExample(unittest.TestCase):
         self.assertEqual(kinds["the mentor's allowance rate"], "training")
         self.assertEqual(kinds["the junior-division head's allowance"], "management")
         self.assertEqual(kinds["the role allowances counted"], "")
-        # 8% of §1.1ו's base as the law gives it: the cell alone, 10,250.12
-        self.assertEqual(items["the pedagogical coordinator's allowance rate"]["asAllowance"], "820.0096")
+        # 8% of §1.1ו's base as the law gives it: the cell and the Ofek 2022
+        # supplement, 10,864.99
+        self.assertEqual(items["the pedagogical coordinator's allowance rate"]["asAllowance"], "869.1992")
 
     def test_the_roles_held_are_paid_in_the_month(self):
         """Convention reading.role-allowances-in-the-month (MMS-555, put to
-        the lawyer): a teacher of the reform on 10,250.12 holding three roles
-        with no approval for a third is paid two, the highest — the junior
-        division head's 20% (2,050.024) and the coordinator's 8% (820.0096);
-        the mentor's 2.4% is held and not paid. Where no role is held the
-        month adds none (run 4)."""
+        the lawyer): a teacher of the reform on 10,250.12 and an Ofek 2022
+        supplement of 614.87 holding three roles with no approval for a third
+        is paid two, the highest — the junior division head's 20% (2,172.998)
+        and the coordinator's 8% (869.1992), both on 10,864.99 (§5.4); the
+        mentor's 2.4% is held and not paid. Where no role is held the month
+        adds none (run 4)."""
         r = self.runs[6]
         self.assertTrue(r["ok"] and not r["failed"], r)
         items = r["items"]
         self.assertEqual({k: (items[k]["held"], items[k]["paid"]) for k in spec()["law"]["roleItems"]},
-                         {"the pedagogical coordinator's allowance rate": (True, "820.0096"),
+                         {"the pedagogical coordinator's allowance rate": (True, "869.1992"),
                           "the mentor's allowance rate": (True, "0"),
-                          "the junior-division head's allowance": (True, "2050.024")})
-        self.assertEqual(items["the mentor's allowance rate"]["asAllowance"], "246.00288")
+                          "the junior-division head's allowance": (True, "2172.998")})
+        self.assertEqual(items["the mentor's allowance rate"]["asAllowance"], "260.75976")
         self.assertEqual(items["the role allowances counted"]["answer"], "2")
-        self.assertEqual(r["total"]["value"], "13120.1536")
+        self.assertEqual(r["total"]["value"], "13907.1872")
         self.assertFalse(self.runs[4]["items"]["the pedagogical coordinator's allowance rate"]["held"])
         self.assertEqual(self.runs[4]["items"]["the pedagogical coordinator's allowance rate"]["paid"], "0")
+
+    def test_the_ofek_2022_supplement_is_a_line_of_the_month(self):
+        """MMS-555: the agreement of 19.10.2022 (§5) pays a teacher of the
+        reform the Ofek 2022 supplement by grade — annex ב'4 at grade 5 from
+        1.9.2022 (307.44), ג'4 from 1.9.2023 (614.87) — in proportion to the
+        position (§5.3); the tables collection, reading the same annexes,
+        says the same. At half a position in October 2022: 153.72 beside half
+        the cell, 5,278.78."""
+        it = self.runs[4]["items"]["the Ofek 2022 supplement of a full position"]
+        self.assertEqual((it["answer"], it["month"], it["module"], it["contradicted"]),
+                         ("614.87", "614.87", "2022-10-19_ofek-hadash_wage-agreement", False))
+        self.assertEqual(it["modules"], ["2022-10-19_ofek-hadash_wage-agreement", "tables-in-force-common"])
+        r = self.runs[7]
+        self.assertTrue(r["ok"] and not r["failed"], r)
+        it = r["items"]["the Ofek 2022 supplement of a full position"]
+        self.assertEqual((it["answer"], it["month"]), ("307.44", "153.72"))
+        self.assertEqual(r["total"]["value"], "5278.78")
+        # off the reform nothing speaks, and the month adds nothing
+        it = self.runs[0]["items"]["the Ofek 2022 supplement of a full position"]
+        self.assertEqual((it["answer"], it["month"]), (None, "0"))
 
     def test_every_pay_item_is_answered(self):
         names = [i["name"] for i in spec()["law"]["items"]]

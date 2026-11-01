@@ -148,8 +148,11 @@ export function program(spec, input) {
   });
   for (const it of law.items) {
     // a role's allowance is also asked whether the case holds the role and
-    // what the month pays for it (salary-root adds it to the sum)
-    const rules = { ...law.itemRules, ...((law.roleItems || []).includes(it.name) ? law.roleRules : {}) };
+    // what the month pays for it, and an item the month adds beside §1.1's
+    // components what it comes to in the month (salary-root adds both to
+    // the sum)
+    const rules = { ...law.itemRules, ...((law.roleItems || []).includes(it.name) ? law.roleRules : {}),
+                    ...((law.monthItems || []).includes(it.name) ? law.monthRules : {}) };
     for (const [key, rule] of Object.entries(rules)) {
       directive("item", `#EVAL ${tick(rule)} ${tick(it.name)} ${cm}`, { item: it.name, key });
     }

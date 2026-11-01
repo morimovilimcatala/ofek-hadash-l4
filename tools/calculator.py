@@ -41,7 +41,10 @@ Among them are the roles the teacher holds (the pedagogical coordinator's,
 a mentor's, the junior-division head's): salary-root adds each held role's
 allowance to the month, as many as the cap pays (convention
 reading.role-allowances-in-the-month), and the page shows each as a line of
-the sum (`ROLE_RULES`).
+the sum (`ROLE_RULES`). Beside §1.1's components the month adds the pay
+items salary-root lists in `the items the month adds` — the Ofek 2022
+supplement of a teacher of the reform (MMS-555) — and the page shows each as
+a line of the sum, with the instrument that governs it (`MONTH_RULES`).
 """
 from __future__ import annotations
 
@@ -89,6 +92,12 @@ ROLE_ITEMS = "the items a held role pays"
 ROLE_RULES = {
     "held": "the role is held in the month",
     "paid": "the role allowance paid in the month",
+}
+# the pay items salary-root adds to the month beside §1.1's components, and
+# what the page asks of each: what it comes to in the month (MMS-555)
+MONTH_ITEMS = "the items the month adds"
+MONTH_RULES = {
+    "month": "the item in the month",
 }
 # the month §1.1 computes on, with the law's amounts for a full position
 MONTH_BY_LAW = "the month by the law"
@@ -368,6 +377,9 @@ def law(components: list[dict]) -> dict:
     _, role_body = _block(vocab, re.compile(rf"^`{re.escape(ROLE_ITEMS)}`\s+MEANS\b"))
     roles = re.findall(r"`([^`]+)`", "\n".join(role_body))
     assert roles and set(roles) <= set(items), "the items a held role pays are not pay items"
+    _, month_body = _block(root, re.compile(rf"^`{re.escape(MONTH_ITEMS)}`\s+MEANS\b"))
+    month_items = re.findall(r"`([^`]+)`", "\n".join(month_body))
+    assert set(month_items) <= set(items), "the items the month adds are not pay items"
     tests = SALARY_TESTS.read_text(encoding="utf-8").splitlines()
     ex = example(tests, CASE_EXAMPLE)
     return {
@@ -380,6 +392,7 @@ def law(components: list[dict]) -> dict:
                   for i in items],
         "itemRules": ITEM_RULES,
         "roleItems": roles, "roleRules": ROLE_RULES,
+        "monthItems": month_items, "monthRules": MONTH_RULES,
         "monthByLaw": MONTH_BY_LAW, "allowanceRule": ALLOWANCE_BY_LAW, "allowancesRule": ALLOWANCES_BY_LAW,
         "example": {k: v for k, v in ex.items() if k not in from_month},
     }
@@ -662,7 +675,8 @@ def body(s: dict, section_link: str, findings: list[dict], findings_href: str) -
         '<p class="lede">השכר החודשי של עובד הוראה לפי הדין: לכל רכיב, מה שהדין נותן אחרי שנשקל כל מסמך '
         'שמדבר עליו — התקנון, ההסכמים הקיבוציים והחוזרים — לפי סדר העדיפות ביניהם. '
         f'הרכיבים הם אלה שמונה {section_link}: השכר המשולב, תוספת 3%, תוספת 2008, תוספת 2011, '
-        'תוספת "הסכם הוראה 94" והתוספות האחוזיות שמזינים, ועליהם גמולי התפקידים שהמורה ממלא ששורש הדין '
+        'תוספת "הסכם הוראה 94" והתוספות האחוזיות שמזינים; לצדם תוספת אופק 2022 של מורה באופק חדש '
+        '(הסכם השכר מיום 19.10.2022, סעיף 5), ועליהם גמולי התפקידים שהמורה ממלא ששורש הדין '
         'עונה עליהם (רכז פדגוגי, חונך, מנהל חטיבה צעירה). '
         'לא נכללים כאן תשלומים שנתיים ורכיבים שנקבעים בסעיפים אחרים (הבראה, ביגוד, נסיעות, טלפון ועוד).</p>'
         '<ul class="calc-notes">'

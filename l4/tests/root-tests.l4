@@ -99,6 +99,16 @@ GIVEN `salary month` IS A DATE
       post IS A `the post in the reform's tables`
 GIVETH A `teaching case`
 DECIDE `a teacher of the reform employed by` `salary month` employer education post IS
+    `a teacher of the reform at a school` `salary month` employer `another school` education post
+
+-- The same teacher in a kind of school the owners' circulars tell apart.
+GIVEN `salary month` IS A DATE
+      employer IS A `the teacher's employer`
+      school IS A `the kind of school in the case`
+      education IS A `the education the tables ask`
+      post IS A `the post in the reform's tables`
+GIVETH A `teaching case`
+DECIDE `a teacher of the reform at a school` `salary month` employer school education post IS
     `teaching case` WITH
         `the salary month`                IS `salary month`
         `employer`                        IS employer
@@ -111,7 +121,7 @@ DECIDE `a teacher of the reform employed by` `salary month` employer education p
         `supplement 2008 today`           IS 520
         `combined salary in December 2007` IS 10000
         `supplement 2001 in December 2007` IS 300
-        `the kind of school`               IS `another school`
+        `the kind of school`               IS school
         `holds the pedagogical coordinator's role` IS FALSE
         `the interns the teacher mentors`  IS 0
         `heads the junior division`        IS FALSE
@@ -169,6 +179,29 @@ DECIDE `the supplements' cases in` d IS
 `the 1994 supplement's cases` MEANS
     concat (map `the supplements' cases in`
                 (LIST DATE_FROM_DMY 1 12 2008, DATE_FROM_DMY 1 12 2009, DATE_FROM_DMY 1 5 2013, DATE_FROM_DMY 1 3 2015))
+
+-- The Ofek 2022 supplement's cases (MMS-555): the month before it, the
+-- months its two annexes start from and October 2023; a teacher of the
+-- reform employed by each employer, in each kind of school the owners'
+-- circulars tell apart, of every education, a teacher and a principal; and
+-- every case of the 2008 supplement's grid, off the reform.
+GIVEN d IS A DATE, e IS A `the teacher's employer`, k IS A `the kind of school in the case`
+GIVETH A LIST OF `teaching case`
+DECIDE `the reform's cases at a school` d e k IS
+    concat (map (GIVEN x YIELD LIST `a teacher of the reform at a school` d e k x `a teacher in the tables`,
+                                    `a teacher of the reform at a school` d e k x `a principal in the tables`)
+                `the educations checked`)
+
+GIVEN d IS A DATE
+GIVETH A LIST OF `teaching case`
+DECIDE `the Ofek 2022 supplement's cases in` d IS
+    concat (LIST (concat (map (GIVEN e YIELD concat (map (GIVEN k YIELD `the reform's cases at a school` d e k) `the kinds of school checked`))
+                              `the employers checked`)),
+                 `the cases in` d)
+
+`the Ofek 2022 supplement's cases` MEANS
+    concat (map `the Ofek 2022 supplement's cases in`
+                (LIST DATE_FROM_DMY 1 8 2022, DATE_FROM_DMY 1 9 2022, DATE_FROM_DMY 1 9 2023, DATE_FROM_DMY 1 10 2023))
 
 -- The role allowances' cases (MMS-548): the first salary month of every
 -- school year from 2017/18, when the agreement of 19.3.2017 adds the roles,
@@ -327,6 +360,7 @@ DECIDE `the cases checked for` i IS
     WHEN `the 3% supplement of 2001` THEN `the 3% supplement's cases`
     WHEN `the 2011 public-sector supplement` THEN `the 2011 supplement's cases`
     WHEN `the 1994 supplement of a full position` THEN `the 1994 supplement's cases`
+    WHEN `the Ofek 2022 supplement of a full position` THEN `the Ofek 2022 supplement's cases`
 
 `the cases checked` MEANS
     concat (map `the cases checked for` `the items`)
@@ -734,6 +768,24 @@ DECIDE `the answers on` i c IS
     EQUALS LIST 520, 0)
 #ASSERT ((`the answer that governs` `the 2008 public-sector supplement` (`a State teacher of the reform` (DATE_FROM_DMY 1 1 2010) `with a first degree` `a teacher in the tables`))
     EQUALS JUST 0)
+
+-- The Ofek 2022 supplement (MMS-555): the agreement of 19.10.2022, on its
+-- signed copy's annexes, and the tables collection, on the same annexes as
+-- published, agree — a State teacher with a second degree at grade 5,
+-- annex ב'4 (307.44) from 1.9.2022 and ג'4 (614.87) from 1.9.2023; an
+-- owner's teacher in a special-education school, on the reform's tables,
+-- the same (circular תשפ"ג/4 prints no amount of its own and is not asked).
+-- Nothing speaks before 1.9.2022 or of a principal, and nothing disagrees:
+-- the gate holds no contradiction on it.
+#ASSERT `the answers on` `the Ofek 2022 supplement of a full position` (`a State teacher of the reform` (DATE_FROM_DMY 1 10 2022) `with a second degree` `a teacher in the tables`) EQUALS LIST 307.44, 307.44
+#ASSERT `the answers on` `the Ofek 2022 supplement of a full position` (`a State teacher of the reform` (DATE_FROM_DMY 1 10 2023) `with a second degree` `a teacher in the tables`) EQUALS LIST 614.87, 614.87
+#ASSERT `the answer that governs` `the Ofek 2022 supplement of a full position` (`a State teacher of the reform` (DATE_FROM_DMY 1 10 2023) `with a second degree` `a teacher in the tables`) EQUALS JUST 614.87
+#ASSERT `the answers on` `the Ofek 2022 supplement of a full position` (`a teacher of the reform at a school` (DATE_FROM_DMY 1 10 2023) `employed by another owning body` `a recognised unofficial special-education school` `with a first degree` `a teacher in the tables`) EQUALS LIST 585.54, 585.54
+#ASSERT ((`the ruling shown on` `the Ofek 2022 supplement of a full position` (`a teacher of the reform at a school` (DATE_FROM_DMY 1 10 2023) `employed by another owning body` `a recognised unofficial special-education school` `with a first degree` `a teacher in the tables`))
+    EQUALS CONCAT "585.54 — ", `the agreement of 19.10.2022`'s `title`, " — ", `§23: the provision in the employee's favour`)
+#ASSERT `the answers on` `the Ofek 2022 supplement of a full position` (`a State teacher of the reform` (DATE_FROM_DMY 1 8 2022) `with a second degree` `a teacher in the tables`) EQUALS EMPTY
+#ASSERT `the answers on` `the Ofek 2022 supplement of a full position` (`a State teacher of the reform` (DATE_FROM_DMY 1 10 2023) `with a second degree` `a principal in the tables`) EQUALS EMPTY
+#ASSERT null (`the contradictions on the item` `the Ofek 2022 supplement of a full position`)
 
 §§ `מקרי קצה`
 

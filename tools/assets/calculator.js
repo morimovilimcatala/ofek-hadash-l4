@@ -176,8 +176,30 @@ function show(r, prog) {
   // either: say so, and name the circulars (MMS-514)
   const month = lastMonth || "";
   const stale = r.components.filter((c) => !c.item && spec.superseded[c.name] && month >= spec.superseded[c.name].from);
+  // the pay items salary-root adds to the month beside §1.1's components
+  // (the Ofek 2022 supplement, MMS-555): each a line of the sum, by the law,
+  // with the instrument that governs it and what every instrument says
+  const monthRows = () => law.items.filter((x) => (law.monthItems || []).includes(x.name)).forEach((i) => {
+    const it = r.items[i.name];
+    const notes = [];
+    if (it.answer == null) notes.push(el("div", { class: "supnote" }, "אף מסמך אינו נותן אותה במקרה הזה."));
+    else if (it.module) notes.push(el("div", { class: "supnote" }, "לפי ", instrument(it.module, it.title),
+      " — למשרה מלאה ", ltr(shekels(String(it.answer))), ", ולפי חלקיות המשרה."));
+    tbody.append(el("tr", { class: "c" },
+      // the line is the month's amount; the item's name says it is priced
+      // for a full position, which the note says beside the root's answer
+      el("td", {}, el("span", { class: "cl", text: i.label.replace(/\s*למשרה מלאה$/, "") }), ...notes),
+      el("td", {}, el("span", { class: "badge law", text: "לפי הדין" })),
+      el("td", { class: "num" }, ltr(money(it.month == null ? "0" : String(it.month))))));
+    if (it.answer != null) {
+      tbody.append(el("tr", { class: "why" }, el("td", { colspan: "3" },
+        el("details", {}, el("summary", { text: "למה? המסמכים שמדברים על הרכיב" }), why(it, shekels)))));
+    }
+  });
   for (const c of r.components) {
     const it = c.item ? r.items[c.item] : null;
+    // they sit before §1.1ו's allowances, whose base counts them (§5.4)
+    if (c.name === "percentage allowances") monthRows();
     // the root answers the item, or it has no answer for this case and
     // §1.1's figure on the form's values stands (and the page says why)
     const byLaw = it && it.answer != null;
@@ -249,7 +271,7 @@ function show(r, prog) {
   // components; a role allowance is shown as the §1.1ו allowance it is
   // (convention reading.role-allowance-kinds) and what it would come to on
   // this month's base — in the sum above only where the case holds the role
-  const others = law.items.filter((i) => !i.component);
+  const others = law.items.filter((i) => !i.component && !(law.monthItems || []).includes(i.name));
   const otherRows = others.map((i) => {
     const it = r.items[i.name];
     const asAllowance = it.kind == null ? null : el("div", { class: "supnote" },
