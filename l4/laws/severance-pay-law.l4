@@ -1,0 +1,148 @@
+-- חוק פיצויי פיטורים, התשכ"ג-1963 — sections 1, 12, 13, 13ב, 14 and 31:
+-- who is owed severance pay, how much, on what wage (which the regulations
+-- set and the minimum wage floors), when a payment to a provident fund
+-- takes its place, and that the law takes nothing from what an agreement
+-- gives. The text is laws/severance-pay-law.toml, pinned from the live page
+-- of ספר החוקים הפתוח; the corpus holds no copy (MMS-601).
+--
+-- Why it is here: the agreements and circulars set contributions to a
+-- pension fund "in place of" 72% or all of the severance pay under §14,
+-- and that place is the agreement's to set (§14 itself), to the extent it
+-- sets it; what is left is the employer's to pay. And §12 is the floor no
+-- agreement goes below (§31; the Collective Agreements Law §21).
+
+IMPORT prelude
+IMPORT vocabulary
+IMPORT minimum_wage_law
+
+§ `חוק פיצויי פיטורים — הזכות, השיעור, והתשלום שבא במקומם`
+
+`why the Severance Pay Law's sections state no wage` MEANS
+    `set elsewhere` "שר העבודה, בתקנות פיצויי פיטורים (חישוב הפיצויים והתפטרות שרואים אותה כפיטורים), התשכ\"ד-1964, לפי סעיף 13 לחוק פיצויי פיטורים"
+
+§§ `1`
+
+-- (א): one who worked a year continuously — a seasonal worker, two seasons
+-- in two consecutive years — for one employer or at one workplace, and was
+-- dismissed, is owed severance pay by the employer who dismissed him. A
+-- season is three consecutive months of a year in which he worked at
+-- least 60 days. (ב): moved between workplaces of the same employer where
+-- the employers changed, he is owed severance by the earlier employer for
+-- his time with it, as if dismissed on the change — unless the new one
+-- took that on in writing toward him, and then the earlier is released and
+-- the time counts as worked at the new workplace.
+@ref law:1
+GIVEN `years worked continuously` IS A NUMBER
+      `a seasonal worker` IS A BOOLEAN
+      `seasons worked in two consecutive years` IS A NUMBER
+      `dismissed` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `section 1 of the Severance Pay Law entitles him` `years worked continuously` `a seasonal worker` `seasons worked in two consecutive years` `dismissed` IF
+        `dismissed`
+    AND (    `years worked continuously` AT LEAST 1
+         OR (`a seasonal worker` AND `seasons worked in two consecutive years` AT LEAST 2))
+
+GIVEN `the new employer took it on in writing` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `the earlier employer owes severance for its time under section 1(ב)` `the new employer took it on in writing` IF
+    NOT `the new employer took it on in writing`
+
+#ASSERT `section 1 of the Severance Pay Law entitles him` 1 FALSE 0 TRUE
+#ASSERT NOT `section 1 of the Severance Pay Law entitles him` 0.9 FALSE 0 TRUE
+#ASSERT NOT `section 1 of the Severance Pay Law entitles him` 5 FALSE 0 FALSE
+#ASSERT `section 1 of the Severance Pay Law entitles him` 0.5 TRUE 2 TRUE
+
+§§ `12`
+
+-- (א): one month's wage for each year of work for a salaried employee
+-- (paid mainly by the month or a longer period), two weeks' wage for each
+-- year for one paid by the day or the hour; a part of a year after a full
+-- one in proportion (for a seasonal worker, a part of a year in proportion
+-- even if his periods do not make up a year). (ב): the Minister may raise
+-- the rate for wage-earners by regulations — set elsewhere, an input.
+@ref law:12
+DECLARE `how the employee is paid under section 12` IS ONE OF
+    `salaried, by the month or longer, under section 12`
+    `a wage-earner, by the day or the hour, under section 12`
+
+-- What a month's and what two weeks' wage are is the regulations' (§13),
+-- so the wage of the period §12 counts is an input, found for the kind of
+-- employee he is.
+GIVEN p IS A `how the employee is paid under section 12`
+      `the wage of the period section 12 counts` IS A NUMBER @desc one month's wage for one salaried, two weeks' wage for a wage-earner, as the regulations under §13 find it
+      `years of work` IS A NUMBER @desc a part of a year as a fraction
+GIVETH A NUMBER
+DECIDE `severance pay under section 12` p `the wage of the period section 12 counts` `years of work` IS
+    `the wage of the period section 12 counts` TIMES `years of work`
+
+#ASSERT `severance pay under section 12` `salaried, by the month or longer, under section 12` 10000 2.5 EQUALS 25000
+
+§§ `13`
+
+-- The Minister of Labour sets by regulations which components of the whole
+-- wage count, how the wage severance is computed on is found, and which
+-- breaks in work do not count; set elsewhere (the law's own gap above), so
+-- the month's wage is an input of every rule here.
+@ref law:13
+`the wage section 13 sends to the regulations` MEANS `why the Severance Pay Law's sections state no wage`
+
+§§ `13ב`
+
+-- Notwithstanding §13, the wage severance is computed on is no less than
+-- the minimum wage as §1 of the Minimum Wage Law defines it, in proportion
+-- to the position (l4/laws/minimum-wage-law.l4).
+@ref law:13ב
+GIVEN `the wage by the regulations` IS A NUMBER
+      `the monthly minimum wage` IS A NUMBER @desc as the Minister publishes it under §6 of the Minimum Wage Law; an input
+      `the share of a full position` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the wage severance is computed on under section 13ב` `the wage by the regulations` `the monthly minimum wage` `the share of a full position` IS
+    max `the wage by the regulations`
+        (`the minimum wage owed for the month under section 2` `the monthly minimum wage` `the share of a full position` 0)
+
+#ASSERT `the wage severance is computed on under section 13ב` 2000 5880.02 0.5 EQUALS 2940.01
+#ASSERT `the wage severance is computed on under section 13ב` 9000 5880.02 1 EQUALS 9000
+
+§§ `14`
+
+-- A payment to a provident fund, a pension fund or the like takes the place
+-- of severance pay only where the collective agreement that applies to the
+-- employer and the employee says so, and to the extent it says so, or
+-- where the Minister of Labour approved it, and to the extent approved. Of
+-- the two, the larger extent governs: either is a ground of its own (the
+-- reading taken here). What is not taken the place of, the employer owes.
+-- The Minister's general approval is set elsewhere: its share is an input.
+@ref law:14
+GIVEN `the share the collective agreement sets` IS A NUMBER @desc 0 where the agreement sets none
+      `the share the Minister approved` IS A NUMBER @desc 0 where no approval applies; the general approval is set elsewhere
+GIVETH A NUMBER
+DECIDE `the share of severance a fund payment takes the place of under section 14` `the share the collective agreement sets` `the share the Minister approved` IS
+    min 1 (max `the share the collective agreement sets` `the share the Minister approved`)
+
+GIVEN `the severance` IS A NUMBER, `the share taken the place of` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the severance the employer still owes under section 14` `the severance` `the share taken the place of` IS
+    `the severance` TIMES (1 MINUS `the share taken the place of`)
+
+#ASSERT `the share of severance a fund payment takes the place of under section 14` (72%) 0 EQUALS 72%
+#ASSERT `the share of severance a fund payment takes the place of under section 14` 0 0 EQUALS 0
+#ASSERT `the severance the employer still owes under section 14` 100000 (72%) EQUALS 28000
+#ASSERT `the severance the employer still owes under section 14` 100000 1 EQUALS 0
+
+§§ `31`
+
+-- (א): the law takes from no right an employee has under a law, a
+-- collective agreement or a contract — and, for §12, under custom — and
+-- does not exhaust his rights in any negotiation on retirement: of the
+-- law's severance and another source's, he has the larger. (ב): being owed
+-- severance takes nothing from his rights that depend on seniority.
+@ref law:31
+GIVEN `what the Severance Pay Law gives` IS A NUMBER, `what another source gives` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `what governs between the Severance Pay Law and another source` `what the Severance Pay Law gives` `what another source gives` IS
+    max `what the Severance Pay Law gives` `what another source gives`
+
+`severance takes from a right that depends on seniority` MEANS FALSE
+
+#ASSERT `what governs between the Severance Pay Law and another source` 25000 20000 EQUALS 25000
+#ASSERT NOT `severance takes from a right that depends on seniority`
