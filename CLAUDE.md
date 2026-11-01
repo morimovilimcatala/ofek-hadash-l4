@@ -109,8 +109,8 @@ with `HENCE`/`LEST`), not booleans standing in for them.
   `l4/laws/`, declare none another module declares, and the rest's count is
   an exact ratchet in the same test.
   AND IMPORTS ARE TRANSITIVE (MMS-612): a name two modules declare fails
-  in any file one import reaches both from. Within the scope a root or base
-  §47's chain reaches, the chain — the modules on an import path from base
+  in any file one import reaches both from. Within the scope a root, a
+  salary-tables module (MMS-616) or base §47's chain reaches, the chain — the modules on an import path from base
   §47 or from 24.11.2010 down to the founding agreement of 10.9.2007 —
   declares no name (type, value or constructor) a module imported with it
   declares, and the rest of the scope's names declared twice are exact

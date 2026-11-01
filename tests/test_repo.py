@@ -419,7 +419,7 @@ DECLARED_MORE_THAN_ONCE = 273
 # than one module (test_a_constructor_name_is_declared_once). Two of them
 # imported into one file compile while the type around each use decides
 # which is meant, and fail "multiple definitions" where it does not.
-CONSTRUCTOR_DECLARED_MORE_THAN_ONCE = 814
+CONSTRUCTOR_DECLARED_MORE_THAN_ONCE = 811
 
 _NAME = re.compile(r"`[^`]+`|[A-Za-z_][\w']*")
 
@@ -561,7 +561,9 @@ class OneNamespace(unittest.TestCase):
     def test_no_name_is_declared_twice_where_one_import_reaches_both(self):
         """Imports are transitive, so a module that imports one module
         imports every name that one reaches. The scope is every module a
-        root (l4/lib/*root.l4) or the chain reaches; within it, two modules
+        root (l4/lib/*root.l4), the chain or a module of the tables
+        collection (l4/tables/, which any instrument that prices a cell
+        imports: MMS-616) reaches; within it, two modules
         that one import reaches together and that declare the same name fail
         "multiple definitions" wherever a use does not fix the type (MMS-612:
         the founding agreement of 10.9.2007 reused ~214 of the base
@@ -578,7 +580,10 @@ class OneNamespace(unittest.TestCase):
         starts = [names[s] for s in self.CHAIN_STARTS]
         roots = sorted((ROOT / "l4/lib").glob("*root.l4"))
         self.assertTrue(roots)
-        scope = set().union(*(reach(graph, s) for s in [*roots, *starts]))
+        tables = sorted(f for f in (ROOT / "l4/tables").rglob("*.l4") if not f.is_symlink())
+        self.assertTrue(tables)
+        self.assertTrue(all(f in graph for f in tables))
+        scope = set().union(*(reach(graph, s) for s in [*roots, *starts, *tables]))
         chain = {f for s in starts for f in reach(graph, s) if founding in reach(graph, f)}
         self.assertEqual({f.name.removesuffix(".l4") for f in chain},
                          {"base-agreement-47", "2008-02-21_teachers_tosefet-2008_wage-supplement",

@@ -233,6 +233,7 @@ CHOICES_HE: dict[str, dict[str, str]] = {
         "a recognised unofficial special-education school": "בית ספר לחינוך מיוחד, מוכר שאינו רשמי",
         "a Ma'ayan HaChinuch HaTorani or Chinuch Atzmai primary school": "בית ספר יסודי של מעיין החינוך התורני או של החינוך העצמאי",
         "a recognised unofficial special-education kindergarten": "גן לחינוך מיוחד, מוכר שאינו רשמי",
+        "an official junior high of a six-year school": "חטיבת ביניים רשמית בבית ספר שש־שנתי",
         "another school": "בית ספר אחר",
     },
 }
