@@ -10,6 +10,13 @@ A page is read off the module's own source and what `make l4` recorded for
 it (build/l4/lib/<module>.run.json): nothing on it is typed by hand. The
 root's page shows the gate — `unresolved contradictions`, asserted empty —
 and the resolutions, from the `the resolutions report` the module evaluates.
+
+Every module's tests file (l4/tests/<module>-tests.l4) is rendered the same
+way, by `tests_block`, below that module's code (MMS-607): a root's on its
+page here, an agreement's or a circular's on that document's own page, and
+one whose module has no page on the checks page (tools/build_site.py,
+diagnostics.html). Each block carries `data-tests` naming its file, which
+is how tests/test_roots.py holds that no tests file goes unshown.
 """
 from __future__ import annotations
 
@@ -28,6 +35,17 @@ TESTS_BUILD = ROOT / "build" / "l4" / "tests"
 
 def tests_of(module: str) -> Path:
     return TESTS / f"{module}-tests.l4"
+
+
+def tests_files() -> list[Path]:
+    """Every tests file. Anything else under l4/tests/ is a link an import
+    resolves through (conventions.l4), not a test."""
+    return sorted(TESTS.glob("*-tests.l4"))
+
+
+def tested_module(tests: Path) -> str:
+    """The module a tests file is named after (l4run's `tested_through`)."""
+    return tests.name.removesuffix("-tests.l4")
 
 # (module, page, collection it sits in or "", its heading, what it is)
 ROOTS = [
@@ -62,6 +80,14 @@ ROOTS = [
      "ומה הוא אומר לכל מקרה. מבין הסכם וההסכמים שמתקנים אותו, התיקון האחרון שבתוקף בחודש "
      "השכר הוא שמדבר (סעיף 19 לחוק הסכמים קיבוציים). שורש ההסכמים מייבא אותו לצד שורשי "
      "שאר המשפחות."),
+    # the month by the law (MMS-525): what the calculator asks. It sits in
+    # no collection and registers no instrument; its page carries its code
+    # and its tests (MMS-607)
+    ("salary-root", "salary-root.html", "",
+     "שורש השכר — החודש לפי הדין",
+     "מה שמחשבון השכר שואל: לכל רכיב של סעיף 1.1 לתקנון, הרכיב שגובר — תשובת השורש היכן "
+     "שפריט שכר עומד ברכיב, והסכום של סעיף 1.1 עצמו היכן שאין — ולמה: המסמך שגובר, הכלל, "
+     "ומה כל מסמך אומר. המחשבון מריץ את הקוד הזה בדפדפן."),
     ("circulars-root", "circulars/root.html", "circulars",
      "שורש החוזרים",
      "כל חוזר שמדבר על פריט באוצר המילים המשותף, רשום פעם אחת כמסמך, ומה הוא אומר לכל "
@@ -98,7 +124,7 @@ def current() -> bool:
 
 
 def results(module: str) -> list[dict]:
-    """What `make l4` recorded of a root's tests."""
+    """What `make l4` recorded of a module's tests file."""
     f = TESTS_BUILD / f"{module}-tests.run.json"
     if not f.exists():
         return []
@@ -228,8 +254,33 @@ def tests_html(module: str, esc) -> str:
     return "".join(parts)
 
 
+def tests_block(module: str, heading: str, *, esc, code_html, where: str = "",
+                banner: bool = True) -> str:
+    """A module's tests file, below the module's code (the client,
+    2026-10-22: the tests sit beside the module in the repository, and on
+    its page below it): what each test asks, the expression, what the
+    compiler answered, and the file's source one click away. `heading`
+    names the module in the lede; `where` is a sentence the lede adds, for
+    a file shown away from its module's code; `banner` says so when `make
+    l4` has recorded nothing for the file (a root's page says it above)."""
+    rs = results(module)
+    asserts = [r for r in rs if r.get("kind") == "assertion"]
+    held = sum(r.get("value") is True for r in asserts)
+    path = f"l4/tests/{module}-tests.l4"
+    t = tests_of(module).read_text(encoding="utf-8").splitlines()
+    state = (f'{held} מתוך {len(asserts)} בדיקות מתקיימות' if asserts else "אין בדיקות")
+    stale = '' if rs or not banner else '<div class="banner">קובץ הבדיקות הזה עוד לא נבדק בבנייה הזו.</div>'
+    return (f'<section class="tests-of" id="tests-{esc(module)}" data-tests="{esc(path)}">'
+            f'<h2>הבדיקות</h2><p class="lede">מה שואלים את {esc(heading)}, ומה הוא עונה: '
+            f'{esc(state)}. בכל כרטיס: מה הבדיקה שואלת, הביטוי, ומה המהדר ענה. '
+            f'הבדיקות יושבות בקובץ משלהן, לצד הקובץ ולא בתוכו.{where}</p>'
+            + stale + tests_html(module, esc)
+            + f'<details class="tsrc"><summary>קוד הבדיקות: <code dir="ltr">{esc(path)}</code></summary>'
+            f'<div class="l4">{code_html(list(enumerate(t, 1)))}</div></details></section>')
+
+
 def page_body(module: str, here: str, coll: str, heading: str, about: str, *,
-              esc, rel, code_html, href_of, coll_name, coll_href) -> str:
+              esc, rel, code_html, href_of, coll_name, coll_href, see: str = "") -> str:
     rs = results(module)
     asserts = [r for r in rs if r.get("kind") == "assertion"]
     held = sum(r.get("value") is True for r in asserts)
@@ -256,6 +307,9 @@ def page_body(module: str, here: str, coll: str, heading: str, about: str, *,
         links = " · ".join(f'<a href="{rel(h, here)}">{esc(t)}</a>' for m, h, c, t, _ in ROOTS if c and not is_family(h))
         parts.append(f'<p class="lede">המסמכים רשומים בשורשי האוספים: {links}. '
                      f'סדר העדיפות: <code dir="ltr">l4/lib/precedence.l4</code>, בקוד שלהלן.</p>')
+        salary = next((h, t) for m, h, _, t, _ in ROOTS if m == "salary-root")
+        parts.append(f'<p class="lede">השכר החודשי לפי הדין, רכיב אחר רכיב, נשאל מכאן: '
+                     f'<a href="{rel(salary[0], here)}">{esc(salary[1])}</a>.</p>')
         rows = []
         for line in strings(evaluated("root", "`the resolutions report`") or ""):
             item, sources, governs, rule, n = (line.split(" | ") + [""] * 5)[:5]
@@ -266,6 +320,10 @@ def page_body(module: str, here: str, coll: str, heading: str, about: str, *,
                          '<thead><tr><th>פריט</th><th>המסמכים שחלוקים</th><th>גובר</th>'
                          '<th>לפי</th><th>מקרים</th></tr></thead>'
                          f'<tbody>{"".join(rows)}</tbody></table></div>')
+    elif not coll:
+        # a root that registers no instrument (salary-root) asks the root
+        parts.append(f'<p class="lede">הוא שואל את השורש: '
+                     f'<a href="{rel("root.html", here)}">{esc(ROOTS[0][3])}</a>.{see}</p>')
     else:
         items = []
         for m, t in registered(module):
@@ -284,15 +342,5 @@ def page_body(module: str, here: str, coll: str, heading: str, about: str, *,
         parts.append(f'<h2 dir="ltr"><code>l4/lib/{esc(b)}.l4</code></h2>'
                      f'<div class="l4">{code_html(list(enumerate(lines, 1)))}</div>')
         if b == module and tests_of(module).exists():
-            # the tests sit beside the module in the repository, and on its
-            # page below it (the client, 2026-10-22)
-            t = tests_of(module).read_text(encoding="utf-8").splitlines()
-            state = (f'{held} מתוך {len(asserts)} בדיקות מתקיימות' if asserts else "אין בדיקות")
-            parts.append(f'<h2>הבדיקות</h2><p class="lede">מה שואלים את {esc(heading)}, ומה הוא עונה: '
-                         f'{esc(state)}. בכל כרטיס: מה הבדיקה שואלת, הביטוי, ומה המהדר ענה. '
-                         f'הבדיקות יושבות בקובץ משלהן, לצד הקובץ ולא בתוכו.</p>'
-                         + tests_html(module, esc)
-                         + f'<details class="tsrc"><summary>קוד הבדיקות: '
-                         f'<code dir="ltr">l4/tests/{esc(module)}-tests.l4</code></summary>'
-                         f'<div class="l4">{code_html(list(enumerate(t, 1)))}</div></details>')
+            parts.append(tests_block(module, heading, esc=esc, code_html=code_html, banner=False))
     return "".join(parts)
