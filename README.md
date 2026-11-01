@@ -45,7 +45,7 @@ that updated it, the steps it prints.
 | `conventions.toml`, `l4/conventions.l4` | the rules of reading the encoding follows where the text does not decide, and the one L4 definition of each that is a computation, which the rules import |
 | `findings/<corpus path>/<section>.toml` (one per section) | errors in the text the encoding exposed, each backed by an `#ASSERT` |
 | `data/calculator-delta.json` | the comparison with the ministry's salary simulator: inputs, outputs, mappings, clauses and classifications only (written outside this repository; shown as the simulator's group of the contradictions page) |
-| `laws/<name>.toml`, `l4/laws/<name>.l4` | a statute encoded though the corpus holds no copy of it (חוק הסכמים קיבוציים §§2, 15–16, 19–23; חוק יסודות התקציב §§21, 29, 32; חוק שכר מינימום §§1–3, 11; and the others `laws/` holds): its sections' words pinned from ספר החוקים הפתוח, and their rules |
+| `laws/<name>.toml`, `l4/laws/<name>.l4` | a statute encoded though the corpus holds no copy of it (חוק הסכמים קיבוציים §§2, 15–16, 19–23; חוק יסודות התקציב §§21, 29, 32; חוק שכר מינימום §§1–3, 11; חוק הגנת השכר §§20, 25; and the others `laws/` holds): its sections' words pinned from ספר החוקים הפתוח, and their rules |
 | `data/statute-citations.json` | every statute the corpus cites and every section it cites by number, with the documents that cite it, read off the corpus's own links to ספר החוקים הפתוח (`tools/statute_citations.py`, MMS-601) |
 | `data/contradictions.json`, `data/contradictions/` | where sources contradict each other: a side per source (two or more) with its answer — a document with a crop of its page, or what the payslips or the simulator pay — and the rule that decides |
 | `tools/` | the L4 runner, the AKN reader, the site generator |
@@ -106,6 +106,13 @@ that updated it, the steps it prints.
   from it (MMS-601). An agreement that leaves its supplement out of the pay
   that counts gives more than the law
   (`l4/agreements/ofek-hadash/2016-09-30_ofek-hadash_september-2016-agreement.l4`).
+- **The Wage Protection Law** (`laws/wage-protection-law.html`) — §20, the
+  compensation for severance paid late, and §25, what may be deducted from
+  wages and how much (MMS-601). The takanon's §1.28.2.3 restates §20 with 60
+  days where the law gives the employer 15 to notify the fund; the law
+  governs, a card on the contradictions page. An overpayment an agreement
+  deems an advance under §25(א)(7) is deducted in twelve parts only as §25
+  allows (`l4/agreements/ofek-hadash/2012-02-29_ofek-hadash_amendment_hascam-hashlama.l4`).
 - **The statutes the corpus cites** (`laws/index.html`) — every act the
   corpus links to, how many documents cite it, the sections it cites by
   number, and which of them the L4 pins (MMS-601).

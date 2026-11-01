@@ -1,0 +1,207 @@
+-- חוק הגנת השכר, התשי"ח-1958 — section 20: when severance pay falls due,
+-- when it is late, and the compensation for its lateness; and section 25:
+-- what may be deducted from wages, and how much. The text is
+-- laws/wage-protection-law.toml, pinned from the live page of ספר החוקים
+-- הפתוח; the corpus holds no copy (MMS-601).
+--
+-- Why it is here: both set a floor an instrument cannot go below. An
+-- agreement or a circular that deems an overpayment "an advance on wages
+-- for §25(א)(7)" and deducts it in twelve parts deducts only what §25
+-- permits; and the takanon's §1.28.2.3 restates §20 for teaching
+-- employees, so where its restatement gives the employee less, the law
+-- governs (the root's precedence, l4/lib/precedence.l4).
+--
+-- Days are counted as numbers here, as the takanon's restatement counts
+-- them: a day is a serial, and a span of days their difference.
+
+IMPORT prelude
+
+§ `חוק הגנת השכר — פיצויי פיטורים שהולנו, וניכויים מהשכר`
+
+§§ `20`
+
+-- (א): the day severance pay falls due is the latest of (1) the day
+-- employment ended, and the later days (2)–(5) set where they arise: the
+-- day a collective agreement, arrangement or extension order sets; for a
+-- right above the statutory one, the day its contract sets (or the day the
+-- right was set, if after the end); a right set collectively after the end
+-- with no day, the day it was set; a right conditional on something after
+-- the end, the day the condition is met.
+@ref law:20
+GIVEN `the day employment ended` IS A NUMBER
+      `the later days (2)–(5) set` IS A LIST OF NUMBER @desc each of (2)–(5) that arises; empty if none
+GIVETH A NUMBER
+DECIDE `the day severance falls due under section 20(א)` `the day employment ended` `the later days (2)–(5) set` IS
+    maximum (`the day employment ended` FOLLOWED BY `the later days (2)–(5) set`)
+
+-- (ב): severance not paid within 15 days of the day it fell due is late.
+-- Paid on days 16 to 30 after it: the linkage differences from that day
+-- to the day of payment. Paid later: the linkage differences, and 20% of
+-- the severance and the differences together for every month it went
+-- unpaid, a part of a month pro rata. (ב1): the compensation is part of
+-- the severance for every purpose but (ב). The linkage differences are the
+-- consumer price index's (the law's §1), an input; the months unpaid are
+-- an input, a part of a month as a fraction.
+GIVEN `the severance` IS A NUMBER
+      `days from the due day to payment` IS A NUMBER
+      `the linkage differences` IS A NUMBER @desc by the consumer price index, from the due day to the day of payment
+      `the months it went unpaid` IS A NUMBER @desc a part of a month as a fraction
+GIVETH A NUMBER
+DECIDE `the compensation for late severance under section 20(ב)` `the severance` `days from the due day to payment` `the linkage differences` `the months it went unpaid` IS
+    BRANCH IF `days from the due day to payment` AT MOST 15 THEN 0
+           IF `days from the due day to payment` AT MOST 30 THEN `the linkage differences`
+           OTHERWISE `the linkage differences` PLUS `the 20% for the months unpaid`
+    WHERE
+        `the 20% for the months unpaid` MEANS
+            (`the severance` PLUS `the linkage differences`) TIMES 20% TIMES `the months it went unpaid`
+
+-- (ב2): the employer may set off from the severance and the compensation a
+-- debt the employee owes him, or a sum he must or may deduct from the
+-- severance. (ג): one entitled other than under §§1(א) or 5 of the
+-- Severance Pay Law has no due day until he has demanded payment in
+-- writing, stating the ground; a later demand moves the due day to it.
+GIVEN `entitled under section 1(א) or 5 of the Severance Pay Law` IS A BOOLEAN
+      `the due day under (א)` IS A NUMBER
+      `the day of the written demand` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the due day after a written demand under section 20(ג)` `entitled under section 1(א) or 5 of the Severance Pay Law` `the due day under (א)` `the day of the written demand` IS
+    IF `entitled under section 1(א) or 5 of the Severance Pay Law`
+    THEN `the due day under (א)`
+    ELSE max `the due day under (א)` `the day of the written demand`
+
+-- (ד): §§17א, 18 and 19 apply to late severance as to late wages (they
+-- are not pinned); a regional court may reduce or cancel the compensation
+-- also where the severance was held back for a real dispute over the
+-- right, a dispute over the day employment ended, or particulars the
+-- claimant did not give.
+DECLARE `why severance was held back, under section 20(ד)` IS ONE OF
+    `a real dispute over the right to severance`
+    `a dispute over the day employment ended`
+    `particulars the claimant did not give the employer`
+    `another cause of the delay`
+
+GIVEN r IS A `why severance was held back, under section 20(ד)`
+GIVETH A BOOLEAN
+DECIDE `section 20(ד) lets the court reduce or cancel the compensation for` r IF
+    NOT r EQUALS `another cause of the delay`
+
+-- (ה): one entitled to severance from a provident fund, by the employer's
+-- payments to it, has no compensation for lateness on what the fund owes
+-- him if the employer told the fund in writing, within 15 days of the due
+-- day, that it consents to the payment. (ו): a deceased's severance the
+-- employer deposited with the regional court is paid, for (ב), on the day
+-- of the deposit.
+GIVEN `the employer told the fund in writing it consents` IS A BOOLEAN
+      `days from the due day to that notice` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `section 20(ה) leaves no compensation on what the fund owes` `the employer told the fund in writing it consents` `days from the due day to that notice` IF
+        `the employer told the fund in writing it consents`
+    AND `days from the due day to that notice` AT MOST `the days section 20(ה) gives the employer to notify the fund`
+
+`the days section 20(ה) gives the employer to notify the fund` MEANS 15
+
+#ASSERT `the day severance falls due under section 20(א)` 100 (LIST 90, 130) EQUALS 130
+#ASSERT `the day severance falls due under section 20(א)` 100 EMPTY EQUALS 100
+#ASSERT `the compensation for late severance under section 20(ב)` 50000 15 400 0.5 EQUALS 0
+#ASSERT `the compensation for late severance under section 20(ב)` 50000 25 400 0.8 EQUALS 400
+#ASSERT `the compensation for late severance under section 20(ב)` 50000 45 400 1.5 EQUALS 15520
+#ASSERT `the due day after a written demand under section 20(ג)` FALSE 100 140 EQUALS 140
+#ASSERT `section 20(ה) leaves no compensation on what the fund owes` TRUE 15
+#ASSERT NOT `section 20(ה) leaves no compensation on what the fund owes` TRUE 16
+#ASSERT `section 20(ד) lets the court reduce or cancel the compensation for` `a dispute over the day employment ended`
+
+§§ `25`
+
+-- (א): nothing is deducted from wages but these: (1) a sum an enactment
+-- requires or permits to be deducted; (2) donations the employee agreed in
+-- writing to have deducted; (3) dues to a workers' organisation he is a
+-- member of, deducted under a collective agreement or contract or with his
+-- written consent, and the regular payments to the works committee; (3א)
+-- an addition to those dues for party activity, unless he objected in
+-- writing; (3ב) an agency fee for the representative organisation, from a
+-- non-member, under a collective agreement or contract or with his written
+-- consent (its maximum is set by regulations); (4) a disciplinary fine
+-- under a collective agreement or an enactment; (5) current payments to
+-- provident funds — save that a fund only the employee must pay is not
+-- deducted if he objected in writing; (6) a debt under the employee's
+-- written undertaking to the employer, no more than a quarter of the wage
+-- deducted for it; (7) advances on account of wages, up to three months'
+-- wages — beyond that, (6) governs the rest.
+@ref law:25
+DECLARE `deduction under section 25 of the Wage Protection Law` IS ONE OF
+    `a sum an enactment requires or permits to be deducted`
+    `a donation the employee agreed in writing to have deducted`
+    `union dues or works-committee payments as (3) allows`
+    `a party-funding addition to the dues the employee did not object to`
+    `an agency fee as (3ב) allows`
+    `a disciplinary fine under a collective agreement or an enactment`
+    `a current provident-fund payment (5) allows`
+    `a debt under the employee's written undertaking`
+    `an advance on account of wages`
+    `a deduction section 25 does not list`
+
+GIVEN k IS A `deduction under section 25 of the Wage Protection Law`
+GIVETH A BOOLEAN
+DECIDE `section 25 of the Wage Protection Law permits the deduction` k IF
+    NOT k EQUALS `a deduction section 25 does not list`
+
+-- (6): no more than a quarter of the wage is deducted in a month for a debt.
+GIVEN `the month's wage` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the most section 25(א)(6) lets be deducted in a month` `the month's wage` IS
+    `the month's wage` DIVIDED BY 4
+
+-- (7): of advances, as much as three months' wages is deducted as an
+-- advance, with no limit to the month; the rest is a debt under (6). In a
+-- month, then, the employer may deduct what is left of the advance part,
+-- and at most a quarter of the wage toward the rest. The advance part is
+-- taken to be deducted first (convention amounts.advance-part-first, a
+-- pick put to the lawyer: (7) does not say which part a deduction pays).
+GIVEN `the advances` IS A NUMBER
+      `the month's wage` IS A NUMBER
+      `already deducted` IS A NUMBER @desc what has been deducted of the advances in earlier months
+GIVETH A NUMBER
+DECIDE `the most section 25 lets be deducted of advances this month` `the advances` `the month's wage` `already deducted` IS
+    `what is left of the advance part` PLUS `the quarter toward the rest`
+    WHERE
+        `the advance part` MEANS min `the advances` (3 TIMES `the month's wage`)
+        `what is left of the advance part` MEANS max 0 (`the advance part` MINUS `already deducted`)
+        `the quarter toward the rest` MEANS
+            IF `the advances` GREATER THAN `the advance part`
+            THEN `the most section 25(א)(6) lets be deducted in a month` `the month's wage`
+            ELSE 0
+
+-- An advance deducted in equal monthly parts — as the agreements and
+-- circulars that deem an overpayment an advance under (7) deduct it —
+-- stays within §25 in every month only if no part exceeds what §25 lets be
+-- deducted that month.
+GIVEN `the advances` IS A NUMBER
+      `the month's wage` IS A NUMBER
+      `the parts` IS A NUMBER @desc the number of equal monthly parts
+GIVETH A BOOLEAN
+DECIDE `equal monthly parts of the advance stay within section 25` `the advances` `the month's wage` `the parts` IF
+    all (GIVEN k YIELD
+            `the advances` DIVIDED BY `the parts`
+                AT MOST `the most section 25 lets be deducted of advances this month`
+                            `the advances` `the month's wage` (k TIMES `the advances` DIVIDED BY `the parts`))
+        (range 0 (`the parts` MINUS 1))
+
+-- (ב): notwithstanding (א), when the employee stops working for the
+-- employer, the employer may deduct from his last wage any balance of a
+-- debt he owes, advances among it.
+GIVEN `the employee has stopped working for the employer` IS A BOOLEAN
+      `the balance of his debt` IS A NUMBER
+      `his last wage` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `what section 25(ב) lets be deducted from the last wage` `the employee has stopped working for the employer` `the balance of his debt` `his last wage` IS
+    IF `the employee has stopped working for the employer`
+    THEN min `the balance of his debt` `his last wage`
+    ELSE 0
+
+#ASSERT NOT `section 25 of the Wage Protection Law permits the deduction` `a deduction section 25 does not list`
+#ASSERT `section 25 of the Wage Protection Law permits the deduction` `an advance on account of wages`
+#ASSERT `the most section 25 lets be deducted of advances this month` 12000 10000 0 EQUALS 12000
+#ASSERT `the most section 25 lets be deducted of advances this month` 36000 10000 30000 EQUALS 2500
+#ASSERT `equal monthly parts of the advance stay within section 25` 30000 10000 12
+#ASSERT NOT `equal monthly parts of the advance stay within section 25` 36000 10000 12
+#ASSERT `what section 25(ב) lets be deducted from the last wage` TRUE 3000 8000 EQUALS 3000
