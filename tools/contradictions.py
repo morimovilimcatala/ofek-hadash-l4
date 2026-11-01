@@ -24,6 +24,13 @@ the card an error, graded. A source that has no answer to the question is
 listed under the card (`silent`), not as a side. None of them changes a
 reading.
 
+A card that sets a circular against an agreement says which way the
+circular departs (`direction`: more, less, or other than a sum paid), and
+what that means under §29 of the Budget Foundations Law (MMS-602): giving
+less, the agreement governs and §29 is not in play; giving more, the card
+carries `section_29`, the L4 boolean that applies the encoded section and
+whether the excess is void.
+
 The simulator also has a group of its own (tools/calculator_delta.py,
 MMS-522): every place its computation departs from the text, produced by the
 comparison rather than picked, under the simulator's own disclaimer that it
@@ -71,7 +78,50 @@ def proofs(c: dict, evidence: dict[str, tuple[str, str]]) -> list[tuple[str, str
     should have an ASSERT")."""
     out = [evidence[f] for f in c.get("findings", []) if f in evidence]
     out += [(a["l4"], a["name"]) for a in c.get("asserts", [])]
+    if c.get("section_29"):
+        out.append((c["section_29"]["l4"], c["section_29"]["name"]))
     return list(dict.fromkeys(out))
+
+
+# Which way a circular departs from the agreement it carries out (MMS-602).
+# Where it gives LESS, the agreement governs — a circular never out-ranks an
+# agreement — and §29 of the Budget Foundations Law is not in play: it voids
+# what a budgeted or supported body gives BEYOND what was agreed or approved.
+# Where it gives MORE, §29 can decide the card, and the card carries its
+# `section_29`: the L4 boolean that applies the encoded section
+# (l4/laws/budget-foundations-law.l4) and #ASSERTs the result, whether the
+# excess is void, and why. `other` is a departure that is not a sum paid.
+DIRECTION = {"more": "החוזר נותן יותר מההסכם", "less": "החוזר נותן פחות מההסכם",
+             "other": "הסטייה אינה בסכום שמשולם"}
+S29 = "laws/budget-foundations-law.html#s29"
+
+
+def compares_circular_to_agreement(c: dict) -> bool:
+    """A card that sets a circular against an agreement: it says which way
+    the circular departs."""
+    kinds = {s["type"] for s in c["sides"]}
+    return "circular" in kinds and "agreement" in kinds
+
+
+def direction_html(c: dict, *, prose) -> str:
+    d = c.get("direction")
+    if not d:
+        return ""
+    law = f'<a href="{S29}">סעיף 29 לחוק יסודות התקציב</a>'
+    if d == "more":
+        s = c["section_29"]
+        verdict = ("לפי סעיף 29 העודף בטל, והסכום הוא של ההסכם." if s["voids"]
+                   else "לפי סעיף 29 העודף אינו בטל, והחוזר עומד.")
+        text = (f'החוזר נותן יותר מההסכם, והבעלויות שהוא ממוען אליהן הן גוף מתוקצב או גוף נתמך. לכן {law} בודק את העודף: '
+                f'הוא עומד רק אם הוסכם או הונהג לגבי כלל עובדי המדינה, או אושר בידי שר האוצר. <b>{esc(verdict)}</b></p>'
+                f'<p>{prose(s["note"])}')
+    else:
+        why = ("הוא מבטל רק מה שגוף מתוקצב או גוף נתמך נותן מעבר למה שהוסכם או אושר, ולא תשלום נמוך מההסכם"
+               if d == "less" else "החוזר אינו נותן שינוי בשכר או הטבה כספית מעבר להסכם")
+        text = (f'<b>ההסכם גובר</b>: חוזר אינו גובר על ההסכם שהוא מבצע. {law} אינו חל כאן — {esc(why)}.')
+    return (f'<div class="cx-mean cx-s29"><h4>כיוון הסטייה וסעיף 29</h4>'
+            f'<p><span class="cx-dir dir-{d}">{esc(DIRECTION[d])}</span> {prose(c["direction_note"])}</p>'
+            f'<p>{text}</p></div>')
 
 
 def load() -> dict | None:
@@ -273,6 +323,8 @@ def card(c: dict, rules: dict, *, prose, clause_link, finding_ids, src, evidence
     sev = c.get("severity")
     badge = f'<span class="cx-sev sev-{sev}">טעות · {esc(SEV[sev])}</span>' if sev else ""
     pair = " ↔ ".join(TYPE[s["type"]] for s in c["sides"])
+    way = (f'<span class="cx-dir dir-{c["direction"]}">{esc(DIRECTION[c["direction"]])}</span>'
+           if c.get("direction") else "")
     links = []
     for f in c.get("findings", []):
         ref = f'<bdi dir="ltr" class="fref">{esc(f)}</bdi>'
@@ -284,11 +336,12 @@ def card(c: dict, rules: dict, *, prose, clause_link, finding_ids, src, evidence
     silent = (f'<p class="cx-silent">אין כאן תשובה: {esc(" ".join(c["silent"]))}</p>'
               if c.get("silent") else "")
     return (f'<details class="cx-card sev-{sev or "none"}" id="{esc(c["id"])}" data-types="{esc(" ".join(types(c)))}" data-sev="{sev or "none"}">'
-            f'<summary><p class="cx-pair">{esc(pair)} {badge}</p><h3>{esc(c["title"])}</h3></summary>'
+            f'<summary><p class="cx-pair">{esc(pair)} {way} {badge}</p><h3>{esc(c["title"])}</h3></summary>'
             f'<p class="cx-stake">{prose(c["stake"])}</p>'
             f'<div class="cx-sides">{sides}</div>'
             + rule_html(rules[c["rule"]], c["rule_note"], prose=prose, src=src)
             + (f'<p class="cx-win">לפי הכלל גובר: <b>{esc(winner)}</b></p>' if winner else "")
+            + direction_html(c, prose=prose)
             + (f'<p class="cx-sevwhy"><span class="cx-sev sev-{sev}">{esc(SEV[sev])}</span> {prose(c["severity_why"])}</p>'
                if sev else "") + silent
             # what an error means for a teacher (the client: "a משמעות section")

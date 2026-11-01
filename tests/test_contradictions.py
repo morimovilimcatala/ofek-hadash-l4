@@ -256,3 +256,57 @@ class EveryContradictionIsAsserted(unittest.TestCase):
                 for file, name in found:
                     text = (ROOT / file).read_text(encoding="utf-8")
                     self.assertIn(f"#ASSERT `{name}`", text, f"{file} does not #ASSERT `{name}`")
+
+
+class WhichWayTheCircularDeparts(unittest.TestCase):
+    """MMS-602: a card that sets a circular against the agreement it carries
+    out says which way the circular departs. Giving less, the agreement
+    governs and §29 of the Budget Foundations Law is not in play; giving
+    more, §29 is applied through the encoded section, and the result is the
+    card's own #ASSERT."""
+
+    def test_every_circular_against_an_agreement_says_which_way(self):
+        named = [c for c in DATA["items"] if contradictions.compares_circular_to_agreement(c)]
+        self.assertTrue(named)
+        for c in DATA["items"]:
+            with self.subTest(item=c["id"]):
+                if contradictions.compares_circular_to_agreement(c):
+                    self.assertIn(c.get("direction"), contradictions.DIRECTION)
+                    self.assertTrue(c.get("direction_note", "").strip())
+                else:
+                    self.assertNotIn("direction", c)
+                # only a circular that gives more is weighed under §29
+                self.assertEqual("section_29" in c, c.get("direction") == "more")
+
+    def test_more_applies_section_29_through_the_encoded_module(self):
+        conventions = {x["id"]: x for x in tomllib.loads(
+            (ROOT / "conventions.toml").read_text(encoding="utf-8"))["convention"]}
+        for c in DATA["items"]:
+            s = c.get("section_29")
+            if not s:
+                continue
+            with self.subTest(item=c["id"]):
+                self.assertIsInstance(s["voids"], bool)
+                self.assertTrue(s["note"].strip())
+                text = (ROOT / s["l4"]).read_text(encoding="utf-8")
+                self.assertIn("IMPORT budget_foundations_law", text)
+                self.assertIn(f"#ASSERT `{s['name']}`", text)
+                self.assertIn(f"`{s['name']}` MEANS", text)
+                # the reading is a pick put to the lawyer (decision 16)
+                conv = conventions[s["convention"]]
+                self.assertTrue(conv.get("lawyer"))
+                self.assertIn({"l4": s["l4"], "rule": s["name"]}, conv["applies"])
+
+    def test_the_card_says_what_section_29_does(self):
+        for c in DATA["items"]:
+            if not c.get("direction"):
+                continue
+            with self.subTest(item=c["id"]):
+                html = contradictions.card(c, DATA["rules"], prose=lambda t: t,
+                                           clause_link=lambda d, k: ("#", k), finding_ids=set(),
+                                           src=lambda f: f)
+                self.assertIn(contradictions.DIRECTION[c["direction"]], html)
+                self.assertIn(contradictions.S29, html)
+                if c["direction"] in ("less", "other"):
+                    self.assertIn("<b>ההסכם גובר</b>", html)
+                    self.assertIn("אינו חל כאן", html)
