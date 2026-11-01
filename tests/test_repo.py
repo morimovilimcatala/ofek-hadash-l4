@@ -413,13 +413,13 @@ class ConventionsModule(unittest.TestCase):
 
 # Type names declared in more than one module (test_a_type_name_is_declared_once):
 # each is a pair the compiler will refuse to import into one file.
-DECLARED_MORE_THAN_ONCE = 294
+DECLARED_MORE_THAN_ONCE = 274
 
 # Constructor names (the cases of a `DECLARE … IS ONE OF`) declared in more
 # than one module (test_a_constructor_name_is_declared_once). Two of them
 # imported into one file compile while the type around each use decides
 # which is meant, and fail "multiple definitions" where it does not.
-CONSTRUCTOR_DECLARED_MORE_THAN_ONCE = 854
+CONSTRUCTOR_DECLARED_MORE_THAN_ONCE = 815
 
 _NAME = re.compile(r"`[^`]+`|[A-Za-z_][\w']*")
 
@@ -452,6 +452,51 @@ def constructors(text: str) -> list[str]:
                     out.append(_NAME.match(s).group(0))
             i += 1
     return out
+
+
+# The scoped check (MMS-612), test_no_name_is_declared_twice_where_one_import_reaches_both.
+# Names declared in more than one module that one module of the scope
+# imports together, outside the chain: each a use away from "multiple
+# definitions". Identifiers are type and value names; constructors are counted
+# apart, as above.
+SCOPED_IDENTIFIERS_DECLARED_TWICE = 429
+SCOPED_CONSTRUCTORS_DECLARED_TWICE = 255
+
+_DEF_LINE = re.compile(r"^(?:DECIDE\s+[A-Za-z_][\w']*\s+(`[^`]+`)"
+                       r"|DECIDE\s+(`[^`]+`|[A-Za-z_][\w']*)"
+                       r"|(`[^`]+`|[A-Za-z_][\w']*)\s+MEANS\b"
+                       r"|DECLARE\s+(`[^`]+`|[A-Za-z_][\w']*))", re.M)
+
+
+def declared_names(text: str) -> dict[str, bool]:
+    """Every top-level name a file declares — a type, a value (a DECIDE, an
+    infix DECIDE's backticked name, a MEANS) or a constructor — and whether
+    it is a constructor there. A local (an indented WHERE) is not one."""
+    out = {m.group(m.lastindex): False for m in _DEF_LINE.finditer(text)}
+    for c in constructors(text):
+        out.setdefault(c, True)
+    return out
+
+
+def import_graph() -> tuple[dict[str, Path], dict[Path, list[Path]]]:
+    """{module name: file} and {file: the files it imports}, through the one
+    namespace l4/modules/ gives every name (tools/modules.py)."""
+    import modules
+    names, _ = modules.wanted()
+    files = set(names.values())
+    graph = {f: [names[i] for i in re.findall(r"^IMPORT\s+`?([^`\s]+)`?", f.read_text(encoding="utf-8"), re.M)
+                 if i in names] for f in files}
+    return names, graph
+
+
+def reach(graph: dict[Path, list[Path]], start: Path) -> set[Path]:
+    seen, todo = set(), [start]
+    while todo:
+        f = todo.pop()
+        if f not in seen:
+            seen.add(f)
+            todo += graph.get(f, [])
+    return seen
 
 
 class OneNamespace(unittest.TestCase):
@@ -505,6 +550,64 @@ class OneNamespace(unittest.TestCase):
                                 if sum(f.startswith(shared) for f in files) > 1), [])
         self.assertEqual(sum(1 for files in declared.values() if len(files) > 1),
                          CONSTRUCTOR_DECLARED_MORE_THAN_ONCE)
+
+    FOUNDING = "2007-09-10_ofek-hadash_reform-founding-agreement"
+    # where the chain starts: base §47 imports the agreement of 21.2.2008,
+    # and the agreement of 24.11.2010 (which the completion agreement of
+    # 29.2.2012 imports) the deferral of 17.6.2009, each of which imports
+    # the founding agreement
+    CHAIN_STARTS = ("base-agreement-47", "2010-11-24_teachers_wage-update-advancement")
+
+    def test_no_name_is_declared_twice_where_one_import_reaches_both(self):
+        """Imports are transitive, so a module that imports one module
+        imports every name that one reaches. The scope is every module a
+        root (l4/lib/*root.l4) or the chain reaches; within it, two modules
+        that one import reaches together and that declare the same name fail
+        "multiple definitions" wherever a use does not fix the type (MMS-612:
+        the founding agreement of 10.9.2007 reused ~214 of the base
+        agreement's names on purpose, and base §47 reaches both, so the
+        completion agreement could not import the agreement of 24.11.2010).
+        THE CHAIN — the modules on an import path from base §47 or from
+        24.11.2010 down to the founding agreement — declares no name that
+        any module it is imported with declares; across the rest of the
+        scope, the names declared twice are a ratchet, held exactly, and
+        only ever lowered."""
+        names, graph = import_graph()
+        decl = {f: declared_names(f.read_text(encoding="utf-8")) for f in graph}
+        founding = names[self.FOUNDING]
+        starts = [names[s] for s in self.CHAIN_STARTS]
+        roots = sorted((ROOT / "l4/lib").glob("*root.l4"))
+        self.assertTrue(roots)
+        scope = set().union(*(reach(graph, s) for s in [*roots, *starts]))
+        chain = {f for s in starts for f in reach(graph, s) if founding in reach(graph, f)}
+        self.assertEqual({f.name.removesuffix(".l4") for f in chain},
+                         {"base-agreement-47", "2008-02-21_teachers_tosefet-2008_wage-supplement",
+                          "2009-06-17_teachers_wage-update-deferral",
+                          "2010-11-24_teachers_wage-update-advancement", self.FOUNDING})
+        twice: dict[str, set[Path]] = {}
+        for m in scope:
+            by: dict[str, set[Path]] = {}
+            for f in reach(graph, m):
+                for n in decl[f]:
+                    by.setdefault(n, set()).add(f)
+            for n, fs in by.items():
+                if len(fs) > 1:
+                    twice.setdefault(n, set()).update(fs)
+        in_chain = sorted(f"{n}: {', '.join(sorted(f.name for f in fs))}"
+                          for n, fs in twice.items() if fs & chain)
+        self.assertEqual(in_chain, [])
+        rest = {n: fs for n, fs in twice.items() if not fs & chain}
+        ctor = {n for n, fs in rest.items() if all(decl[f][n] for f in fs)}
+        self.assertEqual(len(rest) - len(ctor), SCOPED_IDENTIFIERS_DECLARED_TWICE)
+        self.assertEqual(len(ctor), SCOPED_CONSTRUCTORS_DECLARED_TWICE)
+
+    def test_the_name_reader_sees_every_shape(self):
+        src = ("DECIDE `a` x IS 1\nDECIDE d `is on or after` e IF TRUE\nb MEANS 2\n`c` MEANS 3\n"
+               "DECLARE `t` IS ONE OF `k`, l\nGIVEN x IS A NUMBER\nDECIDE f x IS\n    y\n    WHERE\n"
+               "        z MEANS 4\n")
+        self.assertEqual(declared_names(src), {"`a`": False, "`is on or after`": False, "b": False,
+                                               "`c`": False, "`t`": False, "f": False,
+                                               "`k`": True, "l": True})
 
     def test_the_constructor_reader_sees_every_shape(self):
         src = ("DECLARE a IS ONE OF `x`, y\n"

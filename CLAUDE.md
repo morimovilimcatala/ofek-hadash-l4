@@ -108,6 +108,15 @@ with `HENCE`/`LEST`), not booleans standing in for them.
   (`PARTY \`x\``). The modules every collection reaches, `l4/lib/` and
   `l4/laws/`, declare none another module declares, and the rest's count is
   an exact ratchet in the same test.
+  AND IMPORTS ARE TRANSITIVE (MMS-612): a name two modules declare fails
+  in any file one import reaches both from. Within the scope a root or base
+  §47's chain reaches, the chain — the modules on an import path from base
+  §47 or from 24.11.2010 down to the founding agreement of 10.9.2007 —
+  declares no name (type, value or constructor) a module imported with it
+  declares, and the rest of the scope's names declared twice are exact
+  ratchets in the same test. An earlier agreement that the base agreement
+  repeats imports the base section where the rule is the same, and dates
+  its own name where it differs (`status of 10.9.2007`).
 - **Every paragraph is accounted for.** Each text row of the section is
   covered by a segment that cites it or an ancestor:
   - `@ref akn:<key>` on the declaration that encodes it, or

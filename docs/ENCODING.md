@@ -125,6 +125,21 @@ reader can see past, a dated amount.
   constructor another module declares — the Budget Foundations Law's is
   `the State as an employing body`, beside `Party`'s `the State` — and
   `tests.test_repo.OneNamespace` holds that and the rest's count.
+- So is every value and type name, and a module that imports one module
+  imports all it reaches. Before giving a rule a name another module uses,
+  ask whether one file could reach both: the founding agreement of
+  10.9.2007 reused the base agreement's names, base §47 reaches both, and
+  nothing that reached §47 could also import the agreement of 24.11.2010
+  (MMS-612). Where the base agreement states the same rule, import its
+  section and cite your row with a note; where it differs, date the name
+  (`the role rate of 10.9.2007`; a name ending in a preposition takes the
+  date inside, `the table, by 10.9.2007, for`). Mind what an import
+  brings: a base section's own imports reach every file downstream, so the
+  founding agreement does not import base §§1, 11, 14, 29, 30 or 39, whose
+  names or imports are declared again by modules downstream of it
+  (measured by checking every module that reaches it).
+  `tests.test_repo.OneNamespace` holds the chain to no shared name and the
+  rest of the scope to exact counts.
 - `§` inside an annotation's text (`@desc`, `@export`) starts a section and
   breaks the parse. Write "section 1.7", not "§1.7", in annotations.
 - In `MUST`/`MAY`/`SHANT`, the action is a PATTERN, not an expression:
