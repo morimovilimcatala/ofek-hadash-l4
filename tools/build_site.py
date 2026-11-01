@@ -13,8 +13,12 @@ Pages, laid out like the corpus they encode:
   <collection>/<doc>/<num>.render.html  L4's own rendering of that section
   <collection>/<doc>/<num>.prose.json   that section's prose views, fetched on the switch
   <collection>/<doc>.html          a whole document (a circular, an agreement
-                                   not read by sections): its text | L4, row by row
-  <collection>.html                a collection's documents, by year or by family
+                                   not read by sections): its text | L4, row by row,
+                                   and below its L4 its module's tests file, if it has
+                                   one (l4/tests/<module>-tests.l4, MMS-607)
+  root.html, <collection>/root.html, salary-root.html
+                                   the roots (tools/roots.py): each one's code and tests
+  <collection>.html               a collection's documents, by year or by family
   findings.html  findings.json     errors in the LAW that encoding exposed
   salary.html                      a redirect to calculator.html: the salary-structure
                                    diagram was dropped (the client, 2026-10-22)
@@ -31,10 +35,12 @@ Pages, laid out like the corpus they encode:
                                    ministry's simulator departs from the text, by cause
                                    (data/calculator-delta.json)
   coverage.html                    how much of the corpus is encoded
-  diagnostics.html                 what the L4 checker reported, file by file
+  diagnostics.html                 what the L4 checker reported, file by file; every
+                                   tests file and the page that shows it, and in full
+                                   any tests file no module page shows
   index.json                       every L4 segment with its corpus address
 
-The site is in English; the corpus's text is shown as it is, in Hebrew.
+The site is in Hebrew (the client, 2026-10-10); the L4 source and its notes are in English, and the corpus's text is shown as it is.
 """
 from __future__ import annotations
 
@@ -1226,6 +1232,41 @@ def section_block(v: SectionView, here: str, headless: bool = False) -> str:
             f'<div class="grid">{"".join(out)}</div>{appendix}</section>')
 
 
+# a module's tests file (l4/tests/<module>-tests.l4) by the module's file:
+# the page of the document or section that file encodes shows it below its
+# code, as a root's page does (MMS-607). Filled by build().
+TESTED: dict[str, str] = {}
+
+
+def module_tests(v: SectionView) -> str:
+    """The tests file of the module `v` encodes, below its code, or ""."""
+    name = TESTED.get(str(v.l4.relative_to(ROOT))) if v.l4 else None
+    if name is None:
+        return ""
+    return roots.tests_block(name, v.section.heading if v.whole else sec_ref(v.section),
+                             esc=esc, code_html=l4src.numbered_html)
+
+
+def roots_page(module: str) -> str:
+    return next(here for m, here, *_ in roots.ROOTS if m == module)
+
+
+def tests_homes(by_file: dict[str, SectionView]) -> dict[Path, str | None]:
+    """Where each tests file is shown: its root's page, the page of the
+    document or section its module encodes, or None — a file that names no
+    module, or whose module has no page, which the checks page shows in
+    full."""
+    real = {n: str(f.relative_to(ROOT)) for n, f in modules.wanted()[0].items()}
+    root_pages = {m: here for m, here, *_ in roots.ROOTS}
+    out: dict[Path, str | None] = {}
+    for t in roots.tests_files():
+        name = roots.tested_module(t)
+        v = by_file.get(real.get(name, ""))
+        out[t] = (root_pages[name] + f"#tests-{name}" if name in root_pages else
+                  f"{v.page}#tests-{name}" if v is not None and TESTED.get(real[name]) == name else None)
+    return out
+
+
 def redirect_page(here: str, target: str, title: str) -> str:
     """A page that moved: sends the reader (and a search engine) on."""
     to = rel(target, here)
@@ -1383,7 +1424,7 @@ def chapter_page(doc: str, chapters: list[list[SectionView]], i: int) -> str:
     toolbar = (f'<div class="doc-toolbar"><span class="tb-label">הצגת ה-L4:</span>{SWITCH}'
                f'<span class="tb-where" aria-live="polite"></span>'
                f'<span class="tb-cols"><span>L4</span><span>טקסט</span></span></div>')
-    blocks = "".join(section_block(v, here) for v in vs)
+    blocks = "".join(section_block(v, here) + module_tests(v) for v in vs)
 
     def step(j: int, cls: str, label: str) -> str:
         if not 0 <= j < len(chapters):
@@ -1432,7 +1473,7 @@ def single_page(doc: str, v: SectionView) -> str:
             f'<div class="links">{"".join(links)}</div></header>')
     toolbar = (f'<div class="doc-toolbar"><span class="tb-label">הצגת ה-L4:</span>{switch}'
                f'<span class="tb-where"></span><span class="tb-cols"></span></div>')
-    body = head + toolbar + section_block(v, here, headless=True)
+    body = head + toolbar + section_block(v, here, headless=True) + module_tests(v)
     return page(here, f"{v.section.heading} — {TITLE}", body, tab="docs", wide=True,
                 desc=f"{v.section.heading}: נוסח המסמך ליד קידוד ה-L4 שלו")
 
@@ -1801,7 +1842,8 @@ def calculator_page(all_views: dict[str, list["SectionView"]], findings: list[di
     link = (f'<a href="{v.href}">סעיף {esc(v.section.num)} ("{esc(v.section.heading)}") '
             f'ב{esc(akn.title(v.doc))}</a>')
     mine = [f for f in findings if f.get("l4") == str(v.l4.relative_to(ROOT))]
-    body = calculator.body(s, link, mine, rel("findings.html", here))
+    body = calculator.body(s, link, mine, rel("findings.html", here),
+                           code_href=rel(roots_page("salary-root"), here))
     return page(here, f"מחשבון שכר — {TITLE}", body, tab="calculator",
                 desc="השכר החודשי של עובד הוראה לפי סעיף 1.1 לתקנון, מחושב בדפדפן בקוד ה-L4 של האתר")
 
@@ -1913,7 +1955,33 @@ def index_json(flat: list[SectionView]) -> str:
     return json.dumps({"source": REPO, "rules": rows}, ensure_ascii=False, indent=1)
 
 
-def diagnostics_page(views: list[SectionView]) -> str:
+def tests_index(homes: dict[Path, str | None], here: str) -> str:
+    """Every tests file and the page that shows it (MMS-607). A file no
+    module page shows — it names no module, or its module has no page — is
+    shown here in full, so none is out of a reader's reach."""
+    rows, orphans = [], []
+    for t, home in homes.items():
+        name = roots.tested_module(t)
+        asserts = [r for r in roots.results(name) if r.get("kind") == "assertion"]
+        held = sum(r.get("value") is True for r in asserts)
+        cls = "okay" if held == len(asserts) and roots.results(name) else "notok"
+        where = (f'<a href="{rel(home, here)}">{esc(home.split("#")[0])}</a>' if home else
+                 f'<a href="#tests-{esc(name)}">בעמוד זה, למטה</a>')
+        rows.append(f'<tr><td><code dir="ltr">{esc(str(t.relative_to(ROOT)))}</code></td><td>{where}</td>'
+                    f'<td class="{cls}">{held} / {len(asserts)}</td></tr>')
+        if home is None:
+            orphans.append(roots.tests_block(
+                name, name, esc=esc, code_html=l4src.numbered_html,
+                where=" לקובץ הזה אין עמוד מודול באתר, ולכן הוא מוצג כאן."))
+    return ('<h2 id="tests-files">קובצי הבדיקות</h2><p class="lede">הבדיקות של מודול יושבות בקובץ משלהן, '
+            '<code dir="ltr">l4/tests/&lt;module&gt;-tests.l4</code>, ומוצגות מתחת לקוד שלו: '
+            'בעמוד השורש, או בעמוד המסמך שהמודול מקודד. קובץ שאין לו עמוד כזה מוצג כאן.</p>'
+            '<div class="scroll-x"><table class="diag"><thead><tr><th>קובץ</th><th>מוצג ב־</th>'
+            '<th>#ASSERT מתקיימים</th></tr></thead><tbody>' + "".join(rows) + '</tbody></table></div>'
+            + "".join(orphans))
+
+
+def diagnostics_page(views: list[SectionView], homes: dict[Path, str | None]) -> str:
     rows = []
     for v in views:
         if v.src is None:
@@ -1938,9 +2006,10 @@ def diagnostics_page(views: list[SectionView]) -> str:
             'קובץ: שגיאות טיפוס ותחביר, וכל <code>#ASSERT</code> שנכשל. "פסקאות שלא צוטטו" '
             'סופר את פסקאות הטקסט שאף קטע קוד אינו מצטט. באתר תקין שתי העמודות האחרונות '
             'הן אפס.</p>'
-            '<table class="diag"><thead><tr><th>חלק</th><th>קובץ</th><th>מצב</th><th>#ASSERT</th>'
+            '<div class="scroll-x"><table class="diag"><thead><tr><th>חלק</th><th>קובץ</th><th>מצב</th><th>#ASSERT</th>'
             '<th>פסקאות שלא צוטטו</th><th>בעיות</th></tr></thead><tbody>'
-            + "".join(rows) + "</tbody></table>")
+            + "".join(rows) + "</tbody></table></div>"
+            + tests_index(homes, "diagnostics.html"))
     return page("diagnostics.html", f"בדיקות — {TITLE}", body, tab="diagnostics")
 
 
@@ -2355,7 +2424,9 @@ def about_page() -> str:
 <p>כל שורה היא פסקה אחת של הטקסט: מימין הטקסט כפי שהוא בקורפוס, ומשמאל הכללים שקודדו ממנו.
 המתג <em>פרוזה</em> מחליף את הקוד בניסוח בשפה טבעית ש־<code>l4 render</code> מפיק מאותם כללים;
 הניסוח הזה, כמו הקוד, באנגלית. תוצאות ה־<code>#ASSERT</code>, <code>#EVAL</code> ו־<code>#TRACE</code>
-מופיעות מתחת לקוד שהן בודקות. פסקה שאין בה כלל (רשימת מקורות, הערת תיקון) מסומנת
+מופיעות מתחת לקוד שהן בודקות. מסמך שיש לו קובץ בדיקות משלו (<code dir="ltr">l4/tests/</code>) —
+למשל הסכם שנבדק מול סבב השכר של המגזר הציבורי שלו — מציג אותו מתחת לקוד, כל בדיקה עם מה שהמהדר ענה;
+<a href="diagnostics.html#tests-files">עמוד הבדיקות</a> מונה את כל קובצי הבדיקות ואת העמוד שמציג כל אחד. פסקה שאין בה כלל (רשימת מקורות, הערת תיקון) מסומנת
 <em>ללא כלל</em> עם הנימוק; פסקה שאף קוד אינו מצטט מסומנת <em>לא קודד</em>.</p>
 <h2>מה הקידוד מקבל כנתון</h2>
 <ul>
@@ -2397,6 +2468,13 @@ def build() -> int:
         doc: [build_view(doc, s) for s in akn.sections(doc)] for doc in DOCUMENTS}
     NAV_VIEWS.clear()
     NAV_VIEWS.update(all_views)
+    # a module with a tests file, by its file: its page shows them (a
+    # root's page does so itself, in tools/roots.py)
+    wanted = modules.wanted()[0]
+    encoded = {str(v.l4.relative_to(ROOT)) for vs in all_views.values() for v in vs if v.l4}
+    TESTED.clear()
+    TESTED.update({f: n for n, p in wanted.items() if roots.tests_of(n).exists()
+                   and (f := str(p.relative_to(ROOT))) in encoded})
     for doc in DOCUMENTS:
         views = all_views[doc]
         d = OUT / doc.removesuffix(".xml")
@@ -2469,9 +2547,11 @@ def build() -> int:
         return v.href if v is not None else None
     for module, here, coll, heading, about in roots.ROOTS:
         (OUT / here).parent.mkdir(parents=True, exist_ok=True)
+        see = (f' מחשבון השכר מריץ אותו: <a href="{rel("calculator.html", here)}">מחשבון שכר</a>.'
+               if module == "salary-root" and CALCULATOR else "")
         body = roots.page_body(module, here, coll, heading, about, esc=esc, rel=rel,
                                code_html=l4src.numbered_html, href_of=href_of,
-                               coll_name=coll_name, coll_href=coll_hub)
+                               coll_name=coll_name, coll_href=coll_hub, see=see)
         (OUT / here).write_text(page(here, f"{heading} — {TITLE}", body, tab="docs",
                                      desc=about), encoding="utf-8")
     if CONTRA:
@@ -2482,7 +2562,7 @@ def build() -> int:
     (OUT / "findings.json").write_text(findings_json(findings, by_file, key_to_view), encoding="utf-8")
     (OUT / "index.json").write_text(index_json(flat), encoding="utf-8")
     (OUT / "coverage.html").write_text(coverage_page(all_views), encoding="utf-8")
-    (OUT / "diagnostics.html").write_text(diagnostics_page(flat), encoding="utf-8")
+    (OUT / "diagnostics.html").write_text(diagnostics_page(flat, tests_homes(by_file)), encoding="utf-8")
     (OUT / "conventions.html").write_text(conventions_page(load_conventions(), by_file, findings), encoding="utf-8")
     (OUT / "about.html").write_text(about_page(), encoding="utf-8")
     (OUT / ".nojekyll").write_text("")

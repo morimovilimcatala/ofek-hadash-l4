@@ -47,7 +47,7 @@ that updated it, the steps it prints.
 | `data/calculator-delta.json` | the comparison with the ministry's salary simulator: inputs, outputs, mappings, clauses and classifications only (written outside this repository; shown as the simulator's group of the contradictions page) |
 | `laws/<name>.toml`, `l4/laws/<name>.l4` | a statute encoded though the corpus holds no copy of it (חוק הסכמים קיבוציים §§2, 15–16, 19–23; חוק יסודות התקציב §§21, 29, 32; חוק שכר מינימום §§1–3, 11; חוק הגנת השכר §§20, 25; חוק פיצויי פיטורים §§1, 12, 13, 13ב, 14, 31; and the others `laws/` holds): its sections' words pinned from ספר החוקים הפתוח, and their rules |
 | `data/statute-citations.json` | every statute the corpus cites and every section it cites by number, with the documents that cite it, read off the corpus's own links to ספר החוקים הפתוח (`tools/statute_citations.py`, MMS-601) |
-| `data/contradictions.json`, `data/contradictions/` | where sources contradict each other: a side per source (two or more) with its answer — a document with a crop of its page, or what the payslips or the simulator pay — and the rule that decides |
+| `data/contradictions.json`, `data/contradictions/` | where sources contradict each other: a side per source (two or more) with its answer — a document with a crop of its page, or what the payslips or the simulator pay — and the rule that decides; a circular against an agreement says which way it departs, and where it gives more, what §29 of the Budget Foundations Law makes of the excess |
 | `tools/` | the L4 runner, the AKN reader, the site generator |
 | `toolchain/` | the pinned L4 compiler revision and its build script |
 | `tests/` | alignment, coverage and evidence checks |

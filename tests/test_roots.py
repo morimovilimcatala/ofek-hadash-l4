@@ -4,10 +4,12 @@ The root is the law's one entry point: its gate (`unresolved contradictions`)
 is an #ASSERT the build already holds. What is held here is what the site
 says about it — that every root has its page, that a collection root names
 only instruments that are modules, and that the root's page shows every
-resolution the module reports, read from the module and not typed.
+resolution the module reports, read from the module and not typed — and
+that every tests file under l4/tests/ is shown on a page (MMS-607).
 """
 from __future__ import annotations
 
+import os
 import sys
 import unittest
 from pathlib import Path
@@ -62,15 +64,14 @@ class Roots(unittest.TestCase):
 
 
 class TestsAreQuestions(unittest.TestCase):
-    """A root's page shows its tests as questions with what the compiler
-    answered, not as a dump of source (the client, 2026-10-22, MMS-553)."""
+    """A page shows a tests file as questions with what the compiler
+    answered, not as a dump of source (the client, 2026-10-22, MMS-553):
+    a root's on its page, and since MMS-607 every module's on its own."""
 
     def test_every_directive_is_in_a_question_with_its_answer(self):
         import re
-        for module, *_ in roots.ROOTS:
-            src = roots.tests_of(module)
-            if not src.exists():
-                continue
+        for src in roots.tests_files():
+            module = roots.tested_module(src)
             lines = [n for n, l in enumerate(src.read_text(encoding="utf-8").splitlines(), 1)
                      if roots.DIRECTIVE.match(l.strip())]
             asked = [n for _, qs in roots.test_questions(module) for _, ds in qs for n, *_ in ds]
@@ -85,6 +86,55 @@ class TestsAreQuestions(unittest.TestCase):
         qs = [d for _, q in roots.test_questions("root") for _, ds in q for d in ds]
         self.assertTrue(any("EQUALS" in expr and expr.startswith("((") for _, _, expr in qs))
         self.assertFalse([expr for _, _, expr in qs if expr.count("(") != expr.count(")")])
+
+
+class EveryTestsFileIsShown(unittest.TestCase):
+    """A tests file sits beside its module (l4/tests/<module>-tests.l4), and
+    `make l4` checks it; a reader sees it only where a page renders it
+    (MMS-607). Every one is shown, once, on a page another page links to:
+    below its module's code, or, where its module has no page, on the
+    checks page."""
+
+    def test_l4_tests_holds_tests_files_and_import_links_only(self):
+        # anything else there would be a tests file the site does not count
+        for f in sorted(roots.TESTS.iterdir()):
+            with self.subTest(file=f.name):
+                self.assertTrue(f.name.endswith("-tests.l4") or f.is_symlink(),
+                                "not named <module>-tests.l4, so no page would show it")
+
+    def test_a_file_no_module_page_shows_is_shown_in_full_on_the_checks_page(self):
+        import build_site  # noqa: E402
+        t = roots.tests_of("salary-root")
+        html = build_site.tests_index({t: None}, "diagnostics.html")
+        self.assertIn(f'data-tests="l4/tests/{t.name}"', html)
+        self.assertIn('href="#tests-salary-root"', html)
+        self.assertIn('class="tcard"', html)
+
+    @unittest.skipUnless((SITE / "diagnostics.html").exists(), "run `make site` first")
+    def test_every_tests_file_is_on_a_page_a_page_links_to(self):
+        import re
+        from urllib.parse import unquote
+        pages = sorted(SITE.rglob("*.html"))
+        shown: dict[str, list[str]] = {}
+        linked: set[str] = set()
+        for p in pages:
+            text = p.read_text(encoding="utf-8")
+            here = p.relative_to(SITE).as_posix()
+            for t in re.findall(r'<section class="tests-of"[^>]* data-tests="([^"]+)"', text):
+                shown.setdefault(t, []).append(here)
+            for h in re.findall(r'href="([^"#?]+)', text):
+                if ":" in h:    # another site
+                    continue
+                target = os.path.normpath(os.path.join(os.path.dirname(here), unquote(h)))
+                if target != here:
+                    linked.add(target)
+        want = {f"l4/tests/{t.name}" for t in roots.tests_files()}
+        self.assertEqual(set(shown) - want, set(), "a page shows a tests file that is not there")
+        for t in sorted(want):
+            with self.subTest(tests=t):
+                self.assertIn(t, shown, "no page shows this tests file")
+                self.assertEqual(len(shown[t]), 1, f"shown on {shown[t]}")
+                self.assertIn(shown[t][0], linked, "the page that shows it is linked from no other page")
 
 
 if __name__ == "__main__":

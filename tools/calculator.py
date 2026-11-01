@@ -665,7 +665,8 @@ def case_html(s: dict) -> str:
             + "".join(out) + '</fieldset>')
 
 
-def body(s: dict, section_link: str, findings: list[dict], findings_href: str) -> str:
+def body(s: dict, section_link: str, findings: list[dict], findings_href: str,
+         code_href: str = "") -> str:
     data = json.dumps(s, ensure_ascii=False).replace("</", "<\\/")
     fl = "".join(
         f'<li><a href="{findings_href}#{esc(f["id"])}"><bdi dir="ltr">{esc(f["id"])}</bdi></a> — '
@@ -690,7 +691,9 @@ def body(s: dict, section_link: str, findings: list[dict], findings_href: str) -
         'כך גם תוספת "הסכם הוראה 94" ושיעור כל תוספת אחוזית: הטקסט קובע אותם במקום אחר, והמחשבון אינו ממציא אותם.</li>'
         '<li><strong>החישוב הוא הקוד של האתר.</strong> הדפדפן מריץ את קוד ה־L4 של האתר — שורש הדין וכל המסמכים שהוא מייבא — '
         'במעריך של L4 עצמו שהודר ל־WebAssembly: אין כאן מימוש שני של הכללים. '
-        'הטעינה הראשונה אורכת כחצי דקה עד דקה; מתחת לתוצאה מוצגות עקבות החישוב כפי ש־L4 מדפיס אותן.</li>'
+        'הטעינה הראשונה אורכת כחצי דקה עד דקה; מתחת לתוצאה מוצגות עקבות החישוב כפי ש־L4 מדפיס אותן.'
+        + (f' הקוד שהמחשבון שואל, והבדיקות שלו: <a href="{code_href}">שורש השכר</a>.' if code_href else '')
+        + '</li>'
         f'<li><strong>הקריאות הן ממצאים שטרם נבדקו.</strong> היכן שהטקסט אינו מכריע, הקוד מאמץ קריאה, '
         f'ועורך הדין טרם בדק אותה:<ul class="calc-findings">{fl}</ul></li>'
         '</ul>'

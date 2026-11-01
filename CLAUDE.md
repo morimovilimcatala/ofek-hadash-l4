@@ -175,7 +175,11 @@ all the files to give one answer", and disagreements raised as errors.
   "assertions about a file should sit next to it, not be included in it").
   A root's every `#EVAL` and `#ASSERT` is in `l4/tests/<root>-tests.l4`,
   which imports it; `make l4` checks the root through that file (so it is
-  loaded once), and the root's page shows the tests below its code.
+  loaded once), and the root's page shows the tests below its code. Any
+  module's `l4/tests/<module>-tests.l4` (a round check beside an agreement,
+  say) shows below that module's code on its page, and diagnostics.html
+  lists every tests file and the page that shows it (MMS-607,
+  `roots.tests_block`; `tests.test_roots.EveryTestsFileIsShown` holds it).
 - **The root**, `l4/lib/root.l4`: the one public answer, `the answer that
   governs` item case, for any case, and whether a case's claims disagree
   (`the contradictions on` item case). It holds no question (the client,
