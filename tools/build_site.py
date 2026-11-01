@@ -23,6 +23,8 @@ Pages, laid out like the corpus they encode:
                                    contradictions.html now (MMS-522)
   laws/<name>.html                 a statute the L4 encodes outside the corpus, each section
                                    beside its rules (laws/<name>.toml, l4/laws/<name>.l4)
+  laws/index.html                  every statute the corpus cites, and the sections it cites
+                                   by number (data/statute-citations.json, MMS-601)
   contradictions.html              where one instrument contradicts another, with a crop of
                                    each page, the rule that decides and whether it was
                                    followed (data/contradictions.json); and where the
@@ -840,8 +842,10 @@ def laws_group(here: str) -> str:
         lis.append(f'<li><a href="{rel(page_, here)}" title="{esc(title)}"{cur}>'
                    f'<span class="sh" lang="he" dir="rtl">{esc(title)}</span></a></li>')
     open_ = here.startswith("laws/")
+    cur = ' aria-current="page"' if here == "laws/index.html" else ""
     return (f'<li class="sn-group"><details{" open" if open_ else ""}>'
             f'<summary>חוקים<span class="n">{len(names)}</span></summary>'
+            f'<a class="sn-hub" href="{rel("laws/index.html", here)}"{cur}>החוקים שהקורפוס מצטט</a>'
             f'<ul>{"".join(lis)}</ul></details></li>')
 
 
@@ -1533,6 +1537,9 @@ def index_page(all_views: dict[str, list[SectionView]], findings: list[dict]) ->
                          f'<span class="ctitle" lang="he" dir="rtl">{esc(law["title"])}</span>'
                          f'<span class="cstate">סעיפים {esc(laws.span(law))}, '
                          f'מחוץ לקורפוס</span></a></li>')
+    law_cards.append('<li class="coll live"><a href="laws/index.html"><span class="cname">חוקים</span>'
+                     '<span class="ctitle" lang="he" dir="rtl">החוקים שהקורפוס מצטט</span>'
+                     '<span class="cstate">כל חוק וכל סעיף שמסמך בקורפוס מקשר אליו</span></a></li>')
     grid = (f'<h2 class="sect">השורש</h2><ul class="colls">{root_card}</ul>'
             f'<h2 class="sect">אוספים</h2><ul class="colls">{"".join(cards)}</ul>'
             + (f'<h2 class="sect">חוקים</h2><ul class="colls">{"".join(law_cards)}</ul>' if law_cards else "")
@@ -1857,8 +1864,14 @@ def law_page(name: str) -> str:
     """A statute the L4 encodes outside the corpus (tools/laws.py, MMS-516)."""
     here = f"laws/{name}.html"
     body = laws.page_body(name, code_html=l4src.numbered_html, esc=esc)
-    return page(here, f"{laws.load(name)['title']} — {TITLE}", body,
-                desc="חוק הסכמים קיבוציים ב־L4: סעיף לצד סעיף")
+    title = laws.load(name)["title"]
+    return page(here, f"{title} — {TITLE}", body, desc=f"{title} ב־L4: סעיף לצד סעיף")
+
+
+def laws_index_page() -> str:
+    """Every statute the corpus cites (tools/laws.py index_body, MMS-601)."""
+    return page("laws/index.html", f"החוקים שהקורפוס מצטט — {TITLE}", laws.index_body(esc),
+                desc="כל חוק שהקורפוס מקשר אליו, הסעיפים שהוא מצטט במספרם, ואילו מהם מקודדים ב־L4")
 
 
 def findings_json(findings, views_by_file, key_to_view) -> str:
@@ -2444,6 +2457,7 @@ def build() -> int:
     (OUT / "laws").mkdir(parents=True, exist_ok=True)
     for name in laws.all_laws():
         (OUT / "laws" / f"{name}.html").write_text(law_page(name), encoding="utf-8")
+    (OUT / "laws" / "index.html").write_text(laws_index_page(), encoding="utf-8")
     real = {n: str(f.relative_to(ROOT)) for n, f in modules.wanted()[0].items()}
 
     def href_of(module: str) -> str | None:

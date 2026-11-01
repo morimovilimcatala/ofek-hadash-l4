@@ -8,6 +8,7 @@
 
 IMPORT prelude
 IMPORT common
+IMPORT minimum_wage_law
 
 -- Dates are numbers YYYYMMDD.
 `1 July 2013`      MEANS 20130701
@@ -30,7 +31,8 @@ DECLARE `upper-division employee` HAS
     `stage`                          IS A `stage of education`
     `terms`                          IS A `employment terms for the shekel supplements`
     `pay components`                 IS A LIST OF `pay component`
-    `minimum wage`                   IS A NUMBER @desc the minimum wage under the Minimum Wage Law 1987 for the employee's position; an input
+    `minimum wage`                   IS A NUMBER @desc the minimum wage owed for the month under §2 of the Minimum Wage Law 1987, for the employee's position; its amount is published under the law's §6, an input
+    `pay the Minimum Wage Law counts` IS A NUMBER @desc the part of the month's pay §3 of the Minimum Wage Law counts toward the minimum, before the reduction
 
 @ref akn:preamble/p17
 GIVEN e IS AN `upper-division employee`
@@ -143,13 +145,24 @@ DECIDE `the training-fund base after the reduction` `training-fund base` `date` 
     THEN `training-fund base` TIMES (1 MINUS `the reduction rate`)
     ELSE `training-fund base`
 
--- ג.2: the reduction takes nothing from the right to the minimum wage.
+-- ג.2: the reduction takes nothing from the right to the minimum wage "as
+-- the law defines it" — the Minimum Wage Law (l4/laws/minimum-wage-law.l4):
+-- where the pay its §3 counts, less the reduction, falls short of the
+-- minimum owed for the position (§2), the law's top-up is paid on the
+-- reduced salary. What §3 counts is not the whole salary: recuperation,
+-- reimbursements and the like are not among it. The reduction is taken
+-- from the pay §3 counts (the reading taken here: it is a cut in the
+-- salary, of which those are the regular components).
 @ref akn:art_c__para_2
 GIVEN e IS AN `upper-division employee`, `date` IS A NUMBER
 GIVETH A NUMBER
 DECIDE `the salary after the reduction` e `date` IS
-    max (sum (map (GIVEN c YIELD c's `component amount`) (e's `pay components`)) MINUS `the reduction` e `date`)
-        (e's `minimum wage`)
+    `the reduced salary` PLUS `the law's top-up`
+    WHERE
+        `the reduced salary` MEANS
+            sum (map (GIVEN c YIELD c's `component amount`) (e's `pay components`)) MINUS `the reduction` e `date`
+        `the law's top-up` MEANS
+            `the top-up the Minimum Wage Law requires` (e's `minimum wage`) (e's `pay the Minimum Wage Law counts` MINUS `the reduction` e `date`)
 
 -- The instruction to the owners: in the period no month's salary is paid
 -- above the reduced salary (and, by ג.2, never below the minimum wage).
@@ -217,6 +230,7 @@ DECLARE `payment computed without the reduction` IS ONE OF
                                                  `pay component` `recuperation, clothing or the like` 2000,
                                                  `pay component` `reimbursement of expenses` 300
         `minimum wage`                   IS 4300
+        `pay the Minimum Wage Law counts` IS 10000
 
 #ASSERT `the determining base` `a full-time upper-division teacher` EQUALS 10500
 #ASSERT `the reduction` `a full-time upper-division teacher` 20140101 EQUALS 97.902
@@ -232,7 +246,8 @@ DECLARE `payment computed without the reduction` IS ONE OF
 
 -- The circular over a finite space: every stage, the grade and the owner
 -- or not, every kind of pay component at 0 to 12,000, dates on either side
--- of both ends of the reduction period, minimum wages of 0 and 4,300.
+-- of both ends of the reduction period, minimum wages of 0, 4,300 and
+-- 9,000 (above the 8,000 the Minimum Wage Law counts, so its top-up is paid).
 
 `every stage` MEANS LIST `upper division`, `grades 13-14`, `another stage`
 `both booleans` MEANS LIST TRUE, FALSE
@@ -259,6 +274,7 @@ DECIDE `a checked employee` g o s k a w IS
         `pay components`                 IS LIST `pay component` `paid monthly, weekly or daily, or computed on other components` 8000,
                                                  `pay component` k a
         `minimum wage`                   IS w
+        `pay the Minimum Wage Law counts` IS 8000
 
 -- א: the rate is 7.25% exactly from 1.7.2013; each supplement never falls
 -- as the reform goes further, and the '87 one is above the '94 one.
@@ -283,15 +299,18 @@ DECIDE `section ג holds for` e g o s k a w d IF
     IN      `the determining base` e EQUALS base
         AND `the determining base` e AT MOST total
         AND r EQUALS (IF applies AND d AT LEAST `1 July 2013` AND d AT MOST `31 December 2014` THEN 0.009324 TIMES base ELSE 0)
-        AND `the salary after the reduction` e d AT LEAST w
-        AND ((total MINUS r LESS THAN w) OR `the salary after the reduction` e d EQUALS total MINUS r)
+        AND `the salary after the reduction` e d AT LEAST total MINUS r
+        AND 8000 MINUS r PLUS (`the salary after the reduction` e d MINUS (total MINUS r)) AT LEAST w
+        AND ((8000 MINUS r LESS THAN w) OR `the salary after the reduction` e d EQUALS total MINUS r)
         AND `the salary the payment is computed on` e `a one-time payment on termination` EQUALS total
 
 -- Section ג over the whole space: the determining base holds exactly the
 -- two kinds ג.1.ב counts and never more than the salary; the reduction is
 -- 0.9324% of it exactly within the period for an employee the circular
--- applies to; the reduced salary is never below the minimum wage and is
--- otherwise the salary less the reduction; ג.3's payments are computed on
+-- applies to; the reduced salary is never less than the salary less the
+-- reduction, the pay the Minimum Wage Law counts never ends below the
+-- minimum wage, and where it would not, the salary is the salary less the
+-- reduction; ג.3's payments are computed on
 -- the salary before it.
 #ASSERT all (GIVEN g YIELD
                 all (GIVEN o YIELD
@@ -302,7 +321,7 @@ DECIDE `section ג holds for` e g o s k a w d IF
                                                         all (GIVEN d YIELD
                                                                 `section ג holds for` (`a checked employee` g o s k a w) g o s k a w d)
                                                             `dates checked`)
-                                                    (LIST 0, 4300))
+                                                    (LIST 0, 4300, 9000))
                                             (LIST 0, 3000, 12000))
                                     `every kind`)
                             `every stage`)

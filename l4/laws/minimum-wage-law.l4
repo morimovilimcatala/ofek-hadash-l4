@@ -1,0 +1,192 @@
+-- חוק שכר מינימום, התשמ"ז-1987 — sections 1, 2, 3 and 11: what the minimum
+-- wage is, that an employee of 18 is owed at least it (in proportion to his
+-- position and the time he worked), which components of his pay count
+-- toward it, and that the law adds to what an agreement, an arrangement or
+-- a contract gives and never takes from it. The text is
+-- laws/minimum-wage-law.toml, pinned from the live page of ספר החוקים
+-- הפתוח; the corpus holds no copy (MMS-601).
+--
+-- Why it is here: the corpus's agreements and circulars speak of "השלמת
+-- השכר עד לשכר המינימום כמשמעותו בחוק" — the top-up an employer pays where
+-- the pay that counts falls short of the minimum — and say which of their
+-- supplements and grants are left out of it. Leaving a component out of
+-- the pay that counts makes the top-up larger, so an instrument that does
+-- so adds to the law (§11); an instrument whose top-up came to less than
+-- the law's would be below its floor, and the root's precedence
+-- (l4/lib/precedence.l4) lets the floor govern.
+--
+-- The amount itself is not in these sections: §1 defines it as a share of
+-- the average wage "as increased under this law", the Minister publishes
+-- it by notice (§6), and temporary provisions have raised it. So the
+-- monthly minimum wage is an input of every rule here, never a number.
+
+IMPORT prelude
+IMPORT vocabulary
+
+§ `חוק שכר מינימום — הרצפה`
+
+`why the Minimum Wage Law's sections state no amount` MEANS
+    `set elsewhere` "שר העבודה, בהודעה ברשומות לפי סעיף 6 לחוק שכר מינימום, וחוקי הוראת השעה שמעלים את סכומי שכר המינימום"
+
+§§ `1`
+
+-- "השכר הממוצע" is as section 1 of the National Insurance Law defines it
+-- (the National Insurance Institute publishes it). The monthly minimum
+-- wage is 47.5% of it as it stands on 1 April of each year, and as
+-- increased under the law: the share is the floor of the definition, the
+-- amount as increased is the published one (an input). The daily minimum
+-- is the 25th part of the monthly for a six-day week and the 21⅔th part
+-- for a five-day week; the hourly the 186th part.
+@ref law:1
+`the Minimum Wage Law's share of the average wage` MEANS 47.5%
+
+GIVEN `the average wage on 1 April` IS A NUMBER @desc as section 1 of the National Insurance Law defines it, published by the National Insurance Institute
+GIVETH A NUMBER
+DECIDE `the monthly minimum wage by the definition's share` `the average wage on 1 April` IS
+    `the average wage on 1 April` TIMES `the Minimum Wage Law's share of the average wage`
+
+DECLARE `working week under the Minimum Wage Law` IS ONE OF
+    `a six-day week under the Minimum Wage Law`
+    `a five-day week under the Minimum Wage Law`
+
+GIVEN `the monthly minimum wage` IS A NUMBER @desc as the Minister publishes it under section 6; an input
+      w IS A `working week under the Minimum Wage Law`
+GIVETH A NUMBER
+DECIDE `the daily minimum wage under the Minimum Wage Law` `the monthly minimum wage` w IS
+    CONSIDER w
+    WHEN `a six-day week under the Minimum Wage Law` THEN `the monthly minimum wage` DIVIDED BY 25
+    WHEN `a five-day week under the Minimum Wage Law` THEN `the monthly minimum wage` DIVIDED BY (21 PLUS 2 DIVIDED BY 3)
+
+GIVEN `the monthly minimum wage` IS A NUMBER @desc as the Minister publishes it under section 6; an input
+GIVETH A NUMBER
+DECIDE `the hourly minimum wage under the Minimum Wage Law` `the monthly minimum wage` IS
+    `the monthly minimum wage` DIVIDED BY 186
+
+#ASSERT `the daily minimum wage under the Minimum Wage Law` 5000 `a six-day week under the Minimum Wage Law` EQUALS 200
+#ASSERT `the daily minimum wage under the Minimum Wage Law` 6500 `a five-day week under the Minimum Wage Law` EQUALS 300
+#ASSERT `the hourly minimum wage under the Minimum Wage Law` 5580 EQUALS 30
+#ASSERT `the monthly minimum wage by the definition's share` 10000 EQUALS 4750
+
+§§ `2`
+
+-- (א): an employee who has turned 18, in a full position as customary at
+-- his workplace, is owed by his employer pay no less than the monthly,
+-- daily or hourly minimum, as the case may be. (ב): in a part position, a
+-- minimum in proportion to it. (ג): absent from work, his minimum shrinks
+-- in proportion to the time absent — and where he is paid for the absence
+-- under a law, a contract, a collective agreement, an extension order or
+-- another collective arrangement, or a provident fund's binding rules,
+-- that payment follows the arrangement, not this section. So the floor is
+-- on the time he worked; what he is paid for an absence is the
+-- arrangement's.
+@ref law:2
+GIVEN `the employee's age` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `section 2 of the Minimum Wage Law reaches the employee` `the employee's age` IF
+    `the employee's age` AT LEAST 18
+
+GIVEN `the monthly minimum wage` IS A NUMBER @desc as the Minister publishes it under section 6; an input
+      `the share of a full position` IS A NUMBER @desc 1 for a full position as customary at the workplace
+      `the share of the time absent` IS A NUMBER @desc the part of the month's working time he was absent, paid or not; 0 if none
+GIVETH A NUMBER
+DECIDE `the minimum wage owed for the month under section 2` `the monthly minimum wage` `the share of a full position` `the share of the time absent` IS
+    `the monthly minimum wage` TIMES `the share of a full position` TIMES (1 MINUS `the share of the time absent`)
+
+-- What the employer must add where the pay that counts (§3) falls short
+-- of the minimum owed: the top-up, "השלמת השכר עד לשכר המינימום".
+GIVEN `the minimum wage owed` IS A NUMBER, `the pay that counts` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the top-up the Minimum Wage Law requires` `the minimum wage owed` `the pay that counts` IS
+    max 0 (`the minimum wage owed` MINUS `the pay that counts`)
+
+#ASSERT NOT `section 2 of the Minimum Wage Law reaches the employee` 17
+#ASSERT `the minimum wage owed for the month under section 2` 6000 0.5 0 EQUALS 3000
+#ASSERT `the minimum wage owed for the month under section 2` 6000 1 0.25 EQUALS 4500
+#ASSERT `the top-up the Minimum Wage Law requires` 5300 4354.23 EQUALS 945.77
+#ASSERT `the top-up the Minimum Wage Law requires` 5300 6000 EQUALS 0
+
+§§ `3`
+
+-- (א): the pay that counts toward §2 is what the employer pays for a
+-- regular working day as customary at the workplace. (ב): counted are
+-- (1) the basic or the combined salary, (2) a cost-of-living supplement
+-- not included in the combined salary, (3) a fixed supplement paid to the
+-- employee for his work ((4) and (5) have lapsed); not counted are a
+-- family supplement, a seniority supplement, a shift supplement, a
+-- premium (measured, agreed, fixed or group), a thirteenth salary, grants
+-- on a yearly basis and reimbursements of expenses (meals, subsistence and
+-- travel among them). (ג) was repealed; (ה) and (ו) have lapsed.
+@ref law:3
+DECLARE `pay component under the Minimum Wage Law` IS ONE OF
+    `the basic or combined salary, under section 3(ב)(1)`
+    `a cost-of-living supplement outside the combined salary, under section 3(ב)(2)`
+    `a fixed supplement paid for the work, under section 3(ב)(3)`
+    `a family supplement, which section 3(ב) leaves out`
+    `a seniority supplement, which section 3(ב) leaves out`
+    `a shift supplement, which section 3(ב) leaves out`
+    `a premium, which section 3(ב) leaves out`
+    `a thirteenth salary, which section 3(ב) leaves out`
+    `a grant on a yearly basis, which section 3(ב) leaves out`
+    `a reimbursement of expenses, which section 3(ב) leaves out`
+
+GIVEN k IS A `pay component under the Minimum Wage Law`
+GIVETH A BOOLEAN
+DECIDE `counts toward the minimum wage under section 3` k IF
+        k EQUALS `the basic or combined salary, under section 3(ב)(1)`
+    OR k EQUALS `a cost-of-living supplement outside the combined salary, under section 3(ב)(2)`
+    OR k EQUALS `a fixed supplement paid for the work, under section 3(ב)(3)`
+
+@desc One component of a month's pay, as section 3 tells components apart, and what it pays.
+DECLARE `component paid in the month under the Minimum Wage Law` HAS
+    `its kind under section 3` IS A `pay component under the Minimum Wage Law`
+    `its amount in the month`  IS A NUMBER
+
+GIVEN paid IS A LIST OF `component paid in the month under the Minimum Wage Law`
+GIVETH A NUMBER
+DECIDE `the pay that counts under section 3` paid IS
+    sum (map (GIVEN p YIELD IF `counts toward the minimum wage under section 3` (p's `its kind under section 3`)
+                            THEN p's `its amount in the month`
+                            ELSE 0) paid)
+
+-- (ד): an employee not paid by the components of (ב)(1) and (2), or by
+-- part of them, has his regular pay without supplements counted instead;
+-- that is the amount a caller gives as the basic salary.
+
+`a month of combined salary, a fixed supplement, seniority and travel` MEANS
+    LIST `component paid in the month under the Minimum Wage Law` `the basic or combined salary, under section 3(ב)(1)` 4000,
+         `component paid in the month under the Minimum Wage Law` `a fixed supplement paid for the work, under section 3(ב)(3)` 300,
+         `component paid in the month under the Minimum Wage Law` `a seniority supplement, which section 3(ב) leaves out` 500,
+         `component paid in the month under the Minimum Wage Law` `a reimbursement of expenses, which section 3(ב) leaves out` 200
+
+#ASSERT `the pay that counts under section 3` `a month of combined salary, a fixed supplement, seniority and travel` EQUALS 4300
+#ASSERT NOT `counts toward the minimum wage under section 3` `a grant on a yearly basis, which section 3(ב) leaves out`
+
+§§ `11`
+
+-- The law, save §§9 and 10, adds to an employee's right under a law, a
+-- collective agreement, a collective arrangement or a contract of
+-- employment, and does not take from it: of what the law gives and what
+-- another source gives for the same right, the employee has the larger.
+-- (§§9 and 10 — no claim to raise pay above the minimum because the
+-- minimum was set or updated, and the average wage computed without the
+-- minimum's changes — are not pinned.)
+@ref law:11
+GIVEN `what the Minimum Wage Law gives` IS A NUMBER, `what another source gives` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `what governs between the Minimum Wage Law and another source` `what the Minimum Wage Law gives` `what another source gives` IS
+    max `what the Minimum Wage Law gives` `what another source gives`
+
+-- An instrument's own top-up — leaving some of its supplements out of the
+-- pay that counts, say — falls below the law's floor only if it comes to
+-- less than the top-up the law requires.
+GIVEN `the top-up the instrument gives` IS A NUMBER
+      `the minimum wage owed` IS A NUMBER
+      `the pay that counts` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `the instrument's top-up falls below the Minimum Wage Law` `the top-up the instrument gives` `the minimum wage owed` `the pay that counts` IF
+    `the top-up the instrument gives` LESS THAN `the top-up the Minimum Wage Law requires` `the minimum wage owed` `the pay that counts`
+
+#ASSERT `what governs between the Minimum Wage Law and another source` 5300 5000 EQUALS 5300
+#ASSERT `what governs between the Minimum Wage Law and another source` 5300 5500 EQUALS 5500
+#ASSERT NOT `the instrument's top-up falls below the Minimum Wage Law` 945.77 5300 4548.26
+#ASSERT `the instrument's top-up falls below the Minimum Wage Law` 700 5300 4548.26

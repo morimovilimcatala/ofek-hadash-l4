@@ -45,7 +45,8 @@ that updated it, the steps it prints.
 | `conventions.toml`, `l4/conventions.l4` | the rules of reading the encoding follows where the text does not decide, and the one L4 definition of each that is a computation, which the rules import |
 | `findings/<corpus path>/<section>.toml` (one per section) | errors in the text the encoding exposed, each backed by an `#ASSERT` |
 | `data/calculator-delta.json` | the comparison with the ministry's salary simulator: inputs, outputs, mappings, clauses and classifications only (written outside this repository; shown as the simulator's group of the contradictions page) |
-| `laws/<name>.toml`, `l4/laws/<name>.l4` | a statute encoded though the corpus holds no copy of it (חוק הסכמים קיבוציים §§2, 15–16, 19–23; חוק יסודות התקציב §§21, 29, 32): its sections' words pinned from ספר החוקים הפתוח, and their rules |
+| `laws/<name>.toml`, `l4/laws/<name>.l4` | a statute encoded though the corpus holds no copy of it (חוק הסכמים קיבוציים §§2, 15–16, 19–23; חוק יסודות התקציב §§21, 29, 32; חוק שכר מינימום §§1–3, 11; and the others `laws/` holds): its sections' words pinned from ספר החוקים הפתוח, and their rules |
+| `data/statute-citations.json` | every statute the corpus cites and every section it cites by number, with the documents that cite it, read off the corpus's own links to ספר החוקים הפתוח (`tools/statute_citations.py`, MMS-601) |
 | `data/contradictions.json`, `data/contradictions/` | where sources contradict each other: a side per source (two or more) with its answer — a document with a crop of its page, or what the payslips or the simulator pay — and the rule that decides |
 | `tools/` | the L4 runner, the AKN reader, the site generator |
 | `toolchain/` | the pinned L4 compiler revision and its build script |
@@ -98,6 +99,16 @@ that updated it, the steps it prints.
   employees unless the Finance Minister approved it, with the definitions
   of §§21 and 32 (MMS-528). A circular to the owners that pays more than its
   agreement passes through it before §22 (`l4/circulars/2009-10_tasha_02.l4`).
+- **The Minimum Wage Law** (`laws/minimum-wage-law.html`) — §§1–3 and 11:
+  the minimum wage (an input, published by notice), who is owed it in
+  proportion to his position and the time he worked, which components of
+  pay count toward it, and that the law adds to an agreement and never takes
+  from it (MMS-601). An agreement that leaves its supplement out of the pay
+  that counts gives more than the law
+  (`l4/agreements/ofek-hadash/2016-09-30_ofek-hadash_september-2016-agreement.l4`).
+- **The statutes the corpus cites** (`laws/index.html`) — every act the
+  corpus links to, how many documents cite it, the sections it cites by
+  number, and which of them the L4 pins (MMS-601).
 - **Contradictions** (`contradictions.html`) — where one instrument says one
   thing and another says another about the same pay or right: an agreement
   and the circular that implements it, a circular and the letter it executes,

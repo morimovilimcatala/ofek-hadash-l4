@@ -35,6 +35,7 @@
 
 IMPORT prelude
 IMPORT `2016-02-22_ofek-hadash_hascam-2016_tables-and-sheklit`
+IMPORT minimum_wage_law
 
 -- A salary month: the salary paid FOR month m of year y (convention
 -- dates.salary-month), which is paid in the month after.
@@ -710,13 +711,16 @@ DECIDE `the shekel supplement counts for` p IF
 @ref akn:art_6__para_e
 `the shekel supplement is an excluded supplement under the 2015 minimum-wage law` MEANS TRUE
 
--- What (ה) leaves for the minimum-wage top-up: the minimum, less the pay
--- that counts for it, the supplement not among it. The minimum is the
--- Minimum Wage Law's, outside the corpus, so it is an argument here.
-GIVEN `the minimum wage` IS A NUMBER, `the pay that counts` IS A NUMBER, `the shekel supplement` IS A NUMBER
+-- What (ה) leaves for the minimum-wage top-up: the Minimum Wage Law's
+-- top-up (l4/laws/minimum-wage-law.l4, §2), on the pay that counts for it
+-- with the supplement not among it. The minimum owed is the law's, whose
+-- amount is published under its §6, so it is an argument here.
+GIVEN `the minimum wage` IS A NUMBER @desc the minimum owed for the month under §2 of the Minimum Wage Law
+      `the pay that counts` IS A NUMBER @desc the pay §3 of the Minimum Wage Law counts, the shekel supplement apart
+      `the shekel supplement` IS A NUMBER
 GIVETH A NUMBER
 DECIDE `the minimum-wage top-up beside the shekel supplement` `the minimum wage` `the pay that counts` `the shekel supplement` IS
-    max 0 (`the minimum wage` MINUS `the pay that counts` MINUS `the part of the supplement counted`)
+    `the top-up the Minimum Wage Law requires` `the minimum wage` (`the pay that counts` PLUS `the part of the supplement counted`)
     WHERE
         `the part of the supplement counted` MEANS
             IF `the shekel supplement counts for` `topping up to the minimum wage` THEN `the shekel supplement` ELSE 0
@@ -731,6 +735,27 @@ DECIDE `the minimum-wage top-up beside the shekel supplement` `the minimum wage`
         `the minimum-wage top-up beside the shekel supplement` 5300 4354.23 194.03 EQUALS 945.77
     AND 178.70 PLUS 573.04 EQUALS 5300 MINUS 4354.23 MINUS 194.03
 #ASSERT `the simulator's 2018 top-up counts the shekel supplement (ה) leaves out`
+
+-- Against the Minimum Wage Law's floor (MMS-601). As the law reads now, its
+-- §3(ב)(3) counts "a fixed supplement paid for the work", which a monthly
+-- shekel supplement is (the reading taken here); so the law's own top-up
+-- counts the supplement, and (ה), leaving it out, makes the top-up larger:
+-- it adds to the law (§11) and is never below its floor. The simulator's
+-- 2018 lines are the law's top-up as it reads now — the floor, and not the
+-- more (ה) gives. (Which supplements counted in 2016–2019 turned on the
+-- temporary provision of תשע"ה-2015, whose "excluded supplement" (ה)
+-- names; it has lapsed and is outside the pin.)
+GIVEN `the minimum wage` IS A NUMBER, `the pay that counts` IS A NUMBER, `the shekel supplement` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `(ה)'s top-up falls below the Minimum Wage Law` `the minimum wage` `the pay that counts` `the shekel supplement` IF
+    `the instrument's top-up falls below the Minimum Wage Law`
+        (`the minimum-wage top-up beside the shekel supplement` `the minimum wage` `the pay that counts` `the shekel supplement`)
+        `the minimum wage`
+        (`the pay that counts` PLUS `the shekel supplement`)
+
+#ASSERT NOT `(ה)'s top-up falls below the Minimum Wage Law` 5300 4354.23 194.03
+#ASSERT NOT `(ה)'s top-up falls below the Minimum Wage Law` 5300 5200 194.03
+#ASSERT 178.70 PLUS 573.04 EQUALS `the top-up the Minimum Wage Law requires` 5300 (4354.23 PLUS 194.03)
 
 -- (י): "the payments arising from §6(ו)" are paid from the salary for
 -- October 2016 and no later than the salary for November 2016, with the
