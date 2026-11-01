@@ -1,7 +1,8 @@
 -- Tests of Histadrut HaMorim's wage agreement of 18.12.01
 -- (l4/agreements/teachers-general/2001-12-18_histadrut-hamorim_wage-agreement-1999-2001.l4):
--- the agreement held against its round and against the takanon sections
--- that name it as their source. They sit beside it and not in it (the
+-- the agreement held against its round — the public-sector wage agreement
+-- of 31.1.2001 (MMS-600) — and against the takanon sections that name it as
+-- their source. They sit beside it and not in it (the
 -- client, 2026-10-22: "assertions about a file should sit next to it, not
 -- be included in it"); agreements/teachers-general has no family root yet
 -- (MMS-548).
@@ -12,6 +13,7 @@ IMPORT `takanon-1-1`
 IMPORT `takanon-4-6`
 IMPORT `takanon-8-2`
 IMPORT `2011-01-12_framework-agreement_public-sector_tosefet-2011`
+IMPORT `2001-01-31_framework-agreement_public-sector_wage-agreement-1999-2001`
 
 § `בדיקות הסכם השכר מיום 18.12.01 (הסתדרות המורים)`
 
@@ -52,16 +54,102 @@ IMPORT `2011-01-12_framework-agreement_public-sector_tosefet-2011`
             (range 0 20)
 #ASSERT `the 2001 annex rate for` `a supervisor, for the 2001 annex` 13 EQUALS `the 2001 annex rate for` `a supervisor, for the 2001 annex` 14
 
-§§ `מול סבב 1999–2001`
+§§ `מול הסכם השכר במגזר הציבורי מיום 31.1.2001 (סבב 1999–2001)`
 
--- The round's general public-sector agreement of 31.1.01 is not in the
--- corpus; the framework of 12.1.2011 records its rate, 3.6% ("תוספת
--- 2001" there). This agreement updates the shekel supplements by that
--- 3.6% (§6) but gives the teachers' combined salary 3% (§5.1); the
--- 0.306% it puts to negotiation (§10) and the final cost of
--- 1.8.01–31.12.01 left open (§11) are where the rest of the round's cost
--- goes, so a lower rate on the salary is the agreement's own design:
--- no finding.
-#ASSERT `the rate of תוספת 2001 by the agreement of 31.1.01` EQUALS 3.6%
-#ASSERT `the shekel payment as §6 of 2001 updates it` `a cost-of-living-linked shekel payment of 2001` 1 (DATE_FROM_DMY 1 1 2001) EQUALS 1 PLUS `the rate of תוספת 2001 by the agreement of 31.1.01`
+-- The round: the public-sector wage agreement of 31.1.2001 covers no
+-- teacher — its "עובד" (§2.1.1) is one whose pay is computed by the
+-- agreements of a scale the Histadrut represents, and the teaching scale is
+-- הסתדרות המורים's — so §23 of the Collective Agreements Law never weighs
+-- the two, and this agreement, signed ten and a half months later, neither
+-- recites it nor is bound by it. What both state in the same terms is held
+-- here month by month, January 1999 to December 2002.
+#ASSERT NOT `owed the 2001 framework supplement` `a teacher of the State in 2001`
+#ASSERT NOT `owed the 2001 framework grant` `a teacher of the State in 2001`
+#ASSERT DATE_SERIAL `the 2001 framework agreement was signed on` LESS THAN DATE_SERIAL `the 2001 wage agreement was signed on`
+
+`the months of 1999–2002, for the 2001 round` MEANS
+    concat (map (GIVEN y YIELD map (GIVEN m YIELD DATE_FROM_DMY 1 m y) (LIST 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12))
+                (LIST 1999, 2000, 2001, 2002))
+
+#ASSERT count `the months of 1999–2002, for the 2001 round` EQUALS 48
+
+-- The one-time grant: the same 1,250 for the same two years, spread over
+-- the same 24 months by the position — for every month employed, at any
+-- position, the teacher's grant is the framework's. Paid eleven months
+-- later — with the salary of January or February 2002 against February or
+-- March 2001 — and with no linkage for the wait: the agreement was signed
+-- in December 2001 and sets its own day (its §§4.1.1 and 17).
+#ASSERT `the 2001 one-time grant` EQUALS `the 2001 framework grant in full`
+#ASSERT all (GIVEN n YIELD     (`the 2001 one-time grant owed` n 1 EQUALS `the 2001 framework grant owed` n 1)
+                          AND (`the 2001 one-time grant owed` n 0.5 EQUALS `the 2001 framework grant owed` n 0.5))
+            (range 0 24)
+#ASSERT `the 2001 one-time grant a pensioner is owed` 0.7 24 EQUALS `the 2001 framework grant a pensioner is owed` 0.7 24
+
+`the months either grant may be paid with` MEANS
+    filter (GIVEN d YIELD `the 2001 grant may be paid with the salary of` d OR `the 2001 framework grant may be paid with the salary of` d)
+           `the months of 1999–2002, for the 2001 round`
+
+#ASSERT `the months either grant may be paid with` EQUALS LIST DATE_FROM_DMY 1 2 2001, DATE_FROM_DMY 1 3 2001, DATE_FROM_DMY 1 1 2002, DATE_FROM_DMY 1 2 2002
+#ASSERT NOT any (GIVEN d YIELD `the 2001 grant may be paid with the salary of` d AND `the 2001 framework grant may be paid with the salary of` d)
+                `the months of 1999–2002, for the 2001 round`
+
+-- The wage supplement: both from 1.1.01, the framework's 3.6% (§3.1) and
+-- this agreement's 3% (§5.1) — 3.2% with §10.2's 0.2% table update, which
+-- comes back to 1.1.2001 if nothing is agreed by 31.3.2002. Before 2001
+-- both are nothing; from January 2001, in each of the 24 months to
+-- December 2002, the teachers' rate is below the round's: by 0.6 points,
+-- or 0.4 with the update.
+GIVEN d IS A DATE
+GIVETH A NUMBER
+DECIDE `the teachers' 2001 rate, with §10.2's update` d IS
+    `the 2001 wage supplement rate on` d
+    PLUS (IF `the 0.2% update is in force on` FALSE d THEN `the 2001 table update if no agreement` FALSE ELSE 0)
+
+`the months the teachers' rate is below the round's` MEANS
+    filter (GIVEN d YIELD `the teachers' 2001 rate, with §10.2's update` d LESS THAN `the 2001 framework supplement rate on` d)
+           `the months of 1999–2002, for the 2001 round`
+
+#ASSERT count `the months the teachers' rate is below the round's` EQUALS 24
+#ASSERT all (GIVEN d YIELD (`the 2001 framework supplement rate on` d EQUALS 0) AND (`the teachers' 2001 rate, with §10.2's update` d EQUALS 0))
+            (take 24 `the months of 1999–2002, for the 2001 round`)
+#ASSERT `the 2001 framework supplement rate on` (DATE_FROM_DMY 1 1 2001) MINUS `the 2001 wage supplement rate on` (DATE_FROM_DMY 1 1 2001) EQUALS 0.6%
+#ASSERT `the 2001 framework supplement rate on` (DATE_FROM_DMY 1 1 2001) MINUS `the teachers' 2001 rate, with §10.2's update` (DATE_FROM_DMY 1 1 2001) EQUALS 0.4%
+
+-- The 2011 framework's "תוספת 2001" is the round's rate, imported, not
+-- this agreement's.
+#ASSERT `the rate of תוספת 2001 by the agreement of 31.1.01` EQUALS `the 2001 framework supplement rate`
 #ASSERT `the 2001 wage supplement rate on` (DATE_FROM_DMY 1 1 2001) LESS THAN `the rate of תוספת 2001 by the agreement of 31.1.01`
+
+-- Where the 0.6 points go, as far as this agreement says: §10.1 puts
+-- 0.306% of the teachers' cost to a negotiation (0.2% of it to the table
+-- by default, 0.106% to welfare), and §§7–9 — the allowances of annex א,
+-- the special-education supplement, the seminaries' grades — are paid "out
+-- of this agreement's cost" (§9) at rates it states and the corpus does
+-- not price as a share. The rest, 0.294%, is in no figure of the corpus.
+-- The base differs too: the round's is the salary counted for the hour
+-- value (§3.3 there), this one's the combined salary, with the percentage
+-- supplements computed on it (§5.3). The agreement never names the round's
+-- rate for the salary, and is not bound to: no finding (a teachers'
+-- agreement the framework does not reach is not a weaker source departing
+-- from it, and the two are not about the same employees).
+#ASSERT `the 2001 framework supplement rate` MINUS `the 2001 wage supplement rate on` (DATE_FROM_DMY 1 1 2001) MINUS `the 2001 agreement's cost to be negotiated` EQUALS 0.294%
+
+-- The shekel supplements: the round's rate. A supplement linked to the
+-- cost-of-living agreements and outside the hour value is raised by 3.6%
+-- from 1.1.2001 under both (the framework's §4, this agreement's §6), and
+-- not before, in every month.
+#ASSERT all (GIVEN d YIELD `the shekel payment as §6 of 2001 updates it` `a cost-of-living-linked shekel payment of 2001` 100 d
+                           EQUALS `the component as §4 of 2001 raises it` `a shekel supplement outside the hour value, for 2001` 100 d)
+            `the months of 1999–2002, for the 2001 round`
+#ASSERT `the shekel payment as §6 of 2001 updates it` `a cost-of-living-linked shekel payment of 2001` 1 (DATE_FROM_DMY 1 1 2001) EQUALS 1 PLUS `the rate of תוספת 2001 by the agreement of 31.1.01`
+
+-- The negotiation: the framework bars any other pay negotiation for
+-- 1999–2001 to 31.7.01 and negotiates its final rate to then; this
+-- agreement exhausts the teachers' claims to the same 31.7.01 and leaves
+-- 1.8.01–31.12.01 to a negotiation of its own (§11), which the agreement
+-- of 21.2.2008 later closes. The last day barred is the last exhausted.
+#ASSERT `the 2001 framework bars other pay negotiations on` (DATE_FROM_DMY 31 7 2001)
+#ASSERT NOT `the 2001 framework bars other pay negotiations on` (DATE_FROM_DMY 1 8 2001)
+#ASSERT `the 2001 wage agreement exhausts the claim for` (DATE_FROM_DMY 31 7 2001) TRUE
+#ASSERT NOT `the 2001 wage agreement exhausts the claim for` (DATE_FROM_DMY 1 8 2001) TRUE
+#ASSERT DATE_SERIAL `the 2001 framework's negotiation ends on` PLUS 1 EQUALS DATE_SERIAL `the period whose final cost §11 of 2001 leaves open starts on`
