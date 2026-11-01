@@ -1,6 +1,6 @@
 PY ?= python3
 
-.PHONY: all l4 roots site test serve clean
+.PHONY: all l4 roots site test test-serial serve clean
 all: l4 site test
 
 l4:
@@ -13,7 +13,12 @@ roots:
 site:
 	$(PY) tools/build_site.py
 
+# the suite, a test class per process, as many at once as there are cores
+# (MMS-617); test-serial is the same suite in one process
 test:
+	$(PY) tools/run_tests.py
+
+test-serial:
 	$(PY) -m unittest discover -s tests
 
 serve: site

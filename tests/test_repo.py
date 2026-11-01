@@ -670,7 +670,7 @@ class Toolchain(unittest.TestCase):
                 self.assertTrue(out["run"].exists(), "not run")
                 data = json.loads(out["run"].read_text(encoding="utf-8"))
                 self.assertTrue(data.get("ok"), data.get("diagnostics"))
-                stale = out["key"].read_text() != l4run.key(f, l4run.compiler_id(l4run.compiler()))
+                stale = out["key"].read_text() != l4run.recorded_key(f, l4run.compiler_id(l4run.compiler()))
                 self.assertFalse(stale, "build/l4 is stale for this file: run `make l4`")
 
 
@@ -909,6 +909,41 @@ class Citations(unittest.TestCase):
                         tables += 1
                         self.assertIn(" table ", labels[r.key])
         self.assertGreater(tables, 0)
+
+
+class SharedStore(unittest.TestCase):
+    """tools/l4run.py's store shared by every worktree (MMS-617): a run
+    publishes its outputs under their key, whole, and another worktree's run
+    copies them instead of compiling."""
+
+    def test_an_entry_is_stored_whole_and_fetched(self):
+        import l4run
+        with tempfile.TemporaryDirectory() as d:
+            d = Path(d)
+            saved = l4run.STORE
+            l4run.STORE = d / "store"
+            try:
+                made = {p: d / "a" / f"x.{p}" for p in (*l4run.PARTS, "key")}
+                made["run"].parent.mkdir()
+                for p in l4run.PARTS:
+                    made[p].write_text(f"<{p}>", encoding="utf-8")
+                k = "ab" + "0" * 62
+                self.assertFalse(l4run.fetch(made, k))
+                l4run.publish(made, k)
+                self.assertEqual(sorted(x.name for x in (d / "store" / "ab" / k).iterdir()),
+                                 sorted(l4run.PARTS))
+                self.assertEqual([x for x in (d / "store" / "ab").iterdir()
+                                  if x.name.startswith(".tmp")], [])
+                l4run.publish(made, k)      # a second publish leaves the entry as it is
+                there = {p: d / "b" / f"x.{p}" for p in (*l4run.PARTS, "key")}
+                self.assertTrue(l4run.fetch(there, k))
+                for p in l4run.PARTS:
+                    self.assertEqual(there[p].read_text(encoding="utf-8"), f"<{p}>")
+                self.assertEqual(there["key"].read_text(), k)
+                l4run.STORE = None          # L4_CACHE=off
+                self.assertFalse(l4run.fetch(there, k))
+            finally:
+                l4run.STORE = saved
 
 
 if __name__ == "__main__":

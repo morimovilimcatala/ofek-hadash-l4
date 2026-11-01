@@ -19,6 +19,17 @@ directory are not keyed, so adding a document re-checks that document and
 what imports it, not the whole collection (2026-10-21: a merge of one batch
 re-checked ~35 agreements, 9–15 minutes).
 
+ONE CACHE FOR EVERY WORKTREE (MMS-617). Besides build/l4, each output set
+is kept under its key in a store shared by every worktree of the repository
+(`<git common dir>/l4-cache/`, or `$L4_CACHE`; `L4_CACHE=off` turns it off).
+A check whose key is in the store is copied from it instead of compiled, so
+a new worktree, or a branch just rebased onto main, compiles only the files
+whose key no worktree has computed yet. The key is what makes sharing safe:
+it already names everything that decides the outputs, and none of them
+carries a path. An entry is written in a temporary directory and renamed
+into place whole, so two runs sharing the store never see half of one. The
+store only grows; deleting it is always safe and costs a cold run.
+
 Every run has l4/modules/ on JL4_LIBRARY_PATH (tools/modules.py): the
 compiler finds an import by its bare name, and that directory holds every
 module under its one name.
@@ -97,6 +108,57 @@ def key(path: Path, cid: str) -> str:
         h.update(f.name.encode() + b"\0" + f.read_bytes() + b"\0")
     h.update(path.name.encode())
     return h.hexdigest()
+
+
+def shared_store() -> Path | None:
+    """The store every worktree shares: `$L4_CACHE`, or l4-cache/ in the
+    repository's git common dir (the same directory from every worktree)."""
+    env = os.environ.get("L4_CACHE")
+    if env == "off":
+        return None
+    if env:
+        return Path(env)
+    try:
+        r = subprocess.run(["git", "rev-parse", "--git-common-dir"], cwd=ROOT,
+                           capture_output=True, text=True)
+    except OSError:
+        return None
+    return (ROOT / r.stdout.strip()).resolve() / "l4-cache" if r.returncode == 0 else None
+
+
+STORE = shared_store()
+PARTS = ("run", "render", "graph")
+
+
+def stored(k: str) -> Path | None:
+    return STORE / k[:2] / k if STORE else None
+
+
+def fetch(out: dict[str, Path], k: str) -> bool:
+    """Copy the outputs stored under `k` into this worktree's build/l4."""
+    e = stored(k)
+    if e is None or not e.is_dir():
+        return False
+    out["run"].parent.mkdir(parents=True, exist_ok=True)
+    for part in PARTS:
+        shutil.copyfile(e / part, out[part])
+    out["key"].write_text(k)
+    return True
+
+
+def publish(out: dict[str, Path], k: str) -> None:
+    """Store this worktree's outputs under `k`, whole or not at all."""
+    e = stored(k)
+    if e is None or e.exists() or not all(out[p].exists() for p in PARTS):
+        return
+    tmp = e.parent / f".tmp-{os.getpid()}-{threading.get_ident()}-{k[:12]}"
+    try:
+        tmp.mkdir(parents=True)
+        for part in PARTS:
+            shutil.copyfile(out[part], tmp / part)
+        os.rename(tmp, e)
+    except OSError:   # another run stored it first, or the store is not writable
+        shutil.rmtree(tmp, ignore_errors=True)
 
 
 def outputs(path: Path) -> dict[str, Path]:
@@ -213,7 +275,10 @@ def run_one(path: Path, exe: str, cid: str) -> tuple[Path, bool, bool]:
                 out["graph"].write_text("", encoding="utf-8")
             else:
                 write_graph(path, exe, out["graph"])
+        publish(out, k)
         return path, ok, False
+    if fetch(out, k):
+        return path, verdict(json.loads(out["run"].read_text()), path.name), False
     out["run"].parent.mkdir(parents=True, exist_ok=True)
     cwd = path.parent
     r = subprocess.run([exe, "run", "--json", f"--fixed-now={FIXED_NOW}",
@@ -250,6 +315,7 @@ def run_one(path: Path, exe: str, cid: str) -> tuple[Path, bool, bool]:
                                  encoding="utf-8")
         write_graph(path, exe, out["graph"])
     out["key"].write_text(k)
+    publish(out, k)
     return path, bool(data.get("ok")), True
 
 
@@ -287,12 +353,23 @@ def memory_gb() -> float:
         return 8.0
 
 
+def recorded_key(path: Path, cid: str) -> str:
+    """The key build/l4 holds for `path` once it is up to date: its own, or,
+    for a module checked through its tests file, its own and the tests
+    file's (`record_through`)."""
+    t = tested_through(path)
+    return key(path, cid) + ("+" + key(t, cid) if t else "")
+
+
 def record_through(path: Path, tests: Path, cid: str) -> tuple[Path, bool, bool]:
     """A module checked through its tests file: the compiler checked it when
     the tests file imported it, so its outputs are what that check said of
-    this file — its own diagnostics, no results (they are the tests')."""
+    this file — its own diagnostics, no results (they are the tests').
+    Its record is read off the tests file's check, so it is keyed by that
+    file too: keyed by the module alone, it kept a failing record after the
+    tests were fixed (MMS-617)."""
     out = outputs(path)
-    k = key(path, cid)
+    k = recorded_key(path, cid)
     if out["key"].exists() and out["key"].read_text() == k:
         return path, verdict(json.loads(out["run"].read_text()), path.name), False
     t = json.loads(outputs(tests)["run"].read_text())
@@ -311,7 +388,11 @@ def record_through(path: Path, tests: Path, cid: str) -> tuple[Path, bool, bool]
 
 def is_kept(path: Path, cid: str) -> bool:
     out = outputs(path)
-    return out["key"].exists() and out["key"].read_text() == key(path, cid)
+    k = key(path, cid)
+    if out["key"].exists() and out["key"].read_text() == k:
+        return True
+    e = stored(k)
+    return e is not None and e.is_dir()
 
 
 def main(argv: list[str]) -> int:
