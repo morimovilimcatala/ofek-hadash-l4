@@ -37,6 +37,11 @@ for a component the root does not answer yet. The case's facts, which
 §1.1 does not ask about and the other instruments do, are the `teaching
 case` of the shared vocabulary (l4/lib/vocabulary.l4): `CASE_FIELDS_HE` and
 `CHOICES_HE` are their Hebrew, held by a test to the names the L4 declares.
+Among them are the roles the teacher holds (the pedagogical coordinator's,
+a mentor's, the junior-division head's): salary-root adds each held role's
+allowance to the month, as many as the cap pays (convention
+reading.role-allowances-in-the-month), and the page shows each as a line of
+the sum (`ROLE_RULES`).
 """
 from __future__ import annotations
 
@@ -76,6 +81,14 @@ ITEM_RULES = {
     "gap": "why the item has no answer in the month",
     "kind": "the §1.1ו allowance the item is",
     "asAllowance": "the item as a percentage allowance in the month",
+}
+# what the page asks about each item that is a role's allowance (the
+# vocabulary's `the items a held role pays`): whether the case holds the
+# role, and what the month pays for it (MMS-555)
+ROLE_ITEMS = "the items a held role pays"
+ROLE_RULES = {
+    "held": "the role is held in the month",
+    "paid": "the role allowance paid in the month",
 }
 # the month §1.1 computes on, with the law's amounts for a full position
 MONTH_BY_LAW = "the month by the law"
@@ -162,7 +175,9 @@ CASE_FIELDS_HE: dict[str, str] = {
     "combined salary in December 2007": "השכר המשולב בדצמבר 2007 (₪)",
     "supplement 2001 in December 2007": "תוספת 2001 בדצמבר 2007 (₪)",
     "the kind of school": "סוג בית הספר",
+    "holds the pedagogical coordinator's role": "רכז/ת פדגוגי/ת (תכנון לימודים)",
     "the interns the teacher mentors": "מספר המתמחים שהמורה חונך/ת (0 אם אין)",
+    "heads the junior division": "מנהל/ת חטיבה צעירה",
     "the classes in each grade": "מספר הכיתות בכל שכבה, בחטיבה שבראשה או שאותה מרכזים",
     "the roles the teacher holds": "מספר התפקידים שבעדם משולם גמול תפקיד (0 אם אין)",
     "a further role approved by the district manager": "מנהל/ת המחוז אישר/ה גמול תפקיד מעבר לשני",
@@ -176,6 +191,10 @@ CASE_FIELDS_HE: dict[str, str] = {
 CASE_HINTS = {
     "combined salary in December 2007": "חלק מההסכמים מחשבים את תוספת 2008 על השכר של דצמבר 2007.",
     "the kind of school": "חוזרי הבעלויות פונים לבתי ספר מסוגים אלה בלבד.",
+    "holds the pedagogical coordinator's role": "גמול התפקיד נוסף לשכר החודש, בשיעור שהדין נותן.",
+    "the interns the teacher mentors": "חונך/ת מתמחה אחד לפחות: גמול החונך נוסף לשכר החודש, בשיעור שהדין נותן.",
+    "heads the junior division": "גמול התפקיד נוסף לשכר החודש, בסכום שהדין נותן.",
+    "the roles the teacher holds": "כולל התפקידים שסומנו כאן ואלה שגמולם מוזן ברשימת התוספות האחוזיות (כמו חינוך כיתה). הדין מונה לפחות את התפקידים שסומנו, ומשלם לכל היותר שניים, או שלושה באישור מנהל המחוז.",
     "paid by the Ofek Hadash tables": "אם כן, השכר המשולב הוא התא בטבלה שבתוקף בחודש, לפי השדות שלהלן.",
     "the seniority the tables count": "הסכם ההשלמה מיום 29.2.2012 (סעיף 23(א)) מונה מורה חדש בוותק 1. בטבלאות 1.12.2008, שמודפסות מ־0, הוא נקרא בשורה שמתחתיו.",
     "the grade in the tables": "1 עד 9, או דרגת ביניים (4.5). למנהל/ת ולסגן/ית: א 1, א+ 1.5, ב 2, ב+ 2.5, ג 3, ג+ 3.5, ד 4.",
@@ -346,6 +365,9 @@ def law(components: list[dict]) -> dict:
     items, _ = enum_ctors(vocab, ITEM_ENUM)
     names = {k: v.strip('"') for k, v in cases(vocab, ITEM_NAME_RULE)}
     assert set(names) == set(items), "the name of the item does not name every item"
+    _, role_body = _block(vocab, re.compile(rf"^`{re.escape(ROLE_ITEMS)}`\s+MEANS\b"))
+    roles = re.findall(r"`([^`]+)`", "\n".join(role_body))
+    assert roles and set(roles) <= set(items), "the items a held role pays are not pay items"
     tests = SALARY_TESTS.read_text(encoding="utf-8").splitlines()
     ex = example(tests, CASE_EXAMPLE)
     return {
@@ -357,6 +379,7 @@ def law(components: list[dict]) -> dict:
         "items": [{"name": i, "label": names[i], "component": next((c["name"] for c in components if c["item"] == i), None)}
                   for i in items],
         "itemRules": ITEM_RULES,
+        "roleItems": roles, "roleRules": ROLE_RULES,
         "monthByLaw": MONTH_BY_LAW, "allowanceRule": ALLOWANCE_BY_LAW, "allowancesRule": ALLOWANCES_BY_LAW,
         "example": {k: v for k, v in ex.items() if k not in from_month},
     }
@@ -639,7 +662,8 @@ def body(s: dict, section_link: str, findings: list[dict], findings_href: str) -
         '<p class="lede">השכר החודשי של עובד הוראה לפי הדין: לכל רכיב, מה שהדין נותן אחרי שנשקל כל מסמך '
         'שמדבר עליו — התקנון, ההסכמים הקיבוציים והחוזרים — לפי סדר העדיפות ביניהם. '
         f'הרכיבים הם אלה שמונה {section_link}: השכר המשולב, תוספת 3%, תוספת 2008, תוספת 2011, '
-        'תוספת "הסכם הוראה 94" והתוספות האחוזיות שמזינים. '
+        'תוספת "הסכם הוראה 94" והתוספות האחוזיות שמזינים, ועליהם גמולי התפקידים שהמורה ממלא ששורש הדין '
+        'עונה עליהם (רכז פדגוגי, חונך, מנהל חטיבה צעירה). '
         'לא נכללים כאן תשלומים שנתיים ורכיבים שנקבעים בסעיפים אחרים (הבראה, ביגוד, נסיעות, טלפון ועוד).</p>'
         '<ul class="calc-notes">'
         '<li><strong>התשובה היא של הדין; המסמכים הם הנימוק.</strong> לכל רכיב מוצג הסכום שהדין נותן. '

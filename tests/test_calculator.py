@@ -197,6 +197,11 @@ UPPER = {"in post-primary education": True, "in the upper division": True,
 OFEK = {"paid by the Ofek Hadash tables": True, "the post in the reform": "a teacher in the tables",
         "the education": "with a second degree", "the seniority the tables count": "10",
         "the grade in the tables": "5"}
+# The same teacher holding three roles (MMS-555): pedagogical coordinator,
+# mentor of one intern and head of the junior division, with no approval
+# for a third role allowance.
+ROLES = {"holds the pedagogical coordinator's role": True, "the interns the teacher mentors": "1",
+         "heads the junior division": True}
 
 
 @unittest.skipUnless(shutil.which("node"), "needs Node")
@@ -224,6 +229,8 @@ class WorkedExample(unittest.TestCase):
                  {"fields": {**ex["fields"], "month": "2023-10-01"}, "case": {**ex["case"], **OFEK},
                   "allowances": [{"kind": "class education", "percent": "10"}]},
                  {"fields": {**ex["fields"], "month": "2012-06-01"}, "case": {**ex["case"], **OFEK},
+                  "allowances": []},
+                 {"fields": {**ex["fields"], "month": "2023-10-01"}, "case": {**ex["case"], **OFEK, **ROLES},
                   "allowances": []}]
         with tempfile.TemporaryDirectory() as d:
             s = calculator.ship(s, Path(d))
@@ -322,6 +329,26 @@ class WorkedExample(unittest.TestCase):
         self.assertEqual(kinds["the role allowances counted"], "")
         # 8% of §1.1ו's base as the law gives it: the cell alone, 10,250.12
         self.assertEqual(items["the pedagogical coordinator's allowance rate"]["asAllowance"], "820.0096")
+
+    def test_the_roles_held_are_paid_in_the_month(self):
+        """Convention reading.role-allowances-in-the-month (MMS-555, put to
+        the lawyer): a teacher of the reform on 10,250.12 holding three roles
+        with no approval for a third is paid two, the highest — the junior
+        division head's 20% (2,050.024) and the coordinator's 8% (820.0096);
+        the mentor's 2.4% is held and not paid. Where no role is held the
+        month adds none (run 4)."""
+        r = self.runs[6]
+        self.assertTrue(r["ok"] and not r["failed"], r)
+        items = r["items"]
+        self.assertEqual({k: (items[k]["held"], items[k]["paid"]) for k in spec()["law"]["roleItems"]},
+                         {"the pedagogical coordinator's allowance rate": (True, "820.0096"),
+                          "the mentor's allowance rate": (True, "0"),
+                          "the junior-division head's allowance": (True, "2050.024")})
+        self.assertEqual(items["the mentor's allowance rate"]["asAllowance"], "246.00288")
+        self.assertEqual(items["the role allowances counted"]["answer"], "2")
+        self.assertEqual(r["total"]["value"], "13120.1536")
+        self.assertFalse(self.runs[4]["items"]["the pedagogical coordinator's allowance rate"]["held"])
+        self.assertEqual(self.runs[4]["items"]["the pedagogical coordinator's allowance rate"]["paid"], "0")
 
     def test_every_pay_item_is_answered(self):
         names = [i["name"] for i in spec()["law"]["items"]]

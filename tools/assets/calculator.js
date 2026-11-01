@@ -213,20 +213,43 @@ function show(r, prog) {
       }
     }
   }
-  const table = el("table", { class: "comp" },
-    el("thead", {}, el("tr", {}, ...["רכיב", "מקור התשובה", "₪"].map((t) => el("th", { text: t })))),
-    tbody);
-  // the root's other items: what the law answers for the case beyond §1.1's
-  // components; a role allowance is shown as the §1.1ו allowance it is
-  // (convention reading.role-allowance-kinds) and what it comes to on this
-  // month's base, beside the sum and not in it — the form does not ask
-  // which roles the teacher holds
-  const others = law.items.filter((i) => !i.component);
+  // the role allowances of the roles the case holds, which salary-root adds
+  // to the month (convention reading.role-allowances-in-the-month): each as
+  // the §1.1ו allowance it is, and a role held that the cap leaves unpaid
+  // says so
   const kindLabel = (k) => {
     const name = String(k || "").replace(/^`|`$/g, "");
     const kind = spec.allowance.kinds.find((x) => x.name === name);
     return kind ? kind.label : name;
   };
+  const roles = law.items.filter((i) => (law.roleItems || []).includes(i.name) && r.items[i.name] && r.items[i.name].held);
+  if (roles.length) {
+    tbody.append(el("tr", { class: "c" },
+      el("td", { colspan: "3" }, el("span", { class: "cl", text: "גמולי התפקידים שהמורה ממלא" }))));
+  }
+  for (const i of roles) {
+    const it = r.items[i.name];
+    const paid = it.paid != null && Number(it.paid) !== 0;
+    const notes = [el("div", { class: "supnote" }, "תוספת אחוזית לפי סעיף 1.1ו: ", kindLabel(it.kind), ".")];
+    if (!paid && it.asAllowance != null && Number(it.asAllowance) !== 0) {
+      notes.push(el("div", { class: "supnote" }, "לא משולם: מספר גמולי התפקיד מוגבל (סעיף 39(ב) להסכם אופק חדש), "
+        + "והמקומות הולכים לגמולים הגבוהים. בלי התקרה — ", ltr(shekels(it.asAllowance)), "."));
+    } else if (it.answer == null) {
+      notes.push(el("div", { class: "supnote" }, "אף מסמך אינו מדבר על הגמול בחודש הזה."));
+    }
+    tbody.append(el("tr", { class: "sub" },
+      el("td", {}, el("span", { class: "cl", text: i.label }), ...notes),
+      el("td", {}, el("span", { class: "badge law", text: "לפי הדין" })),
+      el("td", { class: "num" }, ltr(money(it.paid == null ? "0" : String(it.paid))))));
+  }
+  const table = el("table", { class: "comp" },
+    el("thead", {}, el("tr", {}, ...["רכיב", "מקור התשובה", "₪"].map((t) => el("th", { text: t })))),
+    tbody);
+  // the root's other items: what the law answers for the case beyond §1.1's
+  // components; a role allowance is shown as the §1.1ו allowance it is
+  // (convention reading.role-allowance-kinds) and what it would come to on
+  // this month's base — in the sum above only where the case holds the role
+  const others = law.items.filter((i) => !i.component);
   const otherRows = others.map((i) => {
     const it = r.items[i.name];
     const asAllowance = it.kind == null ? null : el("div", { class: "supnote" },
@@ -253,9 +276,9 @@ function show(r, prog) {
     el("div", { class: "scroll-x" }, table),
     others.length ? el("section", { class: "others" },
       el("h2", { text: "מה עוד הדין עונה למקרה הזה" }),
-      el("p", { class: "hint", text: "פריטים ששורש הדין שואל עליהם ואינם נכללים בסכום שלמעלה: הטופס אינו שואל "
-        + "אילו תפקידים המורה ממלא. לכל גמול תפקיד מוצגת התוספת האחוזית של סעיף 1.1ו שהוא נחשב לה (בחירה שממתינה "
-        + "לעיון עורך הדין) ומה הוא מגיע לו בחודש הזה. שיעור — כחלק מהשכר המשולב (0.02 הם 2%)." }),
+      el("p", { class: "hint", text: "מה ששורש הדין עונה על כל פריט במקרה הזה, בין שהמורה ממלא את התפקיד ובין שלא. "
+        + "גמול של תפקיד שסומן בטופס נכלל בסכום שלמעלה; האחרים אינם. לכל גמול תפקיד מוצגת התוספת האחוזית של סעיף 1.1ו "
+        + "שהוא נחשב לה (בחירה שממתינה לעיון עורך הדין) ומה הוא מגיע לו בחודש הזה. שיעור — כחלק מהשכר המשולב (0.02 הם 2%)." }),
       el("ul", { class: "items" }, ...otherRows)) : null,
     el("details", { class: "trace" },
       el("summary", {}, el("h2", { text: "עקבות החישוב" })),

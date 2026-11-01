@@ -147,7 +147,10 @@ export function program(spec, input) {
       { index: i, allowance: h.kind, rate: h.rate });
   });
   for (const it of law.items) {
-    for (const [key, rule] of Object.entries(law.itemRules)) {
+    // a role's allowance is also asked whether the case holds the role and
+    // what the month pays for it (salary-root adds it to the sum)
+    const rules = { ...law.itemRules, ...((law.roleItems || []).includes(it.name) ? law.roleRules : {}) };
+    for (const [key, rule] of Object.entries(rules)) {
       directive("item", `#EVAL ${tick(rule)} ${tick(it.name)} ${cm}`, { item: it.name, key });
     }
   }

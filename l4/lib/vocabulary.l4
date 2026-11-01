@@ -178,7 +178,9 @@ DECLARE `teaching case` HAS
     `combined salary in December 2007` IS A NUMBER @desc the combined salary at its value in December 2007
     `supplement 2001 in December 2007` IS A NUMBER @desc תוספת 2001 at its value in December 2007
     `the kind of school`               IS A `the kind of school in the case` @desc the school the teacher is employed in, as the owners' circulars tell them apart
-    `the interns the teacher mentors`  IS A NUMBER @desc how many interns the teacher is appointed to mentor; 0 if none
+    `holds the pedagogical coordinator's role` IS A BOOLEAN @desc appointed pedagogical coordinator (curriculum planning), the role the agreement of 19.3.2017 adds (§3(ג))
+    `the interns the teacher mentors`  IS A NUMBER @desc how many interns the teacher is appointed to mentor; 0 if none (one or more: the teacher holds the mentor's role)
+    `heads the junior division`        IS A BOOLEAN @desc appointed head of the junior division (מנהל/ת חטיבה צעירה)
     `the classes in each grade`        IS A NUMBER @desc the classes in each grade of the division the teacher heads or coordinates
     `the roles the teacher holds`      IS A NUMBER @desc how many roles carrying a role allowance the teacher holds, of those a cap on their number counts; 0 if none
     `a further role approved by the district manager` IS A BOOLEAN @desc the district manager approved paying a role allowance beyond the second
@@ -212,3 +214,29 @@ DECIDE `an owner's teacher in` c k y IF
         `is an owning body` (c's `employer`)
     AND c's `the kind of school` EQUALS k
     AND `the salary month is in the school year from` c y
+
+§§ `התפקידים שהמקרה מחזיק`
+
+-- The pay items that are a role's allowance, and whether the case holds
+-- the role: the pedagogical coordinator's, a mentor's (one intern or more)
+-- and the junior-division head's. The root answers what each instrument
+-- says of the item whether or not the role is held; the month by the law
+-- (l4/lib/salary-root.l4) pays it only where it is.
+`the items a held role pays` MEANS
+    LIST `the pedagogical coordinator's allowance rate`,
+         `the mentor's allowance rate`,
+         `the junior-division head's allowance`
+
+GIVEN i IS A `pay item`, c IS A `teaching case`
+GIVETH A BOOLEAN
+DECIDE `the case holds the role of` i c IS
+    CONSIDER i
+    WHEN `the pedagogical coordinator's allowance rate` THEN c's `holds the pedagogical coordinator's role`
+    WHEN `the mentor's allowance rate` THEN c's `the interns the teacher mentors` AT LEAST 1
+    WHEN `the junior-division head's allowance` THEN c's `heads the junior division`
+    OTHERWISE FALSE
+
+GIVEN c IS A `teaching case`
+GIVETH A NUMBER
+DECIDE `the roles held of those the root pays for` c IS
+    count (filter (GIVEN i YIELD `the case holds the role of` i c) `the items a held role pays`)

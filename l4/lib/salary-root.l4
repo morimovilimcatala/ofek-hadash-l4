@@ -19,6 +19,11 @@
 -- not, the input stands, and the page says why the law has no answer
 -- (`why the item has no answer in the month`).
 --
+-- The role allowances the root answers (the pedagogical coordinator's, the
+-- mentor's, the junior-division head's) are §1.1ו's allowances, and those
+-- of the roles the case holds are the month's too, as many as the cap on
+-- role allowances pays (`the role allowances by the law`).
+--
 -- Nothing here re-encodes a rule: §1.1's components are §1.1's functions,
 -- and the law's answer is the root's.
 
@@ -52,7 +57,9 @@ DECIDE `the case of the month` c m IS
         `combined salary in December 2007` IS c's `combined salary in December 2007`
         `supplement 2001 in December 2007` IS c's `supplement 2001 in December 2007`
         `the kind of school`               IS c's `the kind of school`
+        `holds the pedagogical coordinator's role` IS c's `holds the pedagogical coordinator's role`
         `the interns the teacher mentors`  IS c's `the interns the teacher mentors`
+        `heads the junior division`        IS c's `heads the junior division`
         `the classes in each grade`        IS c's `the classes in each grade`
         `the roles the teacher holds`      IS c's `the roles the teacher holds`
         `a further role approved by the district manager` IS c's `a further role approved by the district manager`
@@ -93,11 +100,13 @@ DECIDE `the month by the law` c m IS
 -- amounts as the law gives them, and the 2008 supplement the law gives
 -- (with the 2001 supplement, the base of the 2011 supplement). No
 -- instrument's claim on the 2008 supplement reads it, so it is asked of
--- the case with §1.1's figure in its place.
+-- the case with §1.1's figure in its place. A teacher holds at least the
+-- roles the case says he holds of those the root pays an allowance for
+-- (`the case holds the role of`): the roles counted are never fewer.
 GIVEN c IS A `teaching case`, m IS A `salary month`
 GIVETH A `teaching case`
 DECIDE `the case by the law` c m IS
-    `the case with the 2008 supplement` k
+    `the case with the 2008 supplement and the roles held` k
         (CONSIDER `the answer that governs` `the 2008 public-sector supplement` k
          WHEN JUST a THEN a
          WHEN NOTHING THEN k's `supplement 2008 today`)
@@ -106,7 +115,7 @@ DECIDE `the case by the law` c m IS
 
 GIVEN k IS A `teaching case`, a IS A NUMBER
 GIVETH A `teaching case`
-DECIDE `the case with the 2008 supplement` k a IS
+DECIDE `the case with the 2008 supplement and the roles held` k a IS
     `teaching case` WITH
         `the salary month`                IS k's `the salary month`
         `employer`                        IS k's `employer`
@@ -120,9 +129,11 @@ DECIDE `the case with the 2008 supplement` k a IS
         `combined salary in December 2007` IS k's `combined salary in December 2007`
         `supplement 2001 in December 2007` IS k's `supplement 2001 in December 2007`
         `the kind of school`               IS k's `the kind of school`
+        `holds the pedagogical coordinator's role` IS k's `holds the pedagogical coordinator's role`
         `the interns the teacher mentors`  IS k's `the interns the teacher mentors`
+        `heads the junior division`        IS k's `heads the junior division`
         `the classes in each grade`        IS k's `the classes in each grade`
-        `the roles the teacher holds`      IS k's `the roles the teacher holds`
+        `the roles the teacher holds`      IS max (k's `the roles the teacher holds`) (`the roles held of those the root pays for` k)
         `a further role approved by the district manager` IS k's `a further role approved by the district manager`
         `paid by the Ofek Hadash tables`  IS k's `paid by the Ofek Hadash tables`
         `the post in the reform`          IS k's `the post in the reform`
@@ -195,7 +206,7 @@ DECIDE `the component that governs` s c m IS
             WHEN NOTHING THEN `§1.1's figure for` s (`the month by the law` c m)
     WHEN NOTHING THEN `§1.1's figure for` s (`the month by the law` c m)
 
-@export A teaching employee's salary for a month, by the law: section 1.1's components, each the law's answer where the root has one, and the percentage allowances held
+@export A teaching employee's salary for a month, by the law: section 1.1's components, each the law's answer where the root has one, the percentage allowances held, and the role allowances of the roles the case holds
 GIVEN c IS A `teaching case` @desc the facts of the case §1.1 does not ask about
       m IS A `salary month` @desc the salary month, as §1.1 describes it
       `the allowances held` IS A LIST OF `allowance held` @desc the percentage allowances held that month, with their rates
@@ -203,6 +214,7 @@ GIVETH A NUMBER
 DECIDE `the salary that governs` c m `the allowances held` IS
     sum (map (GIVEN s YIELD `the component that governs` s c m) `§1.1's components`)
         PLUS `the percentage allowances by the law` c m `the allowances held`
+        PLUS `the role allowances by the law` c m
 
 -- §1.1ו's base, as the law gives it: the components א–ה the law gives for
 -- one full position (§1.1ו's own `base of the percentage allowances` is
@@ -251,23 +263,93 @@ GIVETH A BOOLEAN
 DECIDE `the item is a rate` i IF
     i EQUALS `the pedagogical coordinator's allowance rate` OR i EQUALS `the mentor's allowance rate`
 
--- What the item comes to in the month as the §1.1ו allowance it is: a rate
--- on §1.1ו's base as the law gives it, scaled to the position as §1.1ו
--- scales that allowance; or the shekels themselves. Whether the teacher holds the role
--- the case does not say (save the interns he mentors), so the month's sum
--- does not add it: the page shows it beside the sum.
+-- What the item comes to in the month as the §1.1ו allowance it is, the
+-- role held or not: a rate on §1.1ו's base as the law gives it, scaled to
+-- the position as §1.1ו scales that allowance; or, for an allowance in
+-- shekels, the root's answer for a full position, scaled the same way (a
+-- ו.1 allowance is paid as for a full position from a third of one).
 GIVEN i IS A `pay item`, c IS A `teaching case`, m IS A `salary month`
 GIVETH A MAYBE NUMBER
 DECIDE `the item as a percentage allowance in the month` i c m IS
     CONSIDER `the §1.1ו allowance the item is` i c m
     WHEN NOTHING THEN NOTHING
     WHEN JUST a THEN
-        CONSIDER `the item's answer in the month` i c m
-        WHEN NOTHING THEN NOTHING
-        WHEN JUST v THEN
-            IF `the item is a rate` i
-            THEN JUST (`the percentage allowance by the law` a v c m)
-            ELSE JUST v
+        IF `the item is a rate` i
+        THEN CONSIDER `the item's answer in the month` i c m
+             WHEN NOTHING THEN NOTHING
+             WHEN JUST v THEN JUST (`the percentage allowance by the law` a v c m)
+        ELSE CONSIDER `the item's answer in the month` i c (`the same month at position` m 1)
+             WHEN NOTHING THEN NOTHING
+             WHEN JUST v THEN JUST (v TIMES (`position factor of` a `at` (m's `position fraction of the month`)))
+
+§§ `גמולי התפקיד שהמקרה מחזיק`
+
+-- The role allowances the case holds are the month's (convention
+-- reading.role-allowances-in-the-month, put to the lawyer): each role the
+-- case holds (`the case holds the role of`) is paid what the item comes to
+-- in the month as the §1.1ו allowance it is. §39(ב) of the base agreement
+-- caps how many role allowances are paid (the agreement of 19.3.2017 §3(ו)
+-- applies it to the mentor's and the pedagogical coordinator's), and the
+-- root answers how many (`the role allowances counted`): the roles the case
+-- counts beyond these, whose allowances the form lists among §1.1ו's, are
+-- taken as paid as listed and fill their places first; the places left go
+-- to the roles held here, the highest first (convention amounts.highest).
+@desc A role allowance the case holds, and what it comes to in the month.
+DECLARE `role allowance in the month` HAS
+    `the role's item`   IS A `pay item`
+    `the role's amount` IS A NUMBER
+
+GIVEN c IS A `teaching case`, m IS A `salary month`
+GIVETH A LIST OF `role allowance in the month`
+DECIDE `the role allowances held in the month` c m IS
+    concat (map (GIVEN i YIELD
+                    IF `the case holds the role of` i c
+                    THEN CONSIDER `the item as a percentage allowance in the month` i c m
+                         WHEN JUST v THEN LIST (`role allowance in the month` WITH `the role's item` IS i, `the role's amount` IS v)
+                         WHEN NOTHING THEN EMPTY
+                    ELSE EMPTY)
+                `the items a held role pays`)
+
+-- How many of the roles held here the cap leaves places for: the number the
+-- root counts, less the case's other roles (taken as paid first); all of
+-- them where nothing counts.
+GIVEN c IS A `teaching case`, m IS A `salary month`
+GIVETH A NUMBER
+DECIDE `the places the cap leaves the roles held` c m IS
+    max 0 (`counted` MINUS `the other roles`)
+    WHERE
+        `held` MEANS `the roles held of those the root pays for` c
+        `the other roles` MEANS max 0 (c's `the roles the teacher holds` MINUS `held`)
+        `counted` MEANS
+            CONSIDER `the answer that governs` `the role allowances counted` (`the case by the law` c m)
+            WHEN JUST n THEN n
+            WHEN NOTHING THEN `held` PLUS `the other roles`
+
+GIVEN c IS A `teaching case`, m IS A `salary month`
+GIVETH A LIST OF `role allowance in the month`
+DECIDE `the role allowances paid in the month` c m IS
+    take (`the places the cap leaves the roles held` c m)
+         (sortBy (GIVEN a, b YIELD a's `the role's amount` AT LEAST b's `the role's amount`)
+                 (`the role allowances held in the month` c m))
+
+GIVEN c IS A `teaching case`, m IS A `salary month`
+GIVETH A NUMBER
+DECIDE `the role allowances by the law` c m IS
+    sum (map (GIVEN r YIELD r's `the role's amount`) (`the role allowances paid in the month` c m))
+
+-- One role's allowance in the month, as the page shows it: what it comes to
+-- if the case holds it and the cap pays it, else 0; and whether the case
+-- holds it.
+GIVEN i IS A `pay item`, c IS A `teaching case`, m IS A `salary month`
+GIVETH A NUMBER
+DECIDE `the role allowance paid in the month` i c m IS
+    sum (map (GIVEN r YIELD r's `the role's amount`)
+             (filter (GIVEN r YIELD r's `the role's item` EQUALS i) (`the role allowances paid in the month` c m)))
+
+GIVEN i IS A `pay item`, c IS A `teaching case`, m IS A `salary month`
+GIVETH A BOOLEAN
+DECIDE `the role is held in the month` i c m IS
+    `the case holds the role of` i c
 
 §§ `הנימוק`
 
