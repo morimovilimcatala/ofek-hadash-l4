@@ -41,15 +41,20 @@ reason when work stops, and nothing open written in a markdown file.
   (the client, 2026-10-06): the text column is the corpus text, plain.
 - **One exception: statutes (the client, 2026-10-20, MMS-516: "don't
   encode it in AKN, only in L4").** The corpus holds no copy of a law (its
-  standing decision 14), and two are encoded here anyway — חוק הסכמים
-  קיבוציים §§2, 15, 16, 19–23 (MMS-600 pinned §§2, 15 and 16) and חוק יסודות
-  התקציב §§21, 29, 32 (MMS-528): their
+  standing decision 14), and the sections the L4 reads are encoded here
+  anyway — among them חוק הסכמים קיבוציים (MMS-516, MMS-600), חוק יסודות
+  התקציב (MMS-528) and the protective statutes שכר מינימום, הגנת השכר and
+  פיצויי פיטורים (MMS-601); `laws/` lists them, and `data/statute-citations.json`
+  (`tools/statute_citations.py`) every section the corpus cites: their
   sections' words are pinned in `laws/<name>.toml` with the live ספר החוקים
   הפתוח page they are read from and the date they were last checked against
   it, and its rules are `l4/laws/<name>.l4`, a `§§` block per section citing
   `@ref law:<num>`. A file that applies it imports it through a link in its
   own directory named `<name with underscores>.l4`, as with `conventions.l4`.
-  The site shows it at `laws/<name>.html`, text beside rules.
+  The site shows it at `laws/<name>.html`, text beside rules. A statute's
+  floor prevails over every instrument (`l4/lib/statutes-root.l4`, weighed
+  last by the root; convention `instruments.statute-floor`, a pick for the
+  lawyer).
 - `corpus/manifest.json` is the corpus's own document list and is the
   coverage page's denominator. A collection nobody has started is a row of
   nothing, not a missing row.
