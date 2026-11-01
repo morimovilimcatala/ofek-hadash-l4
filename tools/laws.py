@@ -116,7 +116,8 @@ def citations_note(law: dict, esc) -> str:
         note = "" if s["anchored"] else ", בלי קישור"
         where = "" if s["num"] in mine else " — לא מקודד כאן"
         secs.append(f'{esc(s["num"])} ({documents(s["documents"])}{note}{where})')
-    by_num = ("; במספרם הוא מצטט את הסעיפים " + ", ".join(secs)) if secs else \
+    what = "את הסעיפים " if len(secs) > 1 else "את סעיף "
+    by_num = ("; במספרם הוא מצטט " + what + ", ".join(secs)) if secs else \
         "; אף סעיף אינו מצוטט שם במספרו, רק החוק בשמו"
     return (f'<p class="lede">הקורפוס מקשר לחוק ב־{documents(row["documents"])}{by_num}. '
             '<a href="index.html">כל החוקים שהקורפוס מצטט</a>.</p>')

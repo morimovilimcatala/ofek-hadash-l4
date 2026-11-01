@@ -1,0 +1,98 @@
+-- The protective statutes' root (MMS-601): the statutes that set a floor an
+-- agreement, a circular and the takanon cannot go below — the Minimum Wage
+-- Law, the Wage Protection Law and the Severance Pay Law
+-- (l4/laws/*.l4) — and the floor each sets for an item of the shared
+-- vocabulary (l4/lib/vocabulary.l4), for a case. It is a `collection root`
+-- (l4/lib/precedence.l4), but not one of the collections the root sets
+-- against each other: its ruling is weighed last, over whichever
+-- instrument their precedence left governing, by the Collective
+-- Agreements Law's §21 (`the ruling under the statutes' floor`).
+--
+-- No item of the vocabulary is yet one of these statutes' floors: the
+-- minimum wage is a floor on the pay its §3 counts, not on any one item,
+-- and severance and deductions are not monthly items. So this root's
+-- claims are empty for every item, and the floors are weighed in the
+-- instruments' own files (the September 2016 agreement's top-up, the 2023
+-- framework's hourly floor, circular תשע"ג/10's reduction, the completion
+-- agreement's §93, the takanon's §1.28.2.3); a new item a statute floors
+-- is a new branch of `the statutes' claims on`, and the statute's module
+-- (l4/laws/) is imported here then — not before, since the root, and the
+-- calculator that ships everything it reaches, would load it for nothing.
+
+IMPORT prelude
+IMPORT precedence
+
+§ `שורש החוקים המגינים — הרצפה שחוק קובע`
+
+§§ `המסמכים`
+
+-- Each statute as an instrument. A statute is `a provision of law`, which
+-- the takanon's introduction lets prevail whatever its date, and which §21
+-- puts above every agreement; so its date is never weighed, and the day
+-- here is the first of its year (the day of its passing is not pinned).
+`the Minimum Wage Law` MEANS
+    `instrument` WITH
+        `module`        IS "minimum-wage-law"
+        `title`         IS "חוק שכר מינימום, התשמ\"ז-1987"
+        `kind`          IS `a provision of law`
+        `is the takanon` IS FALSE
+        `issued`        IS DATE_FROM_DMY 1 1 1987
+        `practised for all state employees` IS TRUE
+        `approved by the Finance Minister`  IS FALSE
+
+`the Wage Protection Law` MEANS
+    `instrument` WITH
+        `module`        IS "wage-protection-law"
+        `title`         IS "חוק הגנת השכר, התשי\"ח-1958"
+        `kind`          IS `a provision of law`
+        `is the takanon` IS FALSE
+        `issued`        IS DATE_FROM_DMY 1 1 1958
+        `practised for all state employees` IS TRUE
+        `approved by the Finance Minister`  IS FALSE
+
+`the Severance Pay Law` MEANS
+    `instrument` WITH
+        `module`        IS "severance-pay-law"
+        `title`         IS "חוק פיצויי פיטורים, התשכ\"ג-1963"
+        `kind`          IS `a provision of law`
+        `is the takanon` IS FALSE
+        `issued`        IS DATE_FROM_DMY 1 1 1963
+        `practised for all state employees` IS TRUE
+        `approved by the Finance Minister`  IS FALSE
+
+`the protective statutes` MEANS
+    LIST `the Minimum Wage Law`, `the Wage Protection Law`, `the Severance Pay Law`
+
+§§ `הרצפה, לפי פריט`
+
+-- What floor each statute sets for an item and a case. None of the items
+-- of the vocabulary is one yet (above).
+GIVEN i IS A `pay item`, c IS A `teaching case`
+GIVETH A LIST OF `claim`
+DECIDE `the statutes' claims on` i c IS
+    EMPTY
+
+§§ `הכרעת החוקים`
+
+-- Of two statutes that floor one item, the employee has the higher floor:
+-- each adds to the other as to an agreement (Minimum Wage Law §11,
+-- Severance Pay Law §31).
+GIVEN a IS A `claim`, b IS A `claim`
+GIVETH A `claim`
+DECIDE `the higher floor of` a b IS
+    IF b's `answer` GREATER THAN a's `answer` THEN b ELSE a
+
+GIVEN claims IS A LIST OF `claim`
+GIVETH A MAYBE `ruling`
+DECIDE `the statutes' floor among` claims IS
+    CONSIDER claims
+    WHEN EMPTY THEN NOTHING
+    WHEN c FOLLOWED BY cs THEN
+        JUST (`the ruling for` (foldl `the higher floor of` c cs) `the only instrument that speaks`)
+
+`the statutes' root` MEANS
+    `collection root` WITH
+        `the collection`  IS "החוקים המגינים"
+        `its instruments` IS `the protective statutes`
+        `what each says`  IS `the statutes' claims on`
+        `its ruling`      IS (GIVEN i, c YIELD `the statutes' floor among` (`the statutes' claims on` i c))

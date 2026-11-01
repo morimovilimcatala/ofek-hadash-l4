@@ -121,7 +121,11 @@ that updated it, the steps it prints.
   §14 leaves after its 72%, and the Oz LaTmura agreement's §46(ה) leaves none.
 - **The statutes the corpus cites** (`laws/index.html`) — every act the
   corpus links to, how many documents cite it, the sections it cites by
-  number, and which of them the L4 pins (MMS-601).
+  number, and which of them the L4 pins (MMS-601). The protective statutes'
+  root (`laws/root.html`) holds the floor each sets, which the root's
+  precedence weighs last: where a statute gives more than the agreement, the
+  circular or the takanon that would govern, the statute governs (§21 of the
+  Collective Agreements Law).
 - **Contradictions** (`contradictions.html`) — where one instrument says one
   thing and another says another about the same pay or right: an agreement
   and the circular that implements it, a circular and the letter it executes,

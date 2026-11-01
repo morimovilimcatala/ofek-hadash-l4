@@ -62,6 +62,13 @@ ROOTS = [
      "ומה הוא אומר לכל מקרה. מבין הסכם וההסכמים שמתקנים אותו, התיקון האחרון שבתוקף בחודש "
      "השכר הוא שמדבר (סעיף 19 לחוק הסכמים קיבוציים). שורש ההסכמים מייבא אותו לצד שורשי "
      "שאר המשפחות."),
+    # the protective statutes (l4/laws/), whose floor the root weighs last
+    # (MMS-601); not a collection of the corpus, so it sits beside the laws
+    ("statutes-root", "laws/root.html", "",
+     "שורש החוקים המגינים",
+     "החוקים שקובעים רצפה שהסכם, חוזר או התקנון אינם יורדים ממנה — חוק שכר מינימום, חוק הגנת השכר "
+     "וחוק פיצויי פיטורים — והרצפה שכל אחד קובע לכל פריט. השורש שוקל אותה אחרונה, מעל המסמך שסדר "
+     "העדיפות השאיר גובר: היכן שהחוק נותן יותר, החוק גובר (סעיף 21 לחוק הסכמים קיבוציים)."),
     ("circulars-root", "circulars/root.html", "circulars",
      "שורש החוזרים",
      "כל חוזר שמדבר על פריט באוצר המילים המשותף, רשום פעם אחת כמסמך, ומה הוא אומר לכל "
@@ -253,7 +260,8 @@ def page_body(module: str, here: str, coll: str, heading: str, about: str, *,
                  else f"{len(unresolved)} סתירות שלא הוכרעו — הבנייה אדומה")
         parts.append(f'<p class="lede"><b>{esc(state)}</b>, ב־{esc(cases)} המקרים שנבדקו. '
                      'הסתירות עצמן נשארות כבדיקות: אם מסמך יפסיק לחלוק, הבנייה תאדים שוב.</p>')
-        links = " · ".join(f'<a href="{rel(h, here)}">{esc(t)}</a>' for m, h, c, t, _ in ROOTS if c and not is_family(h))
+        links = " · ".join(f'<a href="{rel(h, here)}">{esc(t)}</a>' for m, h, c, t, _ in ROOTS
+                           if (c and not is_family(h)) or m == "statutes-root")
         parts.append(f'<p class="lede">המסמכים רשומים בשורשי האוספים: {links}. '
                      f'סדר העדיפות: <code dir="ltr">l4/lib/precedence.l4</code>, בקוד שלהלן.</p>')
         rows = []

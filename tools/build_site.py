@@ -843,9 +843,11 @@ def laws_group(here: str) -> str:
                    f'<span class="sh" lang="he" dir="rtl">{esc(title)}</span></a></li>')
     open_ = here.startswith("laws/")
     cur = ' aria-current="page"' if here == "laws/index.html" else ""
+    root_cur = ' aria-current="page"' if here == "laws/root.html" else ""
     return (f'<li class="sn-group"><details{" open" if open_ else ""}>'
             f'<summary>חוקים<span class="n">{len(names)}</span></summary>'
             f'<a class="sn-hub" href="{rel("laws/index.html", here)}"{cur}>החוקים שהקורפוס מצטט</a>'
+            f'<a class="sn-hub" href="{rel("laws/root.html", here)}"{root_cur}>שורש החוקים המגינים</a>'
             f'<ul>{"".join(lis)}</ul></details></li>')
 
 
@@ -2461,6 +2463,8 @@ def build() -> int:
     real = {n: str(f.relative_to(ROOT)) for n, f in modules.wanted()[0].items()}
 
     def href_of(module: str) -> str | None:
+        if module in laws.all_laws():  # a statute: its page beside its text
+            return f"laws/{module}.html"
         v = by_file.get(real.get(module, ""))
         return v.href if v is not None else None
     for module, here, coll, heading, about in roots.ROOTS:

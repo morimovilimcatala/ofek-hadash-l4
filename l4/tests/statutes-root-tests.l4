@@ -1,0 +1,132 @@
+-- Tests of the protective statutes' root (l4/lib/statutes-root.l4) and of
+-- the floor it sets in the root's precedence (l4/lib/precedence.l4, `the
+-- ruling under the statutes' floor`): what they are asked, asserted. They
+-- sit beside them and not in them (the client, 2026-10-22); the site shows
+-- them on the root's page. `make l4` checks statutes-root through this
+-- file, which imports it.
+
+IMPORT prelude
+IMPORT `statutes-root`
+
+§ `בדיקות שורש החוקים המגינים`
+
+-- What the site's page of this root lists (tools/roots.py): each
+-- instrument it includes, its module and its name.
+#EVAL map (GIVEN i YIELD CONCAT i's `module`, " | ", i's `title`) `the protective statutes`
+
+-- It includes 3 instruments, each once, every one a provision of law.
+#ASSERT count `the protective statutes` EQUALS 3
+#ASSERT count (nub (map (GIVEN i YIELD i's `module`) `the protective statutes`)) EQUALS 3
+#ASSERT all (GIVEN i YIELD i's `kind` EQUALS `a provision of law`) `the protective statutes`
+
+§§ `רצפת החוק מעל כל מסמך`
+
+-- An instrument of each kind the collections' precedence can leave
+-- governing: an agreement, a circular to the owners, the takanon. Their
+-- dates and §29 facts are not weighed here.
+GIVEN k IS A `kind of source`, `the takanon` IS A BOOLEAN, m IS A STRING
+GIVETH AN `instrument`
+DECIDE `an instrument of the kind` k `the takanon` m IS
+    `instrument` WITH
+        `module`        IS m
+        `title`         IS m
+        `kind`          IS k
+        `is the takanon` IS `the takanon`
+        `issued`        IS DATE_FROM_DMY 1 9 2020
+        `practised for all state employees` IS TRUE
+        `approved by the Finance Minister`  IS FALSE
+
+`an agreement` MEANS `an instrument of the kind` `a collective agreement` FALSE "an agreement"
+`a circular` MEANS `an instrument of the kind` `a circular to the owning bodies` FALSE "a circular"
+`the takanon` MEANS `an instrument of the kind` `another source` TRUE "the takanon"
+
+GIVEN i IS AN `instrument`, a IS A NUMBER
+GIVETH A MAYBE `ruling`
+DECIDE `a ruling of` i a IS
+    JUST (`ruling` WITH `the answer` IS a, `governed by` IS i, `by the rule` IS `the only instrument that speaks`)
+
+`a floor of 120` MEANS `a ruling of` `the Minimum Wage Law` 120
+
+GIVEN r IS A MAYBE `ruling`
+GIVETH A STRING
+DECIDE `who governs` r IS
+    CONSIDER r
+    WHEN NOTHING THEN "nobody"
+    WHEN JUST g THEN CONCAT g's `governed by`'s `module`, " | ", g's `by the rule`
+
+GIVEN r IS A MAYBE `ruling`
+GIVETH A NUMBER
+DECIDE `the answer of` r IS
+    CONSIDER r
+    WHEN NOTHING THEN 0
+    WHEN JUST g THEN g's `the answer`
+
+-- An agreement, a circular or the takanon that gives less than the
+-- statute's floor yields to it, by §21; the answer is the floor.
+#ASSERT `who governs` (`the ruling under the statutes' floor` (`a ruling of` `an agreement` 100) `a floor of 120`) EQUALS CONCAT "minimum-wage-law | ", `§21: a statute's floor prevails`
+#ASSERT `who governs` (`the ruling under the statutes' floor` (`a ruling of` `a circular` 90) `a floor of 120`) EQUALS CONCAT "minimum-wage-law | ", `§21: a statute's floor prevails`
+#ASSERT `who governs` (`the ruling under the statutes' floor` (`a ruling of` `the takanon` 90) `a floor of 120`) EQUALS CONCAT "minimum-wage-law | ", `§21: a statute's floor prevails`
+#ASSERT `the answer of` (`the ruling under the statutes' floor` (`a ruling of` `an agreement` 100) `a floor of 120`) EQUALS 120
+
+-- One that gives as much or more stands, by its own rule: §21 lets an
+-- agreement add to the law.
+#ASSERT `who governs` (`the ruling under the statutes' floor` (`a ruling of` `an agreement` 130) `a floor of 120`) EQUALS CONCAT "an agreement | ", `the only instrument that speaks`
+#ASSERT `who governs` (`the ruling under the statutes' floor` (`a ruling of` `a circular` 120) `a floor of 120`) EQUALS CONCAT "a circular | ", `the only instrument that speaks`
+
+-- Where no instrument speaks, the statute does; where no statute floors the
+-- item, the instruments' ruling is untouched.
+#ASSERT `who governs` (`the ruling under the statutes' floor` NOTHING `a floor of 120`) EQUALS CONCAT "minimum-wage-law | ", `the only instrument that speaks`
+#ASSERT `who governs` (`the ruling under the statutes' floor` (`a ruling of` `a circular` 90) NOTHING) EQUALS CONCAT "a circular | ", `the only instrument that speaks`
+
+-- Of two statutes' floors on one item, the higher.
+`two floors` MEANS
+    LIST (`claim` WITH `by` IS `the Wage Protection Law`, `answer` IS 90),
+         (`claim` WITH `by` IS `the Severance Pay Law`, `answer` IS 110)
+#ASSERT `the answer of` (`the statutes' floor among` `two floors`) EQUALS 110
+
+§§ `הרצפה על פריטי השורש`
+
+-- No item of the vocabulary is yet one of these statutes' floors, so the
+-- root's ruling on every item stands as the collections' precedence leaves
+-- it (l4/lib/statutes-root.l4). Asserted, so the first item a statute
+-- floors turns this red and is tested here.
+`a case the statutes are asked about` MEANS
+    `teaching case` WITH
+        `the salary month`                IS DATE_FROM_DMY 1 9 2025
+        `employer`                        IS `employed by another owning body`
+        `in post-primary education`       IS FALSE
+        `in the upper division`           IS FALSE
+        `represented by the secondary teachers' organisation` IS FALSE
+        `in a population whose 5% step was put off` IS FALSE
+        `combined salary today`           IS 4000
+        `supplement 2001 today`           IS 0
+        `supplement 2008 today`           IS 0
+        `combined salary in December 2007` IS 0
+        `supplement 2001 in December 2007` IS 0
+        `the kind of school`               IS `another school`
+        `holds the pedagogical coordinator's role` IS FALSE
+        `the interns the teacher mentors`  IS 0
+        `heads the junior division`        IS FALSE
+        `the classes in each grade`        IS 0
+        `the roles the teacher holds`      IS 0
+        `a further role approved by the district manager` IS FALSE
+        `paid by the Ofek Hadash tables`  IS FALSE
+        `the post in the reform`          IS `a teacher in the tables`
+        `the education`                   IS `with a first degree`
+        `the seniority the tables count`  IS 0
+        `the grade in the tables`         IS 0
+        `the school's complexity level`   IS 0
+
+`every pay item` MEANS
+    LIST `the 2008 public-sector supplement`,
+         `the pedagogical coordinator's allowance rate`,
+         `the mentor's allowance rate`,
+         `the junior-division head's allowance`,
+         `the role allowances counted`,
+         `the combined salary of a full position`,
+         `the 3% supplement of 2001`,
+         `the 2011 public-sector supplement`,
+         `the 1994 supplement of a full position`,
+         `the Ofek 2022 supplement of a full position`
+
+#ASSERT all (GIVEN i YIELD null (`what the collection's instruments say` `the statutes' root` i `a case the statutes are asked about`)) `every pay item`

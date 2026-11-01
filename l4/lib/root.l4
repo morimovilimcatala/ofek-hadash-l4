@@ -5,7 +5,9 @@
 -- pay item and a case it asks every collection for its ruling and settles
 -- between them by the rules between collections (the takanon's
 -- introduction, §§22 and 29 of the Collective Agreements Law and the Budget
--- Foundations Law), in l4/lib/precedence.l4. The calculator, the contradictions page and any other query
+-- Foundations Law), in l4/lib/precedence.l4 — and, last, a protective
+-- statute's floor over whichever instrument governs (§21 of the Collective
+-- Agreements Law; the floors are l4/lib/statutes-root.l4's). The calculator, the contradictions page and any other query
 -- ask this module, and an instrument's claim is never the answer by itself.
 --
 -- Where two or more instruments give different answers for an item and a
@@ -24,6 +26,7 @@ IMPORT prelude
 IMPORT `takanon-root`
 IMPORT `agreements-root`
 IMPORT `circulars-root`
+IMPORT `statutes-root`
 
 § `השורש — מקור אחד לשאלה מה הדין נותן`
 
@@ -53,8 +56,10 @@ DECIDE `the collections' rulings on` i c IS
 GIVEN i IS A `pay item`, c IS A `teaching case`
 GIVETH A MAYBE `ruling`
 DECIDE `the ruling on the item` i c IS
-    `the ruling between the collections` (`the collections' rulings on` i c) (c's `employer`)
-        (`the date the takanon's provision on it was last amended` i)
+    `the ruling under the statutes' floor`
+        (`the ruling between the collections` (`the collections' rulings on` i c) (c's `employer`)
+            (`the date the takanon's provision on it was last amended` i))
+        (`the collection's ruling` `the statutes' root` i c)
 
 @export What a teaching employee is owed for a pay item in a salary month, after precedence between every instrument that speaks to it; nothing where no instrument speaks
 GIVEN i IS A `pay item` @desc the pay item asked about
@@ -103,7 +108,21 @@ DECIDE `the contradiction in` item claims r IS
                       `the ruling` IS governing)
         ELSE EMPTY
 
+-- A statute's floor that governs is a claim the instruments below it
+-- disagree with; one that does not govern disagrees with nothing.
+GIVEN r IS A MAYBE `ruling`
+GIVETH A LIST OF `claim`
+DECIDE `the floor's claim where it governs` r IS
+    CONSIDER r
+    WHEN NOTHING THEN EMPTY
+    WHEN JUST g THEN
+        IF g's `governed by`'s `kind` EQUALS `a provision of law`
+        THEN LIST (`the claim of the ruling` g)
+        ELSE EMPTY
+
 GIVEN i IS A `pay item`, c IS A `teaching case`
 GIVETH A LIST OF `contradiction`
 DECIDE `the contradictions on` i c IS
-    `the contradiction in` i (`the claims on` i c) (`the ruling on the item` i c)
+    `the contradiction in` i
+        (concat (LIST (`the claims on` i c), `the floor's claim where it governs` (`the ruling on the item` i c)))
+        (`the ruling on the item` i c)
