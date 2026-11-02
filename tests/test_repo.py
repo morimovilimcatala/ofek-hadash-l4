@@ -419,7 +419,7 @@ DECLARED_MORE_THAN_ONCE = 273
 # than one module (test_a_constructor_name_is_declared_once). Two of them
 # imported into one file compile while the type around each use decides
 # which is meant, and fail "multiple definitions" where it does not.
-CONSTRUCTOR_DECLARED_MORE_THAN_ONCE = 811
+CONSTRUCTOR_DECLARED_MORE_THAN_ONCE = 805
 
 _NAME = re.compile(r"`[^`]+`|[A-Za-z_][\w']*")
 
