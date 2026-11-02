@@ -9,7 +9,15 @@
 # the CLI's pin, moves to `unstable` on its own, after every file is checked
 # with it. The patch adds `l4_eval_files` (the imports as files), the trace
 # JSON of #EVALTRACE, and the reuse of one call's type-checked imports by the
-# next call on the same imports.
+# next call on the same imports. It also merges each module's imports once
+# (MMS-622): an import that an import already merged brings nothing new, so
+# it is skipped, and a module's entity info is resolved once rather than once
+# per module above it, so they all share one copy. The answers are the same;
+# checking the salary calculator's law leaves 550 MB live where it left
+# 785 MB, and allocates 52 GB on the way where it allocated 59 GB.
+#
+# It builds on Linux (x86_64, MMS-622) or in an arm64 Linux container on a
+# Mac; BUILD.toml pins the hashes, whichever built it.
 #
 # The toolchain is GHC's WASM backend from ghc-wasm-meta, pinned to the
 # commit in toolchain/GHC_WASM_META (flavour 9.10, as legalese/l4-ide's own

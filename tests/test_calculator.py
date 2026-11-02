@@ -249,10 +249,12 @@ class WorkedExample(unittest.TestCase):
             (Path(d) / "cases.json").write_text(json.dumps(cases), encoding="utf-8")
             p = subprocess.run(["node", str(ROOT / "tests/calc_node.mjs"), f"{d}/spec.json",
                                 f"{d}/{s['modules']}", f"{d}/cases.json"],
-                               capture_output=True, text=True, timeout=1800)
-        # A process limit, not a measure of the page: loading the law in Node
-        # takes ~800 s on a four-core container (MMS-601's measurement, 799.4 s
-        # before its batch and 802.8 s after), and 900 s failed on noise.
+                               capture_output=True, text=True, timeout=900)
+        # A process limit, not a measure of the page: on an idle four-core
+        # container Node 22 loads the law in ~290 s and answers these cases
+        # in ~180 s more; the module ran in 487 s (MMS-622, which brought it
+        # down from ~800 s: calc-core.mjs's RTS_OPTIONS and the evaluator's
+        # import merging). 900 s leaves about as much again for a busy machine.
         if p.returncode:
             raise AssertionError(p.stderr)
         cls.runs = [json.loads(l) for l in p.stdout.splitlines()]

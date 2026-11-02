@@ -6,11 +6,28 @@
 
 // ---------------------------------------------------------------- the module
 
+// The options GHC's runtime starts with, which it reads from the WASI
+// arguments as `l4 +RTS … -RTS` (MMS-622). They change how the heap is
+// collected, never what the evaluator computes:
+// - `-c` compacts the oldest generation in place instead of copying it, so
+//   a major collection needs no second copy of the live heap. Loading the
+//   law keeps most of a gigabyte live, and copying it took the evaluator's
+//   memory past 1 GB, where Node 22's V8 answers every 64 KB the runtime
+//   grows its memory by with a full collection of its own ("external memory
+//   pressure"): 9,717 of them in one load, and V8 collecting took 288 s of
+//   its 623 (MMS-622, a four-core container). Chromium and later Nodes do
+//   not, and compacting costs them nothing measurable.
+// - `-A64m`, a 64 MB allocation area in place of 4 MB: a sixteenth of the
+//   minor collections.
+export const RTS_OPTIONS = ["-c", "-A64m"];
+
 // GHC's WASM backend builds a WASI "reactor". The evaluator needs no files,
-// clock or arguments of its own, so WASI is a set of stubs; the clock is
-// real so that the RTS's timers work. (legalese/l4-ide jl4-wasm/README.md.)
-function wasiStubs(exp) {
+// clock or environment of its own, so WASI is a set of stubs; the clock is
+// real so that the RTS's timers work, and the arguments are the RTS's
+// options. (legalese/l4-ide jl4-wasm/README.md.)
+function wasiStubs(exp, argv) {
   const view = () => new DataView(exp.memory.buffer);
+  const args = argv.map((a) => new TextEncoder().encode(a + "\0"));
   return {
     clock_time_get: (_id, _prec, out) => { view().setBigUint64(out, BigInt(Date.now()) * 1000000n, true); return 0; },
     clock_res_get: (_id, out) => { view().setBigUint64(out, 1000n, true); return 0; },
@@ -24,18 +41,33 @@ function wasiStubs(exp) {
       return 0;
     },
     proc_exit: (code) => { throw new Error("proc_exit " + code); },
-    args_sizes_get: (c, s) => { view().setUint32(c, 0, true); view().setUint32(s, 0, true); return 0; },
-    args_get: () => 0,
+    args_sizes_get: (c, s) => {
+      view().setUint32(c, args.length, true);
+      view().setUint32(s, args.reduce((n, a) => n + a.length, 0), true);
+      return 0;
+    },
+    args_get: (ptrs, buf) => {
+      const mem = new Uint8Array(exp.memory.buffer);
+      for (const a of args) {
+        view().setUint32(ptrs, buf, true);
+        mem.set(a, buf);
+        ptrs += 4;
+        buf += a.length;
+      }
+      return 0;
+    },
     environ_sizes_get: (c, s) => { view().setUint32(c, 0, true); view().setUint32(s, 0, true); return 0; },
     environ_get: () => 0,
   };
 }
 
 // `glue` is the default export of l4.mjs (GHC's post-link.mjs output);
-// `module` a compiled WebAssembly.Module of l4.wasm.
-export async function instantiate(glue, module) {
+// `module` a compiled WebAssembly.Module of l4.wasm; `rts` the runtime's
+// options (RTS_OPTIONS unless a caller measures others).
+export async function instantiate(glue, module, { rts = RTS_OPTIONS } = {}) {
   const exp = {};
-  const wasi = new Proxy(wasiStubs(exp), { get: (t, k) => (k in t ? t[k] : () => 52) }); // ENOSYS
+  const argv = ["l4", ...(rts.length ? ["+RTS", ...rts, "-RTS"] : [])];
+  const wasi = new Proxy(wasiStubs(exp, argv), { get: (t, k) => (k in t ? t[k] : () => 52) }); // ENOSYS
   const inst = await WebAssembly.instantiate(module, {
     wasi_snapshot_preview1: wasi,
     ghc_wasm_jsffi: glue(exp),

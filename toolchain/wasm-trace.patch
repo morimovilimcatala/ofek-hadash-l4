@@ -1,5 +1,5 @@
 diff --git a/jl4-core/src/L4/API.hs b/jl4-core/src/L4/API.hs
-index c0887158..3c63c393 100644
+index c0887158..8920f80a 100644
 --- a/jl4-core/src/L4/API.hs
 +++ b/jl4-core/src/L4/API.hs
 @@ -19,6 +19,8 @@ module L4.API
@@ -40,7 +40,7 @@ index c0887158..3c63c393 100644
  
  -- Import resolution (VFS + embedded libs)
 -import L4.API.VirtualFS (checkWithImports, emptyVFS, TypeCheckWithDepsResult(..), ResolvedImport(..))
-+import L4.API.VirtualFS (checkWithImports, emptyVFS, vfsFromList, extractImportNames, apiModuleLookup, moduleNameToProjectUri, typecheckWithDependenciesReusing, importNamesOf, TypeCheckWithDepsResult(..), ResolvedImport(..))
++import L4.API.VirtualFS (checkWithImports, emptyVFS, vfsFromList, extractImportNames, apiModuleLookup, moduleNameToProjectUri, typecheckWithDependenciesReusing, importNamesOf, outermostImports, TypeCheckWithDepsResult(..), ResolvedImport(..))
  import qualified L4.Evaluate.ValueLazy as ValLazy
  
  
@@ -146,7 +146,7 @@ index c0887158..3c63c393 100644
  
  -- | Evaluate a specific directive at a given source position.
  --
-@@ -348,14 +403,26 @@ l4EvalDirective source line col directiveType =
+@@ -348,14 +403,29 @@ l4EvalDirective source line col directiveType =
  evaluateImports :: EL.EvalConfig -> [ResolvedImport] -> IO ValLazy.Environment
  evaluateImports _evalConfig [] = pure mempty
  evaluateImports evalConfig imports = do
@@ -177,11 +177,14 @@ index c0887158..3c63c393 100644
 +            let env = own <> deps
 +            modifyIORef' done (Map.insert name env)
 +            pure env
-+  mconcat <$> traverse (\ri -> envOf ri.riModuleName) imports
++  -- a module an import imports, transitively, is in that import's
++  -- environment already, as the same values: leaving it out changes nothing
++  -- in the left-biased union (MMS-622)
++  mconcat <$> traverse (\ri -> envOf ri.riModuleName) (outermostImports imports)
  
  -- ----------------------------------------------------------------------------
  -- JavaScript FFI Exports (WASM backend only)
-@@ -400,6 +467,28 @@ js_l4_eval source = do
+@@ -400,6 +470,28 @@ js_l4_eval source = do
    result <- l4Eval $ Text.pack $ fromJSString source
    pure $ toJSString $ Text.unpack result
  
@@ -210,7 +213,7 @@ index c0887158..3c63c393 100644
  -- | Evaluate a specific directive at a position.
  foreign export javascript "l4_eval_directive"
    js_l4_eval_directive :: JSString -> Int -> Int -> JSString -> IO JSString
-@@ -564,9 +653,13 @@ evalResultToJson fields edr = Aeson.object $
+@@ -564,9 +656,13 @@ evalResultToJson fields edr = Aeson.object $
    [ "result" .= prettyEvalResult fields edr.result
    , "success" .= isSuccess edr.result
    ] ++
@@ -226,7 +229,7 @@ index c0887158..3c63c393 100644
    -- the run's notes (an early act, R-X6; an empty window), only when there
    -- are any, so a directive with none is unchanged
    ++ [ "notes" .= edr.notes | not (null edr.notes) ]
-@@ -598,6 +691,18 @@ evalResultToJson fields edr = Aeson.object $
+@@ -598,6 +694,18 @@ evalResultToJson fields edr = Aeson.object $
      isSuccess (EL.Assertion (EL.Undetermined _)) = Aeson.Null
      isSuccess (EL.Reduction (EL.ReducedUndetermined _)) = Aeson.Null
  
@@ -246,42 +249,45 @@ index c0887158..3c63c393 100644
  prettyEvalResult :: ConstructorFieldNames -> EL.EvalDirectiveValue -> Text
  prettyEvalResult _fields (EL.Assertion a)                    = EL.prettyAssertionOutcome a
 diff --git a/jl4-core/src/L4/API/VirtualFS.hs b/jl4-core/src/L4/API/VirtualFS.hs
-index 1f557eb6..46d88dd2 100644
+index 1f557eb6..9d967832 100644
 --- a/jl4-core/src/L4/API/VirtualFS.hs
 +++ b/jl4-core/src/L4/API/VirtualFS.hs
-@@ -32,6 +32,9 @@ module L4.API.VirtualFS
+@@ -32,6 +32,10 @@ module L4.API.VirtualFS
      -- * Type Checking with Imports
    , checkWithImports
    , checkWithImportsAndUri
 +  , apiModuleLookup
 +  , typecheckWithDependenciesReusing
 +  , importNamesOf
++  , outermostImports
      -- * Re-exports from shared resolution
    , TypeCheckWithDepsResult(..)
    , ResolvedImport(..)
-@@ -53,6 +56,8 @@ import L4.Import.Resolution
+@@ -53,6 +57,9 @@ import L4.Import.Resolution
    , extractImportNames
    , moduleNameToProjectUri
    , typecheckWithDependencies
 +  , typecheckWithDependenciesReusing
 +  , importNamesOf
++  , outermostImports
    , TypeCheckWithDepsResult(..)
    , ResolvedImport(..)
    )
 diff --git a/jl4-core/src/L4/Import/Resolution.hs b/jl4-core/src/L4/Import/Resolution.hs
-index de2cc225..08a2293d 100644
+index de2cc225..9bd6ffaf 100644
 --- a/jl4-core/src/L4/Import/Resolution.hs
 +++ b/jl4-core/src/L4/Import/Resolution.hs
-@@ -48,6 +48,8 @@ module L4.Import.Resolution
+@@ -48,6 +48,9 @@ module L4.Import.Resolution
    , ImportResolutionError(..)
      -- * Type Checking with Dependencies
    , typecheckWithDependencies
 +  , typecheckWithDependenciesReusing
 +  , importNamesOf
++  , outermostImports
    , TypeCheckWithDepsResult(..)
    ) where
  
-@@ -59,7 +61,7 @@ import qualified Data.Set as Set
+@@ -59,7 +62,7 @@ import qualified Data.Set as Set
  import L4.Annotation (emptyAnno)
  import L4.Lexer (PError(..))
  import L4.Syntax
@@ -290,7 +296,7 @@ index de2cc225..08a2293d 100644
  import L4.TypeCheck (doCheckProgramWithDependencies, initialCheckState, initialCheckEnv, applyFinalSubstitution)
  import L4.TypeCheck.Types (CheckResult(..), CheckErrorWithContext, Substitution, Environment, EntityInfo, MixfixRegistry, InfoMap, ScopeMap, NlgMap, DescMap, SectionPaths)
  import qualified L4.TypeCheck as TypeCheck
-@@ -147,9 +149,30 @@ data ResolvedImport = ResolvedImport
+@@ -147,9 +150,37 @@ data ResolvedImport = ResolvedImport
    , riSource :: Text
    , riParsed :: Module Name
    , riTypeChecked :: CheckResult
@@ -298,6 +304,13 @@ index de2cc225..08a2293d 100644
 +    -- ^ The mixfix keywords this module parsed with: its own and those of
 +    -- every module it imports, transitively, as the LSP's GetMixfixRegistry
 +    -- gives them.
++  , riZonkedEntityInfo :: EntityInfo
++    -- ^ 'riTypeChecked''s entity info under its own final substitution, as
++    -- 'combineResolvedImports' merges it: made once per module (lazily), not
++    -- once per module that imports it.
++  , riClosure :: Set.Set Text
++    -- ^ Every module this one imports, transitively: the ones
++    -- 'outermostImports' need not merge once this one is merged.
    }
    deriving stock (Generic)
  
@@ -321,7 +334,7 @@ index de2cc225..08a2293d 100644
  -- | Errors that can occur during import resolution.
  data ImportResolutionError
    = ModuleNotFound Text [Text]  -- ^ Module name, list of places searched
-@@ -202,22 +225,22 @@ resolveImports lookupModule inProgress resolved (modName : rest)
+@@ -202,24 +233,24 @@ resolveImports lookupModule inProgress resolved (modName : rest)
          Just source -> do
            let uri = moduleNameToProjectUri modName
            
@@ -349,17 +362,22 @@ index de2cc225..08a2293d 100644
 -                Right transitiveResolved -> do
 +                Right (transitiveResolved, (parsed, hints)) -> do
                    -- Type-check this module with its dependencies
-                   let (depState, depEnv) = combineResolvedImports uri transitiveResolved
+-                  let (depState, depEnv) = combineResolvedImports uri transitiveResolved
++                  let (depState, depEnv) = combineResolvedImports uri (outermostImports transitiveResolved)
                        updatedParsed = updateModuleImports transitiveResolved parsed
-@@ -229,6 +252,7 @@ resolveImports lookupModule inProgress resolved (modName : rest)
+                       tcResult = doCheckProgramWithDependencies depState depEnv updatedParsed
+                   
+@@ -229,6 +260,9 @@ resolveImports lookupModule inProgress resolved (modName : rest)
                          , riSource = source
                          , riParsed = parsed
                          , riTypeChecked = tcResult
 +                        , riHints = hints
++                        , riZonkedEntityInfo = applyFinalSubstitution tcResult.substitution uri tcResult.entityInfo
++                        , riClosure = Set.unions (Set.fromList (map (.riModuleName) transitiveResolved) : map (.riClosure) transitiveResolved)
                          }
                    
                    -- This module is now fully resolved.
-@@ -294,17 +318,35 @@ typecheckWithDependencies
+@@ -294,17 +328,35 @@ typecheckWithDependencies
    -> NormalizedUri      -- ^ URI of the main module
    -> Text               -- ^ Source code of the main module
    -> m (Either [Text] TypeCheckWithDepsResult)
@@ -402,7 +420,7 @@ index de2cc225..08a2293d 100644
        
        case importResult of
          Left (ModuleNotFound modName searched) ->
-@@ -314,7 +356,9 @@ typecheckWithDependencies lookupModule uri source = do
+@@ -314,9 +366,11 @@ typecheckWithDependencies lookupModule uri source = do
          Left (CyclicImport cycleModules) ->
            pure $ Left ["Cyclic import detected: " <> Text.intercalate " -> " cycleModules]
          
@@ -411,5 +429,41 @@ index de2cc225..08a2293d 100644
 +         Left parseErrors -> pure $ Left parseErrors
 +         Right (parsed, _hints) -> do
            -- Combine environments from imports
-           let (initState, initEnv) = combineResolvedImports uri resolvedImports
+-          let (initState, initEnv) = combineResolvedImports uri resolvedImports
++          let (initState, initEnv) = combineResolvedImports uri (outermostImports resolvedImports)
                updatedParsed = updateModuleImports resolvedImports parsed
+               result = doCheckProgramWithDependencies initState initEnv updatedParsed
+           
+@@ -351,6 +405,22 @@ typecheckWithDependencies lookupModule uri source = do
+ -- Internal Helpers
+ -- ----------------------------------------------------------------------------
+ 
++-- | The imports to merge into a module's environment: each in turn, but not
++-- one that an import already kept imports, transitively (MMS-622). That one's
++-- environment, entity info, mixfix registry, implicit readers and section
++-- paths are already in its importer's (a module's are built on top of its
++-- imports' and only ever extended), and 'combineResolvedImports' merges by
++-- left-biased and set unions, so merging it again changes nothing. Merging
++-- every module of the closure instead re-merges each one's whole closure into
++-- every module above it, which grows with the cube of the import graph.
++outermostImports :: [ResolvedImport] -> [ResolvedImport]
++outermostImports = go Set.empty
++  where
++    go _ [] = []
++    go covered (ri : ris)
++      | ri.riModuleName `Set.member` covered = go covered ris
++      | otherwise = ri : go (Set.union covered ri.riClosure) ris
++
+ -- | Combine resolved imports into initial CheckState and CheckEnv.
+ combineResolvedImports :: NormalizedUri -> [ResolvedImport] -> (TypeCheck.CheckState, TypeCheck.CheckEnv)
+ combineResolvedImports uri imports =
+@@ -390,7 +460,8 @@ combineResolvedImports uri imports =
+           -- actual types (e.g., NUMBER). This matches what the native LSP does in
+           -- LSP.L4.Rules when combining TypeCheckResult dependencies (there the
+           -- entityInfo is already zonked when stored into the TypeCheckResult).
+-          resolvedEntityInfo = applyFinalSubstitution r.substitution ri.riUri r.entityInfo
++          -- (made once per module, in 'resolveImports': 'riZonkedEntityInfo')
++          resolvedEntityInfo = ri.riZonkedEntityInfo
+       in ( TypeCheck.MkCheckState
+              { TypeCheck.substitution = r.substitution
+              , TypeCheck.supply = accState.supply

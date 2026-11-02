@@ -41,8 +41,8 @@ const instrument = (module, title) => {
 
 // ------------------------------------------------------------- loading L4
 
-// L4 runs in a worker: loading the law takes the evaluator half a minute or
-// more the first time, and the page stays usable meanwhile
+// L4 runs in a worker: loading the law takes the evaluator minutes the first
+// time, and the page stays usable meanwhile
 const worker = new Worker(new URL("calc-worker.mjs", import.meta.url), { type: "module" });
 const pending = new Map();
 let seq = 0;
@@ -66,7 +66,7 @@ const ask = (source) => new Promise((resolve, reject) => {
 const started = Date.now();
 const loading = setInterval(() => {
   status.textContent = `טוען את הדין… ${Math.round((Date.now() - started) / 1000)} שניות `
-    + "(בפעם הראשונה כחצי דקה עד שתי דקות).";
+    + "(בפעם הראשונה כמה דקות).";
 }, 1000);
 const ready = ask(`IMPORT \`${law.module}\`\n`).then((a) => {
   if (!a.success) throw new Error((a.diagnostics || []).map((d) => d.message).join("\n"));

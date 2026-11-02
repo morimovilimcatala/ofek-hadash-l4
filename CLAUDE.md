@@ -206,8 +206,10 @@ all the files to give one answer", and disagreements raised as errors.
   tests, `l4/tests/salary-root-tests.l4`, hold §1.1's worked example and a
   case the agreement of 24.1.2008 governs. The page ships it and every
   module it reaches without their `#EVAL`/`#ASSERT` lines
-  (`calculator.without_tests`): loading the law then takes the browser
-  half a minute to two minutes, and an answer after it about a second.
+  (`calculator.without_tests`): loading the law then takes headless
+  Chromium 267 s on a four-core container, and an answer after it 5 to
+  10 s (MMS-622; 306 s before that issue's evaluator; Node 22 loads it in
+  288 s).
 - The site shows each root on its own page (`tools/roots.py`: root.html,
   circulars/root.html, …), read off the module and `make l4`'s results.
   A root imports whole families of instruments, the heaviest check there
@@ -222,7 +224,11 @@ all the files to give one answer", and disagreements raised as errors.
   two importers share, so it loads the root, and a second call on the same
   imports reuses the first call's type-checked modules: a page pays for
   checking the root once, not per click. Each call still evaluates the
-  imports afresh, so a trace through them is the same on every call.
+  imports afresh, so a trace through them is the same on every call. The
+  patch also merges each module's imports once (MMS-622), and
+  `calc-core.mjs` starts the runtime with `-c -A64m` (`RTS_OPTIONS`): with
+  a copying collector the heap passed 1 GB, where Node 22 runs a full
+  collection of its own at every 64 KB the wasm memory grows.
 
 ## Findings: errors the encoding exposes in the text
 
@@ -362,7 +368,9 @@ are l4-ide `unstable` (the client, 2026-10-22: "we should always use
 unstable"): `L4_COMMIT` joined `L4_WASM_COMMIT` at c9a3fe3, and the two are
 kept equal. c9a3fe3 is the commit MMS-551 measured (the root in ~40 s and
 ~1 GB, against ~25 min and ~27 GB at the old pin). The shelf ships no wasm:
-`toolchain/build-wasm.sh` builds it, in an arm64 Linux container on a Mac.
+`toolchain/build-wasm.sh` builds it at `L4_WASM_COMMIT` with
+`toolchain/wasm-trace.patch`, on x86_64 Linux (MMS-622's build) or in an
+arm64 Linux container on a Mac; `BUILD.toml` pins the patch and the hashes.
 
 ## Documentation discipline
 
