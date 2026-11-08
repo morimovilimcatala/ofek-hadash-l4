@@ -11,6 +11,13 @@ L4 file cites to sit beside it:
     for the clauses the corpus publishes as running paragraphs without an
     eId of their own (§1.23 is one)
 
+An <attachment> holds an annex's <doc>, or an <interstitial>: a line the
+page prints between two annexes, heading the ones after it (the 30.9.2016
+agreement's "טבלאות שכר לעובדי הוראה בתפקידי פיקוח ומטה", MMS-634). The
+interstitial is an element with no label, so its line is keyed the same way
+as any other: "<interstitial eId>/p1", cited also by the interstitial's eId,
+and it is read where the corpus puts it, between the annexes.
+
 A sic mark is the corpus's: its <noteRef class="sic"> and the <note> it
 points to are carried through as given, never re-read here (README, "The
 corpus decides the text").
@@ -30,7 +37,7 @@ AKN = "{http://docs.oasis-open.org/legaldocml/ns/akn/3.0}"
 # elements that carry a number or heading of their own in this corpus
 STRUCTURE = {"chapter", "section", "subsection", "paragraph", "subparagraph",
              "clause", "point", "hcontainer", "article", "part", "list",
-             "item", "indent"}
+             "item", "indent", "interstitial"}
 
 
 @dataclass
@@ -344,9 +351,19 @@ def sections(relative: str) -> list[Section]:
                                cnum, chead, rows))
     if "conclusions" in frame and (s := frame_section(frame["conclusions"], notes)):
         out.append(s)
+    # an interstitial is no annex: its lines open the section of the annex
+    # after it, which they head
+    pending: list[Row] = []
     for att in frame.get("attachments", []):
-        if tag(att) == "attachment" and (s := annex_section(att, notes)):
+        if tag(att) != "attachment":
+            continue
+        if att.find(AKN + "interstitial") is not None:
+            pending += section_rows(att, notes, att.get("eId"))
+        elif s := annex_section(att, notes):
+            s.rows[:0], pending = pending, []
             out.append(s)
+    if pending:
+        raise ValueError(f"{relative}: an interstitial after the last annex heads nothing")
     return out
 
 

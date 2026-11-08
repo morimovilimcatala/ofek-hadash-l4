@@ -893,6 +893,25 @@ class Agreements(unittest.TestCase):
         keys = [k for s in secs for k in s.keys()]
         self.assertEqual(len(keys), len(set(keys)))
 
+    SEPT_2016 = "agreements/ofek-hadash/2016-09-30_ofek-hadash_september-2016-agreement.xml"
+
+    def test_a_line_between_annexes_is_read_where_the_corpus_sets_it(self):
+        """An <attachment> may hold an <interstitial> instead of an annex's
+        <doc> (MMS-634, MMS-641): the 30.9.2016 agreement prints the heading
+        of the supervisors' tables between annexes 22 and 23 of ב, ג and ד.
+        Its line is keyed like any unlabelled element's, by the
+        interstitial's eId, and sits between the two annexes' rows."""
+        rows = akn.sections(self.SEPT_2016)[0].rows
+        keys = [r.key for r in rows]
+        for n, (before, after) in enumerate((("att_29", "att_30"), ("att_59", "att_60"),
+                                             ("att_89", "att_90")), 1):
+            i = keys.index(f"interstitial_{n}__body/p1")
+            self.assertEqual(rows[i].text, "טבלאות שכר לעובדי הוראה בתפקידי פיקוח ומטה")
+            self.assertEqual(rows[i].aliases, [f"interstitial_{n}__body"])
+            self.assertTrue(keys[i - 1].startswith(before + "__"), keys[i - 1])
+            self.assertTrue(keys[i + 1].startswith(after + "__"), keys[i + 1])
+        self.assertFalse([k for k in keys if k.startswith("attachments/")])
+
 
 class Citations(unittest.TestCase):
     def test_every_row_of_every_document_has_a_label(self):
