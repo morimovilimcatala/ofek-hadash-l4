@@ -1,0 +1,332 @@
+-- חוק חופשה שנתית, התשי"א-1951 — sections 1 to 8, 10, 13, 15, 33 and 38:
+-- what "the leave" and a work year are, every employee's right to it, its
+-- length by seniority and in proportion to the days worked, the temporary
+-- wage-earner §3 does not reach, the days not counted as leave, when the
+-- leave is given and the day the employee chooses, accumulation and
+-- continuity, holiday pay, redemption on leaving, the payment for a
+-- temporary wage-earner, that a State employee is like any other, and that
+-- the law takes away no better right. The text is laws/annual-leave-law.toml,
+-- pinned from the live page of ספר החוקים הפתוח; the corpus holds no copy
+-- (MMS-601).
+--
+-- Why it is here: the takanon's §§1.25.1-1.25.2 (the school recesses and
+-- their pay), §8.1 (an instructor's days), §14.5 (an ulpan teacher's), §§1.30
+-- and 2.1.8 (a substitute's vacation money) and the wage agreement of
+-- 19.10.2022 (§29, two days of the teacher's choosing) rule on the subjects
+-- of these sections without citing the law. Unlike the Sick Pay Law, it
+-- leaves no employee under a collective agreement out, and §33 makes a State
+-- employee like any other, so it reaches every teacher here.
+--
+-- Time is counted as the law counts it: leave in days, of which one weekly
+-- rest in every seven is part (§3(א)), the work in days worked in the work
+-- year, which begins on 1 January (§1). A procedure the Minister sets by
+-- regulation (§3(א)'s longer leave, §7(ב)) is not pinned; no rule here turns
+-- on one. The schedule (תוספת) §6(ב) names is not pinned either: the days
+-- it lists are an input of the rule that reads it.
+
+IMPORT prelude
+IMPORT parties
+
+§ `חוק חופשה שנתית — אורך החופשה, מועדה, דמי החופשה ופדיונה`
+
+§§ `1`
+
+-- "The leave": the annual leave owed to an employee under this law. "A
+-- wage-earner": one whose pay, in whole or in part, is not paid by the month
+-- or a longer period. "A work year": twelve months beginning on 1 January.
+-- (A labour inspector and a leave fund are defined for sections not pinned.)
+@ref law:1
+GIVEN `paid, in whole or in part, other than by the month or a longer period` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `a wage-earner as section 1 of the Annual Leave Law means` `paid, in whole or in part, other than by the month or a longer period` IF
+    `paid, in whole or in part, other than by the month or a longer period`
+
+@ref law:1
+`the Annual Leave Law's work year begins on (MMDD)` MEANS 101
+
+#ASSERT `a wage-earner as section 1 of the Annual Leave Law means` TRUE
+#ASSERT NOT `a wage-earner as section 1 of the Annual Leave Law means` FALSE
+
+§§ `2`
+
+-- Every employee is entitled to leave, given under this law.
+@ref law:2
+`section 2 gives every employee leave` MEANS TRUE
+
+§§ `3`
+
+-- (א): the leave for each work year with one employer or at one workplace
+-- is 16 days for each of the first five years, 18 for the sixth, 21 for the
+-- seventh, and from the eighth a day more each year up to 28; the Minister
+-- may set longer leave by regulation; one weekly rest in every seven days
+-- of leave is counted in it. (ב): where the relation lasted the whole work
+-- year, an employee who worked 200 days or more has those days, and fewer,
+-- a share as the days worked bear to 200. (ג): where it lasted part of the
+-- year, the same against 240. A part of a day of leave is not counted.
+@ref law:3
+GIVEN `the year of work with the employer` IS A NUMBER @desc 1 for the first
+GIVETH A NUMBER
+DECIDE `days of leave section 3(א) gives for the year` `the year of work with the employer` IS
+    BRANCH IF `the year of work with the employer` AT MOST 5 THEN 16
+           IF `the year of work with the employer` EQUALS 6 THEN 18
+           IF `the year of work with the employer` EQUALS 7 THEN 21
+           OTHERWISE min 28 (21 PLUS (`the year of work with the employer` MINUS 7))
+
+@ref law:3
+`most days of leave section 3 gives a year` MEANS 28
+
+@ref law:3
+GIVEN `the year of work with the employer` IS A NUMBER
+      `the relation lasted the whole work year` IS A BOOLEAN
+      `days he worked in the work year` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `days of leave section 3 gives` `the year of work with the employer` `the relation lasted the whole work year` `days he worked in the work year` IS
+    IF `days he worked in the work year` AT LEAST `the days that earn the whole leave`
+    THEN `the whole leave`
+    ELSE TRUNC (`the whole leave` TIMES `days he worked in the work year` DIVIDED BY `the days that earn the whole leave`) 0
+    WHERE
+        `the whole leave` MEANS `days of leave section 3(א) gives for the year` `the year of work with the employer`
+        `the days that earn the whole leave` MEANS
+            IF `the relation lasted the whole work year` THEN 200 ELSE 240
+
+-- One weekly rest in every seven days of leave is counted in it: the law's
+-- days are days of the calendar, and seven of them are a week of leave
+-- whatever days the employee works in a week. (What an instrument's days
+-- are measured against: convention instruments.leave-days-measure.)
+@ref law:3
+GIVEN `days of leave under the law` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `weeks of leave the law's days make` `days of leave under the law` IS
+    `days of leave under the law` DIVIDED BY 7
+
+#ASSERT `days of leave section 3(א) gives for the year` 1 EQUALS 16
+#ASSERT `days of leave section 3(א) gives for the year` 6 EQUALS 18
+#ASSERT `days of leave section 3(א) gives for the year` 8 EQUALS 22
+#ASSERT `days of leave section 3(א) gives for the year` 14 EQUALS 28
+#ASSERT `days of leave section 3(א) gives for the year` 30 EQUALS 28
+#ASSERT `days of leave section 3 gives` 3 TRUE 210 EQUALS 16
+#ASSERT `days of leave section 3 gives` 3 TRUE 100 EQUALS 8
+#ASSERT `days of leave section 3 gives` 3 FALSE 40 EQUALS 2
+#ASSERT `weeks of leave the law's days make` 28 EQUALS 4
+
+§§ `4`
+
+-- (א): §3 does not apply to a wage-earner who worked fewer than 75
+-- consecutive days with one employer or at one workplace, in one work year
+-- or two consecutive ones; he is paid for the leave as chapter 3 says
+-- (§15). (ב): days are consecutive across reserve duty, the weekly rest, a
+-- holiday or May Day, leave or a recess given by law or with the employer's
+-- consent, a strike or lockout, an accident or illness, mourning, a
+-- temporary break that does not end the relation, and emergency-service
+-- training.
+@ref law:4
+GIVEN `a wage-earner` IS A BOOLEAN
+      `consecutive days worked with the employer` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `section 3 reaches the employee` `a wage-earner` `consecutive days worked with the employer` IF
+    (NOT `a wage-earner`) OR `consecutive days worked with the employer` AT LEAST 75
+
+#ASSERT `section 3 reaches the employee` FALSE 10
+#ASSERT NOT `section 3 reaches the employee` TRUE 74
+#ASSERT `section 3 reaches the employee` TRUE 75
+
+§§ `5`
+
+-- (א): these days are not counted among the days of leave: reserve duty;
+-- a holiday on which no one works, by law, agreement or custom (but not the
+-- weekly rest); the birth and parenthood period; days he cannot work for an
+-- accident or illness; mourning; a strike or lockout; days of notice of
+-- dismissal beyond fourteen. (ב): where such days fall in the leave, the
+-- leave stops for them and is made up, as far as possible, in the same work
+-- year.
+@desc A day section 5(א) of the Annual Leave Law does not count as a day of leave.
+DECLARE `a day the Annual Leave Law does not count as leave` IS ONE OF
+    `a day of reserve duty`
+    `a holiday no one works, other than the weekly rest`
+    `a day of the birth and parenthood period`
+    `a day unable to work for an accident or illness`
+    `a day of mourning`
+    `a day of a strike or lockout`
+    `a day of notice of dismissal beyond the fourteenth`
+
+@ref law:5
+GIVEN `days of the leave` IS A NUMBER
+      `days in it section 5(א) does not count` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `days of leave the period gives under section 5` `days of the leave` `days in it section 5(א) does not count` IS
+    max 0 (`days of the leave` MINUS `days in it section 5(א) does not count`)
+
+-- (ב): the days the leave lost are owed again, to be made up in the year.
+@ref law:5
+GIVEN `days in the leave section 5(א) does not count` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `days section 5(ב) makes up in the work year` `days in the leave section 5(א) does not count` IS
+    `days in the leave section 5(א) does not count`
+
+#ASSERT `days of leave the period gives under section 5` 62 10 EQUALS 52
+#ASSERT `days section 5(ב) makes up in the work year` 10 EQUALS 10
+
+§§ `6`
+
+-- (א): the leave is given in the last month of the work year it is for,
+-- or during the next one. (ב): notwithstanding, an employee may take one
+-- day of the leave during the year it is for, on a date he chooses, and
+-- one more on a day the schedule names (without prejudice to §5), provided
+-- he told his employer at least 30 days ahead. (ג): the Minister may add to
+-- the schedule by order. The day is the employee's to choose: the section
+-- asks his notice, not the employer's consent.
+@desc What the Annual Leave Law lets an employee do, or forbids an employer.
+DECLARE `Annual Leave Law act` IS ONE OF
+    `take a day of the leave on a date the employee chose`
+    `take a day of the leave on a day the schedule names`
+    `refuse a day of the leave the employee chose on due notice`
+
+@ref law:6
+GIVEN `the month of the work year it is for` IS A NUMBER @desc 1 to 12, or 13 and on for the next work year
+GIVETH A BOOLEAN
+DECIDE `section 6(א) lets the leave be given then` `the month of the work year it is for` IF
+    `the month of the work year it is for` AT LEAST 12 AND `the month of the work year it is for` AT MOST 24
+
+@ref law:6
+`days section 6(ב) lets the employee choose in a work year` MEANS 2
+
+@ref law:6
+`days of notice section 6(ב) asks` MEANS 30
+
+@ref law:6
+`section 6(ב) asks the employer's consent` MEANS FALSE
+
+@ref law:6
+GIVEN `days of notice he gave the employer` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `section 6(ב) lets him take the day he chose` `days of notice he gave the employer` IF
+    `days of notice he gave the employer` AT LEAST `days of notice section 6(ב) asks`
+
+@ref law:6
+GIVETH A DEONTIC Party `Annual Leave Law act`
+DECIDE `the day of the employee's choosing` IS
+    PARTY `the employer`
+    SHANT `refuse a day of the leave the employee chose on due notice`
+    LEST  BREACH BY `the employer` BECAUSE "Annual Leave Law, section 6(ב): an employee may take a day of his leave on a date he chooses, on 30 days' notice"
+
+#ASSERT `section 6(א) lets the leave be given then` 12
+#ASSERT `section 6(א) lets the leave be given then` 20
+#ASSERT NOT `section 6(א) lets the leave be given then` 7
+#ASSERT `section 6(ב) lets him take the day he chose` 30
+#ASSERT NOT `section 6(ב) lets him take the day he chose` 29
+
+§§ `7`
+
+-- (א): the leave does not accumulate; but the employee, with the
+-- employer's consent, may take only seven days at least and add the rest
+-- to the leave of the two work years after. (ב): the Minister may forbid it
+-- by regulation for health or the circumstances of the work.
+@ref law:7
+GIVEN `days of the year's leave` IS A NUMBER
+      `the employer consents` IS A BOOLEAN
+GIVETH A NUMBER
+DECIDE `days section 7 lets him carry to the next two years` `days of the year's leave` `the employer consents` IS
+    IF `the employer consents`
+    THEN max 0 (`days of the year's leave` MINUS 7)
+    ELSE 0
+
+#ASSERT `days section 7 lets him carry to the next two years` 16 FALSE EQUALS 0
+#ASSERT `days section 7 lets him carry to the next two years` 16 TRUE EQUALS 9
+
+§§ `8`
+
+-- The leave is continuous; with the employee's and the employer's consent,
+-- and the workers' committee's approval where there is one, it may be
+-- split, so long as one part of it is at least seven days.
+@ref law:8
+GIVEN `the longest part of the leave` IS A NUMBER
+      `split with both sides' consent and the committee's approval` IS A BOOLEAN
+      `the leave is in one part` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `the leave is given as section 8 asks` `the longest part of the leave` `split with both sides' consent and the committee's approval` `the leave is in one part` IF
+        `the leave is in one part`
+    OR  (`split with both sides' consent and the committee's approval` AND `the longest part of the leave` AT LEAST 7)
+
+#ASSERT `the leave is given as section 8 asks` 16 FALSE TRUE
+#ASSERT NOT `the leave is given as section 8 asks` 5 TRUE FALSE
+
+§§ `10`
+
+-- (א): the employer pays for the days of leave holiday pay equal to the
+-- employee's regular wage. (ב)(1): for one paid by the month or a longer
+-- period, the wage he would have had for the same time had he gone on
+-- working; (2) for a wage-earner, the average daily wage (the quarter
+-- before the leave divided by ninety, or the fullest quarter of the twelve
+-- months, as he chooses) times the days of leave. (ג): the wage is every
+-- payment for the regular hours, unless a collective agreement the Minister
+-- approved says otherwise; a payment for expenses the leave does not incur
+-- is not wage.
+@ref law:10
+GIVEN `the wage he would have had working the same time` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `holiday pay section 10 gives one paid by the month` `the wage he would have had working the same time` IS
+    `the wage he would have had working the same time`
+
+@ref law:10
+GIVEN `the wage of the quarter he chose` IS A NUMBER
+      `days of the leave` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `holiday pay section 10 gives a wage-earner` `the wage of the quarter he chose` `days of the leave` IS
+    (`the wage of the quarter he chose` DIVIDED BY 90) TIMES `days of the leave`
+
+#ASSERT `holiday pay section 10 gives a wage-earner` 9000 16 EQUALS 1600
+#ASSERT `holiday pay section 10 gives one paid by the month` 100 EQUALS 100
+
+§§ `13`
+
+-- An employee who stops working before he was given the leave owed him up
+-- to that day is paid its redemption, equal to the holiday pay he would
+-- have had had he gone on leave that day.
+@ref law:13
+GIVEN `days of leave owed him on the day he stopped` IS A NUMBER
+      `a day's holiday pay on that day` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `redemption section 13 gives` `days of leave owed him on the day he stopped` `a day's holiday pay on that day` IS
+    `days of leave owed him on the day he stopped` TIMES `a day's holiday pay on that day`
+
+#ASSERT `redemption section 13 gives` 2 100 EQUALS 200
+
+§§ `15`
+
+-- (א): for a wage-earner who worked at least one day, but fewer than 75
+-- consecutive days (§4), with no written contract for more than 74, the
+-- employer pays a leave payment of at least 4% of the wage. (ב)-(ה): it is
+-- paid to the branch's leave fund or as regulations set, returned to the
+-- employer when the work goes on past 74 days (holiday pay or redemption
+-- then being paid), and given to the employee as the fund's rules or the
+-- regulations say.
+@ref law:15
+`the least share of the wage section 15 pays for the leave` MEANS 4 DIVIDED BY 100
+
+@ref law:15
+GIVEN `the wage` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the least leave payment section 15 requires` `the wage` IS
+    `the wage` TIMES `the least share of the wage section 15 pays for the leave`
+
+#ASSERT `the least leave payment section 15 requires` 1000 EQUALS 40
+
+§§ `33`
+
+-- For this law, a State employee is like any other employee.
+@ref law:33
+`section 33 makes a State employee like any other` MEANS TRUE
+
+§§ `38`
+
+-- The law takes away no right an employee has under a law, a collective
+-- agreement, a contract of employment or a custom: for a right measured in
+-- one number, the larger stands.
+@ref law:38
+GIVEN `what the law gives` IS A NUMBER, `what the agreement, contract or custom gives` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `what stands under section 38 of the Annual Leave Law` `what the law gives` `what the agreement, contract or custom gives` IS
+    max `what the law gives` `what the agreement, contract or custom gives`
+
+#ASSERT `what stands under section 38 of the Annual Leave Law` 28 60 EQUALS 60
+#ASSERT `what stands under section 38 of the Annual Leave Law` 2 0 EQUALS 2

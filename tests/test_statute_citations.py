@@ -32,8 +32,11 @@ CITED_NOT_PINNED = {
 # §1.25.3.1 quotes the Sick Pay Law's definition of an illness without
 # naming it, and prints the Child Illness and Parent Illness Laws among its
 # sources without the link the corpus gives the Spouse Illness and Partner
-# Pregnancy Laws. A link the corpus adds moves a law out of this set.
-PINNED_NOT_LINKED = {"sick-pay-law", "sick-pay-child-law", "sick-pay-parent-law"}
+# Pregnancy Laws; and its §1.7 prints the Annual Leave Law, §7(א), among
+# its sources without a link. A link the corpus adds moves a law out of
+# this set.
+PINNED_NOT_LINKED = {"sick-pay-law", "sick-pay-child-law", "sick-pay-parent-law",
+                     "annual-leave-law"}
 
 
 class TheInventoryIsTheCorpus(unittest.TestCase):
