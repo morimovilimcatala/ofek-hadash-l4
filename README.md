@@ -147,8 +147,9 @@ that updated it, the steps it prints.
   take it or the child is in his sole custody; and the State is an employer
   like any other (MMS-601). The documents that apply §4(א) to the day-care
   supplement — the 2011 framework's §11, the Oz LaTmura agreement's §47,
-  circular 2011-1-48 and circular תשע"ב/5 — give a father exactly what it
-  gives, and the circulars give a widower or divorcé with custody more.
+  the State teachers' day-care agreement of 10.10.2011, circular 2011-1-48
+  and circular תשע"ב/5 — give a father exactly what it gives, and the
+  circulars give a widower or divorcé with custody more.
 - **The statutes the corpus cites** (`laws/index.html`) — every act the
   corpus links to, how many documents cite it, the sections it cites by
   number, and which of them the L4 pins (MMS-601). The protective statutes'
