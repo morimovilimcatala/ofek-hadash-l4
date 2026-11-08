@@ -30,8 +30,10 @@ CITED_NOT_PINNED = {
 # page, held exactly. A protective statute is compared with every
 # instrument that rules on its subject, cited or not (MMS-601): the takanon's
 # §1.25.3.1 quotes the Sick Pay Law's definition of an illness without
-# naming it. A link the corpus adds moves a law out of this set.
-PINNED_NOT_LINKED = {"sick-pay-law"}
+# naming it, and circular תשפ"א/6 gives its early-retirement tracks by sex,
+# on the Equal Pay Law's subject, without naming it. A link the corpus adds
+# moves a law out of this set.
+PINNED_NOT_LINKED = {"sick-pay-law", "equal-pay-law"}
 
 
 class TheInventoryIsTheCorpus(unittest.TestCase):

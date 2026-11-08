@@ -45,7 +45,7 @@ that updated it, the steps it prints.
 | `conventions.toml`, `l4/conventions.l4` | the rules of reading the encoding follows where the text does not decide, and the one L4 definition of each that is a computation, which the rules import |
 | `findings/<corpus path>/<section>.toml` (one per section) | errors in the text the encoding exposed, each backed by an `#ASSERT` |
 | `data/calculator-delta.json` | the comparison with the ministry's salary simulator: inputs, outputs, mappings, clauses and classifications only (written outside this repository; shown as the simulator's group of the contradictions page) |
-| `laws/<name>.toml`, `l4/laws/<name>.l4` | a statute encoded though the corpus holds no copy of it (חוק הסכמים קיבוציים §§2, 15–16, 19–23; חוק יסודות התקציב §§21, 29, 32; חוק שכר מינימום §§1–3, 11; חוק הגנת השכר §§20, 25; חוק פיצויי פיטורים §§1, 12, 13, 13ב, 14, 31; חוק עבודת נשים §§6, 6א, 7, 7א, 8, 9, 10, 19, 23; חוק שוויון ההזדמנויות בעבודה §§2, 3, 4, 17; חוק דמי מחלה §§1, 2, 4, 4א, 5, 6, 12, and its laws of absence for a child's illness §§1, 1א, 1ב, 1ג, 3, 3א, a parent's §§1, 3, 4, 4א, a spouse's §§1, 1א, 3, 4, 5 and a partner's pregnancy §§1, 3, 4; חוק חופשה שנתית §§1–8, 10, 13, 15, 33, 38; חוק שעות עבודה ומנוחה §§1, 2, 3, 5, 6, 7, 9, 16, 17, 18, 20, 30, 31, 35; and the others `laws/` holds): its sections' words pinned from ספר החוקים הפתוח, and their rules |
+| `laws/<name>.toml`, `l4/laws/<name>.l4` | a statute encoded though the corpus holds no copy of it (חוק הסכמים קיבוציים §§2, 15–16, 19–23; חוק יסודות התקציב §§21, 29, 32; חוק שכר מינימום §§1–3, 11; חוק הגנת השכר §§20, 25; חוק פיצויי פיטורים §§1, 12, 13, 13ב, 14, 31; חוק עבודת נשים §§6, 6א, 7, 7א, 8, 9, 10, 19, 23; חוק שוויון ההזדמנויות בעבודה §§2, 3, 4, 17; חוק דמי מחלה §§1, 2, 4, 4א, 5, 6, 12, and its laws of absence for a child's illness §§1, 1א, 1ב, 1ג, 3, 3א, a parent's §§1, 3, 4, 4א, a spouse's §§1, 1א, 3, 4, 5 and a partner's pregnancy §§1, 3, 4; חוק חופשה שנתית §§1–8, 10, 13, 15, 33, 38; חוק שעות עבודה ומנוחה §§1, 2, 3, 5, 6, 7, 9, 16, 17, 18, 20, 30, 31, 35; חוק שכר שווה לעובדת ולעובד §§1, 2, 3, 6, 12, 13, 14; and the others `laws/` holds): its sections' words pinned from ספר החוקים הפתוח, and their rules |
 | `data/statute-citations.json` | every statute the corpus cites and every section it cites by number, with the documents that cite it, read off the corpus's own links to ספר החוקים הפתוח (`tools/statute_citations.py`, MMS-601) |
 | `data/contradictions.json`, `data/contradictions/` | the hand-written layer of the contradictions page, whose rows the root generates where it can speak (MMS-521): a card attaches to the root's row by key (`root`) and brings a side per source with its answer — a document with a crop of its page, or what the payslips or the simulator pay — and the rule's prose; a card the root cannot speak for says why (`not_in_root`); a circular against an agreement says which way it departs, and where it gives more, what §29 of the Budget Foundations Law makes of the excess |
 | `tools/` | the L4 runner, the AKN reader, the site generator |
@@ -240,6 +240,22 @@ that updated it, the steps it prints.
   where §16 asks 125% for every hour above 45; and the takanon pays a day
   out with pupils by its end hour (§1.10), 5 units for a day back by
   midnight, less than §16's premium on the hours beyond eight.
+- **The Equal Pay Law** (`laws/equal-pay-law.html`) — §§1, 2, 3, 6, 12, 13
+  and 14: equal pay and equal other remuneration for a woman and a man
+  doing the same work, work equal in substance or work of equal value, the
+  differences the nature of the work allows, no waiver, no weight given to
+  a benefit in connection with birth or parenthood, and the State as an
+  employer (MMS-601). No document of the corpus cites it. Who does the
+  same work, how a term written in one sex is read, and what is weighed
+  against §2 where the Equal Opportunities Law keeps a woman's better right,
+  is convention `instruments.equal-pay-teaching`, a pick for the lawyer.
+  The mother's position, the mother's supplement and the day-care
+  participation are parenthood benefits the law leaves out (§13); they are
+  weighed against the Equal Opportunities Law. Within the floor: the
+  takanon's personal-car refund "על שמו או על שם אשתו" (§7.3.6.3), read for
+  both sexes. One place gives less, a card on the contradictions page where
+  the law governs: circular תשפ"א/6's early-retirement tracks, which put a
+  woman of 55 to 57 on track B and a man of her age on track A.
 - **The statutes the corpus cites** (`laws/index.html`) — every act the
   corpus links to, how many documents cite it, the sections it cites by
   number, and which of them the L4 pins (MMS-601). The protective statutes'
