@@ -44,7 +44,7 @@ reason when work stops, and nothing open written in a markdown file.
   standing decision 14), and the sections the L4 reads are encoded here
   anyway — among them חוק הסכמים קיבוציים (MMS-516, MMS-600), חוק יסודות
   התקציב (MMS-528) and the protective statutes שכר מינימום, הגנת השכר,
-  פיצויי פיטורים and עבודת נשים (MMS-601); `laws/` lists them, and `data/statute-citations.json`
+  פיצויי פיטורים, עבודת נשים and שוויון ההזדמנויות בעבודה (MMS-601); `laws/` lists them, and `data/statute-citations.json`
   (`tools/statute_citations.py`) every section the corpus cites: their
   sections' words are pinned in `laws/<name>.toml` with the live ספר החוקים
   הפתוח page they are read from and the date they were last checked against
