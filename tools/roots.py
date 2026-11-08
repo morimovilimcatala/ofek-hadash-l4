@@ -168,17 +168,6 @@ def registered(module: str) -> list[tuple[str, str]]:
     return [tuple(x.split(" | ", 1)) for x in strings(evaluated(module, expr) or "")]
 
 
-def rulings() -> dict[str, list[list[str]]]:
-    """The root's resolutions by the name of their item, each as [the
-    titles of the instruments that disagree, the one that governs, the
-    rule, the cases it settles], as the root itself reports them."""
-    out: dict[str, list[list[str]]] = {}
-    for line in strings(evaluated("root", "`the resolutions report`") or ""):
-        item, *rest = (line.split(" | ") + [""] * 5)[:5]
-        out.setdefault(item, []).append(rest)
-    return out
-
-
 DIRECTIVE = re.compile(r"^#(EVAL|ASSERT|EVALTRACE)\s+(.*)$")
 SECTION = re.compile(r"^§+\s+`([^`]*)`")
 

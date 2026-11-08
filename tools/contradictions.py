@@ -35,9 +35,24 @@ The simulator also has a group of its own (tools/calculator_delta.py,
 MMS-522): every place its computation departs from the text, produced by the
 comparison rather than picked, under the simulator's own disclaimer that it
 binds no one.
+
+THE ROOT IS THE SOURCE OF THE ROWS IT CAN SPEAK FOR (MMS-521). Every
+contradiction the root finds over its grid of cases is a row here, read off
+`the contradictions report` that `make l4` records for l4/tests/root-tests.l4
+(`root_report`): one row per item, instrument that governs and rule
+(`root_rows`), listing each set of instruments that speak, how many cases it
+settles and the first of them, with what each instrument says in it. A row
+no hand-written card claims is a generated card (`generated`). A hand card
+attaches to a row by its key (`root`: item, the module that governs, the
+rule) and brings what the root cannot — the crops, what is paid, משמעות and
+the prose; it cannot add a row, and its document sides are instruments the
+row names. A card the root cannot speak for stays hand-written and says why
+in `not_in_root` (NOT_IN_ROOT); tests/test_contradictions.py holds the page
+to the root exactly.
 """
 from __future__ import annotations
 
+import hashlib
 import html
 import json
 
@@ -150,6 +165,123 @@ def homes(data: dict | None) -> dict[str, str]:
     return out
 
 
+# Why the root cannot speak for a card (MMS-521): the card stays hand-written
+# and says so. Each reason is held to the card's sides by the tests: a card
+# with a statute side is `statute-floor`; one with fewer than two sides the
+# root weighs (takanon, agreement, circular) is `not-weighed`; the rest set
+# two weighed instruments against each other on something no pay item of
+# the shared vocabulary covers yet, or on no figure at all.
+NOT_IN_ROOT = {
+    "no-pay-item": "השורש עוד אינו שואל על כך: אף פריט שכר באוצר המילים המשותף אינו מכסה את מה "
+                   "שהמסמכים חלוקים בו, ולכן הכרטיס כתוב ביד.",
+    "text-only": "המחלוקת היא בתנאי, בהגדרה או בנוהל, ואין סכום של חודש שכר שנגזר ממנה ישירות: "
+                 "לשורש, שעונה בסכומים לפריטי שכר, אין כאן מה להשוות, ולכן הכרטיס כתוב ביד.",
+    "statute-floor": "חוק מגן מול מסמך: הזכות שהחוק נותן כאן אינה פריט שכר שהשורש שואל עליו, "
+                     "ושורש החוקים המגינים שוקל את הרצפה רק לפריטי שכר. לכן הכרטיס כתוב ביד.",
+    "not-weighed": "צד אחד אינו מסמך שהשורש שוקל — תשובה או טבלה באתר המשרד, מכתב, או מה שמשולם "
+                   "בפועל (תלוש, סימולטור) — ולכן הכרטיס כתוב ביד.",
+}
+# the kinds of side the root weighs: what its collection roots register
+WEIGHED = ("takanon", "agreement", "circular")
+
+# Where a row the root generates sits on the page, by the rule that settles
+# it (l4/lib/precedence.l4): the takanon against an agreement or a circular,
+# a circular against the agreement it carries out, two agreements weighed
+# by §23, two circulars by date. tests/test_contradictions.py holds that
+# every rule the root reports is here.
+RULE_GROUP = {
+    "מבוא התקנון: הסכם קיבוצי גובר על התקנון": "takanon",
+    "מבוא התקנון: הסכם קיבוצי, כפי שתוקן, גובר על התקנון": "takanon",
+    "מבוא התקנון: חוזר מאוחר יותר גובר": "takanon",
+    "מבוא התקנון: אף מסמך שגובר על התקנון אינו מדבר": "takanon",
+    "חוזר אינו גובר על ההסכם שהוא מבצע": "agreement",
+    "חוק הסכמים קיבוציים, סעיף 22: תנאי לטובת העובד עומד": "agreement",
+    "חוק הסכמים קיבוציים, סעיף 23: ההוראה שלטובת העובד": "agreements",
+    "חוזר מאוחר גובר על חוזר מוקדם בעניין אחד": "circulars",
+}
+REPORT = "`the contradictions report`"
+GATE = ("l4/tests/root-tests.l4", "null `unresolved contradictions`")
+
+
+def root_report() -> list[dict] | None:
+    """The root's contradictions as `make l4` recorded them for its tests
+    (l4/tests/root-tests.l4, `the contradictions report`): one entry per
+    resolution, with the instruments that speak (modules), the one that
+    governs, the rule, how many of the cases checked it settles, and the
+    first of them — described, what each instrument says in it, and the
+    answer that governs. None where `make l4` has recorded nothing."""
+    import roots
+    value = roots.evaluated("root", REPORT)
+    if value is None:
+        return None
+    out = []
+    for line in roots.strings(value):
+        item, sources, governs, rule, n, case, claims, answer = (line.split(" | ") + [""] * 8)[:8]
+        out.append({"item": item, "sources": sources.split(","), "governs": governs, "rule": rule,
+                    "cases": int(n or 0), "example": case,
+                    "says": dict(x.split("=", 1) for x in claims.split("; ") if x),
+                    "answer": answer})
+    return out
+
+
+def root_key(x: dict) -> tuple[str, str, str]:
+    """A row's key, and a card's `root`: the item, the module that governs,
+    the rule."""
+    return (x["item"], x["governs"], x["rule"])
+
+
+def root_rows(report: list[dict]) -> list[dict]:
+    """The rows the root speaks for: its resolutions by item, instrument
+    that governs and rule, in the report's order."""
+    rows: dict[tuple, dict] = {}
+    for r in report:
+        row = rows.setdefault(root_key(r), {"item": r["item"], "governs": r["governs"],
+                                            "rule": r["rule"], "resolutions": []})
+        row["resolutions"].append(r)
+    for row in rows.values():
+        row["sources"] = list(dict.fromkeys(m for r in row["resolutions"] for m in r["sources"]))
+        row["cases"] = sum(r["cases"] for r in row["resolutions"])
+        digest = hashlib.sha1(f'{row["item"]}|{row["rule"]}'.encode()).hexdigest()[:6]
+        row["id"] = f'root-{row["governs"]}-{digest}'
+    return list(rows.values())
+
+
+def instruments() -> dict[str, tuple[str, str]]:
+    """Every instrument the root weighs, module -> (title, kind of side), as
+    the collection roots register them (tools/roots.py)."""
+    import roots
+    out: dict[str, tuple[str, str]] = {}
+    for module, kind in (("takanon-root", "takanon"), ("agreements-root", "agreement"),
+                         ("circulars-root", "circular"), ("statutes-root", "law")):
+        for m, t in roots.registered(module):
+            out.setdefault(m, (t, kind))
+    return out
+
+
+def generated(row: dict, inst: dict[str, tuple[str, str]]) -> dict:
+    """The card of a row no hand-written card claims: its sides are the
+    instruments that speak, each with what it says in the row's examples."""
+    gov = inst.get(row["governs"], (row["governs"], ""))[0]
+    others = [inst.get(m, (m, ""))[0] for m in row["sources"] if m != row["governs"]]
+    sides = [{"type": inst.get(m, (m, "circular"))[1], "label": inst.get(m, (m, ""))[0], "module": m,
+              "says": list(dict.fromkeys(r["says"][m] for r in row["resolutions"] if m in r["says"]))}
+             for m in row["sources"]]
+    return {"id": row["id"], "group": RULE_GROUP.get(row["rule"], "takanon"), "generated": True,
+            "title": f'{row["item"]}: {gov} מול {" · ".join(others)}', "sides": sides}
+
+
+def cards(data: dict, rows: list[dict] | None) -> list[tuple[dict, dict | None]]:
+    """Every card on the page, with the root's row it shows: each hand card
+    (attached to the row its `root` names, if any), then a generated card
+    for every row no hand card claims."""
+    by_key = {root_key(r): r for r in rows or []}
+    out = [(c, by_key.get(root_key(c["root"])) if c.get("root") else None) for c in data["items"]]
+    claimed = {root_key(c["root"]) for c in data["items"] if c.get("root")}
+    inst = instruments() if rows else {}
+    out += [(generated(r, inst), r) for r in rows or [] if root_key(r) not in claimed]
+    return out
+
+
 def crops(data: dict) -> list[str]:
     """Every crop file the page shows, for the build to copy."""
     out = [i["file"] for c in data["items"] for s in c["sides"] for i in s.get("images", [])]
@@ -238,19 +370,30 @@ def meter(grades: list[str]) -> str:
 def body(data: dict, *, prose, clause_link, finding_ids: set[str], src,
          simulator: tuple[str, str, int, list[str]] | None = None,
          evidence: dict[str, tuple[str, str]] | None = None,
-         root: dict[str, list[list[str]]] | None = None,
+         rows: list[dict] | None = None, href_of=lambda m: None,
          root_href: str = "root.html") -> tuple[str, str]:
     """The page's main column and its sidebar. `clause_link(doc, key)` gives
     (href, label html) for a corpus row; `src(file)` the published URL of a
     crop; `prose` renders our Hebrew with its identifiers isolated;
     `simulator` the simulator's group as (section, sidebar entries, rows,
-    the grades of its graded rows); `root` the root's resolutions by the
-    name of their item (MMS-521: the one place that decides), each as
-    [sources, governs, rule, cases]."""
-    items = data["items"]
+    the grades of its graded rows); `rows` the root's rows (`root_rows`,
+    MMS-521: the one place that decides), None where `make l4` recorded no
+    report; `href_of(module)` an instrument's page."""
+    shown = cards(data, rows)
+    items = [c for c, _ in shown]
+    inst = instruments() if rows else {}
     sim_html, sim_side, sim_n, sim_grades = simulator or ("", "", 0, [])
     out = [f'<h1>{esc(data["title"])}</h1>', f'<p class="lede">{prose(data["lede"])}</p>',
            f'<div class="banner cx-how" lang="he">{prose(data["how"])}</div>']
+    if rows is None:
+        out.append('<div class="banner">דוח הסתירות של השורש עוד לא נרשם בבנייה הזו (<code dir="ltr">make l4</code>): '
+                   'בעמוד רק הכרטיסים שנכתבו ביד.</div>')
+    else:
+        n_gen = sum(1 for c, _ in shown if c.get("generated"))
+        out.append(f'<p class="lede cx-fromroot">כל סתירה שהשורש מוצא בין המסמכים שהוא שוקל היא כרטיס כאן, '
+                   f'שנבנה מהדוח של <a href="{esc(root_href)}">השורש</a>: {len(rows)} סתירות כאלה, '
+                   f'{len(rows) - n_gen} מהן עם תמונות והסבר שנכתבו ביד ו־{n_gen} כפי שהשורש מדווח אותן. '
+                   'כרטיס שהשורש אינו יכול לדבר בו נכתב ביד, ואומר למה.</p>')
     # the chips filter the cards by the kinds of source they set against each
     # other; "was it followed" is not a filter of its own any more, because
     # what is paid is a source too (the client, 2026-10-21)
@@ -269,15 +412,18 @@ def body(data: dict, *, prose, clause_link, finding_ids: set[str], src,
 
     side = ['<li class="sn-group"><details open><summary>בעמוד</summary><ul>']
     for group in data["groups"]:
-        cs = [c for c in items if c["group"] == group["id"]]
+        cs = [(c, row) for c, row in shown if c["group"] == group["id"]]
         if not cs:
             continue
         out.append(f'<section class="cx-group" id="g-{esc(group["id"])}"><h2>{esc(group["title"])} <small>{len(cs)}</small></h2>')
         side.append(f'<li><a href="#g-{esc(group["id"])}">{esc(group["title"])}</a></li>')
-        for c in cs:
-            out.append(card(c, data["rules"], prose=prose, clause_link=clause_link,
-                            finding_ids=finding_ids, src=src, evidence=evidence,
-                            root=root or {}, root_href=root_href))
+        for c, row in cs:
+            if c.get("generated"):
+                out.append(generated_html(c, row, inst, href_of=href_of, root_href=root_href))
+            else:
+                out.append(card(c, data["rules"], prose=prose, clause_link=clause_link,
+                                finding_ids=finding_ids, src=src, evidence=evidence,
+                                row=row, inst=inst, root_href=root_href))
         out.append('</section>')
     if sim_html:
         out.append(sim_html)
@@ -300,27 +446,61 @@ def body(data: dict, *, prose, clause_link, finding_ids: set[str], src,
     return "".join(out), "".join(side)
 
 
-def root_html(item: str, lines: list[list[str]], href: str) -> str:
-    """What the root decides on the card's item: every set of instruments
-    that disagree on it, which governs and by which rule, and in how many of
-    the cases it checks — read off the root's own report (MMS-521)."""
-    # one line for each instrument that governs by one rule, naming what it
-    # governs over, so eight circulars set against one agreement read once
-    groups: dict[tuple[str, str], tuple[list[str], int]] = {}
-    for sources, governs, rule, n in lines:
-        over, total = groups.get((governs, rule), ([], 0))
-        over += [t for t in sources.split(" · ") if t != governs and t not in over]
-        groups[(governs, rule)] = (over, total + int(n or 0))
-    lis = "".join(f'<li>גובר <b>{esc(governs)}</b> על {esc(" · ".join(over))} — לפי {esc(rule)} '
-                  f'<small>({total} מקרים)</small></li>'
-                  for (governs, rule), (over, total) in groups.items())
+def root_html(row: dict, inst: dict[str, tuple[str, str]], href: str) -> str:
+    """What the root decides on a row (MMS-521): the instrument that
+    governs and the rule, and for each set of instruments that speak, in
+    how many of the cases checked and the first of them, with what each
+    says — read off the root's own report."""
+    def title(m: str) -> str:
+        return inst.get(m, (m, ""))[0]
+    lis = []
+    for r in row["resolutions"]:
+        says = " · ".join(f'{esc(title(m))}: <bdi dir="ltr">{esc(a)}</bdi>' for m, a in r["says"].items())
+        lis.append(f'<li><b>{esc(" · ".join(title(m) for m in r["sources"]))}</b> '
+                   f'<small>({r["cases"]} מקרים)</small><br>לדוגמה — {esc(r["example"])}: {says}; '
+                   f'גובר <bdi dir="ltr">{esc(r["answer"])}</bdi></li>')
     return (f'<div class="cx-mean cx-root"><h4>מה השורש מכריע</h4>'
-            f'<p>בפריט <b>{esc(item)}</b> השורש שואל כל מסמך שמדבר עליו, ומכריע בכל מחלוקת לפי סדר העדיפות:</p>'
-            f'<ul>{lis}</ul><p><a href="{esc(href)}">השורש</a></p></div>')
+            f'<p>בפריט <b>{esc(row["item"])}</b> השורש שואל כל מסמך שמדבר עליו, ומוצא את הסתירה הזו '
+            f'ב־{row["cases"]} מהמקרים שהוא בודק. גובר <b>{esc(title(row["governs"]))}</b> — לפי '
+            f'{esc(row["rule"])}.</p><ul>{"".join(lis)}</ul><p><a href="{esc(href)}">השורש</a></p></div>')
+
+
+def gate_html() -> str:
+    """The L4 that proves a row of the root: its tests' gate, which holds
+    every contradiction resolved by name, and precedence agreeing."""
+    f, n = GATE
+    return (f'<p class="cx-proof">ההוכחה ב־L4: <bdi dir="ltr"><code class="hl">'
+            f'{l4src.highlight(f"#ASSERT {n}")}</code></bdi> <small dir="ltr">{esc(f)}</small></p>')
+
+
+def generated_html(c: dict, row: dict, inst: dict[str, tuple[str, str]], *, href_of, root_href: str) -> str:
+    """A card the root generates (MMS-521), for a row no hand card claims:
+    the instruments that speak, what each says in the root's examples, the
+    rule and the instrument that governs, and the root's report."""
+    pair = " ↔ ".join(dict.fromkeys(TYPE[s["type"]] for s in c["sides"]))
+    sides = []
+    for s in c["sides"]:
+        h = href_of(s["module"])
+        where = f'<p class="cx-where"><a href="{esc(h)}">הקוד ב־L4</a></p>' if h else ""
+        says = " · ".join(s["says"])
+        sides.append(f'<div class="cx-side"><p class="cx-who"><span class="cx-type t-{esc(s["type"])}">'
+                     f'{esc(TYPE[s["type"]])}</span> <b>{esc(s["label"])}</b></p>'
+                     f'<p class="cx-says">בדוגמאות של השורש: <bdi dir="ltr">{esc(says)}</bdi></p>{where}</div>')
+    gov = inst.get(row["governs"], (row["governs"], ""))[0]
+    return (f'<details class="cx-card sev-none cx-gen" id="{esc(c["id"])}" data-types="{esc(" ".join(types(c)))}" data-sev="none">'
+            f'<summary><p class="cx-pair">{esc(pair)} <span class="cx-genmark">מהשורש</span></p>'
+            f'<h3>{esc(c["title"])}</h3></summary>'
+            f'<p class="cx-stake">הכרטיס הזה נבנה מהדוח של השורש: המסמכים שמדברים, מה כל אחד אומר במקרה '
+            f'הראשון שבו הם חלוקים, והכלל שמכריע. אין בו תמונות והסבר שנכתבו ביד.</p>'
+            f'<div class="cx-sides">{"".join(sides)}</div>'
+            f'<div class="cx-rule"><h4>מי גובר?</h4><p class="cx-rsrc"><b>{esc(row["rule"])}</b> — סדר העדיפות '
+            f'שבשורש · <a href="{esc(root_href)}">השורש</a></p></div>'
+            f'<p class="cx-win">לפי הכלל גובר: <b>{esc(gov)}</b></p>'
+            + root_html(row, inst, root_href) + gate_html() + '</details>')
 
 
 def card(c: dict, rules: dict, *, prose, clause_link, finding_ids, src, evidence=None,
-         root: dict | None = None, root_href: str = "root.html") -> str:
+         row: dict | None = None, inst: dict | None = None, root_href: str = "root.html") -> str:
     sev = c.get("severity")
     badge = f'<span class="cx-sev sev-{sev}">טעות · {esc(SEV[sev])}</span>' if sev else ""
     pair = " ↔ ".join(TYPE[s["type"]] for s in c["sides"])
@@ -347,11 +527,13 @@ def card(c: dict, rules: dict, *, prose, clause_link, finding_ids, src, evidence
                if sev else "") + silent
             # what an error means for a teacher (the client: "a משמעות section")
             + (f'<div class="cx-mean"><h4>משמעות</h4><p>{prose(c["meaning"])}</p></div>' if c.get("meaning") else "")
-            + (root_html(c["root_item"], (root or {})[c["root_item"]], root_href)
-               if c.get("root_item") and (root or {}).get(c["root_item"]) else "")
+            + (root_html(row, inst or {}, root_href) if row else "")
+            + (f'<p class="cx-noroot">{esc(NOT_IN_ROOT[c["not_in_root"]])}</p>'
+               if c.get("not_in_root") in NOT_IN_ROOT else "")
             + (f'<p class="cx-links">{" · ".join(links)}</p>' if links else "")
             + (('<p class="cx-proof">ההוכחה ב־L4: ' + " · ".join(
                 f'<bdi dir="ltr"><code class="hl">{l4src.highlight(f"#ASSERT `{n}`")}</code></bdi>'
                 for _f, n in proofs(c, evidence or {}))
                 + "</p>") if proofs(c, evidence or {}) else "")
+            + (gate_html() if row else "")
             + '</details>')

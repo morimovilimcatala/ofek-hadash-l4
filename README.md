@@ -47,7 +47,7 @@ that updated it, the steps it prints.
 | `data/calculator-delta.json` | the comparison with the ministry's salary simulator: inputs, outputs, mappings, clauses and classifications only (written outside this repository; shown as the simulator's group of the contradictions page) |
 | `laws/<name>.toml`, `l4/laws/<name>.l4` | a statute encoded though the corpus holds no copy of it (חוק הסכמים קיבוציים §§2, 15–16, 19–23; חוק יסודות התקציב §§21, 29, 32; חוק שכר מינימום §§1–3, 11; חוק הגנת השכר §§20, 25; חוק פיצויי פיטורים §§1, 12, 13, 13ב, 14, 31; חוק עבודת נשים §§6, 6א, 7, 7א, 8, 9, 10, 19, 23; and the others `laws/` holds): its sections' words pinned from ספר החוקים הפתוח, and their rules |
 | `data/statute-citations.json` | every statute the corpus cites and every section it cites by number, with the documents that cite it, read off the corpus's own links to ספר החוקים הפתוח (`tools/statute_citations.py`, MMS-601) |
-| `data/contradictions.json`, `data/contradictions/` | where sources contradict each other: a side per source (two or more) with its answer — a document with a crop of its page, or what the payslips or the simulator pay — and the rule that decides; a circular against an agreement says which way it departs, and where it gives more, what §29 of the Budget Foundations Law makes of the excess |
+| `data/contradictions.json`, `data/contradictions/` | the hand-written layer of the contradictions page, whose rows the root generates where it can speak (MMS-521): a card attaches to the root's row by key (`root`) and brings a side per source with its answer — a document with a crop of its page, or what the payslips or the simulator pay — and the rule's prose; a card the root cannot speak for says why (`not_in_root`); a circular against an agreement says which way it departs, and where it gives more, what §29 of the Budget Foundations Law makes of the excess |
 | `tools/` | the L4 runner, the AKN reader, the site generator |
 | `toolchain/` | the pinned L4 compiler revision and its build script |
 | `tests/` | alignment, coverage and evidence checks |
@@ -164,6 +164,16 @@ that updated it, the steps it prints.
   outside this repository from the corpus repository's sources;
   `tests/test_contradictions.py` holds each quote to the corpus and each
   crop to its file.
+  THE ROOT IS THE SOURCE OF THE ROWS IT CAN SPEAK FOR (MMS-521): every
+  contradiction the root finds over its grid of cases is a card, generated
+  from `the contradictions report` its tests evaluate
+  (`l4/tests/root-tests.l4`) — one per item, instrument that governs and
+  rule, with each set of instruments that speak, the cases it settles and
+  the first of them. A hand-written card attaches to such a row by key and
+  cannot add one; a card the root cannot speak for says why — no pay item
+  covers it yet, it is a statute's floor, it is text only, or a side is
+  not an instrument the root weighs — and the suite holds the page to the
+  root exactly.
   Its last group is **the simulator against the text** (MMS-522; until then a
   page of its own, `calculator-delta.html`, which now redirects there): where
   the Ministry of Education's public salary simulator computes otherwise than

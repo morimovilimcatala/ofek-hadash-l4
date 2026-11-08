@@ -194,7 +194,18 @@ all the files to give one answer", and disagreements raised as errors.
   contradictions found over it, `the resolutions` — each naming the
   instrument that governs and the rule, which precedence must agree with —
   and the gate, `unresolved contradictions`, `#ASSERT null`. The
-  disagreements stay asserted there as evidence.
+  disagreements stay asserted there as evidence. THE CONTRADICTIONS PAGE IS
+  GENERATED FROM THEM: `the contradictions report` (one line per
+  resolution: the instruments that speak, the one that governs, the rule,
+  the cases it settles and the first of them) is what `make l4` records,
+  and `tools/contradictions.py` makes a card of every row of it — one per
+  item, instrument that governs and rule. A hand-written card in
+  `data/contradictions.json` attaches to a row by key (`root`) and brings
+  its crops, what is paid and its prose; it cannot add a row. A card the
+  root cannot speak for says why in `not_in_root` (no pay item covers it
+  yet, a statute's floor, text only, or a side the root does not weigh),
+  and `tests.test_contradictions.TheRootIsTheSource` holds the page to the
+  report exactly, from the results `make l4` recorded.
 - **The month by the law**, `l4/lib/salary-root.l4` (MMS-525; the client,
   2026-10-22: "if a teacher wants to know his salary he wants to know the
   law, he doesn't care about the underlying documents"): what the

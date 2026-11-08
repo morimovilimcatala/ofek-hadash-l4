@@ -29,9 +29,11 @@ Pages, laid out like the corpus they encode:
                                    beside its rules (laws/<name>.toml, l4/laws/<name>.l4)
   laws/index.html                  every statute the corpus cites, and the sections it cites
                                    by number (data/statute-citations.json, MMS-601)
-  contradictions.html              where one instrument contradicts another, with a crop of
-                                   each page, the rule that decides and whether it was
-                                   followed (data/contradictions.json); and where the
+  contradictions.html              where one instrument contradicts another: every
+                                   contradiction the root finds, generated from its report
+                                   (MMS-521), with a crop of each page, the rule that
+                                   decides and whether it was followed where a card is
+                                   written by hand (data/contradictions.json); and where the
                                    ministry's simulator departs from the text, by cause
                                    (data/calculator-delta.json)
   coverage.html                    how much of the corpus is encoded
@@ -1878,11 +1880,16 @@ def simulator_group(findings: list[dict], by_file: dict[str, "SectionView"], key
 CONTRA = contradictions.load()
 
 
-def contradictions_page(findings: list[dict], by_file: dict[str, "SectionView"], key_to_view) -> str:
-    """Where one instrument contradicts another (tools/contradictions.py;
-    the data is data/contradictions.json, the crops data/contradictions/),
-    and where the ministry's simulator departs from the text."""
+def contradictions_page(findings: list[dict], by_file: dict[str, "SectionView"], key_to_view,
+                        href_of=lambda m: None) -> str:
+    """Where one instrument contradicts another (tools/contradictions.py):
+    every contradiction the root finds, generated from its report
+    (MMS-521), with the hand-written cards (data/contradictions.json, the
+    crops data/contradictions/) attached to its rows or standing where the
+    root cannot speak; and where the ministry's simulator departs from the
+    text. `href_of(module)` is an instrument's page, from the site root."""
     here = contradictions.HERE
+    report = contradictions.root_report()
 
     def clause_link(doc: str, key: str) -> tuple[str, str]:
         v = key_to_view.get((doc, key))
@@ -1899,7 +1906,9 @@ def contradictions_page(findings: list[dict], by_file: dict[str, "SectionView"],
         src=lambda f: rel(f"assets/contradictions/{f}", here),
         simulator=simulator_group(findings, by_file, key_to_view) if DELTA else None,
         evidence={f["id"]: (f["l4"], f["evidence"].strip("`")) for f in (REGISTER or findings) if f.get("l4") and f.get("evidence")},
-        root=roots.rulings(), root_href=rel(roots.ROOTS[0][1], here))
+        rows=contradictions.root_rows(report) if report is not None else None,
+        href_of=lambda m: rel(h, here) if (h := href_of(m)) else None,
+        root_href=rel(roots.ROOTS[0][1], here))
     return page(here, f"{contradictions.TAB} — {TITLE}", body, tab="contradictions",
                 desc="היכן שמקור אחד סותר מקור אחר — מסמכים, תלושים וסימולטור השכר של המשרד: כל מקור ותשובתו, והכלל שמכריע", sidebar=side)
 
@@ -2558,7 +2567,8 @@ def build() -> int:
         (OUT / "assets" / "contradictions").mkdir(parents=True, exist_ok=True)
         for f in contradictions.crops(CONTRA):
             shutil.copyfile(contradictions.CROPS / f, OUT / "assets" / "contradictions" / f)
-        (OUT / contradictions.HERE).write_text(contradictions_page(findings, by_file, key_to_view), encoding="utf-8")
+        (OUT / contradictions.HERE).write_text(contradictions_page(findings, by_file, key_to_view, href_of),
+                                               encoding="utf-8")
     (OUT / "findings.json").write_text(findings_json(findings, by_file, key_to_view), encoding="utf-8")
     (OUT / "index.json").write_text(index_json(flat), encoding="utf-8")
     (OUT / "coverage.html").write_text(coverage_page(all_views), encoding="utf-8")

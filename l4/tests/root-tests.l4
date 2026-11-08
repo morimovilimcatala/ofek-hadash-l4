@@ -468,8 +468,28 @@ GIVETH A LIST OF `contradiction`
 DECIDE `the contradictions on the item` i IS
     concat (map (GIVEN c YIELD `the contradictions on` i c) (`the cases checked for` i))
 
+-- Every contradiction with the case it was found in: the contradictions
+-- page is generated from it (`the contradictions report`, below).
+@desc A contradiction the root found, with the case it was found in.
+DECLARE `contradiction found` HAS
+    `the case`          IS A `teaching case`
+    `the contradiction` IS A `contradiction`
+
+GIVEN i IS A `pay item`, c IS A `teaching case`
+GIVETH A LIST OF `contradiction found`
+DECIDE `the contradictions found on` i c IS
+    map (GIVEN x YIELD `contradiction found` WITH `the case` IS c, `the contradiction` IS x) (`the contradictions on` i c)
+
+GIVEN i IS A `pay item`
+GIVETH A LIST OF `contradiction found`
+DECIDE `the contradictions found on the item` i IS
+    concat (map (GIVEN c YIELD `the contradictions found on` i c) (`the cases checked for` i))
+
+`the contradictions found` MEANS
+    concat (map `the contradictions found on the item` `the items`)
+
 `the contradictions` MEANS
-    concat (map `the contradictions on the item` `the items`)
+    map (GIVEN f YIELD f's `the contradiction`) `the contradictions found`
 
 -- The resolutions: one for each set of instruments that disagree and the
 -- instrument precedence makes govern them. Each names the rule; the gate
@@ -856,6 +876,148 @@ DECIDE `the titles joined` titles IS
 `the resolutions report` MEANS
     map `the report line of` `the resolutions`
 
+-- What the contradictions page is generated from (tools/contradictions.py,
+-- MMS-521): one line per resolution, in the order of `the resolutions` —
+-- the item; the modules of the instruments that speak, comma-separated;
+-- the module that governs; the rule; how many of the cases checked it
+-- settles; and the first of them, described, with what each instrument
+-- says in it and the answer that governs. Fields are separated by " | ".
+GIVEN r IS A `resolution`
+GIVETH A STRING
+DECIDE `the contradiction line of` r IS
+    CONCAT `the name of the item` (r's `item`), " | ",
+           `the modules joined` (r's `sources`), " | ",
+           r's `governed by`, " | ",
+           r's `by the rule`, " | ",
+           TOSTRING (count (filter (GIVEN x YIELD `settles` r x) `the contradictions`)), " | ",
+           `the example of` r
+
+GIVEN names IS A LIST OF STRING
+GIVETH A STRING
+DECIDE `the modules joined` names IS
+    foldr (GIVEN n, acc YIELD IF acc EQUALS "" THEN n ELSE CONCAT n, ",", acc) "" names
+
+-- The first case a resolution settles: the case described, " | ", what
+-- each instrument says in it ("module=answer", "; " between them), " | ",
+-- the answer that governs. Empty fields where it settles none.
+GIVEN r IS A `resolution`
+GIVETH A STRING
+DECIDE `the example of` r IS
+    CONSIDER filter (GIVEN f YIELD `settles` r (f's `the contradiction`)) `the contradictions found`
+    WHEN f FOLLOWED BY rest THEN
+        CONCAT `the case described` (f's `the case`), " | ",
+               `the claims listed` (`the claims on` (r's `item`) (f's `the case`)), " | ",
+               TOSTRING (f's `the contradiction`'s `the ruling`'s `the answer`)
+    WHEN EMPTY THEN " | "
+
+GIVEN claims IS A LIST OF `claim`
+GIVETH A STRING
+DECIDE `the claims listed` claims IS
+    foldr (GIVEN x, acc YIELD IF acc EQUALS "" THEN `the claim listed` x ELSE CONCAT `the claim listed` x, "; ", acc) "" claims
+
+GIVEN x IS A `claim`
+GIVETH A STRING
+DECIDE `the claim listed` x IS
+    CONCAT x's `by`'s `module`, "=", TOSTRING (x's `answer`)
+
+-- A case in the page's words: the month, the employer, and every fact the
+-- grid sets that is not its default.
+GIVEN c IS A `teaching case`
+GIVETH A STRING
+DECIDE `the case described` c IS
+    `the parts joined` (concat (LIST (LIST (`the month named` (c's `the salary month`)), (`the employer named` (c's `employer`))),
+                                     `the school named` (c's `the kind of school`),
+                                     `the facts named` c))
+
+GIVEN d IS A DATE
+GIVETH A STRING
+DECIDE `the month named` d IS
+    CONCAT "חודש השכר ", TOSTRING (DATE_MONTH d), "/", TOSTRING (DATE_YEAR d)
+
+GIVEN c IS A `teaching case`
+GIVETH A LIST OF STRING
+DECIDE `the facts named` c IS
+    concat (LIST (`if so` (c's `in post-primary education`) "בחינוך העל־יסודי"),
+                 (`if so` (c's `in the upper division`) "בחטיבה העליונה"),
+                 (`if so` (c's `represented by the secondary teachers' organisation`) "מיוצג בידי ארגון המורים"),
+                 (`if so` (c's `in a population whose 5% step was put off`) "מאוכלוסייה שהשלב השלישי נדחה לה"),
+                 (`if so` (c's `paid by the Ofek Hadash tables`) (`the reform's post named` c)),
+                 (`if so` (c's `the interns the teacher mentors` GREATER THAN 0) (`the interns named` c)),
+                 (`if so` (c's `the classes in each grade` GREATER THAN 0) (`the classes named` c)),
+                 (`if so` (c's `the roles the teacher holds` GREATER THAN 0) (`the roles named` c)))
+
+GIVEN so IS A BOOLEAN, words IS A STRING
+GIVETH A LIST OF STRING
+DECIDE `if so` so words IS
+    IF so THEN LIST words ELSE EMPTY
+
+GIVEN c IS A `teaching case`
+GIVETH A STRING
+DECIDE `the reform's post named` c IS
+    CONCAT "בטבלאות אופק חדש: ", `the post named` (c's `the post in the reform`), ", ", `the education named` (c's `the education`)
+
+GIVEN c IS A `teaching case`
+GIVETH A STRING
+DECIDE `the interns named` c IS
+    CONCAT "חונך ", TOSTRING (c's `the interns the teacher mentors`), " מתמחים"
+
+GIVEN c IS A `teaching case`
+GIVETH A STRING
+DECIDE `the classes named` c IS
+    CONCAT TOSTRING (c's `the classes in each grade`), " כיתות בשכבה"
+
+GIVEN c IS A `teaching case`
+GIVETH A STRING
+DECIDE `the roles named` c IS
+    CONCAT "מחזיק ", TOSTRING (c's `the roles the teacher holds`), " תפקידים",
+           (IF c's `a further role approved by the district manager` THEN ", ומנהל המחוז אישר גמול נוסף" ELSE "")
+
+GIVEN parts IS A LIST OF STRING
+GIVETH A STRING
+DECIDE `the parts joined` parts IS
+    foldr (GIVEN n, acc YIELD IF acc EQUALS "" THEN n ELSE CONCAT n, ", ", acc) "" parts
+
+GIVEN e IS A `the teacher's employer`
+GIVETH A STRING
+DECIDE `the employer named` e IS
+    CONSIDER e
+    WHEN `employed by the State` THEN "מועסק בידי המדינה"
+    WHEN `employed by a local authority` THEN "מועסק בידי רשות מקומית"
+    WHEN `employed by another owning body` THEN "מועסק בידי בעלות אחרת"
+
+GIVEN k IS A `the kind of school in the case`
+GIVETH A LIST OF STRING
+DECIDE `the school named` k IS
+    CONSIDER k
+    WHEN `a recognised unofficial special-education school` THEN LIST "בבית ספר מוכר שאינו רשמי לחינוך מיוחד"
+    WHEN `a Ma'ayan HaChinuch HaTorani or Chinuch Atzmai primary school` THEN LIST "בבית ספר יסודי של מעיין החינוך התורני או החינוך העצמאי"
+    WHEN `a recognised unofficial special-education kindergarten` THEN LIST "בגן מוכר שאינו רשמי לחינוך מיוחד"
+    WHEN `an official junior high of a six-year school` THEN LIST "בחטיבת ביניים רשמית של בית ספר שש־שנתי"
+    WHEN `another school` THEN EMPTY
+
+GIVEN p IS A `the post in the reform's tables`
+GIVETH A STRING
+DECIDE `the post named` p IS
+    CONSIDER p
+    WHEN `a teacher in the tables` THEN "מורה"
+    WHEN `a principal in the tables` THEN "מנהל"
+    WHEN `an adjacent junior-high principal in the tables` THEN "מנהל חטיבת ביניים צמודה"
+    WHEN `a first deputy in the tables` THEN "סגן ראשון"
+
+GIVEN e IS A `the education the tables ask`
+GIVETH A STRING
+DECIDE `the education named` e IS
+    CONSIDER e
+    WHEN `with a first degree` THEN "תואר ראשון"
+    WHEN `with a second degree` THEN "תואר שני"
+    WHEN `with a doctorate` THEN "דוקטורט"
+    WHEN `non-academic of senior rank` THEN "לא אקדמאי בדרגה בכירה"
+    WHEN `non-academic of certified rank` THEN "לא אקדמאי מוסמך"
+    WHEN `non-academic and uncertified` THEN "לא אקדמאי ולא מוסמך"
+
+`the contradictions report` MEANS
+    map `the contradiction line of` `the resolutions`
+
 §§ `השער`
 
 -- Every contradiction the root finds over every item's cases is resolved
@@ -871,6 +1033,15 @@ DECIDE `the titles joined` titles IS
 #EVAL `the resolutions report`
 #EVAL count `the resolutions`
 #EVAL count `the cases checked`
+#EVAL count `the contradictions`
+
+§§ `הסתירות`
+
+-- What the contradictions page is generated from (tools/contradictions.py,
+-- MMS-521): every resolution, its instruments by module, the one that
+-- governs, the rule, the cases it settles, and the first of them with what
+-- each instrument says in it.
+#EVAL `the contradictions report`
 
 §§ `ראיות`
 

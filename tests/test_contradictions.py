@@ -93,20 +93,132 @@ class EverySideQuotesTheCorpus(unittest.TestCase):
                 self.assertTrue(any(s["type"] not in contradictions.PAYING for s in c["sides"]))
 
 
-class TheRootDecides(unittest.TestCase):
-    """A card about an item the root asks (MMS-521) names it, and the
-    page shows what the root decides on it, from the root's own report."""
+def doc_of(module: str) -> str | None:
+    """The corpus document an L4 module encodes: its file's own path, or
+    the sectioned document its directory is (base-agreement-44 lives in
+    the base agreement's directory)."""
+    import modules
+    f = modules.wanted()[0].get(module)
+    if f is None:
+        return None
+    rel = f.relative_to(ROOT / "l4")
+    for cand in (rel.with_suffix(".xml"), rel.parent.with_suffix(".xml")):
+        if (ROOT / "corpus" / "akn" / cand).exists():
+            return str(cand)
+    return None
 
-    def test_a_cards_root_item_is_one_the_root_decides(self):
+
+class TheRootIsTheSource(unittest.TestCase):
+    """MMS-521: every contradiction the root finds is a card, generated from
+    its report; a hand card attaches to a row by key and cannot add one; a
+    card the root cannot speak for says why. The report is read from what
+    `make l4` recorded for l4/tests/root-tests.l4 — the root is not
+    evaluated again here."""
+
+    @classmethod
+    def setUpClass(cls):
         import roots
         if not roots.current():
-            self.skipTest("the roots' results are not current: `make roots`")
-        decided = roots.rulings()
-        named = [c for c in DATA["items"] if c.get("root_item")]
-        self.assertTrue(named)
-        for c in named:
-            with self.subTest(item=c["id"]):
-                self.assertIn(c["root_item"], decided)
+            raise unittest.SkipTest("the roots' results are not current: `make l4`")
+        cls.report = contradictions.root_report()
+        assert cls.report is not None, "make l4 recorded no `the contradictions report`"
+        cls.rows = contradictions.root_rows(cls.report)
+        cls.shown = contradictions.cards(DATA, cls.rows)
+        cls.count = int(roots.evaluated("root", "count `the contradictions`"))
+
+    def test_the_report_holds_every_contradiction_the_root_finds(self):
+        """Every contradiction is settled by a resolution (the gate), and
+        the report has a line per resolution with the cases it settles: so
+        they add up to every contradiction found."""
+        import roots
+        self.assertEqual(sum(r["cases"] for r in self.report), self.count)
+        self.assertEqual(len(self.report), int(roots.evaluated("root", "count `the resolutions`")))
+        for r in self.report:
+            with self.subTest(item=r["item"], governs=r["governs"], sources=r["sources"]):
+                self.assertGreater(r["cases"], 0, "a resolution that settles no case")
+                self.assertIn(r["governs"], r["sources"])
+                self.assertEqual(set(r["says"]), set(r["sources"]))
+                self.assertGreaterEqual(len(set(r["says"].values())), 2, "an example with no disagreement")
+
+    def test_every_root_row_has_exactly_one_card(self):
+        keys = [contradictions.root_key(row) for _, row in self.shown if row]
+        self.assertEqual(sorted(keys), sorted(contradictions.root_key(r) for r in self.rows))
+
+    def test_no_card_claims_a_row_the_root_does_not_report(self):
+        rows = {contradictions.root_key(r) for r in self.rows}
+        claimed = [contradictions.root_key(c["root"]) for c in DATA["items"] if c.get("root")]
+        self.assertTrue(claimed)
+        self.assertEqual(len(claimed), len(set(claimed)), "two cards claim one row")
+        for k in claimed:
+            with self.subTest(root=k):
+                self.assertIn(k, rows)
+
+    def test_an_attached_card_adds_no_document_the_row_does_not_name(self):
+        """Crops, practice, משמעות and prose attach to a row; a document
+        side is one of the instruments the root says speak in it."""
+        rows = {contradictions.root_key(r): r for r in self.rows}
+        for c in DATA["items"]:
+            if not c.get("root"):
+                continue
+            docs = {doc_of(m) for m in rows[contradictions.root_key(c["root"])]["sources"]}
+            for s in c["sides"]:
+                if s["type"] in contradictions.PAYING:
+                    continue
+                with self.subTest(card=c["id"], side=s["label"]):
+                    self.assertIn(s["doc"], docs)
+
+    def test_a_card_the_root_cannot_speak_for_says_why(self):
+        """Exactly one of `root` and `not_in_root`, and the reason is the
+        one the card's sides show: a statute side is a statute floor; fewer
+        than two sides the root weighs is a source it does not weigh; two
+        weighed instruments it does not set against each other have no pay
+        item for it yet, or disagree on no figure."""
+        for c in DATA["items"]:
+            with self.subTest(card=c["id"]):
+                self.assertNotIn("root_item", c)
+                self.assertEqual(bool(c.get("root")), not c.get("not_in_root"))
+                why = c.get("not_in_root")
+                if not why:
+                    continue
+                self.assertIn(why, contradictions.NOT_IN_ROOT)
+                weighed = [s for s in c["sides"] if s["type"] in contradictions.WEIGHED]
+                if any(s["type"] == "law" for s in c["sides"]):
+                    self.assertEqual(why, "statute-floor")
+                elif len(weighed) < 2:
+                    self.assertEqual(why, "not-weighed")
+                else:
+                    self.assertIn(why, ("no-pay-item", "text-only"))
+
+    def test_every_rule_the_root_reports_has_its_place(self):
+        groups = {g["id"] for g in DATA["groups"]}
+        for r in self.rows:
+            with self.subTest(rule=r["rule"]):
+                self.assertIn(contradictions.RULE_GROUP.get(r["rule"]), groups)
+
+    def test_a_generated_card_is_the_rows_and_nothing_else(self):
+        inst = contradictions.instruments()
+        for c, row in self.shown:
+            if not c.get("generated"):
+                continue
+            with self.subTest(card=c["id"]):
+                self.assertEqual([s["module"] for s in c["sides"]], row["sources"])
+                for s in c["sides"]:
+                    self.assertEqual(s["type"], inst[s["module"]][1])
+                html = contradictions.generated_html(c, row, inst, href_of=lambda m: None, root_href="root.html")
+                self.assertIn(contradictions.esc(row["rule"]), html)
+                self.assertIn(contradictions.esc(inst[row["governs"]][0]), html)
+                self.assertEqual(html.count("<li>"), len(row["resolutions"]))
+
+    def test_the_built_page_has_every_card(self):
+        import build_site
+        page = build_site.OUT / contradictions.HERE
+        if not page.exists():
+            self.skipTest("run `make site` first")
+        html = page.read_text(encoding="utf-8")
+        self.assertEqual(html.count('<details class="cx-card'), len(self.shown))
+        for c, row in self.shown:
+            with self.subTest(card=c["id"]):
+                self.assertIn(f'id="{c["id"]}"', html)
 
 
 class EveryCropIsItsFile(unittest.TestCase):
