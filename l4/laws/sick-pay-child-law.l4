@@ -1,0 +1,223 @@
+-- חוק דמי מחלה (היעדרות בשל מחלת ילד), התשנ"ג-1993 — sections 1, 1א, 1ב,
+-- 1ג, 3 and 3א: the days an employee may charge to his accrued sick leave
+-- for the illness of a child under 16 (8, or 16 with the child in his sole
+-- custody or as its single parent), for a serious illness of a child under
+-- 18 (90, or 110), and to give personal assistance to his child with a
+-- disability (18 days and 18 more, and 52 hours and 52 more without loss of
+-- pay); a foster parent's share in them; that the law adds to every other
+-- right; and that the State is an employer like any other. The text is
+-- laws/sick-pay-child-law.toml, pinned from the live page of ספר החוקים
+-- הפתוח; the corpus holds no copy (MMS-601).
+--
+-- Why it is here: the takanon's §1.25.3.1 restates §§1 to 1ג as its
+-- clauses 3 to 3ג and lists the law among its sources. Where a restatement
+-- gives less, the law governs (§3 here; the root's precedence,
+-- l4/lib/precedence.l4; convention instruments.statute-floor). Unlike the
+-- Sick Pay Law's §§2 to 6, this law reaches an employee whatever
+-- collective agreement regulates his sick pay: its "employee" is not
+-- narrowed, and §3 says it adds to every right by law or agreement.
+
+IMPORT prelude
+
+@desc An employee's family, as the Child Illness Law asks about it.
+DECLARE `a parent's family under the Child Illness Law` HAS
+    `the spouse is an employee and did not take the absence` IS A BOOLEAN @desc "בן זוגו הוא עובד ולא נעדר מעבודתו מכוח זכאותו כאמור"
+    `the spouse is self-employed and did not leave the business for it` IS A BOOLEAN
+    `the employee is the child's single parent` IS A BOOLEAN @desc "הורה עצמאי", as the Single-Parent Families Law 1992 defines it
+    `the child is in the employee's sole custody` IS A BOOLEAN
+    `months with the employer` IS A NUMBER @desc for the same employer or at the same workplace
+
+-- The families the checks below ask about.
+`a single parent of a year's service` MEANS
+    `a parent's family under the Child Illness Law` WITH
+        `the spouse is an employee and did not take the absence` IS FALSE
+        `the spouse is self-employed and did not leave the business for it` IS FALSE
+        `the employee is the child's single parent` IS TRUE
+        `the child is in the employee's sole custody` IS FALSE
+        `months with the employer` IS 12
+
+`a parent whose spouse works, of a year's service` MEANS
+    `a parent's family under the Child Illness Law` WITH
+        `the spouse is an employee and did not take the absence` IS TRUE
+        `the spouse is self-employed and did not leave the business for it` IS FALSE
+        `the employee is the child's single parent` IS FALSE
+        `the child is in the employee's sole custody` IS FALSE
+        `months with the employer` IS 12
+
+`a parent whose spouse does not work, of a year's service` MEANS
+    `a parent's family under the Child Illness Law` WITH
+        `the spouse is an employee and did not take the absence` IS FALSE
+        `the spouse is self-employed and did not leave the business for it` IS FALSE
+        `the employee is the child's single parent` IS FALSE
+        `the child is in the employee's sole custody` IS FALSE
+        `months with the employer` IS 12
+
+§ `חוק דמי מחלה (היעדרות בשל מחלת ילד) — הימים שהעובד זוקף`
+
+§§ `1`
+
+-- An employee with a child under 16 may charge to his accrued sick leave,
+-- for the child's illness, (א) up to 8 days a year where his spouse is an
+-- employee who did not take the absence, or self-employed and did not
+-- leave the business on those days; (ב) up to 16 where the child is in his
+-- sole custody or he is its single parent. None where neither holds.
+@ref law:1
+GIVEN `age of the child` IS A NUMBER, f IS A `a parent's family under the Child Illness Law`
+GIVETH A NUMBER
+DECIDE `days a year section 1 of the Child Illness Law gives` `age of the child` f IS
+    IF `age of the child` AT LEAST 16
+    THEN 0
+    ELSE BRANCH IF f's `the child is in the employee's sole custody` OR f's `the employee is the child's single parent` THEN 16
+                IF f's `the spouse is an employee and did not take the absence`
+                   OR f's `the spouse is self-employed and did not leave the business for it` THEN 8
+                OTHERWISE 0
+
+#ASSERT `days a year section 1 of the Child Illness Law gives` 5 `a parent whose spouse works, of a year's service` EQUALS 8
+#ASSERT `days a year section 1 of the Child Illness Law gives` 5 `a single parent of a year's service` EQUALS 16
+#ASSERT `days a year section 1 of the Child Illness Law gives` 16 `a single parent of a year's service` EQUALS 0
+
+§§ `1א`
+
+-- (א): an employee with a child under 18, after a year with the employer
+-- or at the workplace, may charge up to 90 days a year for a serious
+-- illness of the child, to his accrued sick leave or his vacation, as he
+-- chooses; up to 110 where his spouse is an employee who did not take the
+-- absence, or he is a single parent, or the child is in his sole custody.
+-- (ב): the days charged under §1 count. (ג): a serious illness is a
+-- malignant one, one that needs regular dialysis, or another the Minister
+-- sets by order.
+@desc A child's illness, as section 1א(ג) tells a serious one.
+DECLARE `a child's illness under section 1א` IS ONE OF
+    `a malignant illness of the child`
+    `an illness of the child that needs regular dialysis`
+    `another illness of the child the Minister set by order`
+    `an illness of the child that is none of these`
+
+@ref law:1א
+GIVEN i IS A `a child's illness under section 1א`
+GIVETH A BOOLEAN
+DECIDE `a serious illness as section 1א means` i IF
+    NOT i EQUALS `an illness of the child that is none of these`
+
+@ref law:1א
+GIVEN `age of the child` IS A NUMBER
+      i IS A `a child's illness under section 1א`
+      f IS A `a parent's family under the Child Illness Law`
+      `days already charged under section 1` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `days left a year under section 1א of the Child Illness Law` `age of the child` i f `days already charged under section 1` IS
+    IF `age of the child` AT LEAST 18
+       OR f's `months with the employer` LESS THAN 12
+       OR NOT `a serious illness as section 1א means` i
+    THEN 0
+    ELSE max 0 (`ceiling` MINUS `days already charged under section 1`)
+    WHERE
+        `ceiling` MEANS
+            IF     f's `the spouse is an employee and did not take the absence`
+                OR f's `the employee is the child's single parent`
+                OR f's `the child is in the employee's sole custody`
+            THEN 110
+            ELSE 90
+
+@ref law:1א
+`section 1א lets the employee charge a serious illness's days to his vacation instead, as he chooses` MEANS TRUE
+
+#ASSERT `days left a year under section 1א of the Child Illness Law` 10 `an illness of the child that needs regular dialysis` `a parent whose spouse does not work, of a year's service` 0 EQUALS 90
+#ASSERT `days left a year under section 1א of the Child Illness Law` 10 `a malignant illness of the child` `a single parent of a year's service` 6 EQUALS 104
+#ASSERT `days left a year under section 1א of the Child Illness Law` 10 `an illness of the child that is none of these` `a single parent of a year's service` 0 EQUALS 0
+
+§§ `1ב`
+
+-- (א): a parent of a person with a disability, after a year with the
+-- employer or at the workplace, may charge up to 18 days a year, to his
+-- accrued sick leave or his vacation as he chooses, to give the personal
+-- assistance the person needs; and up to 18 more where (1) his spouse is an
+-- employee who did not take it, (2) his spouse is self-employed and did not
+-- leave the business for it, (3) he is a single parent, or (4) the person
+-- is in his sole custody — provided no other person used the additional
+-- days for the same person. (א1): parts of days count, and sick pay is due
+-- from the first day. (א2): besides, up to 52 hours a year of absence for
+-- that assistance without loss of pay, and 52 more on (1)–(4), in
+-- proportion for a part-time position (its share against a full one or 186
+-- hours a month, the lower). (ב): a guardian likewise, where no other cares
+-- for the person and no other guardian used it. (ג): days under §§1 and 1א
+-- for the same child count. (ה): not for a disability that is not
+-- permanent and should pass within 60 days and not recur.
+@ref law:1ב
+GIVEN f IS A `a parent's family under the Child Illness Law`
+      `another person used the additional days for the same person` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `section 1ב opens the additional days` f `another person used the additional days for the same person` IF
+        (   f's `the spouse is an employee and did not take the absence`
+         OR f's `the spouse is self-employed and did not leave the business for it`
+         OR f's `the employee is the child's single parent`
+         OR f's `the child is in the employee's sole custody`)
+    AND NOT `another person used the additional days for the same person`
+
+@ref law:1ב
+`additional days a year section 1ב(א) gives` MEANS 18
+
+@ref law:1ב
+GIVEN f IS A `a parent's family under the Child Illness Law`
+      `another person used the additional days for the same person` IS A BOOLEAN
+      `days already charged under sections 1 and 1א for the same child` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `days left a year under section 1ב of the Child Illness Law` f `another person used the additional days for the same person` `days already charged under sections 1 and 1א for the same child` IS
+    IF f's `months with the employer` LESS THAN 12
+    THEN 0
+    ELSE max 0 (`ceiling` MINUS `days already charged under sections 1 and 1א for the same child`)
+    WHERE
+        `ceiling` MEANS
+            18 PLUS (IF `section 1ב opens the additional days` f `another person used the additional days for the same person`
+                     THEN `additional days a year section 1ב(א) gives`
+                     ELSE 0)
+
+@ref law:1ב
+GIVEN f IS A `a parent's family under the Child Illness Law`
+      `another person used the additional hours for the same person` IS A BOOLEAN
+      `his monthly working hours` IS A NUMBER @desc the average of his fullest quarter in the 12 months before
+      `a full position's monthly hours at his workplace` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `paid hours a year section 1ב(א2) gives` f `another person used the additional hours for the same person` `his monthly working hours` `a full position's monthly hours at his workplace` IS
+    `the hours of a full position` TIMES `his share of a position`
+    WHERE
+        `the hours of a full position` MEANS
+            52 PLUS (IF `section 1ב opens the additional days` f `another person used the additional hours for the same person`
+                     THEN 52
+                     ELSE 0)
+        `his share of a position` MEANS
+            min 1 (`his monthly working hours` DIVIDED BY (min `a full position's monthly hours at his workplace` 186))
+
+#ASSERT `days left a year under section 1ב of the Child Illness Law` `a parent whose spouse works, of a year's service` FALSE 0 EQUALS 36
+#ASSERT `days left a year under section 1ב of the Child Illness Law` `a parent whose spouse does not work, of a year's service` FALSE 0 EQUALS 18
+#ASSERT `paid hours a year section 1ב(א2) gives` `a parent whose spouse works, of a year's service` FALSE 93 186 EQUALS 52
+
+§§ `1ג`
+
+-- §§1 to 1ב apply to a foster parent, but his days are charged only where
+-- the natural or adoptive parent did not use the same right on those days.
+@ref law:1ג
+GIVEN `the natural or adoptive parent used the right on those days` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `section 1ג charges a foster parent's days` `the natural or adoptive parent used the right on those days` IF
+    NOT `the natural or adoptive parent used the right on those days`
+
+#ASSERT `section 1ג charges a foster parent's days` FALSE
+
+§§ `3`
+
+-- The law adds to an employee's right by law or agreement and takes none
+-- away: for a right measured in one number, the larger stands.
+@ref law:3
+GIVEN `what the law gives` IS A NUMBER, `what the instrument gives` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `what stands under section 3 of the Child Illness Law` `what the law gives` `what the instrument gives` IS
+    max `what the law gives` `what the instrument gives`
+
+#ASSERT `what stands under section 3 of the Child Illness Law` 18 15 EQUALS 18
+
+§§ `3א`
+
+-- For this law the State as employer is like any other employer.
+@ref law:3א
+`the Child Illness Law binds the State as an employer` MEANS TRUE

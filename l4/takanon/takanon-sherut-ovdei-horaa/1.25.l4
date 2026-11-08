@@ -12,6 +12,11 @@ IMPORT conventions
 IMPORT womens_work_law
 IMPORT national_insurance_law
 IMPORT equal_opportunities_law
+IMPORT sick_pay_law
+IMPORT sick_pay_child_law
+IMPORT sick_pay_parent_law
+IMPORT sick_pay_spouse_law
+IMPORT sick_pay_partner_pregnancy_law
 
 § `1.25 חופשות והיעדרויות`
 
@@ -752,6 +757,28 @@ GIVEN `salary had the employee worked` IS A NUMBER
 GIVETH A NUMBER
 DECIDE `salary on sick leave` `salary had the employee worked` IS `salary had the employee worked`
 
+-- The Sick Pay Law (imported). Its §1 leaves out of "an employee" one
+-- whose sick pay a collective agreement regulates, and the opening
+-- paragraph says a teacher's is the 1.9.58 agreement's: §§2 to 6 do not
+-- reach a teacher, and §12(ב) keeps what the agreement gives. Compared all
+-- the same, so that nothing turns on reading §1, clause 1 gives more on
+-- every count: 30 days a year where §4 accrues 18 for twelve full months,
+-- carried from year to year with no ceiling where §4 stops at 90; the whole
+-- salary from the first day of an absence where §2 gives nothing for the
+-- first and half for the second and third; the salary had he worked, which
+-- is §5's measure; and an illness in §1's own words. Clause 2's declaration
+-- days excuse, twice a year, the certificate whose procedure §2(ג) leaves
+-- to the Minister: more again. The floor is met.
+`clause 1 gives at least the Sick Pay Law` MEANS
+        NOT `an employee as section 1 of the Sick Pay Law means` TRUE
+    AND `sick-leave days a year` AT LEAST `days of sick pay a year of work accrues under section 4`
+    AND `credited sick days carry over to the next year`
+    AND all (GIVEN d YIELD `salary on sick leave` 1 AT LEAST `the share of sick pay section 2 gives for the day` d FALSE) (LIST 1, 2, 3, 4, 10)
+    AND 10 AT LEAST `days of sick pay section 2 gives for an absence of` 10
+    AND `salary on sick leave` 1000 EQUALS `sick pay section 5 gives` 1000
+    AND `entitled to sick leave` TRUE TRUE EQUALS `an illness as section 1 of the Sick Pay Law means` TRUE TRUE
+#ASSERT `clause 1 gives at least the Sick Pay Law`
+
 -- akn:chp_1ב__sec_1_25__ssec_1_25_3_1/p10 Pointer to clause 12 (illness in a sabbatical year), encoded below.
 
 -- akn:chp_1ב__sec_1_25__ssec_1_25_3_1/p11 Heading of clause 2 ("declaration days").
@@ -818,6 +845,51 @@ DECIDE `a parent's family for clause 3` `spouse works and did not take it` `sole
     AND `section 4 gives the father the right` TRUE `a father with the child in his sole custody`
     AND `days a year for a child's illness` 5 (`a parent's family for clause 3` FALSE TRUE) EQUALS 16
 #ASSERT `clause 3 gives a father the days wherever section 4 does`
+
+-- The Child Illness Law (imported), §1: clause 3 is its words — a child
+-- under 16, 8 days where the spouse works (or is self-employed) and did
+-- not take the absence, 16 with the child in sole custody or for a single
+-- parent. Day for day, in every one of the circumstances, it gives what §1
+-- gives. The floor is met.
+GIVEN f IS A `family circumstances`
+GIVETH A `a parent's family under the Child Illness Law`
+DECIDE `the family as the Child Illness Law asks` f IS
+    `a parent's family under the Child Illness Law` WITH
+        `the spouse is an employee and did not take the absence` IS f's `the spouse is an employee who did not take this absence`
+        `the spouse is self-employed and did not leave the business for it` IS f's `the spouse is self-employed and did not leave the business for it`
+        `the employee is the child's single parent` IS f's `a single parent`
+        `the child is in the employee's sole custody` IS f's `in the employee's sole custody`
+        `months with the employer` IS 12 TIMES f's `years with this employer`
+
+GIVEN `spouse works` IS A BOOLEAN, `spouse self-employed` IS A BOOLEAN, `single parent` IS A BOOLEAN, `sole custody` IS A BOOLEAN
+GIVETH A `family circumstances`
+DECIDE `a family for the sick-pay laws` `spouse works` `spouse self-employed` `single parent` `sole custody` IS
+    `family circumstances` WITH
+        `the spouse is an employee who did not take this absence` IS `spouse works`
+        `the spouse is self-employed and did not leave the business for it` IS `spouse self-employed`
+        `in the employee's sole custody`          IS `sole custody`
+        `a single parent`                         IS `single parent`
+        `years with this employer`                IS 1
+        `another person used the additional days for the same person` IS FALSE
+        `days already charged under clause 3`     IS 0
+        `days already charged under clauses 3 and 3a for the disabled child` IS 0
+
+`the families the sick-pay checks run over` MEANS
+    LIST `a family for the sick-pay laws` FALSE FALSE FALSE FALSE,
+         `a family for the sick-pay laws` TRUE  FALSE FALSE FALSE,
+         `a family for the sick-pay laws` FALSE TRUE  FALSE FALSE,
+         `a family for the sick-pay laws` FALSE FALSE TRUE  FALSE,
+         `a family for the sick-pay laws` FALSE FALSE FALSE TRUE,
+         `a family for the sick-pay laws` TRUE  FALSE TRUE  FALSE,
+         `a family for the sick-pay laws` FALSE TRUE  FALSE TRUE
+
+`clause 3 gives what section 1 of the Child Illness Law gives` MEANS
+    all (GIVEN f YIELD
+                all (GIVEN a YIELD `days a year for a child's illness` a f
+                                   EQUALS `days a year section 1 of the Child Illness Law gives` a (`the family as the Child Illness Law asks` f))
+                    (LIST 3, 15, 16))
+        `the families the sick-pay checks run over`
+#ASSERT `clause 3 gives what section 1 of the Child Illness Law gives`
 
 -- akn:chp_1ב__sec_1_25__ssec_1_25_3_1/p19 Heading of clause 3א ("absence for a child's malignant illness").
 
@@ -961,6 +1033,23 @@ DECIDE `the laws clause 4 names in its text` IS EMPTY
     count `clause 4's references to "the Law"` GREATER THAN 0 AND null `the laws clause 4 names in its text`
 #ASSERT `clause 4 refers to a law it never names`
 
+
+-- The Parent Illness Law (imported), §§1 and 3: clause 4 gives its six
+-- days in its words, a parent wholly dependent on others, the spouse an
+-- employee who did not take the absence. The nursing institution, the
+-- sibling and the doctor's confirmation are the rules §2 leaves to the
+-- Minister's regulations, not pinned. Where the law's conditions hold and
+-- the rest are met, the days are the law's six. The floor is met.
+`clause 4 gives the Parent Illness Law's six days` MEANS
+    `days a year for a parent's illness` (`parent's illness` WITH
+            `the parent is wholly dependent on others for daily activities` IS TRUE
+            `the parent is in a nursing institution` IS FALSE
+            `a sibling took the absence for the same matter and period` IS FALSE
+            `the spouse is an employee who did not take the absence` IS TRUE
+            `the parent's doctor confirmed the dependence` IS TRUE
+            `a signed declaration was delivered` IS TRUE)
+        AT LEAST `days a year section 1 of the Parent Illness Law gives` `a dependent parent, the spouse working and not taking it`
+#ASSERT `clause 4 gives the Parent Illness Law's six days`
 -- akn:chp_1ב__sec_1_25__ssec_1_25_3_1/p47 Heading of clause 5 ("absence for a spouse's illness").
 
 -- Clause 5א: up to 6 days a year for a spouse's illness, on a signed
@@ -985,6 +1074,13 @@ DECIDE `days left for a spouse's malignant illness` `years in the service` `days
     THEN max 0 (60 MINUS `days charged under clause 5a`)
     ELSE 0
 
+-- The Spouse Illness Law (imported), §§1 and 3: clause 5א gives its six
+-- days for a spouse wholly dependent on others, in its words. The floor is
+-- met.
+`clause 5א gives the Spouse Illness Law's six days` MEANS
+    `days a year for a spouse's illness` TRUE TRUE AT LEAST `days a year section 1 of the Spouse Illness Law gives` TRUE
+#ASSERT `clause 5א gives the Spouse Illness Law's six days`
+
 -- akn:chp_1ב__sec_1_25__ssec_1_25_3_1/p56 Heading of clause 6 ("absence for pregnancy and birth").
 
 -- Clause 6: up to 7 days a year for a partner's pregnancy treatments or tests,
@@ -1007,6 +1103,13 @@ DECIDE `a qualifying partner's-pregnancy absence` r `documents delivered` IF
 
 @ref akn:chp_1ב__sec_1_25__ssec_1_25_3_1/p62
 `the partner's-pregnancy rule applies from` MEANS 20000706
+
+-- The Partner Pregnancy Law (imported), §1: clause 6 gives its seven days,
+-- by the rules the Minister set (the three qualifying absences). The floor
+-- is met.
+`clause 6 gives the Partner Pregnancy Law's seven days` MEANS
+    `days a year for a partner's pregnancy and birth` AT LEAST `days a year section 1 of the Partner Pregnancy Law gives`
+#ASSERT `clause 6 gives the Partner Pregnancy Law's seven days`
 
 -- akn:chp_1ב__sec_1_25__ssec_1_25_3_1/p63 Heading of clause 7 ("use of sick days by an official-education employee disqualified for health reasons").
 

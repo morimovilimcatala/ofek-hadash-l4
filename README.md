@@ -45,7 +45,7 @@ that updated it, the steps it prints.
 | `conventions.toml`, `l4/conventions.l4` | the rules of reading the encoding follows where the text does not decide, and the one L4 definition of each that is a computation, which the rules import |
 | `findings/<corpus path>/<section>.toml` (one per section) | errors in the text the encoding exposed, each backed by an `#ASSERT` |
 | `data/calculator-delta.json` | the comparison with the ministry's salary simulator: inputs, outputs, mappings, clauses and classifications only (written outside this repository; shown as the simulator's group of the contradictions page) |
-| `laws/<name>.toml`, `l4/laws/<name>.l4` | a statute encoded though the corpus holds no copy of it (חוק הסכמים קיבוציים §§2, 15–16, 19–23; חוק יסודות התקציב §§21, 29, 32; חוק שכר מינימום §§1–3, 11; חוק הגנת השכר §§20, 25; חוק פיצויי פיטורים §§1, 12, 13, 13ב, 14, 31; חוק עבודת נשים §§6, 6א, 7, 7א, 8, 9, 10, 19, 23; חוק שוויון ההזדמנויות בעבודה §§2, 3, 4, 17; and the others `laws/` holds): its sections' words pinned from ספר החוקים הפתוח, and their rules |
+| `laws/<name>.toml`, `l4/laws/<name>.l4` | a statute encoded though the corpus holds no copy of it (חוק הסכמים קיבוציים §§2, 15–16, 19–23; חוק יסודות התקציב §§21, 29, 32; חוק שכר מינימום §§1–3, 11; חוק הגנת השכר §§20, 25; חוק פיצויי פיטורים §§1, 12, 13, 13ב, 14, 31; חוק עבודת נשים §§6, 6א, 7, 7א, 8, 9, 10, 19, 23; חוק שוויון ההזדמנויות בעבודה §§2, 3, 4, 17; חוק דמי מחלה §§1, 2, 4, 4א, 5, 6, 12, and its laws of absence for a child's illness §§1, 1א, 1ב, 1ג, 3, 3א, a parent's §§1, 3, 4, 4א, a spouse's §§1, 1א, 3, 4, 5 and a partner's pregnancy §§1, 3, 4; and the others `laws/` holds): its sections' words pinned from ספר החוקים הפתוח, and their rules |
 | `data/statute-citations.json` | every statute the corpus cites and every section it cites by number, with the documents that cite it, read off the corpus's own links to ספר החוקים הפתוח (`tools/statute_citations.py`, MMS-601) |
 | `data/contradictions.json`, `data/contradictions/` | the hand-written layer of the contradictions page, whose rows the root generates where it can speak (MMS-521): a card attaches to the root's row by key (`root`) and brings a side per source with its answer — a document with a crop of its page, or what the payslips or the simulator pay — and the rule's prose; a card the root cannot speak for says why (`not_in_root`); a circular against an agreement says which way it departs, and where it gives more, what §29 of the Budget Foundations Law makes of the excess |
 | `tools/` | the L4 runner, the AKN reader, the site generator |
@@ -162,6 +162,27 @@ that updated it, the steps it prints.
   them hers (convention `instruments.parenthood-right`). The takanon's
   day-care supplement (§1.14) falls short of the law as of the agreement of
   10.10.2011, on that agreement's card.
+- **The Sick Pay Law** (`laws/sick-pay-law.html`) — §§1, 2, 4, 4א, 5, 6
+  and 12: sick pay from the second day of an absence for illness (half for
+  the second and third), a day and a half for each full month of work up
+  to 90, no dismissal of an employee absent for his illness while his
+  accrued days last, the wage it is paid on, and that a collective
+  agreement's better right stands — and, by its §1, that §§2 to 6 do not
+  reach an employee whose sick pay a collective agreement regulates, as a
+  teacher's is (MMS-601). With it, the four laws that let an employee charge
+  to his accrued sick days an absence for a family member: a child's
+  illness, a child's serious illness and a child with a disability
+  (`laws/sick-pay-child-law.html`), a parent's illness
+  (`laws/sick-pay-parent-law.html`), a spouse's illness and malignant
+  illness (`laws/sick-pay-spouse-law.html`), and a partner's pregnancy and
+  birth (`laws/sick-pay-partner-pregnancy-law.html`). The takanon's
+  §1.25.3.1 gives more than the Sick Pay Law on every count — 30 days a
+  year, with no ceiling, and the whole salary from the first day — and its
+  clauses 3, 4, 5א and 6 give what those laws give; circular תשע"ג/5's
+  accrual, measured in weeks of the teacher's own timetable (convention
+  `instruments.sick-days-measure`), and the two corona agreements of 2020
+  are above the floor too, and the takanon's §6.5 dismissal on health
+  grounds leaves §4א standing.
 - **The statutes the corpus cites** (`laws/index.html`) — every act the
   corpus links to, how many documents cite it, the sections it cites by
   number, and which of them the L4 pins (MMS-601). The protective statutes'

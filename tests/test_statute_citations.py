@@ -26,6 +26,15 @@ CITED_NOT_PINNED = {
     "national-insurance-law:22",
 }
 
+# The laws the L4 pins though no document of the corpus links to their live
+# page, held exactly. A protective statute is compared with every
+# instrument that rules on its subject, cited or not (MMS-601): the takanon's
+# §1.25.3.1 quotes the Sick Pay Law's definition of an illness without
+# naming it, and prints the Child Illness and Parent Illness Laws among its
+# sources without the link the corpus gives the Spouse Illness and Partner
+# Pregnancy Laws. A link the corpus adds moves a law out of this set.
+PINNED_NOT_LINKED = {"sick-pay-law", "sick-pay-child-law", "sick-pay-parent-law"}
+
 
 class TheInventoryIsTheCorpus(unittest.TestCase):
 
@@ -53,16 +62,18 @@ class TheInventoryIsTheCorpus(unittest.TestCase):
         self.assertIsNone(statute_citations.AFTER.match(', בסעיף 14.1.31'))
 
     def test_every_pinned_law_is_found_in_the_record_by_its_page(self):
-        for name in laws.all_laws():
-            with self.subTest(law=name):
-                self.assertIsNotNone(laws.corpus_citations(laws.load(name)))
+        """Every pinned law but the ones the corpus does not link, which
+        are named."""
+        unlinked = {name for name in laws.all_laws()
+                    if laws.corpus_citations(laws.load(name)) is None}
+        self.assertEqual(unlinked, PINNED_NOT_LINKED)
 
     def test_the_cited_sections_not_pinned_are_the_ratchet(self):
         missing = set()
         for name in laws.all_laws():
             law = laws.load(name)
             mine = {s["num"] for s in law["section"]}
-            for s in laws.corpus_citations(law)["sections"]:
+            for s in (laws.corpus_citations(law) or {"sections": []})["sections"]:
                 if s["num"] not in mine:
                     missing.add(f"{name}:{s['num']}")
         self.assertEqual(missing, CITED_NOT_PINNED)

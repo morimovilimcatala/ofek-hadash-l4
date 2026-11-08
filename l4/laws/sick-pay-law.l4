@@ -1,0 +1,255 @@
+-- חוק דמי מחלה, התשל"ו-1976 — sections 1, 2, 4, 4א, 5, 6 and 12: who is
+-- an employee for the law and what an illness is, sick pay from the second
+-- day of an absence for illness (half for the second and third, whole from
+-- the fourth; from the first for a malignant illness's or dialysis's
+-- treatments), a day and a half for each full month of work and no more
+-- than 90, no dismissal of an employee absent for his illness while his
+-- accrued days last, the wage it is paid on and its components, and that
+-- the law takes no right a collective agreement gives. The text is
+-- laws/sick-pay-law.toml, pinned from the live page of ספר החוקים הפתוח;
+-- the corpus holds no copy (MMS-601).
+--
+-- Why it is here: the takanon's §1.25.3.1, and the circulars and
+-- agreements that follow it, rule on every subject of these sections
+-- without citing the law. §1 leaves out of "an employee" one whose sick pay
+-- a collective agreement regulates, which is every teacher here (the
+-- takanon's sick leave is the 1.9.58 agreement's), so §§2 to 6 do not reach
+-- a teacher; §4א does (its (ג)), and §12 keeps what the agreement gives.
+-- Where an instrument rules on a subject of §§2 to 6, it is compared all
+-- the same, so that no outcome turns on reading §1.
+--
+-- Time is counted as the law counts it: the absence and the accrual in
+-- days, the work in months. A procedure the Minister sets by regulation
+-- (§2(ג), §4(ד)) is not pinned; no rule here turns on one.
+
+IMPORT prelude
+IMPORT parties
+
+§ `חוק דמי מחלה — הזכות, השיעור, הצבירה והגנה מפיטורים`
+
+§§ `1`
+
+-- "Employee": one whose payment for a period of illness is not regulated
+-- by a collective agreement (an agreement, registered or not, another
+-- collective arrangement, or an extension order). "Salaried": paid mainly
+-- by the month or a longer period; "wage-earner", every other. "Illness":
+-- the temporary or permanent inability to do his work that follows, on
+-- medical findings, from ill health.
+@ref law:1
+GIVEN `a collective agreement regulates his payment for a period of illness` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `an employee as section 1 of the Sick Pay Law means` `a collective agreement regulates his payment for a period of illness` IF
+    NOT `a collective agreement regulates his payment for a period of illness`
+
+@ref law:1
+GIVEN `unable, for a time or for good, to do his work` IS A BOOLEAN
+      `it follows, on medical findings, from ill health` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `an illness as section 1 of the Sick Pay Law means` `unable, for a time or for good, to do his work` `it follows, on medical findings, from ill health` IF
+    `unable, for a time or for good, to do his work` AND `it follows, on medical findings, from ill health`
+
+@ref law:1
+`the Sick Pay Law's words for an illness` MEANS "אי כשרו הזמני או הקבוע של העובד לבצע עבודתו, הנובע, על פי ממצאים רפואיים, ממצב בריאות לקוי"
+
+#ASSERT `an employee as section 1 of the Sick Pay Law means` FALSE
+#ASSERT NOT `an employee as section 1 of the Sick Pay Law means` TRUE
+#ASSERT NOT `an illness as section 1 of the Sick Pay Law means` TRUE FALSE
+
+§§ `2`
+
+-- (א): an employee absent from work because of illness is paid by his
+-- employer, within the maximum of §4: (1) from the fourth day of the
+-- absence, sick pay; (2) for the second and third, half of it; the first,
+-- nothing, unless the Minister's regulations say otherwise. (א1): one who
+-- had a malignant illness, or an illness that needs regular dialysis, and
+-- is absent for its periodic treatment or tests, after recovery too, is
+-- paid from the first day, or part of it, on a doctor's written
+-- confirmation. (ב)(1): a salaried employee's period of illness is every
+-- day of it, weekly rest and holidays included; (2)–(5): a wage-earner's
+-- leaves them out, in proportion for one who did not work full time.
+-- (ג): procedures and the date of payment are the Minister's regulations.
+@ref law:2
+GIVEN `day of the absence` IS A NUMBER @desc 1 for its first day
+      `treatment or tests of a malignant illness or dialysis, on a doctor's confirmation` IS A BOOLEAN
+GIVETH A NUMBER
+DECIDE `the share of sick pay section 2 gives for the day` `day of the absence` `treatment or tests of a malignant illness or dialysis, on a doctor's confirmation` IS
+    BRANCH IF `treatment or tests of a malignant illness or dialysis, on a doctor's confirmation` THEN 1
+           IF `day of the absence` AT LEAST 4 THEN 1
+           IF `day of the absence` AT LEAST 2 THEN 1 DIVIDED BY 2
+           OTHERWISE 0
+
+-- The days of sick pay section 2 gives for an absence of so many days,
+-- counting from its first: what an instrument that pays every day is
+-- compared with.
+@ref law:2
+GIVEN `days of the absence` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `days of sick pay section 2 gives for an absence of` `days of the absence` IS
+    IF `days of the absence` AT MOST 1
+    THEN 0
+    ELSE `half days` PLUS `whole days`
+    WHERE
+        `half days`  MEANS (min 2 (`days of the absence` MINUS 1)) DIVIDED BY 2
+        `whole days` MEANS max 0 (`days of the absence` MINUS 3)
+
+@ref law:2
+`section 2(ב)(1) counts a salaried employee's weekly rest and holidays in his period of illness` MEANS TRUE
+
+#ASSERT `the share of sick pay section 2 gives for the day` 1 FALSE EQUALS 0
+#ASSERT `the share of sick pay section 2 gives for the day` 3 FALSE EQUALS 1 DIVIDED BY 2
+#ASSERT `the share of sick pay section 2 gives for the day` 4 FALSE EQUALS 1
+#ASSERT `the share of sick pay section 2 gives for the day` 1 TRUE EQUALS 1
+#ASSERT `days of sick pay section 2 gives for an absence of` 1 EQUALS 0
+#ASSERT `days of sick pay section 2 gives for an absence of` 3 EQUALS 1
+#ASSERT `days of sick pay section 2 gives for an absence of` 10 EQUALS 8
+
+§§ `4`
+
+-- (א): the period of sick pay is no more than a day and a half for each
+-- full month worked for the employer or at the workplace since the law
+-- applied to him, and no more than 90 days, less the days already paid
+-- under the law. (ב): a month in which he did not work every working day
+-- counts as full at 25 working days (21⅔ in a five-day week), and part of
+-- one gives a proportional share. (ג): a period insured under §§8 and 9
+-- is not counted. (ד): the Minister may regulate the method.
+@ref law:4
+`days of sick pay a full month of work accrues under section 4` MEANS 3 DIVIDED BY 2
+
+@ref law:4
+`most days of sick pay section 4 lets accrue` MEANS 90
+
+@ref law:4
+GIVEN `full months worked for the employer` IS A NUMBER
+      `days of sick pay already paid under the law` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `days of sick pay section 4 leaves him` `full months worked for the employer` `days of sick pay already paid under the law` IS
+    max 0 (`the days accrued` MINUS `days of sick pay already paid under the law`)
+    WHERE
+        `the days accrued` MEANS
+            min `most days of sick pay section 4 lets accrue` (`full months worked for the employer` TIMES `days of sick pay a full month of work accrues under section 4`)
+
+@ref law:4
+GIVEN `working days he worked in the month` IS A NUMBER
+      `the workplace works a five-day week` IS A BOOLEAN
+GIVETH A NUMBER
+DECIDE `the share of a full month section 4(ב) counts` `working days he worked in the month` `the workplace works a five-day week` IS
+    min 1 (`working days he worked in the month` DIVIDED BY `a full month's working days`)
+    WHERE
+        `a full month's working days` MEANS
+            IF `the workplace works a five-day week` THEN 65 DIVIDED BY 3 ELSE 25
+
+-- A year of full months: 18 days.
+`days of sick pay a year of work accrues under section 4` MEANS
+    12 TIMES `days of sick pay a full month of work accrues under section 4`
+
+#ASSERT `days of sick pay a year of work accrues under section 4` EQUALS 18
+#ASSERT `days of sick pay section 4 leaves him` 100 0 EQUALS 90
+#ASSERT `days of sick pay section 4 leaves him` 10 3 EQUALS 12
+#ASSERT `the share of a full month section 4(ב) counts` 13 FALSE EQUALS 13 DIVIDED BY 25
+
+§§ `4א`
+
+-- (א): an employer does not dismiss an employee absent for his illness in
+-- the period of sick pay accrued to him under the law or under a
+-- collective agreement, up to the maximum of §4. (ב): not where (1) the
+-- employer gave notice of dismissal under the Prior Notice Law before the
+-- absence began, or (2) the workplace stopped for good, or the employer is
+-- bankrupt or (a body) wound up. (ג): here "employee" includes one whose
+-- sick pay a collective agreement regulates — so this section, unlike §§2
+-- to 6, reaches a teacher.
+@desc What the Sick Pay Law forbids an employer.
+DECLARE `Sick Pay Law act` IS ONE OF
+    `dismiss an employee absent for his illness while his accrued sick-pay days last`
+
+@ref law:4א
+GIVETH A DEONTIC Party `Sick Pay Law act`
+DECIDE `no dismissal in the accrued sick-pay days` IS
+    PARTY `the employer`
+    SHANT `dismiss an employee absent for his illness while his accrued sick-pay days last`
+    LEST  BREACH BY `the employer` BECAUSE "Sick Pay Law, section 4א: an employer does not dismiss an employee absent for his illness in his accrued sick-pay period"
+
+-- The days of an absence §4א protects: those accrued to him, under the law
+-- or a collective agreement, but no more than §4's maximum for the months
+-- he worked.
+@ref law:4א
+GIVEN `sick-pay days accrued to him, under the law or a collective agreement` IS A NUMBER
+      `full months worked for the employer` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `days of an absence section 4א protects` `sick-pay days accrued to him, under the law or a collective agreement` `full months worked for the employer` IS
+    min `sick-pay days accrued to him, under the law or a collective agreement`
+        (`days of sick pay section 4 leaves him` `full months worked for the employer` 0)
+
+@ref law:4א
+GIVEN `absent for his illness` IS A BOOLEAN
+      `days of the absence before the dismissal` IS A NUMBER
+      `sick-pay days accrued to him, under the law or a collective agreement` IS A NUMBER
+      `full months worked for the employer` IS A NUMBER
+      `notice of dismissal given before the absence began` IS A BOOLEAN
+      `the workplace stopped for good, or the employer is bankrupt or wound up` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `section 4א bars the dismissal` `absent for his illness` `days of the absence before the dismissal` `sick-pay days accrued to him, under the law or a collective agreement` `full months worked for the employer` `notice of dismissal given before the absence began` `the workplace stopped for good, or the employer is bankrupt or wound up` IF
+        `absent for his illness`
+    AND `days of the absence before the dismissal` LESS THAN `the days it protects`
+    AND NOT `notice of dismissal given before the absence began`
+    AND NOT `the workplace stopped for good, or the employer is bankrupt or wound up`
+    WHERE
+        `the days it protects` MEANS
+            `days of an absence section 4א protects` `sick-pay days accrued to him, under the law or a collective agreement` `full months worked for the employer`
+
+@ref law:4א
+`section 4א reaches an employee whose sick pay a collective agreement regulates` MEANS TRUE
+
+#ASSERT `days of an absence section 4א protects` 300 240 EQUALS 90
+#ASSERT `days of an absence section 4א protects` 40 240 EQUALS 40
+#ASSERT `section 4א bars the dismissal` TRUE 60 100 240 FALSE FALSE
+#ASSERT NOT `section 4א bars the dismissal` TRUE 90 100 240 FALSE FALSE
+#ASSERT NOT `section 4א bars the dismissal` TRUE 10 100 240 TRUE FALSE
+
+§§ `5`
+
+-- (א): sick pay is the wage he would have been entitled to in the period
+-- had he gone on working; (ב): one paid by output, at his average output of
+-- the three months before.
+@ref law:5
+GIVEN `the wage he would have had working` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `sick pay section 5 gives` `the wage he would have had working` IS
+    `the wage he would have had working`
+
+#ASSERT `sick pay section 5 gives` 0 EQUALS 0
+
+§§ `6`
+
+-- (א): the wage sick pay is calculated on counts the basic wage, the
+-- seniority supplement, the cost-of-living supplement, the family
+-- supplement and a departmental or professional supplement. (ב): a wage
+-- not paid by these components counts the day's ordinary wage with any of
+-- them paid. (ג): the Minister may set another method by regulation.
+@desc A component of the wage section 6(א) counts for sick pay.
+DECLARE `wage component section 6 counts` IS ONE OF
+    `the basic wage`
+    `the seniority supplement`
+    `the cost-of-living supplement`
+    `the family supplement`
+    `a departmental or professional supplement`
+
+@ref law:6
+`the wage components section 6 counts` MEANS
+    LIST `the basic wage`, `the seniority supplement`, `the cost-of-living supplement`, `the family supplement`, `a departmental or professional supplement`
+
+#ASSERT count `the wage components section 6 counts` EQUALS 5
+
+§§ `12`
+
+-- (א): an employee entitled to sick pay both under the law and under the
+-- terms agreed or customary at his work has it under the one he chooses —
+-- for a right measured in one number, the larger. (ב): the law takes away
+-- no right a collective agreement gives, whether the law applies to the
+-- employees or not.
+@ref law:12
+GIVEN `what the law gives` IS A NUMBER, `what the agreed terms give` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `what stands under section 12 of the Sick Pay Law` `what the law gives` `what the agreed terms give` IS
+    max `what the law gives` `what the agreed terms give`
+
+#ASSERT `what stands under section 12 of the Sick Pay Law` 18 30 EQUALS 30
