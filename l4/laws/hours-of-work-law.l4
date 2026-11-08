@@ -1,0 +1,344 @@
+-- חוק שעות עבודה ומנוחה, התשי"א-1951 — sections 1, 2, 3, 5, 6, 7, 9, 16,
+-- 17, 18, 20, 30, 31 and 35: what working hours, overtime and night work
+-- are, a working day of eight hours (seven at night and on the eve of the
+-- weekly rest) and a working week of 45, a longer day or week a collective
+-- agreement the Minister approved may set, overtime and work in the weekly
+-- rest forbidden unless permitted, a weekly rest of 36 consecutive hours
+-- with the Sabbath in it, at least 125% of the regular wage for the first
+-- two overtime hours of a day and 150% after them, 150% for an hour of the
+-- weekly rest, the regular wage with every supplement in it, the breaks,
+-- whom the law does not reach, that a State employee is like any other,
+-- and that the law takes away no better right. The text is
+-- laws/hours-of-work-law.toml, pinned from the live page of ספר החוקים
+-- הפתוח; the corpus holds no copy (MMS-601).
+--
+-- Why it is here: the instruments set a teacher's working day and week,
+-- the hours beyond a full position and their pay, and the pay for
+-- escorting pupils out of school, and six documents of the corpus cite the
+-- law. Whether it reaches a teacher, and which of his hours it counts, is
+-- §30's question and the text does not answer it for a teacher: convention
+-- instruments.hours-law-teaching, a pick for the lawyer, answers it where
+-- an instrument is weighed against the law.
+--
+-- Time is counted as the law counts it: hours of the clock, in a day and in
+-- a week. A permit the Minister gives (§§10-12) and a regulation he makes
+-- (§§4, 8, 19) are not pinned: whether one exists is an input of the rule
+-- that reads it.
+
+IMPORT prelude
+IMPORT parties
+
+§ `חוק שעות עבודה ומנוחה — יום העבודה ושבוע העבודה, שעות נוספות, מנוחה שבועית והפסקות`
+
+§§ `1`
+
+-- "Working hours": the time the employee stands at the work's disposal,
+-- short agreed breaks for refreshment included, and the breaks of §20א(א)
+-- (the toilet), but not the breaks of §20. "Overtime": the working hours
+-- beyond the day §2 sets (or §4's regulations), or beyond the week §3 sets
+-- (or §4's). "Night work": work of which at least two hours fall between
+-- 22:00 and 06:00. (A labour inspector and a regional one are defined for
+-- sections not pinned.)
+@ref law:1
+GIVEN `hours at the work's disposal` IS A NUMBER @desc short agreed breaks included
+      `hours of breaks under section 20 in them` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `working hours section 1 of the Hours of Work and Rest Law counts` `hours at the work's disposal` `hours of breaks under section 20 in them` IS
+    max 0 (`hours at the work's disposal` MINUS `hours of breaks under section 20 in them`)
+
+-- Overtime in a week: the hours of each day beyond its day, and then the
+-- hours within the days that pass the week, so that no hour is counted
+-- twice.
+@ref law:1
+GIVEN `working hours of each day of the week` IS A LIST OF NUMBER
+      `the day the law sets` IS A NUMBER
+      `the week the law sets` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `overtime hours section 1 counts in a week` `working hours of each day of the week` `the day the law sets` `the week the law sets` IS
+    `beyond the days` PLUS max 0 (`within the days` MINUS `the week the law sets`)
+    WHERE
+        `beyond the days` MEANS
+            sum (map (GIVEN h YIELD max 0 (h MINUS `the day the law sets`)) `working hours of each day of the week`)
+        `within the days` MEANS
+            sum (map (GIVEN h YIELD min h `the day the law sets`) `working hours of each day of the week`)
+
+@ref law:1
+GIVEN `hours of the work between 22:00 and 06:00` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `night work as section 1 of the Hours of Work and Rest Law means` `hours of the work between 22:00 and 06:00` IF
+    `hours of the work between 22:00 and 06:00` AT LEAST 2
+
+#ASSERT `working hours section 1 of the Hours of Work and Rest Law counts` 9 0.75 EQUALS 8.25
+#ASSERT `overtime hours section 1 counts in a week` (LIST 10, 10, 10, 10, 10) 8 45 EQUALS 10
+#ASSERT `overtime hours section 1 counts in a week` (LIST 8, 8, 8, 8, 8, 8) 8 45 EQUALS 3
+#ASSERT `overtime hours section 1 counts in a week` (LIST 8, 8, 8, 8, 5) 8 45 EQUALS 0
+#ASSERT `night work as section 1 of the Hours of Work and Rest Law means` 2
+#ASSERT NOT `night work as section 1 of the Hours of Work and Rest Law means` 1
+
+§§ `2`
+
+-- (א): a working day is no longer than eight working hours. (ב): in night
+-- work, and on the day before the weekly rest and before a holiday the
+-- employee does not work, by law, agreement or custom, no longer than
+-- seven.
+@ref law:2
+GIVEN `night work, or the eve of the weekly rest or of a holiday` IS A BOOLEAN
+GIVETH A NUMBER
+DECIDE `the longest working day section 2 allows` `night work, or the eve of the weekly rest or of a holiday` IS
+    IF `night work, or the eve of the weekly rest or of a holiday` THEN 7 ELSE 8
+
+#ASSERT `the longest working day section 2 allows` FALSE EQUALS 8
+#ASSERT `the longest working day section 2 allows` TRUE EQUALS 7
+
+§§ `3`
+
+-- A working week is no longer than 45 working hours.
+@ref law:3
+`the longest working week section 3 allows` MEANS 45
+
+§§ `5`
+
+-- (א): a working day longer than eight hours, or a week longer than 45,
+-- that a collective agreement the Minister approved sets is as §§2 and 3's
+-- day and week; he approves only (1) where special circumstances keep §2's
+-- day or §3's week from being kept, and (2) where the average over the
+-- agreement's period is no more than ten hours a day and 45 a week. (ב): an
+-- approved agreement may set one day of no more than five hours and two of
+-- no more than nine, which are then as §2's day.
+@ref law:5
+GIVEN `special circumstances keep the law's day or week from being kept` IS A BOOLEAN
+      `the average day over the agreement's period` IS A NUMBER
+      `the average week over the agreement's period` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `section 5(א) lets the Minister approve the longer day or week` `special circumstances keep the law's day or week from being kept` `the average day over the agreement's period` `the average week over the agreement's period` IF
+        `special circumstances keep the law's day or week from being kept`
+    AND `the average day over the agreement's period` AT MOST 10
+    AND `the average week over the agreement's period` AT MOST 45
+
+@ref law:5
+`the long day section 5(ב) lets an approved agreement set` MEANS 9
+
+@ref law:5
+`days a week section 5(ב) lets be that long` MEANS 2
+
+@ref law:5
+`the short day section 5(ב) asks beside them` MEANS 5
+
+-- A day the agreement sets is as §2's day only where the Minister approved
+-- the agreement; otherwise §2's day stands.
+@ref law:5
+GIVEN `the Minister approved the agreement for its day` IS A BOOLEAN
+      `the day the agreement sets` IS A NUMBER
+      `night work, or the eve of the weekly rest or of a holiday` IS A BOOLEAN
+GIVETH A NUMBER
+DECIDE `the working day the law counts` `the Minister approved the agreement for its day` `the day the agreement sets` `night work, or the eve of the weekly rest or of a holiday` IS
+    IF `the Minister approved the agreement for its day`
+    THEN `the day the agreement sets`
+    ELSE `the longest working day section 2 allows` `night work, or the eve of the weekly rest or of a holiday`
+
+#ASSERT `section 5(א) lets the Minister approve the longer day or week` TRUE 9 45
+#ASSERT NOT `section 5(א) lets the Minister approve the longer day or week` TRUE 9 46
+#ASSERT `the working day the law counts` TRUE 9 FALSE EQUALS 9
+#ASSERT `the working day the law counts` FALSE 9 FALSE EQUALS 8
+
+§§ `6`
+
+-- Employing an employee in overtime is forbidden unless §10 permits it or
+-- a permit under §11 does. The permits are not pinned: whether one covers
+-- the hours is an input.
+@desc What the Hours of Work and Rest Law forbids an employer, unless a permit or the law allows it.
+DECLARE `Hours of Work and Rest Law act` IS ONE OF
+    `employ the employee in overtime`
+    `employ the employee in the weekly rest`
+
+@ref law:6
+GIVEN `section 10 or a permit under section 11 allows the overtime` IS A BOOLEAN
+GIVETH A DEONTIC Party `Hours of Work and Rest Law act`
+DECIDE `overtime only as permitted` `section 10 or a permit under section 11 allows the overtime` IS
+    IF `section 10 or a permit under section 11 allows the overtime`
+    THEN FULFILLED
+    ELSE (PARTY `the employer`
+          SHANT `employ the employee in overtime`
+          LEST  BREACH BY `the employer` BECAUSE "Hours of Work and Rest Law, section 6: overtime is forbidden unless section 10 or a permit under section 11 allows it")
+
+§§ `7`
+
+-- (א): at least 36 consecutive hours a week are the employee's weekly rest.
+-- (ב): it includes, for a Jew, the Sabbath; for one who is not, the
+-- Sabbath, Sunday or Friday, as he holds his day of rest.
+@ref law:7
+`the shortest weekly rest section 7 allows, in hours` MEANS 36
+
+@desc A day the weekly rest of section 7(ב) includes.
+DECLARE `the day of the weekly rest` IS ONE OF
+    `the Sabbath, as the day of rest`
+    `Sunday, as the day of rest`
+    `Friday, as the day of rest`
+
+@ref law:7
+GIVEN `a Jew` IS A BOOLEAN
+      `the day he holds his day of rest` IS A `the day of the weekly rest` @desc for one who is not a Jew
+GIVETH A `the day of the weekly rest`
+DECIDE `the day section 7(ב) puts in the weekly rest` `a Jew` `the day he holds his day of rest` IS
+    IF `a Jew` THEN `the Sabbath, as the day of rest` ELSE `the day he holds his day of rest`
+
+#ASSERT `the day section 7(ב) puts in the weekly rest` TRUE `Friday, as the day of rest` EQUALS `the Sabbath, as the day of rest`
+#ASSERT `the day section 7(ב) puts in the weekly rest` FALSE `Friday, as the day of rest` EQUALS `Friday, as the day of rest`
+
+§§ `9`
+
+-- Employing an employee in the weekly rest is forbidden unless a permit
+-- under §12 allows it (not pinned: an input).
+@ref law:9
+GIVEN `a permit under section 12 allows it` IS A BOOLEAN
+GIVETH A DEONTIC Party `Hours of Work and Rest Law act`
+DECIDE `no work in the weekly rest without a permit` `a permit under section 12 allows it` IS
+    IF `a permit under section 12 allows it`
+    THEN FULFILLED
+    ELSE (PARTY `the employer`
+          SHANT `employ the employee in the weekly rest`
+          LEST  BREACH BY `the employer` BECAUSE "Hours of Work and Rest Law, section 9: work in the weekly rest is forbidden unless a permit under section 12 allows it")
+
+§§ `16`
+
+-- (א): for the first two overtime hours of a day, at least 1¹⁄₄ of the
+-- regular wage; for every overtime hour after them, at least 1¹⁄₂ (and the
+-- same for piece-work, by the unit). (ב): one paid by the month in the
+-- work of §4(א)(2) and §4(ב) — farming, care of the sick, the old or
+-- children, eating places, guarding, essential public work the regulations
+-- name, a private household — may be given rest of 1¹⁄₄ and 1¹⁄₂ hours
+-- instead.
+@ref law:16
+`the first overtime hours of a day section 16 pays at 125%` MEANS 2
+
+@ref law:16
+GIVEN `overtime hours in the day` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `regular hours' pay section 16 asks for a day's overtime` `overtime hours in the day` IS
+    (min `overtime hours in the day` `the first overtime hours of a day section 16 pays at 125%`) TIMES 1.25
+    PLUS (max 0 (`overtime hours in the day` MINUS `the first overtime hours of a day section 16 pays at 125%`)) TIMES 1.5
+
+@ref law:16
+GIVEN `overtime hours in the day` IS A NUMBER
+      `the regular wage for an hour` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the least pay section 16 asks for a day's overtime` `overtime hours in the day` `the regular wage for an hour` IS
+    `regular hours' pay section 16 asks for a day's overtime` `overtime hours in the day` TIMES `the regular wage for an hour`
+
+-- The least premium over an hour's regular pay the section asks for
+-- overtime spread over the week's days, two or fewer a day: a quarter.
+@ref law:16
+`the least premium section 16 asks on an overtime hour` MEANS 0.25
+
+#ASSERT `regular hours' pay section 16 asks for a day's overtime` 2 EQUALS 2.5
+#ASSERT `regular hours' pay section 16 asks for a day's overtime` 5 EQUALS 7
+#ASSERT `the least pay section 16 asks for a day's overtime` 3 100 EQUALS 400
+
+§§ `17`
+
+-- (א)(1): for hours of the weekly rest worked, at least 1¹⁄₂ of the
+-- regular wage (and the same by the unit for piece-work); (2): and rest
+-- hours instead, as the permit sets. (ב): one paid by the month may be
+-- given an hour and a half of rest for each hour instead of (א)(1)'s pay.
+@ref law:17
+`the least share of the regular wage section 17 pays for an hour of the weekly rest` MEANS 1.5
+
+@ref law:17
+GIVEN `hours of the weekly rest worked` IS A NUMBER
+      `the regular wage for an hour` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the least pay section 17 asks for the weekly rest` `hours of the weekly rest worked` `the regular wage for an hour` IS
+    `hours of the weekly rest worked` TIMES `the regular wage for an hour`
+        TIMES `the least share of the regular wage section 17 pays for an hour of the weekly rest`
+
+#ASSERT `the least pay section 17 asks for the weekly rest` 12 100 EQUALS 1800
+
+§§ `18`
+
+-- For §§16 and 17, the regular wage includes every supplement the employer
+-- pays the employee.
+@ref law:18
+GIVEN `the base wage for an hour` IS A NUMBER
+      `every supplement the employer pays, for an hour` IS A LIST OF NUMBER
+GIVETH A NUMBER
+DECIDE `the regular wage section 18 counts` `the base wage for an hour` `every supplement the employer pays, for an hour` IS
+    `the base wage for an hour` PLUS sum `every supplement the employer pays, for an hour`
+
+#ASSERT `the regular wage section 18 counts` 100 (LIST 10, 5) EQUALS 115
+
+§§ `20`
+
+-- (א): in a working day of six hours or more, the work stops for rest and a
+-- meal for at least ³⁄₄ of an hour, with one unbroken break of at least half
+-- an hour in it; on the day before the weekly rest and before a holiday, at
+-- least half an hour. (ב): no more than three hours. (ג): in a break of half
+-- an hour or more the employee may leave, unless his presence is necessary
+-- and he is required to stay — then the break is working time. (ד): he may
+-- pray during his working day as his religion asks.
+@ref law:20
+GIVEN `hours of the working day` IS A NUMBER
+      `the eve of the weekly rest or of a holiday` IS A BOOLEAN
+GIVETH A NUMBER
+DECIDE `the least break section 20 asks, in hours` `hours of the working day` `the eve of the weekly rest or of a holiday` IS
+    IF `hours of the working day` AT LEAST 6
+    THEN (IF `the eve of the weekly rest or of a holiday` THEN 0.5 ELSE 0.75)
+    ELSE 0
+
+@ref law:20
+`the longest break section 20 allows, in hours` MEANS 3
+
+@ref law:20
+GIVEN `required to stay at the place of work in the break` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `the break is working time under section 20(ג)` `required to stay at the place of work in the break` IF
+    `required to stay at the place of work in the break`
+
+#ASSERT `the least break section 20 asks, in hours` 8 FALSE EQUALS 0.75
+#ASSERT `the least break section 20 asks, in hours` 5 FALSE EQUALS 0
+
+§§ `30`
+
+-- (א): the law does not reach the employment of (1) police and prison
+-- officers; (2) State employees whose post requires them at the work's
+-- disposal outside the regular working hours too; (3) seamen and fishermen;
+-- (4) air crews; (5) employees in management posts or posts that require a
+-- special measure of personal trust; (6) employees whose conditions and
+-- circumstances of work allow the employer no supervision at all of their
+-- hours of work and rest. (ב): where it is disputed whether an employee is
+-- of these, the labour court decides.
+@desc An employment section 30(א) of the Hours of Work and Rest Law leaves out.
+DECLARE `an employment section 30(א) leaves out` IS ONE OF
+    `police or prison service`
+    `a State post that requires him at the work's disposal outside the regular hours`
+    `a seaman or a fisherman`
+    `an air crew`
+    `a management post, or one that requires a special measure of personal trust`
+    `work whose conditions allow the employer no supervision at all of its hours`
+
+@ref law:30
+GIVEN `the kinds of section 30(א) his employment is` IS A LIST OF `an employment section 30(א) leaves out`
+GIVETH A BOOLEAN
+DECIDE `the Hours of Work and Rest Law reaches the employment` `the kinds of section 30(א) his employment is` IF
+    null `the kinds of section 30(א) his employment is`
+
+#ASSERT `the Hours of Work and Rest Law reaches the employment` (LIST)
+#ASSERT NOT `the Hours of Work and Rest Law reaches the employment` (LIST `a management post, or one that requires a special measure of personal trust`)
+
+§§ `31`
+
+-- For this law, a State employee is like any other employee.
+@ref law:31
+`section 31 makes a State employee like any other` MEANS TRUE
+
+§§ `35`
+
+-- The law takes away no right an employee has under a law, a collective
+-- agreement, a contract of employment or a custom: for a right measured in
+-- one number, the larger stands.
+@ref law:35
+GIVEN `what the law gives` IS A NUMBER, `what the agreement, contract or custom gives` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `what stands under section 35 of the Hours of Work and Rest Law` `what the law gives` `what the agreement, contract or custom gives` IS
+    max `what the law gives` `what the agreement, contract or custom gives`
+
+#ASSERT `what stands under section 35 of the Hours of Work and Rest Law` 125 100 EQUALS 125
