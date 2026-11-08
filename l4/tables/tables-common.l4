@@ -84,6 +84,44 @@ DECIDE `a published supplement` title code day cs IS
         `published supplement from`  IS day
         `published supplement cells` IS cs
 
+-- A table written by its amounts alone (MMS-629): the grades once, and each
+-- row's amounts in their order from the first grade the row prints. The
+-- same `published table` as one written cell by cell; an agreement that
+-- annexes some fifty grids is written this way, because a check pays for
+-- every name it resolves and a cell written `cell` g p is one more.
+@desc A printed row given by its amounts, in the order of the table's grades from the first it prints.
+DECLARE `printed amounts` HAS
+    `printed label`      IS A NUMBER       @desc the seniority or complexity level printed at its head (0 where a one-row table prints none)
+    `printed rate`       IS A MAYBE NUMBER @desc the step printed beside the label; NOTHING where the row prints none
+    `printed from grade` IS A NUMBER       @desc the first grade the row prints a cell at
+    `printed pays`       IS A LIST OF NUMBER
+
+GIVEN l IS A NUMBER, r IS A MAYBE NUMBER, g IS A NUMBER, ps IS A LIST OF NUMBER
+GIVETH A `printed amounts`
+DECIDE `amounts` l r g ps IS
+    `printed amounts` WITH
+        `printed label`      IS l
+        `printed rate`       IS r
+        `printed from grade` IS g
+        `printed pays`       IS ps
+
+GIVEN grades IS A LIST OF NUMBER
+      p IS A `printed amounts`
+GIVETH A `published row`
+DECIDE `the published row of` grades p IS
+    `a published row` (p's `printed label`) (p's `printed rate`)
+        (zipWith (GIVEN g, x YIELD `cell` g x)
+                 (filter (GIVEN g YIELD g AT LEAST p's `printed from grade`) grades)
+                 (p's `printed pays`))
+
+GIVEN title IS A STRING, code IS A MAYBE NUMBER, day IS A DATE
+      rates IS A LIST OF `published grade rate`
+      grades IS A LIST OF NUMBER
+      rows IS A LIST OF `printed amounts`
+GIVETH A `published table`
+DECIDE `a published grid` title code day rates grades rows IS
+    `a published table` title code day rates (map (GIVEN p YIELD `the published row of` grades p) rows)
+
 §§ `קריאת טבלה`
 
 -- A row's amount at a grade.
@@ -224,6 +262,26 @@ DECIDE `the published cell of` other `raised by` factor IS
         WHEN JUST x THEN JUST (`to the agora` (x TIMES factor))
         WHEN NOTHING THEN NOTHING
 
+-- Another table's cell to the nearest shekel (convention rounding.half): a
+-- table printed to the agora beside its printing in whole shekels.
+GIVEN other IS A `published table`
+GIVETH A FUNCTION FROM NUMBER AND NUMBER TO MAYBE NUMBER
+DECIDE `the published cell to the shekel of` other IS
+    GIVEN l, g YIELD
+        CONSIDER `the published cell at` other l g
+        WHEN JUST x THEN JUST (`to the nearest whole` x)
+        WHEN NOTHING THEN NOTHING
+
+-- A printing to the shekel a shekel below the rule, where the table it
+-- prints shows an exact half: the half taken down, not a different cell.
+GIVEN other IS A `published table`, c IS A `published cell check`
+GIVETH A BOOLEAN
+DECIDE `takes down the half` other `prints at` c IF
+        c's `agorot over the rule` EQUALS (0 MINUS 100)
+    AND CONSIDER `the published cell at` other (c's `checked label`) (c's `checked grade`)
+        WHEN JUST x THEN x MINUS FLOOR x EQUALS 0.5
+        WHEN NOTHING THEN FALSE
+
 -- The rate a row prints beside its label: the cell at the same grade one
 -- row up, raised by it, to the agora (2% a year to the seventh year, 1%
 -- from the eighth, as the tables print it).
@@ -298,6 +356,17 @@ DECIDE `the published table rises along its grades and down its rows` t IF
         (LIST `a published row` 1 NOTHING (LIST `cell` 1 1000, `cell` 1.5 1037.5, `cell` 2 1075),
               `a published row` 2 (JUST (2%)) (LIST `cell` 1 1020, `cell` 1.5 1058.25, `cell` 2 1096.51))
 
+-- The same table written by its amounts, and a row that prints from its
+-- second grade.
+`a sample published grid` MEANS
+    `a published grid` "דוגמה" (JUST 101) (DATE_FROM_DMY 1 9 2016)
+        (LIST `a published rate` 2 (7.5%))
+        (LIST 1, 1.5, 2)
+        (LIST `amounts` 1 NOTHING 1 (LIST 1000, 1037.5, 1075),
+              `amounts` 2 (JUST (2%)) 1 (LIST 1020, 1058.25, 1096.51))
+
+#ASSERT `a sample published grid` EQUALS `a sample published table`
+#ASSERT `the published row of` (LIST 1, 1.5, 2) (`amounts` 3 NOTHING 1.5 (LIST 7, 8)) EQUALS `a published row` 3 NOTHING (LIST `cell` 1.5 7, `cell` 2 8)
 #ASSERT `the published cell at` `a sample published table` 2 1.5 EQUALS JUST 1058.25
 #ASSERT `the published cell at` `a sample published table` 3 1 EQUALS NOTHING
 #ASSERT `the published grades of` `a sample published table` EQUALS LIST 1, 1.5, 2

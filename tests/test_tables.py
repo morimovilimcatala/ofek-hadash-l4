@@ -14,6 +14,13 @@ first column is the seniority or complexity level, a column the header
 names no grade in is the step column, and a row headed "ותק" carries the
 steps to each grade. A level printed with every cell blank (a deputy's
 school has no level 1) is a row the L4 leaves out.
+
+An agreement's annexes are held the same way (MMS-629): the 30.9.2016
+agreement's grids head their steps' row with no label, a scale's grades
+read "דרגות 34" and "דרגות 34+" (34.5: the stay supplement sits between
+the grade and the next), a one-row table prints no label (row 0), a step
+the page prints as no number ("#REF!") is no step, and a cell marked
+"[לא קריא]" is not in its row.
 """
 from __future__ import annotations
 
@@ -32,7 +39,7 @@ LETTERS = {"א": 1, "א+": 1.5, "ב": 2, "ב+": 2.5, "ג": 3, "ג+": 3.5, "ד": 
 # The tables this holds, by document and row key. A table whose @ref names
 # one corpus table and whose rows the L4 writes in full is held here; the
 # count is exact, so a table that joins or leaves it is said.
-CHECKED = 42
+CHECKED = 141
 
 
 def number(s: str) -> float:
@@ -40,12 +47,21 @@ def number(s: str) -> float:
 
 
 def l4_table(block: str):
-    """(rates, rows) of one `a published table` as the L4 writes it."""
+    """(rates, rows) of one `a published table` — or `a published grid`,
+    its grades once and each row's amounts in their order — as the L4
+    writes it."""
     rates = {float(g): float(v) for g, v in re.findall(r"`a published rate` ([\d.]+) \(([\d.]+)%\)", block)}
     rows = []
     for m in re.finditer(r"`a published row` (\d+) (?:NOTHING|\(JUST \(([\d.]+)%\)\)) \(LIST ([^)]*\))", block):
         cells = {float(g): float(v) for g, v in re.findall(r"`cell` ([\d.]+) ([\d.]+)", m.group(3))}
         rows.append((int(m.group(1)), float(m.group(2)) if m.group(2) else None, cells))
+    if "`a published grid`" in block:
+        # the grid's line, its steps (or EMPTY), then its grades
+        grades = [float(g) for g in re.findall(r"[\d.]+", block.splitlines()[2])]
+        for m in re.finditer(r"`amounts` (\d+) (?:NOTHING|\(JUST \(([\d.]+)%\)\)) ([\d.]+) \(LIST ([^)]*)\)", block):
+            pays = [float(v) for v in m.group(4).split(",")]
+            gs = [g for g in grades if g >= float(m.group(3))]
+            rows.append((int(m.group(1)), float(m.group(2)) if m.group(2) else None, dict(zip(gs, pays))))
     return rates, rows
 
 
@@ -53,22 +69,32 @@ def corpus_table(cells: list[list[str]]):
     """(rates, rows) of a corpus table, each cell by its column."""
     grade = {}
     for i, h in enumerate(cells[0][1:], 1):
-        h = h.strip()
+        h = " ".join(h.split())
+        scale = re.fullmatch(r"דרגות (\d+)(\+?)", h)
         if h in LETTERS:
             grade[i] = LETTERS[h]
         elif re.fullmatch(r"\d+(\.5)?", h):
             grade[i] = float(h)
+        elif scale:
+            grade[i] = int(scale.group(1)) + (0.5 if scale.group(2) else 0)
     step = [i for i in range(1, len(cells[0])) if i not in grade]
     rates, rows = {}, []
+
+    def steps_row(r):
+        return r[0].strip() == "ותק" or (not r[0].strip() and any(c.strip().endswith("%") for c in r[1:]))
+    body = [r for r in cells[1:] if not steps_row(r)]
     for r in cells[1:]:
-        if r[0].strip() == "ותק":
-            rates = {grade[i]: number(c) for i, c in enumerate(r) if i in grade and c.strip()}
+        if steps_row(r):
+            rates = {grade[i]: number(c) for i, c in enumerate(r)
+                     if i in grade and re.fullmatch(r"[\d.]+%", c.strip())}
             continue
         if not any(c.strip() for c in r[1:]):
             continue        # a level the page prints with every cell blank
+        label = r[0].strip() or ("0" if len(body) == 1 else r[0])
         steps = [number(r[i]) for i in step if r[i].strip()]
-        rows.append((int(r[0]), steps[0] if steps else None,
-                     {grade[i]: number(c) for i, c in enumerate(r) if i in grade and c.strip()}))
+        rows.append((int(label), steps[0] if steps else None,
+                     {grade[i]: number(c) for i, c in enumerate(r)
+                      if i in grade and c.strip() and "לא קריא" not in c}))
     return rates, rows
 
 
@@ -77,14 +103,12 @@ def published_tables():
     whose @ref names exactly one corpus table."""
     out = []
     for doc in site_mod.DOCUMENTS:
-        if not doc.startswith("tables/"):
-            continue
         for sec in akn.sections(doc):
             path = site_mod.l4_path(doc, sec.num)
             if not path.exists():
                 continue
             text = path.read_text(encoding="utf-8")
-            for m in re.finditer(r"@ref ([^\n]*)\n`[^`]+` MEANS\n( +`a published table` [^\n]*\n(?: {5,}[^\n]*\n)*)", text):
+            for m in re.finditer(r"@ref ([^\n]*)\n`[^`]+` MEANS\n( +`a published (?:table|grid)` [^\n]*\n(?: {5,}[^\n]*\n)*)", text):
                 tables = [k.removeprefix("akn:") for k in m.group(1).split() if re.search(r"/t\d+$", k)]
                 if len(tables) == 1:
                     out.append((path.relative_to(ROOT), doc, tables[0], m.group(2)))
