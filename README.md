@@ -149,7 +149,19 @@ that updated it, the steps it prints.
   supplement — the 2011 framework's §11, the Oz LaTmura agreement's §47,
   the State teachers' day-care agreement of 10.10.2011, circular 2011-1-48
   and circular תשע"ב/5 — give a father exactly what it gives, and the
-  circulars give a widower or divorcé with custody more.
+  circulars give a widower or divorcé with custody more; the takanon's
+  absence for a child's illness (§1.25.3.1) gives a father the days on
+  §4(א)'s own conditions. The mother's position
+  gives less, each a card on the contradictions page where the law governs:
+  the base agreement's "מורה אם" (§7(ג)) and the takanon's "עובדת הוראה אם"
+  (§1.13.1) name no father whose spouse works and does not take her own
+  shorter day, and circular תשע"ה/1, which gives such a father the shorter
+  week, asks that his spouse work at least 80% and gives no route by sole
+  custody. A payment to the mother in place of the shorter day, and the 10%
+  mother-teacher supplement, are not rights §4(ב) lists, and §3(ב) keeps
+  them hers (convention `instruments.parenthood-right`). The takanon's
+  day-care supplement (§1.14) falls short of the law as of the agreement of
+  10.10.2011, on that agreement's card.
 - **The statutes the corpus cites** (`laws/index.html`) — every act the
   corpus links to, how many documents cite it, the sections it cites by
   number, and which of them the L4 pins (MMS-601). The protective statutes'
