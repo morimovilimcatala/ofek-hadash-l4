@@ -45,7 +45,7 @@ reason when work stops, and nothing open written in a markdown file.
   anyway — among them חוק הסכמים קיבוציים (MMS-516, MMS-600), חוק יסודות
   התקציב (MMS-528) and the protective statutes שכר מינימום, הגנת השכר,
   פיצויי פיטורים, עבודת נשים, שוויון ההזדמנויות בעבודה, דמי מחלה with its four
-  family-absence laws, חופשה שנתית, שעות עבודה ומנוחה, and שכר שווה לעובדת ולעובד (MMS-601); `laws/` lists them, and `data/statute-citations.json`
+  family-absence laws, חופשה שנתית, שעות עבודה ומנוחה, שכר שווה לעובדת ולעובד, and הודעה מוקדמת לפיטורים ולהתפטרות (MMS-601); `laws/` lists them, and `data/statute-citations.json`
   (`tools/statute_citations.py`) every section the corpus cites: their
   sections' words are pinned in `laws/<name>.toml` with the live ספר החוקים
   הפתוח page they are read from and the date they were last checked against

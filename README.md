@@ -45,7 +45,7 @@ that updated it, the steps it prints.
 | `conventions.toml`, `l4/conventions.l4` | the rules of reading the encoding follows where the text does not decide, and the one L4 definition of each that is a computation, which the rules import |
 | `findings/<corpus path>/<section>.toml` (one per section) | errors in the text the encoding exposed, each backed by an `#ASSERT` |
 | `data/calculator-delta.json` | the comparison with the ministry's salary simulator: inputs, outputs, mappings, clauses and classifications only (written outside this repository; shown as the simulator's group of the contradictions page) |
-| `laws/<name>.toml`, `l4/laws/<name>.l4` | a statute encoded though the corpus holds no copy of it (חוק הסכמים קיבוציים §§2, 15–16, 19–23; חוק יסודות התקציב §§21, 29, 32; חוק שכר מינימום §§1–3, 11; חוק הגנת השכר §§20, 25; חוק פיצויי פיטורים §§1, 12, 13, 13ב, 14, 31; חוק עבודת נשים §§6, 6א, 7, 7א, 8, 9, 10, 19, 23; חוק שוויון ההזדמנויות בעבודה §§2, 3, 4, 17; חוק דמי מחלה §§1, 2, 4, 4א, 5, 6, 12, and its laws of absence for a child's illness §§1, 1א, 1ב, 1ג, 3, 3א, a parent's §§1, 3, 4, 4א, a spouse's §§1, 1א, 3, 4, 5 and a partner's pregnancy §§1, 3, 4; חוק חופשה שנתית §§1–8, 10, 13, 15, 33, 38; חוק שעות עבודה ומנוחה §§1, 2, 3, 5, 6, 7, 9, 16, 17, 18, 20, 30, 31, 35; חוק שכר שווה לעובדת ולעובד §§1, 2, 3, 6, 12, 13, 14; and the others `laws/` holds): its sections' words pinned from ספר החוקים הפתוח, and their rules |
+| `laws/<name>.toml`, `l4/laws/<name>.l4` | a statute encoded though the corpus holds no copy of it (חוק הסכמים קיבוציים §§2, 15–16, 19–23; חוק יסודות התקציב §§21, 29, 32; חוק שכר מינימום §§1–3, 11; חוק הגנת השכר §§20, 25; חוק פיצויי פיטורים §§1, 12, 13, 13ב, 14, 31; חוק עבודת נשים §§6, 6א, 7, 7א, 8, 9, 10, 19, 23; חוק שוויון ההזדמנויות בעבודה §§2, 3, 4, 17; חוק דמי מחלה §§1, 2, 4, 4א, 5, 6, 12, and its laws of absence for a child's illness §§1, 1א, 1ב, 1ג, 3, 3א, a parent's §§1, 3, 4, 4א, a spouse's §§1, 1א, 3, 4, 5 and a partner's pregnancy §§1, 3, 4; חוק חופשה שנתית §§1–8, 10, 13, 15, 33, 38; חוק שעות עבודה ומנוחה §§1, 2, 3, 5, 6, 7, 9, 16, 17, 18, 20, 30, 31, 35; חוק שכר שווה לעובדת ולעובד §§1, 2, 3, 6, 12, 13, 14; חוק הודעה מוקדמת לפיטורים ולהתפטרות §§1–7, 10, 11, 12; and the others `laws/` holds): its sections' words pinned from ספר החוקים הפתוח, and their rules |
 | `data/statute-citations.json` | every statute the corpus cites and every section it cites by number, with the documents that cite it, read off the corpus's own links to ספר החוקים הפתוח (`tools/statute_citations.py`, MMS-601) |
 | `data/contradictions.json`, `data/contradictions/` | the hand-written layer of the contradictions page, whose rows the root generates where it can speak (MMS-521): a card attaches to the root's row by key (`root`) and brings a side per source with its answer — a document with a crop of its page, or what the payslips or the simulator pay — and the rule's prose; a card the root cannot speak for says why (`not_in_root`); a circular against an agreement says which way it departs, and where it gives more, what §29 of the Budget Foundations Law makes of the excess |
 | `tools/` | the L4 runner, the AKN reader, the site generator |
@@ -256,6 +256,26 @@ that updated it, the steps it prints.
   both sexes. One place gives less, a card on the contradictions page where
   the law governs: circular תשפ"א/6's early-retirement tracks, which put a
   woman of 55 to 57 on track B and a man of her age on track A.
+- **The Advance Notice Law** (`laws/advance-notice-law.html`) — §§1–7, 10,
+  11 and 12: written notice of a dismissal and of a resignation, its length
+  by the months worked for an employee on a salary and for one on a wage,
+  the same for a resignation, the regular wage for a notice period waived
+  or not given, where no notice is owed, the State as an employer, and no
+  better right taken away (MMS-601). No document of the corpus cites it.
+  A dismissal the takanon dates at the school year's end takes effect on
+  1 September after it, a teacher paid by grade and seniority is on a
+  salary, and a longer resignation notice asked of a teacher is not below
+  the floor (convention `instruments.notice-law-teaching`, a pick for the
+  lawyer). Within the floor: the letter by 31 May (§§1.28.2.1(ג), 6.5;
+  the Oz LaTmura agreement's annex ה') and by 30 June (§3.5), a
+  substitute's 3 days in his first two months (§6.5.7(א)), and two months'
+  and a month's notice of resignation (§§1.28.1, 1.39). Two places give
+  less, each a card on the contradictions page where the law governs: a
+  substitute past two months is dismissed on two weeks' notice at any
+  length (§6.5.7(ב)), where §3 asks 16 days from his tenth month; and a
+  teacher convicted "על מעשה פלילי" may be dismissed at once (§6.5.23(ב)),
+  where the law waives notice only for a conviction that takes severance
+  away.
 - **The statutes the corpus cites** (`laws/index.html`) — every act the
   corpus links to, how many documents cite it, the sections it cites by
   number, and which of them the L4 pins (MMS-601). The protective statutes'

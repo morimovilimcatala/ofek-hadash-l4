@@ -31,9 +31,10 @@ CITED_NOT_PINNED = {
 # instrument that rules on its subject, cited or not (MMS-601): the takanon's
 # §1.25.3.1 quotes the Sick Pay Law's definition of an illness without
 # naming it, and circular תשפ"א/6 gives its early-retirement tracks by sex,
-# on the Equal Pay Law's subject, without naming it. A link the corpus adds
-# moves a law out of this set.
-PINNED_NOT_LINKED = {"sick-pay-law", "equal-pay-law"}
+# on the Equal Pay Law's subject, without naming it, and the takanon dates
+# a teacher's dismissal and asks his notice of resignation without naming
+# the Advance Notice Law. A link the corpus adds moves a law out of this set.
+PINNED_NOT_LINKED = {"sick-pay-law", "equal-pay-law", "advance-notice-law"}
 
 
 class TheInventoryIsTheCorpus(unittest.TestCase):
