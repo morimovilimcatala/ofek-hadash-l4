@@ -45,7 +45,7 @@ that updated it, the steps it prints.
 | `conventions.toml`, `l4/conventions.l4` | the rules of reading the encoding follows where the text does not decide, and the one L4 definition of each that is a computation, which the rules import |
 | `findings/<corpus path>/<section>.toml` (one per section) | errors in the text the encoding exposed, each backed by an `#ASSERT` |
 | `data/calculator-delta.json` | the comparison with the ministry's salary simulator: inputs, outputs, mappings, clauses and classifications only (written outside this repository; shown as the simulator's group of the contradictions page) |
-| `laws/<name>.toml`, `l4/laws/<name>.l4` | a statute encoded though the corpus holds no copy of it (חוק הסכמים קיבוציים §§2, 15–16, 19–23; חוק יסודות התקציב §§21, 29, 32; חוק שכר מינימום §§1–3, 11; חוק הגנת השכר §§20, 25; חוק פיצויי פיטורים §§1, 12, 13, 13ב, 14, 31; חוק עבודת נשים §§6, 6א, 7, 7א, 8, 9, 10, 19, 23; and the others `laws/` holds): its sections' words pinned from ספר החוקים הפתוח, and their rules |
+| `laws/<name>.toml`, `l4/laws/<name>.l4` | a statute encoded though the corpus holds no copy of it (חוק הסכמים קיבוציים §§2, 15–16, 19–23; חוק יסודות התקציב §§21, 29, 32; חוק שכר מינימום §§1–3, 11; חוק הגנת השכר §§20, 25; חוק פיצויי פיטורים §§1, 12, 13, 13ב, 14, 31; חוק עבודת נשים §§6, 6א, 7, 7א, 8, 9, 10, 19, 23; חוק שוויון ההזדמנויות בעבודה §§2, 3, 4, 17; and the others `laws/` holds): its sections' words pinned from ספר החוקים הפתוח, and their rules |
 | `data/statute-citations.json` | every statute the corpus cites and every section it cites by number, with the documents that cite it, read off the corpus's own links to ספר החוקים הפתוח (`tools/statute_citations.py`, MMS-601) |
 | `data/contradictions.json`, `data/contradictions/` | the hand-written layer of the contradictions page, whose rows the root generates where it can speak (MMS-521): a card attaches to the root's row by key (`root`) and brings a side per source with its answer — a document with a crop of its page, or what the payslips or the simulator pay — and the rule's prose; a card the root cannot speak for says why (`not_in_root`); a circular against an agreement says which way it departs, and where it gives more, what §29 of the Budget Foundations Law makes of the excess |
 | `tools/` | the L4 runner, the AKN reader, the site generator |
@@ -137,6 +137,18 @@ that updated it, the steps it prints.
   be more, 45 days of protection from dismissal after the leave where §9
   gives 60 (§1.28.2.1), and fertility treatment protected towards a "first
   or second child" where §9(ה) counts two births with the employer.
+- **The Equal Opportunities Law** (`laws/equal-opportunities-law.html`) —
+  §§2, 3, 4 and 17: no discrimination between employees by sex, personal
+  status or parenthood, among other grounds; a provision on pregnancy or
+  birth, and a better right given to a woman, are not discrimination; a
+  right connected with parenthood a mother has at her workplace — absence
+  for a child's illness, a shorter day, the employer's day care or its
+  share in the cost — is a father's too, where his spouse works and does not
+  take it or the child is in his sole custody; and the State is an employer
+  like any other (MMS-601). The documents that apply §4(א) to the day-care
+  supplement — the 2011 framework's §11, the Oz LaTmura agreement's §47,
+  circular 2011-1-48 and circular תשע"ב/5 — give a father exactly what it
+  gives, and the circulars give a widower or divorcé with custody more.
 - **The statutes the corpus cites** (`laws/index.html`) — every act the
   corpus links to, how many documents cite it, the sections it cites by
   number, and which of them the L4 pins (MMS-601). The protective statutes'

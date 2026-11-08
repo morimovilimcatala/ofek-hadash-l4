@@ -1,0 +1,206 @@
+-- חוק שוויון ההזדמנויות בעבודה, התשמ"ח-1988 — sections 2, 3, 4 and 17:
+-- that an employer does not discriminate between employees, among other
+-- grounds by sex, personal status or parenthood, in their conditions of
+-- work and their pay; that a provision on pregnancy, birth or nursing and a
+-- better right given to a woman are not discrimination; that a right
+-- connected with parenthood a mother has at her workplace is a father's
+-- too, where his spouse works and did not take it or the child is in his
+-- sole custody; and that the State is an employer like any other. The text
+-- is laws/equal-opportunities-law.toml, pinned from the live page of ספר
+-- החוקים הפתוח; the corpus holds no copy (MMS-601).
+--
+-- Why it is here: five documents apply §4(א) to the day-care supplement
+-- ("ויחולו לגביה הוראות סעיף 4(א) לחוק האמור"), and the instruments that
+-- give a mother a shorter week or a day-care supplement give a father less
+-- or more than §4 does. Where an instrument gives less, the law governs (the
+-- root's precedence, l4/lib/precedence.l4; convention
+-- instruments.statute-floor).
+
+IMPORT prelude
+IMPORT parties
+
+@desc An employee who is a father, as section 4(א) asks about his family.
+DECLARE `a father's family under section 4` HAS
+    `his spouse is an employee or self-employed`  IS A BOOLEAN @desc section 4(א)(1)
+    `his spouse took the right herself`           IS A BOOLEAN @desc she was absent from her work by her own entitlement to it (section 4(ב)(1)-(2)), or used it (4(ב)(3)-(4))
+    `the child is in his sole custody`            IS A BOOLEAN @desc section 4(א)(2): "בהחזקתו הבלעדית"
+
+`a father whose spouse works and does not take the right` MEANS
+    `a father's family under section 4` WITH
+        `his spouse is an employee or self-employed` IS TRUE
+        `his spouse took the right herself`          IS FALSE
+        `the child is in his sole custody`           IS FALSE
+
+`a father whose spouse takes the right herself` MEANS
+    `a father's family under section 4` WITH
+        `his spouse is an employee or self-employed` IS TRUE
+        `his spouse took the right herself`          IS TRUE
+        `the child is in his sole custody`           IS FALSE
+
+`a father whose spouse does not work` MEANS
+    `a father's family under section 4` WITH
+        `his spouse is an employee or self-employed` IS FALSE
+        `his spouse took the right herself`          IS FALSE
+        `the child is in his sole custody`           IS FALSE
+
+`a father with the child in his sole custody` MEANS
+    `a father's family under section 4` WITH
+        `his spouse is an employee or self-employed` IS FALSE
+        `his spouse took the right herself`          IS FALSE
+        `the child is in his sole custody`           IS TRUE
+
+§ `חוק שוויון ההזדמנויות בעבודה — איסור הפליה וזכויות הורה`
+
+§§ `2`
+
+-- (א): an employer does not discriminate between his employees, or between
+-- job seekers, for their sex, sexual orientation, personal status (single,
+-- married, divorced or widowed — §1), pregnancy, fertility or IVF
+-- treatment, being parents, age, race, religion, nationality, country of
+-- origin, place of residence, views, party, or reserve duty (theirs, their
+-- spouses' or the other parent's), in any of: (1) hiring; (2) conditions of
+-- work; (3) promotion; (4) training; (5) dismissal or severance pay; (6)
+-- benefits and payments on retirement. (א1): an employer in fact does not
+-- discriminate between a manpower contractor's workers he employs, nor ask
+-- the contractor to. (ב): setting conditions that are not relevant counts
+-- as discrimination. (ג): a distinction the character or nature of the job
+-- or post requires is not.
+@desc A ground section 2(א) names.
+DECLARE `ground section 2 names` IS ONE OF
+    `the employee's sex`
+    `the employee's sexual orientation`
+    `the employee's personal status`
+    `the employee's pregnancy`
+    `the employee's fertility or IVF treatment`
+    `the employee's being a parent`
+    `the employee's age`
+    `the employee's race, religion, nationality or country of origin`
+    `the employee's place of residence`
+    `the employee's views or party`
+    `the employee's or a spouse's reserve duty`
+
+@desc A matter section 2(א)(1)-(6) names.
+DECLARE `matter section 2 names` IS ONE OF
+    `hiring`
+    `conditions of work`
+    `promotion at work`
+    `vocational training`
+    `dismissal or severance pay`
+    `benefits and payments on retirement`
+
+@desc What the Equal Opportunities Law forbids an employer.
+DECLARE `Equal Opportunities Law act` IS ONE OF
+    `discriminate between employees or job seekers` HAS
+        `on the ground of` IS A `ground section 2 names`
+        `in the matter of` IS A `matter section 2 names`
+
+@ref law:2
+GIVETH A DEONTIC Party `Equal Opportunities Law act`
+DECIDE `no discrimination under section 2` IS
+    PARTY `the employer`
+    SHANT `discriminate between employees or job seekers` g m
+    LEST  BREACH BY `the employer` BECAUSE "Equal Opportunities Law, section 2: an employer does not discriminate between employees on a ground it names"
+
+-- Whether a distinction an instrument makes is the discrimination (א)
+-- forbids: one on a ground it names, in a matter it names, that the job
+-- does not require (ג), and that §3 does not keep.
+@ref law:2
+GIVEN `a distinction on a ground section 2 names, in a matter it names` IS A BOOLEAN
+      `the character or nature of the job requires it` IS A BOOLEAN @desc section 2(ג)
+      `section 3 keeps it` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `discrimination under section 2` `a distinction on a ground section 2 names, in a matter it names` `the character or nature of the job requires it` `section 3 keeps it` IF
+        `a distinction on a ground section 2 names, in a matter it names`
+    AND NOT `the character or nature of the job requires it`
+    AND NOT `section 3 keeps it`
+
+`setting irrelevant conditions counts as discrimination under section 2(ב)` MEANS TRUE
+`section 2(א1) binds an employer in fact towards a manpower contractor's workers` MEANS TRUE
+
+#ASSERT `discrimination under section 2` TRUE FALSE FALSE
+#ASSERT NOT `discrimination under section 2` TRUE TRUE FALSE
+#ASSERT NOT `discrimination under section 2` TRUE FALSE TRUE
+
+§§ `3`
+
+-- (א): a provision of an enactment, a collective agreement or a contract
+-- of employment on pregnancy, keeping a pregnancy, birth, nursing or
+-- fertility is not discrimination. (ב): the law takes from a woman no
+-- better right an enactment, a collective agreement or a contract of
+-- employment gives her, and such a right is not discrimination.
+@ref law:3
+GIVEN `a provision on pregnancy, its keeping, birth, nursing or fertility` IS A BOOLEAN
+      `a better right given to a woman by an enactment, a collective agreement or a contract` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `section 3 keeps it from being discrimination` `a provision on pregnancy, its keeping, birth, nursing or fertility` `a better right given to a woman by an enactment, a collective agreement or a contract` IF
+        `a provision on pregnancy, its keeping, birth, nursing or fertility`
+    OR  `a better right given to a woman by an enactment, a collective agreement or a contract`
+
+#ASSERT `section 3 keeps it from being discrimination` FALSE TRUE
+#ASSERT NOT `section 3 keeps it from being discrimination` FALSE FALSE
+
+§§ `4`
+
+-- (ב): a "right connected with parenthood" is one of four, and no other:
+-- (1) absence from work for the child's illness; (2) a shortened working
+-- day for being the mother of a child; (3) the use of a day-care centre
+-- the employer provides for the employees' children; (4) the employer's
+-- share in the cost of keeping the child in day care.
+@desc A right connected with parenthood, as section 4(ב) lists them.
+DECLARE `right connected with parenthood` IS ONE OF
+    `absence from work for the child's illness`
+    `a shortened working day for being the mother of a child`
+    `the use of a day-care centre the employer provides`
+    `the employer's share in the cost of keeping the child in day care`
+
+@ref law:4
+GIVEN r IS A `right connected with parenthood`
+GIVETH A STRING
+DECIDE `the words of section 4(ב) for` r IS
+    CONSIDER r
+    WHEN `absence from work for the child's illness` THEN "(1) היעדרות מעבודה בשל מחלת הילד"
+    WHEN `a shortened working day for being the mother of a child` THEN "(2) יום עבודה מקוצר בשל היות העובדת אם לילד"
+    WHEN `the use of a day-care centre the employer provides` THEN "(3) זכות להשתמש בשירותי מעון שהמעסיק מעמיד לרשות ילדי העובדים"
+    WHEN `the employer's share in the cost of keeping the child in day care` THEN "(4) השתתפות המעסיק בעלות החזקתו של הילד במעון"
+
+-- (א): where a female employee has such a right by the conditions of work
+-- customary at her workplace, a male employee at a workplace where those
+-- conditions are customary has it too, if either (1) his spouse is an
+-- employee or self-employed and was not absent, or did not use the right,
+-- by her own entitlement to it; or (2) the child is in his sole custody.
+-- The father's right is the mother's right as the workplace gives it: the
+-- same conditions of age, position and amount bind him; nothing else does.
+@ref law:4
+GIVEN f IS A `a father's family under section 4`
+GIVETH A BOOLEAN
+DECIDE `section 4(א)(1) holds for` f IF
+        f's `his spouse is an employee or self-employed`
+    AND NOT f's `his spouse took the right herself`
+
+GIVEN f IS A `a father's family under section 4`
+GIVETH A BOOLEAN
+DECIDE `section 4(א)(2) holds for` f IF
+    f's `the child is in his sole custody`
+
+GIVEN `a mother at his workplace has the right` IS A BOOLEAN @desc by the conditions of work customary there, on the same conditions of age, position and the rest that the father meets
+      f IS A `a father's family under section 4`
+GIVETH A BOOLEAN
+DECIDE `section 4 gives the father the right` `a mother at his workplace has the right` f IF
+        `a mother at his workplace has the right`
+    AND (    `section 4(א)(1) holds for` f
+         OR  `section 4(א)(2) holds for` f)
+
+#ASSERT `section 4 gives the father the right` TRUE `a father whose spouse works and does not take the right`
+#ASSERT NOT `section 4 gives the father the right` TRUE `a father whose spouse takes the right herself`
+#ASSERT NOT `section 4 gives the father the right` TRUE `a father whose spouse does not work`
+#ASSERT `section 4 gives the father the right` TRUE `a father with the child in his sole custody`
+#ASSERT NOT `section 4 gives the father the right` FALSE `a father whose spouse works and does not take the right`
+#ASSERT `the words of section 4(ב) for` `the employer's share in the cost of keeping the child in day care` EQUALS "(4) השתתפות המעסיק בעלות החזקתו של הילד במעון"
+
+§§ `17`
+
+-- For this law, the State as an employer is like any other employer: it
+-- binds the State, and so the Ministry of Education towards the teachers
+-- it employs.
+@ref law:17
+`the Equal Opportunities Law binds the State as an employer` MEANS TRUE

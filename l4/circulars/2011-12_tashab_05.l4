@@ -7,6 +7,7 @@
 
 IMPORT prelude
 IMPORT common
+IMPORT equal_opportunities_law
 
 § `תשע"ב/5 תשלום תוספת מעונות לעובדי הוראה`
 
@@ -20,7 +21,7 @@ DECLARE `daycare employee` HAS
     `employed by an owner of secondary education` IS A BOOLEAN
     `a mother`                           IS A BOOLEAN
     `a widower or divorced man with the children in his custody` IS A BOOLEAN
-    `entitled through section 4(א) of the Equal Employment Opportunities Law` IS A BOOLEAN @desc the right extended to the employee by section 4(א) of that law, which section 2(ז) applies; an input
+    `entitled through section 4(א) of the Equal Employment Opportunities Law` IS A BOOLEAN @desc the right extended to the employee by section 4(א) of that law, which section 2(ז) applies; for a father, `entitled through section 4(א), as the law says`
     `children under 5`                   IS A NUMBER @desc the employee's children who have not reached 5 (in custody, for a father)
     `position fraction`                  IS A NUMBER @desc the share of a full position held (1 = one full position)
     `entitled to salary from the employer and funded by it this month` IS A BOOLEAN @desc false in a month of maternity pay from National Insurance or of unpaid leave
@@ -119,7 +120,8 @@ DECLARE `daycare character` HAS
 
 -- Section 2(ז): a "right related to parenthood" under section 4(ב) of the
 -- Equal Employment Opportunities Law, to which section 4(א) of that law
--- applies; who section 4(א) extends the right to is that law's, an input.
+-- applies; who section 4(א) extends the right to is that law's (imported,
+-- below).
 @ref akn:art_2__para_g
 GIVEN d IS A `daycare employee`
 GIVETH A BOOLEAN
@@ -129,6 +131,42 @@ DECIDE `a parent the addition is paid to` d IF
         AND d's `employed by an owner of secondary education`
         AND d's `children under 5` AT LEAST 1
         AND d's `entitled through section 4(א) of the Equal Employment Opportunities Law`)
+
+-- The addition is §4(ב)(4)'s right, the employer's share in the cost of day
+-- care, and a father has it where a mother would — the grade, the owner and
+-- a child under 5 are asked of him above — and his spouse works and does
+-- not take it, or the child is in his sole custody (§4(א)).
+@ref akn:art_2__para_g
+`the daycare addition is the right of section 4(ב)(4)` MEANS
+    `the employer's share in the cost of keeping the child in day care`
+
+GIVEN f IS A `a father's family under section 4`
+GIVETH A BOOLEAN
+DECIDE `entitled through section 4(א), as the law says` f IF
+    `section 4 gives the father the right` TRUE f
+
+GIVEN `entitled through section 4(א)` IS A BOOLEAN
+GIVETH A `daycare employee`
+DECIDE `a full-time married father of one` `entitled through section 4(א)` IS
+    `daycare employee` WITH
+        `in the teaching-staff grade`        IS TRUE
+        `employed by an owner of secondary education` IS TRUE
+        `a mother`                           IS FALSE
+        `a widower or divorced man with the children in his custody` IS FALSE
+        `entitled through section 4(א) of the Equal Employment Opportunities Law` IS `entitled through section 4(א)`
+        `children under 5`                   IS 1
+        `position fraction`                  IS 1
+        `entitled to salary from the employer and funded by it this month` IS TRUE
+
+-- The floor (MMS-601): 2(ז) gives a father exactly what §4(א) does, and
+-- 1(ב) gives more — a widower or divorced man with the child in his
+-- custody, sole or not, where §4(א)(2) asks sole custody.
+`section 2(ז) gives a father what section 4 of the Equal Opportunities Law gives` MEANS
+        `a parent the addition is paid to` (`a full-time married father of one` (`entitled through section 4(א), as the law says` `a father whose spouse works and does not take the right`))
+    AND `a parent the addition is paid to` (`a full-time married father of one` (`entitled through section 4(א), as the law says` `a father with the child in his sole custody`))
+    AND NOT `a parent the addition is paid to` (`a full-time married father of one` (`entitled through section 4(א), as the law says` `a father whose spouse takes the right herself`))
+    AND NOT `a parent the addition is paid to` (`a full-time married father of one` (`entitled through section 4(א), as the law says` `a father whose spouse does not work`))
+#ASSERT `section 2(ז) gives a father what section 4 of the Equal Opportunities Law gives`
 
 §§ `3 החלפה/ביטול הסדר מעונות אחר`
 
