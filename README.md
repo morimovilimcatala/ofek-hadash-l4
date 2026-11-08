@@ -284,6 +284,11 @@ that updated it, the steps it prints.
   precedence weighs last: where a statute gives more than the agreement, the
   circular or the takanon that would govern, the statute governs (§21 of the
   Collective Agreements Law).
+- **The documents against the protective statutes** (`laws/record.html`,
+  `statute-record.json`) — every document of the corpus against every
+  protective statute: meets the floor, falls short of it, not weighed and
+  why, or not checked (MMS-601). Each document's page shows its row, and
+  each statute's page the documents weighed against it.
 - **Contradictions** (`contradictions.html`) — where one instrument says one
   thing and another says another about the same pay or right: an agreement
   and the circular that implements it, a circular and the letter it executes,

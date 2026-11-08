@@ -187,5 +187,23 @@ class EverySetAsideSaysWhy(unittest.TestCase):
                 self.assertTrue(a["why"].strip())
 
 
+class TheSiteShowsIt(unittest.TestCase):
+
+    @unittest.skipUnless((ROOT / "build/site/statute-record.json").exists(), "run `make site` first")
+    def test_the_published_record_is_the_source_s(self):
+        site = json.loads((ROOT / "build/site/statute-record.json").read_text(encoding="utf-8"))
+        self.assertEqual(site, json.loads(json.dumps(REC, ensure_ascii=False)))
+
+    @unittest.skipUnless((ROOT / "build/site/laws/record.html").exists(), "run `make site` first")
+    def test_every_law_page_lists_its_instruments(self):
+        for m in STATUTES:
+            with self.subTest(law=m):
+                html = (ROOT / "build/site/laws" / f"{m}.html").read_text(encoding="utf-8")
+                self.assertIn('id="record"', html)
+        grid = (ROOT / "build/site/laws/record.html").read_text(encoding="utf-8")
+        for m in STATUTES:
+            self.assertIn(f'{m}.html#record', grid)
+
+
 if __name__ == "__main__":
     unittest.main()

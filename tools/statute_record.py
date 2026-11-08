@@ -491,6 +491,218 @@ def units(rec: dict):
             yield r, None, r["cells"]
 
 
+# ---------------------------------------------------------------- the pages
+
+# how a verdict reads on the site; "off-subject" is a not-weighed whose
+# reason is that nothing in the instrument is on the statute's subject
+LABEL = {"shortfall": "נופל מהרצפה", "meets": "עומד ברצפה", "not-weighed": "לא נשקל",
+         "off-subject": "אין בו מעניינו", "not-checked": "לא נבדק"}
+GLYPH = {"shortfall": "✗", "meets": "✓", "not-weighed": "–", "off-subject": "·", "not-checked": "?"}
+ORDER = ("shortfall", "meets", "not-weighed", "not-checked", "off-subject")
+REPO = "https://github.com/morimovilimcatala/ofek-hadash-l4"
+HERE = "laws/record.html"
+
+
+def chip(v: str, n: int | None = None) -> str:
+    return (f'<span class="sv sv-{v}"><span class="sv-g" aria-hidden="true">{GLYPH[v]}</span>'
+            f'{LABEL[v]}{f" <b>{n}</b>" if n is not None else ""}</span>')
+
+
+def first_line(text: str, n: int = 140) -> str:
+    line = " ".join(text.split("\n")[0].split())
+    return line if len(line) <= n else line[: n - 1] + "…"
+
+
+def evidence_html(cell: dict, *, esc, link) -> str:
+    """What a unit's verdict on a statute rests on: the assertions, the cards
+    and findings, the reason it was set aside, or the terms that put it on
+    the statute's subject."""
+    items = []
+    ev = cell.get("evidence", [])
+    for e in ev:
+        if e["kind"] == "card":
+            items.append(f'<li>כרטיס ב<a href="{link("contradictions.html")}#{esc(e["card"])}">מקורות סותרים</a>: '
+                         f'{esc(e["title"])}</li>')
+    for e in ev:
+        if e["kind"] == "assert":
+            src = f'{REPO}/blob/main/{e["file"]}#L{e["line"]}'
+            what = ("בדיקה שמתקיימת" if e["verdict"] == "meets" else "הבדיקה שמראה את החסר")
+            if e["verdict"] == "shortfall":
+                target = (f'{link("contradictions.html")}#{esc(e["card"])}' if e.get("card")
+                          else f'{link("findings.html")}#{esc(e["finding"])}')
+                what += f', ממצא <a href="{target}" dir="ltr">{esc(e["finding"])}</a>'
+            if e.get("held") is not True:
+                what += " — <b>make l4 לא רשם שהיא מתקיימת</b>"
+            items.append(f'<li>{what}: <a class="st-code" href="{esc(src)}" dir="ltr" lang="en">'
+                         f'<code>{esc(first_line(e["assert"]))}</code></a></li>')
+    for e in ev:
+        if e["kind"] == "marker":
+            src = f'{REPO}/blob/main/{e["file"]}#L{e["line"]}'
+            items.append(f'<li>הנימוק, בהערה בקוד (<a href="{esc(src)}">שורה {e["line"]}</a>): '
+                         f'<span class="st-why" dir="ltr" lang="en">{esc(e["why"])}</span></li>')
+        elif e["kind"] == "data":
+            items.append(f'<li>{esc(e["why"])} <span class="lawnote">(<code dir="ltr">{esc(e["file"])}</code>)</span></li>')
+    if not ev:
+        if cell.get("no_text"):
+            items.append('<li>נוסח המסמך אינו בתמונת הקורפוס שכאן, ולכן אי אפשר לומר אם עניינו נוגע לחוק.</li>')
+        elif cell["verdict"] == "not-checked":
+            bits = []
+            if cell.get("terms"):
+                bits.append("מונחי החיפוש של החוק שמופיעים בו: " + ", ".join(
+                    f'<span lang="he">{esc(t)}</span>' for t in cell["terms"]))
+            if cell.get("cites"):
+                bits.append("הקורפוס מקשר בו לחוק")
+            items.append(f'<li>{"; ".join(bits)} — ולא נרשמה הכרעה.</li>')
+        elif cell.get("off_subject"):
+            items.append('<li>אף אחד ממונחי החיפוש של החוק אינו מופיע בו, והוא אינו מצטט את החוק.</li>')
+    return f'<ul class="st-ev">{"".join(items)}</ul>' if items else ""
+
+
+def sections_html(cell: dict, *, esc, sec_href) -> str:
+    """A sectioned document's verdict on a statute, by its sections."""
+    out = []
+    for v in ORDER:
+        secs = cell.get("sections", {}).get(v)
+        if not secs:
+            continue
+        refs = []
+        for s in secs:
+            h = sec_href(s)
+            label = esc(s or "—")
+            refs.append(f'<a href="{h}" dir="ltr">{label}</a>' if h else f'<span dir="ltr">{label}</span>')
+        out.append(f'<li>{chip(v)} {", ".join(refs)}</li>')
+    return f'<ul class="st-ev st-secs">{"".join(out)}</ul>' if out else ""
+
+
+def box_html(rec: dict, cells: dict, *, esc, link, sec_href=None, what: str = "המסמך",
+             box_id: str = "statutes") -> str:
+    """An instrument's row: its verdict on every protective statute, and what
+    each rests on. With `sec_href`, the cells are a sectioned document's,
+    each listing its sections."""
+    keys = {s["module"]: verdict_key(cells[s["module"]]) for s in rec["statutes"]}
+    counts = {v: sum(1 for k in keys.values() if k == v) for v in ORDER}
+    rows, off = [], []
+    for s in rec["statutes"]:
+        c, k = cells[s["module"]], keys[s["module"]]
+        name = f'<a href="{link("laws/" + s["module"] + ".html")}">{esc(s["title"])}</a>'
+        if k == "off-subject":
+            off.append(f'<a href="{link("laws/" + s["module"] + ".html")}">{esc(s["short"])}</a>')
+            continue
+        detail = (sections_html(c, esc=esc, sec_href=sec_href) if sec_href is not None
+                  else evidence_html(c, esc=esc, link=link))
+        rows.append(f'<tr><th scope="row">{name}</th><td>{chip(k)}</td><td>{detail}</td></tr>')
+    summary = "".join(chip(v, counts[v]) for v in ORDER if counts[v])
+    table = (f'<div class="scroll-x"><table class="diag st-table"><thead><tr><th>החוק</th><th>הכרעה</th>'
+             f'<th>על מה היא נשענת</th></tr></thead><tbody>{"".join(rows)}</tbody></table></div>' if rows else "")
+    tail = (f'<p class="lawnote">אין ב{what} דבר מעניינם של: {", ".join(off)} '
+            '(אף מונח מרשימת החיפוש של החוק אינו מופיע בו).</p>' if off else "")
+    return (f'<details class="st-box" id="{esc(box_id)}"><summary><span class="st-title">מול החוקים המגינים</span>'
+            f'{summary}</summary>'
+            f'<p class="lawnote">בכל חוק מגן, אחת מארבע: נופל מהרצפה (כרטיס או ממצא), עומד ברצפה (בדיקה '
+            f'שקוראת את החוק ומתקיימת), לא נשקל (ובאיזה נימוק), או לא נבדק. '
+            f'<a href="{link(HERE)}">הטבלה כולה</a>.</p>'
+            f'{table}{tail}</details>')
+
+
+def law_html(rec: dict, module: str, *, esc, link, doc_href, coll_name) -> str:
+    """A statute's page: the instruments weighed against it, by verdict."""
+    s = next(x for x in rec["statutes"] if x["module"] == module)
+    groups: dict[str, list[str]] = {v: [] for v in ORDER}
+    for r in rec["rows"]:
+        c = r["cells"][module]
+        k = verdict_key(c)
+        if k == "off-subject":
+            groups[k].append(r["doc"])
+            continue
+        h = doc_href(r["doc"], None)
+        title = (f'<a href="{link(h)}#statutes">{esc(r["title"])}</a>' if h else esc(r["title"]))
+        meta = f'<span class="lawnote"> · {esc(coll_name(r["collection"]))}{" · " + esc(r["date"]) if r["date"] else ""}</span>'
+        if "sections" in r:
+            detail = sections_html(c, esc=esc, sec_href=lambda sec, d=r["doc"]: (
+                link(doc_href(d, sec)) if doc_href(d, sec) else None))
+        else:
+            detail = evidence_html(c, esc=esc, link=link)
+        groups[k].append(f'<li>{title}{meta}{detail}</li>')
+    out = [f'<h2 id="record">המסמכים מול החוק</h2>'
+           f'<p class="lede">כל מסמך ברשימת הקורפוס, ומה נקבע בו מול {esc(s["title"])}: '
+           'נופל מהרצפה (כרטיס במקורות סותרים או ממצא), עומד ברצפה (בדיקה בקוד המסמך שקוראת את החוק ומתקיימת), '
+           'לא נשקל (ובאיזה נימוק), או לא נבדק — מונחי החיפוש של החוק מופיעים בו ולא נרשמה הכרעה. '
+           f'הרשומה נקראת מהקוד, מתוצאות <code>make l4</code>, מהממצאים ומהכרטיסים. '
+           f'<a href="{link(HERE)}">כל המסמכים מול כל החוקים</a>.</p>']
+    for v in ORDER:
+        items = groups[v]
+        if not items:
+            continue
+        if v == "off-subject":
+            out.append(f'<h3>{chip(v, len(items))}</h3><p class="lawnote">אף מונח מרשימת החיפוש של החוק '
+                       'אינו מופיע בהם, והם אינם מצטטים אותו: אין בהם דבר מעניינו.</p>')
+            continue
+        body = "".join(items)
+        if v == "not-checked":
+            out.append(f'<details class="st-group"><summary>{chip(v, len(items))}</summary><ul class="st-list">{body}</ul></details>')
+        else:
+            out.append(f'<h3>{chip(v, len(items))}</h3><ul class="st-list">{body}</ul>')
+    inv = next(x for x in statutes() if x["module"] == module)["inventory"]
+    if inv.get("terms"):
+        out.append('<p class="lawnote">מונחי החיפוש (<code dir="ltr">laws/' + esc(module) + '.toml</code>): '
+                   + ", ".join(f'<span lang="he">{esc(t)}</span>' for t in inv["terms"])
+                   + (". לא נספרים: " + ", ".join(esc(t) for t in inv["exclude"]) if inv.get("exclude") else "")
+                   + ".</p>")
+    return "".join(out)
+
+
+def grid_html(rec: dict, *, esc, link, doc_href, coll_name, coll_order) -> str:
+    """The summary page: every document of the manifest against every
+    protective statute, and the totals."""
+    sts = rec["statutes"]
+    tot = totals(rec)
+    head = "".join(f'<th scope="col"><a href="{link("laws/" + s["module"] + ".html")}#record" '
+                   f'title="{esc(s["title"])}">{esc(s["short"])}</a></th>' for s in sts)
+    trows = []
+    for v in ORDER:
+        tds = "".join(f'<td>{tot[s["module"]].get(v, 0) or ""}</td>' for s in sts)
+        trows.append(f'<tr><th scope="row">{chip(v)}</th>{tds}</tr>')
+    totals_table = (f'<div class="scroll-x"><table class="diag st-grid st-totals"><thead><tr><th>הכרעה</th>{head}</tr></thead>'
+                    f'<tbody>{"".join(trows)}</tbody></table></div>')
+    rows_by: dict[str, list[dict]] = {}
+    for r in rec["rows"]:
+        rows_by.setdefault(r["collection"], []).append(r)
+    body, quiet = [], []
+    for coll in coll_order([*rows_by]):
+        rs = []
+        for r in sorted(rows_by[coll], key=lambda r: (r["date"], r["doc"])):
+            keys = [verdict_key(r["cells"][s["module"]]) for s in sts]
+            h = doc_href(r["doc"], None)
+            name = (f'<a href="{link(h)}#statutes">{esc(r["title"])}</a>' if h else esc(r["title"]))
+            if all(k == "off-subject" for k in keys):
+                quiet.append(f'<li>{name}<span class="lawnote"> · {esc(coll_name(coll))}</span></li>')
+                continue
+            tds = "".join(f'<td class="sv-{k}">{GLYPH[k]}</td>' if k == "off-subject" else
+                          f'<td class="sv-{k}" title="{LABEL[k]}">{GLYPH[k]}</td>' for k in keys)
+            date = f'<span class="lawnote" dir="ltr"> {esc(r["date"])}</span>' if r["date"] else ""
+            rs.append(f'<tr><th scope="row" class="st-doc">{name}{date}</th>{tds}</tr>')
+        if rs:
+            body.append(f'<tr class="st-coll"><th colspan="{len(sts) + 1}">{esc(coll_name(coll))}</th></tr>' + "".join(rs))
+    legend = " ".join(chip(v) for v in ORDER)
+    grid = (f'<div class="scroll-x st-gridwrap"><table class="diag st-grid"><thead><tr><th>מסמך</th>{head}</tr></thead>'
+            f'<tbody>{"".join(body)}</tbody></table></div>')
+    quiet_html = (f'<details class="st-group"><summary>{chip("off-subject", len(quiet))} — מסמכים שאין בהם דבר '
+                  f'מעניינו של אף חוק מגן</summary><ul class="st-list">{"".join(quiet)}</ul></details>' if quiet else "")
+    return ('<h1>המסמכים מול החוקים המגינים</h1>'
+            '<p class="lede">לכל מסמך ברשימת הקורפוס (<code dir="ltr">corpus/manifest.json</code>) ולכל חוק מגן '
+            f'שהשורש של החוקים רושם (<a href="{link("laws/root.html")}">שורש החוקים המגינים</a>), אחת מארבע: '
+            'נופל מהרצפה — כרטיס בקבוצה "מסמך מול חוק" ב<a href="' + link("contradictions.html") + '#g-law">מקורות סותרים</a> '
+            'או ממצא שהבדיקה שלו קוראת את החוק; עומד ברצפה — בדיקה (<code>#ASSERT</code>) בקוד המסמך שקוראת כלל או ערך '
+            'של החוק, ו־<code>make l4</code> רשם שהיא מתקיימת; לא נשקל — והנימוק, בהערה בקוד המסמך או, כשאין לו קוד, '
+            'ב־<code dir="ltr">data/statute-set-aside.toml</code>, או שאין בו דבר מעניינו של החוק: אף מונח מרשימת החיפוש '
+            'שהסבב של החוק חיפש בקורפוס אינו מופיע בו; לא נבדק — המונחים מופיעים בו, ולא נרשמה הכרעה. '
+            'דבר מכל זה אינו נכתב ביד: הרשומה נקראת מהקוד ומתוצאות הבדיקות '
+            f'(<code dir="ltr">tools/statute_record.py</code>, וגם <a href="{link("statute-record.json")}">כ־JSON</a>). '
+            'מסמך שמחולק לסעיפים (התקנון, הסכם הבסיס, הסכם עוז לתמורה) מקבל את ההכרעה החזקה מבין סעיפיו, ודף המסמך מפרט אותם.</p>'
+            f'<h2>לפי חוק</h2>{totals_table}'
+            f'<h2>לפי מסמך</h2><p class="lawnote">{legend}</p>{grid}{quiet_html}')
+
+
 if __name__ == "__main__":
     rec = build()
     OUT.parent.mkdir(parents=True, exist_ok=True)

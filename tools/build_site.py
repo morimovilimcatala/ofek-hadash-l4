@@ -29,6 +29,11 @@ Pages, laid out like the corpus they encode:
                                    beside its rules (laws/<name>.toml, l4/laws/<name>.l4)
   laws/index.html                  every statute the corpus cites, and the sections it cites
                                    by number (data/statute-citations.json, MMS-601)
+  laws/record.html  statute-record.json
+                                   every document of the manifest against every protective
+                                   statute: meets, falls short, not weighed and why, or not
+                                   checked (tools/statute_record.py, MMS-601); each document's
+                                   page shows its row, each statute's page its documents
   contradictions.html              where one instrument contradicts another: every
                                    contradiction the root finds, generated from its report
                                    (MMS-521), with a crop of each page, the rule that
@@ -69,6 +74,7 @@ import laws  # noqa: E402
 import modules  # noqa: E402
 import roots  # noqa: E402
 import l4src    # noqa: E402
+import statute_record  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "build" / "site"
@@ -852,10 +858,12 @@ def laws_group(here: str) -> str:
     open_ = here.startswith("laws/")
     cur = ' aria-current="page"' if here == "laws/index.html" else ""
     root_cur = ' aria-current="page"' if here == "laws/root.html" else ""
+    rec_cur = ' aria-current="page"' if here == statute_record.HERE else ""
     return (f'<li class="sn-group"><details{" open" if open_ else ""}>'
             f'<summary>חוקים<span class="n">{len(names)}</span></summary>'
             f'<a class="sn-hub" href="{rel("laws/index.html", here)}"{cur}>החוקים שהקורפוס מצטט</a>'
             f'<a class="sn-hub" href="{rel("laws/root.html", here)}"{root_cur}>שורש החוקים המגינים</a>'
+            f'<a class="sn-hub" href="{rel(statute_record.HERE, here)}"{rec_cur}>המסמכים מול החוקים המגינים</a>'
             f'<ul>{"".join(lis)}</ul></details></li>')
 
 
@@ -1176,6 +1184,8 @@ def section_block(v: SectionView, here: str, headless: bool = False) -> str:
                  + "".join(f'<li><a href="{rel("findings.html", here)}#{esc(f["id"])}"><span class="kind-tag {f["kind"]}">'
                            f'{esc(KINDS[f["kind"]][0])}</span>{prose(f["title"])}</a></li>' for f in found)
                  + "</ul></div>")
+    head += (statutes_box(v.doc, None, here) if v.whole else
+             statutes_box(v.doc, sec.num, here, box_id=f"statutes-{sec.eid}"))
 
     def flags(r):
         fs = row_findings(v, r)
@@ -1232,6 +1242,40 @@ def section_block(v: SectionView, here: str, headless: bool = False) -> str:
                     + "".join(segment_html(v, s, graphs) for s in v.appendix) + '</details>')
     return (f'<section class="tsec" id="{esc(sec.eid)}"{prose_at}>{head}{unplaced}'
             f'<div class="grid">{"".join(out)}</div>{appendix}</section>')
+
+
+# the per-instrument record of the protective statutes (tools/statute_record.py,
+# MMS-601), read off the L4 and `make l4`'s results by build(): every
+# document of the manifest, and every section of a sectioned one, against
+# every statute the statutes' root registers
+STATUTES: dict = {}
+STATUTE_CELLS: dict[tuple[str, str | None], dict] = {}
+
+
+def doc_href(doc: str, sec: str | None) -> str | None:
+    """The site's page of a document, or of a section of a sectioned one;
+    None for a document the site has no page for."""
+    if doc not in NAV_VIEWS:
+        return None
+    if sec is None:
+        return f"{doc.removesuffix('.xml')}.html"
+    v = next((v for v in NAV_VIEWS[doc] if v.section.num == sec), None)
+    return v.href if v is not None else None
+
+
+def statutes_box(doc: str, sec: str | None, here: str, box_id: str = "statutes") -> str:
+    """An instrument's row of the record, on its page."""
+    cells = STATUTE_CELLS.get((doc, sec))
+    if cells is None:
+        return ""
+    sectioned = sec is None and not akn.is_whole(doc)
+
+    def sec_href(num: str) -> str | None:
+        h = doc_href(doc, num)
+        return rel(h, here) if h else None
+    return statute_record.box_html(STATUTES, cells, esc=esc, link=lambda t: rel(t, here),
+                                   sec_href=sec_href if sectioned else None,
+                                   what="הסעיף" if sec else "המסמך", box_id=box_id)
 
 
 # a module's tests file (l4/tests/<module>-tests.l4) by the module's file:
@@ -1388,6 +1432,7 @@ def contents_page(doc: str, views: list[SectionView]) -> str:
             + f'<a class="fcount" href="{rel("findings.html", here)}"><b>{nfind}</b> ממצאים</a>'
             f'<a href="{CORPUS_SITE}/{doc.removesuffix(".xml")}.html">בקורפוס ↗</a></div>'
             f'{progress(views)}</header>')
+    head += statutes_box(doc, None, here)
     pages = [v for d in NAV_VIEWS if is_site_page(d) for v in NAV_VIEWS[d]] if takanon else []
     if pages:
         lis = "".join(
@@ -1917,8 +1962,23 @@ def law_page(name: str) -> str:
     """A statute the L4 encodes outside the corpus (tools/laws.py, MMS-516)."""
     here = f"laws/{name}.html"
     body = laws.page_body(name, code_html=l4src.numbered_html, esc=esc)
+    if any(x["module"] == name for x in STATUTES.get("statutes", [])):
+        body += statute_record.law_html(STATUTES, name, esc=esc, link=lambda t: rel(t, here),
+                                        doc_href=doc_href, coll_name=coll_name)
     title = laws.load(name)["title"]
     return page(here, f"{title} — {TITLE}", body, desc=f"{title} ב־L4: סעיף לצד סעיף")
+
+
+def statute_record_page() -> str:
+    """Every document of the manifest against every protective statute
+    (tools/statute_record.py, MMS-601)."""
+    here = statute_record.HERE
+    order = [c for c, _ in COLLECTIONS]
+    body = statute_record.grid_html(STATUTES, esc=esc, link=lambda t: rel(t, here), doc_href=doc_href,
+                                    coll_name=coll_name,
+                                    coll_order=lambda cs: sorted(cs, key=lambda c: (order.index(c) if c in order else len(order), c)))
+    return page(here, f"המסמכים מול החוקים המגינים — {TITLE}", body, wide=True,
+                desc="כל מסמך בקורפוס מול כל חוק מגן: עומד ברצפה, נופל ממנה, לא נשקל ולמה, או לא נבדק")
 
 
 def laws_index_page() -> str:
@@ -2477,6 +2537,13 @@ def build() -> int:
         doc: [build_view(doc, s) for s in akn.sections(doc)] for doc in DOCUMENTS}
     NAV_VIEWS.clear()
     NAV_VIEWS.update(all_views)
+    STATUTES.clear()
+    STATUTES.update(statute_record.build())
+    STATUTE_CELLS.clear()
+    for r, sec, cells in statute_record.units(STATUTES):
+        STATUTE_CELLS[(r["doc"], sec)] = cells
+        if sec is not None:
+            STATUTE_CELLS[(r["doc"], None)] = r["cells"]
     # a module with a tests file, by its file: its page shows them (a
     # root's page does so itself, in tools/roots.py)
     wanted = modules.wanted()[0]
@@ -2547,6 +2614,8 @@ def build() -> int:
     for name in laws.all_laws():
         (OUT / "laws" / f"{name}.html").write_text(law_page(name), encoding="utf-8")
     (OUT / "laws" / "index.html").write_text(laws_index_page(), encoding="utf-8")
+    (OUT / statute_record.HERE).write_text(statute_record_page(), encoding="utf-8")
+    (OUT / "statute-record.json").write_text(json.dumps(STATUTES, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     real = {n: str(f.relative_to(ROOT)) for n, f in modules.wanted()[0].items()}
 
     def href_of(module: str) -> str | None:
