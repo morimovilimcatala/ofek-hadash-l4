@@ -24,8 +24,6 @@ CITED_NOT_PINNED = {
     "collective-agreements-law:8", "collective-agreements-law:9",
     "collective-agreements-law:13", "collective-agreements-law:25",
     "national-insurance-law:22",
-    "womens-work-law:6", "womens-work-law:6א", "womens-work-law:7",
-    "womens-work-law:8", "womens-work-law:9", "womens-work-law:10",
 }
 
 

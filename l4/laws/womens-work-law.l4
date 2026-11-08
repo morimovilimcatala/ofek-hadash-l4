@@ -1,14 +1,322 @@
--- חוק עבודת נשים, התשי"ד-1954 — section 7א: an employer who was paying into
--- a provident fund for an employee keeps paying for the whole period for
--- which maternity pay or the pregnancy-protection benefit is paid, at the
--- rates and on the salary as though the employee had gone on working. The
--- text is laws/womens-work-law.toml, pinned from the live page of ספר החוקים
--- הפתוח; the corpus holds no copy. A pension fund and a study fund are both
--- provident funds ("קופת גמל" as the provident-funds law defines it).
+-- חוק עבודת נשים, התשי"ד-1954 — sections 6, 6א, 7, 7א, 8, 9, 10, 19 and
+-- 23: the birth and parenthood period and its length, the absences the law
+-- allows (a miscarriage, pregnancy, the months after the period, the
+-- parent's hour, fertility treatment, a spouse in reserve duty, the
+-- extension of up to a year, check-ups), the provident-fund contributions
+-- through the period, that no one is employed in it, the limits on
+-- dismissal, on overtime and on night work, that the State is an employer
+-- like any other, and that the law takes no better right away. The text is
+-- laws/womens-work-law.toml, pinned from the live page of ספר החוקים הפתוח;
+-- the corpus holds no copy (MMS-601).
+--
+-- Why it is here: it sets floors an instrument cannot go below (the
+-- Collective Agreements Law §21; §23 here keeps every better right). The
+-- agreements and circulars that count "the birth and parenthood period as
+-- §6 means it" towards a grant name its length; the takanon's §§1.25.5 and
+-- 1.28.2.1 restate §§6, 7 and 9, and where a restatement gives less, the law
+-- governs (the root's precedence, l4/lib/precedence.l4).
+--
+-- Time is counted as the law counts it: the period in weeks, the
+-- absences after it in months, the days after an absence in days. An amount
+-- or a form the Minister sets by regulation is not pinned; no rule here
+-- turns on one.
 
 IMPORT prelude
+IMPORT parties
 
-§ `חוק עבודת נשים — הפרשות לקופת גמל בתקופת לידה ושמירת הריון`
+§ `חוק עבודת נשים — תקופת הלידה וההורות, ההיעדרויות, ההפרשות והגבלת הפיטורים`
+
+§§ `6`
+
+-- (א): an employee about to give birth is given the birth and parenthood
+-- period by her employer, and is not employed in it (§8 says it again, of
+-- the employer who knows). (ב)(1): the period is 26 weeks, of which seven
+-- or fewer, as she wishes, before the expected day of the birth; (5): 15
+-- weeks, seven or fewer before, for one who worked fewer than twelve months
+-- for the same employer or at the same workplace before it, and (1)–(4) do
+-- not apply to her.
+@ref law:6
+GIVEN `months worked for the employer before the period` IS A NUMBER @desc for the same employer or at the same workplace, before she went out on the period
+GIVETH A NUMBER
+DECIDE `weeks of the birth and parenthood period` `months worked for the employer before the period` IS
+    IF `months worked for the employer before the period` LESS THAN 12 THEN 15 ELSE 26
+
+`most weeks of the birth and parenthood period before the expected birth` MEANS 7
+
+-- (ב)(2): she may shorten the period, to no fewer than 15 weeks (with the
+-- extensions of (ב1), (ג) and (ד) she used); (3): once she gives notice,
+-- the employer may put her return off by three weeks at most; (4): the
+-- Minister may set how the notice is given.
+GIVEN `weeks of the extensions she used` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `fewest weeks the birth and parenthood period may be shortened to` `weeks of the extensions she used` IS
+    15 PLUS `weeks of the extensions she used`
+
+`most weeks the employer may put off a return from a shortened period` MEANS 3
+
+-- (ב1): in hospital for more than two weeks in the period (a stay of 12
+-- hours at least, continuous or not), she may extend it by the stay, up to
+-- four weeks, or split it (three weeks or more right after the birth, the
+-- rest from the stay or its end), on notice the Minister's regulations set.
+-- (ג)(1): three weeks more for every further child of one birth, from the
+-- second; (2): her spouse may take one stretch of seven days to two weeks
+-- of them, in her place and with her consent. (ד): a newborn who stays in,
+-- or returns to, hospital for more than two weeks in the period: extend it
+-- by the stay, up to twenty weeks, or split it. (ד1) is repealed. (ד3): a
+-- newborn recognised in the period as an infant with a complex disability,
+-- five weeks more. (ד2): the extensions are cumulative, but those of
+-- (ב1)(1), (ד)(1) and (ד3) together not above twenty weeks.
+@ref law:6
+GIVEN `children born in the birth` IS A NUMBER
+      `weeks the mother was in hospital in the period` IS A NUMBER
+      `weeks the newborn was in hospital in the period` IS A NUMBER
+      `the newborn was recognised as an infant with a complex disability` IS A BOOLEAN
+GIVETH A NUMBER
+DECIDE `weeks the birth and parenthood period is extended by` `children born in the birth` `weeks the mother was in hospital in the period` `weeks the newborn was in hospital in the period` `the newborn was recognised as an infant with a complex disability` IS
+    3 TIMES max 0 (`children born in the birth` MINUS 1)
+    PLUS min 20 `the extensions (ד2) caps`
+    WHERE
+        `the mother's stay` MEANS
+            IF `weeks the mother was in hospital in the period` GREATER THAN 2
+            THEN min `weeks the mother was in hospital in the period` 4
+            ELSE 0
+        `the newborn's stay` MEANS
+            IF `weeks the newborn was in hospital in the period` GREATER THAN 2
+            THEN min `weeks the newborn was in hospital in the period` 20
+            ELSE 0
+        `the disability` MEANS
+            IF `the newborn was recognised as an infant with a complex disability` THEN 5 ELSE 0
+        `the extensions (ד2) caps` MEANS
+            `the mother's stay` PLUS `the newborn's stay` PLUS `the disability`
+
+-- (ה): with her consent and a doctor's written approval, the period may be
+-- shortened to three weeks after the birth at least, if the child is not
+-- alive, she agreed to its adoption, or she is a surrogate mother (the last
+-- two on notice the Minister sets). (ו): the Minister may set shorter weeks
+-- before the birth for named jobs, up to seven. (ז) is repealed.
+GIVEN `the child is not alive, is given for adoption, or she is a surrogate` IS A BOOLEAN
+      `she consents and a doctor approved in writing` IS A BOOLEAN
+      `months worked for the employer before the period` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `fewest weeks after the birth the period may be shortened to under section 6(ה)` `the child is not alive, is given for adoption, or she is a surrogate` `she consents and a doctor approved in writing` `months worked for the employer before the period` IS
+    IF `the child is not alive, is given for adoption, or she is a surrogate` AND `she consents and a doctor approved in writing`
+    THEN 3
+    ELSE `weeks of the birth and parenthood period` `months worked for the employer before the period` MINUS `most weeks of the birth and parenthood period before the expected birth`
+
+-- (ז1): a father whose child is with him and in his sole care, because the
+-- mother's disability or illness keeps her from caring for it (a doctor
+-- confirms in writing), has the rest of her period, under (ב), (ג) and (ד),
+-- from the day those conditions began and while they last; it neither puts
+-- off nor shortens hers. (ח): a husband has a partial period after the
+-- first six weeks, where his wife waives that part of hers in writing and
+-- goes back to work — up to 15 weeks with extensions where he worked
+-- fewer than twelve months and she twelve or more; (1ב) seven days in her
+-- period, if she waives her last week of maternity pay; the Minister sets
+-- the notice. Who takes which weeks is no instrument's question here.
+GIVEN `weeks of her period she has not used` IS A NUMBER
+      `the child is in his sole care because she cannot care for it` IS A BOOLEAN
+GIVETH A NUMBER
+DECIDE `weeks of the period a father has under section 6(ז1)` `weeks of her period she has not used` `the child is in his sole care because she cannot care for it` IS
+    IF `the child is in his sole care because she cannot care for it` THEN `weeks of her period she has not used` ELSE 0
+
+-- (ט): an absence for the period harms no right that turns on seniority
+-- with the employer.
+@ref law:6
+`the birth and parenthood period harms no right that turns on seniority` MEANS TRUE
+
+#ASSERT `weeks of the birth and parenthood period` 12 EQUALS 26
+#ASSERT `weeks of the birth and parenthood period` 11 EQUALS 15
+#ASSERT `weeks the birth and parenthood period is extended by` 2 0 0 FALSE EQUALS 3
+#ASSERT `weeks the birth and parenthood period is extended by` 1 3 20 TRUE EQUALS 20
+#ASSERT `weeks the birth and parenthood period is extended by` 1 2 0 FALSE EQUALS 0
+#ASSERT `fewest weeks after the birth the period may be shortened to under section 6(ה)` TRUE TRUE 24 EQUALS 3
+#ASSERT `fewest weeks the birth and parenthood period may be shortened to` 3 EQUALS 18
+
+§§ `6א`
+
+-- Repealed; the takanon's §1.25.5 still lists it among its sources.
+@ref law:6א
+`section 6א of the Women's Work Law is in force` MEANS FALSE
+
+§§ `7`
+
+-- (א): after a miscarriage she may be absent a week, and longer where a
+-- doctor confirms her health needs it, as long as he sets, up to six
+-- weeks. (ב): it is an absence for illness.
+@ref law:7
+GIVEN `weeks a doctor set` IS A NUMBER @desc 0 where no doctor confirmed a longer absence
+GIVETH A NUMBER
+DECIDE `weeks of absence after a miscarriage under the Women's Work Law` `weeks a doctor set` IS
+    max 1 (min `weeks a doctor set` 6)
+
+`an absence after a miscarriage is an absence for illness under the Women's Work Law` MEANS TRUE
+
+-- (ג)(1): in pregnancy, as far as a doctor confirms in writing her
+-- condition needs it — an absence for illness, unless the
+-- pregnancy-protection benefit or another law, agreement or contract pays
+-- for it; it harms no right that turns on seniority. (1א), (1ב): where a
+-- doctor confirms on the form the regulations set that the work endangers
+-- her or the foetus, or keeps her from it, unpaid leave unless the employer
+-- finds her suitable other work, seniority unharmed. (1ג): from the end of
+-- the period to six months from the birth, while nursing, where section 1
+-- forbade employing her because of it and no other work was found, unpaid
+-- leave without seniority.
+@ref law:7
+GIVEN `days a doctor confirmed in writing` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `days of absence in pregnancy under section 7(ג)(1)` `days a doctor confirmed in writing` IS
+    `days a doctor confirmed in writing`
+
+`an absence in pregnancy on a doctor's word harms no right that turns on seniority` MEANS TRUE
+
+-- (ג)(2): from the end of the period to six months after it, as far as a
+-- doctor confirms her condition after the birth needs it — an absence for
+-- illness.
+@ref law:7
+GIVEN `months a doctor confirmed` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `months of absence after the period on a doctor's word under the Women's Work Law` `months a doctor confirmed` IS
+    min `months a doctor confirmed` 6
+
+-- (ג)(3): from the end of the period to four months after it, an hour a
+-- day — the parent's hour — if she works a full position as customary at
+-- her workplace, or at least 174 hours a month, whichever is lower; on top
+-- of the breaks of the Hours of Work and Rest Law, and not deducted from
+-- her pay. A father in such a position may take it alone or by turns with
+-- her, on §7ב's conditions (not pinned), the two together no more than she
+-- alone would have.
+@ref law:7
+GIVEN `hours a month she works` IS A NUMBER
+      `hours a month of a full position at her workplace` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `works the position the parent's hour asks` `hours a month she works` `hours a month of a full position at her workplace` IF
+    `hours a month she works` AT LEAST min `hours a month of a full position at her workplace` 174
+
+GIVEN `months since the period ended` IS A NUMBER
+      `works the position it asks` IS A BOOLEAN
+GIVETH A NUMBER
+DECIDE `minutes a day of the parent's hour under the Women's Work Law` `months since the period ended` `works the position it asks` IS
+    IF `works the position it asks` AND `months since the period ended` AT LEAST 0 AND `months since the period ended` LESS THAN `months after the period the parent's hour lasts`
+    THEN 60
+    ELSE 0
+
+`months after the period the parent's hour lasts` MEANS 4
+
+`the parent's hour is deducted from pay` MEANS FALSE
+
+-- (ג)(4): in fertility treatment, IVF included, as far as the treating
+-- doctor confirms in writing and with notice to the employer in advance —
+-- an absence for illness; part days may be counted, up to 40 hours a year
+-- in a full position as customary, or its share for a part position (her
+-- monthly hours over a full position's, or 182, whichever is lower), and
+-- they are paid sick pay from the first day; (ג1): so for an employee
+-- (a man) in fertility treatment.
+@ref law:7
+GIVEN `hours a month she works` IS A NUMBER
+      `hours a month of a full position at her workplace` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the share of a position under section 7 of the Women's Work Law` `hours a month she works` `hours a month of a full position at her workplace` IS
+    min 1 (`hours a month she works` DIVIDED BY min `hours a month of a full position at her workplace` 182)
+
+GIVEN `hours a month she works` IS A NUMBER
+      `hours a month of a full position at her workplace` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `hours of part days of fertility absence a year under section 7(ג)(4)` `hours a month she works` `hours a month of a full position at her workplace` IS
+    40 TIMES `the share of a position under section 7 of the Women's Work Law` `hours a month she works` `hours a month of a full position at her workplace`
+
+`a fertility absence is an absence for illness under the Women's Work Law` MEANS TRUE
+
+-- (ג)(5): in a shelter for battered women, up to six months in twelve,
+-- after six months with the employer — unpaid leave. (ג)(6): while her
+-- spouse serves five or more consecutive days of reserve duty, an hour a
+-- day from its first day, if she has a child under 13 with her, works a
+-- full position, and gave notice with proof of the service; not on a day
+-- she takes the parent's hour (only the rest up to an hour); so for a man
+-- whose spouse serves; a security body may suspend it for a week at a time
+-- by a reasoned decision; on top of the breaks, and not deducted from pay.
+@ref law:7
+GIVEN `consecutive days of the spouse's reserve duty` IS A NUMBER
+      `age of the youngest child with her` IS A NUMBER
+      `works a full position` IS A BOOLEAN
+      `gave notice with proof of the service` IS A BOOLEAN
+      `minutes of a parent's hour she takes that day` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `minutes a day of absence while the spouse serves in reserve duty` `consecutive days of the spouse's reserve duty` `age of the youngest child with her` `works a full position` `gave notice with proof of the service` `minutes of a parent's hour she takes that day` IS
+    IF     `consecutive days of the spouse's reserve duty` AT LEAST 5
+       AND `age of the youngest child with her` LESS THAN 13
+       AND `works a full position`
+       AND `gave notice with proof of the service`
+    THEN max 0 (60 MINUS `minutes of a parent's hour she takes that day`)
+    ELSE 0
+
+-- (ג2): a man may be absent while his spouse, in hospital, split her
+-- period under §6(ב1)(2) (up to four weeks), or while a child born to him
+-- is in his sole custody (the rest of the mother's period) — unpaid leave,
+-- seniority unharmed; his return may be put off two weeks at most. (ג3):
+-- up to five days from the day after his spouse gives birth, the first
+-- three as annual leave (unpaid if he has none), the other two as sick
+-- days. (ג4): with a year's work, while the newborn is in hospital for more
+-- than two weeks, up to 20 days, on his sick days or annual leave.
+@ref law:7
+`days a spouse may be absent after the birth under section 7(ג3)` MEANS 5
+
+`of them, days as annual leave` MEANS 3
+
+-- (ד)(1): from the end of the period she may be absent a quarter of the
+-- months she worked for the same employer or at the same workplace, not
+-- past twelve months from the birth; a part of a month is not counted; the
+-- weeks by which the period she took exceeded fifteen (with extensions) are
+-- deducted. (2): unpaid leave, not counted for seniority. (3): if she
+-- reports back, or says she wants to, before the end, her return may be put
+-- off four weeks at most. (ד1): so for a man whose spouse worked six
+-- consecutive months before, or whose child is in his sole custody or care;
+-- (ד2): one spouse's absence excludes the other's but for its rest.
+@ref law:7
+GIVEN `months worked for the employer` IS A NUMBER
+      `months from the birth to the end of the period` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `months of absence after the period under section 7(ד)(1) before the deduction` `months worked for the employer` `months from the birth to the end of the period` IS
+    min (TRUNC (`months worked for the employer` DIVIDED BY 4) 0)
+        (max 0 (12 MINUS `months from the birth to the end of the period`))
+
+GIVEN `weeks of the period she took` IS A NUMBER
+      `weeks of the extensions she used` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `weeks deducted from the absence under section 7(ד)(1)` `weeks of the period she took` `weeks of the extensions she used` IS
+    max 0 (`weeks of the period she took` MINUS (15 PLUS `weeks of the extensions she used`))
+
+`the absence after the period under section 7(ד) counts for seniority` MEANS FALSE
+
+`weeks the employer may put off a return from the absence under section 7(ד)` MEANS 4
+
+-- (ה)(1): she may be absent, without deduction from pay, for medical
+-- supervision in pregnancy and the routine tests by a gynaecologist or at
+-- an approved mother-and-child station; (2): up to 40 hours over the
+-- pregnancy in a full position as customary, or its share for a part
+-- position (her monthly hours over a full position's, or 182, whichever is
+-- lower); (3): the regulations may set more, never fewer.
+@ref law:7
+GIVEN `hours a month she works` IS A NUMBER
+      `hours a month of a full position at her workplace` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `paid hours for pregnancy check-ups under the Women's Work Law` `hours a month she works` `hours a month of a full position at her workplace` IS
+    40 TIMES `the share of a position under section 7 of the Women's Work Law` `hours a month she works` `hours a month of a full position at her workplace`
+
+#ASSERT `weeks of absence after a miscarriage under the Women's Work Law` 0 EQUALS 1
+#ASSERT `weeks of absence after a miscarriage under the Women's Work Law` 9 EQUALS 6
+#ASSERT `months of absence after the period on a doctor's word under the Women's Work Law` 8 EQUALS 6
+#ASSERT `works the position the parent's hour asks` 156 156
+#ASSERT `works the position the parent's hour asks` 174 200
+#ASSERT NOT `works the position the parent's hour asks` 150 156
+#ASSERT `minutes a day of the parent's hour under the Women's Work Law` 3.5 TRUE EQUALS 60
+#ASSERT `minutes a day of the parent's hour under the Women's Work Law` 4 TRUE EQUALS 0
+#ASSERT `minutes a day of absence while the spouse serves in reserve duty` 5 4 TRUE TRUE 0 EQUALS 60
+#ASSERT `minutes a day of absence while the spouse serves in reserve duty` 5 4 TRUE TRUE 60 EQUALS 0
+#ASSERT `months of absence after the period under section 7(ד)(1) before the deduction` 40 6 EQUALS 6
+#ASSERT `months of absence after the period under section 7(ד)(1) before the deduction` 8 3.5 EQUALS 2
+#ASSERT `weeks deducted from the absence under section 7(ד)(1)` 26 0 EQUALS 11
+#ASSERT `paid hours for pregnancy check-ups under the Women's Work Law` 182 182 EQUALS 40
+#ASSERT `paid hours for pregnancy check-ups under the Women's Work Law` 91 200 EQUALS 20
 
 §§ `7א`
 
@@ -19,7 +327,8 @@ IMPORT prelude
 -- for at least six months right before the pregnancy began; for the weeks
 -- of maternity pay, also only if they were employed throughout the
 -- pregnancy. (ג): the minister sets dates and rules for paying; no rule
--- here turns on them.
+-- here turns on them. A pension fund and a study fund are both provident
+-- funds ("קופת גמל" as the provident-funds law defines it).
 @ref law:7א
 GIVEN `weeks maternity pay was paid` IS A NUMBER
       `weeks the pregnancy-protection benefit was paid` IS A NUMBER
@@ -37,3 +346,231 @@ DECIDE `weeks the employer keeps contributing` `weeks maternity pay was paid` `w
 #ASSERT `weeks the employer keeps contributing` 15 8 TRUE TRUE TRUE EQUALS 23
 #ASSERT `weeks the employer keeps contributing` 15 8 TRUE TRUE FALSE EQUALS 8
 #ASSERT `weeks the employer keeps contributing` 15 8 TRUE FALSE TRUE EQUALS 0
+
+§§ `8`
+
+-- An employer does not employ an employee, woman or man, he knows to be in
+-- the birth and parenthood period. Time in weeks of the period.
+@desc What the Women's Work Law forbids an employer, or has him do.
+DECLARE `Women's Work Law act` IS ONE OF
+    `employ the employee in the birth and parenthood period`
+    `dismiss the employee or give notice for a date the law protects`
+    `employ her overtime or on the weekly rest`
+
+@ref law:8
+GIVEN `weeks of the period` IS A NUMBER
+GIVETH A DEONTIC Party `Women's Work Law act`
+DECIDE `no work in the birth and parenthood period` `weeks of the period` IS
+    PARTY `the employer`
+    SHANT `employ the employee in the birth and parenthood period`
+    WITHIN `weeks of the period`
+    LEST  BREACH BY `the employer` BECAUSE "Women's Work Law, section 8: no one is employed in the birth and parenthood period"
+
+§§ `9`
+
+-- (א): a pregnant employee not yet in the period, permanent, casual or
+-- temporary, who worked six months for the employer or at the workplace, is
+-- dismissed only with the Minister's permit, which he refuses where he
+-- thinks the dismissal is connected to the pregnancy. (ב), (ב1): a
+-- manpower contractor's temporary stop counts as a dismissal, and the
+-- employer in fact may not cause one. (ג)(1): no dismissal, and no notice
+-- for a date, in the period or in an absence under §7(ג)(2) or (ג2) — no
+-- permit opens it. (1א): nor in the 60 days after it, but with the
+-- Minister's permit, which he gives only where the dismissal is not
+-- connected to the birth, the period or the absence AND the business has
+-- stopped or the employer is bankrupt or wound up. (2): nor in an absence
+-- under §7(ג)(1ג), (ד)(1) or (ד1), or the 60 days after it, but with the
+-- Minister's permit, which he refuses where he thinks it connected. (2ג), a
+-- temporary provision to 31.3.2027, leaves out of the 60 days an unpaid
+-- leave in the determining period. (3): those periods do not count in the
+-- days of notice. (ד): a woman in a shelter, in her absence and 150 days
+-- after, only with a permit. (ה): one in fertility treatment, in the
+-- absences of §7(ג)(4) or (ג1) and 150 days after them, only with a permit
+-- the Minister refuses where he thinks it connected — towards two births at
+-- most while with the same employer, and, where they had treatment towards
+-- children with earlier spouses, towards two births with the present one
+-- too; (2): not once two years have passed from the first such absence; (3)
+-- the same without an absence, for 150 days from the start of treatment, on
+-- notice and a doctor's confirmation. (ו): no dismissal, and no notice for
+-- a date, in an absence after a miscarriage. (ז): a dismissal includes not
+-- renewing a fixed-term contract of twelve months or more, or a shorter one
+-- that renewed an employment right before it.
+@desc A dismissal the Women's Work Law limits, as section 9 tells the cases apart.
+DECLARE `case under section 9` IS ONE OF
+    `pregnant, not yet in the period`
+    `in the period or an absence under section 7(ג)(2) or (ג2)`
+    `in the days after the period or that absence`
+    `in an absence under section 7(ג)(1ג), (ד)(1) or (ד1), or the days after it`
+    `in fertility treatment's absences, or the days after them`
+    `in an absence after a miscarriage`
+    `none of section 9's cases`
+
+@ref law:9
+`days after the period in which section 9 limits a dismissal` MEANS 60
+
+`days after an absence under section 7(ד) in which section 9 limits a dismissal` MEANS 60
+
+`days after fertility treatment's absences in which section 9 limits a dismissal` MEANS 150
+
+`months with the employer before section 9(א) protects a pregnant employee` MEANS 6
+
+-- Which case a dismissal falls in, by the days since the period, the
+-- absence under §7(ד) or the fertility absences ended (a negative number
+-- while it lasts).
+@ref law:9
+GIVEN `she is pregnant and not yet in the period` IS A BOOLEAN
+      `days since the period ended` IS A NUMBER @desc negative while the period, or an absence under section 7(ג)(2), lasts; a large number if long past or none
+      `days since the absence under section 7(ד) ended` IS A NUMBER @desc negative while it lasts; a large number if none
+      `days since the fertility absences ended` IS A NUMBER @desc negative while they last; a large number if none
+      `she is absent after a miscarriage` IS A BOOLEAN
+GIVETH A `case under section 9`
+DECIDE `the case under section 9` `she is pregnant and not yet in the period` `days since the period ended` `days since the absence under section 7(ד) ended` `days since the fertility absences ended` `she is absent after a miscarriage` IS
+    BRANCH IF `she is absent after a miscarriage` THEN `in an absence after a miscarriage`
+           IF `days since the period ended` LESS THAN 0 THEN `in the period or an absence under section 7(ג)(2) or (ג2)`
+           IF `she is pregnant and not yet in the period` THEN `pregnant, not yet in the period`
+           IF `days since the period ended` AT MOST `days after the period in which section 9 limits a dismissal`
+           THEN `in the days after the period or that absence`
+           IF `days since the absence under section 7(ד) ended` AT MOST `days after an absence under section 7(ד) in which section 9 limits a dismissal`
+           THEN `in an absence under section 7(ג)(1ג), (ד)(1) or (ד1), or the days after it`
+           IF `days since the fertility absences ended` AT MOST `days after fertility treatment's absences in which section 9 limits a dismissal`
+           THEN `in fertility treatment's absences, or the days after them`
+           OTHERWISE `none of section 9's cases`
+
+-- Whether the Minister may permit the dismissal in a case: never in the
+-- period or after a miscarriage; in the 60 days after the period only where
+-- it is not connected and the business stopped (or bankruptcy or winding
+-- up); in the other cases where he thinks it not connected.
+GIVEN k IS A `case under section 9`
+      `connected to the protected cause, in the Minister's view` IS A BOOLEAN
+      `the business stopped, or the employer is bankrupt or wound up` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `section 9 lets the Minister permit the dismissal` k `connected to the protected cause, in the Minister's view` `the business stopped, or the employer is bankrupt or wound up` IF
+    CONSIDER k
+    WHEN `in the period or an absence under section 7(ג)(2) or (ג2)` THEN FALSE
+    WHEN `in an absence after a miscarriage` THEN FALSE
+    WHEN `in the days after the period or that absence` THEN
+        (NOT `connected to the protected cause, in the Minister's view`) AND `the business stopped, or the employer is bankrupt or wound up`
+    WHEN `none of section 9's cases` THEN TRUE
+    OTHERWISE NOT `connected to the protected cause, in the Minister's view`
+
+-- A dismissal section 9 limits is barred unless the Minister permitted it,
+-- and a permit is only what the Minister may give. Section 9(א) protects
+-- after six months; 9(ה) towards the births it counts.
+GIVEN k IS A `case under section 9`
+      `months with the employer` IS A NUMBER
+      `section 9(ה) covers the treatment` IS A BOOLEAN
+      `the Minister permitted it` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `section 9 limits the dismissal` k `months with the employer` `section 9(ה) covers the treatment` `the Minister permitted it` IF
+    CONSIDER k
+    WHEN `none of section 9's cases` THEN FALSE
+    WHEN `pregnant, not yet in the period` THEN
+        `months with the employer` AT LEAST `months with the employer before section 9(א) protects a pregnant employee` AND (NOT `the Minister permitted it`)
+    WHEN `in fertility treatment's absences, or the days after them` THEN
+        `section 9(ה) covers the treatment` AND (NOT `the Minister permitted it`)
+    WHEN `in the period or an absence under section 7(ג)(2) or (ג2)` THEN TRUE
+    WHEN `in an absence after a miscarriage` THEN TRUE
+    OTHERWISE NOT `the Minister permitted it`
+
+-- (ה)(1)–(2): the fertility protection reaches treatment towards two births
+-- at most while with this employer — and towards two births with the
+-- present spouse where there was treatment towards children with earlier
+-- spouses — and not once two years have passed from the first absence for
+-- it with this employer. A birth here is one the treatment was towards.
+GIVEN `births with this employer the treatment was towards before` IS A NUMBER
+      `treated towards children with an earlier spouse` IS A BOOLEAN
+      `births with the present spouse the treatment was towards before` IS A NUMBER
+      `years since the first absence for it with this employer` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `section 9(ה) covers the treatment towards a birth` `births with this employer the treatment was towards before` `treated towards children with an earlier spouse` `births with the present spouse the treatment was towards before` `years since the first absence for it with this employer` IF
+        (    `births with this employer the treatment was towards before` LESS THAN 2
+         OR (`treated towards children with an earlier spouse` AND `births with the present spouse the treatment was towards before` LESS THAN 2))
+    AND `years since the first absence for it with this employer` LESS THAN 2
+
+-- And the rule itself: the employer does not dismiss, or give notice for a
+-- date, where section 9 limits the dismissal.
+GIVEN `section 9 limits it` IS A BOOLEAN
+GIVETH A DEONTIC Party `Women's Work Law act`
+DECIDE `no dismissal section 9 limits` `section 9 limits it` IS
+    IF `section 9 limits it`
+    THEN PARTY `the employer`
+         SHANT `dismiss the employee or give notice for a date the law protects`
+         LEST  BREACH BY `the employer` BECAUSE "Women's Work Law, section 9: the dismissal is limited"
+    ELSE FULFILLED
+
+#ASSERT `the case under section 9` FALSE 30 9999 9999 FALSE EQUALS `in the days after the period or that absence`
+#ASSERT `the case under section 9` FALSE 61 9999 9999 FALSE EQUALS `none of section 9's cases`
+#ASSERT `the case under section 9` FALSE (-10) 9999 9999 FALSE EQUALS `in the period or an absence under section 7(ג)(2) or (ג2)`
+#ASSERT `the case under section 9` FALSE 9999 9999 120 FALSE EQUALS `in fertility treatment's absences, or the days after them`
+#ASSERT `section 9 limits the dismissal` `in the period or an absence under section 7(ג)(2) or (ג2)` 24 FALSE TRUE
+#ASSERT NOT `section 9 lets the Minister permit the dismissal` `in the days after the period or that absence` FALSE FALSE
+#ASSERT `section 9 lets the Minister permit the dismissal` `in the days after the period or that absence` FALSE TRUE
+#ASSERT `section 9(ה) covers the treatment towards a birth` 0 FALSE 0 0
+#ASSERT NOT `section 9(ה) covers the treatment towards a birth` 2 FALSE 2 1
+#ASSERT `section 9(ה) covers the treatment towards a birth` 2 TRUE 0 1
+#ASSERT NOT `section 9(ה) covers the treatment towards a birth` 0 FALSE 0 2
+
+§§ `10`
+
+-- (א): from the fifth month of pregnancy, once she has told the employer
+-- (or he learned of it), he does not employ her overtime or on the weekly
+-- rest, even where the Hours of Work and Rest Law would let him; nor at
+-- night, if she told him in writing she does not agree. (ב): he may, where
+-- she agreed in writing and gave a gynaecologist's certificate that
+-- nothing prevents it, on its terms. (ג): for four months from the end of
+-- the period, no night work and no work on the weekly rest without her
+-- written consent (but for the workplaces and jobs the regulations under
+-- §2(ג) set). (ד): night work is work of which two hours at least fall
+-- between 22:00 and 06:00.
+@ref law:10
+GIVEN `month of the pregnancy` IS A NUMBER
+      `the employer knows of the pregnancy` IS A BOOLEAN
+      `she agreed in writing, on a gynaecologist's certificate` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `section 10 lets her be employed overtime or on the weekly rest` `month of the pregnancy` `the employer knows of the pregnancy` `she agreed in writing, on a gynaecologist's certificate` IF
+        `month of the pregnancy` LESS THAN 5
+    OR  NOT `the employer knows of the pregnancy`
+    OR  `she agreed in writing, on a gynaecologist's certificate`
+
+GIVEN `allowed` IS A BOOLEAN
+GIVETH A DEONTIC Party `Women's Work Law act`
+DECIDE `no overtime in pregnancy without her consent` `allowed` IS
+    IF `allowed`
+    THEN FULFILLED
+    ELSE PARTY `the employer`
+         SHANT `employ her overtime or on the weekly rest`
+         LEST  BREACH BY `the employer` BECAUSE "Women's Work Law, section 10: no overtime or weekly-rest work from the fifth month"
+
+`months after the period with no night work without her consent` MEANS 4
+
+GIVEN `hours of the work between 22:00 and 06:00` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `night work under section 10(ד)` `hours of the work between 22:00 and 06:00` IF
+    `hours of the work between 22:00 and 06:00` AT LEAST 2
+
+#ASSERT NOT `section 10 lets her be employed overtime or on the weekly rest` 5 TRUE FALSE
+#ASSERT `section 10 lets her be employed overtime or on the weekly rest` 4 TRUE FALSE
+#ASSERT `section 10 lets her be employed overtime or on the weekly rest` 6 TRUE TRUE
+
+§§ `19`
+
+-- For this law, a State employee is like any other employee: it binds the
+-- State as employer, and so the Ministry of Education towards the teachers
+-- it employs.
+@ref law:19
+`the Women's Work Law binds the State as an employer` MEANS TRUE
+
+§§ `23`
+
+-- The law takes away no right an employee has by law, collective
+-- agreement, contract of employment or custom: what an instrument gives
+-- beyond it stands. For a right measured in one number, the employee has
+-- the larger.
+@ref law:23
+GIVEN `what the law gives` IS A NUMBER, `what the instrument gives` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `what stands under section 23 of the Women's Work Law` `what the law gives` `what the instrument gives` IS
+    max `what the law gives` `what the instrument gives`
+
+#ASSERT `what stands under section 23 of the Women's Work Law` 4 12 EQUALS 12
+#ASSERT `what stands under section 23 of the Women's Work Law` 26 14 EQUALS 26
