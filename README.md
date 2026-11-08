@@ -182,7 +182,18 @@ that updated it, the steps it prints.
   accrual, measured in weeks of the teacher's own timetable (convention
   `instruments.sick-days-measure`), and the two corona agreements of 2020
   are above the floor too, and the takanon's §6.5 dismissal on health
-  grounds leaves §4א standing.
+  grounds leaves §4א standing. The takanon's restatements of the family
+  laws give less in four places, each a card on the contradictions page
+  where the law governs: a child's malignant illness only, where the law
+  gives the days for any serious illness (dialysis, or one the Minister
+  names); a single parent left at 90 days where the law gives 110; 15
+  additional days to assist a child with a disability where the law gives
+  18; and a spouse's malignant illness charged to sick days alone, where
+  the law lets the employee charge vacation days instead. And a teacher
+  disqualified for health reasons retires after a share of his accrued
+  sick days, or none (§1.25.3.1(7)), where §4א bars dismissing him while
+  up to 90 of them last — read as a dismissal by convention
+  `instruments.health-retirement-dismissal`, a card too.
 - **The statutes the corpus cites** (`laws/index.html`) — every act the
   corpus links to, how many documents cite it, the sections it cites by
   number, and which of them the L4 pins (MMS-601). The protective statutes'
