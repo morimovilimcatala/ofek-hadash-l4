@@ -130,7 +130,8 @@ def load() -> dict | None:
 
 # A weaker source departing from a stronger one — a circular from the agreement
 # or the letter it carries out, an answer on the site from the takanon, the
-# takanon from a circular or an agreement — is a card on this page and not a
+# takanon (or a table its site publishes) from a circular or an agreement —
+# is a card on this page and not a
 # finding (the client, 2026-10-22: "a weaker one departing from a stronger one
 # has its own page, סתירה in finding means equal power"). Two circulars, or a
 # document against itself, are of equal power and stay findings. A document

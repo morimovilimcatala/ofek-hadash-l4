@@ -243,8 +243,8 @@ not from the Catala proofs, the corpus's ambiguity ledger or its sic kinds:
   סתירה in finding means equal power"): a document against itself, or two of
   the same rank (two circulars). A weaker source departing from a stronger
   one — a circular from the agreement or the letter it carries out, an
-  answer on the site from the takanon, the takanon from a circular or an
-  agreement — is a card on מקורות סותרים (`data/contradictions.json`, the
+  answer on the site from the takanon, the takanon or a table its site
+  publishes from a circular or an agreement — is a card on מקורות סותרים (`data/contradictions.json`, the
   groups in `contradictions.CROSS_RANK`). The finding that records it stays in
   the register, its `#ASSERT` the card's evidence, and is shown on its card
   only: the findings page, its counts and the rows' flags leave it out
