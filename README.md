@@ -129,7 +129,14 @@ that updated it, the steps it prints.
   every better right stands (MMS-601). The agreements and circulars that
   count "the birth and parenthood period as §6 means it" towards a grant,
   the base agreement's §25 and the employment circulars' nursing hour, and
-  the 2023 framework's §70(ב) give at least what it guarantees.
+  the 2023 framework's §70(ב) give at least what it guarantees. The
+  takanon's restatements give less in five places, each a card on the
+  contradictions page where the law governs: maternity leave of 14 weeks
+  (§1.25.5) where §6 gives 26, the absence after it only after twelve
+  months' work (§7(ד) asks none), 20 check-up hours where §7(ה)'s share can
+  be more, 45 days of protection from dismissal after the leave where §9
+  gives 60 (§1.28.2.1), and fertility treatment protected towards a "first
+  or second child" where §9(ה) counts two births with the employer.
 - **The statutes the corpus cites** (`laws/index.html`) — every act the
   corpus links to, how many documents cite it, the sections it cites by
   number, and which of them the L4 pins (MMS-601). The protective statutes'
