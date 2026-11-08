@@ -209,7 +209,13 @@ that updated it, the steps it prints.
   ulpan teacher's 60 (§14.5), a substitute's 20% or 24% (§§1.30, 2.1.8)
   against §15's 4%, the summer the strike circular תשס"ח/3 left, and the
   wage agreement of 19.10.2022's two days, which carry over no more than
-  §7 does.
+  §7 does. Two places give less, each a card on the contradictions page
+  where the law governs: the summer is paid only for more than 51
+  consecutive workdays (§1.25.2(2א)), where §3 gives a regular teacher of
+  fewer a share of the days, and their redemption; and no absence on a
+  school day without the district manager's permit (§1.25.1, general 3),
+  where §6(ב) lets an employee take a day of his leave on a date he
+  chooses, on notice.
 - **The statutes the corpus cites** (`laws/index.html`) — every act the
   corpus links to, how many documents cite it, the sections it cites by
   number, and which of them the L4 pins (MMS-601). The protective statutes'
