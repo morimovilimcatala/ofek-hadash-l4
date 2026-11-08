@@ -234,6 +234,12 @@ that updated it, the steps it prints.
   nursing hour on top of §20's breaks (§1.25.5), the של"ח instructor's
   Sabbath at §17's 150% (§6.17.7), the corona arrangement's day before the
   rest, and circular תשפ"ב/3's make-up hours, which may not be overtime.
+  Two places give less, each a card on the contradictions page where the
+  law governs: Oz LaTmura pays the hours beyond a full position — up to 50
+  a week at the school — as regular hours (§14; from 1.9.2024 its §33),
+  where §16 asks 125% for every hour above 45; and the takanon pays a day
+  out with pupils by its end hour (§1.10), 5 units for a day back by
+  midnight, less than §16's premium on the hours beyond eight.
 - **The statutes the corpus cites** (`laws/index.html`) — every act the
   corpus links to, how many documents cite it, the sections it cites by
   number, and which of them the L4 pins (MMS-601). The protective statutes'
