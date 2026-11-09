@@ -222,7 +222,11 @@ that updated it, the steps it prints.
   pregnant transferee whose delivery falls within six weeks of the year's
   start is not placed, and is on unpaid leave until she is, a distinction
   on her pregnancy §2 forbids (§3(א) read as keeping only a provision that
-  protects her: convention `instruments.pregnancy-provision`).
+  protects her: convention `instruments.pregnancy-provision`). Its grounds
+  ב and ג give a transfer to a married woman whose husband moved: against a
+  man whose wife moved, a better right §3(ב) keeps; among women, a line on
+  marriage §2 forbids, which §3(ב) does not keep (convention
+  `instruments.marital-status-condition`), a card as well.
 - **The Sick Pay Law** (`laws/sick-pay-law.html`) — §§1, 2, 4, 4א, 5, 6
   and 12: sick pay from the second day of an absence for illness (half for
   the second and third), a day and a half for each full month of work up
