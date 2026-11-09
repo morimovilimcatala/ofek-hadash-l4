@@ -224,7 +224,18 @@ that updated it, the steps it prints.
   ulpan teacher's 60 (§14.5), a substitute's 20% or 24% (§§1.30, 2.1.8)
   against §15's 4%, the summer the strike circular תשס"ח/3 left, and the
   wage agreement of 19.10.2022's two days, which carry over no more than
-  §7 does. Two places give less, each a card on the contradictions page
+  §7 does. So do the recess days the circulars move or take back (תשע"ג/1,
+  תשע"ה/6, תש"פ/7, תשפ"ד/4, תשפ"ה/5) and the של"ח guides' five days of
+  the supervision's enterprises (§6.17, the 1978 agreement), which leave
+  the summer above §3; the concentrated-leave day charged half to the
+  balance (the wages commissioner's 2023-1-13, the 2023 framework's §81);
+  a supplement or allowance the takanon pays in the summer, and an expense
+  it stops there, as §10(ג) counts holiday pay (§§1.9, 1.12, 3.15, 3.21,
+  7.6; the 2012 local-government agreement). Where a document names leave
+  only as a condition of other pay or a count, or its days rest on a rule
+  outside the corpus (the civil service's quota for supervisors, §8.4, the
+  1993 agreement), its file says it was not weighed, and why. Two places
+  give less, each a card on the contradictions page
   where the law governs: the summer is paid only for more than 51
   consecutive workdays (§1.25.2(2א)), where §3 gives a regular teacher of
   fewer a share of the days, and their redemption; and no absence on a
