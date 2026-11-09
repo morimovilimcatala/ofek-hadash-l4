@@ -5,10 +5,19 @@
 -- outside it and principals, raises the counsellor's and new role
 -- stipends, adds a mentor stipend, a training-unit cap and a one-time
 -- grant, and orders make-up school days for the 2017 strike.
+--
+-- The agreement's rules are encoded in its own file
+-- (l4/agreements/oz-latmura/2018-03-14_oz-latmura_wage-agreement-2017-2022.l4),
+-- which this circular imports: a circular applies the agreement and does
+-- not re-encode it (MMS-521, MMS-663). Each row of §§2–17 and §18(ב) is
+-- cited "as in the agreement of 14.3.2018", by the rule that encodes it
+-- there; what the circular says of its own — §1, §14's note on the roles a
+-- principal may choose, §18(א), §19's make-up days — is encoded here.
 
 IMPORT prelude
 IMPORT daydate
 IMPORT common
+IMPORT `2018-03-14_oz-latmura_wage-agreement-2017-2022`
 IMPORT minimum_wage_law
 IMPORT wage_protection_law
 IMPORT womens_work_law
@@ -39,194 +48,6 @@ GIVETH A BOOLEAN
 DECIDE `the agreement governs on` `the day` IF
     `the day` AT LEAST Date 1 9 2017 AND `the day` AT MOST Date 28 2 2022
 
-§§ `2–3 תחולה והגדרות`
-
-@ref akn:art_3/p1 akn:art_3/p2 akn:art_3/p4 akn:art_3/p5
-DECLARE `employee category` IS ONE OF
-    `a teacher in the reform`
-    `a teacher not in the reform`
-    `a principal in the reform`
-    `a principal not in the reform`
-
-@desc An upper-division teaching employee, as far as this circular asks about her.
-DECLARE `employee` HAS
-    `covered by the Oz LeTmura agreement of 14.8.2011` IS A BOOLEAN @desc whether or not employed under the reform's terms
-    `category` IS AN `employee category`
-
-@ref akn:art_2/p1
-GIVEN e IS AN `employee`
-GIVETH A BOOLEAN
-DECIDE `the agreement applies to` e IF
-    e's `covered by the Oz LeTmura agreement of 14.8.2011`
-
--- "מנהלים": principals in the reform and outside it.
-@ref akn:art_3/p3
-GIVEN c IS AN `employee category`
-GIVETH A BOOLEAN
-DECIDE `is a principal` c IF
-    CONSIDER c
-    WHEN `a principal in the reform`     THEN TRUE
-    WHEN `a principal not in the reform` THEN TRUE
-    OTHERWISE FALSE
-
--- The two groups the agreement treats apart: teachers in the reform, and
--- teachers outside it together with all principals.
-GIVEN c IS AN `employee category`
-GIVETH A BOOLEAN
-DECIDE `is outside the reform or a principal` c IF
-    CONSIDER c
-    WHEN `a teacher in the reform` THEN FALSE
-    OTHERWISE TRUE
-
-§§ `4 תוספת שכר — טבלאות השכר המשולב`
-
--- §4.1-§4.2, for teachers in the reform: the combined-salary tables rise
--- 18.212% from 1.9.2017 (annex A), are updated for seniority 1-7 from
--- 1.9.2018 (annex B), and rise a further 1.2% from 1.12.2018 (annex C).
--- The circular as the corpus holds it prints none of the annexes, and
--- this repository vendors none of the corpus's tables collection, where
--- tables of the same letters and dates are held
--- (tables/takanon-portal/nispach-alef_2008.xml, nispach-bet_2008.xml,
--- nispach-gimel_2008.xml, nispach-dalet_2008.xml): the table in force is
--- named here, and its figures are an input.
-DECLARE `combined-salary table` IS ONE OF
-    `the tables before this agreement`
-    `annex A, reform, from 1.9.2017`
-    `annex B, reform, from 1.9.2018`
-    `annex C, reform, from 1.12.2018`
-    `annex D, outside the reform and principals, from 1.9.2018`
-
--- §4.1(1)-(2): 18.212% from 1.9.2017 (annex A), and from 1.9.2018 the
--- reform tables are updated for seniority 1 to 7 (annex B); above 7 the
--- annex-A table is read as continuing until 1.12.2018.
-@ref akn:art_4__para_4-1
-GIVEN `the day` IS A DATE, `seniority` IS A NUMBER
-GIVETH A `combined-salary table`
-DECIDE `the reform table in force` `the day` `seniority` IS
-    IF `the day` AT LEAST Date 1 12 2018
-    THEN `annex C, reform, from 1.12.2018`
-    ELSE IF `the day` AT LEAST Date 1 9 2018 AND `seniority` AT MOST 7
-         THEN `annex B, reform, from 1.9.2018`
-         ELSE IF `the day` AT LEAST Date 1 9 2017
-              THEN `annex A, reform, from 1.9.2017`
-              ELSE `the tables before this agreement`
-
-`the reform update of 1.9.2017` MEANS 0.18212
-
--- §4.1(3): a further 1.2% from 1.12.2018 (annex C).
-@ref akn:art_4__para_4-1
-`the reform update of 1.12.2018` MEANS 0.012
-
--- akn:art_4__para_4-2 Attaches annexes A, B and C; the circular as the corpus holds it does not print them (tables of those letters and dates are in the corpus's tables collection, not vendored here), so the table in force is named above and its figures are an input.
-
--- §4.3-§4.5, for teachers outside the reform and principals: no 18.212%
--- update (the one made under the merger agreement is cancelled back to
--- 1.9.2017, §4.5); from 1.9.2018 seniority 1-7 is updated by annex D.
-@ref akn:art_4__para_4-3 akn:art_4__para_4-5
-GIVEN `the day` IS A DATE, `seniority` IS A NUMBER
-GIVETH A `combined-salary table`
-DECIDE `the table in force outside the reform` `the day` `seniority` IS
-    IF `the day` AT LEAST Date 1 9 2018 AND `seniority` AT MOST 7
-    THEN `annex D, outside the reform and principals, from 1.9.2018`
-    ELSE `the tables before this agreement`
-
--- akn:art_4__para_4-4 Attaches annex D; the circular as the corpus holds it does not print it (a table of that letter and date is in the corpus's tables collection, not vendored here), so the table in force is named above and its figures are an input.
-
-§§ `4 — the table in force, by group`
-
-GIVEN e IS AN `employee`, `the day` IS A DATE, `seniority` IS A NUMBER
-GIVETH A `combined-salary table`
-DECIDE `the table in force for` e `the day` `seniority` IS
-    IF `is outside the reform or a principal` (e's `category`)
-    THEN `the table in force outside the reform` `the day` `seniority`
-    ELSE `the reform table in force` `the day` `seniority`
-
-§§ `5 תוספת שקלית 2016`
-
-@desc A period of the updated 2016 shekel supplement and its amount for a full position.
-DECLARE `shekel period` HAS
-    `period from`          IS A DATE
-    `period to`            IS A DATE @desc 31.12.9999 stands for "ואילך"
-    `full-position amount` IS A NUMBER
-
--- §5a, for teachers in the reform (replacing section 4 of the merger
--- agreement): from 1.9.2017, in place of the amounts and dates of section
--- 4(b)(3)-(5) of the agreement of 23.3.2017, these.
-@ref akn:art_5__para_a
-`the reform shekel supplement` MEANS
-    LIST `shekel period` (Date 1 9 2017)  (Date 31 12 2017) 601,
-         `shekel period` (Date 1 1 2018)  (Date 31 5 2018)  832.62,
-         `shekel period` (Date 1 6 2018)  (Date 30 11 2018) 963.11,
-         `shekel period` (Date 1 12 2018) (Date 31 12 2018) 1022.40,
-         `shekel period` (Date 1 1 2019)  (Date 31 8 2019)  1122.40,
-         `shekel period` (Date 1 9 2019)  (Date 31 12 2019) 1142.40,
-         `shekel period` (Date 1 1 2020)  (Date 31 8 2020)  1222.40,
-         `shekel period` (Date 1 9 2020)  (Date 31 12 2020) 1262.40,
-         `shekel period` (Date 1 1 2021)  (Date 31 8 2021)  1342.40,
-         `shekel period` (Date 1 9 2021)  (Date 31 12 9999) 1382.40
-
--- §5a's quoted (b), and its repetition in §5b for those outside the reform
--- and principals: the supplement's other rules, sections 4(c)-(h) of the
--- agreement of 23.3.2017 (part-position pro-rating among them), are
--- unchanged and apply to the updated 2016 supplement; they are not encoded
--- here.
-@ref akn:art_5__para_a
-`sections 4(c)-(h) of the agreement of 23.3.2017 still apply to the updated supplement` MEANS TRUE
-
--- §5b, for teachers outside the reform and principals: the same
--- replacement of section 4 of the merger agreement, with these amounts.
-@ref akn:art_5__para_b
-`the shekel supplement outside the reform` MEANS
-    LIST `shekel period` (Date 1 9 2017)  (Date 31 12 2017) 387.57,
-         `shekel period` (Date 1 1 2018)  (Date 31 5 2018)  619.19,
-         `shekel period` (Date 1 6 2018)  (Date 30 11 2018) 749.68,
-         `shekel period` (Date 1 12 2018) (Date 31 12 2018) 808.97,
-         `shekel period` (Date 1 1 2019)  (Date 31 8 2019)  908.97,
-         `shekel period` (Date 1 9 2019)  (Date 31 12 2019) 928.97,
-         `shekel period` (Date 1 1 2020)  (Date 31 8 2020)  1008.97,
-         `shekel period` (Date 1 9 2020)  (Date 31 12 2020) 1048.97,
-         `shekel period` (Date 1 1 2021)  (Date 31 8 2021)  1128.97,
-         `shekel period` (Date 1 9 2021)  (Date 31 12 9999) 1168.97
-
-@ref akn:art_5__para_b
-`sections 4(c)-(h) of the agreement of 23.3.2017 still apply outside the reform` MEANS TRUE
-
--- §5c: the supplement paid to those outside the reform and principals
--- under the merger agreement's former section 4 is cancelled back to
--- 1.9.2017; the §5b schedule replaces it.
-@ref akn:art_5__para_c
-GIVEN e IS AN `employee`
-GIVETH A BOOLEAN
-DECIDE `the payment under the former section 4 is cancelled back to 1.9.2017 for` e IF
-    `is outside the reform or a principal` (e's `category`)
-
-§§ `5 — the supplement on a day, by group`
-
-GIVEN ps IS A LIST OF `shekel period`
-      `the day` IS A DATE
-GIVETH A NUMBER
-DECIDE `the amount on` ps `the day` IS
-    sum (map (GIVEN p YIELD p's `full-position amount`)
-             (filter (GIVEN p YIELD `the day` AT LEAST p's `period from` AND `the day` AT MOST p's `period to`) ps))
-
-GIVEN e IS AN `employee`, `the day` IS A DATE
-GIVETH A NUMBER
-DECIDE `the updated shekel supplement 2016 for a full position` e `the day` IS
-    IF `is outside the reform or a principal` (e's `category`)
-    THEN `the amount on` `the shekel supplement outside the reform` `the day`
-    ELSE `the amount on` `the reform shekel supplement` `the day`
-
-GIVEN ps IS A LIST OF `shekel period`
-GIVETH A BOOLEAN
-DECIDE `the periods follow one another` ps IF
-    all (GIVEN pair YIELD `Day` (pair's snd's `period from`) EQUALS `Day` (pair's fst's `period to`) PLUS 1)
-        (zip (take (count ps MINUS 1) ps) (drop 1 ps))
-
-#ASSERT `the periods follow one another` `the reform shekel supplement`
-#ASSERT `the periods follow one another` `the shekel supplement outside the reform`
-
-§§ `6 תוספת מיזוג רכיבים`
-
 -- not weighed against `the Severance Pay Law`: §6's new §5א(ד) counts the
 -- components merger supplement in the wage severance is computed on, and
 -- §17(ח) leaves the grant out of it. Which components count, §13 sends to
@@ -235,279 +56,52 @@ DECIDE `the periods follow one another` ps IF
 -- adds to the severance, and for one left out the agreement's word is what
 -- the law looks to; §13ב's minimum-wage floor holds whatever is counted.
 
--- §6 adds section 5A to the merger agreement: from 1.9.2017 those outside
--- the reform and principals get the merger supplement, a uniform 18.951%
--- of the combined salary alone, raised from 1.12.2018 to 20.378%.
-@ref akn:art_6/p1
-GIVEN e IS AN `employee`, `the day` IS A DATE
-GIVETH A NUMBER
-DECIDE `the merger supplement rate` e `the day` IS
-    IF NOT `is outside the reform or a principal` (e's `category`)
-    THEN 0
-    ELSE IF `the day` AT LEAST Date 1 12 2018
-         THEN 0.20378
-         ELSE IF `the day` AT LEAST Date 1 9 2017
-              THEN 0.18951
-              ELSE 0
+§§ `2–17, כפי שההסכם מיום 14.3.2018 קובע אותם`
 
-@ref akn:art_6/p1
-GIVEN e IS AN `employee`, `the day` IS A DATE, `combined salary` IS A NUMBER
-GIVETH A NUMBER
-DECIDE `the merger supplement` e `the day` `combined salary` IS
-    `the merger supplement rate` e `the day` TIMES `combined salary`
+-- akn:art_3/p1 akn:art_3/p2 akn:art_3/p4 akn:art_3/p5 as in the agreement of 14.3.2018, `2018-03-14_oz-latmura_wage-agreement-2017-2022` (`employee category`).
+-- akn:art_2/p1 as in the agreement of 14.3.2018, `2018-03-14_oz-latmura_wage-agreement-2017-2022` (`the agreement applies to`).
+-- akn:art_3/p3 as in the agreement of 14.3.2018, `2018-03-14_oz-latmura_wage-agreement-2017-2022` (`is a principal`).
+-- akn:art_4__para_4-1 as in the agreement of 14.3.2018, `2018-03-14_oz-latmura_wage-agreement-2017-2022` (`the reform table in force`).
+-- akn:art_4__para_4-1 as in the agreement of 14.3.2018, `2018-03-14_oz-latmura_wage-agreement-2017-2022` (`the reform update of 1.12.2018`).
+-- akn:art_4__para_4-3 akn:art_4__para_4-5 as in the agreement of 14.3.2018, `2018-03-14_oz-latmura_wage-agreement-2017-2022` (`the table in force outside the reform`).
+-- akn:art_5__para_a as in the agreement of 14.3.2018, `2018-03-14_oz-latmura_wage-agreement-2017-2022` (`the reform shekel supplement`).
+-- akn:art_5__para_a as in the agreement of 14.3.2018, `2018-03-14_oz-latmura_wage-agreement-2017-2022` (`sections 4(c)-(h) of the agreement of 23.3.2017 still apply to the updated supplement`).
+-- akn:art_5__para_b as in the agreement of 14.3.2018, `2018-03-14_oz-latmura_wage-agreement-2017-2022` (`the shekel supplement outside the reform`).
+-- akn:art_5__para_b as in the agreement of 14.3.2018, `2018-03-14_oz-latmura_wage-agreement-2017-2022` (`sections 4(c)-(h) of the agreement of 23.3.2017 still apply outside the reform`).
+-- akn:art_5__para_c as in the agreement of 14.3.2018, `2018-03-14_oz-latmura_wage-agreement-2017-2022` (`the payment under the former section 4 is cancelled back to 1.9.2017 for`).
+-- akn:art_6/p1 as in the agreement of 14.3.2018, `2018-03-14_oz-latmura_wage-agreement-2017-2022` (`the merger supplement rate`).
+-- akn:art_6/p1 as in the agreement of 14.3.2018, `2018-03-14_oz-latmura_wage-agreement-2017-2022` (`the merger supplement`).
+-- akn:art_6/p1 as in the agreement of 14.3.2018, `2018-03-14_oz-latmura_wage-agreement-2017-2022` (`the merger supplement counts for`).
+-- akn:art_7 akn:art_7/p1 as in the agreement of 14.3.2018, `2018-03-14_oz-latmura_wage-agreement-2017-2022` (`merged supplement`).
+-- akn:art_7/p1 as in the agreement of 14.3.2018, `2018-03-14_oz-latmura_wage-agreement-2017-2022` (`the merged supplement is cancelled, also as a base for others, for`).
+-- akn:art_8__para_8-1 as in the agreement of 14.3.2018, `2018-03-14_oz-latmura_wage-agreement-2017-2022` (`the base of the transition-to-reform supplement`).
+-- akn:art_8__para_8-2 akn:art_8/p1 as in the agreement of 14.3.2018, `2018-03-14_oz-latmura_wage-agreement-2017-2022` (`the 87 transition supplement on signature, updated`).
+-- akn:art_9 akn:art_9__para_a akn:art_9__para_b as in the agreement of 14.3.2018, `2018-03-14_oz-latmura_wage-agreement-2017-2022` (`is repealed for teachers by section 9`).
+-- akn:art_10__para_10-1 akn:art_10__para_10-2 akn:art_10__para_10-3 as in the agreement of 14.3.2018, `2018-03-14_oz-latmura_wage-agreement-2017-2022` (`the 94 supplement outside the reform`).
+-- akn:art_11__para_11-1 akn:art_11__para_11-2 as in the agreement of 14.3.2018, `2018-03-14_oz-latmura_wage-agreement-2017-2022` (`the implementation is lawful`).
+-- akn:art_11__para_11-3 as in the agreement of 14.3.2018, `2018-03-14_oz-latmura_wage-agreement-2017-2022` (`not required to repay the excess amount`).
+-- akn:art_11__para_11-4 as in the agreement of 14.3.2018, `2018-03-14_oz-latmura_wage-agreement-2017-2022` (`carrying out the agreement`).
+-- akn:art_11__para_11-5 as in the agreement of 14.3.2018, `2018-03-14_oz-latmura_wage-agreement-2017-2022` (`the overpayment counts as an advance on wages`).
+-- akn:art_11__para_11-6 as in the agreement of 14.3.2018, `2018-03-14_oz-latmura_wage-agreement-2017-2022` (`written notice 30 days before deducting an overpayment`).
+-- akn:art_12/p1 as in the agreement of 14.3.2018, `2018-03-14_oz-latmura_wage-agreement-2017-2022` (`no retroactive liability and no double payment for`).
+-- akn:art_13__para_13-1 akn:art_13__para_13-1/t1 as in the agreement of 14.3.2018, `2018-03-14_oz-latmura_wage-agreement-2017-2022` (`the counsellor's stipend table`).
+-- akn:art_13__para_13-1 akn:art_13__para_13-2 as in the agreement of 14.3.2018, `2018-03-14_oz-latmura_wage-agreement-2017-2022` (`the counsellor's stipend rate`).
+-- akn:art_14__para_14-2 akn:art_14__para_14-2__subpara_1 akn:art_14__para_14-2__subpara_2 akn:art_14__para_14-2__subpara_3 akn:art_14__para_14-2__subpara_4 akn:art_14__para_14-2__subpara_5 akn:art_14__para_14-2__subpara_6 as in the agreement of 14.3.2018, `2018-03-14_oz-latmura_wage-agreement-2017-2022` (`new role`).
+-- akn:art_14__para_14-1 akn:art_14__para_14-3 as in the agreement of 14.3.2018, `2018-03-14_oz-latmura_wage-agreement-2017-2022` (`the new role stipend`).
+-- akn:art_15__para_15-1 akn:art_15__para_15-2 as in the agreement of 14.3.2018, `2018-03-14_oz-latmura_wage-agreement-2017-2022` (`the mentor stipend`).
+-- akn:art_15__para_15-1__subpara_1 akn:art_15__para_15-1__subpara_2 as in the agreement of 14.3.2018, `2018-03-14_oz-latmura_wage-agreement-2017-2022` (`the mentor stipend base`).
+-- akn:art_16/p1 as in the agreement of 14.3.2018, `2018-03-14_oz-latmura_wage-agreement-2017-2022` (`training units recognised`).
+-- akn:art_16/p1 as in the agreement of 14.3.2018, `2018-03-14_oz-latmura_wage-agreement-2017-2022` (`a course may count towards the 19th unit`).
+-- akn:art_17__para_a as in the agreement of 14.3.2018, `2018-03-14_oz-latmura_wage-agreement-2017-2022` (`the one-time grant`).
+-- akn:art_17__para_e akn:art_17__para_e/p2 akn:art_17__para_g as in the agreement of 14.3.2018, `2018-03-14_oz-latmura_wage-agreement-2017-2022` (`the month counts as work`).
+-- akn:art_17__para_f akn:art_17__para_f/p2 akn:art_17__para_c akn:art_17__para_d as in the agreement of 14.3.2018, `2018-03-14_oz-latmura_wage-agreement-2017-2022` (`the month's share`).
+-- akn:art_17__para_a akn:art_17__para_b akn:art_17__para_c akn:art_17__para_d as in the agreement of 14.3.2018, `2018-03-14_oz-latmura_wage-agreement-2017-2022` (`the one-time grant due`).
+-- akn:art_17__para_h akn:art_17__para_i akn:art_17__para_j as in the agreement of 14.3.2018, `2018-03-14_oz-latmura_wage-agreement-2017-2022` (`the grant counts for`).
+-- akn:art_17__para_a/p2 as in the agreement of 14.3.2018, `2018-03-14_oz-latmura_wage-agreement-2017-2022` (`paying the one-time grant`).
 
--- §6 (5A(d)-(e)): what the merger supplement counts for — percentage
--- supplements on the combined salary, the hourly value for substitution
--- hours, salary reduction for absence, severance pay, pension deposits
--- under section 46 of Oz LeTmura, the study fund and the Dafna fund — and
--- what not: topping up to the minimum wage (an "excluded supplement" under
--- the Minimum Wage Law, temporary provision of 2015).
-DECLARE `purpose` IS ONE OF
-    `percentage supplements computed on the combined salary`
-    `the hourly value for substitution hours`
-    `salary reduction for absence`
-    `severance pay`
-    `pension provident deposits under section 46 of Oz LeTmura`
-    `the study fund and the Dafna fund`
-    `topping up to the minimum wage`
-
-@ref akn:art_6/p1
-GIVEN u IS A `purpose`
-GIVETH A BOOLEAN
-DECIDE `the merger supplement counts for` u IF
-    CONSIDER u
-    WHEN `topping up to the minimum wage` THEN FALSE
-    OTHERWISE TRUE
-
--- 20.378% is 18.951% with the whole salary raised 1.2%: (1.18951 × 1.012) − 1.
-#ASSERT TRUNC ((1.18951 TIMES 1.012 MINUS 1) TIMES 100 PLUS 0.0005) 3 EQUALS 20.378
-
-§§ `7 ביטול התוספות המאוחדות למורים שאינם ברפורמה ולמנהלים`
-
-@ref akn:art_7 akn:art_7/p1
-DECLARE `merged supplement` IS ONE OF
-    `the 87 supplement`
-    `the 2001 supplement`
-    `the 2008 supplement`
-    `the 2011 supplement`
-    `the 2011 erosion supplement`
-    `the 2016 percentage supplement`
-
--- §7 (new section 6(a)-(c) of the merger agreement): from 1.9.2017, for
--- those outside the reform and principals, the six merged supplements are
--- no longer paid, with any right that flowed from paying them (a), every
--- source for them is cancelled (b), and they are no longer a base for
--- other supplements (c). The '94 supplement is not among them (§10).
-@ref akn:art_7/p1
-GIVEN e IS AN `employee`, s IS A `merged supplement`, `the day` IS A DATE
-GIVETH A BOOLEAN
-DECIDE `the merged supplement is cancelled, also as a base for others, for` e s `the day` IF
-    `is outside the reform or a principal` (e's `category`) AND `the day` AT LEAST Date 1 9 2017
-
-§§ `8 מנהלים ברפורמה`
-
--- §8.1: for principals in the reform, the transition-to-reform supplement
--- (section 24 of Oz LeTmura) is computed from 1.9.2017 on the combined
--- salary, the '94 supplement and the merger supplement only.
-@ref akn:art_8__para_8-1
-GIVEN `the day` IS A DATE
-      `combined salary` IS A NUMBER
-      `the 94 supplement` IS A NUMBER
-      `the merger supplement amount` IS A NUMBER
-      `the other supplements` IS A NUMBER @desc the 2001, 2008, 2011 and 2011-erosion supplements it was computed on before
-GIVETH A NUMBER
-DECIDE `the base of the transition-to-reform supplement` `the day` `combined salary` `the 94 supplement` `the merger supplement amount` `the other supplements` IS
-    IF `the day` AT LEAST Date 1 9 2017
-    THEN `combined salary` PLUS `the 94 supplement` PLUS `the merger supplement amount`
-    ELSE `combined salary` PLUS `the 94 supplement` PLUS `the other supplements`
-
--- §8.2: the "87 transition-to-reform" supplement stands at 88.52 on
--- signature and moves only by section 4(d) of the agreement of 23.3.17.
-@ref akn:art_8__para_8-2 akn:art_8/p1
-GIVEN `update under section 4(d) of 23.3.17` IS A NUMBER @desc the cumulative update that mechanism gives, as a fraction; set elsewhere
-GIVETH A NUMBER
-DECIDE `the 87 transition supplement on signature, updated` `update under section 4(d) of 23.3.17` IS
-    88.52 TIMES (1 PLUS `update under section 4(d) of 23.3.17`)
-
-§§ `9 ביטול הוראות בסעיף 6 להסכם מיזוג רכיבים`
-
--- §9: section 6(c)'s tail from "כך למשל" and section 6(d) of the merger
--- agreement are repealed for teachers in the reform and outside it.
-DECLARE `merger-agreement provision` IS ONE OF
-    `section 6(c) tail from "for example"`
-    `section 6(d)`
-    `another provision`
-
-@ref akn:art_9 akn:art_9__para_a akn:art_9__para_b
-GIVEN p IS A `merger-agreement provision`
-GIVETH A BOOLEAN
-DECIDE `is repealed for teachers by section 9` p IF
-    CONSIDER p
-    WHEN `another provision` THEN FALSE
-    OTHERWISE TRUE
-
-§§ `10 תוספת '94 למורים שאינם ברפורמה ומנהלים`
-
--- §10.1: the cancellation of the '94 supplement under the merger agreement
--- is itself cancelled back to 1.9.2017; §10.2-§10.3 set its amount.
-@ref akn:art_10__para_10-1 akn:art_10__para_10-2 akn:art_10__para_10-3
-GIVEN e IS AN `employee`, `the day` IS A DATE
-GIVETH A NUMBER
-DECIDE `the 94 supplement outside the reform` e `the day` IS
-    IF NOT `is outside the reform or a principal` (e's `category`)
-    THEN 0
-    ELSE IF `the day` AT LEAST Date 1 12 2018
-         THEN 164.51
-         ELSE IF `the day` AT LEAST Date 1 9 2017
-              THEN 162.56
-              ELSE 0
-
-§§ `11 ביצוע למפרע`
-
-DECLARE `provision of this agreement` IS ONE OF
-    `4.3`, `4.5`, `5.2`, `5.3`, `6`, `7`, `10.1`, `10.2`
-
--- §11.1-§11.2: the listed provisions are one arrangement, carried out
--- together or not at all.
-@ref akn:art_11__para_11-1 akn:art_11__para_11-2
-GIVEN `provisions implemented` IS A LIST OF `provision of this agreement`
-GIVETH A BOOLEAN
-DECIDE `the implementation is lawful` `provisions implemented` IF
-        count `provisions implemented` EQUALS 0
-    OR  all (GIVEN p YIELD elem p `provisions implemented`)
-            (LIST `4.3`, `4.5`, `5.2`, `5.3`, `6`, `7`, `10.1`, `10.2`)
-
--- §11.3: those outside the reform and principals are not required to repay
--- "the excess amount" — what the former merger agreement made their gross
--- salary for 1.9.2017-31.1.2018 exceed the gross due for it under this one.
-@ref akn:art_11__para_11-3
-GIVEN e IS AN `employee`
-GIVETH A BOOLEAN
-DECIDE `not required to repay the excess amount` e IF
-    `is outside the reform or a principal` (e's `category`)
-
-GIVEN `gross due under the former merger agreement` IS A NUMBER @desc for 1.9.2017 to 31.1.2018
-      `gross due under this agreement` IS A NUMBER @desc for the same period
-GIVETH A NUMBER
-DECIDE `the excess amount` `gross due under the former merger agreement` `gross due under this agreement` IS
-    max 0 (`gross due under the former merger agreement` MINUS `gross due under this agreement`)
-
-DECLARE `wage action` IS ONE OF
-    `implement the agreement in the salary` HAS `arrears since 1.9.2017 paid` IS A NUMBER
-    `send written notice of the error's details and a chance to respond`
-    `deduct an overpayment` HAS `deducted` IS A NUMBER
-    `pay the one-time grant` HAS `grant paid` IS A NUMBER
-    `pay for make-up lessons` HAS `make-up pay` IS A NUMBER
-    `pay the advance` HAS `advance paid` IS A NUMBER
-    `issue implementation guidelines to principals`
-
--- §11.4: from the April 2018 salary (8), no later than the May 2018 salary
--- (9), with the differences since 1.9.2017.
-@ref akn:art_11__para_11-4
-GIVEN `arrears owed` IS A NUMBER
-GIVETH A DEONTIC Party `wage action`
-DECIDE `carrying out the agreement` `arrears owed` IS
-    PARTY `the employer`
-    MUST  `implement the agreement in the salary` `paid`
-          PROVIDED `paid` AT LEAST `arrears owed`
-    WITHIN 9
-    LEST BREACH BY `the employer` BECAUSE "section 11.4: no later than the salary for May 2018, with the differences since 1.9.2017"
-
--- §11.5: up to the August 2018 salary (12), an overpayment by an error in
--- implementing the agreement is an advance on wages (Wage Protection Law
--- 1958, section 25(a)(7)).
-@ref akn:art_11__para_11-5
-GIVEN `salary month` IS A NUMBER, `overpaid by an implementation error` IS A BOOLEAN
-GIVETH A BOOLEAN
-DECIDE `the overpayment counts as an advance on wages` `salary month` `overpaid by an implementation error` IF
-    `overpaid by an implementation error` AND `salary month` AT MOST 12
-
--- §11.6: written notice of the details of the error 30 days before the
--- deduction begins, with an individual chance to respond before it is made
--- (days from the notice); then deduction in twelve equal monthly parts.
-@ref akn:art_11__para_11-6
-GIVEN `overpayment` IS A NUMBER
-GIVETH A DEONTIC Party `wage action`
-DECIDE `written notice 30 days before deducting an overpayment` `overpayment` IS
-    PARTY `the employer`
-    MUST  `send written notice of the error's details and a chance to respond`
-    HENCE (PARTY `the employer`
-           SHANT `deduct an overpayment` `any amount`
-           WITHIN 30
-           HENCE (PARTY `the employer`
-                  MAY `deduct an overpayment` `amount`
-                      PROVIDED `amount` AT MOST `overpayment` DIVIDED BY 12)
-           LEST BREACH BY `the employer` BECAUSE "section 11.6: no deduction until 30 days after the written notice")
-    LEST BREACH BY `the employer` BECAUSE "section 11.6: written notice of the error before the deduction begins"
-
+-- akn:art_4__para_4-2 Attaches annexes A, B and C; the circular as the corpus holds it does not print them (tables of those letters and dates are in the corpus's tables collection, not vendored here), so the table in force is named above and its figures are an input.
+-- akn:art_4__para_4-4 Attaches annex D; the circular as the corpus holds it does not print it (a table of that letter and date is in the corpus's tables collection, not vendored here), so the table in force is named above and its figures are an input.
 -- akn:art_11__para_11-7 The union's statement that the section admits no error in any salary; no rule.
-
-§§ `12 ביצוע לגבי מורים ברפורמה`
-
--- §12: for teachers in the reform the changes this agreement makes to the
--- merger agreement create no retroactive liability, and payments already
--- made under the merger agreement are not made again.
-@ref akn:art_12/p1
-GIVEN e IS AN `employee`
-GIVETH A BOOLEAN
-DECIDE `no retroactive liability and no double payment for` e IF
-    NOT `is outside the reform or a principal` (e's `category`)
-
-§§ `13 גמול יועץ חינוכי`
-
-@desc A printed row of the counsellor's stipend table: years of counselling and the rate, in percent, at signature, from 1.1.2020 and from 1.1.2021.
-DECLARE `counsellor row` HAS
-    `counselling years from` IS A NUMBER @desc 5 stands for "5 ומעלה"
-    `rate at signature`      IS A NUMBER
-    `rate from 1.1.2020`     IS A NUMBER
-    `rate from 1.1.2021`     IS A NUMBER
-
-@ref akn:art_13__para_13-1 akn:art_13__para_13-1/t1
-`the counsellor's stipend table` MEANS
-    LIST `counsellor row` 1 5 6   6.5,
-         `counsellor row` 2 6 7   8,
-         `counsellor row` 3 7 8.5 9.5,
-         `counsellor row` 4 8 10  10.5,
-         `counsellor row` 5 9 11  12
-
--- §13.2: the stipend's other rules (section 17(a) of Oz LeTmura) are
--- unchanged; its base among them is an input.
-@ref akn:art_13__para_13-1 akn:art_13__para_13-2
-GIVEN `counselling years` IS A NUMBER, `the day` IS A DATE
-GIVETH A NUMBER
-DECIDE `the counsellor's stipend rate` `counselling years` `the day` IS
-    sum (map (GIVEN r YIELD IF `the day` AT LEAST Date 1 1 2021
-                            THEN r's `rate from 1.1.2021` DIVIDED BY 100
-                            ELSE IF `the day` AT LEAST Date 1 1 2020
-                                 THEN r's `rate from 1.1.2020` DIVIDED BY 100
-                                 ELSE r's `rate at signature` DIVIDED BY 100)
-             (filter (GIVEN r YIELD r's `counselling years from` EQUALS min `counselling years` 5)
-                     `the counsellor's stipend table`))
-
-§§ `14 גמולי תפקיד חדשים`
-
-@ref akn:art_14__para_14-2 akn:art_14__para_14-2__subpara_1 akn:art_14__para_14-2__subpara_2 akn:art_14__para_14-2__subpara_3 akn:art_14__para_14-2__subpara_4 akn:art_14__para_14-2__subpara_5 akn:art_14__para_14-2__subpara_6
-DECLARE `new role` IS ONE OF
-    `trips coordinator`
-    `pedagogical coordinator`
-    `integration and special populations coordinator`
-    `ICT coordinator`
-    `matriculation coordinator`
-    `discipline and school climate coordinator`
-
--- §14.1: from 1.9.2019 a teacher in the reform filling one of the new roles
--- earns a role stipend of 6% of the combined salary and the Oz LeTmura
--- supplement; §14.3: the subject coordinator's rules of calculation and
--- payment apply.
-@ref akn:art_14__para_14-1 akn:art_14__para_14-3
-GIVEN e IS AN `employee`, `the day` IS A DATE
-      `fills one of the new roles` IS A BOOLEAN @desc one of the roles listed in section 14.2
-      `combined salary` IS A NUMBER, `Oz LeTmura supplement` IS A NUMBER
-GIVETH A NUMBER
-DECIDE `the new role stipend` e `the day` `fills one of the new roles` `combined salary` `Oz LeTmura supplement` IS
-    IF  e's `category` EQUALS `a teacher in the reform` AND `fills one of the new roles` AND `the day` AT LEAST Date 1 9 2019
-    THEN 0.06 TIMES (`combined salary` PLUS `Oz LeTmura supplement`)
-    ELSE 0
 
 -- The Ministry's note: how many of the new roles a principal may choose,
 -- in addition to the upper division's existing roles.
@@ -523,138 +117,15 @@ DECIDE `new roles a principal may choose` `the day` IS
               THEN 1
               ELSE 0
 
-§§ `15 גמול מורה חונך`
-
--- §15.1: from 1.9.2018 a mentor teacher earns 2.4% per intern, up to three
--- interns, on the base §15.1(1)-(2) set; §15.2: the subject coordinator's
--- rules apply. A principal has no base (F-2017-18_tashach_03-d).
-@ref akn:art_15__para_15-1 akn:art_15__para_15-2
-GIVEN `the day` IS A DATE, `interns` IS A NUMBER, `base` IS A NUMBER
-GIVETH A NUMBER
-DECIDE `the mentor stipend` `the day` `interns` `base` IS
-    IF `the day` AT LEAST Date 1 9 2018
-    THEN `the mentor rate per intern` TIMES min `interns` 3 TIMES `base`
-    ELSE 0
-
-`the mentor rate per intern` MEANS 0.024
-
--- §15.1(1)-(2): the base, for a teacher in the reform and for one outside
--- it (for the avoidance of doubt, not a principal).
-@ref akn:art_15__para_15-1__subpara_1 akn:art_15__para_15-1__subpara_2
-GIVEN c IS AN `employee category`
-      `combined salary` IS A NUMBER, `Oz LeTmura supplement` IS A NUMBER
-      `the 94 supplement` IS A NUMBER, `the merger supplement amount` IS A NUMBER
-GIVETH A MAYBE NUMBER
-DECIDE `the mentor stipend base` c `combined salary` `Oz LeTmura supplement` `the 94 supplement` `the merger supplement amount` IS
-    CONSIDER c
-    WHEN `a teacher in the reform`     THEN JUST (`combined salary` PLUS `Oz LeTmura supplement`)
-    WHEN `a teacher not in the reform` THEN JUST (`combined salary` PLUS `the 94 supplement` PLUS `the merger supplement amount`)
-    OTHERWISE NOTHING
-
-§§ `16 גמול השתלמות`
-
--- §16 (new section 18(1)(2) of Oz LeTmura): from 1.9.2019 the cap of
--- training units is 19, beside double-degree units; the 19th unit counts
--- only courses starting no earlier than school year תשע"ט or the year the
--- teacher began under the reform, the later of them. Sections 18(d)-(h)(1)
--- apply to it too (not encoded here).
-@ref akn:art_16/p1
-GIVEN `the day` IS A DATE, `units earned` IS A NUMBER
-      `the cap under section 18(1)` IS A NUMBER @desc the cap of training units of section 18(1) of Oz LeTmura, which this circular does not restate
-GIVETH A NUMBER
-DECIDE `training units recognised` `the day` `units earned` `the cap under section 18(1)` IS
-    IF `the day` AT LEAST Date 1 9 2019
-    THEN min `units earned` 19
-    ELSE min `units earned` `the cap under section 18(1)`
-
-@ref akn:art_16/p1
-GIVEN `course start` IS A DATE, `start of the teacher's first reform year` IS A DATE
-GIVETH A BOOLEAN
-DECIDE `a course may count towards the 19th unit` `course start` `start of the teacher's first reform year` IF
-        `course start` AT LEAST Date 1 9 2018
-    AND `course start` AT LEAST `start of the teacher's first reform year`
-
-§§ `17 מענק חד פעמי`
-
-@desc An employee's months in the grant period 1.9.2017-30.11.2017.
-DECLARE `grant month` HAS
-    `position fraction that month` IS A NUMBER  @desc the (weighted) position; for a month wholly in maternity, reserve or unpaid sick leave, the fraction on the eve of it (§17f)
-    `kind of month` IS A `kind of grant month`
-
-DECLARE `kind of grant month` IS ONE OF
-    `worked`
-    `maternity and parenthood, reserve duty or unpaid sick leave`
-    `unpaid leave, sabbatical or leave treated as unpaid`
-    `not employed`
-
-@ref akn:art_17__para_a
-`the one-time grant` MEANS 1000
-
--- §17e-§17g: unpaid leave (sabbatical included, and leave treated as
--- unpaid, also after maternity leave ends) does not count; reserve duty,
--- maternity and parenthood leave and unpaid sick leave do.
-@ref akn:art_17__para_e akn:art_17__para_e/p2 akn:art_17__para_g
-GIVEN m IS A `grant month`
-GIVETH A BOOLEAN
-DECIDE `the month counts as work` m IF
-    CONSIDER m's `kind of month`
-    WHEN `worked` THEN TRUE
-    WHEN `maternity and parenthood, reserve duty or unpaid sick leave` THEN TRUE
-    OTHERWISE FALSE
-
--- The Women's Work Law (imported): §17(ה) and (ז) count a month of the
--- birth and parenthood period as work for the grant, as unpaid leave after
--- it is not, and §17(ו) takes the position on its eve. The period harms
--- no right that turns on seniority (§6(ט)). The floor is met.
+-- The Women's Work Law (through the agreement of 14.3.2018): §17(ה) and
+-- (ז) count a month of the birth and parenthood period as work for the
+-- grant, as unpaid leave after it is not, and §17(ו) takes the position on
+-- its eve. The period harms no right that turns on seniority (§6(ט)). The
+-- floor is met.
 `§17 of תשע"ח/3 counts the birth and parenthood period, as the Women's Work Law keeps it` MEANS
-        `the month counts as work` (`grant month` WITH `position fraction that month` IS 0.8, `kind of month` IS `maternity and parenthood, reserve duty or unpaid sick leave`)
-    AND NOT `the month counts as work` (`grant month` WITH `position fraction that month` IS 0.8, `kind of month` IS `unpaid leave, sabbatical or leave treated as unpaid`)
-    AND `the birth and parenthood period harms no right that turns on seniority`
+    `§17 of 14.3.2018 counts the birth and parenthood period, as the Women's Work Law keeps it`
 #ASSERT `§17 of תשע"ח/3 counts the birth and parenthood period, as the Women's Work Law keeps it`
 
--- §17f: for those months the fraction is the one on the eve of the leave;
--- §17c, §17d, §17f: never above 100% in a month.
-@ref akn:art_17__para_f akn:art_17__para_f/p2 akn:art_17__para_c akn:art_17__para_d
-GIVEN m IS A `grant month`
-GIVETH A NUMBER
-DECIDE `the month's share` m IS
-    IF `the month counts as work` m
-    THEN min (m's `position fraction that month`) 1 DIVIDED BY 3
-    ELSE 0
-
--- §17a-§17d: full grant for a full position all the period, else in
--- proportion to the period worked and the (weighted) position.
-@ref akn:art_17__para_a akn:art_17__para_b akn:art_17__para_c akn:art_17__para_d
-GIVEN `the three months` IS A LIST OF `grant month`
-GIVETH A NUMBER
-DECIDE `the one-time grant due` `the three months` IS
-    `the one-time grant` TIMES sum (map `the month's share` `the three months`)
-
--- §17h-§17j: the grant is not salary, and what it is not counted for.
-DECLARE `grant purpose` IS ONE OF
-    `salary for any matter`
-    `the hourly value for substitution hours`
-    `salary reduction for an hour of absence`
-    `severance pay`
-    `provident deposits`
-    `topping up to the minimum wage`
-    `the combined-salary base`
-
-@ref akn:art_17__para_h akn:art_17__para_i akn:art_17__para_j
-GIVEN u IS A `grant purpose`
-GIVETH A BOOLEAN
-DECIDE `the grant counts for` u IF FALSE
-
--- §17a: paid with the March 2018 salary (7), no later than April's (8).
-@ref akn:art_17__para_a/p2
-GIVEN `the three months` IS A LIST OF `grant month`
-GIVETH A DEONTIC Party `wage action`
-DECIDE `paying the one-time grant` `the three months` IS
-    PARTY `the employer`
-    MUST  `pay the one-time grant` `amount`
-          PROVIDED `amount` AT LEAST `the one-time grant due` `the three months`
-    WITHIN 8
-    LEST BREACH BY `the employer` BECAUSE "section 17a: no later than the salary for April 2018"
 
 -- Against the Minimum Wage Law's floor (MMS-601): §6 (the merger agreement's new 5א(ה))
 -- leaves the merger supplement out, and 17(ט) the one-time grant;
@@ -673,17 +144,12 @@ DECIDE `paying the one-time grant` `the three months` IS
 @ref akn:art_18__para_a
 `the parties go on negotiating the allocation of the budget for principals' pay` MEANS TRUE
 
+-- §18b is the agreement's §18(ב), word for word: its rule, imported.
 @ref akn:art_18__para_b akn:art_18__para_b__subpara_1 akn:art_18__para_b__subpara_2
 GIVEN `an allocation agreement signed by 1.4.2018` IS A BOOLEAN, `the day` IS A DATE
 GIVETH A MAYBE NUMBER
 DECIDE `the 87 transition supplement under section 18b` `an allocation agreement signed by 1.4.2018` `the day` IS
-    IF `an allocation agreement signed by 1.4.2018`
-    THEN NOTHING
-    ELSE IF `the day` AT LEAST Date 1 9 2019
-         THEN JUST 1008.52
-         ELSE IF `the day` AT LEAST Date 1 9 2018
-              THEN JUST 548.52
-              ELSE NOTHING
+    `the 87 transition supplement under §18(ב)` `an allocation agreement signed by 1.4.2018` `the day`
 
 -- §18b's last words: with no agreement by 1.4.2018, no further negotiation
 -- on that cost is held.
@@ -902,31 +368,8 @@ DECLARE `section of this circular` IS ONE OF
 
 §§ `Worked examples`
 
--- Salary figures are placeholders, not from any payslip.
-`an employee outside the reform` MEANS `employee` WITH
-    `covered by the Oz LeTmura agreement of 14.8.2011` IS TRUE
-    `category` IS `a teacher not in the reform`
-`an employee in the reform` MEANS `employee` WITH
-    `covered by the Oz LeTmura agreement of 14.8.2011` IS TRUE
-    `category` IS `a teacher in the reform`
-
-#ASSERT `the updated shekel supplement 2016 for a full position` `an employee in the reform` (Date 1 3 2018) EQUALS 832.62
-#ASSERT `the updated shekel supplement 2016 for a full position` `an employee outside the reform` (Date 1 9 2021) EQUALS 1168.97
-#ASSERT `the merger supplement` `an employee outside the reform` (Date 1 1 2018) 10000 EQUALS 1895.1
-#ASSERT `the merger supplement` `an employee in the reform` (Date 1 1 2018) 10000 EQUALS 0
-#ASSERT `the 94 supplement outside the reform` `an employee outside the reform` (Date 1 1 2019) EQUALS 164.51
-#ASSERT `the table in force for` `an employee in the reform` (Date 1 10 2018) 5 EQUALS `annex B, reform, from 1.9.2018`
-#ASSERT `the table in force for` `an employee in the reform` (Date 1 10 2018) 12 EQUALS `annex A, reform, from 1.9.2017`
-#ASSERT `the table in force for` `an employee outside the reform` (Date 1 10 2017) 5 EQUALS `the tables before this agreement`
-#ASSERT `the counsellor's stipend rate` 7 (Date 1 6 2021) EQUALS 0.12
-#ASSERT `the counsellor's stipend rate` 2 (Date 1 6 2018) EQUALS 0.06
-#ASSERT `the mentor stipend` (Date 1 9 2018) 4 10000 EQUALS 720
 #ASSERT `new roles a principal may choose` (Date 1 10 2020) EQUALS 2
-#ASSERT `the one-time grant due` (LIST `grant month` 1 `worked`, `grant month` 1 `worked`, `grant month` 1 `worked`) EQUALS 1000
-#ASSERT `the one-time grant due` (LIST `grant month` 0.5 `worked`, `grant month` 1.2 `maternity and parenthood, reserve duty or unpaid sick leave`, `grant month` 1 `unpaid leave, sabbatical or leave treated as unpaid`) EQUALS 500
 #ASSERT `the 87 transition supplement under section 18b` FALSE (Date 1 10 2019) EQUALS JUST 1008.52
-#ASSERT `the implementation is lawful` (LIST `4.3`, `4.5`, `5.2`, `5.3`, `6`, `7`, `10.1`, `10.2`)
-#ASSERT NOT `the implementation is lawful` (LIST `6`, `7`)
 
 `a teacher in a school that struck twice locally` MEANS `struck school and teacher` WITH
     `school struck on a general strike day` IS TRUE
@@ -941,184 +384,12 @@ DECLARE `section of this circular` IS ONE OF
 #ASSERT `the school holds` `Lag BaOmer, 3.5.2018` `a teacher in a school that struck twice locally`
 #ASSERT `may make up further hours in תשע"ח` `a teacher in a school that struck twice locally`
 
-#TRACE `written notice 30 days before deducting an overpayment` 1200 AT 0 WITH
-    PARTY `the employer` DOES `send written notice of the error's details and a chance to respond` AT 0
-    PARTY `the employer` DOES `deduct an overpayment` 100 AT 31
-#TRACE `carrying out the agreement` 900 AT 0 WITH
-    PARTY `the employer` DOES `implement the agreement in the salary` 900 AT 8
-#TRACE `paying the one-time grant` (LIST `grant month` 1 `worked`, `grant month` 1 `worked`, `grant month` 1 `worked`) AT 0 WITH
-    PARTY `the employer` DOES `pay the one-time grant` 1000 AT 9
-
 §§ `Property checks`
 
--- The circular over a finite space: every category; the first and last
--- days around every date it names; seniority 1 to 10; counselling years 1
--- to 7; 0 to 5 interns; the eight retroactive provisions; three grant
--- months of every kind; make-up cases with strikes and lessons 0 to 12.
-
-`both booleans` MEANS LIST TRUE, FALSE
-`every category` MEANS
-    LIST `a teacher in the reform`, `a teacher not in the reform`, `a principal in the reform`, `a principal not in the reform`
-`the days checked` MEANS
-    LIST Date 31 8 2017, Date 1 9 2017, Date 31 12 2017, Date 1 1 2018, Date 31 5 2018, Date 1 6 2018,
-         Date 31 8 2018, Date 1 9 2018, Date 30 11 2018, Date 1 12 2018, Date 1 1 2019, Date 1 9 2019,
-         Date 1 1 2020, Date 1 9 2020, Date 1 1 2021, Date 1 9 2021, Date 1 3 2022
-`the eight provisions` MEANS LIST `4.3`, `4.5`, `5.2`, `5.3`, `6`, `7`, `10.1`, `10.2`
-`every month kind` MEANS
-    LIST `worked`, `maternity and parenthood, reserve duty or unpaid sick leave`,
-         `unpaid leave, sabbatical or leave treated as unpaid`, `not employed`
-
-GIVEN c IS AN `employee category`
-GIVETH AN `employee`
-DECIDE `an employee of` c IS
-    `employee` WITH
-        `covered by the Oz LeTmura agreement of 14.8.2011` IS TRUE
-        `category` IS c
-
--- §§2-3: one group is the reform's teachers, the other everyone else;
--- principals are the two principal categories.
-#ASSERT all (GIVEN c YIELD
-                    `is outside the reform or a principal` c EQUALS (NOT (c EQUALS `a teacher in the reform`))
-                AND `is a principal` c EQUALS (c EQUALS `a principal in the reform` OR c EQUALS `a principal not in the reform`))
-            `every category`
-
--- §4 over every category, day and seniority: no table of this agreement
--- before 1.9.2017; outside the reform, annex D exactly for seniority 1-7
--- from 1.9.2018 and the old tables otherwise; in the reform, annex C from
--- 1.12.2018 whatever the seniority.
-#ASSERT all (GIVEN c YIELD
-                all (GIVEN d YIELD
-                        all (GIVEN n YIELD
-                                LET t MEANS `the table in force for` (`an employee of` c) d n
-                                IN      ((d AT LEAST Date 1 9 2017) OR t EQUALS `the tables before this agreement`)
-                                    AND ((NOT `is outside the reform or a principal` c)
-                                         OR t EQUALS (IF d AT LEAST Date 1 9 2018 AND n AT MOST 7
-                                                      THEN `annex D, outside the reform and principals, from 1.9.2018`
-                                                      ELSE `the tables before this agreement`))
-                                    AND (`is outside the reform or a principal` c OR (d LESS THAN Date 1 12 2018) OR t EQUALS `annex C, reform, from 1.12.2018`))
-                            (range 1 10))
-                    `the days checked`)
-            `every category`
-
--- §5 over every category and day: no amount before 1.9.2017, exactly one
--- period from it in each schedule; the reform's amount is above the other
--- group's on every day; and neither ever falls.
-#ASSERT all (GIVEN d YIELD
-                    all (GIVEN ps YIELD
-                            count (filter (GIVEN p YIELD d AT LEAST p's `period from` AND d AT MOST p's `period to`) ps)
-                            EQUALS (IF d AT LEAST Date 1 9 2017 THEN 1 ELSE 0))
-                        (LIST `the reform shekel supplement`, `the shekel supplement outside the reform`)
-                AND ((d LESS THAN Date 1 9 2017)
-                     OR `the amount on` `the shekel supplement outside the reform` d LESS THAN `the amount on` `the reform shekel supplement` d)
-                AND all (GIVEN c YIELD
-                            all (GIVEN e YIELD
-                                    (e LESS THAN d)
-                                    OR `the updated shekel supplement 2016 for a full position` (`an employee of` c) d
-                                       AT MOST `the updated shekel supplement 2016 for a full position` (`an employee of` c) e)
-                                `the days checked`)
-                        `every category`)
-            `the days checked`
-
--- §§6, 7, 10 and 12 over every category and day: the merger supplement and
--- the '94 supplement are paid, and the merged supplements cancelled,
--- exactly outside the reform and from 1.9.2017; neither amount ever falls;
--- §12 shields exactly the reform's teachers.
-#ASSERT all (GIVEN c YIELD
-                all (GIVEN d YIELD
-                        LET o MEANS `is outside the reform or a principal` c
-                            on MEANS d AT LEAST Date 1 9 2017
-                            e MEANS `an employee of` c
-                        IN      (`the merger supplement rate` e d GREATER THAN 0) EQUALS (o AND on)
-                            AND (`the 94 supplement outside the reform` e d GREATER THAN 0) EQUALS (o AND on)
-                            AND `the merged supplement is cancelled, also as a base for others, for` e `the 2008 supplement` d EQUALS (o AND on)
-                            AND `no retroactive liability and no double payment for` e EQUALS (NOT o)
-                            AND `the merger supplement rate` e d AT MOST `the merger supplement rate` e (Date 1 1 2022)
-                            AND `the 94 supplement outside the reform` e d AT MOST `the 94 supplement outside the reform` e (Date 1 1 2022))
-                    `the days checked`)
-            `every category`
-
--- §8.1 over the days: the base drops the other supplements for the merger
--- supplement from 1.9.2017.
-#ASSERT all (GIVEN d YIELD
-                `the base of the transition-to-reform supplement` d 10000 160 1900 700
-                EQUALS (IF d AT LEAST Date 1 9 2017 THEN 12060 ELSE 10860))
-            `the days checked`
-
--- §11.1-§11.2: all eight provisions or none; leaving out any one, or
--- carrying out any one alone, is unlawful.
-#ASSERT `the implementation is lawful` `the eight provisions`
-#ASSERT `the implementation is lawful` EMPTY
-#ASSERT all (GIVEN p YIELD
-                    NOT `the implementation is lawful` (filter (GIVEN q YIELD NOT (q EQUALS p)) `the eight provisions`)
-                AND NOT `the implementation is lawful` (LIST p))
-            `the eight provisions`
-
--- §11.3-§11.6: the excess is never negative and is the difference where
--- positive; an advance on wages exactly for an error up to August 2018.
-#ASSERT all (GIVEN a YIELD
-                all (GIVEN b YIELD `the excess amount` a b EQUALS (IF a GREATER THAN b THEN a MINUS b ELSE 0)) (LIST 0, 500, 1000))
-            (LIST 0, 500, 1000)
-#ASSERT all (GIVEN m YIELD
-                all (GIVEN o YIELD `the overpayment counts as an advance on wages` m o EQUALS (o AND m AT MOST 12)) `both booleans`)
-            (range 1 15)
-
--- §13 over counselling years 1 to 7 and the days: the rate rises with the
--- years (from five on, the five-year row) and never falls with time.
-#ASSERT all (GIVEN d YIELD
-                all (GIVEN n YIELD
-                            `the counsellor's stipend rate` n d AT MOST `the counsellor's stipend rate` (n PLUS 1) d
-                        AND `the counsellor's stipend rate` n d AT MOST `the counsellor's stipend rate` n (Date 1 1 2022)
-                        AND `the counsellor's stipend rate` n d GREATER THAN 0)
-                    (range 1 7))
-            `the days checked`
-
--- §14 over every category and day: the role stipend is 6% exactly for a
--- teacher in the reform in a new role from 1.9.2019; the principal's
--- choice of roles never falls with time and reaches three.
-#ASSERT all (GIVEN c YIELD
-                all (GIVEN d YIELD
-                        all (GIVEN f YIELD
-                                `the new role stipend` (`an employee of` c) d f 10000 1000
-                                EQUALS (IF c EQUALS `a teacher in the reform` AND f AND d AT LEAST Date 1 9 2019 THEN 660 ELSE 0))
-                            `both booleans`)
-                    `the days checked`)
-            `every category`
+-- §14's note: the principal's choice of roles never falls with time and
+-- reaches three.
 #ASSERT all (GIVEN d YIELD `new roles a principal may choose` d AT MOST `new roles a principal may choose` (Date 1 1 2022)) `the days checked`
 #ASSERT `new roles a principal may choose` (Date 1 1 2022) EQUALS 3
-
--- §15 over interns 0 to 5 and the days: 2.4% per intern up to three from
--- 1.9.2018; a base exactly for the two teacher categories.
-#ASSERT all (GIVEN d YIELD
-                all (GIVEN i YIELD
-                        `the mentor stipend` d i 10000
-                        EQUALS (IF d AT LEAST Date 1 9 2018 THEN 240 TIMES min i 3 ELSE 0))
-                    (range 0 5))
-            `the days checked`
-#ASSERT all (GIVEN c YIELD
-                (`the mentor stipend base` c 10000 1000 160 1900 EQUALS NOTHING) EQUALS `is a principal` c)
-            `every category`
-
--- §16 over units 15 to 22: never more than 19 from 1.9.2019, and never
--- more than earned.
-#ASSERT all (GIVEN u YIELD
-                    `training units recognised` (Date 1 9 2019) u 16 EQUALS min u 19
-                AND `training units recognised` (Date 1 9 2018) u 16 AT MOST u)
-            (range 15 22)
-
--- §17 over three months of every kind and a position of 0.5, 1 or 1.2:
--- the grant is never negative, never above 1,000, and a third of 1,000 for
--- each month that counts, by its position up to one.
-#ASSERT all (GIVEN a YIELD
-                all (GIVEN b YIELD
-                        all (GIVEN f YIELD
-                                LET ms MEANS LIST `grant month` f a, `grant month` f b, `grant month` 1 `worked`
-                                    g MEANS `the one-time grant due` ms
-                                IN      g AT LEAST 0
-                                    AND g AT MOST 1000
-                                    AND g EQUALS 1000 TIMES ((count (filter (GIVEN m YIELD `the month counts as work` m) (take 2 ms)) TIMES min f 1) PLUS 1) DIVIDED BY 3)
-                            (LIST 0.5, 1, 1.2))
-                    `every month kind`)
-            `every month kind`
 
 -- §18b over the days: no amount with an agreement; without one, 548.52
 -- from 1.9.2018 and 1,008.52 from 1.9.2019, each 460 above the last.
