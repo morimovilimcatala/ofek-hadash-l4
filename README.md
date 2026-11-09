@@ -188,7 +188,12 @@ that updated it, the steps it prints.
   Ofek and Oz agreements, their circulars and the takanon — gives her what
   the definition does, and its file says the definition is weighed on the
   mother-position-fathers card; the wages commissioner's day-care updates
-  change only the amounts.
+  change only the amounts. The takanon's transfer rules (§1.27.1.3) give
+  less, a card on the contradictions page where the law governs: a
+  pregnant transferee whose delivery falls within six weeks of the year's
+  start is not placed, and is on unpaid leave until she is, a distinction
+  on her pregnancy §2 forbids (§3(א) read as keeping only a provision that
+  protects her: convention `instruments.pregnancy-provision`).
 - **The Sick Pay Law** (`laws/sick-pay-law.html`) — §§1, 2, 4, 4א, 5, 6
   and 12: sick pay from the second day of an absence for illness (half for
   the second and third), a day and a half for each full month of work up
