@@ -629,6 +629,69 @@ class OneNamespace(unittest.TestCase):
             self.assertEqual([f.name for f in real if not f.name.startswith(prefix)], [])
 
 
+# An agreement may import a circular or a takanon section only where the
+# agreement's own words send the reader there: each pair below is
+# (the agreement's module, the module it imports), with why. Held exactly.
+AGREEMENT_IMPORTS_OF_WEAKER_INSTRUMENTS = {
+    ("2016-02-22_ofek-hadash_hascam-2016_tables-and-sheklit", "2016-02-22_sachar_2016-1-13_maanak-hora"):
+        "§5(ג) grants 1,000 'על פי המפורט בהוראות חוזר הממונה על השכר 2016-1-13': "
+        "the agreement sends the grant's details to the circular",
+    ("1978-01-13_teachers_shelach-teachers-agreement", "takanon-1-25"):
+        "4(יג) gives the guide the high schools' calendar of recesses, which the agreement "
+        "does not state; the Annual Leave Law check reads its summer from the takanon's §1.25.2",
+}
+
+
+class AgreementsStandOnTheirOwnRules(unittest.TestCase):
+    """AN AGREEMENT DOES NOT REST ON A WEAKER INSTRUMENT'S ENCODING
+    (MMS-663). A circular never out-ranks an agreement, and the cross-
+    reference rule runs one way (MMS-521): a circular or the takanon that
+    applies an agreement's rule imports the agreement's module. Four
+    agreements had it backwards, importing a circular, or the takanon's
+    §6.17, that printed the same words, so a later amendment or misreading
+    of the weaker text would have moved the agreement's rule. An agreement
+    that imports a circular or a takanon section does so only for what its
+    own text sends there, named in AGREEMENT_IMPORTS_OF_WEAKER_INSTRUMENTS;
+    the takanon's shared vocabulary (`common`) is no section."""
+
+    @staticmethod
+    def weaker(target: Path) -> bool:
+        rel = target.relative_to(ROOT / "l4").parts
+        if rel[0].startswith("circulars"):
+            return True
+        return rel[0] == "takanon" and target.name not in ("common.l4", "conventions.l4")
+
+    def imports(self):
+        out = set()
+        modules = ROOT / "l4/modules"
+        for f in sorted((ROOT / "l4/agreements").rglob("*.l4")):
+            if f.is_symlink():
+                continue
+            for name in re.findall(r"^IMPORT\s+`?([^`\s]+)`?\s*$", f.read_text(encoding="utf-8"), re.M):
+                link = next((p for p in (f.parent / f"{name}.l4", modules / f"{name}.l4") if p.exists()), None)
+                if link is not None and self.weaker(link.resolve()):
+                    out.add((f.stem, name))
+        return out
+
+    def test_an_agreement_imports_no_circular_or_takanon_section_for_its_own_rule(self):
+        found = self.imports()
+        self.assertEqual(sorted(found - set(AGREEMENT_IMPORTS_OF_WEAKER_INSTRUMENTS)), [],
+                         "move the rule into the agreement and have the circular import it")
+        # the record is exact: an entry no agreement uses any more is stale
+        self.assertEqual(sorted(set(AGREEMENT_IMPORTS_OF_WEAKER_INSTRUMENTS) - found), [])
+        self.assertEqual(len(AGREEMENT_IMPORTS_OF_WEAKER_INSTRUMENTS), 2)
+        for pair, why in AGREEMENT_IMPORTS_OF_WEAKER_INSTRUMENTS.items():
+            self.assertTrue(why.strip(), pair)
+
+    def test_the_reader_sees_a_circular_and_a_takanon_section(self):
+        l4 = ROOT / "l4"
+        self.assertTrue(self.weaker(l4 / "circulars/2018-19_tashat_02.l4"))
+        self.assertTrue(self.weaker(l4 / "circulars-sachar/2016-02-22_sachar_2016-1-13_maanak-hora.l4"))
+        self.assertTrue(self.weaker((l4 / "modules/takanon-6-17.l4").resolve()))
+        self.assertFalse(self.weaker((l4 / "modules/common.l4").resolve()))
+        self.assertFalse(self.weaker(l4 / "agreements/teachers-general/1978-01-13_teachers_shelach-teachers-agreement.l4"))
+
+
 class Toolchain(unittest.TestCase):
     def test_the_gate_refuses_a_compiler_warning_about_the_file(self):
         # the compiler's own `ok` stays true on a warning; the gate does not
