@@ -183,7 +183,10 @@ that updated it, the steps it prints.
   accrual, measured in weeks of the teacher's own timetable (convention
   `instruments.sick-days-measure`), and the two corona agreements of 2020
   are above the floor too, and the takanon's §6.5 dismissal on health
-  grounds leaves §4א standing. The takanon's restatements of the family
+  grounds leaves §4א standing. The Oz LaTmura teachers' sick-days fund
+  (renewed by the agreement of 10.9.2003) does not stand in for sick pay:
+  it pays a grant only once the accrued sick days are used, when §4 has
+  nothing left to give. The takanon's restatements of the family
   laws give less in four places, each a card on the contradictions page
   where the law governs: a child's malignant illness only, where the law
   gives the days for any serious illness (dialysis, or one the Minister
