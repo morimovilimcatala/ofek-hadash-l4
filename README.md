@@ -128,6 +128,19 @@ that updated it, the steps it prints.
   (MMS-601).
   The 1999 pension-transition agreement's 28% completion is exactly what
   §14 leaves after its 72%, and the Oz LaTmura agreement's §46(ה) leaves none.
+  The takanon's §1.28.2 restates the law without naming it, and gives what
+  it gives: the year of work and the change of employers, the first-year
+  presumption, the employer's end and the survivors, the resignations for
+  health, on a fixed term's end and the others of §11 — its ages 60 and 65,
+  §11(ה) before the Retirement Age Law, give more — the police recruit, the
+  rate, the fund and the pension in place of severance, the agreement that
+  denies it, the release and the State. Two places print an earlier text
+  that gives less, each a card on the contradictions page where the law
+  governs: a break that severs the relationship keeps the work continuous
+  up to 3 months (item 2(ט)), where §2(9) says six; and the resignation to
+  care for an adopted child reaches only a child under nine months, where
+  §7 reaches one adopted before 13, within nine months of receiving him,
+  and the surrogate and foster child the takanon does not name.
 - **The Women's Work Law** (`laws/womens-work-law.html`) — §§6, 6א, 7, 7א,
   8, 9, 10, 19 and 23: the birth and parenthood period (26 weeks, 15 for one
   with fewer than twelve months) and its extensions, the absences the law
