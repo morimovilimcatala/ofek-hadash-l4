@@ -186,7 +186,15 @@ that updated it, the steps it prints.
   grounds leaves §4א standing. The Oz LaTmura teachers' sick-days fund
   (renewed by the agreement of 10.9.2003) does not stand in for sick pay:
   it pays a grant only once the accrued sick days are used, when §4 has
-  nothing left to give. The takanon's restatements of the family
+  nothing left to give. A supplement paid on sick leave (the 2012
+  local-government agreement's assistants' supplement, the takanon's stay
+  supplement, §1.17) keeps §5's measure; the 2023 framework's §71, which
+  cuts an hours quota with the working day, leaves §4's days whole; and the
+  ministry's answer that cuts a sick teacher's pay in the next school year
+  cuts it when §4's 90 days are long spent. Where a document names sick
+  leave only as a condition of a grant, of seniority or of other pay, or
+  rules on the redemption of unused days, which the law does not give, its
+  file says it was not weighed, and why. The takanon's restatements of the family
   laws give less in four places, each a card on the contradictions page
   where the law governs: a child's malignant illness only, where the law
   gives the days for any serious illness (dialysis, or one the Minister
