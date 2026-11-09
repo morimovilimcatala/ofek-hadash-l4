@@ -174,8 +174,9 @@ that updated it, the steps it prints.
   (§8; circular תש"פ/7), and that give §25's hour to principals, first
   deputies and של"ח teachers. Where a document names the leave only as an
   occasion for a substitute, or sets a grant for hours taught that the
-  period does not reach (the yocha grant of 2009), its file or
-  `data/statute-set-aside.toml` says it was not weighed, and why. The
+  period does not reach (the yocha grant of 2009, weighed against the
+  Equal Opportunities Law), its file or `data/statute-set-aside.toml` says
+  it was not weighed, and why. The
   takanon's restatements give less in five places, each a card on the
   contradictions page where the law governs: maternity leave of 14 weeks
   (§1.25.5) where §6 gives 26, the absence after it only after twelve
@@ -226,7 +227,11 @@ that updated it, the steps it prints.
   ב and ג give a transfer to a married woman whose husband moved: against a
   man whose wife moved, a better right §3(ב) keeps; among women, a line on
   marriage §2 forbids, which §3(ב) does not keep (convention
-  `instruments.marital-status-condition`), a card as well.
+  `instruments.marital-status-condition`), a card as well. And the State
+  teachers' long-day (יוח"א) grant of 17.5.2009 takes its share for the
+  time on maternity leave or reserve duty, and for no other absence (§4.3):
+  grounds §2 names, a card on the contradictions page where the law
+  governs.
 - **The Sick Pay Law** (`laws/sick-pay-law.html`) — §§1, 2, 4, 4א, 5, 6
   and 12: sick pay from the second day of an absence for illness (half for
   the second and third), a day and a half for each full month of work up
