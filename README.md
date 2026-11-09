@@ -141,6 +141,17 @@ that updated it, the steps it prints.
   care for an adopted child reaches only a child under nine months, where
   §7 reaches one adopted before 13, within nine months of receiving him,
   and the surrogate and foster child the takanon does not name.
+  Within the floor besides: the 8⅓% that takes the place of the whole of
+  severance (circular תשע"ב/6), the 13⅓% and 18⅓% that take its place for
+  an additional position (the Dafna summary of 1984, the takanon's §1.24),
+  and the takanon's head of a local authority, whose resignation is a
+  dismissal with no exception (§1.39). Most documents that name severance
+  do so only to count a supplement in the wage it is computed on, or to
+  leave a grant out of it — §13 sends that to the regulations, which
+  compute the wage by the collective agreement — or as the base of the
+  jubilee grant or of another payment; their files say they were not
+  weighed, and why, and so does `data/statute-set-aside.toml` for the five
+  that have no L4, the pension transfer of 30.12.2009 among them.
 - **The Women's Work Law** (`laws/womens-work-law.html`) — §§6, 6א, 7, 7א,
   8, 9, 10, 19 and 23: the birth and parenthood period (26 weeks, 15 for one
   with fewer than twelve months) and its extensions, the absences the law
