@@ -1,15 +1,23 @@
--- חוק פיצויי פיטורים, התשכ"ג-1963 — sections 1, 12, 13, 13ב, 14 and 31:
--- who is owed severance pay, how much, on what wage (which the regulations
--- set and the minimum wage floors), when a payment to a provident fund
--- takes its place, and that the law takes nothing from what an agreement
--- gives. The text is laws/severance-pay-law.toml, pinned from the live page
--- of ספר החוקים הפתוח; the corpus holds no copy (MMS-601).
+-- חוק פיצויי פיטורים, התשכ"ג-1963 — sections 1–9, 11, 11א, 12, 13, 13ב,
+-- 14, 15, 16, 29, 30 and 31: who is owed severance pay — the dismissed, the
+-- employee whose employer ended, the survivors, and the resignations the law
+-- counts as dismissals — after a year of continuous work and through which
+-- breaks, how much, on what wage (which the regulations set and the minimum
+-- wage floors), when a payment to a provident fund or a pension takes its
+-- place, when a collective agreement may deny it, that a release needs
+-- writing, that the State is an employer like any other, and that the law
+-- takes nothing from what an agreement gives. The text is
+-- laws/severance-pay-law.toml, pinned from the live page of ספר החוקים
+-- הפתוח; the corpus holds no copy (MMS-601).
 --
 -- Why it is here: the agreements and circulars set contributions to a
 -- pension fund "in place of" 72% or all of the severance pay under §14,
 -- and that place is the agreement's to set (§14 itself), to the extent it
--- sets it; what is left is the employer's to pay. And §12 is the floor no
--- agreement goes below (§31; the Collective Agreements Law §21).
+-- sets it; what is left is the employer's to pay. §12 is the floor no
+-- agreement goes below (§31; the Collective Agreements Law §21), and the
+-- takanon's §1.28.2 restates §§1–9, 11, 11א, 14–16 and 29–31: where a
+-- restatement gives less, the law governs (the root's precedence,
+-- l4/lib/precedence.l4).
 
 IMPORT prelude
 IMPORT vocabulary
@@ -51,6 +59,363 @@ DECIDE `the earlier employer owes severance for its time under section 1(ב)` `t
 #ASSERT NOT `section 1 of the Severance Pay Law entitles him` 0.9 FALSE 0 TRUE
 #ASSERT NOT `section 1 of the Severance Pay Law entitles him` 5 FALSE 0 FALSE
 #ASSERT `section 1 of the Severance Pay Law entitles him` 0.5 TRUE 2 TRUE
+
+§§ `2`
+
+-- For §1, the work is continuous though it was broken off by: (1) military
+-- or partial service under the Discharged Soldiers (Return to Work) Law,
+-- save full service under a career undertaking that failed §1(ד) of that
+-- law's conditions, and reserve duty; (2) the weekly rest, a holiday not
+-- worked, and 1 May; (3) annual leave; (4) leave or recess with pay, by law
+-- or with the employer's consent; (5) the same without pay; (6) a strike or
+-- a lockout; (7) an accident or an illness; (8) days of mourning not worked;
+-- (9) a temporary break that does not sever the relationship, or a break
+-- that severs it of no more than six months; (10) training for emergency
+-- labour service.
+@ref law:2
+DECLARE `break in work under section 2` IS ONE OF
+    `military, partial or reserve service, under section 2`
+    `full career service that failed its conditions, under section 2`
+    `the weekly rest, a holiday not worked or 1 May, under section 2`
+    `annual leave, under section 2`
+    `leave or recess with pay, under section 2`
+    `leave or recess without pay, under section 2`
+    `a strike or a lockout, under section 2`
+    `an accident or an illness, under section 2`
+    `days of mourning not worked, under section 2`
+    `a temporary break that does not sever the relationship, under section 2`
+    `a break that severs the relationship, under section 2`
+    `training for emergency labour service, under section 2`
+    `another break, under section 2`
+
+GIVEN b IS A `break in work under section 2`
+      `months of the break` IS A NUMBER @desc counted for a break that severs the relationship
+GIVETH A BOOLEAN
+DECIDE `section 2 keeps the work continuous through` b `months of the break` IF
+    CONSIDER b
+    WHEN `full career service that failed its conditions, under section 2` THEN FALSE
+    WHEN `a break that severs the relationship, under section 2` THEN `months of the break` AT MOST 6
+    WHEN `another break, under section 2` THEN FALSE
+    OTHERWISE TRUE
+
+#ASSERT `section 2 keeps the work continuous through` `a break that severs the relationship, under section 2` 6
+#ASSERT NOT `section 2 keeps the work continuous through` `a break that severs the relationship, under section 2` 7
+#ASSERT `section 2 keeps the work continuous through` `leave or recess without pay, under section 2` 0
+
+§§ `3`
+
+-- A dismissal near the end of the first year of work is taken, unless the
+-- contrary is proved, as made to avoid severance, and takes nothing from
+-- the right to it.
+@ref law:3
+GIVEN `dismissed near the end of the first year of work` IS A BOOLEAN
+      `the contrary was proved` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `section 3 keeps the right of one dismissed near the end of his first year` `dismissed near the end of the first year of work` `the contrary was proved` IF
+    `dismissed near the end of the first year of work` AND (NOT `the contrary was proved`)
+
+#ASSERT `section 3 keeps the right of one dismissed near the end of his first year` TRUE FALSE
+
+§§ `4`
+
+-- One whose work stopped because his employer died or went bankrupt — a
+-- corporation, was wound up or struck off — is owed severance as if he had
+-- been dismissed.
+@ref law:4
+DECLARE `how the employer ended, under section 4` IS ONE OF
+    `the employer died, under section 4`
+    `the employer went bankrupt, under section 4`
+    `the corporation was wound up or struck off, under section 4`
+    `the employer did not end, under section 4`
+
+GIVEN e IS A `how the employer ended, under section 4`
+GIVETH A BOOLEAN
+DECIDE `section 4 entitles him as if he were dismissed` e IF
+    CONSIDER e
+    WHEN `the employer did not end, under section 4` THEN FALSE
+    OTHERWISE TRUE
+
+§§ `5`
+
+-- (א): when an employee dies, the employer pays his survivors severance as
+-- if it had dismissed him; the survivors are the spouse at the death (a
+-- reputed spouse living with him included) and a child dependent on him
+-- under chapter ה' of the National Insurance Law, and, where there is no
+-- such spouse or child, children and parents mainly supported by him and
+-- siblings who lived in his home twelve months before the death and were
+-- wholly supported by him. (ב): severance owed to survivors other than the
+-- spouse or a dependent child is deposited in the regional labour court,
+-- which decides who takes it and in what shares. (ב1): one who died in the
+-- determining period (7.10.2023 to a year after the declaration of a
+-- special situation on the home front ends, which the Minister may extend
+-- by up to 12 months) — his severance goes to his survivors, and where he
+-- left none, to his heirs by law or by will. (ג): severance paid under the
+-- section is not part of the estate.
+@ref law:5
+`section 5 pays the survivors of an employee who died as if he were dismissed` MEANS TRUE
+
+DECLARE `survivor under section 5` IS ONE OF
+    `the spouse at the death, a reputed spouse living with him included, under section 5`
+    `a child dependent on him under the National Insurance Law, under section 5`
+    `a child or a parent mainly supported by him, under section 5`
+    `a sibling who lived in his home twelve months and was wholly supported by him, under section 5`
+    `someone else, under section 5`
+
+GIVEN s IS A `survivor under section 5`
+      `he left a spouse or a dependent child` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `section 5 makes a survivor of` s `he left a spouse or a dependent child` IF
+    CONSIDER s
+    WHEN `the spouse at the death, a reputed spouse living with him included, under section 5` THEN TRUE
+    WHEN `a child dependent on him under the National Insurance Law, under section 5` THEN TRUE
+    WHEN `a child or a parent mainly supported by him, under section 5` THEN NOT `he left a spouse or a dependent child`
+    WHEN `a sibling who lived in his home twelve months and was wholly supported by him, under section 5` THEN NOT `he left a spouse or a dependent child`
+    OTHERWISE FALSE
+
+GIVEN s IS A `survivor under section 5`
+GIVETH A BOOLEAN
+DECIDE `section 5(ב) deposits the severance in the regional labour court for` s IF
+    CONSIDER s
+    WHEN `the spouse at the death, a reputed spouse living with him included, under section 5` THEN FALSE
+    WHEN `a child dependent on him under the National Insurance Law, under section 5` THEN FALSE
+    WHEN `someone else, under section 5` THEN FALSE
+    OTHERWISE TRUE
+
+GIVEN `he died in the determining period` IS A BOOLEAN
+      `he left a survivor` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `section 5(ב1) pays his heirs by law or by will` `he died in the determining period` `he left a survivor` IF
+    `he died in the determining period` AND (NOT `he left a survivor`)
+
+`severance paid under section 5 is part of the estate` MEANS FALSE
+
+§§ `6`
+
+-- An employee who resigned for his own health or a family member's, where
+-- the medical findings, the conditions of work and the rest of the
+-- circumstances gave sufficient cause, has resigned as one dismissed. Who is
+-- a family member, the regulations set.
+@ref law:6
+GIVEN `resigned for his health or a family member's` IS A BOOLEAN
+      `the findings, the conditions of work and the rest gave sufficient cause` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `section 6 counts the resignation as a dismissal` `resigned for his health or a family member's` `the findings, the conditions of work and the rest gave sufficient cause` IF
+    `resigned for his health or a family member's` AND `the findings, the conditions of work and the rest gave sufficient cause`
+
+`who is a family member under section 6` MEANS
+    `set elsewhere` "שר העבודה, בתקנות פיצויי פיטורים (חישוב הפיצויים והתפטרות שרואים אותה כפיטורים), התשכ\"ד-1964, באישור ועדת העבודה של הכנסת"
+
+§§ `7`
+
+-- (א): a woman who resigned within nine months of giving birth, to care
+-- for the child, has resigned as one dismissed; so has one who (1) adopted
+-- a child under 13 and told her employer, (2) received a child in custody
+-- as an intended parent under the surrogacy law, or (3) received into her
+-- home as a foster parent a child of ten or less, with the foster
+-- supervisor's approval that the child's good asked it — each resigning to
+-- care for the child within nine months of receiving it. (ב): so has a
+-- man, where (1) his spouse was employed six consecutive months just
+-- before his resignation, (2) the child is in his sole custody, or in his
+-- sole care for his spouse's disability or illness, or (3) his spouse was
+-- self-employed twelve consecutive months just before the birth or the
+-- receiving and did not stop to care for the child. (ג): where one spouse
+-- resigned on this ground, the other cannot. (ד)–(ה): the notices and the
+-- proof of self-employment are the Minister's to set.
+@ref law:7
+DECLARE `how the child came, under section 7` IS ONE OF
+    `born to her, under section 7`
+    `adopted, under section 7`
+    `received as an intended parent under the surrogacy law, under section 7`
+    `received as a foster parent, under section 7`
+
+@desc The facts §7 asks about a parent who resigned.
+DECLARE `a parent's resignation under section 7` HAS
+    `how the child came`                                IS A `how the child came, under section 7`
+    `months from the birth or the receiving`            IS A NUMBER @desc to the resignation
+    `the child's age in years when received`            IS A NUMBER @desc for an adopted or a foster child
+    `told the employer of the adoption`                 IS A BOOLEAN
+    `the foster supervisor approved it for the child's good` IS A BOOLEAN
+    `resigned to care for the child`                    IS A BOOLEAN
+    `is the father`                                     IS A BOOLEAN
+    `his spouse was employed six consecutive months just before` IS A BOOLEAN
+    `the child is in his sole custody or sole care`     IS A BOOLEAN @desc in his sole care for his spouse's disability or illness
+    `his spouse was self-employed twelve consecutive months before and did not stop` IS A BOOLEAN
+    `the other spouse resigned on this ground`          IS A BOOLEAN
+
+GIVEN r IS A `a parent's resignation under section 7`
+GIVETH A BOOLEAN
+DECIDE `section 7(א) reaches how the child came` r IF
+    CONSIDER r's `how the child came`
+    WHEN `born to her, under section 7` THEN TRUE
+    WHEN `adopted, under section 7` THEN
+        r's `the child's age in years when received` LESS THAN 13 AND r's `told the employer of the adoption`
+    WHEN `received as an intended parent under the surrogacy law, under section 7` THEN TRUE
+    WHEN `received as a foster parent, under section 7` THEN
+        r's `the child's age in years when received` AT MOST 10 AND r's `the foster supervisor approved it for the child's good`
+
+GIVEN r IS A `a parent's resignation under section 7`
+GIVETH A BOOLEAN
+DECIDE `section 7 counts a parent's resignation as a dismissal` r IF
+        r's `resigned to care for the child`
+    AND r's `months from the birth or the receiving` AT MOST 9
+    AND `section 7(א) reaches how the child came` r
+    AND (NOT r's `the other spouse resigned on this ground`)
+    AND (    (NOT r's `is the father`)
+         OR r's `his spouse was employed six consecutive months just before`
+         OR r's `the child is in his sole custody or sole care`
+         OR r's `his spouse was self-employed twelve consecutive months before and did not stop`)
+
+`a mother of a child adopted at three, resigning five months after` MEANS
+    `a parent's resignation under section 7` WITH
+        `how the child came`                                IS `adopted, under section 7`
+        `months from the birth or the receiving`            IS 5
+        `the child's age in years when received`            IS 3
+        `told the employer of the adoption`                 IS TRUE
+        `the foster supervisor approved it for the child's good` IS FALSE
+        `resigned to care for the child`                    IS TRUE
+        `is the father`                                     IS FALSE
+        `his spouse was employed six consecutive months just before` IS FALSE
+        `the child is in his sole custody or sole care`     IS FALSE
+        `his spouse was self-employed twelve consecutive months before and did not stop` IS FALSE
+        `the other spouse resigned on this ground`          IS FALSE
+
+#ASSERT `section 7 counts a parent's resignation as a dismissal` `a mother of a child adopted at three, resigning five months after`
+
+§§ `8`
+
+-- A resignation because the employee moved home is a dismissal where he
+-- moved (1) on his marriage, to the town in Israel his spouse lived in, (2)
+-- to an agricultural town from one that is not, or to a town in a
+-- development area from one that is not, or (3) for another reason the
+-- regulations set as justifying the move — each in the conditions the
+-- regulations set, as they set which towns are agricultural or in a
+-- development area. Set elsewhere: whether the conditions are met is an
+-- input.
+@ref law:8
+DECLARE `move of home under section 8` IS ONE OF
+    `on marriage, to the spouse's town in Israel, under section 8`
+    `to an agricultural town or a development area, under section 8`
+    `for another reason the regulations set, under section 8`
+    `no move section 8 names, under section 8`
+
+GIVEN m IS A `move of home under section 8`
+      `the conditions the regulations set are met` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `section 8 counts the resignation as a dismissal` m `the conditions the regulations set are met` IF
+    CONSIDER m
+    WHEN `no move section 8 names, under section 8` THEN FALSE
+    OTHERWISE `the conditions the regulations set are met`
+
+`the conditions section 8 sends to the regulations` MEANS
+    `set elsewhere` "שר העבודה, בתקנות פיצויי פיטורים (חישוב הפיצויים והתפטרות שרואים אותה כפיטורים), התשכ\"ד-1964, באישור ועדת העבודה של הכנסת"
+
+§§ `9`
+
+-- (א): an employee on a contract for a fixed term that came to its end is
+-- as one dismissed, unless the employer offered to renew it; one who
+-- refused the renewal is as one who resigned. (ב): the offer is given at
+-- least three months before the term ends — one given later is not the
+-- offer (א) speaks of.
+@ref law:9
+GIVEN `the fixed term came to its end` IS A BOOLEAN
+      `the employer offered to renew it` IS A BOOLEAN
+      `months before the end the offer was given` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `section 9 counts the end of the term as a dismissal` `the fixed term came to its end` `the employer offered to renew it` `months before the end the offer was given` IF
+        `the fixed term came to its end`
+    AND (NOT (`the employer offered to renew it` AND `months before the end the offer was given` AT LEAST 3))
+
+#ASSERT `section 9 counts the end of the term as a dismissal` TRUE TRUE 2
+#ASSERT NOT `section 9 counts the end of the term as a dismissal` TRUE TRUE 3
+
+§§ `11`
+
+-- (א): a resignation for a material worsening of the conditions of work,
+-- or for other circumstances of the relationship in which he cannot be
+-- asked to go on, is a dismissal. (ב): so is a seasonal worker's, after
+-- three consecutive seasons at the workplace, for not being assured
+-- continuous work there. (ג): so is one made just before, and because of,
+-- (1) enlisting in regular military service, (2) beginning civil service,
+-- (4) volunteer service that deferred his regular service, or (5)
+-- national-civil service — (2), (4) and (5) once he served six months; (3)
+-- was struck out. (ד): so is one for election as a salaried head or deputy
+-- head of a local authority, unless the employer agreed in writing that
+-- the term counts as unpaid leave. (ה): so is one made after reaching the
+-- retirement age the Retirement Age Law, 2004, sets — and what a provident
+-- fund pays him out of the employer's contributions meant as or in place
+-- of severance may be set off against it, even without §§14 or 20. (ו): so
+-- is one made while the law on the families of fallen soldiers bars his
+-- dismissal.
+@ref law:11
+DECLARE `service a resignation comes before, under section 11(ג)` IS ONE OF
+    `regular military service, under section 11(ג)`
+    `civil service, under section 11(ג)`
+    `volunteer service that deferred regular service, under section 11(ג)`
+    `national-civil service, under section 11(ג)`
+    `no service section 11(ג) names, under section 11(ג)`
+
+@desc The facts §11 asks about a resignation.
+DECLARE `a resignation under section 11` HAS
+    `a material worsening, or circumstances in which he cannot be asked to go on` IS A BOOLEAN
+    `seasonal, after three consecutive seasons, continuous work not assured` IS A BOOLEAN
+    `just before and because of`                     IS A `service a resignation comes before, under section 11(ג)`
+    `months served in it`                            IS A NUMBER
+    `elected a salaried head or deputy head of a local authority` IS A BOOLEAN
+    `the employer agreed in writing the term is unpaid leave` IS A BOOLEAN
+    `age`                                            IS A NUMBER
+    `the retirement age the Retirement Age Law sets for him` IS A NUMBER @desc חוק גיל פרישה, התשס"ד-2004, §3 and its schedule: 67 for a man, 65 for a woman, lower by the month of birth for the years of transition; outside the pinned sections, an input
+    `while the fallen soldiers' families law bars his dismissal` IS A BOOLEAN
+
+GIVEN r IS A `a resignation under section 11`
+GIVETH A BOOLEAN
+DECIDE `section 11(ג) counts the resignation before the service` r IF
+    CONSIDER r's `just before and because of`
+    WHEN `regular military service, under section 11(ג)` THEN TRUE
+    WHEN `no service section 11(ג) names, under section 11(ג)` THEN FALSE
+    OTHERWISE r's `months served in it` AT LEAST 6
+
+GIVEN r IS A `a resignation under section 11`
+GIVETH A BOOLEAN
+DECIDE `section 11(ה) counts the resignation at the retirement age` r IF
+    r's `age` AT LEAST r's `the retirement age the Retirement Age Law sets for him`
+
+GIVEN r IS A `a resignation under section 11`
+GIVETH A BOOLEAN
+DECIDE `section 11 counts the resignation as a dismissal` r IF
+        r's `a material worsening, or circumstances in which he cannot be asked to go on`
+    OR  r's `seasonal, after three consecutive seasons, continuous work not assured`
+    OR  `section 11(ג) counts the resignation before the service` r
+    OR  (r's `elected a salaried head or deputy head of a local authority` AND (NOT r's `the employer agreed in writing the term is unpaid leave`))
+    OR  `section 11(ה) counts the resignation at the retirement age` r
+    OR  r's `while the fallen soldiers' families law bars his dismissal`
+
+GIVEN `the severance owed` IS A NUMBER
+      `paid by a provident fund out of the employer's contributions meant for severance` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the severance left for the employer under section 11(ה)` `the severance owed` `paid by a provident fund out of the employer's contributions meant for severance` IS
+    max 0 (`the severance owed` MINUS `paid by a provident fund out of the employer's contributions meant for severance`)
+
+#ASSERT `the severance left for the employer under section 11(ה)` 100000 70000 EQUALS 30000
+
+§§ `11א`
+
+-- One who resigned to enlist in the police or the prison service, just
+-- before enlisting, is owed severance — he or his survivors — where (1) he
+-- served six months at least, (2) his service ended on a ground that earns
+-- severance under this law, or (3) it ended because he was found unsuited,
+-- unless in circumstances that would not have earned him police or prison
+-- retirement pay.
+@ref law:11א
+GIVEN `resigned to enlist in the police or the prison service` IS A BOOLEAN
+      `months served there` IS A NUMBER
+      `the service ended on a ground that earns severance` IS A BOOLEAN
+      `it ended as unsuited, in circumstances that would earn retirement pay` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `section 11א entitles the recruit or his survivors` `resigned to enlist in the police or the prison service` `months served there` `the service ended on a ground that earns severance` `it ended as unsuited, in circumstances that would earn retirement pay` IF
+        `resigned to enlist in the police or the prison service`
+    AND (   `months served there` AT LEAST 6
+         OR `the service ended on a ground that earns severance`
+         OR `it ended as unsuited, in circumstances that would earn retirement pay`)
 
 §§ `12`
 
@@ -128,6 +493,70 @@ DECIDE `the severance the employer still owes under section 14` `the severance` 
 #ASSERT `the share of severance a fund payment takes the place of under section 14` 0 0 EQUALS 0
 #ASSERT `the severance the employer still owes under section 14` 100000 (72%) EQUALS 28000
 #ASSERT `the severance the employer still owes under section 14` 100000 1 EQUALS 0
+
+§§ `15`
+
+-- An employee, or his survivor, entitled by an enactment to a pension from
+-- the employer on his retirement or for another reason, has the pension in
+-- place of his right to severance under this law.
+@ref law:15
+GIVEN `entitled by an enactment to a pension from the employer` IS A BOOLEAN
+      `the severance under this law` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the severance owed beside a pension under section 15` `entitled by an enactment to a pension from the employer` `the severance under this law` IS
+    IF `entitled by an enactment to a pension from the employer` THEN 0 ELSE `the severance under this law`
+
+#ASSERT `the severance owed beside a pension under section 15` TRUE 50000 EQUALS 0
+
+§§ `16`
+
+-- An employee dismissed in circumstances that the collective agreement
+-- that applies to the employer and the employee — and, where there is
+-- none, the one that applies to the most employees of the branch — says
+-- justify a dismissal without severance, or with part of it, is owed
+-- none, or that part. What the agreement says is an input.
+@ref law:16
+GIVEN `the collective agreement justifies dismissal without full severance` IS A BOOLEAN
+      `the share of the severance it leaves` IS A NUMBER @desc 0 where it justifies none at all
+      `the severance` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the severance owed under section 16` `the collective agreement justifies dismissal without full severance` `the share of the severance it leaves` `the severance` IS
+    IF `the collective agreement justifies dismissal without full severance`
+    THEN `the share of the severance it leaves` TIMES `the severance`
+    ELSE `the severance`
+
+GIVEN `the collective agreement justifies dismissal without full severance` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `section 16 lets the severance be denied or cut` `the collective agreement justifies dismissal without full severance` IF
+    `the collective agreement justifies dismissal without full severance`
+
+#ASSERT `the severance owed under section 16` TRUE 0.5 80000 EQUALS 40000
+#ASSERT `the severance owed under section 16` FALSE 0 80000 EQUALS 80000
+
+§§ `29`
+
+-- A compromise on severance, and a release, have no effect unless made in
+-- writing and saying expressly that they are about severance.
+@ref law:29
+GIVEN `made in writing` IS A BOOLEAN
+      `it says expressly it is about severance` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `a compromise or a release has effect under section 29` `made in writing` `it says expressly it is about severance` IF
+    `made in writing` AND `it says expressly it is about severance`
+
+#ASSERT NOT `a compromise or a release has effect under section 29` TRUE FALSE
+
+§§ `30`
+
+-- (א): for this law, the State is an employer like any other. (ב): for the
+-- police and the prison service, §§2(6), 8 and 17 do not apply, §3 does
+-- not reach a dismissal under their ordinances, a change made by their
+-- authority is no worsening under §11, and their rules of service stand
+-- for §16's collective agreement — none of which reaches a teacher.
+@ref law:30
+`the Severance Pay Law binds the State as an employer` MEANS TRUE
+
+`section 30(ב) reaches only the police and the prison service` MEANS TRUE
 
 §§ `31`
 

@@ -45,7 +45,7 @@ that updated it, the steps it prints.
 | `conventions.toml`, `l4/conventions.l4` | the rules of reading the encoding follows where the text does not decide, and the one L4 definition of each that is a computation, which the rules import |
 | `findings/<corpus path>/<section>.toml` (one per section) | errors in the text the encoding exposed, each backed by an `#ASSERT` |
 | `data/calculator-delta.json` | the comparison with the ministry's salary simulator: inputs, outputs, mappings, clauses and classifications only (written outside this repository; shown as the simulator's group of the contradictions page) |
-| `laws/<name>.toml`, `l4/laws/<name>.l4` | a statute encoded though the corpus holds no copy of it (חוק הסכמים קיבוציים §§2, 15–16, 19–23; חוק יסודות התקציב §§21, 29, 32; חוק שכר מינימום §§1–3, 11; חוק הגנת השכר §§1, 9, 19א, 20, 25; חוק פיצויי פיטורים §§1, 12, 13, 13ב, 14, 31; חוק עבודת נשים §§6, 6א, 7, 7א, 8, 9, 10, 19, 23; חוק שוויון ההזדמנויות בעבודה §§2, 3, 4, 17; חוק דמי מחלה §§1, 2, 4, 4א, 5, 6, 12, and its laws of absence for a child's illness §§1, 1א, 1ב, 1ג, 3, 3א, a parent's §§1, 3, 4, 4א, a spouse's §§1, 1א, 3, 4, 5 and a partner's pregnancy §§1, 3, 4; חוק חופשה שנתית §§1–8, 10, 13, 15, 33, 38; חוק שעות עבודה ומנוחה §§1, 2, 3, 5, 6, 7, 9, 16, 17, 18, 20, 30, 31, 35; חוק שכר שווה לעובדת ולעובד §§1, 2, 3, 6, 12, 13, 14; חוק הודעה מוקדמת לפיטורים ולהתפטרות §§1–7, 10, 11, 12; and the others `laws/` holds): its sections' words pinned from ספר החוקים הפתוח, and their rules |
+| `laws/<name>.toml`, `l4/laws/<name>.l4` | a statute encoded though the corpus holds no copy of it (חוק הסכמים קיבוציים §§2, 15–16, 19–23; חוק יסודות התקציב §§21, 29, 32; חוק שכר מינימום §§1–3, 11; חוק הגנת השכר §§1, 9, 19א, 20, 25; חוק פיצויי פיטורים §§1–9, 11, 11א, 12, 13, 13ב, 14, 15, 16, 29–31; חוק עבודת נשים §§6, 6א, 7, 7א, 8, 9, 10, 19, 23; חוק שוויון ההזדמנויות בעבודה §§2, 3, 4, 17; חוק דמי מחלה §§1, 2, 4, 4א, 5, 6, 12, and its laws of absence for a child's illness §§1, 1א, 1ב, 1ג, 3, 3א, a parent's §§1, 3, 4, 4א, a spouse's §§1, 1א, 3, 4, 5 and a partner's pregnancy §§1, 3, 4; חוק חופשה שנתית §§1–8, 10, 13, 15, 33, 38; חוק שעות עבודה ומנוחה §§1, 2, 3, 5, 6, 7, 9, 16, 17, 18, 20, 30, 31, 35; חוק שכר שווה לעובדת ולעובד §§1, 2, 3, 6, 12, 13, 14; חוק הודעה מוקדמת לפיטורים ולהתפטרות §§1–7, 10, 11, 12; and the others `laws/` holds): its sections' words pinned from ספר החוקים הפתוח, and their rules |
 | `data/statute-citations.json` | every statute the corpus cites and every section it cites by number, with the documents that cite it, read off the corpus's own links to ספר החוקים הפתוח (`tools/statute_citations.py`, MMS-601) |
 | `tools/statute_record.py`, `data/statute-set-aside.toml` | the per-instrument record of the protective statutes (MMS-601): every document of the manifest against every statute the statutes' root registers — it meets the floor (an `#ASSERT` in its L4 that reads the statute, and holds), falls short of it (a card or a finding), was not weighed (the reason a `-- not weighed against` comment in its file gives, a row of `data/statute-set-aside.toml` for a document with no L4, or none of the terms the statute's batch searched for, `inventory` in `laws/<name>.toml`, is in its text), or was not checked; read off the source, never written by hand |
 | `data/contradictions.json`, `data/contradictions/` | the hand-written layer of the contradictions page, whose rows the root generates where it can speak (MMS-521): a card attaches to the root's row by key (`root`) and brings a side per source with its answer — a document with a crop of its page, or what the payslips or the simulator pay — and the rule's prose; a card the root cannot speak for says why (`not_in_root`); a circular against an agreement says which way it departs, and where it gives more, what §29 of the Budget Foundations Law makes of the excess |
@@ -117,10 +117,15 @@ that updated it, the steps it prints.
   governs, a card on the contradictions page. An overpayment an agreement
   deems an advance under §25(א)(7) is deducted in twelve parts only as §25
   allows (`l4/agreements/ofek-hadash/2012-02-29_ofek-hadash_amendment_hascam-hashlama.l4`).
-- **The Severance Pay Law** (`laws/severance-pay-law.html`) — §§1, 12, 13,
-  13ב, 14 and 31: who is owed severance, a month's wage a year, the wage the
-  regulations set and its minimum-wage floor, and how far a payment to a
-  fund takes its place — as far as the collective agreement says (MMS-601).
+- **The Severance Pay Law** (`laws/severance-pay-law.html`) — §§1–9, 11,
+  11א, 12, 13, 13ב, 14, 15, 16, 29, 30 and 31: who is owed severance — after
+  a year of continuous work, through the breaks §2 lists, on a dismissal,
+  the employer's end or the employee's death, and on the resignations the
+  law counts as dismissals — a month's wage a year, the wage the
+  regulations set and its minimum-wage floor, how far a payment to a fund
+  or a pension takes its place — as far as the collective agreement says —
+  when the agreement may deny it, and that a release needs writing
+  (MMS-601).
   The 1999 pension-transition agreement's 28% completion is exactly what
   §14 leaves after its 72%, and the Oz LaTmura agreement's §46(ה) leaves none.
 - **The Women's Work Law** (`laws/womens-work-law.html`) — §§6, 6א, 7, 7א,
