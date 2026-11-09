@@ -133,7 +133,20 @@ that updated it, the steps it prints.
   every better right stands (MMS-601). The agreements and circulars that
   count "the birth and parenthood period as §6 means it" towards a grant,
   the base agreement's §25 and the employment circulars' nursing hour, and
-  the 2023 framework's §70(ב) give at least what it guarantees. The
+  the 2023 framework's §70(ב) give at least what it guarantees. So do the
+  documents that count the period or the leave as work or employment — for
+  promotion, seniority, recuperation pay, a grant's months, the converted
+  pay of the reform and its principals (the 2007 and 2008 Ofek agreements
+  and its signed copy, the 2022 wage agreement, the Oz agreements of 2011,
+  2018 and 2024, the colleges' 2019 amendment, the excellence and
+  persistence circulars, the takanon's §§1.7 and 1.29, the wages
+  commissioner's 2023-1-12) — that leave the period out of a furlough or
+  an arrangement (the 2020 framework agreements), that ask no work in it
+  (§8; circular תש"פ/7), and that give §25's hour to principals, first
+  deputies and של"ח teachers. Where a document names the leave only as an
+  occasion for a substitute, or sets a grant for hours taught that the
+  period does not reach (the yocha grant of 2009), its file or
+  `data/statute-set-aside.toml` says it was not weighed, and why. The
   takanon's restatements give less in five places, each a card on the
   contradictions page where the law governs: maternity leave of 14 weeks
   (§1.25.5) where §6 gives 26, the absence after it only after twelve
@@ -165,7 +178,17 @@ that updated it, the steps it prints.
   mother-teacher supplement, are not rights §4(ב) lists, and §3(ב) keeps
   them hers (convention `instruments.parenthood-right`). The takanon's
   day-care supplement (§1.14) falls short of the law as of the agreement of
-  10.10.2011, on that agreement's card.
+  10.10.2011, on that agreement's card. The 2016 framework's parents' hours
+  (§18) give a father them on §4(א)'s own conditions; a provision on birth
+  or nursing (the base agreement's §25, the של"ח guides' releases) is
+  §3(א)'s; and a mother's supplement or release that §4(ב) does not list
+  (the 1995 Oz agreement, circular תשע"ג/2's 8.3%, the takanon's §§2.1 and
+  6.17, the ministry's answers page) is §3(ב)'s. Every other provision
+  that names the mother teacher — her week, her hours, her rates, in the
+  Ofek and Oz agreements, their circulars and the takanon — gives her what
+  the definition does, and its file says the definition is weighed on the
+  mother-position-fathers card; the wages commissioner's day-care updates
+  change only the amounts.
 - **The Sick Pay Law** (`laws/sick-pay-law.html`) — §§1, 2, 4, 4א, 5, 6
   and 12: sick pay from the second day of an absence for illness (half for
   the second and third), a day and a half for each full month of work up
