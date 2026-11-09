@@ -330,12 +330,23 @@ that updated it, the steps it prints.
   nursing hour on top of §20's breaks (§1.25.5), the של"ח instructor's
   Sabbath at §17's 150% (§6.17.7), the corona arrangement's day before the
   rest, and circular תשפ"ב/3's make-up hours, which may not be overtime.
-  Two places give less, each a card on the contradictions page where the
-  law governs: Oz LaTmura pays the hours beyond a full position — up to 50
-  a week at the school — as regular hours (§14; from 1.9.2024 its §33),
-  where §16 asks 125% for every hour above 45; and the takanon pays a day
-  out with pupils by its end hour (§1.10), 5 units for a day back by
-  midnight, less than §16's premium on the hours beyond eight.
+  Within the floor besides: the base agreement's teacher's week of 36 hours
+  (§§15, 17), a first deputy's 40 (§90) and the kindergarten's day and week
+  (§§133, 142), the Oz agreement's working windows (§9) and its week beyond
+  a full position (§14: five days of at most §62's nine hours), the
+  takanon's guide's week of 42.5 hours (§8.1), the 1978 Shelah agreement's
+  Sabbath at §17's 150%, the public-sector week shortened to 40 hours
+  (17.7.2023), and the yearly kindergarten circulars' 42 hours beyond a
+  full position. Most documents that name a working hour, a position or a
+  break do so for something else — a sum paid pro rata to the position, a
+  cap on the position across employers, a one-time grant left out of the
+  hour value, a break in service, a shorter week for a mother or by age —
+  and their files say they were not weighed, and why, as
+  `data/statute-set-aside.toml` does for the seven that have no L4.
+  One place gives less, a card on the contradictions page where the law
+  governs: the takanon pays a day out with pupils by its end hour (§1.10),
+  5 units for a day back by midnight, less than §16's premium on the hours
+  beyond eight.
 - **The Equal Pay Law** (`laws/equal-pay-law.html`) — §§1, 2, 3, 6, 12, 13
   and 14: equal pay and equal other remuneration for a woman and a man
   doing the same work, work equal in substance or work of equal value, the
