@@ -965,5 +965,37 @@ class SharedStore(unittest.TestCase):
                 l4run.STORE = saved
 
 
+class AWeekAgainstTheHoursLawCountsNamedDays(unittest.TestCase):
+    """A week weighed against the Hours of Work and Rest Law is computed from
+    the instrument's own days, or from a named input, never from a typed
+    count (MMS-676). F-oz-founding-14-a took §20's breaks from `6 TIMES` a
+    day while the Oz agreement's §9(ד), encoded and imported one line up,
+    gives the teacher a free day: no Oz teacher works six days, and the
+    finding was withdrawn. A definition that reads the law's week or its
+    break may not multiply a bare number into it."""
+
+    LAW = ("the longest working week section 3 allows",
+           "the least break section 20 asks")
+    TYPED = re.compile(r"(?<![\w`.])\d+(?:\.\d+)? TIMES ")
+
+    def test_no_typed_count_of_days_or_hours(self):
+        found, read = [], 0
+        for f in sorted((ROOT / "l4").rglob("*.l4")):
+            if f.is_symlink():
+                continue
+            for block in re.split(r"\n\s*\n", f.read_text(encoding="utf-8")):
+                code = "\n".join(line for line in block.splitlines()
+                                 if not line.lstrip().startswith("--"))
+                if not any(name in code for name in self.LAW):
+                    continue
+                read += 1
+                for hit in self.TYPED.finditer(code):
+                    found.append((f.relative_to(ROOT).as_posix(), hit.group(0)))
+        self.assertEqual(found, [])
+        # A check that reads nothing refuses nothing: the definitions that
+        # weigh a week or a day's break against the law are there to read.
+        self.assertGreater(read, 5)
+
+
 if __name__ == "__main__":
     unittest.main()
