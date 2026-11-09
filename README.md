@@ -360,7 +360,15 @@ that updated it, the steps it prints.
   participation are parenthood benefits the law leaves out (§13); they are
   weighed against the Equal Opportunities Law. Within the floor: the
   takanon's personal-car refund "על שמו או על שם אשתו" (§7.3.6.3), read for
-  both sexes. One place gives less, a card on the contradictions page where
+  both sexes, and the allowances of the agreements that say every word of
+  them applies to women and men alike — the kindergarten cluster managers'
+  of 17.6.2021, ordinary and special education, and the ulpan teachers'
+  evening supplement of 6.8.2023. Most documents the search for a sex-linked
+  word finds use it for something else — ‘בעל’ for the holder of a degree,
+  seniority or a post, ‘אב’ for the month of Av, ‘מזכר’ for a memorandum —
+  and their files say they were not weighed, and why, as
+  `data/statute-set-aside.toml` does for those that have no L4. One place
+  gives less, a card on the contradictions page where
   the law governs: circular תשפ"א/6's early-retirement tracks, which put a
   woman of 55 to 57 on track B and a man of her age on track A.
 - **The Advance Notice Law** (`laws/advance-notice-law.html`) — §§1–7, 10,
