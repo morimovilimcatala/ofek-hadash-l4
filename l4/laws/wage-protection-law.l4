@@ -1,22 +1,134 @@
--- חוק הגנת השכר, התשי"ח-1958 — section 20: when severance pay falls due,
--- when it is late, and the compensation for its lateness; and section 25:
--- what may be deducted from wages, and how much. The text is
+-- חוק הגנת השכר, התשי"ח-1958 — sections 1 and 9: when a month's wage
+-- falls due and when it counts as withheld; section 19א: when what an
+-- employer owes a provident fund counts as wages withheld, and the
+-- compensation on it; section 20: when severance pay falls due, when it is
+-- late, and the compensation for its lateness; and section 25: what may be
+-- deducted from wages, and how much. The text is
 -- laws/wage-protection-law.toml, pinned from the live page of ספר החוקים
 -- הפתוח; the corpus holds no copy (MMS-601).
 --
--- Why it is here: both set a floor an instrument cannot go below. An
+-- Why it is here: each sets a floor an instrument cannot go below. An
 -- agreement or a circular that deems an overpayment "an advance on wages
 -- for §25(א)(7)" and deducts it in twelve parts deducts only what §25
--- permits; and the takanon's §1.28.2.3 restates §20 for teaching
--- employees, so where its restatement gives the employee less, the law
--- governs (the root's precedence, l4/lib/precedence.l4).
+-- permits; the takanon's §1.28.2.3 restates §20 for teaching employees,
+-- so where its restatement gives the employee less, the law governs (the
+-- root's precedence, l4/lib/precedence.l4); and the provident-fund
+-- agreements of 17.12.1998 apply the law to the monthly contribution,
+-- which §19א makes wages withheld when it is paid late.
 --
 -- Days are counted as numbers here, as the takanon's restatement counts
 -- them: a day is a serial, and a span of days their difference.
 
 IMPORT prelude
+IMPORT vocabulary
 
-§ `חוק הגנת השכר — פיצויי פיטורים שהולנו, וניכויים מהשכר`
+§ `חוק הגנת השכר — מועד השכר, חוב לקופת גמל, פיצויי פיטורים שהולנו, וניכויים מהשכר`
+
+§§ `1`
+
+-- Of the definitions, those the sections here read. "שכר עבודה" includes
+-- holiday pay, productivity and overtime pay and the other payments due to
+-- the employee for his work and during it. "שכר מולן" is wages not paid by
+-- the determining day. A "קופת גמל" is, among the rest, a pension or
+-- provident fund the employer (with the employee, or alone) must pay under
+-- a collective agreement or an extension order. "היום הקובע" is the ninth
+-- day after the day the wage falls due under §§9, 10, 11, 13, 14 and 16(ב)
+-- (the twenty-first, for one in national service in agriculture under the
+-- Penal Law, whom no instrument of the corpus employs). "הפרשי הצמדה" are
+-- the consumer price index's differences over the period, an input.
+@ref law:1
+`the days after the due day to the determining day, under section 1` MEANS 9
+
+GIVEN `the day the wage falls due` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the determining day under section 1` `the day the wage falls due` IS
+    `the day the wage falls due` PLUS `the days after the due day to the determining day, under section 1`
+
+GIVEN `the day the wage falls due` IS A NUMBER, `the day it is paid` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `the wage is withheld under section 1` `the day the wage falls due` `the day it is paid` IF
+    `the day it is paid` GREATER THAN `the determining day under section 1` `the day the wage falls due`
+
+GIVEN `the employer must pay it under a collective agreement or an extension order` IS A BOOLEAN
+      `the employee is a member of it` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `a provident fund under section 1` `the employer must pay it under a collective agreement or an extension order` `the employee is a member of it` IF
+        `the employer must pay it under a collective agreement or an extension order`
+    OR `the employee is a member of it`
+
+#ASSERT `the determining day under section 1` 31 EQUALS 40
+#ASSERT NOT `the wage is withheld under section 1` 31 40
+#ASSERT `the wage is withheld under section 1` 31 41
+
+§§ `9`
+
+-- A wage paid by the month falls due with the end of the month it is paid
+-- for; one paid by a longer period is, month by month, its proportional
+-- part, as if paid by the month.
+@ref law:9
+GIVEN `the last day of the month it is paid for` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the day a monthly wage falls due under section 9` `the last day of the month it is paid for` IS
+    `the last day of the month it is paid for`
+
+GIVEN `the wage for the period` IS A NUMBER, `the months of the period` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the part of a longer period's wage due each month under section 9` `the wage for the period` `the months of the period` IS
+    `the wage for the period` DIVIDED BY `the months of the period`
+
+#ASSERT `the part of a longer period's wage due each month under section 9` 1200 12 EQUALS 100
+
+§§ `19א`
+
+-- (א): what the employer owes a provident fund counts as wages withheld —
+-- whether he owes it directly or must deduct it from the employee's wage —
+-- if it is not paid to the fund within 21 days of the day the wage it is
+-- owed on counts (or would count) as withheld; whether or not that wage
+-- was itself withheld. (ב): the compensation is, (1) on what he had to
+-- deduct, §17's (not pinned), and (2) on what he owes directly, "the
+-- debt": the linkage differences from the day the wage falls due to the
+-- day the debt is paid, and 20% of the debt and the differences together
+-- for every month it went unpaid, a part of a month pro rata. The rest of
+-- the section (the fund's own duties toward the employee) is not pinned.
+@ref law:19א
+`the days section 19א(א) gives to pay the fund` MEANS 21
+
+`why section 19א(ב)(1) gives no amount here` MEANS
+    `not yet encoded` "סעיף 17 לחוק הגנת השכר (פיצוי הלנת שכר), שסעיף 19א(ב)(1) מפנה אליו"
+
+GIVEN `the day the wage it is owed on falls due` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the last day to pay the fund under section 19א` `the day the wage it is owed on falls due` IS
+    `the determining day under section 1` `the day the wage it is owed on falls due`
+        PLUS `the days section 19א(א) gives to pay the fund`
+
+GIVEN `the day the wage it is owed on falls due` IS A NUMBER, `the day the fund is paid` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `the debt to the fund counts as wages withheld under section 19א` `the day the wage it is owed on falls due` `the day the fund is paid` IF
+    `the day the fund is paid` GREATER THAN `the last day to pay the fund under section 19א` `the day the wage it is owed on falls due`
+
+GIVEN `the debt` IS A NUMBER
+      `the linkage differences` IS A NUMBER @desc by the consumer price index, from the day the wage falls due to the day the debt is paid
+      `the months it went unpaid` IS A NUMBER @desc a part of a month as a fraction
+GIVETH A NUMBER
+DECIDE `the compensation on a debt to the fund under section 19א(ב)(2)` `the debt` `the linkage differences` `the months it went unpaid` IS
+    `the linkage differences` PLUS (`the debt` PLUS `the linkage differences`) TIMES 20% TIMES `the months it went unpaid`
+
+-- An instrument that sets a day of its own for a contribution falls below
+-- §19א only if that day is later than the last day the section lets the
+-- debt go unpaid before it counts as wages withheld; an earlier day adds
+-- to the law.
+GIVEN `the day the instrument has the contribution paid` IS A NUMBER
+      `the day the wage it is owed on falls due` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `the instrument's day for a contribution is later than section 19א allows` `the day the instrument has the contribution paid` `the day the wage it is owed on falls due` IF
+    `the day the instrument has the contribution paid` GREATER THAN `the last day to pay the fund under section 19א` `the day the wage it is owed on falls due`
+
+#ASSERT `the last day to pay the fund under section 19א` 31 EQUALS 61
+#ASSERT NOT `the debt to the fund counts as wages withheld under section 19א` 31 61
+#ASSERT `the debt to the fund counts as wages withheld under section 19א` 31 62
+#ASSERT `the compensation on a debt to the fund under section 19א(ב)(2)` 1000 10 0.5 EQUALS 111
+#ASSERT NOT `the instrument's day for a contribution is later than section 19א allows` 31 31
 
 §§ `20`
 
