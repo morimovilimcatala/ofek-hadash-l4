@@ -297,9 +297,16 @@ that updated it, the steps it prints.
   salary, and a longer resignation notice asked of a teacher is not below
   the floor (convention `instruments.notice-law-teaching`, a pick for the
   lawyer). Within the floor: the letter by 31 May (§§1.28.2.1(ג), 6.5;
-  the Oz LaTmura agreement's annex ה') and by 30 June (§3.5), a
-  substitute's 3 days in his first two months (§6.5.7(א)), and two months'
-  and a month's notice of resignation (§§1.28.1, 1.39). Two places give
+  the Oz LaTmura agreement's annex ה') and by 30 June (§3.5, which §2.1.5
+  points a kindergarten teacher to), a substitute's 3 days in his first
+  two months (§6.5.7(א)), and two months' and a month's notice of
+  resignation (§§1.28.1, 1.39). Most documents that name a dismissal, a
+  resignation or the end of the relation do so only as the occasion of a
+  payment, a fund's money or a deduction, a power to dismiss, or a strike;
+  their files say they were not weighed, and why, as do the ulpan teacher
+  dismissed at the end of the cycle (§14.4, silent on notice, so the law
+  holds as it stands) and the colleges' procedure of 7.5.2015, which the
+  corpus does not hold. Two places give
   less, each a card on the contradictions page where the law governs: a
   substitute past two months is dismissed on two weeks' notice at any
   length (§6.5.7(ב)), where §3 asks 16 days from his tenth month; and a
