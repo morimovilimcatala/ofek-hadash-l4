@@ -241,7 +241,11 @@ that updated it, the steps it prints.
   fewer a share of the days, and their redemption; and no absence on a
   school day without the district manager's permit (§1.25.1, general 3),
   where §6(ב) lets an employee take a day of his leave on a date he
-  chooses, on notice.
+  chooses, on notice. A third is a card too, outside the teachers'
+  instruments: the public-sector furlough of 18.3.2020 charges to the
+  leave balance the days of an illness begun in its four weeks, giving no
+  sick pay for them (§5(ט)), where §5(א)(4) counts no day of illness as
+  leave.
 - **The Hours of Work and Rest Law** (`laws/hours-of-work-law.html`) —
   §§1, 2, 3, 5, 6, 7, 9, 16, 17, 18, 20, 30, 31 and 35: working hours and
   overtime, a day of eight hours (seven at night and on the eve of the
