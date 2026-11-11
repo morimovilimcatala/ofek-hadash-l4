@@ -1,0 +1,548 @@
+-- הוראת תכ"ם H.13.4.7 — החזר הוצאות טלפון קווי אישי (גרסה 1, 1.8.2008)
+-- The Accountant-General's instruction, written with the Civil Service
+-- Commission, on refunding senior role holders in the government ministries
+-- for using their home landline for work: who is entitled and at which
+-- level (annex B), who is "existing" and who "new" (annex A), the
+-- inter-ministerial committee that decides the exceptions, the duties of a
+-- ministry's deputy director-general for administration and its
+-- accountant, the end of the ministries' direct contract with Bezeq on
+-- 1.4.2009, the fixed monthly sum (priced by notice HOD.13.4.7.1, imported
+-- here), its tax and payroll code, and the declaration each holder signs
+-- and renews every two years, without which there is no refund.
+--
+-- Time in the regulative rules is counted in months from the day the
+-- holder's entitlement is approved (0).
+
+IMPORT prelude
+IMPORT conventions
+IMPORT `2008-12-01_takam_HOD-13-4-7-1_telefon-ramot-zakaut_v1`
+
+-- not weighed against `the Equal Pay Law`: ‘בעל’ is ‘בעל תפקיד’, the
+-- holder of a post, not a husband; the instruction refunds phone expenses
+-- by post and level, and makes no distinction by sex.
+
+§ `החזר הוצאות טלפון קווי אישי`
+
+@desc A post annex B of instruction H.13.4.7 names, in either edition; any other post is `another landline post`.
+DECLARE `landline post` IS ONE OF
+    `an aide to a minister or deputy minister`                   @desc עוזר שר או סגן שר
+    `a senior professional aide to a minister`                   @desc עוזר מקצועי בכיר לשר
+    `a senior professional aide to a deputy minister`            @desc עוזר מקצועי בכיר לסגן שר
+    `a senior professional aide to a director-general`           @desc "ומנהלים כללים", as read (F-2008-08-01_takam_H-13-4-7_telefon-kavi-ishi_v1-b)
+    `an adviser to a minister`                                   @desc יועץ שר
+    `an adviser to a deputy minister`                            @desc יועץ סגן שר
+    `a ministry spokesperson`                                    @desc דובר
+    `a minister's bureau chief`                                  @desc מנהל לשכת שר
+    `a deputy minister's bureau chief`                           @desc מנהל לשכת סגן שר
+    `a ministry security officer`                                @desc קצין ביטחון (ממונה על הביטחון)
+    `a ministry district director`                               @desc מנהל מחוז
+    `a senior deputy to the legal adviser`                       @desc סגן בכיר ליועץ המשפטי
+    `a deputy accountant`                                        @desc סגן חשב
+    `a deputy director-general or a parallel post graded 42-44 or above` @desc סגן מנהל כללי או תפקיד מקביל שמתח הדרגות במשרתו 44-42 ומעלה בדירוגים המקצועיים, או בדרגה מקבילה בדירוג המנהלי
+    `a senior division head`                                     @desc מנהל אגף בכיר
+    `a head of an auxiliary unit not of director-general standing` @desc מנהל יחידת סמך שאינו במעמד מנהל כללי
+    `an associate director-general graded 44-46`                 @desc משנה למנהל הכללי שדרגתו בתקן 46-44 בדירוגים המקצועיים, או בדרגה מקבילה בדירוג המנהלי
+    `another landline post`
+
+@desc A role holder who asks for the personal-landline refund, as far as instruction H.13.4.7 asks about him.
+DECLARE `landline role holder` HAS
+    `the landline post`                                   IS A `landline post`
+    `place among the bureau's aides`                      IS A NUMBER  @desc for an aide to a minister or deputy minister: his place among the bureau's aides (1 for the first)
+    `took up the landline post on`                        IS A DATE    @desc the day he took up the post, by appointment or as acting or substitute
+    `holds the landline post as acting or substitute`     IS A BOOLEAN @desc "במינוי בפועל או כממלא מקום"
+    `entitled to a landline refund without limit`         IS A BOOLEAN @desc one of the other holders §1.3 keeps under their existing arrangements
+    `the landline level the committee approved`           IS A MAYBE `landline entitlement level` @desc a level the inter-ministerial committee approved for him, if any
+    `signed a landline declaration`                       IS A BOOLEAN @desc signed annex D
+    `last signed the landline declaration on`             IS A DATE
+    `has a home landline usable for work`                 IS A BOOLEAN @desc annex D's first condition
+    `is ready to use the home landline for work`          IS A BOOLEAN @desc annex D's second condition
+
+DECLARE `landline party` IS ONE OF
+    `the deputy director-general for administration`
+    `the ministry's accountant for the landline refund`
+    `the landline role holder`
+    `the inter-ministerial landline committee`
+    `the salary unit's manager`
+
+DECLARE `landline action` IS ONE OF
+    `decide a landline case`
+    `check the existing holders against annex B, with the accountant`
+    `refer the holders who fail annex B to the inter-ministerial committee`
+    `check the new holders against annex B`
+    `notify the accountant of a cancelled entitlement or a changed level`
+    `arrange paying the phone bill directly with a provider of his choice`
+    `sign the landline declaration`
+    `renew the landline declaration`
+    `pay the landline refund`
+    `bring the landline instruction to the entitled holders' notice`
+    `fill in the level and the sum on the landline declaration`
+
+§§ `1 מבוא`
+
+-- §1.1–1.3: senior role holders in the State service are paid for using
+-- their home landline for work; the instruction applies to every holder
+-- entitled under annex B, whatever phone company he chose, and not to the
+-- other holders entitled to a refund without limit, whose existing
+-- arrangements continue.
+@ref akn:hc_1__para_1__subpara_1-1 akn:hc_1__para_1__subpara_1-2 akn:hc_1__para_1__subpara_1-3
+GIVEN h IS A `landline role holder`
+GIVETH A BOOLEAN
+DECIDE `the landline instruction of 2008 applies to` h IF
+    NOT h's `entitled to a landline refund without limit`
+
+-- akn:hc_1__para_1__subpara_1-4 The instruction's purpose: to set the rules for refunding senior role holders' personal-landline expenses; no rule of its own.
+
+-- akn:hc_1__para_1__subpara_1-5 A pointer to the definitions of annex A, encoded there.
+
+§§ `2.1–2.2 הוועדה הבין-משרדית`
+
+-- §2.1: the inter-ministerial committee for personal phones and its three
+-- members; the head of the senior division for planning and control at the
+-- Civil Service Commission chairs it.
+@ref akn:hc_1__para_2__subpara_2-1 akn:hc_1__para_2__subpara_2-1__cls_2-1-1 akn:hc_1__para_2__subpara_2-1__cls_2-1-2 akn:hc_1__para_2__subpara_2-1__cls_2-1-3
+DECLARE `landline committee seat` IS ONE OF
+    `the head of the senior division for planning and control at the Civil Service Commission`
+    `a senior deputy to the Accountant-General or his representative`
+    `a senior deputy to the Wages and Labour Agreements Commissioner`
+
+@ref akn:hc_1__para_2__subpara_2-1__cls_2-1-1
+GIVEN s IS A `landline committee seat`
+GIVETH A BOOLEAN
+DECIDE `chairs the inter-ministerial landline committee` s IF
+    s EQUALS `the head of the senior division for planning and control at the Civil Service Commission`
+
+-- §2.2: from 1.4.2009 the committee hears only the exceptional cases that
+-- do not meet annex B's criteria; before that day the text does not limit
+-- it.
+@ref akn:hc_1__para_2__subpara_2-2
+GIVEN `the case meets annex B` IS A BOOLEAN
+      t IS A DATE @desc the day the committee would decide the case
+GIVETH A DEONTIC `landline party` `landline action`
+DECIDE `the landline committee's reach under §2.2 of 2008` `the case meets annex B` t IS
+    IF      t `is on or after` `the day the landline arrangement of 2008 starts`
+        AND `the case meets annex B`
+    THEN PARTY `the inter-ministerial landline committee`
+         SHANT `decide a landline case`
+    ELSE PARTY `the inter-ministerial landline committee`
+         MAY   `decide a landline case`
+
+@ref akn:hc_1__para_2__subpara_2-2 akn:hc_1__para_2__subpara_2-3__cls_2-3-2 akn:hc_1__para_2__subpara_2-3__cls_2-3-3
+`the day the landline arrangement of 2008 starts` MEANS DATE_FROM_DMY 1 4 2009
+
+§§ `2.3 בעל תפקיד קיים`
+
+-- §2.3.1: the deputy director-general for administration, with the
+-- ministry's accountant, checks whether the existing holders entitled to a
+-- refund meet annex B; any who do not he refers to the inter-ministerial
+-- committee. The text sets no deadline (convention dates.no-deadline).
+@ref akn:hc_1__para_2__subpara_2-3 akn:hc_1__para_2__subpara_2-3__cls_2-3-1
+GIVEN `some existing holders fail annex B` IS A BOOLEAN
+GIVETH A DEONTIC `landline party` `landline action`
+DECIDE `the check of the existing landline holders` `some existing holders fail annex B` IS
+    IF `some existing holders fail annex B`
+    THEN PARTY `the deputy director-general for administration`
+         MUST  `check the existing holders against annex B, with the accountant`
+         HENCE PARTY `the deputy director-general for administration`
+               MUST  `refer the holders who fail annex B to the inter-ministerial committee`
+    ELSE PARTY `the deputy director-general for administration`
+         MUST  `check the existing holders against annex B, with the accountant`
+
+-- §2.3.2: from 1.4.2009 the ministries' direct contract with Bezeq ends,
+-- and each entitled holder pays his phone bill directly to any landline
+-- company he chooses (§2.6.1 and annex D repeat it, and annex D adds that
+-- the State has stopped paying Bezeq for his home phone).
+@ref akn:hc_1__para_2__subpara_2-3__cls_2-3-2 akn:att_4__hc_1/p7
+GIVEN t IS A DATE
+GIVETH A BOOLEAN
+DECIDE `the ministry pays Bezeq directly for the home landline on` t IF
+    NOT t `is on or after` `the day the landline arrangement of 2008 starts`
+
+@ref akn:hc_1__para_2__subpara_2-3__cls_2-3-2 akn:hc_1__para_2__subpara_2-6__cls_2-6-1 akn:att_4__hc_1/p6
+GIVEN t IS A DATE
+GIVETH A DEONTIC `landline party` `landline action`
+DECIDE `paying the landline bill directly` t IS
+    IF t `is on or after` `the day the landline arrangement of 2008 starts`
+    THEN PARTY `the landline role holder`
+         MUST  `arrange paying the phone bill directly with a provider of his choice`
+    ELSE FULFILLED
+
+-- §2.3.3, §2.4.3 and annex D: every sum approved is taxed in full ("ביטול
+-- זקיפת ההטבה", the notice §3.2 names, is not in the corpus), and the
+-- payment is reported under annex C.
+@ref akn:hc_1__para_2__subpara_2-3__cls_2-3-3 akn:hc_1__para_2__subpara_2-4__cls_2-4-3 akn:att_4__hc_1/p8
+`the landline refund is taxed in full` MEANS TRUE
+
+§§ `2.4 בעל תפקיד חדש`
+
+-- §2.4.1: from 1.12.2008 the deputy director-general for administration
+-- and the ministry's accountant are responsible for checking that new
+-- holders meet annex B.
+@ref akn:hc_1__para_2__subpara_2-4 akn:hc_1__para_2__subpara_2-4__cls_2-4-1
+GIVEN t IS A DATE
+GIVETH A DEONTIC `landline party` `landline action`
+DECIDE `the check of a new landline holder` t IS
+    IF t `is on or after` `the day the new landline holders start`
+    THEN (PARTY `the deputy director-general for administration`
+          MUST  `check the new holders against annex B`)
+         RAND
+         (PARTY `the ministry's accountant for the landline refund`
+          MUST  `check the new holders against annex B`)
+    ELSE FULFILLED
+
+@ref akn:hc_1__para_2__subpara_2-4__cls_2-4-1 akn:att_1__hc_1__para_1
+`the day the new landline holders start` MEANS DATE_FROM_DMY 1 12 2008
+
+-- §2.4.4: the deputy director-general tells the accountant of every
+-- cancelled entitlement and every change of level; no deadline.
+@ref akn:hc_1__para_2__subpara_2-4__cls_2-4-4
+GIVEN `an entitlement was cancelled or its level changed` IS A BOOLEAN
+GIVETH A DEONTIC `landline party` `landline action`
+DECIDE `telling the accountant of a landline change` `an entitlement was cancelled or its level changed` IS
+    IF `an entitlement was cancelled or its level changed`
+    THEN PARTY `the deputy director-general for administration`
+         MUST  `notify the accountant of a cancelled entitlement or a changed level`
+    ELSE FULFILLED
+
+§§ `2.5 הצהרה`
+
+-- §2.5.1–2.5.2 and §2.6.2: with the approval of his entitlement the holder
+-- signs annex D, and renews it once every two years; a holder who did not
+-- sign, or did not renew, is not entitled to the refund. Time in months
+-- from the approval.
+@ref akn:hc_1__para_2__subpara_2-5 akn:hc_1__para_2__subpara_2-5__cls_2-5-1 akn:hc_1__para_2__subpara_2-5__cls_2-5-2 akn:hc_1__para_2__subpara_2-6__cls_2-6-2
+GIVETH A DEONTIC `landline party` `landline action`
+DECIDE `the landline declaration duty` IS
+    PARTY `the landline role holder`
+    MUST  `sign the landline declaration`
+    WITHIN 0
+    HENCE (PARTY `the landline role holder`
+           MUST  `renew the landline declaration`
+           WITHIN 24
+           LEST  PARTY `the ministry's accountant for the landline refund`
+                 SHANT `pay the landline refund`)
+    LEST  PARTY `the ministry's accountant for the landline refund`
+          SHANT `pay the landline refund`
+
+-- The same as a condition of the refund on a day: he signed, and the day
+-- is not later than two years from his last signature. "אחת לשנתיים"
+-- gives the renewal until the day two years on, which is in the period
+-- (convention dates.end); a date is compared as year, month and day, so
+-- a signature on 29.2 has its anniversary on 28.2 or 1.3 as the calendar
+-- has it.
+@ref akn:hc_1__para_2__subpara_2-5__cls_2-5-1 akn:hc_1__para_2__subpara_2-5__cls_2-5-2
+GIVEN h IS A `landline role holder`
+      t IS A DATE
+GIVETH A BOOLEAN
+DECIDE `the landline declaration holds on` h t IF
+        h's `signed a landline declaration`
+    AND t `is on or after` (h's `last signed the landline declaration on`)
+    AND `the calendar number of` t AT MOST `the calendar number of` (h's `last signed the landline declaration on`) PLUS 20000
+
+GIVEN d IS A DATE
+GIVETH A NUMBER
+DECIDE `the calendar number of` d IS
+    DATE_YEAR d TIMES 10000 PLUS DATE_MONTH d TIMES 100 PLUS DATE_DAY d
+
+-- §2.6: the deputy director-general for administration in each ministry
+-- brings the instruction to the entitled holders' notice and makes clear
+-- what each must do (§2.6.1, §2.6.2, encoded above); no deadline.
+@ref akn:hc_1__para_2__subpara_2-6
+GIVETH A DEONTIC `landline party` `landline action`
+DECIDE `publishing the landline instruction in the ministry` IS
+    PARTY `the deputy director-general for administration`
+    MUST  `bring the landline instruction to the entitled holders' notice`
+
+-- akn:hc_1__para_3 akn:hc_1__para_3__subpara_3-1 akn:hc_1__para_3__subpara_3-2 The list of applicable documents: the notice that prices the levels (imported) and the notice that ends the imputed benefit (not in the corpus); no rule.
+
+-- akn:hc_1__para_4 akn:hc_1__para_4__subpara_4-1 akn:hc_1__para_4__subpara_4-2 akn:hc_1__para_4__subpara_4-3 akn:hc_1__para_4__subpara_4-4 akn:hc_1__para_4__subpara_4-5 The list of annexes A to E, each encoded where it is printed; no rule.
+
+§§ `נספח א הגדרות`
+
+-- akn:att_1__hc_1/p1 The annex's title; no rule.
+
+-- Annex A as written. ¶1: a holder appointed from 1.12.2008 is "new", and
+-- so is one who "from 1 December" served by acting or substitute
+-- appointment; ¶2: a holder appointed up to 30.11.2008 is "existing", and
+-- so is one who on 30 November served by acting or substitute appointment.
+@ref akn:att_1__hc_1__para_1
+GIVEN h IS A `landline role holder`
+GIVETH A BOOLEAN
+DECIDE `a new landline holder under annex A as written` h IF
+       h's `holds the landline post as acting or substitute`
+    OR (h's `took up the landline post on`) `is on or after` `the day the new landline holders start`
+
+@ref akn:att_1__hc_1__para_2
+GIVEN h IS A `landline role holder`
+GIVETH A BOOLEAN
+DECIDE `an existing landline holder under annex A as written` h IF
+    (h's `took up the landline post on`) `is on or before` (DATE_FROM_DMY 30 11 2008)
+
+-- F-2008-08-01_takam_H-13-4-7_telefon-kavi-ishi_v1-a: a holder acting in
+-- the post on 30.11.2008 who is still acting on 1.12.2008 is "existing"
+-- by ¶2 and "new" by ¶1, and the notice pays the two differently. The
+-- encoding reads ¶1's "מיום 1 בדצמבר" as acting service that began on that
+-- day or after (convention dates.period-by-start): the standing is the
+-- one of the day the holder took up the post.
+@ref akn:att_1__hc_1__para_1 akn:att_1__hc_1__para_2
+GIVEN h IS A `landline role holder`
+GIVETH A `landline role-holder standing`
+DECIDE `the landline standing of` h IS
+    IF (h's `took up the landline post on`) `is on or before` (DATE_FROM_DMY 30 11 2008)
+    THEN `an existing landline role holder`
+    ELSE `a new landline role holder`
+
+§§ `נספח ב הקריטריונים`
+
+-- akn:att_2__hc_1/p1 The annex's title; no rule.
+
+-- "עד 3 עוזרים בלשכה": a cap on a count of people, so the third aide is
+-- within it (convention thresholds.until, its exception for such caps).
+@ref akn:att_2__hc_1__hc_1__para_2__subpara_2-1 akn:att_2__hc_1__hc_2__para_1__subpara_1-1
+GIVEN h IS A `landline role holder`
+GIVETH A BOOLEAN
+DECIDE `within the bureau's three landline aides` h IF
+    h's `place among the bureau's aides` AT MOST 3
+
+-- Annex B for existing holders. Level א is approved at the discretion of
+-- the inter-ministerial committee (the committee's level, below); level ב
+-- for the aides of a minister or deputy minister (three in a bureau at
+-- most), senior professional aides to the minister and to directors-general
+-- (F-2008-08-01_takam_H-13-4-7_telefon-kavi-ishi_v1-b), spokespersons, a
+-- minister's bureau chief, security officers, district directors, a senior
+-- deputy to the legal adviser and a minister's adviser; level ג for a
+-- deputy director-general or a parallel post graded 42-44 or above, senior
+-- division heads and heads of auxiliary units not of director-general
+-- standing; level ד for an associate director-general graded 44-46.
+@ref akn:att_2__hc_1__hc_1 akn:att_2__hc_1__hc_1__para_2 akn:att_2__hc_1__hc_1__para_2__subpara_2-1 akn:att_2__hc_1__hc_1__para_2__subpara_2-2 akn:att_2__hc_1__hc_1__para_2__subpara_2-3 akn:att_2__hc_1__hc_1__para_2__subpara_2-4 akn:att_2__hc_1__hc_1__para_2__subpara_2-5 akn:att_2__hc_1__hc_1__para_2__subpara_2-6 akn:att_2__hc_1__hc_1__para_2__subpara_2-7 akn:att_2__hc_1__hc_1__para_2__subpara_2-8 akn:att_2__hc_1__hc_1__para_3 akn:att_2__hc_1__hc_1__para_3/p2 akn:att_2__hc_1__hc_1__para_4 akn:att_2__hc_1__hc_1__para_4/p2
+GIVEN h IS A `landline role holder`
+GIVETH A MAYBE `landline entitlement level`
+DECIDE `the level annex B of 2008 gives an existing holder` h IS
+    CONSIDER h's `the landline post`
+    WHEN `an aide to a minister or deputy minister` THEN
+        IF `within the bureau's three landline aides` h THEN JUST `landline level B` ELSE NOTHING
+    WHEN `a senior professional aide to a minister` THEN JUST `landline level B`
+    WHEN `a senior professional aide to a director-general` THEN JUST `landline level B`
+    WHEN `a ministry spokesperson` THEN JUST `landline level B`
+    WHEN `a minister's bureau chief` THEN JUST `landline level B`
+    WHEN `a ministry security officer` THEN JUST `landline level B`
+    WHEN `a ministry district director` THEN JUST `landline level B`
+    WHEN `a senior deputy to the legal adviser` THEN JUST `landline level B`
+    WHEN `an adviser to a minister` THEN JUST `landline level B`
+    WHEN `a deputy director-general or a parallel post graded 42-44 or above` THEN JUST `landline level C`
+    WHEN `a senior division head` THEN JUST `landline level C`
+    WHEN `a head of an auxiliary unit not of director-general standing` THEN JUST `landline level C`
+    WHEN `an associate director-general graded 44-46` THEN JUST `landline level D`
+    OTHERWISE NOTHING
+
+-- Annex B for new holders. Level א for the aides of a minister or deputy
+-- minister (three at most), senior professional aides to the minister, the
+-- deputy minister and directors-general, advisers to a minister and a
+-- deputy minister, spokespersons, the bureau chief of a minister or deputy
+-- minister, security officers and a deputy accountant; level ב for a deputy
+-- director-general or a parallel post graded 42-44 or above, senior
+-- division heads, heads of auxiliary units not of director-general
+-- standing, and an associate director-general graded 44-46 (the unnumbered
+-- line under 2.1).
+@ref akn:att_2__hc_1__hc_2 akn:att_2__hc_1__hc_2__para_1 akn:att_2__hc_1__hc_2__para_1__subpara_1-1 akn:att_2__hc_1__hc_2__para_1__subpara_1-2 akn:att_2__hc_1__hc_2__para_1__subpara_1-3 akn:att_2__hc_1__hc_2__para_1__subpara_1-4 akn:att_2__hc_1__hc_2__para_1__subpara_1-5 akn:att_2__hc_1__hc_2__para_1__subpara_1-6 akn:att_2__hc_1__hc_2__para_1__subpara_1-7 akn:att_2__hc_1__hc_2__para_2 akn:att_2__hc_1__hc_2__para_2__subpara_2-1 akn:att_2__hc_1__hc_2__para_2__subpara_2-1/p2
+GIVEN h IS A `landline role holder`
+GIVETH A MAYBE `landline entitlement level`
+DECIDE `the level annex B of 2008 gives a new holder` h IS
+    CONSIDER h's `the landline post`
+    WHEN `an aide to a minister or deputy minister` THEN
+        IF `within the bureau's three landline aides` h THEN JUST `landline level A` ELSE NOTHING
+    WHEN `a senior professional aide to a minister` THEN JUST `landline level A`
+    WHEN `a senior professional aide to a deputy minister` THEN JUST `landline level A`
+    WHEN `a senior professional aide to a director-general` THEN JUST `landline level A`
+    WHEN `an adviser to a minister` THEN JUST `landline level A`
+    WHEN `an adviser to a deputy minister` THEN JUST `landline level A`
+    WHEN `a ministry spokesperson` THEN JUST `landline level A`
+    WHEN `a minister's bureau chief` THEN JUST `landline level A`
+    WHEN `a deputy minister's bureau chief` THEN JUST `landline level A`
+    WHEN `a ministry security officer` THEN JUST `landline level A`
+    WHEN `a deputy accountant` THEN JUST `landline level A`
+    WHEN `a deputy director-general or a parallel post graded 42-44 or above` THEN JUST `landline level B`
+    WHEN `a senior division head` THEN JUST `landline level B`
+    WHEN `a head of an auxiliary unit not of director-general standing` THEN JUST `landline level B`
+    WHEN `an associate director-general graded 44-46` THEN JUST `landline level B`
+    OTHERWISE NOTHING
+
+-- The level a holder is paid at (§2.3.3, §2.4.2): the one annex B gives
+-- his post and standing, approved by the deputy director-general for
+-- administration and the accountant; where annex B gives none, the level
+-- the inter-ministerial committee approved, if it did (annex B's level א
+-- for existing holders; §2.2's exceptions).
+@ref akn:att_2__hc_1__hc_1__para_1 akn:att_2__hc_1__hc_1__para_1/p2 akn:hc_1__para_2__subpara_2-3__cls_2-3-3
+GIVEN h IS A `landline role holder`
+GIVETH A MAYBE `landline entitlement level`
+DECIDE `the landline level of 2008 for` h IS
+    orElse (CONSIDER `the landline standing of` h
+            WHEN `an existing landline role holder` THEN `the level annex B of 2008 gives an existing holder` h
+            WHEN `a new landline role holder` THEN `the level annex B of 2008 gives a new holder` h)
+           (h's `the landline level the committee approved`)
+
+§§ `הסכום לתשלום`
+
+-- §2.3.3–2.3.4 and §2.4.2, with annex D's two conditions: from 1.4.2009 an
+-- existing holder is paid a fixed monthly sum by the level approved for
+-- him, as notice HOD.13.4.7.1 prices it (until then the ministry paid
+-- Bezeq for his phone directly); a new holder, from 1.12.2008, by the
+-- level set for him. Nothing for a holder outside the instruction (§1.3),
+-- without a level, without a declaration in force (§2.5.2), or who cannot
+-- declare that a landline at home is there to be used for work and that he
+-- will use it.
+@ref akn:hc_1__para_2__subpara_2-3__cls_2-3-3 akn:hc_1__para_2__subpara_2-3__cls_2-3-4 akn:hc_1__para_2__subpara_2-4__cls_2-4-2 akn:att_4__hc_1/p2 akn:att_4__hc_1/p3 akn:att_4__hc_1/p4 akn:att_4__hc_1/p8
+@export The monthly personal-landline refund of a role holder in a month, under the first edition of instruction H.13.4.7 and its notice
+GIVEN h IS A `landline role holder`
+      t IS A DATE @desc a day of the month paid
+GIVETH A MAYBE NUMBER
+DECIDE `the monthly landline refund under instruction edition 1` h t IS
+    IF      `the landline instruction of 2008 applies to` h
+        AND t `is on or after` (`the first day of the landline sum for` (`the landline standing of` h))
+        AND `the landline declaration holds on` h t
+        AND h's `has a home landline usable for work`
+        AND h's `is ready to use the home landline for work`
+    THEN CONSIDER `the landline level of 2008 for` h
+         WHEN JUST l THEN `the monthly landline sum under notice edition 1` (`the landline standing of` h) l
+         WHEN NOTHING THEN NOTHING
+    ELSE NOTHING
+
+@ref akn:hc_1__para_2__subpara_2-3__cls_2-3-3 akn:hc_1__para_2__subpara_2-4__cls_2-4-1
+GIVEN s IS A `landline role-holder standing`
+GIVETH A DATE
+DECIDE `the first day of the landline sum for` s IS
+    CONSIDER s
+    WHEN `an existing landline role holder` THEN `the day the landline arrangement of 2008 starts`
+    WHEN `a new landline role holder` THEN `the day the new landline holders start`
+
+§§ `נספח ג ביצוע התשלום`
+
+-- akn:att_3__hc_1/p1 The annex's title; no rule.
+
+-- Annex C: the refund is paid through Malam Systems, under this
+-- instruction, as payroll code 4944, "personal landline expenses".
+@ref akn:att_3__hc_1__para_1 akn:att_3__hc_1__para_2 akn:att_3__hc_1__para_2/t1 akn:hc_1__para_2__subpara_2-3__cls_2-3-3
+`the payroll code of the landline refund` MEANS 4944
+
+§§ `נספח ד הצהרה`
+
+-- akn:att_4__hc_1/p1 The annex's title; no rule.
+
+-- akn:att_4__hc_1/p5 "כמו כן, ידוע לי כי:", the line that introduces what the holder acknowledges; the acknowledgements are encoded where they rest.
+
+-- akn:att_4__hc_1/t1 The lines for the holder's name, signature and date; no rule.
+
+-- Annex D's footnote: the salary unit's manager fills in the level and the
+-- fixed sum on the form.
+@ref akn:att_4__hc_1/p9
+GIVETH A DEONTIC `landline party` `landline action`
+DECIDE `completing the landline declaration` IS
+    PARTY `the salary unit's manager`
+    MUST  `fill in the level and the sum on the landline declaration`
+
+§§ `נספח ה טבלת שינויים`
+
+-- akn:att_5__hc_1/p1 akn:att_5__hc_1/p2 akn:att_5__hc_1/t1 The table of changes made in the edition, its header only: the first edition records no change; no rule.
+
+§§ `Worked examples`
+
+-- Dates and posts are placeholders. A holder with a landline at home
+-- that he is ready to use for work, who last signed annex D on 1.4.2009:
+-- his post, his place among the bureau's aides, the day he took up the
+-- post, whether he is acting, whether he is entitled without limit (§1.3),
+-- the level the committee approved, and whether he signed.
+GIVEN p IS A `landline post`
+      n IS A NUMBER
+      d IS A DATE
+      a IS A BOOLEAN
+      u IS A BOOLEAN
+      c IS A MAYBE `landline entitlement level`
+      s IS A BOOLEAN
+GIVETH A `landline role holder`
+DECIDE `a sample landline holder` p n d a u c s IS
+    `landline role holder` WITH
+        `the landline post`                               IS p
+        `place among the bureau's aides`                  IS n
+        `took up the landline post on`                    IS d
+        `holds the landline post as acting or substitute` IS a
+        `entitled to a landline refund without limit`     IS u
+        `the landline level the committee approved`       IS c
+        `signed a landline declaration`                   IS s
+        `last signed the landline declaration on`         IS DATE_FROM_DMY 1 4 2009
+        `has a home landline usable for work`             IS TRUE
+        `is ready to use the home landline for work`      IS TRUE
+
+-- A minister's second aide, appointed 1.1.2005:
+`an existing aide of 2005` MEANS
+    `a sample landline holder` `an aide to a minister or deputy minister` 2 (DATE_FROM_DMY 1 1 2005) FALSE FALSE NOTHING TRUE
+
+-- He is existing, at level ב: 139.2 a month from 1.4.2009, nothing before
+-- (the ministry still paid Bezeq), and nothing once two years pass from
+-- his signature without a renewal; the day two years on is still in.
+#ASSERT `the monthly landline refund under instruction edition 1` `an existing aide of 2005` (DATE_FROM_DMY 1 5 2010) EQUALS JUST 139.2
+#ASSERT isNothing (`the monthly landline refund under instruction edition 1` `an existing aide of 2005` (DATE_FROM_DMY 1 3 2009))
+#ASSERT `the monthly landline refund under instruction edition 1` `an existing aide of 2005` (DATE_FROM_DMY 1 4 2011) EQUALS JUST 139.2
+#ASSERT isNothing (`the monthly landline refund under instruction edition 1` `an existing aide of 2005` (DATE_FROM_DMY 2 4 2011))
+#ASSERT `the ministry pays Bezeq directly for the home landline on` (DATE_FROM_DMY 31 3 2009)
+#ASSERT NOT `the ministry pays Bezeq directly for the home landline on` (DATE_FROM_DMY 1 4 2009)
+
+-- The same post taken up on 1.1.2009 is new, at level א: 96. As the
+-- bureau's fourth aide he has no level from annex B, and no refund unless
+-- the committee approved one.
+`a new aide of 2009` MEANS
+    `a sample landline holder` `an aide to a minister or deputy minister` 2 (DATE_FROM_DMY 1 1 2009) FALSE FALSE NOTHING TRUE
+`a fourth new aide of 2009` MEANS
+    `a sample landline holder` `an aide to a minister or deputy minister` 4 (DATE_FROM_DMY 1 1 2009) FALSE FALSE NOTHING TRUE
+`a fourth new aide the committee approved at level A` MEANS
+    `a sample landline holder` `an aide to a minister or deputy minister` 4 (DATE_FROM_DMY 1 1 2009) FALSE FALSE (JUST `landline level A`) TRUE
+#ASSERT `the monthly landline refund under instruction edition 1` `a new aide of 2009` (DATE_FROM_DMY 1 5 2010) EQUALS JUST 96
+#ASSERT isNothing (`the monthly landline refund under instruction edition 1` `a fourth new aide of 2009` (DATE_FROM_DMY 1 5 2010))
+#ASSERT `the monthly landline refund under instruction edition 1` `a fourth new aide the committee approved at level A` (DATE_FROM_DMY 1 5 2010) EQUALS JUST 96
+
+-- An existing deputy director-general is paid at level ג, an associate
+-- director-general at level ד; a holder entitled without limit (§1.3), or
+-- who never signed, is paid nothing under this instruction.
+`an existing deputy director-general` MEANS
+    `a sample landline holder` `a deputy director-general or a parallel post graded 42-44 or above` 0 (DATE_FROM_DMY 1 1 2005) FALSE FALSE NOTHING TRUE
+`an existing associate director-general` MEANS
+    `a sample landline holder` `an associate director-general graded 44-46` 0 (DATE_FROM_DMY 1 1 2005) FALSE FALSE NOTHING TRUE
+#ASSERT `the monthly landline refund under instruction edition 1` `an existing deputy director-general` (DATE_FROM_DMY 1 5 2010) EQUALS JUST 196.8
+#ASSERT `the monthly landline refund under instruction edition 1` `an existing associate director-general` (DATE_FROM_DMY 1 5 2010) EQUALS JUST 235.5
+#ASSERT isNothing (`the monthly landline refund under instruction edition 1` (`a sample landline holder` `a deputy director-general or a parallel post graded 42-44 or above` 0 (DATE_FROM_DMY 1 1 2005) FALSE TRUE NOTHING TRUE) (DATE_FROM_DMY 1 5 2010))
+#ASSERT isNothing (`the monthly landline refund under instruction edition 1` (`a sample landline holder` `a deputy director-general or a parallel post graded 42-44 or above` 0 (DATE_FROM_DMY 1 1 2005) FALSE FALSE NOTHING FALSE) (DATE_FROM_DMY 1 5 2010))
+
+-- F-2008-08-01_takam_H-13-4-7_telefon-kavi-ishi_v1-a: a minister's aide
+-- acting in the post since 1.10.2008, still acting on 1.12.2008, is both
+-- existing (¶2) and new (¶1) as annex A is written, and the two standings
+-- are paid 139.2 and 96. As read, he is existing.
+`an aide acting since 1.10.2008` MEANS
+    `a sample landline holder` `an aide to a minister or deputy minister` 2 (DATE_FROM_DMY 1 10 2008) TRUE FALSE NOTHING TRUE
+`an acting holder of 30.11.2008 is both existing and new as annex A is written` MEANS
+        `a new landline holder under annex A as written` `an aide acting since 1.10.2008`
+    AND `an existing landline holder under annex A as written` `an aide acting since 1.10.2008`
+    AND NOT (`the monthly landline sum under notice edition 1` `an existing landline role holder` `landline level B`
+             EQUALS `the monthly landline sum under notice edition 1` `a new landline role holder` `landline level A`)
+#ASSERT `an acting holder of 30.11.2008 is both existing and new as annex A is written`
+#ASSERT `the landline standing of` `an aide acting since 1.10.2008` EQUALS `an existing landline role holder`
+#ASSERT `the monthly landline refund under instruction edition 1` `an aide acting since 1.10.2008` (DATE_FROM_DMY 1 5 2010) EQUALS JUST 139.2
+
+-- F-2008-08-01_takam_H-13-4-7_telefon-kavi-ishi_v1-b: read as printed,
+-- "עוזרים מקצועיים בכירים לשר ומנהלים כללים" puts directors-general
+-- themselves at level ב, paid 139.2, below their own deputies (level ג,
+-- 196.8) and associates (level ד, 235.5); the reading that keeps annex B
+-- consistent is the aides of a minister and of a director-general.
+`a director-general as printed would be paid below his deputy` MEANS
+    `the monthly landline sum for an existing holder under notice edition 1` `landline level B`
+        LESS THAN `the monthly landline sum for an existing holder under notice edition 1` `landline level C`
+#ASSERT `a director-general as printed would be paid below his deputy`
+
+-- The regulative rules on a run of events: the holder signs on approval
+-- and renews at month 23; the ministry's accountant need not withhold.
+#TRACE `the landline declaration duty` AT 0 WITH
+    PARTY `the landline role holder` DOES `sign the landline declaration` AT 0
+    PARTY `the landline role holder` DOES `renew the landline declaration` AT 23
+
+-- §2.3.1 where some existing holders fail annex B: the check, then the
+-- referral to the committee.
+#TRACE `the check of the existing landline holders` TRUE AT 0 WITH
+    PARTY `the deputy director-general for administration` DOES `check the existing holders against annex B, with the accountant` AT 1
+    PARTY `the deputy director-general for administration` DOES `refer the holders who fail annex B to the inter-ministerial committee` AT 2
