@@ -342,7 +342,7 @@ that updated it, the steps it prints.
   cap on the position across employers, a one-time grant left out of the
   hour value, a break in service, a shorter week for a mother or by age —
   and their files say they were not weighed, and why, as
-  `data/statute-set-aside.toml` does for the seven that have no L4.
+  `data/statute-set-aside.toml` does for those that have no L4.
   One place gives less, a card on the contradictions page where the law
   governs: the takanon pays a day out with pupils by its end hour (§1.10),
   5 units for a day back by midnight, less than §16's premium on the hours
@@ -365,7 +365,7 @@ that updated it, the steps it prints.
   of 17.6.2021, ordinary and special education, and the ulpan teachers'
   evening supplement of 6.8.2023. Most documents the search for a sex-linked
   word finds use it for something else — ‘בעל’ for the holder of a degree,
-  seniority or a post, ‘אב’ for the month of Av, ‘מזכר’ for a memorandum —
+  seniority, a post or a service car, ‘אב’ for the month of Av, ‘מזכר’ for a memorandum —
   and their files say they were not weighed, and why, as
   `data/statute-set-aside.toml` does for those that have no L4. One place
   gives less, a card on the contradictions page where

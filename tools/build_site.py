@@ -90,7 +90,7 @@ TITLE = "אופק חדש ב-L4"
 # what is encoded, by the corpus document it encodes; the l4/ directory
 # mirrors the corpus's akn/ path without the extension
 # the collections in work: every document of them, by the corpus's own list
-WORK_COLLECTIONS = ("takanon", "agreements", "circulars", "circulars-sachar", "circulars-tnai-sherut", "tables")
+WORK_COLLECTIONS = ("takanon", "agreements", "circulars", "circulars-sachar", "circulars-tnai-sherut", "letters", "takam", "tables")
 
 
 def _documents() -> list[str]:

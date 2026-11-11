@@ -28,7 +28,7 @@ PAYING = [(c, s) for c in DATA["items"] for s in c["sides"]
           if s["type"] in contradictions.PAYING]
 # documents the corpus published after the vendored snapshot (corpus/SOURCE.toml);
 # a re-sync that brings them in empties this set, and the test says so
-NOT_VENDORED = {"letters/2016-07-10_mof-director-general_nesia-reform-letter.xml"}
+NOT_VENDORED: set[str] = set()
 
 
 def row_text(doc: str, key: str) -> str:
