@@ -194,8 +194,12 @@ class Findings(unittest.TestCase):
                     self.assertIn(d, ids, "depends on a finding that does not exist")
                 # a key is a row of the finding's OWN document: every circular
                 # has an art_1, so a key alone proves nothing
+                # assertTrue, not assertIn: assertIn prints the container, and
+                # this one (every row of every section, each with its view)
+                # ran the machine out of memory instead of naming the key.
                 for k in f["keys"]:
-                    self.assertIn((site_mod.finding_doc(f), k), self.keys)
+                    self.assertTrue((site_mod.finding_doc(f), k) in self.keys,
+                                    f"{k} is not a row of {site_mod.finding_doc(f)}")
                 self.assertTrue((ROOT / f["l4"]).exists(), f["l4"])
 
     def test_findings_are_written_in_hebrew(self):
