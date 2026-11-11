@@ -1,0 +1,115 @@
+-- What the Hours of Work and Rest Law asks for a day spent escorting pupils
+-- (MMS-678): the measure every instrument that pays escorting in activity
+-- units or substitution hours is held against, written once, from the
+-- law's own sections (l4/laws/hours-of-work-law.l4). It holds no
+-- assertion; its tests, l4/tests/escort-day-tests.l4, and each
+-- instrument's tests file hold what was checked.
+--
+-- The reading it applies is convention instruments.hours-law-teaching, a
+-- pick for the lawyer: the law reaches a teacher escorting pupils, and the
+-- hours he is required with them outside the institution are working hours
+-- (§1). Whether the hours of a night away, when the pupils sleep and he
+-- answers for them, are working hours too is the question that convention
+-- puts to the lawyer, so a night away is measured both ways. An hour of the
+-- regular wage (§18) is measured against the month by convention
+-- instruments.regular-hour-wage: the hours of the full position the
+-- instrument sets, and, as the bound most generous to the employer, the
+-- 195 hours of a month of §3's longest week.
+
+IMPORT prelude
+IMPORT hours_of_work_law
+
+§ `יום ליווי תלמידים מול חוק שעות עבודה ומנוחה`
+
+§§ `יום ליווי`
+
+-- A day at the work's disposal from one hour to another, less §20's least
+-- break, is §1's working hours; what passes §2's day — seven hours where two
+-- or more of them fall between 22:00 and 06:00 — is overtime.
+GIVEN `from hour` IS A NUMBER, `to hour` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the working hours of an escort day` `from hour` `to hour` IS
+    `working hours section 1 of the Hours of Work and Rest Law counts`
+        (`to hour` MINUS `from hour`)
+        (`the least break section 20 asks, in hours` (`to hour` MINUS `from hour`) FALSE)
+
+GIVEN `from hour` IS A NUMBER, `to hour` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the overtime of an escort day` `from hour` `to hour` IS
+    max 0 (`the working hours of an escort day` `from hour` `to hour`
+               MINUS `the longest working day section 2 allows`
+                         (`night work as section 1 of the Hours of Work and Rest Law means` (max 0 (`to hour` MINUS 22))))
+
+-- §16 on that overtime, in hours of the regular wage.
+GIVEN `from hour` IS A NUMBER, `to hour` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `regular hours section 16 asks for an escort day` `from hour` `to hour` IS
+    `regular hours' pay section 16 asks for a day's overtime` (`the overtime of an escort day` `from hour` `to hour`)
+
+-- On a day the salary does not pay for — his free day — the law's regular
+-- hours are owed too: the working hours up to §2's day at the regular wage,
+-- and §16 on the rest.
+GIVEN `from hour` IS A NUMBER, `to hour` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `regular hours the law asks for an escort on a free day` `from hour` `to hour` IS
+    (`the working hours of an escort day` `from hour` `to hour` MINUS `the overtime of an escort day` `from hour` `to hour`)
+    PLUS `regular hours section 16 asks for an escort day` `from hour` `to hour`
+
+§§ `לינה`
+
+-- A night away: the first day from one hour to another, the night until
+-- the second day starts, and the second day. Without the night, each day
+-- is its own day. With it, the night's hours come after the first day's
+-- overtime, past its two hours at 125%, so §16 pays each at 150%.
+GIVEN `first day from` IS A NUMBER, `first day to` IS A NUMBER, `second day from` IS A NUMBER, `second day to` IS A NUMBER
+      `the night is working time` IS A BOOLEAN
+GIVETH A NUMBER
+DECIDE `regular hours section 16 asks for a night away` `first day from` `first day to` `second day from` `second day to` `the night is working time` IS
+    `regular hours section 16 asks for an escort day` `first day from` `first day to`
+    PLUS `regular hours section 16 asks for an escort day` `second day from` `second day to`
+    PLUS (IF `the night is working time`
+          THEN ((24 MINUS `first day to`) PLUS `second day from`) TIMES 1.5
+          ELSE 0)
+
+-- The worked night away: out at 8:00, the pupils in bed at 23:00, up at
+-- 7:00, home at 17:00.
+`the first day of the night away starts at` MEANS 8
+`the first day of the night away ends at` MEANS 23
+`the second day of the night away starts at` MEANS 7
+`the second day of the night away ends at` MEANS 17
+
+GIVEN `the night is working time` IS A BOOLEAN
+GIVETH A NUMBER
+DECIDE `regular hours section 16 asks for the worked night away` `the night is working time` IS
+    `regular hours section 16 asks for a night away`
+        `the first day of the night away starts at` `the first day of the night away ends at`
+        `the second day of the night away starts at` `the second day of the night away ends at`
+        `the night is working time`
+
+§§ `השכר הרגיל לשעה`
+
+-- Convention instruments.regular-hour-wage: the bound most generous to
+-- the employer is a month of §3's longest week, 45 hours over 52 weeks.
+`the most hours a month of section 3's longest week holds` MEANS
+    `the longest working week section 3 allows` TIMES 52 DIVIDED BY 12
+
+-- What activity units pay, in hours of the regular wage, when an hour is
+-- the month over the given hours and a unit the given share of the month.
+GIVEN units IS A NUMBER, `a unit's share of the month` IS A NUMBER, `hours of the month` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `regular hours activity units pay` units `a unit's share of the month` `hours of the month` IS
+    units TIMES `a unit's share of the month` TIMES `hours of the month`
+
+-- What substitution hours pay, in hours of the regular wage, when each is
+-- paid at a share of an hour value that is the month over its own hours.
+GIVEN `substitution hours` IS A NUMBER, `the substitution rate` IS A NUMBER, `hours the hour value divides the month by` IS A NUMBER, `hours of the month` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `regular hours substitution hours pay` `substitution hours` `the substitution rate` `hours the hour value divides the month by` `hours of the month` IS
+    `substitution hours` TIMES `the substitution rate` TIMES `hours of the month` DIVIDED BY `hours the hour value divides the month by`
+
+-- The law governs what pays less (§35; convention instruments.statute-floor).
+GIVEN `what the law asks` IS A NUMBER, `what the instrument pays` IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `the instrument pays less than the Hours of Work and Rest Law asks` `what the law asks` `what the instrument pays` IF
+        `what the instrument pays` LESS THAN `what the law asks`
+    AND `what stands under section 35 of the Hours of Work and Rest Law` `what the law asks` `what the instrument pays` EQUALS `what the law asks`

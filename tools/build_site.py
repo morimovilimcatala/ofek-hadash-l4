@@ -1137,8 +1137,16 @@ def row_findings(v, r) -> list[dict]:
 
 def finding_doc(f: dict) -> str:
     """The corpus document a finding is about, from the L4 file it names:
-    l4/<doc>/<section>.l4 for a sectioned document, l4/<doc>.l4 for a whole one."""
-    rel_ = Path(f["l4"]).relative_to("l4")
+    l4/<doc>/<section>.l4 for a sectioned document, l4/<doc>.l4 for a whole one.
+    Evidence that cannot sit in the module itself — it imports an instrument
+    the module's import chain must not reach (F-hh-2009-c, MMS-686) — sits in
+    the module's tests file, l4/tests/<module>-tests.l4, and the finding is
+    the module's document's."""
+    l4 = Path(f["l4"])
+    if l4.parent == Path("l4/tests") and l4.name.endswith("-tests.l4"):
+        module = ROOT / "l4" / "modules" / l4.name.replace("-tests.l4", ".l4")
+        l4 = module.resolve().relative_to(ROOT)
+    rel_ = l4.relative_to("l4")
     parent = rel_.parent.as_posix() + ".xml"
     # the department's home page is "…gov.il.xml" and its other pages sit in
     # "…gov.il/": a parent that exists is the document only if it is sectioned
