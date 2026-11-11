@@ -21,6 +21,12 @@ and it is read where the corpus puts it, between the annexes.
 A sic mark is the corpus's: its <noteRef class="sic"> and the <note> it
 points to are carried through as given, never re-read here (README, "The
 corpus decides the text").
+
+A quotation's marks are the corpus's too, but they are not in its text: the
+corpus keeps them in the `startQuote`/`endQuote` attributes of <quotedText>
+and <quotedStructure>, and its reader prints them back around the quoted
+words. Every row reads an element's words through `printed`, which puts them
+back the same way (MMS-661).
 """
 from __future__ import annotations
 
@@ -101,11 +107,71 @@ def tag(e) -> str:
     return e.tag.replace(AKN, "")
 
 
+def printed(e, aside=lambda child: False):
+    """The words an element prints, in order, as the corpus reader prints
+    them: a quotation's `startQuote` before its words and its `endQuote`
+    after them (MMS-661). The corpus keeps a quotation's marks in those
+    attributes and not in its text, so `itertext()` alone reads every
+    amending sentence without them ("במקום המלים מ-4.25% ... יבוא מ-4% ...").
+
+    A quotation may open and not close (the page prints no closing mark),
+    and its marks are where the corpus reader puts them: around the
+    element's own words, not inside them. A <quotedStructure> is a block
+    there — the reader prints its marks before its first clause and after
+    its last, each on the clause's line — so on one line a block's marks
+    stand against its first and last words, and the line breaks around the
+    block are one space each, outside its marks. A <quotedText> is inline,
+    and its marks are put back exactly where the reader prints them, a space
+    inside included.
+
+    Yields strings, and yields as itself, unread, a child `aside` picks out
+    (a sic noteRef, for `runs_of`); that child's tail is read as usual."""
+    def inner():
+        if e.text:
+            yield e.text
+        for ch in e:
+            if aside(ch):
+                yield ch
+            else:
+                yield from printed(ch, aside)
+            if ch.tail:
+                yield ch.tail
+    opener, closer = e.get("startQuote"), e.get("endQuote")
+    if not (opener or closer):
+        yield from inner()
+        return
+    pieces = list(inner())
+    block = tag(e) == "quotedStructure"
+    if block:
+        texts = [i for i, x in enumerate(pieces) if isinstance(x, str)]
+        for i in texts:                      # the block's first words
+            pieces[i] = pieces[i].lstrip()
+            if pieces[i]:
+                break
+        for i in reversed(texts):            # and its last
+            pieces[i] = pieces[i].rstrip()
+            if pieces[i]:
+                break
+        yield " "
+    if opener:
+        yield opener
+    yield from (x for x in pieces if not isinstance(x, str) or x)
+    if closer:
+        yield closer
+    if block:
+        yield " "
+
+
+def words(e) -> str:
+    """An element's printed words in one line (`printed`, squashed)."""
+    return squash("".join(printed(e)))
+
+
 def label_of(e) -> tuple[str, str]:
     num = e.find(AKN + "num")
     head = e.find(AKN + "heading")
-    return (squash("".join(num.itertext())) if num is not None else "",
-            squash("".join(head.itertext())) if head is not None else "")
+    return (words(num) if num is not None else "",
+            words(head) if head is not None else "")
 
 
 @lru_cache(maxsize=None)
@@ -114,7 +180,7 @@ def load(relative: str):
 
 
 def sic_notes(root) -> dict[str, str]:
-    return {n.get("eId"): squash("".join(n.itertext()))
+    return {n.get("eId"): words(n)
             for n in root.iter(AKN + "note") if n.get("class") == "sic"}
 
 
@@ -122,26 +188,20 @@ def runs_of(p, notes: dict[str, str]) -> list[Run]:
     """The text of a <p>, split where the corpus marks a sic.
 
     The corpus puts <noteRef class="sic" href="#note"> right after the words
-    the page prints wrongly; the run before it is what the mark is about."""
+    the page prints wrongly; the run before it is what the mark is about.
+    The words are `printed`'s, a quotation's marks with them."""
     out: list[Run] = []
-
-    def walk(e):
-        if e.text:
-            out.append(Run(e.text))
-        for ch in e:
-            if tag(ch) == "noteRef" and ch.get("class") == "sic":
-                note = notes.get((ch.get("href") or "").lstrip("#"), "כך במקור")
-                if out:
-                    out[-1].sic = note
-                else:
-                    out.append(Run("", note))
-            elif tag(ch) == "note":
-                pass
+    aside = (lambda ch: tag(ch) == "note"
+             or (tag(ch) == "noteRef" and ch.get("class") == "sic"))
+    for piece in printed(p, aside):
+        if isinstance(piece, str):
+            out.append(Run(piece))
+        elif tag(piece) == "noteRef":
+            note = notes.get((piece.get("href") or "").lstrip("#"), "כך במקור")
+            if out:
+                out[-1].sic = note
             else:
-                walk(ch)
-            if ch.tail:
-                out.append(Run(ch.tail))
-    walk(p)
+                out.append(Run("", note))
     # collapse whitespace across runs without losing the sic boundaries
     merged: list[Run] = []
     for r in out:
@@ -169,7 +229,7 @@ def section_rows(sec, notes, holder0: str | None = None) -> list[Row]:
                 tables[holder] = tables.get(holder, 0) + 1
                 trs = [[c for c in tr if tag(c) in ("td", "th")]
                        for tr in ch.iter(AKN + "tr")]
-                cells = [[squash("".join(c.itertext())) for c in tr] for tr in trs]
+                cells = [[words(c) for c in tr] for tr in trs]
                 spans = [[(int(c.get("rowspan") or 1), int(c.get("colspan") or 1))
                           for c in tr] for tr in trs]
                 rows.append(Row(f"{holder}/t{tables[holder]}", depth, "text",
@@ -372,5 +432,5 @@ def title(relative: str) -> str:
     for t in ("docTitle", "longTitle", "shortTitle"):
         e = root.find(f".//{AKN}{t}")
         if e is not None:
-            return squash("".join(e.itertext()))
+            return words(e)
     return relative
