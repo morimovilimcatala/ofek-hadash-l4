@@ -1,0 +1,159 @@
+-- הוראת התכ"ם 13.4.2 "תשלום קצובת נסיעה" — the vocabulary its editions share.
+-- The Accountant-General's instruction on the travel allowance of government
+-- employees, editions 4 (17.5.2017) to 11 (2.5.2025). Only what more than one
+-- edition reads lives here; each edition's rules, figures and duties are in
+-- its own file, beside the clauses that state them.
+
+IMPORT prelude
+IMPORT parties
+IMPORT vocabulary
+
+§ `הוראת תכ"ם 13.4.2 תשלום קצובת נסיעה — אוצר מילים משותף`
+
+-- Every edition sends the tariffs to the Accountant-General's notice "לוח
+-- תעריפי נסיעה בתחבורה ציבורית" (HOD 13.4.2.1). The corpus holds the notice,
+-- and the L4 does not encode it yet, so every tariff an edition reads is an
+-- input, `travel fares`, and never a number made up here.
+`why the tariffs are not in the instruction` MEANS
+    `not yet encoded` "הודעת החשב הכללי \"לוח תעריפי נסיעה בתחבורה ציבורית\" (הודעה 13.4.2.1)"
+
+@desc The tariffs of the employee's route that an edition of H.13.4.2 reads, each from the notice "לוח תעריפי נסיעה בתחבורה ציבורית" (HOD 13.4.2.1), which is not encoded: inputs.
+DECLARE `travel fares` HAS
+    `monthly free pass` IS A NUMBER @desc the "חופשי חודשי" ticket for the route between home and work, by the name the edition gives it ("אוטובוס + רכבת", "משולב מלא")
+    `daily free pass`   IS A NUMBER @desc the "חופשי יומי" ticket for the same route, valid on the day it is bought
+    `single fare`       IS A NUMBER @desc one single trip, one way: by bus or train between the workplace and the permanent home (2.1.3 from edition 7), or on the route's lines (editions 4 and 5)
+    `intercity single fare` IS A NUMBER @desc one intercity single trip, one way (editions 4 and 5)
+
+@desc Who the employee is, as far as H.13.4.2 sets a rule for the kind.
+DECLARE `travel employee kind` IS ONE OF
+    `a monthly employee`
+    `an employee paid by the hour`
+    `a volunteer`
+    `a student employee`
+    `an employee with a hard-roads post`
+
+@desc An employee's month, as far as an edition of H.13.4.2 asks about it. Each edition reads the fields its own clauses name.
+DECLARE `travel month` HAS
+    `kind of employee`                                  IS A `travel employee kind`
+    `needs transport from home to work`                 IS A BOOLEAN @desc needs transport to get from the residence to the workplace, by any means
+    `a full month of work`                              IS A BOOLEAN @desc FALSE for a month the employment starts or ends in, or one with unpaid leave
+    `days actually worked`                              IS A NUMBER  @desc the days the employee actually came to work in the month
+    `share of trips by a State-funded arrangement`      IS A NUMBER  @desc the share of the month's trips made in a government vehicle or another arrangement the State Treasury funds (shuttles included): 0 none, 1 all
+    `has an assigned car`                               IS A BOOLEAN @desc רכב צמוד
+    `has an assigned driver`                            IS A BOOLEAN @desc נהג צמוד
+    `has a service or personal car`                     IS A BOOLEAN @desc רכב שירות או אישי, the words of the Sabbath rule
+    `absent a calendar month or more`                   IS A BOOLEAN @desc absent from work for an unbroken period of a calendar month or more
+    `blind`                                             IS A BOOLEAN @desc holds a blind person's certificate, a copy filed with the office's human resources and salary units
+    `in a full position`                                IS A BOOLEAN
+    `lives where there is no public transport`          IS A BOOLEAN @desc lives in a locality with no public transport and uses another means to reach the main road on the way to work
+    `Sabbath and holiday days reached`                  IS A NUMBER  @desc days of Sabbath or a holiday with no public transport on which the employee started or ended work after it came in, and actually came to work
+    `the office runs a shuttle`                         IS A BOOLEAN @desc the office has a shuttle arrangement (הסדר הסעות)
+    `lives in a national-priority locality`             IS A BOOLEAN @desc in a national-priority area listed in the takshir, chapter 28.3 (editions 4 and 5)
+    `travels on lines with a monthly pass`              IS A BOOLEAN @desc travels on lines where "חופשי חודשי" or "חופשי חודשי מרחבי" applies (edition 4)
+    `travels intercity individually`                    IS A BOOLEAN @desc travels to work on individual intercity trips (editions 4 and 5)
+    `relocated 70 km or more as an Arab, Druze or Circassian employee` IS A BOOLEAN @desc a member of the Arab, Druze or Circassian population who moved residence 70 km or more from the permanent home
+    `weeks with a trip to the permanent home`           IS A NUMBER  @desc the weeks of the month in which the employee reported a trip from work to the permanent home
+    `days worked a week`                                IS A NUMBER  @desc 5 or 6, the days the employee is employed each week (editions 7 to 9)
+    `taken into the State service by 31.7.2022`         IS A BOOLEAN @desc taken into the State service on or before 31 July 2022 (the equalisation supplement)
+
+-- The month most rules start from: a monthly employee who needs transport,
+-- works the whole month, and none of whose circumstances apply. The
+-- examples in each edition change one field at a time from it.
+GIVEN k IS A `travel employee kind`, d IS A NUMBER
+GIVETH A `travel month`
+DECIDE `an ordinary travel month` k d IS
+    `travel month` WITH
+        `kind of employee`                                  IS k
+        `needs transport from home to work`                 IS TRUE
+        `a full month of work`                              IS TRUE
+        `days actually worked`                              IS d
+        `share of trips by a State-funded arrangement`      IS 0
+        `has an assigned car`                               IS FALSE
+        `has an assigned driver`                            IS FALSE
+        `has a service or personal car`                     IS FALSE
+        `absent a calendar month or more`                   IS FALSE
+        `blind`                                             IS FALSE
+        `in a full position`                                IS TRUE
+        `lives where there is no public transport`          IS FALSE
+        `Sabbath and holiday days reached`                  IS 0
+        `the office runs a shuttle`                         IS FALSE
+        `lives in a national-priority locality`             IS FALSE
+        `travels on lines with a monthly pass`              IS TRUE
+        `travels intercity individually`                    IS FALSE
+        `relocated 70 km or more as an Arab, Druze or Circassian employee` IS FALSE
+        `weeks with a trip to the permanent home`           IS 0
+        `days worked a week`                                IS 5
+        `taken into the State service by 31.7.2022`         IS FALSE
+
+-- The same month with the circumstances an example asks about: a partial
+-- month, blindness, Sabbath days, a locality without public transport,
+-- intercity travel, a relocated employee's weekly trips, a share of trips
+-- by a State-funded arrangement.
+GIVEN m IS A `travel month`, `full month` IS A BOOLEAN, `blind employee` IS A BOOLEAN, `Sabbath days` IS A NUMBER, `no public transport` IS A BOOLEAN, `intercity` IS A BOOLEAN, `weeks home` IS A NUMBER, `State share` IS A NUMBER
+GIVETH A `travel month`
+DECIDE `the travel month changed` m `full month` `blind employee` `Sabbath days` `no public transport` `intercity` `weeks home` `State share` IS
+    `travel month` WITH
+        `kind of employee`                                  IS m's `kind of employee`
+        `needs transport from home to work`                 IS m's `needs transport from home to work`
+        `a full month of work`                              IS `full month`
+        `days actually worked`                              IS m's `days actually worked`
+        `share of trips by a State-funded arrangement`      IS `State share`
+        `has an assigned car`                               IS m's `has an assigned car`
+        `has an assigned driver`                            IS m's `has an assigned driver`
+        `has a service or personal car`                     IS m's `has a service or personal car`
+        `absent a calendar month or more`                   IS m's `absent a calendar month or more`
+        `blind`                                             IS `blind employee`
+        `in a full position`                                IS m's `in a full position`
+        `lives where there is no public transport`          IS `no public transport`
+        `Sabbath and holiday days reached`                  IS `Sabbath days`
+        `the office runs a shuttle`                         IS m's `the office runs a shuttle`
+        `lives in a national-priority locality`             IS m's `lives in a national-priority locality`
+        `travels on lines with a monthly pass`              IS m's `travels on lines with a monthly pass`
+        `travels intercity individually`                    IS `intercity`
+        `relocated 70 km or more as an Arab, Druze or Circassian employee` IS (`weeks home` GREATER THAN 0)
+        `weeks with a trip to the permanent home`           IS `weeks home`
+        `days worked a week`                                IS m's `days worked a week`
+        `taken into the State service by 31.7.2022`         IS m's `taken into the State service by 31.7.2022`
+
+-- The daily ticket times the days actually worked: the measure every
+-- edition from 5 sets beside the monthly ticket.
+GIVEN f IS A `travel fares`, m IS A `travel month`
+GIVETH A NUMBER
+DECIDE `the daily passes for the days worked` f m IS
+    f's `daily free pass` TIMES m's `days actually worked`
+
+-- "התעריף הנמוך מבין": the lower of the monthly ticket and the daily
+-- tickets for the days worked.
+GIVEN f IS A `travel fares`, m IS A `travel month`
+GIVETH A NUMBER
+DECIDE `the lower of the monthly pass and the daily passes` f m IS
+    min (f's `monthly free pass`) (`the daily passes for the days worked` f m)
+
+-- "באופן יחסי לנסיעות שביצע": an amount kept for the share of trips the
+-- employee made other than by a State-funded arrangement.
+GIVEN amount IS A NUMBER, m IS A `travel month`
+GIVETH A NUMBER
+DECIDE `in proportion to the trips not State-funded` amount m IS
+    amount TIMES (1 MINUS min 1 (max 0 (m's `share of trips by a State-funded arrangement`)))
+
+-- The part of an amount above a threshold, never below nothing: the part a
+-- tax gross-up is made on.
+GIVEN amount IS A NUMBER, threshold IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the part above` amount threshold IS
+    max 0 (amount MINUS threshold)
+
+-- What the editions' duties are about.
+DECLARE `travel-allowance duty` IS ONE OF
+    `report the new address or workplace on the travel-allowance form`
+    `update the address in the personal portal and attach the travel-allowance form`
+    `pass the report to the salary unit`
+    `refresh the travel-allowance details`
+    `pay the updated travel allowance`
+    `block the travel allowance in the payroll`
+    `collect the payment differences retroactively`
+    `pay the travel allowance through the payroll`
+    `pay the travel allowance by the instruction's rules outside Malam`
+    `withhold income tax from the travel allowance`
+    `gross up the tax on the travel allowance` HAS `the part grossed up` IS A NUMBER
+    `pay a lump-sum intercity allowance`

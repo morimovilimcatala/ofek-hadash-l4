@@ -1,0 +1,338 @@
+-- הוראת תכ"ם 13.4.2 "תשלום קצובת נסיעה", מהדורה 5 (12.3.2018)
+-- The Accountant-General's instruction on the travel allowance of government
+-- employees, rewritten after the 2016 public-transport reform: who is
+-- entitled, the cheapest tariff, a partial month, the cap of 1,330 shekels
+-- and 1,660 in national-priority areas, the hourly employee and the
+-- student, the blind employee, a locality without public transport,
+-- Sabbath and holiday travel, who is not entitled, reporting an address,
+-- income tax, and payment in "Malam" by annex B's codes.
+
+IMPORT prelude
+IMPORT parties
+IMPORT `kitzuvat-nesia-common`
+
+-- Tariffs: the notice "לוח תעריפי נסיעה בתחבורה ציבורית", inputs (`travel
+-- fares`). No rule here rounds (convention rounding.default).
+
+-- not weighed against `the Equal Pay Law`: ‘בעל’ here is the holder of a
+-- service, personal or assigned car (‘בעל רכב צמוד’, ‘בעלי רכב שירות’), not
+-- a husband; the instruction sets one travel allowance for every employee,
+-- man or woman, and does not distinguish between them.
+
+-- not weighed against `the Advance Notice Law`: ‘חודש סיום העסקה’ here is a
+-- month in which the travel allowance is paid pro rata (2.1.5), not notice
+-- of dismissal or resignation.
+
+§ `הוראת תכ"ם 13.4.2 תשלום קצובת נסיעה — מהדורה 5`
+
+§§ `1 מבוא`
+
+-- 1.1: the employees of the government ministries are entitled to the
+-- travel allowance by public transport, by the instruction's rules.
+@ref akn:hc_1__para_1__subpara_1-1
+GIVEN `employed by a government ministry` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `edition 5 applies to` `employed by a government ministry` IF
+    `employed by a government ministry`
+
+-- akn:hc_1__para_1__subpara_1-2 akn:hc_1__para_1__subpara_1-2/p2 The instruction's purpose, to direct the accountancies and the employees on the travel allowance; no rule.
+-- akn:hc_1__para_1__subpara_1-3 A pointer to annex A, whose definitions the rules below cite; no rule.
+
+§§ `2.1 זכאות לקצובת נסיעה`
+
+-- akn:hc_1__para_2__subpara_2-1 The heading "זכאות לקצובת נסיעה"; its clauses follow.
+
+-- 2.1.1 and annex A's definition 4: an employee who needs transport from
+-- the residence to the workplace, by any means, is entitled to the travel
+-- allowance (a refund of the actual expense) at the notice's rates and
+-- terms; 2.4 takes out those who are not.
+@ref akn:hc_1__para_2__subpara_2-1__cls_2-1-1 akn:att_1__hc_1__para_4
+GIVEN m IS A `travel month`
+GIVETH A BOOLEAN
+DECIDE `entitled to the travel allowance, edition 5` m IF
+        m's `needs transport from home to work`
+    AND NOT `not entitled under 2.4, edition 5` m
+
+-- 2.1.2 and annex A's definition 2: from one residence only, the address
+-- where the employee lives most days of the week, by declaration.
+@ref akn:hc_1__para_2__subpara_2-1__cls_2-1-2 akn:att_1__hc_1__para_2
+`the residences the allowance is paid from, edition 5` MEANS 1
+
+-- 2.1.3: by the public-transport tariffs, at the lowest price on that route
+-- only: of the tickets the route offers, the cheapest.
+@ref akn:hc_1__para_2__subpara_2-1__cls_2-1-3
+GIVEN `the prices on the route` IS A LIST OF NUMBER @desc the public-transport prices of the employee's route, from the notice
+GIVETH A NUMBER
+DECIDE `the price the allowance is paid at, edition 5` `the prices on the route` IS
+    minimum `the prices on the route`
+
+-- 2.1.4: regardless of the frequency of transport and of when work starts
+-- or ends.
+@ref akn:hc_1__para_2__subpara_2-1__cls_2-1-4
+`the refund depends on the frequency of transport or the hours of work, edition 5` MEANS FALSE
+
+-- 2.1.5: in a month not fully worked, the lower of the monthly ticket and
+-- "תעריף חודשי יומי" times the days actually worked. No ticket of that name
+-- exists; the edition's other clauses pay a day by "חופשי יומי"
+-- (F-2018-03-12_takam_H-13-4-2_kitzuvat-nesia_v5-b). The reading adopted
+-- (convention reading.misprint): the daily ticket "חופשי יומי".
+@ref akn:hc_1__para_2__subpara_2-1__cls_2-1-5 akn:hc_1__para_2__subpara_2-1__cls_2-1-5__pnt_2-1-5-1 akn:hc_1__para_2__subpara_2-1__cls_2-1-5__pnt_2-1-5-2
+GIVEN f IS A `travel fares`, m IS A `travel month`
+GIVETH A NUMBER
+DECIDE `the monthly employee's allowance, edition 5` f m IS
+    IF m's `a full month of work`
+    THEN f's `monthly free pass`
+    ELSE `the lower of the monthly pass and the daily passes` f m
+
+`the ticket 2.1.5.2 names, edition 5` MEANS "חודשי יומי"
+
+`the tickets the edition otherwise names, edition 5` MEANS
+    LIST "חופשי חודשי", "חופשי חודשי מרחבי", "חופשי יומי"
+
+`2.1.5.2 names a ticket no other clause names, edition 5` MEANS
+    NOT elem `the ticket 2.1.5.2 names, edition 5` `the tickets the edition otherwise names, edition 5`
+#ASSERT `2.1.5.2 names a ticket no other clause names, edition 5`
+
+§§ `2.2 קביעת זכאות לקצובת נסיעה בעקבות הרפורמה בתחבורה הציבורית`
+
+-- akn:hc_1__para_2__subpara_2-2 The heading; its clauses follow.
+
+-- 2.2.1: the entitlement follows the notice's rules (the tariffs, inputs).
+@ref akn:hc_1__para_2__subpara_2-2__cls_2-2-1
+`the reform's rules are the notice's, edition 5` MEANS `why the tariffs are not in the instruction`
+
+-- 2.2.2 and 2.2.4: the travel allowance may not exceed 1,330 shekels a
+-- month, except as 2.2.4 says: an employee living in a national-priority
+-- locality (the takshir's chapter 28.3) up to 1,660, and the allowances of
+-- every kind together no more than 1,660.
+@ref akn:hc_1__para_2__subpara_2-2__cls_2-2-2 akn:hc_1__para_2__subpara_2-2__cls_2-2-4 akn:hc_1__para_2__subpara_2-2__cls_2-2-4__pnt_2-2-4-1 akn:hc_1__para_2__subpara_2-2__cls_2-2-4__pnt_2-2-4-2
+GIVEN m IS A `travel month`
+GIVETH A NUMBER
+DECIDE `the monthly cap, edition 5` m IS
+    IF m's `lives in a national-priority locality` THEN 1660 ELSE 1330
+
+-- 2.2.3: the equalisation of the allowance of those taken into the State
+-- service by 31.12.2015 is the notice "השוואת קצובת נסיעה – אופן הדיווח
+-- והיישום", which the corpus does not hold; its amount is an input.
+@ref akn:hc_1__para_2__subpara_2-2__cls_2-2-3
+GIVEN `taken into the State service by 31.12.2015` IS A BOOLEAN, `the equalisation the notice sets` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the travel-allowance equalisation, edition 5` `taken into the State service by 31.12.2015` `the equalisation the notice sets` IS
+    IF `taken into the State service by 31.12.2015` THEN `the equalisation the notice sets` ELSE 0
+
+-- 2.2.5-2.2.6: the hourly employee and the student are paid the daily
+-- ticket "חופשי יומי" for the days travelled to work, but no more than the
+-- monthly ticket.
+@ref akn:hc_1__para_2__subpara_2-2__cls_2-2-5 akn:hc_1__para_2__subpara_2-2__cls_2-2-5__pnt_2-2-5-1 akn:hc_1__para_2__subpara_2-2__cls_2-2-6 akn:hc_1__para_2__subpara_2-2__cls_2-2-6__pnt_2-2-6-1
+GIVEN f IS A `travel fares`, m IS A `travel month`
+GIVETH A NUMBER
+DECIDE `the allowance for travel to work, edition 5` f m IS
+    `the partial allowance for a partial State-funded month, edition 5`
+        (IF m's `kind of employee` EQUALS `an employee paid by the hour` OR m's `kind of employee` EQUALS `a student employee`
+         THEN `the lower of the monthly pass and the daily passes` f m
+         ELSE `the monthly employee's allowance, edition 5` f m)
+        m
+
+-- 2.2.7 and annex A's definition 3: a blind employee (holding a blind
+-- person's certificate filed with the office's administration and salary
+-- unit) is paid five monthly tickets, an entitlement that cancels every
+-- other. Annex B §4 caps every travel-allowance code at 1,330 "in no case"
+-- more, the blind employee's code 0971 among them
+-- (F-2018-03-12_takam_H-13-4-2_kitzuvat-nesia_v5-a). The reading adopted
+-- (convention precedence.specific): the blind employee's own rule
+-- prevails, and the allowance is not capped.
+@ref akn:hc_1__para_2__subpara_2-2__cls_2-2-7 akn:hc_1__para_2__subpara_2-2__cls_2-2-7__pnt_2-2-7-1 akn:att_1__hc_1__para_3
+GIVEN f IS A `travel fares`
+GIVETH A NUMBER
+DECIDE `the blind employee's allowance, edition 5` f IS
+    5 TIMES f's `monthly free pass`
+
+-- 2.2.8: an employee living in a locality without public transport who
+-- uses another means to reach the main road is entitled to a monthly ticket
+-- of 128 shekels for those trips (code 901). A ticket for another leg of
+-- the way, so it is added to the allowance; annex B §4 counts every code,
+-- 901 with them, within the cap.
+@ref akn:hc_1__para_2__subpara_2-2__cls_2-2-8 akn:hc_1__para_2__subpara_2-2__cls_2-2-8__pnt_2-2-8-1
+GIVEN m IS A `travel month`
+GIVETH A NUMBER
+DECIDE `the ticket for a locality without public transport, edition 5` m IS
+    IF m's `lives where there is no public transport` THEN 128 ELSE 0
+
+§§ `2.3 תשלום קצובת נסיעה בגין נסיעות בשבתות וחגים`
+
+-- akn:hc_1__para_2__subpara_2-3 The heading; its clauses follow.
+-- akn:hc_1__para_2__subpara_2-3__cls_2-3-2 The heading "תנאי הזכאות"; its condition follows.
+-- akn:hc_1__para_2__subpara_2-3__cls_2-3-3 The heading "אופן התשלום"; its clauses follow.
+
+-- 2.3.1-2.3.3: an employee employed on the Sabbath or a holiday who starts
+-- work after it has come in, when there is no public transport, is paid the
+-- daily ticket "חופשי יומי" for the trip from home to work and back, only
+-- for the days the employee actually came. Not for an employee with a
+-- service or personal car, nor in an office with a shuttle arrangement.
+@ref akn:hc_1__para_2__subpara_2-3__cls_2-3-1 akn:hc_1__para_2__subpara_2-3__cls_2-3-2__pnt_2-3-2-1 akn:hc_1__para_2__subpara_2-3__cls_2-3-3__pnt_2-3-3-1 akn:hc_1__para_2__subpara_2-3__cls_2-3-3__pnt_2-3-3-2
+GIVEN f IS A `travel fares`, m IS A `travel month`
+GIVETH A NUMBER
+DECIDE `the Sabbath and holiday allowance, edition 5` f m IS
+    IF m's `has a service or personal car` OR m's `the office runs a shuttle`
+    THEN 0
+    ELSE f's `daily free pass` TIMES m's `Sabbath and holiday days reached`
+
+-- 2.3.4, annex B §§4-5: the Sabbath refund and the monthly allowance, and
+-- every travel code with them, within the cap of 2.2. The month's travel
+-- allowance: none where 2.4 takes the employee out; the blind employee's in
+-- place of every other; otherwise everything within the cap.
+@ref akn:hc_1__para_2__subpara_2-3__cls_2-3-4 akn:att_2__hc_1__para_4 akn:att_2__hc_1__para_5
+GIVEN f IS A `travel fares`, m IS A `travel month`
+GIVETH A NUMBER
+DECIDE `the travel allowance, edition 5` f m IS
+    BRANCH IF NOT `entitled to the travel allowance, edition 5` m THEN 0
+           IF m's `blind` THEN `the blind employee's allowance, edition 5` f
+           OTHERWISE min (     `the allowance for travel to work, edition 5` f m
+                          PLUS `the Sabbath and holiday allowance, edition 5` f m
+                          PLUS `the ticket for a locality without public transport, edition 5` m)
+                         (`the monthly cap, edition 5` m)
+
+-- Annex B §4 against 2.2.4, 2.2.7 and annex B §5: "in no case" more than
+-- 1,330, where a priority-area resident may be paid 1,660 and a blind
+-- employee five monthly tickets.
+@ref akn:att_2__hc_1__para_4
+`the cap annex B §4 puts on every code, edition 5` MEANS 1330
+
+`annex B §4 caps below what 2.2.4 and 2.2.7 pay, edition 5` MEANS
+        `the cap annex B §4 puts on every code, edition 5` LESS THAN 1660
+    AND `the cap annex B §4 puts on every code, edition 5` LESS THAN 5 TIMES 300
+#ASSERT `annex B §4 caps below what 2.2.4 and 2.2.7 pay, edition 5`
+
+§§ `2.4 אי זכאות לקצובת נסיעה`
+
+-- akn:hc_1__para_2__subpara_2-4 The heading; its clauses follow.
+
+-- 2.4.1-2.4.3 and annex A's definition 1 (a calendar month): not entitled
+-- is an employee carried to or from work by a government vehicle or another
+-- Treasury-funded arrangement, one with an assigned car, and, for that
+-- period, one absent an unbroken calendar month or more.
+@ref akn:hc_1__para_2__subpara_2-4__cls_2-4-1 akn:hc_1__para_2__subpara_2-4__cls_2-4-2 akn:hc_1__para_2__subpara_2-4__cls_2-4-3 akn:att_1__hc_1__para_1
+GIVEN m IS A `travel month`
+GIVETH A BOOLEAN
+DECIDE `not entitled under 2.4, edition 5` m IF
+        m's `share of trips by a State-funded arrangement` AT LEAST 1
+    OR  m's `has an assigned car`
+    OR  m's `absent a calendar month or more`
+
+-- 2.4.4: carried part of the month so, the allowance is proportional.
+@ref akn:hc_1__para_2__subpara_2-4__cls_2-4-4
+GIVEN amount IS A NUMBER, m IS A `travel month`
+GIVETH A NUMBER
+DECIDE `the partial allowance for a partial State-funded month, edition 5` amount m IS
+    `in proportion to the trips not State-funded` amount m
+
+§§ `2.5 דיווח על כתובת מגורים`
+
+-- akn:hc_1__para_2__subpara_2-5 The heading; its clauses follow.
+
+-- 2.5.1: an employee who changed residence or workplace reports it to the
+-- office's administration on the form "קצובת נסיעה"; the administration
+-- passes it to the salary unit, and the employee is paid by the rules.
+@ref akn:hc_1__para_2__subpara_2-5__cls_2-5-1
+GIVETH A DEONTIC Party `travel-allowance duty`
+DECIDE `reporting a move, edition 5` IS
+    PARTY `the government employee`
+    MUST  `report the new address or workplace on the travel-allowance form`
+    HENCE (PARTY `the employer`
+           MUST  `pass the report to the salary unit`
+           HENCE (PARTY `the employer`
+                  MUST  `pay the updated travel allowance`))
+
+-- 2.5.2: the employee refreshes the details at least once in 3 years; the
+-- payment is blocked until it is done. Months.
+@ref akn:hc_1__para_2__subpara_2-5__cls_2-5-2
+GIVETH A DEONTIC Party `travel-allowance duty`
+DECIDE `refreshing the details, edition 5` IS
+    PARTY `the government employee`
+    MUST  `refresh the travel-allowance details`
+    WITHIN 36
+    LEST  (PARTY `the employer`
+           MAY   `block the travel allowance in the payroll`)
+
+§§ `2.6 ניכוי מס הכנסה`
+
+-- akn:hc_1__para_2__subpara_2-6 The heading; its clauses follow.
+
+-- 2.6.1: income tax is deducted as the notice "ניכוי מס הכנסה מקצובת
+-- נסיעה" sets out; the corpus does not hold it.
+@ref akn:hc_1__para_2__subpara_2-6__cls_2-6-1
+GIVETH A DEONTIC Party `travel-allowance duty`
+DECIDE `withholding income tax, edition 5` IS
+    PARTY `the employer`
+    MUST  `withhold income tax from the travel allowance`
+
+-- 2.6.2: the tax is grossed up on the amounts above those the notice
+-- names, and for an employee in a national-priority locality (the
+-- takshir's chapter 28.37) likewise; the notice's amount is an input.
+@ref akn:hc_1__para_2__subpara_2-6__cls_2-6-2
+GIVEN allowance IS A NUMBER, `the amount the tax notice names` IS A NUMBER @desc the amount above which the notice "ניכוי מס הכנסה מקצובת נסיעה" has the tax grossed up
+GIVETH A DEONTIC Party `travel-allowance duty`
+DECIDE `grossing up the tax, edition 5` allowance `the amount the tax notice names` IS
+    IF `the part above` allowance `the amount the tax notice names` GREATER THAN 0
+    THEN PARTY `the employer`
+         MUST  `gross up the tax on the travel allowance` `part`
+               PROVIDED `part` EQUALS `the part above` allowance `the amount the tax notice names`
+    ELSE FULFILLED
+
+§§ `2.7 יישום במערכות השכר`
+
+-- akn:hc_1__para_2__subpara_2-7 The heading; its clauses follow.
+
+-- 2.7.1 and annex B §1: paid through "Malam" by the notice's directions and
+-- annex B's codes. 2.7.2 and annex B §6: an accountancy whose salaries are
+-- not prepared in "Malam" pays by the instruction's rules.
+@ref akn:hc_1__para_2__subpara_2-7__cls_2-7-1 akn:att_2__hc_1__para_1
+GIVETH A DEONTIC Party `travel-allowance duty`
+DECIDE `paying through the payroll, edition 5` IS
+    PARTY `the employer`
+    MUST  `pay the travel allowance through the payroll`
+
+@ref akn:hc_1__para_2__subpara_2-7__cls_2-7-2 akn:att_2__hc_1__para_6
+GIVETH A DEONTIC Party `travel-allowance duty`
+DECIDE `paying outside Malam, edition 5` IS
+    PARTY `the employer`
+    MUST  `pay the travel allowance by the instruction's rules outside Malam`
+
+§§ `3-4 מסמכים ישימים ונספחים`
+
+-- akn:hc_1__para_3__subpara_3-1 akn:hc_1__para_3__subpara_3-2 akn:hc_1__para_3__subpara_3-3 akn:hc_1__para_3__subpara_3-4 akn:hc_1__para_3__subpara_3-5 akn:hc_1__para_3__subpara_3-6 The applicable documents (the takshir's chapters 28.3 and 28.37, the form, three notices); a source list, no rule.
+-- akn:hc_1__para_4__subpara_4-1 akn:hc_1__para_4__subpara_4-2 akn:hc_1__para_4__subpara_4-3 The list of annexes; no rule.
+-- akn:att_1__hc_1/p1 Annex A's title "הגדרות"; its definitions are cited by the rules that use them.
+-- akn:att_2__hc_1/p1 Annex B's title; its clauses follow.
+-- akn:att_2__hc_1__para_2 akn:att_2__hc_1__para_2/t1 The "Malam" code each kind of payment is paid under (0614, 0604, event 226 code 4820, 0971 for the blind employee's code 99 times 5, 901, 0960, 1077 closing the advance's 671); payroll coding, no entitlement of its own.
+-- akn:att_2__hc_1__para_3 The codes of the public-transport lines are the notice's; a pointer, no rule.
+-- akn:att_3__hc_1/p1 akn:att_3__hc_1/p2 akn:att_3__hc_1/t1 Annex C, the table of the editions' changes; a record, no rule.
+
+§§ `Worked examples`
+
+`placeholder fares, edition 5` MEANS
+    `travel fares` WITH
+        `monthly free pass`     IS 300
+        `daily free pass`       IS 20
+        `single fare`           IS 10
+        `intercity single fare` IS 0
+
+`edition 5 pays` m MEANS `the travel allowance, edition 5` `placeholder fares, edition 5` m
+
+#ASSERT `edition 5 pays` (`an ordinary travel month` `a monthly employee` 22) EQUALS 300
+
+-- 2.2.6: a student who came 9 days.
+#ASSERT `edition 5 pays` (`an ordinary travel month` `a student employee` 9) EQUALS 180
+
+-- 2.1.3: of the route's prices, the lowest.
+#ASSERT `the price the allowance is paid at, edition 5` (LIST 320, 300, 410) EQUALS 300
+
+-- 2.2.8 and 2.3: the ticket of 128 and three Sabbath days, within the cap.
+`a month with Sabbaths and no public transport, edition 5` MEANS
+    `the travel month changed` (`an ordinary travel month` `a monthly employee` 22) TRUE FALSE 3 TRUE FALSE 0 0
+#ASSERT `edition 5 pays` `a month with Sabbaths and no public transport, edition 5` EQUALS 488
+
+-- 2.2.7 as read: five monthly tickets, not capped.
+`a blind employee's month, edition 5` MEANS
+    `the travel month changed` (`an ordinary travel month` `a monthly employee` 22) TRUE TRUE 0 FALSE FALSE 0 0
+#ASSERT `edition 5 pays` `a blind employee's month, edition 5` EQUALS 1500

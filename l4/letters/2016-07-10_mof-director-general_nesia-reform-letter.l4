@@ -1,0 +1,174 @@
+-- מכתב המנהל הכללי של משרד האוצר להסתדרות (10.7.2016) — קצובת נסיעה: החזר
+-- הוצאות נסיעה בתחבורה הציבורית בעקבות הרפורמה בתחבורה הציבורית
+-- The outline the Ministry of Finance's Director-General gave the
+-- Histadrut's trade-union division after the public-transport reform:
+-- existing employees keep the urban monthly pass and their intercity single
+-- trips, there and back, on a periodic declaration; new employees are paid
+-- by the reform's rules and the Accountant-General's instruction; official
+-- travel at single-trip tariffs; a review after a year; from 1.1.2016. The
+-- Wage Controller's circular 2016-1-39 carries it out.
+
+IMPORT prelude
+IMPORT daydate
+IMPORT parties
+IMPORT `kitzuvat-nesia-common`
+
+-- Tariffs: "תעריפים מעודכנים, כפי שיהיו מעת לעת", the Accountant-General's
+-- notice "לוח תעריפי נסיעה בתחבורה ציבורית": inputs (`travel fares`, in the
+-- takam instruction's common file). No rule here rounds (convention
+-- rounding.default).
+
+-- not weighed against `the Equal Pay Law`: the letter sets the travel
+-- allowance after the public-transport reform for every employee, without
+-- distinguishing a man from a woman; the refund is not pay or other
+-- remuneration the law equalises, and the words the search found are not on
+-- its subject.
+
+§ `קצובת נסיעה - החזר הוצאות נסיעה בתחבורה הציבורית בעקבות הרפורמה בתחבורה הציבורית`
+
+-- akn:preamble akn:preamble/p2 akn:preamble/p3 akn:preamble/p4 akn:preamble/p5 akn:preamble/p6 akn:preamble/p7 akn:preamble/p8 akn:preamble/p9 akn:preamble/p10 akn:preamble/p11 akn:preamble/p12 akn:preamble/p13 akn:preamble/p14 The letterhead (the Ministry of Finance, the Director-General, the address), the date (4 Tammuz 5776, 10 July 2016), the file mark, the addressee (Avi Nissenkorn, chairman of the Histadrut's trade-union division), the greeting and the subject line; no rule.
+-- akn:preamble/p15 "Following our talks, here is the outline we wish to operate": an introduction to sections 1-4; no rule.
+
+DECLARE `travel letter duty` IS ONE OF
+    `examine the reform's effects and the adjustments for exceptional cases`
+    `hold talks with the Histadrut on the adjustments`
+
+@desc An employee the letter speaks of, as far as it asks.
+DECLARE `employee under the travel letter` HAS
+    `day taken on by the current employer`               IS A DATE    @desc the day the employee began work with the employer they work for now
+    `paid intercity single trips before the reform`      IS A BOOLEAN @desc entitled, before the reform came into force, to a refund of intercity trips at single-trip tariffs (there and back)
+    `signed the periodic declaration`                    IS A BOOLEAN @desc signed the periodic declaration that the travel allowance reflects the expense of travel from home to work and back
+    `days of intercity travel to work`                   IS A NUMBER  @desc the days in the month the employee travelled between cities to work
+
+-- §3: the letter applies from 1.1.2016.
+@ref akn:art_3
+`the letter applies from` MEANS Date 1 1 2016
+
+§§ `1 עובדים קיימים`
+
+-- §1: an existing employee is one taken on by the current employer before
+-- 1.1.2016. §1ג: moving workplace with the same employer (another
+-- government ministry included) or moving home keeps the rules for existing
+-- employees, applied to the new workplace or home; moving to another
+-- employer makes the employee a new employee there — which the day taken on
+-- by that employer already says.
+@ref akn:art_1 akn:art_1__para_c
+GIVEN e IS AN `employee under the travel letter`
+GIVETH A BOOLEAN
+DECIDE `an existing employee under the letter` e IF
+    e's `day taken on by the current employer` LESS THAN `the letter applies from`
+
+-- §1ד: what the letter gives an existing employee is conditional on the
+-- employee's signing a periodic declaration that the travel allowance
+-- reflects the expense of travel from home to work and back.
+@ref akn:art_1__para_d
+GIVEN e IS AN `employee under the travel letter`
+GIVETH A BOOLEAN
+DECIDE `paid under the rules for existing employees` e IF
+        `an existing employee under the letter` e
+    AND e's `signed the periodic declaration`
+
+-- §1א: the urban monthly pass, by the places of residence and work, at the
+-- updated tariffs "as they will be from time to time" and by the accepted
+-- rules.
+@ref akn:art_1__para_a
+GIVEN f IS A `travel fares`, e IS AN `employee under the travel letter`
+GIVETH A NUMBER
+DECIDE `the urban monthly pass under §1א` f e IS
+    IF `paid under the rules for existing employees` e THEN f's `monthly free pass` ELSE 0
+
+-- §1ב: intercity trips at single-trip tariffs, there and back, at the
+-- updated tariffs, for one who was entitled to them before the reform,
+-- subject to §1ג.
+@ref akn:art_1__para_b
+`single trips a day of intercity travel under §1ב` MEANS 2
+
+@ref akn:art_1__para_b
+GIVEN f IS A `travel fares`, e IS AN `employee under the travel letter`
+GIVETH A NUMBER
+DECIDE `the intercity trips under §1ב` f e IS
+    IF `paid under the rules for existing employees` e AND e's `paid intercity single trips before the reform`
+    THEN `single trips a day of intercity travel under §1ב` TIMES f's `intercity single fare` TIMES e's `days of intercity travel to work`
+    ELSE 0
+
+GIVEN f IS A `travel fares`, e IS AN `employee under the travel letter`
+GIVETH A NUMBER
+DECIDE `an existing employee's travel allowance under the letter` f e IS
+    `the urban monthly pass under §1א` f e PLUS `the intercity trips under §1ב` f e
+
+-- §1ה and §2ב: official travel by public transport outside the city, trips
+-- inside the regional monthly-pass zone that are not inside the city
+-- included, for one with no car entitlement or who has used up the
+-- kilometre quota for official travel, is paid at single-trip tariffs —
+-- for an existing employee (§1ה) and a new one (§2ב) alike.
+@ref akn:art_1__para_e akn:art_2__para_b
+GIVEN `has no car entitlement or used up the kilometre quota` IS A BOOLEAN, `outside the city` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `official travel is paid at single-trip tariffs` `has no car entitlement or used up the kilometre quota` `outside the city` IF
+    `has no car entitlement or used up the kilometre quota` AND `outside the city`
+
+§§ `2 עובדים חדשים`
+
+-- §2 and §2א: an employee taken on from 1.1.2016 is refunded public
+-- transport by the changes the reform's rules make and by the
+-- Accountant-General's instruction on the matter (H.13.4.2, encoded in
+-- l4/takam/), as they will be from time to time.
+@ref akn:art_2 akn:art_2__para_a
+GIVEN e IS AN `employee under the travel letter`
+GIVETH A BOOLEAN
+DECIDE `paid by the reform's rules and the takam instruction` e IF
+    NOT `an existing employee under the letter` e
+
+-- §2ג: a checkpoint. At the end of a year from the summary the Ministry of
+-- Finance examines the reform's effects and the adjustments needed for
+-- exceptional cases (the periphery, distant localities with too infrequent
+-- transport), with the relevant bodies in the Ministry and in talks with the
+-- Histadrut. Time is in months from the summary, whose day the letter does
+-- not print beside its own (10.7.2016).
+@ref akn:art_2__para_c akn:art_2__para_c/p2
+GIVETH A DEONTIC Party `travel letter duty`
+DECIDE `the review after a year` IS
+    PARTY `the Treasury`
+    MUST  `examine the reform's effects and the adjustments for exceptional cases`
+    WITHIN 12
+    HENCE (PARTY `the Treasury`
+           MUST  `hold talks with the Histadrut on the adjustments`)
+
+§§ `3-4 תחולה וסיום טענות`
+
+-- §4: the letter finally exhausts every claim and demand of the Histadrut
+-- on these matters, save the talks of §2ג.
+@ref akn:art_4
+`the Histadrut's claims on the travel allowance are exhausted, save the talks of §2ג` MEANS TRUE
+
+-- akn:conclusions akn:conclusions/p2 akn:conclusions/p3 akn:conclusions/p4 akn:conclusions/p5 akn:conclusions/p6 akn:conclusions/p7 akn:conclusions/p8 akn:conclusions/p9 akn:conclusions/p10 akn:conclusions/p11 akn:conclusions/p12 akn:conclusions/p13 The sign-off (Shai Babad, Director-General of the Ministry of Finance) and the copies (the Minister of Finance, the Accountant-General, the Wage Controller, the legal advisers, the budget deputies, the Director-General's adviser); no rule.
+
+§§ `Worked examples`
+
+`placeholder fares for the letter` MEANS
+    `travel fares` WITH
+        `monthly free pass`     IS 200
+        `daily free pass`       IS 0
+        `single fare`           IS 0
+        `intercity single fare` IS 20
+
+`an intercity commuter taken on in 2010` MEANS
+    `employee under the travel letter` WITH
+        `day taken on by the current employer`          IS Date 1 9 2010
+        `paid intercity single trips before the reform` IS TRUE
+        `signed the periodic declaration`               IS TRUE
+        `days of intercity travel to work`              IS 20
+
+`an intercity commuter taken on in 2017` MEANS
+    `employee under the travel letter` WITH
+        `day taken on by the current employer`          IS Date 1 3 2017
+        `paid intercity single trips before the reform` IS FALSE
+        `signed the periodic declaration`               IS FALSE
+        `days of intercity travel to work`              IS 20
+
+-- §1א-§1ב: the pass and twenty days there and back at 20.
+#ASSERT `an existing employee's travel allowance under the letter` `placeholder fares for the letter` `an intercity commuter taken on in 2010` EQUALS 1000
+
+-- §2א: a new employee is paid by the reform's rules, not by §1.
+#ASSERT `paid by the reform's rules and the takam instruction` `an intercity commuter taken on in 2017`
+#ASSERT `an existing employee's travel allowance under the letter` `placeholder fares for the letter` `an intercity commuter taken on in 2017` EQUALS 0
