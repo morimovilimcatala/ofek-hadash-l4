@@ -19,8 +19,7 @@ general remove the קוים chips, since payslips are also a source"): the
 payslips, described in general terms and never a person's figure (decision
 17), and the ministry's simulator, which binds no one. Each is a side of the
 card it speaks to, with its answer and whether that answer is the one the
-governing rule gives (`agrees`); a paying source that departs from it makes
-the card an error (`errors`). A source that has no answer to the question is
+governing rule gives (`agrees`). A source that has no answer to the question is
 listed under the card (`silent`), not as a side. None of them changes a
 reading.
 
@@ -60,8 +59,9 @@ the question is a toss-up, or it is a procedure; low where nothing turns on
 it. A hand card carries `severity` and `severity_why`, the grade of its
 highest-graded finding unless `severity_differs_from_finding` says why not;
 a generated card takes its grade from data/contradiction-grades.json, keyed
-by its row (`row_grades`). A grade is not a verdict of error: "טעות" is a
-separate mark, for a card in which a paying source departs from the rule.
+by its row (`row_grades`). The page marks no card as an error (the client,
+2026-11-12: "then just remove the label it's stupid"): a card has its grade,
+and each paying source says whether it pays as the governing rule gives.
 """
 from __future__ import annotations
 
@@ -93,12 +93,10 @@ def types(c: dict) -> list[str]:
     """The kinds of source a contradiction sets against each other."""
     return sorted({s["type"] for s in c["sides"]}, key=list(TYPE).index)
 SEV = {"high": "חמור", "medium": "בינוני", "low": "קל"}
-# How a grade is decided and what makes a card an error, said once on the page
-# (MMS-703: "how do you decide which סתירה is a mistake?").
+# How a grade is decided, said once on the page (MMS-703).
 HOW_GRADED = ("החומרה היא ההשפעה בעולם: <b>חמור</b> — כסף, זכאות או זכות תלויים בסתירה, ובית משפט צפוי לפסוק "
               "נגד האופן שבו המשרד מיישם את הטקסט כפי שמסמכיו מתעדים; <b>בינוני</b> — כסף או זכות נוגעים בה אבל "
-              "היישום צפוי לעמוד, או שההכרעה שקולה, או שהיא בנוהל; <b>קל</b> — שום תוצאה של ממש אינה תלויה בה. "
-              "סתירה היא <b>טעות</b> רק כשמקור שמשלם — התלושים או הסימולטור — סוטה מהכלל הגובר.")
+              "היישום צפוי לעמוד, או שההכרעה שקולה, או שהיא בנוהל; <b>קל</b> — שום תוצאה של ממש אינה תלויה בה.")
 KIND = {"render": "עמוד דיגיטלי, מרונדר ב־{dpi} dpi",
         "scan": "סריקה, ברזולוציה המקורית ({dpi} ppi)",
         "html": "דף מהעותק השמור של האתר (1.6.2026), כפי שהדפדפן מציג אותו, בצפיפות כפולה; תשובה מקופלת נפתחה כמו בלחיצה"}
@@ -385,23 +383,10 @@ def rule_html(r: dict, note: str, *, prose, src) -> str:
             f' — {esc(r["source"])}{link}</p>{pic}{quote}<p>{prose(note)}</p></div>')
 
 
-def errors(data: dict) -> list[dict]:
-    """The contradictions in which a paying source — a payslip, the
-    simulator — departs from what the governing rule gives: errors, each
-    graded."""
-    return [c for c in data["items"] if is_error(c)]
-
-
-def is_error(c: dict) -> bool:
-    return any(s.get("agrees") is False for s in c["sides"])
-
-
 def badge(c: dict) -> str:
-    """The card's grade chip, and the error mark beside it where a paying
-    source departs from the rule: a grade alone does not say "mistake"."""
+    """The card's grade chip."""
     sev = c.get("severity")
-    chip = f'<span class="cx-sev sev-{sev}">חומרה: {esc(SEV[sev])}</span>' if sev else ""
-    return chip + (' <span class="cx-err">טעות</span>' if is_error(c) else "")
+    return f'<span class="cx-sev sev-{sev}">חומרה: {esc(SEV[sev])}</span>' if sev else ""
 
 
 def sevwhy_html(c: dict, *, prose) -> str:
@@ -413,10 +398,10 @@ def sevwhy_html(c: dict, *, prose) -> str:
             f'{prose(c["severity_why"])}{differs}</p>')
 
 
-def meter(grades: list[str], n_errors: int = 0) -> str:
+def meter(grades: list[str]) -> str:
     """Every contradiction on the page by grade — the cards, hand-written and
-    generated, and the simulator's graded rows — with how a grade is decided
-    and how many cards are errors. Each key is also a filter: it shows the
+    generated, and the simulator's graded rows — with how a grade is decided.
+    Each key is also a filter: it shows the
     cards of that grade (the client, 2026-10-21: "I should be able to filter
     based on the severity chip")."""
     n = {k: grades.count(k) for k in SEV}
@@ -424,8 +409,8 @@ def meter(grades: list[str], n_errors: int = 0) -> str:
                    for k in SEV if n[k])
     keys = "".join(f'<button type="button" class="cx-mkey sev-{k}" data-dim="sev" data-val="{k}" aria-pressed="false">'
                    f'<i></i>{esc(SEV[k])} <b>{n[k]}</b></button>' for k in SEV if n[k])
-    return (f'<div class="cx-meter" aria-label="חומרת הסתירות"><p><b>{len(grades)}</b> סתירות מדורגות לפי חומרה, '
-            f'ו־<b>{n_errors}</b> מהן טעויות. {HOW_GRADED} (לחיצה על דרגה מסננת.)</p><div class="cx-mbar">{segs}</div>'
+    return (f'<div class="cx-meter" aria-label="חומרת הסתירות"><p><b>{len(grades)}</b> סתירות מדורגות לפי חומרה. '
+            f'{HOW_GRADED} (לחיצה על דרגה מסננת.)</p><div class="cx-mbar">{segs}</div>'
             f'<div class="cx-mkeys" role="group" aria-label="סינון לפי חומרה">{keys}</div></div>'
             if grades else "")
 
@@ -470,8 +455,7 @@ def body(data: dict, *, prose, clause_link, finding_ids: set[str], src,
     out.append(f'<div class="cx-sum" aria-label="סינון לפי סוג המקור">'
                + "".join(rows)
                + f'<div class="cx-frow"><button type="button" class="cx-all" aria-pressed="true">הכול <b>{len(items) + sim_n}</b></button></div></div>')
-    out.append(meter([c["severity"] for c in items if c.get("severity")] + list(sim_grades),
-                     len(errors(data))))
+    out.append(meter([c["severity"] for c in items if c.get("severity")] + list(sim_grades)))
 
 
     side = ['<li class="sn-group"><details open><summary>בעמוד</summary><ul>']
@@ -589,7 +573,7 @@ def card(c: dict, rules: dict, *, prose, clause_link, finding_ids, src, evidence
             + (f'<p class="cx-win">לפי הכלל גובר: <b>{esc(winner)}</b></p>' if winner else "")
             + direction_html(c, prose=prose)
             + sevwhy_html(c, prose=prose) + silent
-            # what an error means for a teacher (the client: "a משמעות section")
+            # what a departing payment means for a teacher (the client: "a משמעות section")
             + (f'<div class="cx-mean"><h4>משמעות</h4><p>{prose(c["meaning"])}</p></div>' if c.get("meaning") else "")
             + (root_html(row, inst or {}, root_href) if row else "")
             + (f'<p class="cx-noroot">{esc(NOT_IN_ROOT[c["not_in_root"]])}</p>'

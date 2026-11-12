@@ -4,8 +4,8 @@ Every side of a contradiction quotes the corpus verbatim at the row it names,
 every crop it shows is a picture file of the size the data says, every
 finding it names is in the register, and every contradiction -- hand-written
 or generated from the root -- carries a severity grade and the reason for it
-(MMS-703); an error, a card whose paying source departs from the rule, is a
-mark of its own.
+(MMS-703); no card is labelled an error (the client, 2026-11-12: "then just
+remove the label it's stupid").
 """
 from __future__ import annotations
 
@@ -312,17 +312,17 @@ class TheVerdicts(unittest.TestCase):
     def test_every_card_is_graded_and_says_why(self):
         """The client, 2026-11-12 (MMS-703): "all סתירות should have a
         severity rating". Every hand card carries a grade on the MMS-506
-        scale and the reason for it; an error -- a paying source departing
-        from what the governing rule gives -- also says what it means for a
+        scale and the reason for it; a card in which a paying source departs
+        from what the governing rule gives also says what that means for a
         teacher."""
-        errs = {c["id"] for c in contradictions.errors(DATA)}
-        self.assertTrue(errs)
+        departs = {c["id"] for c in DATA["items"] if any(s.get("agrees") is False for s in c["sides"])}
+        self.assertTrue(departs)
         for c in DATA["items"]:
             with self.subTest(item=c["id"]):
                 self.assertNotIn("practice", c)
                 self.assertIn(c.get("severity"), contradictions.SEV)
                 self.assertTrue(c.get("severity_why", "").strip())
-                if c["id"] in errs:
+                if c["id"] in departs:
                     self.assertTrue(c.get("meaning", "").strip())
 
     def test_a_card_takes_its_findings_grade_or_says_why_not(self):
@@ -359,9 +359,10 @@ class TheVerdicts(unittest.TestCase):
                 # a row a hand card claims is graded on the card
                 self.assertNotIn(contradictions.root_key(g["root"]), claimed)
 
-    def test_an_error_is_marked_apart_from_its_grade(self):
-        """Every card shows its grade chip; "טעות" shows only where a paying
-        source departs, so a grade never claims the card is a mistake."""
+    def test_every_card_shows_its_grade_and_no_error_label(self):
+        """Every card shows its grade chip, and none is labelled an error
+        (the client, 2026-11-12: "then just remove the label it's stupid");
+        a paying source still says whether it pays as the rule gives."""
         for c in DATA["items"]:
             with self.subTest(item=c["id"]):
                 html = contradictions.card(c, DATA["rules"], prose=lambda t: t,
@@ -369,7 +370,11 @@ class TheVerdicts(unittest.TestCase):
                                            src=lambda f: f)
                 self.assertIn(f'<span class="cx-sev sev-{c["severity"]}">חומרה: ', html)
                 self.assertIn(f'data-sev="{c["severity"]}"', html)
-                self.assertEqual('<span class="cx-err">טעות</span>' in html, contradictions.is_error(c))
+                self.assertNotIn("cx-err", html)
+                self.assertNotRegex(html, r"(?<![א-ת])טעות(?![א-ת])")
+                for s in c["sides"]:
+                    if s["type"] in contradictions.PAYING:
+                        self.assertIn("כמו הכלל הגובר" if s["agrees"] else "סוטה מהכלל הגובר", html)
 
     def test_a_card_shows_every_side_when_three_disagree(self):
         """Three sources that give three answers are one contradiction with
@@ -399,6 +404,9 @@ class TheVerdicts(unittest.TestCase):
         self.assertIn(contradictions.HOW_GRADED, html)
         self.assertIn(f'<b>{len(DATA["items"])}</b> סתירות מדורגות', html)
         self.assertNotIn('data-sev="none"', html)
+        # and nothing on the page counts or explains errors
+        self.assertNotRegex(html, r"(?<![א-ת])(טעות|טעויות)(?![א-ת])")
+        self.assertNotIn("cx-err", html)
         self.assertIn('class="cx-mark"', html)
         self.assertEqual(html.count("<h4>מי גובר?</h4>"), len(DATA["items"]))
         # one filter row, by the kinds of source: no "was it followed" row,
