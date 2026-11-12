@@ -20,11 +20,7 @@ import statute_citations   # noqa: E402
 # number that are not pinned, as "<law>:<section>". A ratchet, held exactly:
 # pinning one removes it here, and nothing is added to it but a new
 # citation the corpus makes of a law already pinned.
-CITED_NOT_PINNED = {
-    "collective-agreements-law:8", "collective-agreements-law:9",
-    "collective-agreements-law:13", "collective-agreements-law:25",
-    "national-insurance-law:22",
-}
+CITED_NOT_PINNED: set[str] = set()
 
 # The laws the L4 pins though no document of the corpus links to their live
 # page, held exactly. A protective statute is compared with every
