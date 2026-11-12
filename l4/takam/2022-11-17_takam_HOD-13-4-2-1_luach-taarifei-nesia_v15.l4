@@ -1,0 +1,282 @@
+-- הודעת תכ"ם HOD.13.4.2.1 "לוח תעריפי נסיעה בתחבורה ציבורית", מהדורה 15
+-- (17.11.2022). The notice rewritten for the reform "דרך שווה" of 1.8.2022:
+-- the tariffs by the distance between home and work, the allowance at the
+-- monthly free pass "אוטובוס + רכבת", the equalisation supplement of
+-- existing employees and its table, a move of address, trips on duty, the
+-- income tax, and reporting in Malam. Its tables are DATA here, written by
+-- tools/tariff_l4.py from the corpus and held to it by tests/test_tariffs.py.
+
+IMPORT prelude
+IMPORT conventions
+IMPORT parties
+IMPORT vocabulary
+IMPORT `kitzuvat-nesia-common`
+IMPORT `taarifei-nesia-common`
+
+-- not weighed against `the Wage Protection Law`: the notice sets the
+-- tariffs by which a travel EXPENSE is refunded (‘החזר בגין הוצאות’) and
+-- the supplement that softens its cut; the income tax of 4.1-4.2 is
+-- withheld by law, not a deduction the employer makes from wages.
+
+-- not weighed against `the Hours of Work and Rest Law`: ‘ימים בשבוע’ (4.1,
+-- 4.2) is the basis of the tax withheld from the allowance, not the hours
+-- of work and rest.
+
+§ `הודעת תכ"ם 13.4.2.1 לוח תעריפי נסיעה בתחבורה ציבורית — מהדורה 15`
+
+`notice 15 is published` MEANS DATE_FROM_DMY 17 11 2022
+
+§§ `1 רקע ומטרה`
+
+-- 1.1 and 1.3: from 1.8.2022 the tariffs differ by the distance between
+-- origin and destination and by the means (bus, or bus and train), as the
+-- summary table of 1.3 prints them.
+@ref akn:hc_1__para_1__subpara_1-1 akn:hc_1__para_1__subpara_1-3
+`the reform "Derech Shava" applies from` MEANS DATE_FROM_DMY 1 8 2022
+
+-- tariff data akn:hc_1__para_1__subpara_1-3/t1 (tools/tariff_l4.py)
+@ref akn:hc_1__para_1__subpara_1-3/t1
+`notice 15's fare table 1` MEANS
+    `a fare table` ""
+        (LIST `a fare column` (JUST `a daily free pass`) (JUST `bus and train`) NOTHING, `a fare column` (JUST `a monthly free pass`) (JUST `bus and train`) NOTHING)
+        (LIST `ranged` 0 (JUST 15) (LIST (JUST 18), (JUST 255)),
+              `ranged` 15 (JUST 40) (LIST (JUST 28), (JUST 255)),
+              `ranged` 40 (JUST 75) (LIST (JUST 37), (JUST 410)),
+              `ranged` 75 (JUST 120) (LIST (JUST 42), (JUST 610)),
+              `ranged` 120 (JUST 225) (LIST (JUST 74), (JUST 610)),
+              `ranged` 255 NOTHING (LIST NOTHING, (JUST 610)))
+
+-- akn:hc_1__para_1__subpara_1-2 A pointer to the Ministry of Transport's page on the reform; no rule.
+-- akn:hc_1__para_1__subpara_1-4 akn:hc_1__para_1__subpara_1-5 akn:hc_1__para_1__subpara_1-5/p2 The agreement to soften the cut for existing employees (its rules are 2.2) and the notice's purpose; no rule.
+
+§§ `2.1 כללי`
+
+-- akn:hc_1__para_2__subpara_2-1 The heading "כללי"; its clauses follow.
+
+-- 2.1.1 and 2.1.3: the refund is the relevant tariff, by the code reported
+-- for the localities of home and work as the Derech Shava calculator gives
+-- it: the monthly free pass "אוטובוס + רכבת" of the distance band (1.3).
+-- The calculator is outside the corpus: the distance is the input.
+@ref akn:hc_1__para_2__subpara_2-1__cls_2-1-1 akn:hc_1__para_2__subpara_2-1__cls_2-1-3
+`the card notice 15 pays by` MEANS `bus and train`
+
+@ref akn:hc_1__para_2__subpara_2-1__cls_2-1-1 akn:hc_1__para_2__subpara_2-1__cls_2-1-3
+GIVEN km IS A NUMBER @desc the distance between home and work the calculator gives
+GIVETH A MAYBE NUMBER
+DECIDE `notice 15's monthly allowance for the distance` km IS
+    `the fare for the distance` `notice 15's fares` km `a monthly free pass` `the card notice 15 pays by`
+
+-- 2.1.2: the salary accountant enters the calculator, gets the route's
+-- tariffs, and reports the symbol with the tariff code (5.2).
+@ref akn:hc_1__para_2__subpara_2-1__cls_2-1-2
+GIVETH A DEONTIC Party `tariff-notice duty`
+DECIDE `finding and reporting the code, notice 15` IS
+    PARTY `the salary accountant`
+    MUST  `find the route's tariff code or distance on the Ministry of Transport's calculator`
+    HENCE (PARTY `the salary accountant`
+           MUST  `report the route's tariff code in the payroll`)
+
+§§ `2.2 עובדים קיימים`
+
+-- 2.2 and annex A: an existing employee was employed in a ministry or an
+-- auxiliary unit on 31.7.2022; so is one employed that day whose employment
+-- was broken afterwards for up to 6 months and resumed, or who moved to
+-- another ministry or auxiliary unit, or home. A new employee is one taken
+-- in from 1.8.2022, save those.
+@ref akn:hc_1__para_2__subpara_2-2 akn:att_1__hc_1/p1 akn:att_1__hc_1__para_1 akn:att_1__hc_1__para_1__subpara_1-1 akn:att_1__hc_1__para_1__subpara_1-2 akn:att_1__hc_1__para_2
+GIVEN `employed on 31.7.2022` IS A BOOLEAN
+      `months the employment was broken since` IS A NUMBER @desc 0 where it never was
+GIVETH A BOOLEAN
+DECIDE `an existing employee under notice 15` `employed on 31.7.2022` `months the employment was broken since` IF
+    `employed on 31.7.2022` AND `months the employment was broken since` AT MOST 6
+
+-- 2.2.1-2.2.3: on top of the allowance, an existing employee is paid an
+-- equalisation supplement. Where the allowance before the reform was below
+-- the new tariff, the new tariff is paid (2.2.1); where the reform cut it by
+-- less than 60 shekels against the highest of 2022 on the same route, the
+-- new tariff, and no supplement (2.2.2); where by more than 60, the
+-- supplement by the table: the allowance before the reform, X (every
+-- component, the supplements of the 2018 reform included), less the row's
+-- monthly reduction, and no lower than the row's floor (2.2.3). A cut of
+-- exactly 60 is named by neither 2.2.2 nor 2.2.3; the table pays it no
+-- supplement either way (X - 60 is the new tariff).
+-- 2.2.3 also says the supplement is paid "בהתאם לתעריף "חופשי יומי –
+-- אוטובוס + רכבת", אך לא יותר מתעריף זה", which names no amount the table
+-- does not; the table governs (convention precedence.table; finding
+-- F-…v15-b), as edition 16 rewrote the clause.
+-- This edition sets one reduction, the table's monthly step "for a year";
+-- the further reductions are edition 16's (2.2.4).
+@ref akn:hc_1__para_2__subpara_2-2/p2 akn:hc_1__para_2__subpara_2-2__cls_2-2-1 akn:hc_1__para_2__subpara_2-2__cls_2-2-2 akn:hc_1__para_2__subpara_2-2__cls_2-2-3 akn:hc_1__para_2__subpara_2-2__cls_2-2-3/p2
+GIVEN x IS A NUMBER @desc the allowance paid before the reform, every component included
+      `the new tariff` IS A NUMBER
+      `the highest allowance of 2022` IS A NUMBER @desc on the same route
+GIVETH A MAYBE NUMBER
+DECIDE `notice 15's equalisation supplement` x `the new tariff` `the highest allowance of 2022` IS
+    IF `the highest allowance of 2022` MINUS `the new tariff` AT MOST `the cut that earns no supplement`
+    THEN JUST 0
+    ELSE `the equalisation supplement by the table` `notice 15's equalisation table` x `the new tariff` 1
+
+`the cut that earns no supplement` MEANS 60
+
+-- tariff data akn:hc_1__para_2__subpara_2-2__cls_2-2-3/t1 (tools/tariff_l4.py)
+@ref akn:hc_1__para_2__subpara_2-2__cls_2-2-3/t1
+`notice 15's equalisation table` MEANS
+    LIST `an equalisation row` 1450 NOTHING (JUST 350) (JUST 1100) (JUST 60),
+         `an equalisation row` 1300 (JUST 1450) (JUST 340) (JUST 980) (JUST 60),
+         `an equalisation row` 1150 (JUST 1300) (JUST 320) (JUST 850) (JUST 60),
+         `an equalisation row` 1000 (JUST 1150) (JUST 300) (JUST 730) (JUST 60),
+         `an equalisation row` 850 (JUST 1000) (JUST 270) (JUST 610) (JUST 60),
+         `an equalisation row` 750 (JUST 850) (JUST 240) (JUST 550) (JUST 60),
+         `an equalisation row` 650 (JUST 750) (JUST 200) (JUST 490) (JUST 60),
+         `an equalisation row` 550 (JUST 650) (JUST 160) (JUST 430) (JUST 60),
+         `an equalisation row` 0 (JUST 550) (JUST 120) NOTHING (JUST 60)
+
+-- Read as a cap, the daily free pass would hold the supplement the table
+-- gives far below it: X of 1,500 on a route of 200 km, 830 by the table
+-- against a daily pass of 74.
+`notice 15's table pays more than the daily pass 2.2.3 names` MEANS
+    fromMaybe 0 (`notice 15's equalisation supplement` 1500 610 1500)
+        GREATER THAN fromMaybe 0 (`the fare for the distance` `notice 15's fares` 200 `a daily free pass` `bus and train`)
+#ASSERT `notice 15's table pays more than the daily pass 2.2.3 names`
+
+§§ `2.3 שינוי כתובת מגורים לעובדים קיימים`
+
+-- akn:hc_1__para_2__subpara_2-3 The heading; its clauses follow.
+
+-- 2.3.1: the employee must tell human resources of a new address or
+-- workplace; a move farther away keeps the supplement of 1.8.2022 without
+-- recalculation (2.3.1.1); a move nearer leaves the new tariffs alone, no
+-- supplement (2.3.1.2).
+@ref akn:hc_1__para_2__subpara_2-3__cls_2-3-1
+GIVETH A DEONTIC Party `travel-allowance duty`
+DECIDE `reporting a move, notice 15` IS
+    PARTY `the government employee`
+    MUST  `report the new address or workplace on the travel-allowance form`
+
+@ref akn:hc_1__para_2__subpara_2-3__cls_2-3-1__pnt_2-3-1-1 akn:hc_1__para_2__subpara_2-3__cls_2-3-1__pnt_2-3-1-2
+GIVEN `the supplement of 1.8.2022` IS A NUMBER
+      `the move is nearer` IS A BOOLEAN @desc by the reform's distance bands
+GIVETH A NUMBER
+DECIDE `notice 15's supplement after a move` `the supplement of 1.8.2022` `the move is nearer` IS
+    IF `the move is nearer` THEN 0 ELSE `the supplement of 1.8.2022`
+
+§§ `3 נסיעות בתפקיד`
+
+-- 3.1-3.2: trips on duty are refunded at the daily free pass of the means
+-- used ("חופשי יומי – אוטובוס" or "– אוטובוס + רכבת"): up to 1,000 shekels
+-- a month to an employee with a service car, up to 1,500 to one with no car
+-- standard, out of town, on report. 3.3: reported under symbol 1247.
+@ref akn:hc_1__para_3__subpara_3-1 akn:hc_1__para_3__subpara_3-2
+GIVEN `the daily passes of the trips on duty` IS A NUMBER
+      `has a service car` IS A BOOLEAN
+GIVETH A NUMBER
+DECIDE `notice 15's refund for trips on duty` `the daily passes of the trips on duty` `has a service car` IS
+    min `the daily passes of the trips on duty` (IF `has a service car` THEN 1000 ELSE 1500)
+
+@ref akn:hc_1__para_3__subpara_3-3
+GIVETH A DEONTIC Party `tariff-notice duty`
+DECIDE `reporting trips on duty, notice 15` IS
+    PARTY `the salary accountant`
+    MUST  `report the single trips on duty`
+
+§§ `4 ניכוי מס הכנסה`
+
+-- 4.1-4.2: income tax is withheld from the allowance up to 620 shekels a
+-- month for an employee of a 6-day week, 527 for a 5-day week. No other
+-- week is named (finding F-…v15-c; the instruction's own clause has the
+-- same gap).
+@ref akn:hc_1__para_4__subpara_4-1 akn:hc_1__para_4__subpara_4-2
+GIVEN allowance IS A NUMBER, `days a week` IS A NUMBER
+GIVETH A MAYBE NUMBER
+DECIDE `the allowance notice 15 withholds tax from` allowance `days a week` IS
+    BRANCH
+        IF `days a week` EQUALS 6 THEN JUST (min allowance 620)
+        IF `days a week` EQUALS 5 THEN JUST (min allowance 527)
+        OTHERWISE NOTHING
+
+`notice 15 names no tax amount for a week of other than 5 or 6 days` MEANS
+    isNothing (`the allowance notice 15 withholds tax from` 700 4)
+#ASSERT `notice 15 names no tax amount for a week of other than 5 or 6 days`
+
+§§ `5 אופן הדיווח`
+
+-- akn:hc_1__para_5__subpara_5-1 akn:hc_1__para_5__subpara_5-2 akn:hc_1__para_5__subpara_5-3 The headings of the two stages; their clauses follow.
+
+-- 5.1-5.3: the distance band is taken from the Ministry's calculator (the
+-- calculator shows the distance only), the monthly free pass of the band
+-- read from the table of 1.3, and the tariff code reported in event 225.
+-- 5.3.2 says the codes "start at 1000"; the table of 5.4 prints them 11.10
+-- to 11.60, and the code reported is the table's.
+@ref akn:hc_1__para_5__subpara_5-1__cls_5-1-1 akn:hc_1__para_5__subpara_5-1__cls_5-1-2 akn:hc_1__para_5__subpara_5-2__cls_5-2-1 akn:hc_1__para_5__subpara_5-2__cls_5-2-1__pnt_5-2-1-1 akn:hc_1__para_5__subpara_5-2__cls_5-2-1__pnt_5-2-1-2 akn:hc_1__para_5__subpara_5-2__cls_5-2-1__pnt_5-2-1-3 akn:hc_1__para_5__subpara_5-2__cls_5-2-1__pnt_5-2-1-4 akn:hc_1__para_5__subpara_5-3__cls_5-3-1 akn:hc_1__para_5__subpara_5-3__cls_5-3-2 akn:hc_1__para_5__subpara_5-4
+GIVETH A DEONTIC Party `tariff-notice duty`
+DECIDE `reporting the code in Malam, notice 15` IS
+    PARTY `the salary accountant`
+    MUST  `find the route's tariff code or distance on the Ministry of Transport's calculator`
+    HENCE (PARTY `the salary accountant`
+           MUST  `report the route's tariff code in the payroll`)
+
+-- tariff data akn:hc_1__para_5__subpara_5-4/t1 (tools/tariff_l4.py)
+@ref akn:hc_1__para_5__subpara_5-4/t1
+`notice 15's fare table 3` MEANS
+    `a fare table` ""
+        (LIST `a fare column` NOTHING NOTHING NOTHING, `a fare column` (JUST `a monthly free pass`) NOTHING NOTHING)
+        (LIST `banded` "11.10" "אזור צהוב" 0 (JUST 15) `bus and train` `a daily free pass` (LIST (JUST 18), (JUST 255)),
+              `banded` "11.20" "אזור ירוק" 15 (JUST 40) `bus and train` `a daily free pass` (LIST (JUST 28), (JUST 255)),
+              `banded` "11.30" "אזור תכלת" 40 (JUST 75) `bus and train` `a daily free pass` (LIST (JUST 37), (JUST 410)),
+              `banded` "11.40" "אזור כחול" 75 (JUST 120) `bus and train` `a daily free pass` (LIST (JUST 42), (JUST 610)),
+              `banded` "11.50" "אזור סגול" 120 (JUST 225) `bus and train` `a daily free pass` (LIST (JUST 74), (JUST 610)),
+              `banded` "11.60" "אזור אפור" 225 NOTHING `bus and train` `a daily free pass` (LIST NOTHING, (JUST 610)))
+
+-- akn:hc_1__para_6__subpara_6-1 akn:hc_1__para_6__subpara_6-2 The list of annexes; no rule.
+-- akn:att_2__hc_1/p1 akn:att_2__hc_1/p2 akn:att_2__hc_1/t1 Annex B, the table of the editions' changes; a record, no rule.
+
+§§ `המהדורה`
+
+-- tariff data akn:all (tools/tariff_l4.py)
+`notice 15's fare tables` MEANS
+    LIST `notice 15's fare table 1`,
+         `notice 15's fare table 3`
+
+-- The summary table (1.3), which 2.1.3 and 5.2.1.4 pay by, is read first;
+-- the table of codes (5.4) after it. The summary prints its last band
+-- "מעל 255" where the bands before it close at 225 and the table of codes
+-- opens its last at 225: between 225 and 255 km the summary prints no
+-- tariff, and the table of codes is read (finding F-…v15-a).
+`notice 15` MEANS
+    `tariff notice` WITH
+        `notice edition`       IS 15
+        `notice published`     IS `notice 15 is published`
+        `notice fares`         IS `notice 15's fares`
+        `notice monthly means` IS JUST `the card notice 15 pays by`
+        `notice unread codes`  IS concat (map `the misaligned codes of` `notice 15's fare tables`)
+
+`notice 15's fares` MEANS concat (map `the fares of` `notice 15's fare tables`)
+
+`notice 15's summary prints no tariff between 225 and 255 km` MEANS
+    isNothing (`the fare for the distance` (`the fares of` `notice 15's fare table 1`) 240 `a monthly free pass` `bus and train`)
+#ASSERT `notice 15's summary prints no tariff between 225 and 255 km`
+
+§§ `Worked examples`
+
+-- 30 km: the band of 15-40, 255 a month and 28 a day; on the shared bound
+-- of 40 km, the band that opens there (thresholds.shared-bound): 410.
+#ASSERT `notice 15's monthly allowance for the distance` 30 EQUALS JUST 255
+#ASSERT `notice 15's monthly allowance for the distance` 40 EQUALS JUST 410
+#ASSERT `notice 15's monthly allowance for the distance` 240 EQUALS JUST 610
+#ASSERT `the fare for the distance` `notice 15's fares` 30 `a daily free pass` `bus and train` EQUALS JUST 28
+-- Over 225 km no daily free pass is printed.
+#ASSERT `the fare for the distance` `notice 15's fares` 300 `a daily free pass` `bus and train` EQUALS NOTHING
+
+-- 2.2.3: X of 1,500 and a new tariff of 610: the row "1,450 and over"
+-- leaves max(1,100, 1,500 - 60) = 1,440, a supplement of 830. A cut of 50
+-- against 2022's highest earns none (2.2.2).
+#ASSERT `notice 15's equalisation supplement` 1500 610 1500 EQUALS JUST 830
+#ASSERT `notice 15's equalisation supplement` 660 610 660 EQUALS JUST 0
+-- X of 500 (the row "0-550", no floor): 500 - 60 = 440 against a new
+-- tariff of 255: 185.
+#ASSERT `notice 15's equalisation supplement` 500 255 500 EQUALS JUST 185
+
+#ASSERT `notice 15's supplement after a move` 300 TRUE EQUALS 0
+#ASSERT `notice 15's refund for trips on duty` 1300 TRUE EQUALS 1000
+#ASSERT `notice 15's refund for trips on duty` 1300 FALSE EQUALS 1300
+#ASSERT `the allowance notice 15 withholds tax from` 700 5 EQUALS JUST 527

@@ -1,0 +1,430 @@
+-- הודעת תכ"ם HOD.13.4.2.1 "לוח תעריפי נסיעה בתחבורה ציבורית" — the
+-- vocabulary its editions share (MMS-685). The Accountant-General's notice
+-- of the public-transport tariffs that the travel-allowance instruction
+-- H.13.4.2 pays by, editions 11 (1.4.2017) to 19 (1.5.2025). Each edition's
+-- tables are DATA in its own file, cell for cell as the corpus publishes
+-- them, written by tools/tariff_l4.py and held to the corpus by
+-- tests/test_tariffs.py; only the types they are written in, and the
+-- lookups every edition and the instruction read, live here.
+--
+-- A tariff is found two ways, as the editions find it:
+--   * editions 11 to 14 (before the reform of 1.8.2022) by the code the
+--     salary unit reports ("קוד דיווח"), each price in a column that names
+--     its ticket and the day it applies from;
+--   * editions 15 to 19 (the reform "דרך שווה") by the distance between
+--     home and work, in bands, and the means of transport.
+
+IMPORT prelude
+IMPORT conventions
+IMPORT `kitzuvat-nesia-common`
+
+§ `הודעת תכ"ם 13.4.2.1 לוח תעריפי נסיעה בתחבורה ציבורית — אוצר מילים משותף`
+
+§§ `Tickets and means of transport`
+
+@desc The ticket a price is for, by the name the notice's tables give it.
+DECLARE `fare ticket` IS ONE OF
+    `a single trip`          @desc "נסיעה בודדת": one trip, one way
+    `a daily free pass`      @desc "חופשי יומי": unlimited travel on the day
+    `a monthly free pass`    @desc "חופשי חודשי": unlimited travel for the month
+    `a 30-day period card`   @desc "כרטיס תקופתי ל-30 ימים": the combined card between metropolitan areas (editions 11 to 14, annex A)
+
+@desc The means of transport a price is for.
+DECLARE `means of transport` IS ONE OF
+    `the means the card names` @desc before the reform: the lines, operators and zones of the card the code names
+    `bus and train`            @desc "אוטובוס + רכבת" (editions 15 to 18)
+    `bus only`                 @desc "אוטובוס", "אוטובוס בלבד"
+    `train only`               @desc "רכבת", "רכבת בלבד"
+    `full combined`            @desc "משולב מלא": bus, train, light rail and cable car (edition 19)
+    `partial combined`         @desc "משולב חלקי": bus, light rail and cable car (edition 19)
+
+§§ `A table as printed`
+
+@desc A price column: its ticket and means where the header names them (NOTHING: the row says), and the day its prices apply from (NOTHING: an earlier price, "עד", "ישן", or a column that prints no date).
+DECLARE `fare column` HAS
+    `column ticket` IS A MAYBE `fare ticket`
+    `column means`  IS A MAYBE `means of transport`
+    `column from`   IS A MAYBE DATE
+
+@desc A row of a fare table as printed.
+DECLARE `fare row` HAS
+    `row code`    IS A STRING @desc the code reported for the row ("קוד דיווח", "קוד תעריף"), as printed; "" where none
+    `row name`    IS A STRING @desc the card's name or the note beside it, as printed
+    `row zones`   IS A STRING @desc the zones the card covers, or the colour of a distance band, as printed
+    `row from km` IS A MAYBE NUMBER
+    `row to km`   IS A MAYBE NUMBER @desc NOTHING: no upper bound ("מ-225", "מעל")
+    `row means`   IS A `means of transport`
+    `row ticket`  IS A MAYBE `fare ticket` @desc the card the row's first price is for, where the row names it ("נסיעה חופשית", "נסיעה בודדת")
+    `row prices`  IS A LIST OF MAYBE NUMBER @desc in the order of the table's columns; NOTHING where the cell is "-" or blank
+    `row read`    IS A BOOLEAN @desc FALSE for a row the corpus publishes with other than the header's number of cells: no price of it is read
+
+@desc A fare table as printed: its title line, its price columns, its rows.
+DECLARE `fare table` HAS
+    `fare table title`   IS A STRING
+    `fare table columns` IS A LIST OF `fare column`
+    `fare table rows`    IS A LIST OF `fare row`
+
+GIVEN t IS A MAYBE `fare ticket`, m IS A MAYBE `means of transport`, d IS A MAYBE DATE
+GIVETH A `fare column`
+DECIDE `a fare column` t m d IS
+    `fare column` WITH
+        `column ticket` IS t
+        `column means`  IS m
+        `column from`   IS d
+
+-- A row keyed by code (editions 11 to 14).
+GIVEN code IS A STRING, n IS A STRING, z IS A STRING, ps IS A LIST OF MAYBE NUMBER
+GIVETH A `fare row`
+DECIDE `coded` code n z ps IS
+    `fare row` WITH
+        `row code`    IS code
+        `row name`    IS n
+        `row zones`   IS z
+        `row from km` IS NOTHING
+        `row to km`   IS NOTHING
+        `row means`   IS `the means the card names`
+        `row ticket`  IS NOTHING
+        `row prices`  IS ps
+        `row read`    IS TRUE
+
+-- A row of more or fewer cells than its header: its code, nothing read.
+GIVEN code IS A STRING
+GIVETH A `fare row`
+DECIDE `misaligned` code IS
+    `fare row` WITH
+        `row code`    IS code
+        `row name`    IS ""
+        `row zones`   IS ""
+        `row from km` IS NOTHING
+        `row to km`   IS NOTHING
+        `row means`   IS `the means the card names`
+        `row ticket`  IS NOTHING
+        `row prices`  IS EMPTY
+        `row read`    IS FALSE
+
+-- A row of the reform's table by code and distance (editions 15 to 19).
+GIVEN code IS A STRING, z IS A STRING, lo IS A NUMBER, hi IS A MAYBE NUMBER, m IS A `means of transport`, t IS A `fare ticket`, ps IS A LIST OF MAYBE NUMBER
+GIVETH A `fare row`
+DECIDE `banded` code z lo hi m t ps IS
+    `fare row` WITH
+        `row code`    IS code
+        `row name`    IS ""
+        `row zones`   IS z
+        `row from km` IS JUST lo
+        `row to km`   IS hi
+        `row means`   IS m
+        `row ticket`  IS JUST t
+        `row prices`  IS ps
+        `row read`    IS TRUE
+
+-- A row of the reform's summary table by distance (editions 15 to 18).
+GIVEN lo IS A NUMBER, hi IS A MAYBE NUMBER, ps IS A LIST OF MAYBE NUMBER
+GIVETH A `fare row`
+DECIDE `ranged` lo hi ps IS
+    `fare row` WITH
+        `row code`    IS ""
+        `row name`    IS ""
+        `row zones`   IS ""
+        `row from km` IS JUST lo
+        `row to km`   IS hi
+        `row means`   IS `the means the card names`
+        `row ticket`  IS NOTHING
+        `row prices`  IS ps
+        `row read`    IS TRUE
+
+GIVEN title IS A STRING
+      cs IS A LIST OF `fare column`
+      rs IS A LIST OF `fare row`
+GIVETH A `fare table`
+DECIDE `a fare table` title cs rs IS
+    `fare table` WITH
+        `fare table title`   IS title
+        `fare table columns` IS cs
+        `fare table rows`    IS rs
+
+@desc A zone of a metropolitan map (editions 11 to 14): its ring, the zone, and the localities in it, as printed.
+DECLARE `zone` HAS
+    `zone ring`       IS A STRING
+    `zone name`       IS A STRING
+    `zone localities` IS A STRING
+
+GIVEN r IS A STRING, z IS A STRING, ls IS A STRING
+GIVETH A `zone`
+DECIDE `a zone` r z ls IS
+    `zone` WITH
+        `zone ring`       IS r
+        `zone name`       IS z
+        `zone localities` IS ls
+
+§§ `A price`
+
+@desc One price a table prints: what it is for, from when, and the amount.
+DECLARE `fare` HAS
+    `fare code`    IS A STRING
+    `fare zones`   IS A STRING
+    `fare from km` IS A MAYBE NUMBER
+    `fare to km`   IS A MAYBE NUMBER
+    `fare means`   IS A `means of transport`
+    `fare kind`    IS A `fare ticket`
+    `fare from`    IS A MAYBE DATE
+    `fare amount`  IS A NUMBER
+
+-- A cell's price, with the ticket and means its column names, or else the
+-- row's. A cell with no price, or whose ticket neither names, is none.
+GIVEN r IS A `fare row`, c IS A `fare column`, p IS A MAYBE NUMBER
+GIVETH A MAYBE `fare`
+DECIDE `the fare of the cell` r c p IS
+    CONSIDER p
+    WHEN NOTHING THEN NOTHING
+    WHEN JUST amount THEN
+        CONSIDER orElse (c's `column ticket`) (r's `row ticket`)
+        WHEN NOTHING THEN NOTHING
+        WHEN JUST t THEN JUST (`fare` WITH
+            `fare code`    IS r's `row code`
+            `fare zones`   IS r's `row zones`
+            `fare from km` IS r's `row from km`
+            `fare to km`   IS r's `row to km`
+            `fare means`   IS fromMaybe (r's `row means`) (c's `column means`)
+            `fare kind`    IS t
+            `fare from`    IS c's `column from`
+            `fare amount`  IS amount)
+
+-- Every price a table prints, row by row and column by column. A row read
+-- as misaligned gives none.
+GIVEN t IS A `fare table`
+GIVETH A LIST OF `fare`
+DECIDE `the fares of` t IS
+    concat (map (GIVEN r YIELD
+                    IF r's `row read`
+                    THEN catMaybes (zipWith (GIVEN c, p YIELD `the fare of the cell` r c p) (t's `fare table columns`) (r's `row prices`))
+                    ELSE EMPTY)
+                (t's `fare table rows`))
+
+-- The codes of a table's rows read as misaligned: the codes it holds no
+-- price of.
+GIVEN t IS A `fare table`
+GIVETH A LIST OF STRING
+DECIDE `the misaligned codes of` t IS
+    map (GIVEN r YIELD r's `row code`) (filter (GIVEN r YIELD NOT r's `row read`) (t's `fare table rows`))
+
+§§ `Which price applies on a day`
+
+-- A column that names the day its prices apply from ("מה- 01.02.2016")
+-- applies from that day (convention dates.start); a column of earlier
+-- prices ("עד - 31.01.2016", "ישן"), or one that prints no date, applies
+-- before every dated column of its row. Of the prices a day reaches, the
+-- one whose column starts latest is the one in force.
+GIVEN f IS A `fare`, d IS A DATE
+GIVETH A BOOLEAN
+DECIDE `has started by` f d IF
+    CONSIDER f's `fare from`
+    WHEN NOTHING THEN TRUE
+    WHEN JUST s THEN d `is on or after` s
+
+GIVEN a IS A `fare`, b IS A `fare`
+GIVETH A BOOLEAN
+DECIDE a `starts later than` b IF
+    CONSIDER a's `fare from`
+    WHEN NOTHING THEN FALSE
+    WHEN JUST da THEN
+        CONSIDER b's `fare from`
+        WHEN NOTHING THEN TRUE
+        WHEN JUST db THEN DATE_SERIAL da GREATER THAN DATE_SERIAL db
+
+-- The latest-starting of the prices, the first printed among equals.
+GIVEN fs IS A LIST OF `fare`
+GIVETH A MAYBE NUMBER
+DECIDE `the latest of` fs IS
+    CONSIDER fs
+    WHEN EMPTY THEN NOTHING
+    WHEN f FOLLOWED BY rest THEN
+        JUST ((foldl (GIVEN best, g YIELD IF g `starts later than` best THEN g ELSE best) f rest)'s `fare amount`)
+
+@desc The price a code's ticket costs on a day, by the tables of one edition (editions 11 to 14).
+GIVEN fs IS A LIST OF `fare`
+      code IS A STRING, t IS A `fare ticket`, d IS A DATE
+GIVETH A MAYBE NUMBER
+DECIDE `the fare for the code` fs code t d IS
+    `the latest of` (filter (GIVEN f YIELD f's `fare code` EQUALS code AND f's `fare kind` EQUALS t AND `has started by` f d) fs)
+
+-- A distance is in the band that opens at or below it and closes above it:
+-- a distance on a bound two bands share is in the band that opens with it
+-- (convention thresholds.shared-bound).
+GIVEN f IS A `fare`, km IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `the band holds` f km IF
+    CONSIDER f's `fare from km`
+    WHEN NOTHING THEN FALSE
+    WHEN JUST lo THEN
+            km `has reached the row from` lo
+        AND CONSIDER f's `fare to km`
+            WHEN NOTHING THEN TRUE
+            WHEN JUST hi THEN km `is in the row from` lo `to` hi
+
+@desc The price of a ticket by a means of transport for a distance, by the tables of one edition (editions 15 to 19).
+GIVEN fs IS A LIST OF `fare`
+      km IS A NUMBER, t IS A `fare ticket`, m IS A `means of transport`
+GIVETH A MAYBE NUMBER
+DECIDE `the fare for the distance` fs km t m IS
+    `the latest of` (filter (GIVEN f YIELD `the band holds` f km AND f's `fare kind` EQUALS t AND f's `fare means` EQUALS m) fs)
+
+-- A trip there and back is two single trips.
+`the single fares a day of an intercity round trip` MEANS 2
+
+§§ `An edition`
+
+@desc An edition of the notice: its number, the day it is published (in force until the next), the prices of the tables H.13.4.2 pays by, and the card the monthly allowance is paid by (from the reform).
+DECLARE `tariff notice` HAS
+    `notice edition`        IS A NUMBER
+    `notice published`      IS A DATE
+    `notice fares`          IS A LIST OF `fare`
+    `notice monthly means`  IS A MAYBE `means of transport` @desc "תשלום קצובת נסיעה יבוצע לפי תעריף חופשי חודשי – …" (editions 15 to 19); NOTHING before the reform, when the code names the card
+    `notice unread codes`   IS A LIST OF STRING @desc the codes of rows the corpus publishes misaligned, whose prices are not read
+
+§§ `A route`
+
+@desc The employee's route between home and work, as the notice reads it: before the reform, the codes the salary unit reports for it; from the reform, the distance the Ministry of Transport's calculator gives.
+DECLARE `travel route` HAS
+    `route monthly code`    IS A STRING @desc the code of the monthly free pass (or the 30-day combined card) reported for the route (editions 11 to 14)
+    `route single code`     IS A STRING @desc the code of a single trip on the route's lines (editions 11 to 14)
+    `route intercity code`  IS A STRING @desc the code of an intercity single trip (editions 11 to 14)
+    `route distance`        IS A NUMBER @desc the distance in km between home and work (editions 15 to 19)
+    `route single means`    IS A `means of transport` @desc the bus or the train, for a single trip (editions 16 to 19)
+
+@desc The tariffs of a route that the notice in force prints, each NOTHING where it prints none.
+DECLARE `route tariffs` HAS
+    `route monthly pass`    IS A MAYBE NUMBER
+    `route daily pass`      IS A MAYBE NUMBER
+    `route single trip`     IS A MAYBE NUMBER
+    `route intercity trip`  IS A MAYBE NUMBER
+
+-- What an edition prints for a route on a day. Before the reform the
+-- monthly price is the code's monthly free pass, or its 30-day combined
+-- card (annex A), and its daily free pass is the one the same code's row
+-- prints; from the reform, the monthly and daily prices are those of the
+-- card the edition pays by, and the single trip that of the route's means.
+GIVEN n IS A `tariff notice`, r IS A `travel route`, d IS A DATE
+GIVETH A `route tariffs`
+DECIDE `the tariffs of the route in` n r d IS
+    CONSIDER n's `notice monthly means`
+    WHEN NOTHING THEN
+        `route tariffs` WITH
+            `route monthly pass`   IS orElse (`the fare for the code` (n's `notice fares`) (r's `route monthly code`) `a monthly free pass` d)
+                                             (`the fare for the code` (n's `notice fares`) (r's `route monthly code`) `a 30-day period card` d)
+            `route daily pass`     IS `the fare for the code` (n's `notice fares`) (r's `route monthly code`) `a daily free pass` d
+            `route single trip`    IS `the fare for the code` (n's `notice fares`) (r's `route single code`) `a single trip` d
+            `route intercity trip` IS `the fare for the code` (n's `notice fares`) (r's `route intercity code`) `a single trip` d
+    WHEN JUST m THEN
+        `route tariffs` WITH
+            `route monthly pass`   IS `the fare for the distance` (n's `notice fares`) (r's `route distance`) `a monthly free pass` m
+            `route daily pass`     IS `the fare for the distance` (n's `notice fares`) (r's `route distance`) `a daily free pass` m
+            `route single trip`    IS `the fare for the distance` (n's `notice fares`) (r's `route distance`) `a single trip` (r's `route single means`)
+            `route intercity trip` IS NOTHING
+
+-- The `travel fares` an edition of H.13.4.2 reads, from a route's tariffs,
+-- where every tariff that edition reads is printed. A tariff the edition
+-- does not read is not asked for: it stands at 0, which no rule of that
+-- edition reaches (each instruction edition says which it reads).
+GIVEN rt IS A `route tariffs`, `reads the daily pass` IS A BOOLEAN, `reads the single trip` IS A BOOLEAN, `reads the intercity trip` IS A BOOLEAN
+GIVETH A MAYBE `travel fares`
+DECIDE `the travel fares from` rt `reads the daily pass` `reads the single trip` `reads the intercity trip` IS
+    CONSIDER rt's `route monthly pass`
+    WHEN NOTHING THEN NOTHING
+    WHEN JUST monthly THEN
+        IF     (`reads the daily pass` AND isNothing (rt's `route daily pass`))
+            OR (`reads the single trip` AND isNothing (rt's `route single trip`))
+            OR (`reads the intercity trip` AND isNothing (rt's `route intercity trip`))
+        THEN NOTHING
+        ELSE JUST (`travel fares` WITH
+            `monthly free pass`     IS monthly
+            `daily free pass`       IS fromMaybe 0 (rt's `route daily pass`)
+            `single fare`           IS fromMaybe 0 (rt's `route single trip`)
+            `intercity single fare` IS fromMaybe 0 (rt's `route intercity trip`))
+
+§§ `The equalisation supplement`
+
+@desc A row of the table of the equalisation supplement (editions 15 to 19): the band of the allowance the employee was paid before the reform, X; the maximal cumulative reduction; the allowance after it, "Max (F,X-R)" (NOTHING where the row prints "-"); and the monthly reduction "for a year".
+DECLARE `equalisation row` HAS
+    `equalisation from`       IS A NUMBER
+    `equalisation to`         IS A MAYBE NUMBER @desc NOTHING: "ומעלה"
+    `maximal reduction`       IS A MAYBE NUMBER
+    `floor after reduction`   IS A MAYBE NUMBER
+    `yearly reduction step`   IS A MAYBE NUMBER
+
+GIVEN lo IS A NUMBER, hi IS A MAYBE NUMBER, r IS A MAYBE NUMBER, f IS A MAYBE NUMBER, s IS A MAYBE NUMBER
+GIVETH AN `equalisation row`
+DECIDE `an equalisation row` lo hi r f s IS
+    `equalisation row` WITH
+        `equalisation from`     IS lo
+        `equalisation to`       IS hi
+        `maximal reduction`     IS r
+        `floor after reduction` IS f
+        `yearly reduction step` IS s
+
+-- The row of X: a value on a bound two rows share is in the row that opens
+-- with it (convention thresholds.shared-bound).
+GIVEN r IS AN `equalisation row`, x IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `the equalisation row holds` r x IF
+        x `has reached the row from` (r's `equalisation from`)
+    AND CONSIDER r's `equalisation to`
+        WHEN NOTHING THEN TRUE
+        WHEN JUST hi THEN x `is in the row from` (r's `equalisation from`) `to` hi
+
+GIVEN rows IS A LIST OF `equalisation row`
+      x IS A NUMBER
+GIVETH A MAYBE `equalisation row`
+DECIDE `the equalisation row of` rows x IS
+    listToMaybe (filter (GIVEN r YIELD `the equalisation row holds` r x) rows)
+
+-- The allowance the table leaves an existing employee after the reductions
+-- made so far, each a step of the row's monthly reduction, together no
+-- more than its maximal reduction, and never below its floor: "Max
+-- (F,X-R)". A row that prints no floor ("0-550", "-") leaves X less the
+-- reductions.
+GIVEN rows IS A LIST OF `equalisation row`
+      x IS A NUMBER @desc the allowance paid before the reform, every component included
+      k IS A NUMBER @desc the reductions made so far
+GIVETH A MAYBE NUMBER
+DECIDE `the allowance after the reductions` rows x k IS
+    CONSIDER `the equalisation row of` rows x
+    WHEN NOTHING THEN NOTHING
+    WHEN JUST r THEN
+        CONSIDER r's `maximal reduction`
+        WHEN NOTHING THEN NOTHING
+        WHEN JUST most THEN
+            CONSIDER r's `yearly reduction step`
+            WHEN NOTHING THEN NOTHING
+            WHEN JUST step THEN
+                JUST (max (fromMaybe 0 (r's `floor after reduction`)) (x MINUS min most (step TIMES k)))
+
+-- The supplement: what the table leaves, above the new tariff (2.2.1: the
+-- new tariff is paid where it is the higher).
+GIVEN rows IS A LIST OF `equalisation row`
+      x IS A NUMBER, `the new tariff` IS A NUMBER, k IS A NUMBER
+GIVETH A MAYBE NUMBER
+DECIDE `the equalisation supplement by the table` rows x `the new tariff` k IS
+    CONSIDER `the allowance after the reductions` rows x k
+    WHEN NOTHING THEN NOTHING
+    WHEN JUST left THEN JUST (`the part above` left `the new tariff`)
+
+§§ `Duties`
+
+@desc What the notice's procedures ask of the salary accountant, the payroll service and the employee.
+DECLARE `tariff-notice duty` IS ONE OF
+    `find the route's tariff code or distance on the Ministry of Transport's calculator`
+    `report the route's tariff code in the payroll`
+    `report the existing-employee population code`
+    `stop the postcode calculation and the travel advance`
+    `sign a periodic declaration of the intercity trips made`
+    `have the employees sign the declaration`
+    `report codes for the new address`
+    `raise the refund cap for a national-priority locality`
+    `send the localities file to the Ministry of Transport`
+    `replace the travel codes by the Ministry's file`
+    `cancel the travel advance retroactively`
+    `spread a set-off above 500 shekels`
+    `report the single trips on duty`
+    `report the equalisation supplement`
+    `report the travel allowance in SAP payroll`
+    `report a blind employee in SAP payroll`

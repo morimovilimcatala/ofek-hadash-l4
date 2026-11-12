@@ -1,0 +1,120 @@
+-- לוח תעריפי נסיעה בתוקף — which edition of the notice HOD.13.4.2.1 is in
+-- force on a day, and what it prints for a route (MMS-685). The
+-- travel-allowance instruction H.13.4.2 pays by "the tariffs of the notice";
+-- each of its editions reads them here, through `the travel allowance on
+-- the route, edition N`. An edition is in force from the day the corpus
+-- dates it until the next; before edition 11 (1.4.2017) the corpus holds no
+-- edition of the notice, and the lookup gives no answer.
+
+IMPORT prelude
+IMPORT conventions
+IMPORT vocabulary
+IMPORT `kitzuvat-nesia-common`
+IMPORT `taarifei-nesia-common`
+IMPORT `2017-04-01_takam_HOD-13-4-2-1_luach-taarifei-nesia_v11`
+IMPORT `2018-08-16_takam_HOD-13-4-2-1_luach-taarifei-nesia_v12`
+IMPORT `2019-04-01_takam_HOD-13-4-2-1_luach-taarifei-nesia_v13`
+IMPORT `2021-02-01_takam_HOD-13-4-2-1_luach-taarifei-nesia_v14`
+IMPORT `2022-11-17_takam_HOD-13-4-2-1_luach-taarifei-nesia_v15`
+IMPORT `2023-01-26_takam_HOD-13-4-2-1_luach-taarifei-nesia_v16`
+IMPORT `2023-03-02_takam_HOD-13-4-2-1_luach-taarifei-nesia_v17`
+IMPORT `2024-07-01_takam_HOD-13-4-2-1_luach-taarifei-nesia_v18`
+IMPORT `2025-05-01_takam_HOD-13-4-2-1_luach-taarifei-nesia_v19`
+
+§ `לוח תעריפי נסיעה בתוקף`
+
+-- The editions the corpus holds, newest first.
+`the editions of the tariff notice` MEANS
+    LIST `notice 19`, `notice 18`, `notice 17`, `notice 16`, `notice 15`, `notice 14`, `notice 13`, `notice 12`, `notice 11`
+
+`why there is no tariff notice before 1.4.2017` MEANS
+    `outside the corpus` "מהדורות ההודעה לוח תעריפי נסיעה בתחבורה ציבורית שקדמו למהדורה 11 (1.4.2017)"
+
+@desc The edition of the notice in force on a day: the latest the corpus dates on or before it (convention dates.start).
+GIVEN d IS A DATE
+GIVETH A MAYBE `tariff notice`
+DECIDE `the tariff notice in force on` d IS
+    listToMaybe (filter (GIVEN n YIELD d `is on or after` (n's `notice published`)) `the editions of the tariff notice`)
+
+@desc What the notice in force on a day prints for a route.
+GIVEN r IS A `travel route`, d IS A DATE
+GIVETH A MAYBE `route tariffs`
+DECIDE `the tariffs of the route on` r d IS
+    CONSIDER `the tariff notice in force on` d
+    WHEN NOTHING THEN NOTHING
+    WHEN JUST n THEN JUST (`the tariffs of the route in` n r d)
+
+@desc The `travel fares` an edition of H.13.4.2 reads for a route on a day, where the notice in force prints every tariff that edition reads.
+GIVEN r IS A `travel route`, d IS A DATE
+      `reads the daily pass` IS A BOOLEAN, `reads the single trip` IS A BOOLEAN, `reads the intercity trip` IS A BOOLEAN
+GIVETH A MAYBE `travel fares`
+DECIDE `the travel fares of the route on` r d `reads the daily pass` `reads the single trip` `reads the intercity trip` IS
+    CONSIDER `the tariffs of the route on` r d
+    WHEN NOTHING THEN NOTHING
+    WHEN JUST rt THEN `the travel fares from` rt `reads the daily pass` `reads the single trip` `reads the intercity trip`
+
+@desc The equalisation supplement the notice in force on a day sets, for an existing employee whose allowance before the reform was X (editions 15 to 19).
+GIVEN d IS A DATE
+      x IS A NUMBER @desc the allowance paid before the reform, every component included
+      `the new tariff` IS A NUMBER
+      `the highest allowance of 2022` IS A NUMBER
+GIVETH A MAYBE NUMBER
+DECIDE `the equalisation supplement in force on` d x `the new tariff` `the highest allowance of 2022` IS
+    BRANCH
+        IF d `is on or after` `notice 19 is published` THEN `notice 19's equalisation supplement` x `the new tariff` `the highest allowance of 2022` d
+        IF d `is on or after` `notice 18 is published` THEN `notice 18's equalisation supplement` x `the new tariff` `the highest allowance of 2022` d
+        IF d `is on or after` `notice 17 is published` THEN `notice 17's equalisation supplement` x `the new tariff` `the highest allowance of 2022` d
+        IF d `is on or after` `notice 16 is published` THEN `notice 16's equalisation supplement` x `the new tariff` `the highest allowance of 2022` d
+        IF d `is on or after` `notice 15 is published` THEN `notice 15's equalisation supplement` x `the new tariff` `the highest allowance of 2022`
+        OTHERWISE NOTHING
+
+§§ `Examples`
+
+GIVEN d IS A DATE
+GIVETH A NUMBER
+DECIDE `the number of the tariff notice in force on` d IS
+    CONSIDER `the tariff notice in force on` d
+    WHEN NOTHING THEN 0
+    WHEN JUST n THEN n's `notice edition`
+
+-- The edition in force: 11 on 1.5.2017, 14 on 1.6.2021, 15 on 1.12.2022,
+-- 19 on 1.6.2025; none before 1.4.2017.
+#ASSERT `the number of the tariff notice in force on` (DATE_FROM_DMY 1 5 2017) EQUALS 11
+#ASSERT `the number of the tariff notice in force on` (DATE_FROM_DMY 1 6 2021) EQUALS 14
+#ASSERT `the number of the tariff notice in force on` (DATE_FROM_DMY 1 12 2022) EQUALS 15
+#ASSERT `the number of the tariff notice in force on` (DATE_FROM_DMY 1 6 2025) EQUALS 19
+#ASSERT isNothing (`the tariff notice in force on` (DATE_FROM_DMY 1 3 2017))
+
+-- A route of 30 km by bus, and the Tel Aviv codes before the reform.
+`a 30 km route` MEANS
+    `travel route` WITH
+        `route monthly code`   IS "3001"
+        `route single code`    IS "472"
+        `route intercity code` IS "1"
+        `route distance`       IS 30
+        `route single means`   IS `bus only`
+
+GIVEN d IS A DATE
+GIVETH A MAYBE `travel fares`
+DECIDE `the fares of a 30 km route on` d IS
+    `the travel fares of the route on` `a 30 km route` d TRUE TRUE FALSE
+
+#ASSERT `the fares of a 30 km route on` (DATE_FROM_DMY 1 6 2025) EQUALS
+    JUST (`travel fares` WITH
+        `monthly free pass`     IS 323
+        `daily free pass`       IS 32.5
+        `single fare`           IS 14.5
+        `intercity single fare` IS 0)
+-- Before the reform, by the codes: card 3001 (208.50 a month and 13 a day
+-- from 1.2.2021), Egged's single trip 472 and line 1.
+#ASSERT `the fares of a 30 km route on` (DATE_FROM_DMY 1 6 2021) EQUALS
+    JUST (`travel fares` WITH
+        `monthly free pass`     IS 208.5
+        `daily free pass`       IS 13
+        `single fare`           IS 2.3
+        `intercity single fare` IS 5)
+-- On 1.6.2025 no intercity trip is printed: an edition that reads one has
+-- no fares.
+#ASSERT `the travel fares of the route on` `a 30 km route` (DATE_FROM_DMY 1 6 2025) FALSE FALSE TRUE EQUALS NOTHING
+#ASSERT `the equalisation supplement in force on` (DATE_FROM_DMY 1 9 2025) 1500 684 1500 EQUALS JUST 576
+#ASSERT `the equalisation supplement in force on` (DATE_FROM_DMY 1 12 2022) 1500 610 1500 EQUALS JUST 830
