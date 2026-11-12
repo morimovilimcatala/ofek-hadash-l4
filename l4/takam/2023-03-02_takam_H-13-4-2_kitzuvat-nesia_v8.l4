@@ -9,9 +9,12 @@
 IMPORT prelude
 IMPORT parties
 IMPORT `kitzuvat-nesia-common`
+IMPORT `taarifei-nesia-common`
+IMPORT `taarifei-nesia-in-force`
 IMPORT `2023-01-26_takam_H-13-4-2_kitzuvat-nesia_v7`
 
--- Tariffs: the notice's, inputs (`travel fares`). No rule here rounds
+-- Tariffs: the notice's (`travel fares`, read off the notice in force by
+-- `the travel allowance on the route` below). No rule here rounds
 -- (convention rounding.default).
 
 -- not weighed against `the Hours of Work and Rest Law`: ‘משרה מלאה’ here is
@@ -253,6 +256,39 @@ DECIDE `grossing up the tax, edition 8` allowance m IS
 -- akn:att_2__hc_1__para_3 The codes of the public-transport lines are the notice's; a pointer, no rule.
 -- akn:att_3__hc_1/p1 akn:att_3__hc_1/p2 akn:att_3__hc_1/t1 Annex C, the table of the editions' changes; a record, no rule.
 
+§§ `התעריפים — the notice in force`
+
+-- The edition reads the monthly free pass and the daily free pass, the single fare; here they are read off the notice
+-- "לוח תעריפי נסיעה בתחבורה ציבורית" in force on the month's day (HOD
+-- 13.4.2.1, `taarifei-nesia-in-force`), for the employee's route. Where
+-- the notice prints no tariff the edition reads, there is no answer.
+GIVEN r IS A `travel route`, d IS A DATE @desc the month's day
+      m IS A `travel month`
+      `the payment cap 2.4.3 refers to` IS A NUMBER
+GIVETH A MAYBE NUMBER
+DECIDE `the travel allowance on the route, edition 8` r d m `the payment cap 2.4.3 refers to` IS
+    CONSIDER `the travel fares of the route on` r d TRUE TRUE FALSE
+    WHEN NOTHING THEN NOTHING
+    WHEN JUST f THEN JUST (`the travel allowance, edition 8` f m `the payment cap 2.4.3 refers to`)
+
+-- The equalisation supplement the notice in force sets, on the route's
+-- monthly free pass.
+GIVEN r IS A `travel route`, d IS A DATE
+      m IS A `travel month`
+      x IS A NUMBER @desc the allowance paid before the reform, every component included
+      `the highest allowance of 2022` IS A NUMBER
+GIVETH A MAYBE NUMBER
+DECIDE `the travel-allowance equalisation on the route, edition 8` r d m x `the highest allowance of 2022` IS
+    CONSIDER `the tariffs of the route on` r d
+    WHEN NOTHING THEN NOTHING
+    WHEN JUST rt THEN
+        CONSIDER rt's `route monthly pass`
+        WHEN NOTHING THEN NOTHING
+        WHEN JUST monthly THEN
+            CONSIDER `the equalisation supplement in force on` d x monthly `the highest allowance of 2022`
+            WHEN NOTHING THEN NOTHING
+            WHEN JUST s THEN JUST (`the travel-allowance equalisation, edition 8` m s)
+
 §§ `Worked examples`
 
 `placeholder fares, edition 8` MEANS
@@ -284,3 +320,16 @@ DECIDE `grossing up the tax, edition 8` allowance m IS
 `a relocated employee's month, edition 8` MEANS
     `the travel month changed` (`an ordinary travel month` `a monthly employee` 22) TRUE FALSE 0 FALSE FALSE 4 0
 #ASSERT `edition 8 pays` `a relocated employee's month, edition 8` EQUALS 420
+
+-- On 1.6.2023, a monthly employee of 22 days on `a 30 km route` (the
+-- Tel Aviv codes before the reform, 30 km by bus after it): the edition's
+-- allowance on the tariffs the notice in force prints.
+#ASSERT `the travel allowance on the route, edition 8` `a 30 km route` (DATE_FROM_DMY 1 6 2023) (`an ordinary travel month` `a monthly employee` 22) 1330 EQUALS
+    JUST (`the travel allowance, edition 8` `the route's fares on 1.6.2023, edition 8` (`an ordinary travel month` `a monthly employee` 22) 1330)
+
+`the route's fares on 1.6.2023, edition 8` MEANS
+    `travel fares` WITH
+        `monthly free pass`     IS 255
+        `daily free pass`       IS 28
+        `single fare`           IS 12
+        `intercity single fare` IS 0

@@ -1,0 +1,1313 @@
+-- הודעת תכ"ם HOD.13.4.2.1 "לוח תעריפי נסיעה בתחבורה ציבורית", מהדורה 13
+-- (1.4.2019). The notice rewritten: definitions (the daily and monthly free
+-- passes, the combined cards, the existing and the new employee), the
+-- allowance by the code reported for the route, the existing employee's
+-- regional, daily and intercity tariffs, trips on duty, reporting in
+-- Mashcit, and three annexes of tables — by metropolis, the combined cards,
+-- the single trips — which are DATA here, written by tools/tariff_l4.py
+-- from the corpus and held to it by tests/test_tariffs.py.
+
+IMPORT prelude
+IMPORT conventions
+IMPORT parties
+IMPORT vocabulary
+IMPORT `kitzuvat-nesia-common`
+IMPORT `taarifei-nesia-common`
+
+-- not weighed against `the Wage Protection Law`: the notice sets the
+-- tariffs by which a travel EXPENSE is refunded (‘החזר הוצאה’), not wages.
+
+-- not weighed against `the Hours of Work and Rest Law`: ‘ימי עבודה בפועל’
+-- here counts the days whose fares are refunded (3.2.2, 3.2.3), not hours
+-- of work or rest.
+
+§ `הודעת תכ"ם 13.4.2.1 לוח תעריפי נסיעה בתחבורה ציבורית — מהדורה 13`
+
+`notice 13 is published` MEANS DATE_FROM_DMY 1 4 2019
+
+§§ `1 רקע ומטרה`
+
+-- akn:hc_1__para_1__subpara_1-1 akn:hc_1__para_1__subpara_1-2 akn:hc_1__para_1__subpara_1-3 akn:hc_1__para_1__subpara_1-4 The background (the reform of 1.1.2016, its 14.5% cut of 1.2.2016 and second stage of 1.4.2016, the agreement to soften it for existing employees); no rule.
+-- akn:hc_1__para_1__subpara_1-5 akn:hc_1__para_1__subpara_1-5__cls_1-5-1 The notice's purpose; no rule.
+
+§§ `2 הגדרות`
+
+-- akn:hc_1__para_2__subpara_2-1 The Ministry of Transport's site, its maps and calculator; a pointer outside the corpus, no rule.
+
+-- 2.2-2.4: the daily free pass is valid on the day it is bought, in the
+-- zone it covers; the monthly free pass for the calendar month; a combined
+-- card between metropolitan areas covers the home metropolis, the
+-- intercity stretch and the work metropolis, by the month or the day. The
+-- tickets are the tables' columns (`fare ticket`); the combined card is
+-- annex B's.
+@ref akn:hc_1__para_2__subpara_2-2 akn:hc_1__para_2__subpara_2-3 akn:hc_1__para_2__subpara_2-4
+`the tickets notice 13 defines` MEANS LIST `a daily free pass`, `a monthly free pass`
+
+-- 2.5: an existing employee was employed in a ministry or an auxiliary unit
+-- on 31.12.2015; so is one employed that day whose employment was broken
+-- afterwards for up to 6 months and resumed (counted as continuous), or who
+-- moved to another ministry or auxiliary unit, or home.
+@ref akn:hc_1__para_2__subpara_2-5 akn:hc_1__para_2__subpara_2-5/p2 akn:hc_1__para_2__subpara_2-5__cls_2-5-1 akn:hc_1__para_2__subpara_2-5__cls_2-5-2
+GIVEN `employed on 31.12.2015` IS A BOOLEAN
+      `months the employment was broken since` IS A NUMBER @desc 0 where it never was
+GIVETH A BOOLEAN
+DECIDE `an existing employee under notice 13` `employed on 31.12.2015` `months the employment was broken since` IF
+    `employed on 31.12.2015` AND `months the employment was broken since` AT MOST 6
+
+-- 2.6: a new employee, taken in from 1.1.2016, is paid by the monthly free
+-- pass alone.
+@ref akn:hc_1__para_2__subpara_2-6
+`a new employee under notice 13 is paid by` MEANS `a monthly free pass`
+
+-- 2.7: hourly employees and students are as the instruction "תשלום קצובת
+-- נסיעה" defines them; it names the instruction "מס' 13.4.0.2", which is no
+-- instruction's number — the instruction of that name is 13.4.2 (finding
+-- F-…v13-b).
+@ref akn:hc_1__para_2__subpara_2-7
+`the instruction notice 13 cites for hourly employees and students` MEANS "13.4.0.2"
+`the number of the instruction "תשלום קצובת נסיעה"` MEANS "13.4.2"
+`notice 13 cites the travel instruction by a number it does not bear` MEANS
+    NOT `the instruction notice 13 cites for hourly employees and students` EQUALS `the number of the instruction "תשלום קצובת נסיעה"`
+#ASSERT `notice 13 cites the travel instruction by a number it does not bear`
+
+§§ `3.1 כללי`
+
+-- akn:hc_1__para_3__subpara_3-1 The heading "כללי"; its clauses follow.
+
+-- 3.1.1 and 3.1.3: the allowance is paid by the code reported for the
+-- employee, at the monthly free pass of the card the code names (annex A).
+@ref akn:hc_1__para_3__subpara_3-1__cls_3-1-1 akn:hc_1__para_3__subpara_3-1__cls_3-1-3
+GIVEN code IS A STRING, d IS A DATE
+GIVETH A MAYBE NUMBER
+DECIDE `notice 13's monthly allowance for the code` code d IS
+    `the fare for the code` `notice 13's fares` code `a monthly free pass` d
+
+-- 3.1.4: home in one metropolis and work in another: the combined card's
+-- code (annex B), its monthly free pass.
+@ref akn:hc_1__para_3__subpara_3-1__cls_3-1-4
+GIVEN code IS A STRING, d IS A DATE
+GIVETH A MAYBE NUMBER
+DECIDE `notice 13's allowance between metropolitan areas` code d IS
+    `the fare for the code` `notice 13's fares` code `a monthly free pass` d
+
+-- 3.1.2: the salary accountant finds the code on the Ministry's calculator
+-- and reports it.
+@ref akn:hc_1__para_3__subpara_3-1__cls_3-1-2
+GIVETH A DEONTIC Party `tariff-notice duty`
+DECIDE `finding and reporting the code, notice 13` IS
+    PARTY `the salary accountant`
+    MUST  `find the route's tariff code or distance on the Ministry of Transport's calculator`
+    HENCE (PARTY `the salary accountant`
+           MUST  `report the route's tariff code in the payroll`)
+
+-- 3.1.5: the existing employee is marked by population code 604 in event
+-- 120: marked for the rules below, the allowance by postcodes and the
+-- travel advance (849) stopped.
+@ref akn:hc_1__para_3__subpara_3-1__cls_3-1-5 akn:hc_1__para_3__subpara_3-1__cls_3-1-5__pnt_3-1-5-1 akn:hc_1__para_3__subpara_3-1__cls_3-1-5__pnt_3-1-5-2 akn:hc_1__para_3__subpara_3-1__cls_3-1-5__pnt_3-1-5-3
+GIVETH A DEONTIC Party `tariff-notice duty`
+DECIDE `marking an existing employee, notice 13` IS
+    PARTY `the salary accountant`
+    MUST  `report the existing-employee population code`
+    HENCE (PARTY `the Malam payroll service`
+           MUST  `stop the postcode calculation and the travel advance`)
+
+§§ `3.2 קצובת נסיעה לעובדים קיימים`
+
+-- akn:hc_1__para_3__subpara_3-2 akn:hc_1__para_3__subpara_3-2/p2 The heading and its lead-in; the cases follow.
+
+-- 3.2.1: home and work in one zone of the metropolis: the regional monthly
+-- free pass.
+@ref akn:hc_1__para_3__subpara_3-2__cls_3-2-1
+GIVEN code IS A STRING, d IS A DATE
+GIVETH A MAYBE NUMBER
+DECIDE `notice 13's allowance within one zone` code d IS
+    `notice 13's monthly allowance for the code` code d
+
+-- 3.2.2: home and work in different zones of one metropolis: the daily
+-- free pass times the days actually worked, and no less than the monthly
+-- free pass; where no days are reported, the monthly.
+@ref akn:hc_1__para_3__subpara_3-2__cls_3-2-2
+GIVEN daily IS A NUMBER, monthly IS A NUMBER
+      `days actually worked` IS A MAYBE NUMBER
+GIVETH A NUMBER
+DECIDE `notice 13's allowance for several zones of one metropolis` daily monthly `days actually worked` IS
+    CONSIDER `days actually worked`
+    WHEN NOTHING THEN monthly
+    WHEN JUST days THEN max (daily TIMES days) monthly
+
+-- 3.2.3: home and work in different metropolitan areas: the monthly free
+-- pass in the home zone and in the work zone, and the single fare of the
+-- line between them, there and back ("הלוך ושוב"), for the days actually
+-- worked — where the employee was paid intercity travel by the days up to
+-- 31.12.2015 (3.2.3.1) or moved after 1.1.2016 and must travel intercity
+-- (3.2.3.2); reported by three codes (3.2.3.3-3.2.3.5), as the example of
+-- Tel Aviv and Jerusalem shows (3.2.3.6). 3.4: one who moved nearer and
+-- stopped travelling intercity is paid none.
+@ref akn:hc_1__para_3__subpara_3-2__cls_3-2-3 akn:hc_1__para_3__subpara_3-2__cls_3-2-3__pnt_3-2-3-1 akn:hc_1__para_3__subpara_3-2__cls_3-2-3__pnt_3-2-3-2 akn:hc_1__para_3__subpara_3-2__cls_3-2-3__pnt_3-2-3-2/p2 akn:hc_1__para_3__subpara_3-2__cls_3-2-3__pnt_3-2-3-3 akn:hc_1__para_3__subpara_3-2__cls_3-2-3__pnt_3-2-3-4 akn:hc_1__para_3__subpara_3-2__cls_3-2-3__pnt_3-2-3-5 akn:hc_1__para_3__subpara_3-2__cls_3-2-3__pnt_3-2-3-6 akn:hc_1__para_3__subpara_3-2__cls_3-2-3__pnt_3-2-3-6__pnt_3-2-3-6-1 akn:hc_1__para_3__subpara_3-2__cls_3-2-3__pnt_3-2-3-6__pnt_3-2-3-6-2 akn:hc_1__para_3__subpara_3-2__cls_3-2-3__pnt_3-2-3-6__pnt_3-2-3-6-3 akn:hc_1__para_3__subpara_3-4
+GIVEN `home code` IS A STRING, `work code` IS A STRING, `line code` IS A STRING
+      d IS A DATE
+      `days actually worked` IS A NUMBER
+      `paid intercity by the days up to 31.12.2015 or moved since` IS A BOOLEAN
+      `still travels intercity` IS A BOOLEAN
+GIVETH A MAYBE NUMBER
+DECIDE `notice 13's intercity allowance of an existing employee` `home code` `work code` `line code` d `days actually worked` `paid intercity by the days up to 31.12.2015 or moved since` `still travels intercity` IS
+    CONSIDER `the fare for the code` `notice 13's fares` `home code` `a monthly free pass` d
+    WHEN NOTHING THEN NOTHING
+    WHEN JUST home THEN
+        CONSIDER `the fare for the code` `notice 13's fares` `work code` `a monthly free pass` d
+        WHEN NOTHING THEN NOTHING
+        WHEN JUST work THEN
+            IF NOT (`paid intercity by the days up to 31.12.2015 or moved since` AND `still travels intercity`)
+            THEN JUST (home PLUS work)
+            ELSE CONSIDER `the fare for the code` `notice 13's fares` `line code` `a single trip` d
+                 WHEN NOTHING THEN NOTHING
+                 WHEN JUST single THEN JUST (home PLUS work PLUS `the single fares a day of an intercity round trip` TIMES single TIMES `days actually worked`)
+
+-- 3.3: an employee paid for intercity travel signs a periodic declaration
+-- that the trips were made; the salary accountant prepares it where the
+-- attendance is not kept in ESS.
+@ref akn:hc_1__para_3__subpara_3-3
+GIVETH A DEONTIC Party `tariff-notice duty`
+DECIDE `declaring the intercity trips, notice 13` IS
+    PARTY `the salary accountant`
+    MUST  `have the employees sign the declaration`
+    HENCE (PARTY `the government employee`
+           MUST  `sign a periodic declaration of the intercity trips made`)
+
+@ref akn:hc_1__para_3__subpara_3-4
+GIVETH A DEONTIC Party `tariff-notice duty`
+DECIDE `changing the codes on a move nearer, notice 13` IS
+    PARTY `the salary accountant`
+    MUST  `report codes for the new address`
+
+§§ `4 נסיעות בתפקיד`
+
+-- 4.1: trips on duty out of town, by an employee with a service car beyond
+-- its approved quota (up to 1,000 shekels a month) or one with no car
+-- standard, are refunded on report at single fares, or at the daily free
+-- pass where no single fare is set. 4.2 points to annex C's single fares.
+@ref akn:hc_1__para_4__subpara_4-1 akn:hc_1__para_4__subpara_4-2
+GIVEN `the fares of the trips on duty` IS A NUMBER @desc the single fares of the trips reported, or the daily free pass where the route has no single fare (annex C)
+      `has a service car beyond its quota` IS A BOOLEAN
+GIVETH A NUMBER
+DECIDE `notice 13's refund for trips on duty` `the fares of the trips on duty` `has a service car beyond its quota` IS
+    IF `has a service car beyond its quota`
+    THEN min `the fares of the trips on duty` 1000
+    ELSE `the fares of the trips on duty`
+
+§§ `5 אופן הדיווח`
+
+-- akn:hc_1__para_5__subpara_5-1 akn:hc_1__para_5__subpara_5-2 akn:hc_1__para_5__subpara_5-3 The headings of the three stages; their clauses follow.
+
+-- 5.1-5.3: the code is taken from the Ministry's calculator, reported in
+-- event 225 (by the code, or through the help window), and the existing
+-- employee's mark in event 120.
+@ref akn:hc_1__para_5__subpara_5-1__cls_5-1-1 akn:hc_1__para_5__subpara_5-1__cls_5-1-2 akn:hc_1__para_5__subpara_5-1__cls_5-1-3 akn:hc_1__para_5__subpara_5-2__cls_5-2-1 akn:hc_1__para_5__subpara_5-2__cls_5-2-2 akn:hc_1__para_5__subpara_5-2__cls_5-2-3 akn:hc_1__para_5__subpara_5-2__cls_5-2-4 akn:hc_1__para_5__subpara_5-3__cls_5-3-1 akn:hc_1__para_5__subpara_5-3__cls_5-3-2 akn:hc_1__para_5__subpara_5-3__cls_5-3-3
+GIVETH A DEONTIC Party `tariff-notice duty`
+DECIDE `reporting the code in Mashcit, notice 13` IS
+    PARTY `the salary accountant`
+    MUST  `find the route's tariff code or distance on the Ministry of Transport's calculator`
+    HENCE (PARTY `the salary accountant`
+           MUST  `report the route's tariff code in the payroll`
+           HENCE (PARTY `the salary accountant`
+                  MUST  `report the existing-employee population code`))
+
+-- 5.3.4: no code on the calculator means two metropolitan areas: the
+-- combined card's code (annex B), or, for an existing employee, 3.2.
+@ref akn:hc_1__para_5__subpara_5-3__cls_5-3-4 akn:hc_1__para_5__subpara_5-3__cls_5-3-4__pnt_5-3-4-1 akn:hc_1__para_5__subpara_5-3__cls_5-3-4__pnt_5-3-4-2
+GIVEN `the calculator gives a code` IS A BOOLEAN, `an existing employee` IS A BOOLEAN
+GIVETH A STRING
+DECIDE `the code notice 13 reports` `the calculator gives a code` `an existing employee` IS
+    BRANCH
+        IF `the calculator gives a code` THEN "the calculator's code"
+        IF `an existing employee` THEN "three codes, 3.2.3"
+        OTHERWISE "the combined card between the metropolitan areas, annex B"
+
+-- 5.4: a raised refund for a national-priority locality, by the locality's
+-- code (event 018), made by the payroll automatically; the amount is the
+-- instruction's (H.13.4.2).
+@ref akn:hc_1__para_5__subpara_5-4 akn:hc_1__para_5__subpara_5-4__cls_5-4-1 akn:hc_1__para_5__subpara_5-4__cls_5-4-2
+`the raised cap of notice 13` MEANS `set elsewhere` "הוראת תכ\"ם 13.4.2"
+
+@ref akn:hc_1__para_5__subpara_5-4__cls_5-4-1
+GIVETH A DEONTIC Party `tariff-notice duty`
+DECIDE `raising the cap automatically, notice 13` IS
+    PARTY `the Malam payroll service`
+    MUST  `raise the refund cap for a national-priority locality`
+
+@ref akn:hc_1__para_5__subpara_5-4__cls_5-4-3
+GIVETH A DEONTIC Party `tariff-notice duty`
+DECIDE `reporting an existing employee, notice 13` IS `marking an existing employee, notice 13`
+
+§§ `6 נספחים`
+
+-- akn:hc_1__para_6__subpara_6-1 akn:hc_1__para_6__subpara_6-2 akn:hc_1__para_6__subpara_6-3 akn:hc_1__para_6__subpara_6-4 The list of annexes; no rule.
+
+§§ `נספח א — תעריפי נסיעה בחלוקה למטרופולינים`
+
+-- akn:att_1__hc_1/p1 akn:att_1__hc_1/p2 akn:att_1__hc_1/p3 Annex A's title and the headings of the Jerusalem zone list below.
+
+-- tariff data akn:att_1__hc_1/t1 (tools/tariff_l4.py)
+@ref akn:att_1__hc_1/t1
+`notice 13's zone list 1` MEANS
+    LIST `a zone` "טבעת 1" "אזור 110" "אבן ספיר | אורה | בית זית | בית נקופה | גבע בנימין | גבעון החדשה | גבעת זאב | הר גילה | ירושלים | כוכב יעקב | מבשרת ציון | מוצא עלית | מעלה אדומים | עין כרם בי\"ס חקלאי | עלמון | עמינדב | קדר | רמת רחל",
+         `a zone` "טבעת 2" "אזור 121" "אבו גוש | איתנים | בית חורון | בית מאיר | בר גיורא | ביתר עלית | גבעת יערים הר אדר | יד השמונה | ידידה | כסלון | מבוא ביתר | מטע | מעלה החמישה | נווה אילן נטף | נס הרים | עין נקובא | עין ראפה | צובה | צור הדסה | קרית יערים | קרית יערים מוסד | קרית ענבים | רמת רזיאל | שואבה | שורש",
+         `a zone` "טבעת 2" "אזור 122" "בית אל | כפר אדומים | מעלה מכמש | עפרה | פסגות | מצפה יריחו",
+         `a zone` "טבעת 2" "אזור 123" "אלון שבות | אלעזר | אפרת | מגדל עוז | נווה דניאל | נוקדים | ראש צורים | תקוע | בית עין | כפר עציון",
+         `a zone` "טבעת 3" "אזור 131" "אביעזר | אדרת | אשתאול | בית שמש | בקוע | גבעת ישעיהו | גיזו | גפן | הראל | זכריה זנוח | טל שחר | ישעי | כפר אוריה | לוזית | מחסיה | מסילת ציון | נווה מיכאל |נווה שלום | נחושה | נחם | נחשון | נתיב הל\"ה | עגור | צלפון צפרירים | צרעה | שדות מיכה | שריגים | תירוש | תעוז | תרום",
+         `a zone` "טבעת 3" "אזור 132" "גמזו | דולב | חשמונאים | טלמון | כפר דניאל | כפר האורנים | כפר רות | לפיד מבוא חורון | מבוא מודיעים | מודיעין מכבים רעות | מודיעין עלית | מתתיהו | נוף איילון | נילי | נעלה | שילת | שעלבים",
+         `a zone` "טבעת 3" "אזור 133" "אבנת | אלמוג | בית הערבה | ורד יריחו | כוכב השחר | מצפה יריחו | מצפה שלם | קליה | רימונים | עין גדי |מצפה שלם",
+         `a zone` "טבעת 3" "אזור 134" "אספר | בית עין | כפר עציון | כרמי צור | מעלה עמוס | קרית ארבע | אדורה | תלם",
+         `a zone` "טבעת 3" "אזור 135 בתחולה מיום 01.04.2016" "עלי | שילה | כוכב השחר | חלמיש | מעלה אפרים | עטרת | מעלה לבונה | רימונים | נחליאל | גיתית | תומר | פצאל | ייט“ב | גלגל |נתיב הגדוד |משואה | יפית |נעמי |נירן"
+
+-- tariff data akn:att_1__hc_1/t2 (tools/tariff_l4.py)
+@ref akn:att_1__hc_1/p4 akn:att_1__hc_1/t2
+`notice 13's fare table 2` MEANS
+    `a fare table` "לוח מחירי \" חופשי חודשי\" – \"רב קווי מטרופולין ירושלים בתחולה מיום 01.01.2016"
+        (LIST `a fare column` (JUST `a daily free pass`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)), `a fare column` (JUST `a monthly free pass`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)), `a fare column` (JUST `a monthly free pass`) NOTHING (JUST (DATE_FROM_DMY 1 1 2016)))
+        (LIST `coded` "2001" "סובב ירושלים, על פי מפה של מטרופולין ירושלים" "אזור 110" (LIST NOTHING, (JUST 213), (JUST 250)),
+              `coded` "2002" "ירושלים מורחב, על פי מפה של מטרופולין ירושלים" "אזור 110+121+122+123" (LIST (JUST 21.5), (JUST 243), (JUST 285)),
+              `coded` "2003" "סובב ירושלים, על פי מפה של מטרופולין ירושלים" "אזור 232+131+121+110" (LIST (JUST 26.5), (JUST 299), (JUST 350)),
+              `coded` "2004" "סובב ירושלים + מזרח, על פי מפה של מטרופולין ירושלים" "אזור 135+134+133+123+122+110" (LIST (JUST 26.5), (JUST 299), (JUST 350)),
+              `coded` "2005" "מטרופולין מערב, על פי מפה של מטרופולין ירושלים" "אזור 232+131+121" (LIST (JUST 21.5), (JUST 213), (JUST 250)),
+              `coded` "2006" "מטרופולין מזרח, על פי מפה של מטרופולין ירושלים" "אזור 134+133+123+122" (LIST (JUST 21.5), (JUST 213), (JUST 250)),
+              `coded` "2007" "מטרופולין ירושלים המלא, על פי מפה של מטרופולין ירושלים" "אזור 135+134+133+232+131+123+122+121+110" (LIST (JUST 37.5), (JUST 423), (JUST 495)),
+              `coded` "2008" "מחירי נסיעה פנים אזוריים, על פי מפה של מטרופולין ירושלים" "הרי יהודה אזור 121" (LIST NOTHING, (JUST 149), (JUST 175)),
+              `coded` "2009" "" "בנימין אזור 122" (LIST NOTHING, (JUST 149), (JUST 175)),
+              `coded` "2010" "מחירי נסיעה פנים אזורי, על פי מפה של מטרופולין ירושלים" "גוש עציון אזור 123" (LIST NOTHING, (JUST 149), (JUST 175)),
+              `coded` "2011" "" "בית שמש אזור 131" (LIST NOTHING, (JUST 149), (JUST 175)),
+              `coded` "2012" "" "חבל מודיעין אזור 232" (LIST NOTHING, (JUST 149), (JUST 175)),
+              `coded` "2013" "" "בקעת ים המלח אזור 133" (LIST NOTHING, (JUST 149), (JUST 175)),
+              `coded` "2014" "" "קריית ארבע אזור 134" (LIST NOTHING, (JUST 149), (JUST 175)),
+              `coded` "2015" "" "גוש שילה + בקעה אזור 135" (LIST NOTHING, (JUST 149), NOTHING),
+              `misaligned` "2016",
+              `misaligned` "2017")
+
+-- akn:att_1__hc_1/p5 akn:att_1__hc_1/p6 The headings of the Tel Aviv zone list below.
+
+-- tariff data akn:att_1__hc_1/t3 (tools/tariff_l4.py)
+@ref akn:att_1__hc_1/t3
+`notice 13's zone list 3` MEANS
+    LIST `a zone` "טבעת 1" "אזור 210" "ישרש | ראשון לציון | באר יעקב | ניר צבי | מצליח | רמלה | לוד | זיתן | בת ים | מקווה ישראל | חולון | אזור | תל אביב יפו | משמר השבעה | בית דגן | גנות | כפר חב\"ד | חמד | אור יהודה | גבעתיים | רמת גן | קרית אונו | גבעת שמואל | בני ברק | אחיעזר | יגל | יהוד מונוסון | סביון | מגשימים | גני תקווה | גת רימון | מעש | פתח תקווה | כפר סירקין",
+         `a zone` "טבעת 2" "אזור 221" "גליל ים | רמת השרון | הרצליה | כפר שמריהו | רשפון | ארסוף | שפיים | געש | חרוצים | ירקונה | גבעת ח\"ן | רמות השבים | הוד השרון | כפר מל\"ל | עדנים | נווה ירק | גני עם | אלישמע | רעננה | בני ציון | בצרה | כפר סבא | גן חיים | שדה ורבורג | צופית | בית ברל | חגור | שדי חמד | נווה ימין | ג'לג'וליה | כפר ברא | חורשים | ירחיב | מתן | נירית | ניר אליהו | אלפי מנשה | צופין",
+         `a zone` "טבעת 2" "אזור 222" "אחיסמך | גינתון | בן שמן | בן שמן כפר נוער | כפר טרומן | כרם בן שמן | חדיד | בית נחמיה | צפריה | בני עטרות | בארות יצחק | נופך | רינתיה | נחלים | גבעת השלושה | בית עריף | שוהם | טירת יהודה | ברקת | גבעת כ\"ח | מזור | נחשונים | אלעד | עינת | ראש העין | כפר קאסם | אורנית | בית אריה | אלקנה | שערי תקווה | עץ אפרים",
+         `a zone` "טבעת 2" "אזור 223" "בן זכאי | פלמחים | בית אלעזרי | יבנה | בית גמליאל | כפר הנגיד | גאליה | גן שלמה | עיינות | גיבתון | גן שורק | בית עובד | נטעים | בית חנן | גבעת ברנר | קרית עקרון | כפר ביל\"ו | רחובות | גני יוחנן | מזכרת בתיה | יציץ | רמות מאיר | גני הדר | סתריה | נען | נס ציונה | נצר סרני",
+         `a zone` "טבעת 3" "אזור 231" "קרית שלמה | יקום | אודים | בית יהושע | נתניה | שושנת העמקים | צוקי ים | חבצלת השרון | נעורים | בית ינאי | חרות | משמרת | רמת הכובש | טירה | אייל | כוכב יאיר | צור יצחק | צור נתן | סלעית | תל יצחק | כפר נטר | אבן יהודה | בני דרור | תל מונד | עין ורד | צור משה | פרדסיה | קדימה צורן | נורדיה | בית יצחק שער חפר | אביחיל | גבעת שפירא | ביתן אהרן | בת חן | גנות הדר | כפר ידידיה | הדר עם | כפר חיים | משמר השרון | המרכז האקדמי רופין | מעברות | כפר מונש | בית הלוי | העוגן | כפר הס | כפר עבודה | עין שריד | גאולים | פורת | ינוב | תנובות | יעף | עזריאל | כפר יעבץ | קלנסווה | כפר יונה | חניאל | בורגתה | בארותיים | עולש | גן יאשיה | אומץ | בית חרות | חופית | כפר ויתקין | מבואות ים | מכמורת | אלישיב | כפר הרא\"ה | גאולי תימן | חיבת ציון | חגלה | חרב לאת | גבעת חיים מאוחד | אליכין | עין החורש | גבעת חיים איחוד | המעפיל | אחיטוב | טייבה | שער אפרים | ניצני עוז | יד חנה | בת חפר | בחן | זמר | אבני חפץ | ענב | שבי שומרון",
+         `a zone` "טבעת 3" "אזור 232" "שעלבים | נוף איילון | גמזו | כפר דניאל | מבוא מודיעים | מבוא חורון | מודיעין מכבים רעות | כפר רות | שילת | חשמונאים | לפיד | כפר האורנים | מתתיהו | מודיעין עילית | ניל\"י | נעלה | דולב | טלמון",
+         `a zone` "טבעת 3" "אזור 233" "אשדוד | עזריקם | שדה עוזיהו | שתולים | גן יבנה | חצור אשדוד | גן הדרום | ניר גלים | בני דרום | קבוצת יבנה | ביצרון | כרם יבנה | בית רבן | כפר אביב | חצב | נווה מבטח | כנות | בני עי\"ש | מישר | משגב דב | שדמה | עשרת | כפר מרדכי | בניה | גדרה | קדרון | יסודות | חולדה | משמר דוד | כרמי יוסף | פדיה | פתחיה | בית עוזיאל | גזר | יד רמב\"ם | עזריה | בית חשמונאי | כפר בן נון | משמר איילון | כפר שמואל",
+         `a zone` "טבעת 3" "אזור 234" "פדואל | עלי זהב | ברוכין | ברקן | מעלה שומרון | קרית נטפים | נופים | קרני שומרון | יקיר | אריאל | רבבה | עמנואל | קדומים | כפר תפוח | יצהר | מגדלים | איתמר | ברכה | אלון מורה",
+         `a zone` "אזור חריש-ואדי ערה" "אזור 701" "אום אל פחם, בקה אל ע'רביה, ערערה, כפר קרע, ג'ת, בסמ“ה, קציר, מייסר, אום אל קוטוף, מגל, חיננית, חריש, שקד, מצר, מי עמי, מצפה אילן, מבוא דותן, חרמש, אל עריאן, ריחן",
+         `a zone` "אזור חריש-ואדי ערה" "אזור 702" "חדרה, פרדס–חנה-כרכור, אור עקיבא, בנימינה-גבעת עדה, ג'סר א זרקא, קיסריה, מעגן מיכאל, מאור, כפר פינס, גן שמואל, שדות ים, בית חנניה, גן השומרון, אביאל, להבות חביבה, תלמי אלעזר, שדה יצחק, עמיקם, גבעת ניל“י, מענית, עין שמר, עין עירון, ברקאי, משמרות, שער מנשה, רגבים, מרכז רפואי שהם, אלוני יצחק, כפר גליקסון",
+         `a zone` "אזור אשקלון" "אזור 801" "אשקלון, קריית מלאכי, יד בנימין, מרכז שפירא, ניצן ב', בניראם, כפר מנחם, ניצן, ברכיה, עיןצורים, ינון, בית עזרא, ערוגות, כפר ורבורג, משען, גבעתי, כוכב מיכאל, באר טוביה, אמונים, גיאה, תלמי יחיאל, עזר, ניר ישראל, נגבה, תימורים, כפר הרי“ף, בית שיקמה, שפיר, נתיב העשרה, אביגדור, כפר אחים, בית חלקיה, תלמי יפה, משואות יצחק, זרחיה, יד מרדכי, ניר בנים, בת הדר, כרמיה, זיקים, הודיה, רבדים,אורות, שדה יואב, ניצנים, חפץ חיים, גברעם, מבקיעים, קדמה, כפר סילבר, אל עזי, גני טל, אחווה;",
+         `a zone` "אזור קרית גת" "אזור 802" "קריית גת, אבן שמואל, נהורה, תלמים, שחר, לכיש, שדה משה, סגולה, גת, שקף, יד נתן, עוצם, אמציה, בית ניר,רווחה, נוגה, אחוזם, מנוחה, אלומה, זבדיאל, נירח“ן, נחלה, עוזה, חלץ, שלווה, קוממיות, איתן, שדה דוד, בית גוברין, נועם, גלאון, זוהר, ורדון, נטע"
+
+-- tariff data akn:att_1__hc_1/t4 (tools/tariff_l4.py)
+@ref akn:att_1__hc_1/p7 akn:att_1__hc_1/t4
+`notice 13's fare table 4` MEANS
+    `a fare table` "לוח מחירי \"חופשי חודשי\" –\"רב קו\" מטרופולין תל-אביב והמרכז בתחולה מיום 01.01.2016"
+        (LIST `a fare column` (JUST `a monthly free pass`) NOTHING (JUST (DATE_FROM_DMY 1 1 2016)), `a fare column` (JUST `a monthly free pass`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)), `a fare column` (JUST `a daily free pass`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)))
+        (LIST `coded` "3001" "גוש דן, על פי מפה של מטרופולין תל אביב והמרכז" "אזור 210" (LIST (JUST 250), (JUST 213), NOTHING),
+              `coded` "3002" "גוש דן מורחב, על פי מפה של מטרופולין תל אביב והמרכז" "אזור 223+222+221 +210" (LIST (JUST 285), (JUST 243), (JUST 21.5)),
+              `coded` "3003" "גוש דן + צפון, על פי מפה של מטרופולין תל אביב והמרכז" "אזור 234+231+222 +221+210" (LIST (JUST 350), (JUST 299), (JUST 26.5)),
+              `coded` "3004" "גוש דן +דרום, על פי מפה של מטרופולין תל אביב והמרכז" "אזור 234+233+232 +223+222+210+" (LIST (JUST 350), (JUST 299), (JUST 26.5)),
+              `coded` "3005" "השרון ונתניה, על פי מפה של מטרופולין תל אביב והמרכז" "אזור 234+231+221" (LIST (JUST 250), (JUST 213), (JUST 21.5)),
+              `coded` "3006" "מטרופולין מזרחי, על פי מפה של מטרופולין תל אביב והמרכז" "אזור 234+232+222" (LIST (JUST 250), (JUST 213), (JUST 21.5)),
+              `coded` "3007" "מטרופולין דרומי, על פי מפה של מטרופולין תל אביב והמרכז" "אזור 233+232+223" (LIST (JUST 250), (JUST 213), (JUST 21.5)),
+              `coded` "3008" "מטרופולין מלא, על פי מפה של מטרופולין תל אביב והמרכז" "טבעת 1 +טבעת 2+ טבעת 3" (LIST (JUST 495), (JUST 423), (JUST 37.5)),
+              `coded` "3009" "סובב השרון, על פי מפה של מטרופולין תל אביב והמרכז" "אזור 221" (LIST (JUST 175), (JUST 149), NOTHING),
+              `coded` "3010" "סובב ראש העין-שהם, על פי מפה של מטרופולין תל אביב והמרכז" "אזור 222" (LIST (JUST 175), (JUST 149), NOTHING),
+              `coded` "3011" "סובב רחובות, על פי מפה של מטרופולין תל אביב והמרכז" "אזור 223" (LIST (JUST 175), (JUST 149), NOTHING),
+              `coded` "3012" "סובב נתניה, על פי מפה של מטרופולין תל אביב והמרכז" "אזור 231" (LIST (JUST 175), (JUST 149), NOTHING),
+              `coded` "3013" "חבל מודיעין, על פי מפה של מטרופולין תל אביב והמרכז" "אזור 232" (LIST (JUST 175), (JUST 149), NOTHING),
+              `coded` "3014" "סובב אשדוד, על פי מפה של מטרופולין תל אביב והמרכז" "אזור 233" (LIST (JUST 175), (JUST 149), NOTHING),
+              `coded` "3015" "סובב חדרה תל אביב, על פי מפה של מטרופולין תל אביב והמרכז" "אזור 210+221+222+223+231 +232+233+701+702+234" (LIST (JUST 495), (JUST 423), (JUST 37.5)),
+              `coded` "3016" "סובב אשקלון תל אביב, על פי מפה של מטרופולין תל אביב והמרכז" "אזור 210+221+222+223+231+ 232+233+801+802+234" (LIST (JUST 495), (JUST 423), (JUST 37.5)),
+              `coded` "3017" "סובב השומרון, על פי מפה של מטרופולין תל אביב והמרכז" "אזור 234" (LIST NOTHING, (JUST 149), NOTHING))
+
+-- akn:att_1__hc_1/p8 akn:att_1__hc_1/p9 The headings of the Haifa zone list below.
+
+-- tariff data akn:att_1__hc_1/t5 (tools/tariff_l4.py)
+@ref akn:att_1__hc_1/t5
+`notice 13's zone list 5` MEANS
+    LIST `a zone` "טבעת 1" "אזור 310" "אושה | אפק | בית אורן | דאלית אל כרמל | החותרים | טירת הכרמל | חיפה | יגור כפר ביאליק | כפר גלים | כפר המכבי | נשר | עספיא | קרית אתא | קרית ביאליק | קרית ים קרית מוצקין | רמת יוחנן רכסים | אבטין | כפר חסידים א' | כפר חסידים ב' | כפר נוער דתי",
+         `a zone` "טבעת 2" "אזור 321" "אבו סנאן | אחיהוד | אעבלין | בוסתן הגליל | ביר אל מכסור | ג'דידה מכר | ג'וליס | טל אל טמרה | יסעור | ירכא | כאבול | כפר יאסיף | כפר מסריק | מצפה אבי\"ב | עין המפרץ | עכו שמרת | שעב | שפרעם",
+         `a zone` "טבעת 2" "אזור 322" "אורנים | אלוני אבא | אלונים | אליקים | בית זיד | בית לחם הגלילית | בית צבי בית שערים | בסמת טבעון | גבע כרמל | הבונים | הרדוף | ח'וואלד | יקנעם | יקנעם עלית כעביה טבאש חג'אג'רה | כפר יהושע כרם מהר\"ל | מגדים | מנשית זבדה| נווה ים | נופית | ניר עציון | סואעד חמרייה | עדי | עופר עין איילה | עין הוד | עין חוד | עין כרמל | עתלית | צרופה | קרית טבעון | ראס עלי | רמת ישי | שדה יעקב | שער העמקים",
+         `a zone` "טבעת 3" "אזור 331" "אבירים | אבן מנחם | אדמית | אילון| אלקוש | אשרת | בית ג'ן | בית העמק | בן עמי | בצת | גורן גורנות הגליל | גיתה | געתון | גשר הזיו | הילה | זרעית | חוסן | חורפיש | חלוץ | חניתה | חרשים יאנוח ג'ת | יחיעם | יערה | כברי | כיסרא סומיע | כליל | כפר ורדים | כפר ראש הנקרה | לוחמי הגיטאות | לימן | לפידות | מזרעה | מנות | מעונה | מעיליאן | מעלות תרשיחא מצובה | מתת | נהריה | נווה זיו | נטועה | נתיב השיירה | סער | עבדון | עברון | עין יעקב | עמקה עראמשה | פסוטה | פקיעין | פקיעין החדשה | צוריאל | רגבה | שבי ציון | שומרה שייח' דנון | שלומי | שתולה |",
+         `a zone` "טבעת 3" "אזור 332" "אבטליון | אשבל | אשחר | ביענה | גילון | דייר אל אסד | דייר חנא | דמיידה | הררית | חוסנייה חזון | טפחות | יובלים | יודפת | יעד | כאוכב אבו אל היגא | כמאנה | כנון | כפר חנניה | כפר מנדא | כרמיאל | לוטם | מג'ד אל כרום | מגאר | מורן | מורשת | מכמנים | מנוף | נחף | סאג'ור סח'נין | סלמה | עיילבון | עין אל אסד | עצמון שגב | עראבה | ערב אל נעים | צביה | צורית קורנית | ראמה | ראס אל עין | רקפת | שורשים | שזור | שכניה | לבון | תובל | כישור | פלך",
+         `a zone` "טבעת 3" "אזור 333" "אכסאל | אלון הגליל | בועיינה נוג'יידאת | בית רימון | גבעת אלה | גבעת אלה | גבת | גיניגר הושיעה | הסוללים | זרזיר | חנתון | טורעאן | יפיע | יפעת | כפר ברוך | כפר החורש | כפר כנא מגדל העמק | מצפה נטופה | משהד | נהלל | נצרת | נצרת עילית | עוזייר | עילוט | עין מאהל ציפורי | רומאנה | רומת היב | ריינה | רמת דוד | שמשית | שריד | תמרת",
+         `a zone` "טבעת 3" "אזור 334" "בת שלמה | גלעד | דור | דליה | הזורע | זכרון יעקב | מאיר שפיה | מעיין צבי | משמר העמק נחשולים | עין העמק | עין השופט | פורידייס | רמות מנשה | רמת השופט",
+         `a zone` "אזור קריית שמונה" "אזור 501" "צפת, קריית שמונה, מג'דל שמס, חצור הגלילית, קצרין, בוקעת, א טובא זנגריה, מסעדה, ג'יש, ראש פינה, ע'ג'ר, עין קנייא,יסוד המעלה, איילת השחר, מטולה, ריחאנייה ,שמיר, שדה נחמיה, דפנה, דלתון, מירון, כפר הנשיא, בר יוחאי, ביריה, להבות הבשן, בית הלל, אמירים, קשת, שדה אליעזר, ספסופה, הגושרים, עלמה, מעיין ברוך, כפר גלעדי, מרום גולן, דן, משמר הירדן, יובל, כרכום, ברעם, שאר ישוב, אליפלט, רמות נפתלי, יונתן, כפר בלום, עמיר, כפר סאלד, מחניים, שניר, חולתה, אניעם, נאות מרדכי, יפתח, דוב“ב, אביבים, מלכיה, אור הגנוז, כרם בן זמרה, עמיעד, יראון, סאסא, גדות, כפר שמאי, מרגליות, כורזים, דישון, גונן, אלמגור, שפר, אלוני הבשן, קדמת צבי, אל רום, כחל, פרוד, אורטל, אמנון, משגב עם, מנרה, עין זיוון, שעל, קלע, קדרים, עמוקה, קדיתא, נווה אטי“ב, צבעון, אודם;",
+         `a zone` "אזור טבריה" "אזור 502" "טבריה, יבנאל, כפר כמא, גבעת אבני, מגדל, אפיקים, חמאם, חספין, פוריה, נווה עובד, בני יהודה, הזורעים, פוריה עילית, נוב, חד נס, כינרת קבוצה, כפר זיתים, לביא, עין גב, כינרת מושבה, רמת מגשימים, דגניהב', ארבל, כפר חיטים, אבני איתן, שער הגולן, גבעת יואב, דגניה א', שרונה, בית זרע, גינוסר, שדה אילן, רמות, חוקוק, אילניה, נאות הגולן, לבנים, מעלה גמלא, כנף, מסדה, מעגן, מסד, פוריה כפר עבודה, כפר חרוב, תל קציר, נטור, מבוא חמה, אלי עד, אפיק, אלומות, גשור, הודיות מוסד חינוכי, האון, כלנית, מצפה, מיצר, רביד",
+         `a zone` "אזור עפולה" "אזור 601" "עפולה, מעלה עירון, דבוריה, שבלי, מוקייבלה, כפר תבור, גן נר, כפר מיסר, סולם, שונם, נאעורה, אחוזת ברק, נין, א טייבה, צנדלה, טמרה, יזרעאל, תל עדשים, כפר יחזקאל, מרחביה קיבוץ, רם און, מולדת, מגידו, עין דור, עין חרוד מאוחד, מדרך עוז, מרחביה מושב, גבע, גזית, ניר יפה, זרע, דחי, היוגב, שדמות דבורה, רמת צבי, עין חרוד איחוד, יזרעאל, תל יוסף, גבעת עוז, בית קשת, אביטל, מגן שאול, מיטב, כפר קיש, בלפוריה, ברק, חבר, גדיש, מלאה, פרזון, דברת, אומן, גדעונה, כפר גדעון, אדירים, דבורה, כדורי;",
+         `a zone` "אזור בית שאן" "אזור 602" "בית שאן, בית אלפא, בית השיטה, מנחמיה, אשדות יעקב איחוד, טירת צבי, שדה אליהו, נירדוד, עין הנצי“ב, מירב, רשפים, מעלה גלבוע, שדמות מחולה, שלוחות, גשר, מסילות, שדה נחום, בית יוסף, חפצי בה, מעוז חיים, כפר רופין, מחולה, תל תאומים, שדי תרומות, אשדות יעקב מאוחד, חמדיה, נווה איתן, רוויה, רחוב, ירדנה, נווה אור, חמדת, בקעות, רועי, מלכישוע, משכיות, ארגמן, מכורה, רותם, תמרה",
+         `a zone` "אזור חריש-ואדי ערה" "אזור 701" "אום אל פחם, בקה אל ע'רביה, ערערה, כפר קרע, ג'ת, בסמ“ה, קציר, מייסר, אום אל קוטוף, מגל, חיננית, חריש, שקד, מצר, מי עמי, מצפה אילן, מבוא דותן, חרמש, אל עריאן, ריחן",
+         `a zone` "אזור חריש-ואדי ערה" "אזור 702" "חדרה, פרדס–חנה-כרכור, אור עקיבא, בנימינה-גבעת עדה, ג'סר א זרקא, קיסריה, מעגן מיכאל, מאור, כפר פינס, גן שמואל, שדות ים, בית חנניה, גן השומרון, אביאל, להבות חביבה, תלמי אלעזר, שדה יצחק, עמיקם, גבעת ניל“י, מענית, עין שמר, עין עירון, ברקאי, משמרות, שער מנשה, רגבים, מרכז רפואי שהם, אלוני יצחק, כפר גליקסון"
+
+-- tariff data akn:att_1__hc_1/t6 (tools/tariff_l4.py)
+@ref akn:att_1__hc_1/p10 akn:att_1__hc_1/t6
+`notice 13's fare table 6` MEANS
+    `a fare table` "לוח מחירי \"חופשי חודשי\" –\"רב קו\" מטרופולין חיפה והצפון בתחולה מיום 01.01.2016"
+        (LIST `a fare column` (JUST `a monthly free pass`) NOTHING (JUST (DATE_FROM_DMY 1 1 2016)), `a fare column` (JUST `a monthly free pass`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)), `a fare column` (JUST `a daily free pass`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)))
+        (LIST `coded` "4001" "סובב חיפה, על פי מפה של מטרופולין חיפה והצפון" "אזור 310" (LIST (JUST 250), (JUST 213), NOTHING),
+              `coded` "4002" "סובב חיפה מורחב, על פי מפה של מטרופולין חיפה והצפון" "אזור 322+321+310" (LIST (JUST 285), (JUST 243), (JUST 21.5)),
+              `coded` "4003" "סובב חיפה צפוני, על פי מפה של מטרופולין חיפה והצפון" "אזור 332+331+321+310" (LIST (JUST 350), (JUST 299), (JUST 26.5)),
+              `coded` "4004" "סובב חיפה דרומי, מפה של מטרופולין חיפה והצפון" "אזור 334+333+322+310" (LIST (JUST 350), (JUST 299), (JUST 26.5)),
+              `coded` "4005" "מטרופולין צפוני, מפה של מטרופולין חיפה והצפון" "אזור 332+331+321" (LIST (JUST 250), (JUST 213), (JUST 21.5)),
+              `coded` "4006" "מטרופולין דרומי, מפה של מטרופולין חיפה והצפון" "אזור 334+333+322" (LIST (JUST 250), (JUST 213), (JUST 21.5)),
+              `coded` "4007" "מטרופולין מזרחי, מפה של מטרופולין חיפה והצפון" "אזור 333+332+322+321" (LIST (JUST 250), (JUST 213), (JUST 21.5)),
+              `coded` "4008" "המטרופולין חיפה, טבריה, קריית שמונה, מפה של מטרופולין חיפה והצפון (בתחולה מ- 01.04.2016)" "אזור 310+321+322+331 +332 333+334 501+502" (LIST (JUST 495), (JUST 423), (JUST 37.5)),
+              `coded` "4009" "סובב עכו, מפה של מטרופולין חיפה והצפון" "אזור 321" (LIST (JUST 175), (JUST 149), NOTHING),
+              `coded` "4010" "יקנעם, טבעון, על פי מפה של מטרופולין חיפה והצפון" "אזור 322" (LIST (JUST 175), (JUST 149), NOTHING),
+              `coded` "4011" "נהריה, על פי מפה של מטרופולין חיפה והצפון" "אזור 331" (LIST (JUST 175), (JUST 149), NOTHING),
+              `coded` "4012" "כרמיאל, על פי מפה של מטרופולין חיפה והצפון" "אזור 332" (LIST (JUST 175), (JUST 149), NOTHING),
+              `coded` "4013" "נצרת, על פי מפה של מטרופולין חיפה והצפון" "אזור 333" (LIST (JUST 175), (JUST 149), NOTHING),
+              `coded` "4014" "סובב זיכרון, על פי מפה של מטרופולין חיפה והצפון" "אזור 334" (LIST (JUST 175), (JUST 149), NOTHING),
+              `coded` "4015" "מטרופולין חיפה, חדרה, עפולה, בית שאן, חריש, על פי מפה של מטרופולין חיפה והצפון" "אזור 310+321+322+331 +332 333+334+, +601+602+701+702" (LIST (JUST 495), (JUST 423), (JUST 37.5)),
+              `coded` "4016" "טבריה, קרית שמונה, על פי מפה של מטרופולין חיפה והצפון (בתחולה מ- 01.04.2016)" "אזור 501+502" (LIST NOTHING, (JUST 213), (JUST 21.5)),
+              `coded` "4017" "עפולה, בית שאן, על פי מפה של מטרופולין חיפה והצפון (בתחולה מ- 01.04.2016)" "אזור 601+602" (LIST NOTHING, (JUST 213), (JUST 21.5)),
+              `coded` "4018" "חדרה, חריש ואדי ערה, על פי מפה של מטרופולין חיפה והצפון (בתחולה מ- 01.04.2016)" "אזור 701+702" (LIST NOTHING, (JUST 213), (JUST 21.5)),
+              `coded` "4019" "אזור קרית שמונה, על פי מפה של מטרופולין חיפה והצפון (בתחולה מ- 01.04.2016)" "אזור 501" (LIST NOTHING, (JUST 149), NOTHING),
+              `coded` "4020" "אזור טבריה, על פי מפה של מטרופולין חיפה והצפון (בתחולה מ- 01.04.2016)" "אזור 502" (LIST NOTHING, (JUST 149), NOTHING),
+              `coded` "4021" "אזור עפולה, על פי מפה של מטרופולין חיפה והצפון (בתחולה מ- 01.04.2016)" "אזור 601" (LIST NOTHING, (JUST 149), NOTHING),
+              `coded` "4022" "אזור בית שאן, על פי מפה של מטרופולין חיפה והצפון (בתחולה מ- 01.04.2016)" "אזור 602" (LIST NOTHING, (JUST 149), NOTHING),
+              `coded` "4023" "אזור חריש ואדי ערה, על פי מפה של מטרופולין חיפה והצפון (בתחולה מ- 01.04.2016)" "אזור 701" (LIST NOTHING, (JUST 149), NOTHING),
+              `coded` "4024" "אזור חדרה, על פי מפה של מטרופולין חיפה והצפון (בתחולה מ- 01.04.2016)" "אזור 702" (LIST NOTHING, (JUST 149), NOTHING))
+
+-- akn:att_1__hc_1/p11 akn:att_1__hc_1/p12 The headings of the Beersheba zone list below.
+
+-- tariff data akn:att_1__hc_1/t7 (tools/tariff_l4.py)
+@ref akn:att_1__hc_1/t7
+`notice 13's zone list 7` MEANS
+    LIST `a zone` "טבעת 1" "410" "באר שבע",
+         `a zone` "טבעת 2" "אזור 421" "בית קמה | גבעת בר| דבירה | להב | להבים | לקיה | משמר הנגב | רהט | שובל | שומריה, תראבין א צאנה",
+         `a zone` "טבעת 2" "אזור 422" "אופקים| אשל הנשיא בי\"ס אזורי | בטחה | ברוש | גילת | חצרים | מסלול | פדויים | פטיש | רנן תאשור | תדהר",
+         `a zone` "טבעת 2" "אזור 423" "א סייד | אבו כף אום בטין | חורה | כרמים | מולדה | מיתר | נבטים | עומר | שגב שלום | תל שבע",
+         `a zone` "טבעת 3" "אזור 431" "אבשלום | אוהד | אור הנר | אורים | איבים | ארז | אשבול | בארי | בית הגדי | בני נצרים ברור חיל | גבולות | גבים | גבעולים | דורות | דקל | זמרת | זרועה | חולית | יבול | יושיביה יכיני | ישע | יתד | כיסופים | כפר מימון | כפר עזה | כרם שלום | מבועים | מבטחים| מגן מלילות | מעגלים | מפלסים | נווה | נחל עוז | ניר יצחק | ניר משה | ניר עוז | ניר עם | ניר עקיבא נירים | נתיבות | סופה | סעד | עין הבשור | עין השלושה | עלומים | עמיעוז | פעמי תש\"ז | פרי גן צאלים צוחר | קלחים | רוחמה | רעים | שדה ניצן | שדה צבי | שדי אברהם | שדרות | שובה שוקדה | שיבולים | שלומית | שרשרת | תושיה | תלמי אליהו | תלמי ביל\"ו | תלמי יוסף תקומה",
+         `a zone` "טבעת 3" "אזור 432" "אשלים | באר מילכה | בית הדאג' | טללים | ירוחם | כמהין | משאבי שדה | ניצנה כפר נוער ניצני סיני | רביבים| רתמים | מדרשת בן גוריון | שדה בוקר | מרחב עם | עזוז",
+         `a zone` "טבעת 3" "אזור 433" "אבו קרינאת | דימונה | דריג'את | כוחלה | כסיפה | מכחול | ערד | ערערה בנגב | קסר א סיר שני | ליבנה | נאות הככר | עין תמר | נווה זוהר",
+         `a zone` "טבעת 3" "אזור 434" "אשכולות | חגי | טנא | כרמל | מעון | מצדות יהודה | נגוהות סוסיה | סנסנה | עתניאל פני חבר | שמעה",
+         `a zone` "אזור אשקלון" "אזור 801" "אשקלון, קריית מלאכי, יד בנימין, מרכז שפירא, ניצן ב', בניראם, כפר מנחם, ניצן, ברכיה, עיןצורים, ינון, בית עזרא, ערוגות, כפר ורבורג, משען, גבעתי, כוכב מיכאל, באר טוביה, אמונים, גיאה, תלמי יחיאל, עזר, ניר ישראל, נגבה, תימורים, כפר הרי“ף, בית שיקמה, שפיר, נתיב העשרה, אביגדור, כפר אחים, בית חלקיה, תלמי יפה, משואות יצחק, זרחיה, יד מרדכי, ניר בנים, בת הדר, כרמיה, זיקים, הודיה, רבדים,אורות, שדה יואב, ניצנים, חפץ חיים, גברעם, מבקיעים, קדמה, כפר סילבר, אל עזי, גני טל, אחווה;",
+         `a zone` "אזור קרית גת" "אזור 802" "קרייתגת, אבן שמואל, נהורה, תלמים,שחר, לכיש, שדה משה, סגולה, גת, שקף, יד נתן, עוצם, אמציה, בית ניר,רווחה, נוגה, אחוזם, מנוחה, אלומה, זבדיאל, נירח“ן, נחלה, עוזה, חלץ, שלווה, קוממיות, איתן, שדה דוד, בית גוברין, נועם, גלאון, זוהר, ורדון, נטע",
+         `a zone` "אזור אילת" "אזור 901" "איילות, אילת, באר אורה",
+         `a zone` "אזור הערבה" "אזור 902" "יטבתה, קטורה, פארן, ספיר, צופר, גרופית, סמר, יהל, נאות סמדר, צוקים, לוטן, נווה חריף, שחרות, אליפז",
+         `a zone` "אזור מצפה רמון" "אזור 903" "מצפה רמון, עין יהב, חצבה, עידן"
+
+-- tariff data akn:att_1__hc_1/t8 (tools/tariff_l4.py)
+@ref akn:att_1__hc_1/p13 akn:att_1__hc_1/t8
+`notice 13's fare table 8` MEANS
+    `a fare table` "לוח מחירי \"חופשי חודשי\" –\"רב קו\" מטרופולין באר שבע והדרום בתחולה מיום 01.01.16"
+        (LIST `a fare column` (JUST `a monthly free pass`) NOTHING (JUST (DATE_FROM_DMY 1 1 2016)), `a fare column` (JUST `a monthly free pass`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)), `a fare column` (JUST `a daily free pass`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)))
+        (LIST `coded` "8001" "באר שבע,על פי מפה של מטרופולין באר שבע" "אזור 410" (LIST (JUST 175), (JUST 149), NOTHING),
+              `coded` "8002" "באר שבע מורחב, על פי מפה של מטרופולין באר שבע" "אזור 423+422+421+410" (LIST (JUST 235), (JUST 200), (JUST 18)),
+              `coded` "8003" "באר שבע מערב ונגב, על פי מפה של מטרופולין באר שבע" "אזור 410+421+422+431+432" (LIST (JUST 310), (JUST 264), (JUST 24)),
+              `coded` "8004" "באר שבע דרום ומזרח, על פי מפה של מטרופולין באר שבע" "אזור 410+421+423+432+433+434" (LIST (JUST 301), (JUST 264), (JUST 24)),
+              `coded` "8005" "אזור מערב ונגב, על פי מפה של מטרופולין באר שבע" "אזור 421+422+431+432" (LIST (JUST 235), (JUST 200), (JUST 18)),
+              `coded` "8006" "להבים, מערב ונגב, על פי מפה של מטרופולין באר שבע" "אזור 421+422+432+433+434" (LIST (JUST 235), (JUST 200), (JUST 18)),
+              `coded` "8007" "המטרופולין המלא, על פי מפה של מטרופולין באר שבע" "טבעת 1 טבעת 2 טבעת 3" (LIST (JUST 415), (JUST 354), (JUST 37.5)),
+              `coded` "8008" "סובב רהט להבים, על פי מפה של מטרופולין באר שבע" "אזור 421" (LIST (JUST 160), (JUST 136), NOTHING),
+              `coded` "8009" "סובב אופקים, על פי מפה של מטרופולין באר שבע" "אזור 422" (LIST (JUST 160), (JUST 136), NOTHING),
+              `coded` "8010" "סובב עומר, חורה, על פי מפה של מטרופולין באר שבע" "אזור 423" (LIST (JUST 160), (JUST 136), NOTHING),
+              `coded` "8011" "סובב נתיבות, שדרות, על פי מפה של מטרופולין באר שבע" "אזור 431" (LIST (JUST 160), (JUST 136), NOTHING),
+              `coded` "8012" "סובב ירוחם, על פי מפה של מטרופולין באר שבע" "אזור 432" (LIST (JUST 160), (JUST 136), NOTHING),
+              `coded` "8013" "סובב ערד, דימונה, על פי מפה של מטרופולין באר שבע" "אזור 433" (LIST (JUST 160), (JUST 136), NOTHING),
+              `coded` "8014" "דרום הר חברון, על פי מפה של מטרופולין באר שבע" "אזור 434" (LIST (JUST 160), (JUST 136), NOTHING),
+              `coded` "8015" "מטרופולין באר שבע, אשקלון קריית גת, על פי מפה של מטרופולין באר שבע (בתחולה מ - 01.04.2016)" "אזור 410+421+422+423+431+ 432+433+434+801+802" (LIST (JUST 415), (JUST 354), (JUST 37.5)),
+              `misaligned` "8017",
+              `misaligned` "8018",
+              `misaligned` "8019")
+
+§§ `נספח ב — כרטיסים משולבים בין המטרופולינים`
+
+-- tariff data akn:att_2__hc_1/t1 (tools/tariff_l4.py)
+@ref akn:att_2__hc_1/p1 akn:att_2__hc_1/t1
+`notice 13's fare table 9` MEANS
+    `a fare table` "כרטיסים משולבים בין המטרופולינים"
+        (LIST `a fare column` (JUST `a daily free pass`) NOTHING NOTHING, `a fare column` (JUST `a monthly free pass`) NOTHING NOTHING)
+        (LIST `coded` "5020" "באר שבע וגוש דן" "נסיעה משולבת בתוך מטרופולין באר שבע ובתוך מטרופולין גוש דן ובין מטרופולינים באר שבע וגוש דן אשר יכללו לעניין זה את אזורים ארציים 801 ו- 802" (LIST (JUST 37.5), (JUST 624)),
+              `coded` "5100" "באר שבע וירושלים" "נסיעה משולבת בתוך מטרופולין באר שבע ובתוך מטרופולין ירושלים ובין מטרופולינים באר שבע וירושלים אשר יכללו לעניין זה את אזורים ארציים 801 ו-802" (LIST (JUST 40), (JUST 684)),
+              `coded` "5030" "גוש דן וירושלים" "נסיעה משולבת בתוך מטרופולין גוש דן ובתוך מטרופולין ירושלים ובין מטרופולינים גוש דן וירושלים" (LIST (JUST 32.5), (JUST 540)),
+              `coded` "5010" "גוש דן וחיפה" "נסיעה משולבת בתוך מטרופולין גוש דן ובתוך מטרופולין חיפה ובין מטרופולינים גוש דן וחיפה אשר יכללו לעניין זה את אזורים ארציים 701 ו- 702" (LIST (JUST 40), (JUST 684)),
+              `coded` "5090" "ארצי, פרט לאילת והערבה" "כל האזורים - בתוך ובין המטרופולינים, לא כולל הערבה ואילת" (LIST (JUST 60), (JUST 900)),
+              `coded` "5110" "עפולה, בית שאן, דרום רמת הגולן וכנרת" "נסיעה משולבת בתוך האזורים עפולה - בית שאן ובתוך דרום רמת הגולן וסובב כנרת ובין האזורים עפולה - בית שאן ודרום רמת הגולן וסובב כנרת" (LIST (JUST 21.5), (JUST 213)),
+              `coded` "5120" "עפולה, בית שאן, ואדי ערה, חדרה" "נסיעה משולבת בתוך האזורים עפולה - בית שאן ובתוך וואדי ערה - חדרה ובין האזורים עפולה - בית שאן ובין וואדי ערה - חדרה" (LIST (JUST 21.5), (JUST 213)),
+              `coded` "5130" "עפולה, זכרון יעקב, כרמיאל, נצרת" "נסיעה משולבת בתוך האזורים עפולה - בית שאן ובתוך טבעות 3.2 , 3.3 , 3.4 במטרופולין חיפה ובין האזורים עפולה - בית שאן ובתוך טבעות 3.2 , 3.3 , 3.4 במטרופולין חיפה" (LIST (JUST 21.5), (JUST 213)),
+              `coded` "5140" "נהריה, כרמיאל, נצרת, גליל מזרחי, כנרת וגולן" "נסיעה משולבת בתוך גליל מזרחי דרום רמת הגולן וסובב כנרת ובתוך טבעות 3.1, 3.2, 3.3 במטרופולין חיפה ובין גליל מזרחי דרום רמת הגולן וסובב כנרת ובתוך טבעות 3.1, 3.2 , 3.3 במטרופולין חיפה" (LIST (JUST 21.5), (JUST 213)),
+              `coded` "5150" "ואדי ערה, חדרה, נצרת, זכרון יעקב" "נסיעה משולבת בתוך האזורים וואדי ערה - חדרה ובתוך טבעות 3.3 , 3.4 במטרופולין חיפה ובין האזורים וואדי ערה - חדרה ובתוך טבעות 3.3 , 3.4 במטרופולין חיפה" (LIST (JUST 21.5), (JUST 213)),
+              `coded` "5160" "אשקלון, נתיבות ושדרות" "נסיעה משולבת בתוך אזור אשקלון ובתוך טבעת 3.1 במטרופולין באר שבע ובין אזור אשקלון ובתוך טבעת 3.1 במטרופולין באר שבע" (LIST (JUST 18), (JUST 200)),
+              `coded` "5170" "קרית גת, נתיבות, שדרות ועתניאל" "נסיעה משולבת בתוך אזור קרית גת ובתוך טבעות 3.1, 3.4 במטרופולין באר שבע ובין אזור קרית גת ובתוך טבעות 3.1, 3.4 במטרופולין באר שבע" (LIST (JUST 18), (JUST 200)),
+              `coded` "5180" "אשקלון, קריית גת, גדרה ואשדוד" "נסיעה משולבת בתוך אזור אשקלון קרית גת ובתוך טבעת 3.3 במטרופולין גוש דן ובין אשקלון קרית גת ובתוך טבעת 3.3 במטרופולין גוש דן" (LIST (JUST 21.5), (JUST 213)),
+              `coded` "5190" "קריית גת, בית שמש" "נסיעה משולבת בתוך אזור אשקלון קרית גת ובתוך טבעת 3.1 במטרופולין ירושלים ובין אזור אשקלון קרית גת ובתוך טבעת 3.1 במטרופולין ירושלים" (LIST (JUST 21.5), (JUST 213)))
+
+§§ `נספח ג — תעריפי הנסיעה לנסיעה בודדת`
+
+-- akn:att_3__hc_1/p1 akn:att_3__hc_1/p2 akn:att_3__hc_1__para_c/p3 Annex C's title, printed twice, and its heading; the tables follow.
+
+-- (a): a single trip in the Haifa metropolis is a 90-minute ride from the
+-- first validation, transfers included, on a card that is not paper.
+@ref akn:att_3__hc_1__para_a
+`a single trip in the Haifa metropolis lasts, notice 13` MEANS 90
+
+-- tariff data akn:att_3__hc_1__para_b/t1 (tools/tariff_l4.py)
+@ref akn:att_3__hc_1__para_b akn:att_3__hc_1__para_b/t1
+`notice 13's fare table 10` MEANS
+    `a fare table` "לנסיעה למשך 90 דקות ממועד התיקוף הראשון, כולל מעברים בין כל קווי השירות הפנימיים במרחב ירושלים, מבשרת ציון-ירושלים, גבעת זאב-ירושלים, מעלה אדומים-ירושלים, גוש דן-אזור 201, אזור 221, אזור 222 ובלבד שהנסיעה מתבצעת באמצעות הסדר נסיעה בכרטיס שאינו נייר."
+        (LIST `a fare column` (JUST `a single trip`) NOTHING NOTHING, `a fare column` (JUST `a single trip`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)))
+        (LIST `coded` "01" "" "" (LIST (JUST 5.8), (JUST 5)),
+              `coded` "90" "" "" (LIST (JUST 6.9), (JUST 5.9)),
+              `coded` "122" "" "" (LIST (JUST 10.7), (JUST 9.1)),
+              `coded` "05" "" "" (LIST (JUST 14.7), (JUST 12.5)))
+
+-- tariff data akn:att_3__hc_1__para_c/t1 (tools/tariff_l4.py)
+@ref akn:att_3__hc_1__para_c akn:att_3__hc_1__para_c/t1
+`notice 13's fare table 11` MEANS
+    `a fare table` "מחירי הנסיעה בקווי השירות של \"דן\" חברה לתחבורה ציבורית בע\"מ."
+        (LIST `a fare column` (JUST `a single trip`) NOTHING NOTHING, `a fare column` (JUST `a single trip`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)))
+        (LIST `coded` "478" "" "" (LIST (JUST 6.9), (JUST 5.9)),
+              `coded` "479" "" "" (LIST (JUST 10.9), (JUST 9.3)))
+
+-- The monthly refund by public transport is no more than 1,330 shekels.
+@ref akn:att_3__hc_1__para_c/p2
+`notice 13's monthly cap` MEANS 1330
+
+-- tariff data akn:att_3__hc_1__para_c/t2 (tools/tariff_l4.py)
+@ref akn:att_3__hc_1__para_c/p4 akn:att_3__hc_1__para_c/t2
+`notice 13's fare table 12` MEANS
+    `a fare table` "לוח מחירי נסיעה בודדת חברת אגד"
+        (LIST `a fare column` (JUST `a single trip`) NOTHING NOTHING, `a fare column` (JUST `a single trip`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)))
+        (LIST `coded` "472" "" "" (LIST (JUST 2.7), (JUST 2.3)),
+              `coded` "1" "" "" (LIST (JUST 5.8), (JUST 5)),
+              `coded` "90" "" "" (LIST (JUST 6.9), (JUST 5.9)),
+              `coded` "149" "" "" (LIST (JUST 6.9), (JUST 5.9)),
+              `coded` "102" "" "" (LIST (JUST 8.6), (JUST 7.4)),
+              `coded` "2" "" "" (LIST (JUST 9.6), (JUST 8.2)),
+              `coded` "156" "" "" (LIST (JUST 9.6), (JUST 8.2)),
+              `coded` "3" "" "" (LIST (JUST 10.7), (JUST 9.1)),
+              `coded` "122" "" "" (LIST (JUST 10.7), (JUST 9.1)),
+              `coded` "473" "" "" (LIST (JUST 10.91), (JUST 9.3)),
+              `coded` "4" "" "" (LIST (JUST 12.4), (JUST 10.5)),
+              `coded` "5" "" "" (LIST (JUST 14.7), (JUST 12.5)),
+              `coded` "6" "" "" (LIST (JUST 16.8), (JUST 14.5)),
+              `coded` "7" "" "" (LIST (JUST 19), (JUST 16)),
+              `coded` "8" "" "" (LIST (JUST 19), (JUST 16)),
+              `coded` "9" "" "" (LIST (JUST 19), (JUST 16)),
+              `coded` "12" "" "" (LIST (JUST 19), (JUST 16)),
+              `coded` "10" "" "" (LIST (JUST 25), (JUST 21.5)),
+              `coded` "11" "" "" (LIST (JUST 25), (JUST 21.5)),
+              `coded` "14" "" "" (LIST (JUST 25), (JUST 21.5)),
+              `coded` "15" "" "" (LIST (JUST 31.5), (JUST 27)),
+              `coded` "16" "" "" (LIST (JUST 31.5), (JUST 27)),
+              `coded` "17" "" "" (LIST (JUST 31.5), (JUST 27)),
+              `coded` "18" "" "" (LIST (JUST 31.5), (JUST 27)),
+              `coded` "19" "" "" (LIST (JUST 39.5), (JUST 34)),
+              `coded` "20" "" "" (LIST (JUST 44), (JUST 37.5)),
+              `coded` "21" "" "" (LIST (JUST 46), (JUST 39.5)),
+              `coded` "22" "" "" (LIST (JUST 49.5), (JUST 42.5)),
+              `coded` "185" "" "" (LIST (JUST 82), (JUST 70)),
+              `coded` "474" "" "" (LIST (JUST 60), (JUST 51.5)),
+              `coded` "186" "" "" (LIST (JUST 82), (JUST 70)),
+              `coded` "38" "אילת" "" (LIST (JUST 4.9), (JUST 4.2)),
+              `coded` "39" "אילת" "" (LIST (JUST 4.9), (JUST 4.2)))
+
+-- tariff data akn:att_3__hc_1__para_c/t3 (tools/tariff_l4.py)
+@ref akn:att_3__hc_1__para_c/p5 akn:att_3__hc_1__para_c/t3
+`notice 13's fare table 13` MEANS
+    `a fare table` "לוח מחירי \"חופשי חודשי\" חברת אגד"
+        (LIST `a fare column` (JUST `a monthly free pass`) NOTHING NOTHING, `a fare column` (JUST `a monthly free pass`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)))
+        (LIST `coded` "85" "אילת" "" (LIST (JUST 136), (JUST 116)),
+              `coded` "96" "קריית שמונה עירוני" "" (LIST (JUST 158), (JUST 135)),
+              `coded` "84" "קריות" "" (LIST (JUST 158), (JUST 135)),
+              `coded` "173" "פרדס חנה" "" (LIST (JUST 158), (JUST 135)),
+              `coded` "96" "כרמיאל" "" (LIST (JUST 158), (JUST 135)),
+              `coded` "82" "רחובות" "" (LIST (JUST 158), (JUST 135)),
+              `coded` "82" "נס ציונה" "" (LIST (JUST 158), (JUST 135)),
+              `coded` "41" "רחובות ראשל\"צ באר יעקב" "" (LIST (JUST 254), (JUST 217)),
+              `coded` "475" "דימונה" "" (LIST (JUST 97), (JUST 83)),
+              `coded` "476" "טמרה" "" (LIST (JUST 173), (JUST 148)))
+
+-- tariff data akn:att_3__hc_1__para_c/t4 (tools/tariff_l4.py)
+@ref akn:att_3__hc_1__para_c/p6 akn:att_3__hc_1__para_c/t4
+`notice 13's fare table 14` MEANS
+    `a fare table` "לוח מחירי \"חופשי חודשי\" חברת אגד ונתיב אקספרס בע\"מ"
+        (LIST `a fare column` (JUST `a monthly free pass`) NOTHING NOTHING, `a fare column` (JUST `a monthly free pass`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)))
+        (LIST `coded` "106" "אור עקיבא - חדרה" "" (LIST (JUST 219), (JUST 187)),
+              `coded` "62" "חדרה" "" (LIST (JUST 158), (JUST 135)),
+              `coded` "77" "פרדס חנה - חדרה" "" (LIST (JUST 260), (JUST 222)),
+              `coded` "61" "נתניה - חדרה" "" (LIST (JUST 287), (JUST 245)))
+
+-- tariff data akn:att_3__hc_1__para_c/t5 (tools/tariff_l4.py)
+@ref akn:att_3__hc_1__para_c/p7 akn:att_3__hc_1__para_c/t5
+`notice 13's fare table 15` MEANS
+    `a fare table` "לוח מחירי \"חופשי חודשי\" חברת אגד וחברת קווים"
+        (LIST `a fare column` (JUST `a monthly free pass`) NOTHING NOTHING, `a fare column` (JUST `a monthly free pass`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)))
+        (LIST `coded` "63" "רמלה לוד" "" (LIST (JUST 190), (JUST 190)),
+              `coded` "194" "לוד" "" (LIST (JUST 150), (JUST 128)))
+
+-- tariff data akn:att_3__hc_1__para_c/t6 (tools/tariff_l4.py)
+@ref akn:att_3__hc_1__para_c/p8 akn:att_3__hc_1__para_c/t6
+`notice 13's fare table 16` MEANS
+    `a fare table` "לוח מחירי נסיעה בודדת חברת דן"
+        (LIST `a fare column` (JUST `a single trip`) NOTHING NOTHING, `a fare column` (JUST `a single trip`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)))
+        (LIST `coded` "478" "" "" (LIST (JUST 6.9), (JUST 5.9)),
+              `coded` "479" "" "" (LIST (JUST 10.9), (JUST 9.3)))
+
+-- tariff data akn:att_3__hc_1__para_c/t7 (tools/tariff_l4.py)
+@ref akn:att_3__hc_1__para_c/p9 akn:att_3__hc_1__para_c/t7
+`notice 13's fare table 17` MEANS
+    `a fare table` "חופשי חודשי חברת דן"
+        (LIST `a fare column` (JUST `a monthly free pass`) NOTHING NOTHING, `a fare column` (JUST `a monthly free pass`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)))
+        (LIST `coded` "31" "מקומי בני ברק" "" (LIST (JUST 162), (JUST 138)))
+
+-- tariff data akn:att_3__hc_1__para_c/t8 (tools/tariff_l4.py)
+@ref akn:att_3__hc_1__para_c/p10 akn:att_3__hc_1__para_c/t8
+`notice 13's fare table 18` MEANS
+    `a fare table` "לוח מחירי נסיעה בודדת בדרום חברת דן"
+        (LIST `a fare column` (JUST `a single trip`) NOTHING NOTHING, `a fare column` (JUST `a single trip`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)))
+        (LIST `coded` "482" "" "" (LIST (JUST 2.8), (JUST 2.4)),
+              `coded` "483" "" "" (LIST (JUST 4.4), (JUST 3.8)),
+              `coded` "484" "" "" (LIST (JUST 4.9), (JUST 4.2)),
+              `coded` "485" "" "" (LIST (JUST 7), (JUST 6)),
+              `coded` "486" "" "" (LIST (JUST 8.4), (JUST 7.2)),
+              `coded` "487" "" "" (LIST (JUST 9.5), (JUST 8.1)),
+              `coded` "488" "" "" (LIST (JUST 10.5), (JUST 9)),
+              `coded` "489" "" "" (LIST (JUST 11.7), (JUST 10)),
+              `coded` "491" "" "" (LIST (JUST 14), (JUST 12)),
+              `coded` "492" "" "" (LIST (JUST 15), (JUST 13)),
+              `coded` "493" "" "" (LIST (JUST 15.5), (JUST 13.2)),
+              `coded` "494" "" "" (LIST (JUST 16), (JUST 13.5)),
+              `coded` "495" "" "" (LIST (JUST 17.3), (JUST 15)),
+              `coded` "496" "" "" (LIST (JUST 19), (JUST 16)),
+              `coded` "497" "" "" (LIST (JUST 21), (JUST 19)),
+              `coded` "498" "" "" (LIST (JUST 24), (JUST 20.5)),
+              `coded` "499" "" "" (LIST (JUST 28.5), (JUST 24.5)))
+
+-- tariff data akn:att_3__hc_1__para_c/t9 (tools/tariff_l4.py)
+@ref akn:att_3__hc_1__para_c/p11 akn:att_3__hc_1__para_c/t9
+`notice 13's fare table 19` MEANS
+    `a fare table` "לוח מחירי \"חופשי חודשי\" דרום חברת דן"
+        (LIST `a fare column` (JUST `a monthly free pass`) NOTHING NOTHING, `a fare column` (JUST `a monthly free pass`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)))
+        (LIST `coded` "204" "אשקלון" "" (LIST (JUST 123), (JUST 105)),
+              `coded` "205" "קריית גת" "" (LIST (JUST 123), (JUST 105)),
+              `coded` "540" "קריית גת - אשקלון" "" (LIST (JUST 390), (JUST 333)),
+              `coded` "541" "נתיבות" "" (LIST (JUST 101), (JUST 86)),
+              `coded` "542" "שדרות" "" (LIST (JUST 101), (JUST 86)),
+              `coded` "543" "אופקים" "" (LIST (JUST 101), (JUST 86)),
+              `coded` "544" "שדרות" "" (LIST (JUST 101), (JUST 86)))
+
+-- tariff data akn:att_3__hc_1__para_c/t10 (tools/tariff_l4.py)
+@ref akn:att_3__hc_1__para_c/p12 akn:att_3__hc_1__para_c/t10
+`notice 13's fare table 20` MEANS
+    `a fare table` "לוח מחירי \"חופשי חודשי\" – צפון חברת דן"
+        (LIST `a fare column` (JUST `a single trip`) NOTHING NOTHING, `a fare column` (JUST `a single trip`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)))
+        (LIST `coded` "545" "" "" (LIST (JUST 5.8), (JUST 5)),
+              `coded` "546" "" "" (LIST (JUST 5.9), (JUST 5)),
+              `coded` "547" "" "" (LIST (JUST 9.1), (JUST 7.8)),
+              `coded` "548" "" "" (LIST (JUST 12.5), (JUST 10.7)))
+
+-- tariff data akn:att_3__hc_1__para_c/t11 (tools/tariff_l4.py)
+@ref akn:att_3__hc_1__para_c/p13 akn:att_3__hc_1__para_c/t11
+`notice 13's fare table 21` MEANS
+    `a fare table` "לוח מחירי נסיעה בודדת חברת אפיקים פתרונות תחבורה מתקדמים (אשכול שומרון)"
+        (LIST `a fare column` (JUST `a single trip`) NOTHING NOTHING, `a fare column` (JUST `a single trip`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)))
+        (LIST `coded` "870" "" "" (LIST (JUST 6.5), (JUST 5.6)),
+              `coded` "862" "" "" (LIST (JUST 9.1), (JUST 7.8)),
+              `coded` "872" "" "" (LIST (JUST 10.6), (JUST 9.1)),
+              `coded` "874" "" "" (LIST (JUST 14.7), (JUST 12.5)),
+              `coded` "876" "" "" (LIST (JUST 18.4), (JUST 15.5)),
+              `coded` "877" "" "" (LIST (JUST 22.1), (JUST 19)),
+              `coded` "878" "" "" (LIST (JUST 25), (JUST 21.5)),
+              `coded` "878" "" "" (LIST (JUST 25), (JUST 21.5)),
+              `coded` "879" "" "" (LIST (JUST 30.4), (JUST 26)))
+
+-- tariff data akn:att_3__hc_1__para_c/t12 (tools/tariff_l4.py)
+@ref akn:att_3__hc_1__para_c/p14 akn:att_3__hc_1__para_c/t12
+`notice 13's fare table 22` MEANS
+    `a fare table` "לוח מחירי \"חופשי חודשי\" חברת אפיקים פתרונות תחבורה מתקדמים (אשכול שומרון)"
+        (LIST `a fare column` (JUST `a monthly free pass`) NOTHING NOTHING, `a fare column` (JUST `a monthly free pass`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)))
+        (LIST `coded` "168" "אזורים 210,221,222,223 קווי שומרון" "" (LIST (JUST 358), (JUST 358)),
+              `coded` "169" "אזורים 210,221,222,223 קווי שומרון וישובים עץ אפרים אלקנה, אורנית ושערי תקווה" "" (LIST (JUST 299), (JUST 299)),
+              `coded` "279" "עירוני אריאל" "" (LIST (JUST 200), (JUST 200)))
+
+-- tariff data akn:att_3__hc_1__para_c/t13 (tools/tariff_l4.py)
+@ref akn:att_3__hc_1__para_c/p15 akn:att_3__hc_1__para_c/t13
+`notice 13's fare table 23` MEANS
+    `a fare table` "לוח מחירי נסיעה בודדת חברת אפיקים פתרונות תחבורה מתקדמים (אשכול אשדוד)"
+        (LIST `a fare column` (JUST `a single trip`) NOTHING NOTHING, `a fare column` (JUST `a single trip`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)))
+        (LIST `coded` "865" "" "" (LIST (JUST 4.8), (JUST 4.1)),
+              `coded` "862" "" "" (LIST (JUST 9.1), (JUST 7.8)),
+              `coded` "874" "" "" (LIST (JUST 14.7), (JUST 12.5)),
+              `coded` "332" "" "" (LIST (JUST 4.3), (JUST 3.7)),
+              `coded` "333" "" "" (LIST (JUST 6.7), (JUST 5.7)),
+              `coded` "334" "" "" (LIST (JUST 7.5), (JUST 6.4)),
+              `coded` "335" "" "" (LIST (JUST 7.9), (JUST 6.8)),
+              `coded` "336" "" "" (LIST (JUST 8.5), (JUST 7.3)),
+              `coded` "337" "" "" (LIST (JUST 11.5), (JUST 9.8)),
+              `coded` "338" "" "" (LIST (JUST 17.3), (JUST 15)),
+              `coded` "339" "" "" (LIST (JUST 19.5), (JUST 16.5)),
+              `coded` "340" "" "" (LIST (JUST 5.6), (JUST 4.8)))
+
+-- tariff data akn:att_3__hc_1__para_c/t14 (tools/tariff_l4.py)
+@ref akn:att_3__hc_1__para_c/p16 akn:att_3__hc_1__para_c/t14
+`notice 13's fare table 24` MEANS
+    `a fare table` "לוח מחירי \"חופשי חודשי\" חברת אפיקים פתרונות תחבורה מתקדמים (אשכול אשדוד)"
+        (LIST `a fare column` (JUST `a monthly free pass`) NOTHING NOTHING, `a fare column` (JUST `a monthly free pass`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)))
+        (LIST `coded` "341" "אזורי אשדוד" "" (LIST (JUST 220), (JUST 188)),
+              `coded` "342" "יבנה" "" (LIST (JUST 80), (JUST 68)))
+
+-- tariff data akn:att_3__hc_1__para_c/t15 (tools/tariff_l4.py)
+@ref akn:att_3__hc_1__para_c/p17 akn:att_3__hc_1__para_c/t15
+`notice 13's fare table 25` MEANS
+    `a fare table` "לוח מחירי נסיעה בודדת חברת אפיקים פתרונות תחבורה מתקדמים (אשכול בני ברק ירושלים)"
+        (LIST `a fare column` (JUST `a single trip`) NOTHING NOTHING, `a fare column` (JUST `a single trip`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)))
+        (LIST `coded` "343" "" "" (LIST (JUST 16.8), (JUST 14.5)),
+              `coded` "344" "" "" (LIST (JUST 19), (JUST 16)),
+              `coded` "345" "" "" (LIST (JUST 25), (JUST 21.5)))
+
+-- tariff data akn:att_3__hc_1__para_c/t16 (tools/tariff_l4.py)
+@ref akn:att_3__hc_1__para_c/p18 akn:att_3__hc_1__para_c/t16
+`notice 13's fare table 26` MEANS
+    `a fare table` "לוח מחירי נסיעה בודדת חברת הנסיעות והתיירות נצרת"
+        (LIST `a fare column` (JUST `a single trip`) NOTHING NOTHING, `a fare column` (JUST `a single trip`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)))
+        (LIST `coded` "618" "" "" (LIST (JUST 3.7), (JUST 3.2)),
+              `coded` "601" "" "" (LIST (JUST 5), (JUST 4.3)),
+              `coded` "602" "" "" (LIST (JUST 5.8), (JUST 5)),
+              `coded` "603" "" "" (LIST (JUST 6.9), (JUST 5.9)),
+              `coded` "604" "" "" (LIST (JUST 8.6), (JUST 7.4)),
+              `coded` "605" "" "" (LIST (JUST 9.6), (JUST 8.2)),
+              `coded` "606" "" "" (LIST (JUST 10.7), (JUST 9.1)),
+              `coded` "607" "" "" (LIST (JUST 12.4), (JUST 10.5)),
+              `coded` "608" "" "" (LIST (JUST 14.7), (JUST 12.5)),
+              `coded` "609" "" "" (LIST (JUST 16.8), (JUST 14.5)),
+              `coded` "610" "" "" (LIST (JUST 19), (JUST 16)),
+              `coded` "611" "" "" (LIST (JUST 19), (JUST 16)),
+              `coded` "612" "" "" (LIST (JUST 19), (JUST 16)),
+              `coded` "613" "" "" (LIST (JUST 25), (JUST 21.5)),
+              `coded` "614" "" "" (LIST (JUST 25), (JUST 21.5)))
+
+-- tariff data akn:att_3__hc_1__para_c/t17 (tools/tariff_l4.py)
+@ref akn:att_3__hc_1__para_c/p19 akn:att_3__hc_1__para_c/t17
+`notice 13's fare table 27` MEANS
+    `a fare table` "לוח מחירי \"חופשי חודשי\" חברת הנסיעות והתיירות נצרת"
+        (LIST `a fare column` (JUST `a monthly free pass`) NOTHING NOTHING, `a fare column` (JUST `a monthly free pass`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)))
+        (LIST `coded` "468" "סכנין" "" (LIST (JUST 133), (JUST 113)))
+
+-- tariff data akn:att_3__hc_1__para_c/t18 (tools/tariff_l4.py)
+@ref akn:att_3__hc_1__para_c/p20 akn:att_3__hc_1__para_c/t18
+`notice 13's fare table 28` MEANS
+    `a fare table` "לוח מחירי נסיעה בודדת חברת גי.בי. טורס בע\"מ"
+        (LIST `a fare column` (JUST `a single trip`) NOTHING NOTHING, `a fare column` (JUST `a single trip`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)))
+        (LIST `coded` "650" "" "" (LIST (JUST 5.8), (JUST 5)),
+              `coded` "651" "" "" (LIST (JUST 6.9), (JUST 5.9)),
+              `coded` "652" "" "" (LIST (JUST 8.6), (JUST 7.4)),
+              `coded` "653" "" "" (LIST (JUST 9.6), (JUST 8.2)),
+              `coded` "654" "" "" (LIST (JUST 10.7), (JUST 9.1)),
+              `coded` "655" "" "" (LIST (JUST 12.4), (JUST 10.5)),
+              `coded` "656" "" "" (LIST (JUST 14.7), (JUST 12.5)),
+              `coded` "657" "" "" (LIST (JUST 16.8), (JUST 14.5)),
+              `coded` "658" "" "" (LIST (JUST 19), (JUST 16)),
+              `coded` "659" "" "" (LIST (JUST 19), (JUST 16)),
+              `coded` "660" "" "" (LIST (JUST 19), (JUST 16)),
+              `coded` "661" "" "" (LIST (JUST 25), (JUST 21.5)),
+              `coded` "662" "" "" (LIST (JUST 25), (JUST 21.5)))
+
+-- tariff data akn:att_3__hc_1__para_c/t19 (tools/tariff_l4.py)
+@ref akn:att_3__hc_1__para_c/p21 akn:att_3__hc_1__para_c/t19
+`notice 13's fare table 29` MEANS
+    `a fare table` "לוח מחירי נסיעה בודדת שירותי אוטובוסים מאוחדים נצרת"
+        (LIST `a fare column` (JUST `a single trip`) NOTHING NOTHING, `a fare column` (JUST `a single trip`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)))
+        (LIST `coded` "481" "" "" (LIST (JUST 3.7), (JUST 3.2)),
+              `coded` "37" "" "" (LIST (JUST 5), (JUST 4.3)),
+              `coded` "480" "" "" (LIST (JUST 6.3), (JUST 5.4)))
+
+-- tariff data akn:att_3__hc_1__para_c/t20 (tools/tariff_l4.py)
+@ref akn:att_3__hc_1__para_c/p22 akn:att_3__hc_1__para_c/t20
+`notice 13's fare table 30` MEANS
+    `a fare table` "לוח מחירי \"חופשי חודשי\" שירותי אוטובוסים מאוחדים נצרת"
+        (LIST `a fare column` (JUST `a monthly free pass`) NOTHING NOTHING, `a fare column` (JUST `a monthly free pass`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)))
+        (LIST `coded` "55" "נצרת" "" (LIST (JUST 108), (JUST 92)),
+              `coded` "490" "נצרת- כפר כנא" "" (LIST (JUST 135), (JUST 115)))
+
+-- tariff data akn:att_3__hc_1__para_c/t21 (tools/tariff_l4.py)
+@ref akn:att_3__hc_1__para_c/p23 akn:att_3__hc_1__para_c/t21
+`notice 13's fare table 31` MEANS
+    `a fare table` "לוח מחירי נסיעה בודדת מטרודן"
+        (LIST `a fare column` (JUST `a single trip`) NOTHING NOTHING, `a fare column` (JUST `a single trip`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)))
+        (LIST `coded` "170" "" "" (LIST (JUST 4.4), (JUST 3.8)))
+
+-- tariff data akn:att_3__hc_1__para_c/t22 (tools/tariff_l4.py)
+@ref akn:att_3__hc_1__para_c/p24 akn:att_3__hc_1__para_c/t22
+`notice 13's fare table 32` MEANS
+    `a fare table` "לוח מחירי נסיעה בודדת מועצה איזורית אילות"
+        (LIST `a fare column` (JUST `a single trip`) NOTHING NOTHING, `a fare column` (JUST `a single trip`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)))
+        (LIST `coded` "450" "" "" (LIST (JUST 6.5), (JUST 5.6)),
+              `coded` "451" "" "" (LIST (JUST 11), (JUST 9.4)),
+              `coded` "452" "" "" (LIST (JUST 13.5), (JUST 11.5)),
+              `coded` "453" "" "" (LIST (JUST 18), (JUST 15.5)),
+              `coded` "346" "" "" (LIST (JUST 10), (JUST 8.5)))
+
+-- tariff data akn:att_3__hc_1__para_c/t23 (tools/tariff_l4.py)
+@ref akn:att_3__hc_1__para_c/p25 akn:att_3__hc_1__para_c/t23
+`notice 13's fare table 33` MEANS
+    `a fare table` "לוח מחירי נסיעה בודדת אגד תעבורה אלעד"
+        (LIST `a fare column` (JUST `a single trip`) NOTHING NOTHING, `a fare column` (JUST `a single trip`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)))
+        (LIST `coded` "211" "" "" (LIST (JUST 3.1), (JUST 2.6)),
+              `coded` "214" "" "" (LIST (JUST 5.1), (JUST 4.4)),
+              `coded` "212" "" "" (LIST (JUST 6.4), (JUST 5.5)),
+              `coded` "213" "" "" (LIST (JUST 8.4), (JUST 7.2)),
+              `coded` "215" "" "" (LIST (JUST 8.7), (JUST 7.4)),
+              `coded` "216" "" "" (LIST (JUST 10.8), (JUST 9.2)),
+              `coded` "217" "" "" (LIST (JUST 14.1), (JUST 12)),
+              `coded` "218" "" "" (LIST (JUST 16.2), (JUST 14)),
+              `coded` "219" "" "" (LIST (JUST 18.5), (JUST 16)),
+              `coded` "347" "" "" (LIST (JUST 40.3), (JUST 34.5)))
+
+-- tariff data akn:att_3__hc_1__para_c/t24 (tools/tariff_l4.py)
+@ref akn:att_3__hc_1__para_c/p26 akn:att_3__hc_1__para_c/t24
+`notice 13's fare table 34` MEANS
+    `a fare table` "לוח מחירי \"חופשי חודשי\" אגד תעבורה אלעד"
+        (LIST `a fare column` (JUST `a monthly free pass`) NOTHING NOTHING, `a fare column` (JUST `a monthly free pass`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)))
+        (LIST `coded` "203" "אלעד - בני ברק" "" (LIST (JUST 224), (JUST 191)),
+              `coded` "469" "אלעד - פתח תקווה" "" (LIST (JUST 195), (JUST 166)),
+              `coded` "470" "אלעד" "" (LIST (JUST 112), (JUST 95)))
+
+-- tariff data akn:att_3__hc_1__para_c/t25 (tools/tariff_l4.py)
+@ref akn:att_3__hc_1__para_c/p27 akn:att_3__hc_1__para_c/t25
+`notice 13's fare table 35` MEANS
+    `a fare table` "לוח מחירי נסיעה בודדת אגד תעבורה צפון הנגב"
+        (LIST `a fare column` (JUST `a single trip`) NOTHING NOTHING, `a fare column` (JUST `a single trip`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)))
+        (LIST `coded` "801" "" "" (LIST (JUST 2.8), (JUST 2.4)),
+              `coded` "802" "" "" (LIST (JUST 4.4), (JUST 3.8)),
+              `coded` "803" "" "" (LIST (JUST 4.9), (JUST 4.2)),
+              `coded` "804" "" "" (LIST (JUST 7), (JUST 6)),
+              `coded` "805" "" "" (LIST (JUST 8.4), (JUST 7.2)),
+              `coded` "806" "" "" (LIST (JUST 9.5), (JUST 8.1)),
+              `coded` "807" "" "" (LIST (JUST 10.5), (JUST 9)),
+              `coded` "808" "" "" (LIST (JUST 11.7), (JUST 10)),
+              `coded` "809" "" "" (LIST (JUST 14), (JUST 12)),
+              `coded` "810" "" "" (LIST (JUST 15), (JUST 13)),
+              `coded` "811" "" "" (LIST (JUST 15.5), (JUST 13.2)),
+              `coded` "812" "" "" (LIST (JUST 16), (JUST 13.5)),
+              `coded` "813" "" "" (LIST (JUST 17.3), (JUST 15)),
+              `coded` "814" "" "" (LIST (JUST 19), (JUST 16.2)),
+              `coded` "815" "" "" (LIST (JUST 21), (JUST 18)),
+              `coded` "816" "" "" (LIST (JUST 24), (JUST 20.5)),
+              `coded` "817" "" "" (LIST (JUST 24), (JUST 20.5)),
+              `coded` "818" "" "" (LIST (JUST 28.5), (JUST 24.5)),
+              `coded` "819" "" "" (LIST (JUST 28.5), (JUST 24.5)),
+              `coded` "820" "" "" (LIST (JUST 28.5), (JUST 24.5)),
+              `coded` "821" "" "" (LIST (JUST 28.5), (JUST 24.5)),
+              `coded` "822" "" "" (LIST (JUST 28.5), (JUST 24.5)),
+              `coded` "823" "" "" (LIST (JUST 28.5), (JUST 24.5)))
+
+-- tariff data akn:att_3__hc_1__para_c/t26 (tools/tariff_l4.py)
+@ref akn:att_3__hc_1__para_c/p28 akn:att_3__hc_1__para_c/t26
+`notice 13's fare table 36` MEANS
+    `a fare table` "לוח מחירי \"חופשי חודשי\" אגד תעבורה צפון הנגב"
+        (LIST `a fare column` (JUST `a monthly free pass`) NOTHING NOTHING, `a fare column` (JUST `a monthly free pass`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)))
+        (LIST `coded` "204" "אשקלון" "" (LIST (JUST 123), (JUST 105)),
+              `coded` "205" "קרית גת" "" (LIST (JUST 123), (JUST 105)),
+              `coded` "348" "נתיבות, שדרות, אופקים, קרית מלאכי" "" (LIST (JUST 101), (JUST 86)),
+              `coded` "207" "קרית גת-אשקלון" "" (LIST (JUST 390), (JUST 333)))
+
+-- tariff data akn:att_3__hc_1__para_c/t27 (tools/tariff_l4.py)
+@ref akn:att_3__hc_1__para_c/p29 akn:att_3__hc_1__para_c/t27
+`notice 13's fare table 37` MEANS
+    `a fare table` "לוח מחירי נסיעה בודדת אגד תעבורה עוטף ירושלים"
+        (LIST `a fare column` (JUST `a single trip`) NOTHING NOTHING, `a fare column` (JUST `a single trip`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)))
+        (LIST `coded` "271" "" "" (LIST (JUST 5.8), (JUST 5)),
+              `coded` "272" "" "" (LIST (JUST 6.9), (JUST 5.9)),
+              `coded` "273" "" "" (LIST (JUST 9.6), (JUST 8.2)),
+              `coded` "274" "" "" (LIST (JUST 10.7), (JUST 9.1)),
+              `coded` "275" "" "" (LIST (JUST 12.4), (JUST 10.5)),
+              `coded` "276" "" "" (LIST (JUST 15), (JUST 13)),
+              `coded` "349" "" "" (LIST (JUST 16.8), (JUST 14.4)),
+              `coded` "350" "" "" (LIST (JUST 19), (JUST 16.2)),
+              `coded` "351" "" "" (LIST (JUST 25), (JUST 21.4)))
+
+-- tariff data akn:att_3__hc_1__para_c/t28 (tools/tariff_l4.py)
+@ref akn:att_3__hc_1__para_c/p30 akn:att_3__hc_1__para_c/t28
+`notice 13's fare table 38` MEANS
+    `a fare table` "לוח מחירי נסיעה בודדת אגד תעבורה אשדוד"
+        (LIST `a fare column` (JUST `a single trip`) NOTHING NOTHING, `a fare column` (JUST `a single trip`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)))
+        (LIST `coded` "198" "" "" (LIST (JUST 5.5), (JUST 4.7)))
+
+-- tariff data akn:att_3__hc_1__para_c/t29 (tools/tariff_l4.py)
+@ref akn:att_3__hc_1__para_c/p31 akn:att_3__hc_1__para_c/t29
+`notice 13's fare table 39` MEANS
+    `a fare table` "לוח מחירי \"חופשי חודשי\" אגד תעבורה אשדוד"
+        (LIST `a fare column` (JUST `a monthly free pass`) NOTHING NOTHING, `a fare column` (JUST `a monthly free pass`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)))
+        (LIST `coded` "352" "אשדוד" "" (LIST (JUST 150), (JUST 128)))
+
+-- tariff data akn:att_3__hc_1__para_c/t30 (tools/tariff_l4.py)
+@ref akn:att_3__hc_1__para_c/p32 akn:att_3__hc_1__para_c/t30
+`notice 13's fare table 40` MEANS
+    `a fare table` "לוח מחירי נסיעה בודדת אגד תעבורה נתניה עירוני"
+        (LIST `a fare column` (JUST `a single trip`) NOTHING NOTHING, `a fare column` (JUST `a single trip`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)))
+        (LIST `coded` "222" "" "" (LIST (JUST 5.4), (JUST 4.6)),
+              `coded` "223" "" "" (LIST (JUST 5.4), (JUST 4.6)),
+              `coded` "224" "" "" (LIST (JUST 8), (JUST 6.8)),
+              `coded` "221" "" "" (LIST (JUST 8), (JUST 6.8)),
+              `coded` "225" "" "" (LIST (JUST 8), (JUST 6.8)))
+
+-- tariff data akn:att_3__hc_1__para_c/t31 (tools/tariff_l4.py)
+@ref akn:att_3__hc_1__para_c/p33 akn:att_3__hc_1__para_c/t31
+`notice 13's fare table 41` MEANS
+    `a fare table` "לוח מחירי \"חופשי חודשי\" אגד תעבורה נתניה עירוני"
+        (LIST `a fare column` (JUST `a monthly free pass`) NOTHING NOTHING, `a fare column` (JUST `a monthly free pass`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)))
+        (LIST `coded` "353" "נתניה" "" (LIST (JUST 150), (JUST 128)))
+
+-- tariff data akn:att_3__hc_1__para_c/t32 (tools/tariff_l4.py)
+@ref akn:att_3__hc_1__para_c/p34 akn:att_3__hc_1__para_c/t32
+`notice 13's fare table 42` MEANS
+    `a fare table` "לוח מחירי נסיעה בודדת אגד תעבורה בשפירים"
+        (LIST `a fare column` (JUST `a single trip`) NOTHING NOTHING, `a fare column` (JUST `a single trip`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)))
+        (LIST `coded` "296" "" "" (LIST (JUST 13.1), (JUST 11.2)),
+              `coded` "297" "" "" (LIST (JUST 16.8), (JUST 14.4)))
+
+-- tariff data akn:att_3__hc_1__para_c/t33 (tools/tariff_l4.py)
+@ref akn:att_3__hc_1__para_c/p35 akn:att_3__hc_1__para_c/t33
+`notice 13's fare table 43` MEANS
+    `a fare table` "לוח מחירי \"חופשי חודשי\" אגד תעבורה בשפירים"
+        (LIST `a fare column` (JUST `a monthly free pass`) NOTHING NOTHING, `a fare column` (JUST `a monthly free pass`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)))
+        (LIST `coded` "471" "" "" (LIST (JUST 437), (JUST 373)))
+
+-- tariff data akn:att_3__hc_1__para_c/t34 (tools/tariff_l4.py)
+@ref akn:att_3__hc_1__para_c/p36 akn:att_3__hc_1__para_c/t34
+`notice 13's fare table 44` MEANS
+    `a fare table` "לוח מחירי נסיעה בודדת נתיב אקספרס-תחבורה ציבורית (אשכול גליל-יוקנעם, צפת, נהריה)"
+        (LIST `a fare column` (JUST `a single trip`) NOTHING NOTHING, `a fare column` (JUST `a single trip`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)))
+        (LIST `coded` "680" "" "" (LIST (JUST 2.7), (JUST 2.3)),
+              `coded` "230" "" "" (LIST (JUST 4.8), (JUST 4.1)),
+              `coded` "231" "" "" (LIST (JUST 4.8), (JUST 4.1)),
+              `coded` "232" "" "" (LIST (JUST 6.6), (JUST 5.6)),
+              `coded` "233" "" "" (LIST (JUST 8), (JUST 6.8)),
+              `coded` "234" "" "" (LIST (JUST 8), (JUST 6.8)),
+              `coded` "235" "" "" (LIST (JUST 10), (JUST 8.5)),
+              `coded` "236" "" "" (LIST (JUST 11.2), (JUST 9.6)),
+              `coded` "237" "" "" (LIST (JUST 13.5), (JUST 11.5)),
+              `coded` "238" "" "" (LIST (JUST 14.9), (JUST 12.5)),
+              `coded` "239" "" "" (LIST (JUST 17.4), (JUST 15)),
+              `coded` "240" "" "" (LIST (JUST 18.8), (JUST 16)),
+              `coded` "681" "" "" (LIST (JUST 5.8), (JUST 5)),
+              `coded` "259" "" "" (LIST (JUST 5.8), (JUST 5)),
+              `coded` "682" "" "" (LIST (JUST 6.9), (JUST 5.9)),
+              `coded` "256" "" "" (LIST (JUST 6.9), (JUST 5.9)),
+              `coded` "257" "" "" (LIST (JUST 10.7), (JUST 9.1)),
+              `coded` "684" "" "" (LIST (JUST 10.7), (JUST 9.1)),
+              `coded` "258" "" "" (LIST (JUST 14.7), (JUST 12.5)),
+              `coded` "686" "" "" (LIST (JUST 14.7), (JUST 12.5)),
+              `coded` "298" "" "" (LIST (JUST 34.5), (JUST 29.5)),
+              `coded` "235" "" "" (LIST (JUST 10), (JUST 8.5)))
+
+-- tariff data akn:att_3__hc_1__para_c/t35 (tools/tariff_l4.py)
+@ref akn:att_3__hc_1__para_c/p37 akn:att_3__hc_1__para_c/t35
+`notice 13's fare table 45` MEANS
+    `a fare table` "לוח מחירי \"חופשי חודשי\" נתיב אקספרס-תחבורה ציבורית (אשכול גליל-יוקנעם, צפת, נהריה)"
+        (LIST `a fare column` (JUST `a monthly free pass`) NOTHING NOTHING, `a fare column` (JUST `a monthly free pass`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)))
+        (LIST `coded` "280" "צפת" "" (LIST (JUST 120), (JUST 102)),
+              `coded` "281" "נהריה" "" (LIST (JUST 120), (JUST 102)),
+              `coded` "299" "עכו" "" (LIST (JUST 135), (JUST 135)))
+
+-- tariff data akn:att_3__hc_1__para_c/t36 (tools/tariff_l4.py)
+@ref akn:att_3__hc_1__para_c/p38 akn:att_3__hc_1__para_c/t36
+`notice 13's fare table 46` MEANS
+    `a fare table` "לוח מחירי נסיעה בודדת נתיב אקספרס-תחבורה ציבורית (אשכול נתניה-ת\"א)"
+        (LIST `a fare column` (JUST `a single trip`) NOTHING NOTHING, `a fare column` (JUST `a single trip`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)))
+        (LIST `coded` "751" "" "" (LIST (JUST 5.6), (JUST 4.8)),
+              `coded` "752" "" "" (LIST (JUST 6.4), (JUST 5.5)),
+              `coded` "753" "" "" (LIST (JUST 6.9), (JUST 5.9)),
+              `coded` "754" "" "" (LIST (JUST 7.6), (JUST 6.5)),
+              `coded` "755" "" "" (LIST (JUST 8.2), (JUST 7)),
+              `coded` "756" "" "" (LIST (JUST 8.7), (JUST 7.4)),
+              `coded` "757" "" "" (LIST (JUST 9.9), (JUST 8.5)),
+              `coded` "758" "" "" (LIST (JUST 10.5), (JUST 9)),
+              `coded` "759" "" "" (LIST (JUST 10.5), (JUST 9)),
+              `coded` "760" "" "" (LIST (JUST 10.5), (JUST 9)),
+              `coded` "761" "" "" (LIST (JUST 11.6), (JUST 9.9)),
+              `coded` "762" "" "" (LIST (JUST 11.6), (JUST 9.9)))
+
+-- tariff data akn:att_3__hc_1__para_c/t37 (tools/tariff_l4.py)
+@ref akn:att_3__hc_1__para_c/p39 akn:att_3__hc_1__para_c/t37
+`notice 13's fare table 47` MEANS
+    `a fare table` "לוח מחירי נסיעה בודדת סופרבוס (פרוזדור ירושלים)"
+        (LIST `a fare column` (JUST `a single trip`) NOTHING NOTHING, `a fare column` (JUST `a single trip`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)))
+        (LIST `coded` "370" "" "" (LIST (JUST 4.3), (JUST 3.7)),
+              `coded` "371" "" "" (LIST (JUST 5.8), (JUST 5)),
+              `coded` "300" "" "" (LIST (JUST 6.9), (JUST 5.9)),
+              `coded` "372" "" "" (LIST (JUST 8.5), (JUST 7.3)),
+              `coded` "373" "" "" (LIST (JUST 8.8), (JUST 7.5)),
+              `coded` "374" "" "" (LIST (JUST 10.6), (JUST 9.1)),
+              `coded` "375" "" "" (LIST (JUST 12.5), (JUST 10.5)),
+              `coded` "376" "" "" (LIST (JUST 13.3), (JUST 11.5)),
+              `coded` "377" "" "" (LIST (JUST 14.2), (JUST 12)),
+              `coded` "378" "" "" (LIST (JUST 15.7), (JUST 13.5)),
+              `coded` "379" "" "" (LIST (JUST 16.2), (JUST 14)),
+              `coded` "380" "" "" (LIST (JUST 17.5), (JUST 15)),
+              `coded` "381" "" "" (LIST (JUST 18.8), (JUST 16)),
+              `coded` "382" "" "" (LIST (JUST 9.6), (JUST 8.2)))
+
+-- tariff data akn:att_3__hc_1__para_c/t38 (tools/tariff_l4.py)
+@ref akn:att_3__hc_1__para_c/p40 akn:att_3__hc_1__para_c/t38
+`notice 13's fare table 48` MEANS
+    `a fare table` "לוח מחירי \"חופשי חודשי\" סופרבוס (פרוזדור ירושלים)"
+        (LIST `a fare column` (JUST `a monthly free pass`) NOTHING NOTHING, `a fare column` (JUST `a monthly free pass`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)))
+        (LIST `coded` "383" "בית שמש" "" (LIST (JUST 122), (JUST 104)))
+
+-- tariff data akn:att_3__hc_1__para_c/t39 (tools/tariff_l4.py)
+@ref akn:att_3__hc_1__para_c/p41 akn:att_3__hc_1__para_c/t39
+`notice 13's fare table 49` MEANS
+    `a fare table` "לוח מחירי נסיעה בודדת קווי השירות טבריה סופרבוס"
+        (LIST `a fare column` (JUST `a single trip`) NOTHING NOTHING, `a fare column` (JUST `a single trip`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)))
+        (LIST `coded` "358" "" "" (LIST (JUST 2.9), (JUST 2.5)),
+              `coded` "359" "" "" (LIST (JUST 4.8), (JUST 4.1)),
+              `coded` "360" "" "" (LIST (JUST 6.6), (JUST 5.6)),
+              `coded` "361" "" "" (LIST (JUST 7.2), (JUST 6.2)),
+              `coded` "362" "" "" (LIST (JUST 8.6), (JUST 7.4)),
+              `coded` "363" "" "" (LIST (JUST 8.6), (JUST 7.4)),
+              `coded` "364" "" "" (LIST (JUST 11.8), (JUST 10)),
+              `coded` "365" "" "" (LIST (JUST 11.8), (JUST 10)),
+              `coded` "366" "" "" (LIST (JUST 13.5), (JUST 11.5)),
+              `coded` "367" "" "" (LIST (JUST 13.5), (JUST 11.5)),
+              `coded` "368" "" "" (LIST (JUST 16.3), (JUST 14)),
+              `coded` "387" "" "" (LIST (JUST 16.3), (JUST 14)),
+              `coded` "388" "" "" (LIST (JUST 4.8), (JUST 4.1)))
+
+-- tariff data akn:att_3__hc_1__para_c/t40 (tools/tariff_l4.py)
+@ref akn:att_3__hc_1__para_c/p42 akn:att_3__hc_1__para_c/t40
+`notice 13's fare table 50` MEANS
+    `a fare table` "לוח מחירי \"חופשי חודשי\" –קווי השירות טבריה סופרבוס"
+        (LIST `a fare column` (JUST `a monthly free pass`) NOTHING NOTHING, `a fare column` (JUST `a monthly free pass`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)))
+        (LIST `coded` "389" "טבריה" "" (LIST (JUST 68.5), (JUST 68)))
+
+-- tariff data akn:att_3__hc_1__para_c/t41 (tools/tariff_l4.py)
+@ref akn:att_3__hc_1__para_c/p43 akn:att_3__hc_1__para_c/t41
+`notice 13's fare table 51` MEANS
+    `a fare table` "לוח מחירי נסיעה בודדת סופרבוס (אשכול העמקים)"
+        (LIST `a fare column` (JUST `a single trip`) NOTHING NOTHING, `a fare column` (JUST `a single trip`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)))
+        (LIST `coded` "390" "" "" (LIST (JUST 5.8), (JUST 5)),
+              `coded` "391" "" "" (LIST (JUST 6.9), (JUST 5.9)),
+              `coded` "392" "" "" (LIST (JUST 9.6), (JUST 8.2)),
+              `coded` "393" "" "" (LIST (JUST 10.7), (JUST 9.1)),
+              `coded` "394" "" "" (LIST (JUST 12.4), (JUST 10.5)),
+              `coded` "396" "" "" (LIST (JUST 14.7), (JUST 12.5)),
+              `coded` "397" "" "" (LIST (JUST 16.6), (JUST 14)),
+              `coded` "398" "" "" (LIST (JUST 17.4), (JUST 15)),
+              `coded` "399" "" "" (LIST (JUST 18.5), (JUST 16)),
+              `coded` "400" "" "" (LIST (JUST 21.5), (JUST 18.5)),
+              `coded` "433" "" "" (LIST (JUST 25), (JUST 21.5)),
+              `coded` "434" "" "" (LIST (JUST 31.5), (JUST 27)),
+              `coded` "435" "" "" (LIST (JUST 39.5), (JUST 34)),
+              `coded` "436" "" "" (LIST (JUST 44), (JUST 37.5)),
+              `coded` "437" "" "" (LIST (JUST 4.4), (JUST 3.8)),
+              `coded` "438" "" "" (LIST (JUST 6.6), (JUST 5.6)),
+              `coded` "439" "" "" (LIST (JUST 7.26), (JUST 6.2)),
+              `coded` "440" "" "" (LIST (JUST 8.6), (JUST 7.4)),
+              `coded` "445" "" "" (LIST (JUST 11.7), (JUST 10)),
+              `coded` "446" "" "" (LIST (JUST 13.5), (JUST 11.5)),
+              `coded` "447" "" "" (LIST (JUST 16.3), (JUST 14)),
+              `coded` "448" "" "" (LIST (JUST 2.7), (JUST 2.3)),
+              `coded` "449" "" "" (LIST (JUST 2.9), (JUST 2.5)),
+              `coded` "454" "עפולה" "" (LIST (JUST 6.7), (JUST 5.7)),
+              `coded` "455" "עפולה מרחבי" "" (LIST (JUST 18.7), (JUST 16)),
+              `coded` "456" "הר תבור" "" (LIST (JUST 11.5), (JUST 9.8)))
+
+-- tariff data akn:att_3__hc_1__para_c/t42 (tools/tariff_l4.py)
+@ref akn:att_3__hc_1__para_c/p44 akn:att_3__hc_1__para_c/t42
+`notice 13's fare table 52` MEANS
+    `a fare table` "לוח מחירי \"חופשי חודשי\" סופרבוס (אשכול העמקים)"
+        (LIST `a fare column` (JUST `a monthly free pass`) NOTHING NOTHING, `a fare column` (JUST `a monthly free pass`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)))
+        (LIST `coded` "457" "עפולה" "" (LIST (JUST 120), (JUST 103)))
+
+-- tariff data akn:att_3__hc_1__para_c/t43 (tools/tariff_l4.py)
+@ref akn:att_3__hc_1__para_c/p45 akn:att_3__hc_1__para_c/t43
+`notice 13's fare table 53` MEANS
+    `a fare table` "לוח מחירי נסיעה בודדת מטרופולין בע\"מ (דרומי-באר שבע ערד ירוחם)"
+        (LIST `a fare column` (JUST `a single trip`) NOTHING NOTHING, `a fare column` (JUST `a single trip`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)))
+        (LIST `coded` "401" "" "" (LIST (JUST 3.4), (JUST 2.9)),
+              `coded` "402" "" "" (LIST (JUST 4.9), (JUST 4.2)),
+              `coded` "403" "" "" (LIST (JUST 5.6), (JUST 4.8)),
+              `coded` "404" "" "" (LIST (JUST 7.5), (JUST 6.4)),
+              `coded` "405" "" "" (LIST (JUST 10.2), (JUST 8.7)),
+              `coded` "406" "" "" (LIST (JUST 12), (JUST 10.5)),
+              `coded` "412" "" "" (LIST (JUST 13.3), (JUST 11.5)),
+              `coded` "407" "" "" (LIST (JUST 15.4), (JUST 13)),
+              `coded` "408" "" "" (LIST (JUST 17.8), (JUST 15)),
+              `coded` "409" "" "" (LIST (JUST 19.3), (JUST 16.5)),
+              `coded` "410" "" "" (LIST (JUST 21.5), (JUST 18.5)),
+              `coded` "411" "" "" (LIST (JUST 24.8), (JUST 21)),
+              `coded` "416" "" "" (LIST (JUST 2.8), (JUST 2.4)))
+
+-- tariff data akn:att_3__hc_1__para_c/t44 (tools/tariff_l4.py)
+@ref akn:att_3__hc_1__para_c/p46 akn:att_3__hc_1__para_c/t44
+`notice 13's fare table 54` MEANS
+    `a fare table` "לוח מחירי \"חופשי חודשי\" מטרופולין בע\"מ (באר שבע ערד ירוחם)"
+        (LIST `a fare column` (JUST `a monthly free pass`) NOTHING NOTHING, `a fare column` (JUST `a monthly free pass`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)))
+        (LIST `coded` "458" "ערד" "" (LIST (JUST 101), (JUST 86)))
+
+-- tariff data akn:att_3__hc_1__para_c/t45 (tools/tariff_l4.py)
+@ref akn:att_3__hc_1__para_c/p47 akn:att_3__hc_1__para_c/t45
+`notice 13's fare table 55` MEANS
+    `a fare table` "לוח מחירי נסיעה בודדת מטרופולין בע\"מ (השרון)"
+        (LIST `a fare column` (JUST `a single trip`) NOTHING NOTHING, `a fare column` (JUST `a single trip`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)))
+        (LIST `coded` "416" "" "" (LIST (JUST 2.8), (JUST 2.4)),
+              `coded` "419" "" "" (LIST (JUST 6.5), (JUST 5.6)),
+              `coded` "422" "" "" (LIST (JUST 9.6), (JUST 8.2)),
+              `coded` "424" "" "" (LIST (JUST 12.5), (JUST 10.5)),
+              `coded` "425" "" "" (LIST (JUST 14.6), (JUST 12.5)),
+              `coded` "459" "" "" (LIST (JUST 10.7), (JUST 9.1)),
+              `coded` "420" "" "" (LIST (JUST 6.9), (JUST 5.9)),
+              `coded` "423" "" "" (LIST (JUST 10.9), (JUST 9.3)))
+
+-- tariff data akn:att_3__hc_1__para_c/t46 (tools/tariff_l4.py)
+@ref akn:att_3__hc_1__para_c/p48 akn:att_3__hc_1__para_c/t46
+`notice 13's fare table 56` MEANS
+    `a fare table` "לוח מחירי נסיעה בודדת קווים בע\"מ (פ\"ת-אונו)"
+        (LIST `a fare column` (JUST `a single trip`) NOTHING NOTHING, `a fare column` (JUST `a single trip`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)))
+        (LIST `coded` "284" "" "" (LIST (JUST 5.5), (JUST 4.7)),
+              `coded` "285" "" "" (LIST (JUST 7.9), (JUST 6.8)),
+              `coded` "286" "" "" (LIST (JUST 6.9), (JUST 5.9)),
+              `coded` "287" "" "" (LIST (JUST 6.9), (JUST 5.9)),
+              `coded` "288" "" "" (LIST (JUST 10.9), (JUST 9.3)))
+
+-- tariff data akn:att_3__hc_1__para_c/t47 (tools/tariff_l4.py)
+@ref akn:att_3__hc_1__para_c/p49 akn:att_3__hc_1__para_c/t47
+`notice 13's fare table 57` MEANS
+    `a fare table` "לוח מחירי \"חופשי חודשי\" קווים בע\"מ (פ\"ת-אונו)"
+        (LIST `a fare column` (JUST `a monthly free pass`) NOTHING NOTHING, `a fare column` (JUST `a monthly free pass`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)))
+        (LIST `coded` "460" "פתח תקווה" "" (LIST (JUST 137), (JUST 117)),
+              `coded` "704" "עץ אפריים, אלקנה, אורנית ושערי תקווה" "" (LIST (JUST 251), (JUST 300)))
+
+-- tariff data akn:att_3__hc_1__para_c/t48 (tools/tariff_l4.py)
+@ref akn:att_3__hc_1__para_c/p50 akn:att_3__hc_1__para_c/t48
+`notice 13's fare table 58` MEANS
+    `a fare table` "לוח מחירי נסיעה בודדת קווים בע\"מ (ביתר עלית)"
+        (LIST `a fare column` (JUST `a single trip`) NOTHING NOTHING, `a fare column` (JUST `a single trip`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)))
+        (LIST `coded` "836" "" "" (LIST (JUST 3.2), (JUST 2.7)),
+              `coded` "837" "" "" (LIST (JUST 8), (JUST 6.8)),
+              `coded` "838" "" "" (LIST (JUST 11), (JUST 9.4)),
+              `coded` "839" "" "" (LIST (JUST 16.2), (JUST 14)),
+              `coded` "841" "" "" (LIST (JUST 22), (JUST 19)),
+              `coded` "840" "" "" (LIST (JUST 25.8), (JUST 22)))
+
+-- tariff data akn:att_3__hc_1__para_c/t49 (tools/tariff_l4.py)
+@ref akn:att_3__hc_1__para_c/p51 akn:att_3__hc_1__para_c/t49
+`notice 13's fare table 59` MEANS
+    `a fare table` "לוח מחירי \"חופשי חודשי\" קווים בע\"מ (ביתר עלית)"
+        (LIST `a fare column` (JUST `a monthly free pass`) NOTHING NOTHING, `a fare column` (JUST `a monthly free pass`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)))
+        (LIST `coded` "710" "ביתר עלית" "" (LIST (JUST 98), (JUST 84)))
+
+-- tariff data akn:att_3__hc_1__para_c/t50 (tools/tariff_l4.py)
+@ref akn:att_3__hc_1__para_c/p52 akn:att_3__hc_1__para_c/t50
+`notice 13's fare table 60` MEANS
+    `a fare table` "לוח מחירי נסיעה בודדת קווים בע\"מ (חשמונאים)"
+        (LIST `a fare column` (JUST `a single trip`) NOTHING NOTHING, `a fare column` (JUST `a single trip`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)))
+        (LIST `coded` "886" "" "" (LIST (JUST 3.1), (JUST 2.6)),
+              `coded` "887" "" "" (LIST (JUST 4.2), (JUST 3.6)),
+              `coded` "888" "" "" (LIST (JUST 4.9), (JUST 4.2)),
+              `coded` "889" "" "" (LIST (JUST 5.8), (JUST 5)),
+              `coded` "890" "" "" (LIST (JUST 6.1), (JUST 5.2)),
+              `coded` "891" "" "" (LIST (JUST 6.7), (JUST 5.7)),
+              `coded` "892" "" "" (LIST (JUST 6.9), (JUST 5.9)),
+              `coded` "893" "" "" (LIST (JUST 8.3), (JUST 7.1)),
+              `coded` "894" "" "" (LIST (JUST 8.6), (JUST 7.4)),
+              `coded` "895" "" "" (LIST (JUST 10.3), (JUST 8.8)),
+              `coded` "896" "" "" (LIST (JUST 10.9), (JUST 9.3)),
+              `coded` "897" "" "" (LIST (JUST 12.6), (JUST 11)),
+              `coded` "898" "" "" (LIST (JUST 13.1), (JUST 11)),
+              `coded` "899" "" "" (LIST (JUST 14.8), (JUST 12.5)),
+              `coded` "900" "" "" (LIST (JUST 15.5), (JUST 13)),
+              `coded` "920" "" "" (LIST (JUST 17.8), (JUST 15)),
+              `coded` "921" "" "" (LIST (JUST 19.1), (JUST 16.5)),
+              `coded` "922" "" "" (LIST (JUST 21.6), (JUST 18.5)),
+              `coded` "923" "" "" (LIST (JUST 25.8), (JUST 22)),
+              `coded` "924" "" "" (LIST (JUST 31.4), (JUST 27)))
+
+-- tariff data akn:att_3__hc_1__para_c/t51 (tools/tariff_l4.py)
+@ref akn:att_3__hc_1__para_c/p53 akn:att_3__hc_1__para_c/t51
+`notice 13's fare table 61` MEANS
+    `a fare table` "לוח מחירי \"חופשי חודשי\" קווים בע\"מ (חשמונאים)"
+        (LIST `a fare column` (JUST `a monthly free pass`) NOTHING NOTHING, `a fare column` (JUST `a monthly free pass`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)))
+        (LIST `coded` "772" "מודיעין" "" (LIST (JUST 115), (JUST 98)),
+              `coded` "776" "רמלה" "" (LIST (JUST 115), (JUST 98)),
+              `coded` "461" "מודיעין עילית" "" (LIST (JUST 91), (JUST 78)),
+              `coded` "770" "לוד" "" (LIST (JUST 152), (JUST 128)),
+              `coded` "773" "רמלה מודיעין" "" (LIST (JUST 252), (JUST 252)),
+              `coded` "462" "לוד רמלה" "" (LIST (JUST 190), (JUST 190)))
+
+-- tariff data akn:att_3__hc_1__para_c/t52 (tools/tariff_l4.py)
+@ref akn:att_3__hc_1__para_c/p54 akn:att_3__hc_1__para_c/t52
+`notice 13's fare table 62` MEANS
+    `a fare table` "לוח מחירי נסיעה בודדת חדרה - נתניה קווים בע\"מ"
+        (LIST `a fare column` (JUST `a single trip`) NOTHING NOTHING, `a fare column` (JUST `a single trip`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)))
+        (LIST `coded` "847" "" "" (LIST (JUST 2.7), (JUST 2.3)),
+              `coded` "848" "" "" (LIST (JUST 4.8), (JUST 4.1)),
+              `coded` "849" "" "" (LIST (JUST 5.2), (JUST 4.4)),
+              `coded` "853" "" "" (LIST (JUST 6.8), (JUST 5.8)),
+              `coded` "850" "" "" (LIST (JUST 6.9), (JUST 5.9)),
+              `coded` "851" "" "" (LIST (JUST 6.9), (JUST 5.9)),
+              `coded` "854" "" "" (LIST (JUST 7.2), (JUST 6.2)),
+              `coded` "855" "" "" (LIST (JUST 8.1), (JUST 6.9)),
+              `coded` "856" "" "" (LIST (JUST 9), (JUST 7.7)),
+              `coded` "857" "" "" (LIST (JUST 10), (JUST 8.5)),
+              `coded` "852" "" "" (LIST (JUST 10.9), (JUST 9.3)),
+              `coded` "858" "" "" (LIST (JUST 11.2), (JUST 9.6)),
+              `coded` "859" "" "" (LIST (JUST 14), (JUST 12)),
+              `coded` "885" "" "" (LIST (JUST 15), (JUST 13)))
+
+-- tariff data akn:att_3__hc_1__para_c/t53 (tools/tariff_l4.py)
+@ref akn:att_3__hc_1__para_c/p55 akn:att_3__hc_1__para_c/t53
+`notice 13's fare table 63` MEANS
+    `a fare table` "לוח מחירי \"חופשי חודשי\" קווים בע\"מ (חדרה נתניה)"
+        (LIST `a fare column` (JUST `a monthly free pass`) NOTHING NOTHING, `a fare column` (JUST `a monthly free pass`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)))
+        (LIST `coded` "720" "אור עקיבא - חדרה" "" (LIST (JUST 219), (JUST 187)),
+              `coded` "721" "פרדס חנה - חדרה" "" (LIST (JUST 260), (JUST 222)),
+              `coded` "724" "נתניה חדרה" "" (LIST (JUST 287), (JUST 245)),
+              `coded` "463" "אום אל פאחם" "" (LIST (JUST 97), (JUST 83)),
+              `coded` "464" "באקה אל גרביה" "" (LIST (JUST 97), (JUST 83)),
+              `coded` "465" "אור עקיבא" "" (LIST (JUST 187), (JUST 160)),
+              `coded` "466" "גבעת עדה - בנימינה" "" (LIST (JUST 187), (JUST 160)))
+
+-- tariff data akn:att_3__hc_1__para_c/t54 (tools/tariff_l4.py)
+@ref akn:att_3__hc_1__para_c/p56 akn:att_3__hc_1__para_c/t54
+`notice 13's fare table 64` MEANS
+    `a fare table` "לוח מחירי נסיעה בודדת נרקיס גל בע\"מ (רהט)"
+        (LIST `a fare column` (JUST `a single trip`) NOTHING NOTHING, `a fare column` (JUST `a single trip`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)))
+        (LIST `coded` "740" "" "" (LIST (JUST 2.7), (JUST 2.3)),
+              `coded` "741" "" "" (LIST (JUST 3.7), (JUST 3.2)),
+              `coded` "742" "" "" (LIST (JUST 5.7), (JUST 4.9)),
+              `coded` "743" "" "" (LIST (JUST 8), (JUST 6.8)),
+              `coded` "744" "" "" (LIST (JUST 9.5), (JUST 8.1)),
+              `coded` "745" "" "" (LIST (JUST 12), (JUST 10.5)),
+              `coded` "746" "" "" (LIST (JUST 17.8), (JUST 15)))
+
+-- tariff data akn:att_3__hc_1__para_c/t55 (tools/tariff_l4.py)
+@ref akn:att_3__hc_1__para_c/p57 akn:att_3__hc_1__para_c/t55
+`notice 13's fare table 65` MEANS
+    `a fare table` "לוח מחירי \"חופשי חודשי\" נרקיס גל (רהט)"
+        (LIST `a fare column` (JUST `a monthly free pass`) NOTHING NOTHING, `a fare column` (JUST `a monthly free pass`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)))
+        (LIST `coded` "467" "רהט" "" (LIST (JUST 70), (JUST 60)))
+
+-- tariff data akn:att_3__hc_1__para_c/t56 (tools/tariff_l4.py)
+@ref akn:att_3__hc_1__para_c/p58 akn:att_3__hc_1__para_c/t56
+`notice 13's fare table 66` MEANS
+    `a fare table` "לוח מחירי נסיעה בודדת מועצה אזורית גולן"
+        (LIST `a fare column` (JUST `a single trip`) NOTHING NOTHING, `a fare column` (JUST `a single trip`) NOTHING (JUST (DATE_FROM_DMY 1 2 2016)))
+        (LIST `coded` "294" "" "" (LIST (JUST 4.2), (JUST 3.6)),
+              `coded` "295" "" "" (LIST (JUST 5.2), (JUST 4.4)),
+              `coded` "291" "" "" (LIST (JUST 9), (JUST 7.7)),
+              `coded` "290" "" "" (LIST (JUST 12), (JUST 10.5)),
+              `coded` "176" "" "" (LIST (JUST 16.8), (JUST 14.5)),
+              `coded` "292" "" "" (LIST (JUST 19), (JUST 16)),
+              `coded` "293" "" "" (LIST (JUST 19), (JUST 16)))
+
+-- akn:att_4__hc_1/p1 akn:att_4__hc_1/p2 akn:att_4__hc_1/t1 Annex D, the table of the editions' changes; a record, no rule.
+
+§§ `המהדורה`
+
+-- tariff data akn:all (tools/tariff_l4.py)
+`notice 13's fare tables` MEANS
+    LIST `notice 13's fare table 2`,
+         `notice 13's fare table 4`,
+         `notice 13's fare table 6`,
+         `notice 13's fare table 8`,
+         `notice 13's fare table 9`,
+         `notice 13's fare table 10`,
+         `notice 13's fare table 11`,
+         `notice 13's fare table 12`,
+         `notice 13's fare table 13`,
+         `notice 13's fare table 14`,
+         `notice 13's fare table 15`,
+         `notice 13's fare table 16`,
+         `notice 13's fare table 17`,
+         `notice 13's fare table 18`,
+         `notice 13's fare table 19`,
+         `notice 13's fare table 20`,
+         `notice 13's fare table 21`,
+         `notice 13's fare table 22`,
+         `notice 13's fare table 23`,
+         `notice 13's fare table 24`,
+         `notice 13's fare table 25`,
+         `notice 13's fare table 26`,
+         `notice 13's fare table 27`,
+         `notice 13's fare table 28`,
+         `notice 13's fare table 29`,
+         `notice 13's fare table 30`,
+         `notice 13's fare table 31`,
+         `notice 13's fare table 32`,
+         `notice 13's fare table 33`,
+         `notice 13's fare table 34`,
+         `notice 13's fare table 35`,
+         `notice 13's fare table 36`,
+         `notice 13's fare table 37`,
+         `notice 13's fare table 38`,
+         `notice 13's fare table 39`,
+         `notice 13's fare table 40`,
+         `notice 13's fare table 41`,
+         `notice 13's fare table 42`,
+         `notice 13's fare table 43`,
+         `notice 13's fare table 44`,
+         `notice 13's fare table 45`,
+         `notice 13's fare table 46`,
+         `notice 13's fare table 47`,
+         `notice 13's fare table 48`,
+         `notice 13's fare table 49`,
+         `notice 13's fare table 50`,
+         `notice 13's fare table 51`,
+         `notice 13's fare table 52`,
+         `notice 13's fare table 53`,
+         `notice 13's fare table 54`,
+         `notice 13's fare table 55`,
+         `notice 13's fare table 56`,
+         `notice 13's fare table 57`,
+         `notice 13's fare table 58`,
+         `notice 13's fare table 59`,
+         `notice 13's fare table 60`,
+         `notice 13's fare table 61`,
+         `notice 13's fare table 62`,
+         `notice 13's fare table 63`,
+         `notice 13's fare table 64`,
+         `notice 13's fare table 65`,
+         `notice 13's fare table 66`
+`notice 13's zone lists` MEANS
+    LIST `notice 13's zone list 1`,
+         `notice 13's zone list 3`,
+         `notice 13's zone list 5`,
+         `notice 13's zone list 7`
+
+`notice 13` MEANS
+    `tariff notice` WITH
+        `notice edition`       IS 13
+        `notice published`     IS `notice 13 is published`
+        `notice fares`         IS `notice 13's fares`
+        `notice monthly means` IS NOTHING
+        `notice unread codes`  IS concat (map `the misaligned codes of` `notice 13's fare tables`)
+
+`notice 13's fares` MEANS concat (map `the fares of` `notice 13's fare tables`)
+
+-- Rows the corpus publishes with other than their header's number of cells
+-- (the Jerusalem table's codes 2016 and 2017, the Beersheba table's
+-- 8017-8019): no price of them is read (corpus issue MMS-702).
+`why notice 13's misaligned rows give no price` MEANS
+    `the text is missing` "חמש שורות שהקורפוס מפרסם במספר תאים שונה מכותרת הטבלה (קודים 2016, 2017, 8017-8019)"
+#ASSERT `notice 13`'s `notice unread codes` EQUALS LIST "2016", "2017", "8017", "8018", "8019"
+
+-- The table of Dan's northern lines is titled a monthly free pass ("לוח
+-- מחירי "חופשי חודשי" – צפון חברת דן") and its header and prices are single
+-- trips ("מחיר מלא בש"ח לנסיעה בודדת"). The header is read (finding
+-- F-…v13-a).
+`notice 13's Dan north table is titled monthly and prices single trips` MEANS
+        `notice 13's fare table 20`'s `fare table title` EQUALS "לוח מחירי \"חופשי חודשי\" – צפון חברת דן"
+    AND all (GIVEN c YIELD c's `column ticket` EQUALS JUST `a single trip`) (`notice 13's fare table 20`'s `fare table columns`)
+#ASSERT `notice 13's Dan north table is titled monthly and prices single trips`
+
+§§ `Worked examples`
+
+#ASSERT `notice 13's monthly allowance for the code` "2003" (DATE_FROM_DMY 1 6 2019) EQUALS JUST 299
+#ASSERT `notice 13's allowance between metropolitan areas` "5090" (DATE_FROM_DMY 1 6 2019) EQUALS JUST 900
+#ASSERT `notice 13's allowance for several zones of one metropolis` 21.5 243 (JUST 12) EQUALS 258
+#ASSERT `an existing employee under notice 13` TRUE 6
+#ASSERT NOT `an existing employee under notice 13` TRUE 7
+
+-- 3.2.3.6: Tel Aviv (3001, 213) and Jerusalem (2001, 213), and Egged's
+-- single fare 472 (2.30) there and back for 20 days.
+#ASSERT `notice 13's intercity allowance of an existing employee` "3001" "2001" "472" (DATE_FROM_DMY 1 6 2019) 20 TRUE TRUE EQUALS JUST 518
+#ASSERT `notice 13's intercity allowance of an existing employee` "3001" "2001" "472" (DATE_FROM_DMY 1 6 2019) 20 TRUE FALSE EQUALS JUST 426

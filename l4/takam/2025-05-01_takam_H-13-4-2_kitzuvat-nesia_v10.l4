@@ -9,10 +9,12 @@
 IMPORT prelude
 IMPORT parties
 IMPORT `kitzuvat-nesia-common`
+IMPORT `taarifei-nesia-common`
+IMPORT `taarifei-nesia-in-force`
 IMPORT `2024-08-08_takam_H-13-4-2_kitzuvat-nesia_v9`
 
--- Tariffs: the notice's, inputs (`travel fares`), now the "משולב מלא"
--- tickets. No rule here rounds (convention rounding.default).
+-- Tariffs: the notice's (`travel fares`, read off the notice in force by
+-- `the travel allowance on the route` below), now the "משולב מלא" tickets. No rule here rounds (convention rounding.default).
 
 -- not weighed against `the Hours of Work and Rest Law`: ‘משרה מלאה’ here is
 -- the blind employee's basis for the allowance (five times the monthly
@@ -221,6 +223,38 @@ DECIDE `grossing up the tax, edition 10` allowance IS
 -- akn:att_1__hc_1/p1 Annex A's title "הגדרות"; its definitions are cited by the rules that use them.
 -- akn:att_2__hc_1/p1 akn:att_2__hc_1/p2 akn:att_2__hc_1/t1 Annex B, the table of the editions' changes; a record, no rule.
 
+§§ `התעריפים — the notice in force`
+
+-- The edition reads the monthly free pass and the daily free pass, the single fare; here they are read off the notice
+-- "לוח תעריפי נסיעה בתחבורה ציבורית" in force on the month's day (HOD
+-- 13.4.2.1, `taarifei-nesia-in-force`), for the employee's route. Where
+-- the notice prints no tariff the edition reads, there is no answer.
+GIVEN r IS A `travel route`, d IS A DATE @desc the month's day
+      m IS A `travel month`
+GIVETH A MAYBE NUMBER
+DECIDE `the travel allowance on the route, edition 10` r d m IS
+    CONSIDER `the travel fares of the route on` r d TRUE TRUE FALSE
+    WHEN NOTHING THEN NOTHING
+    WHEN JUST f THEN JUST (`the travel allowance, edition 10` f m)
+
+-- The equalisation supplement the notice in force sets, on the route's
+-- monthly free pass.
+GIVEN r IS A `travel route`, d IS A DATE
+      m IS A `travel month`
+      x IS A NUMBER @desc the allowance paid before the reform, every component included
+      `the highest allowance of 2022` IS A NUMBER
+GIVETH A MAYBE NUMBER
+DECIDE `the travel-allowance equalisation on the route, edition 10` r d m x `the highest allowance of 2022` IS
+    CONSIDER `the tariffs of the route on` r d
+    WHEN NOTHING THEN NOTHING
+    WHEN JUST rt THEN
+        CONSIDER rt's `route monthly pass`
+        WHEN NOTHING THEN NOTHING
+        WHEN JUST monthly THEN
+            CONSIDER `the equalisation supplement in force on` d x monthly `the highest allowance of 2022`
+            WHEN NOTHING THEN NOTHING
+            WHEN JUST s THEN JUST (`the travel-allowance equalisation, edition 10` m s)
+
 §§ `Worked examples`
 
 `placeholder fares, edition 10` MEANS
@@ -242,3 +276,16 @@ DECIDE `grossing up the tax, edition 10` allowance IS
 -- 2.7.2: an allowance of 900 is grossed up on 216; one of 600 on nothing.
 #ASSERT `the part grossed up, edition 10` 900 EQUALS 216
 #ASSERT `the part grossed up, edition 10` 600 EQUALS 0
+
+-- On 1.6.2025, a monthly employee of 22 days on `a 30 km route` (the
+-- Tel Aviv codes before the reform, 30 km by bus after it): the edition's
+-- allowance on the tariffs the notice in force prints.
+#ASSERT `the travel allowance on the route, edition 10` `a 30 km route` (DATE_FROM_DMY 1 6 2025) (`an ordinary travel month` `a monthly employee` 22) EQUALS
+    JUST (`the travel allowance, edition 10` `the route's fares on 1.6.2025, edition 10` (`an ordinary travel month` `a monthly employee` 22))
+
+`the route's fares on 1.6.2025, edition 10` MEANS
+    `travel fares` WITH
+        `monthly free pass`     IS 323
+        `daily free pass`       IS 32.5
+        `single fare`           IS 14.5
+        `intercity single fare` IS 0
