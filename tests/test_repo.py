@@ -1094,7 +1094,11 @@ class SharedStore(unittest.TestCase):
             src = d / "x.l4"
             src.write_text("IMPORT prelude\n", encoding="utf-8")
             outs = {p: d / "out" / f"x.{p}" for p in (*l4run.PARTS, "key")}
-            killed = subprocess.CompletedProcess([], -9, "", "")
+            # a run killed after printing part of its output still counts as
+            # killed: its results are no verdict either
+            killed = subprocess.CompletedProcess(
+                [], -9, json.dumps({"ok": True, "results": [{"range": "x.l4:1:1"}],
+                                    "diagnostics": []}), "")
             saved = l4run.STORE
             l4run.STORE = d / "store"
             try:
@@ -1109,7 +1113,7 @@ class SharedStore(unittest.TestCase):
             self.assertTrue(ran)
             self.assertFalse(outs["key"].exists(), "a killed run is not kept")
             self.assertFalse((d / "store").exists(), "a killed run is not published")
-            self.assertIn("killed by signal 9", outs["run"].read_text(encoding="utf-8"))
+            self.assertFalse(json.loads(outs["run"].read_text(encoding="utf-8"))["ok"])
 
 
 class AWeekAgainstTheHoursLawCountsNamedDays(unittest.TestCase):

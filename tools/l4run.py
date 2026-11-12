@@ -283,10 +283,11 @@ def run_one(path: Path, exe: str, cid: str) -> tuple[Path, bool, bool]:
     cwd = path.parent
     r = subprocess.run([exe, "run", "--json", f"--fixed-now={FIXED_NOW}",
                         path.name], cwd=cwd, capture_output=True, text=True, env=modules.env())
+    killed_by = -r.returncode if r.returncode < 0 else 0
     try:
         data = json.loads(r.stdout)
     except json.JSONDecodeError:
-        killed = (f"killed by signal {-r.returncode}" if r.returncode < 0 else "")
+        killed = f"killed by signal {killed_by}" if killed_by else ""
         data = {"file": path.name, "ok": False, "results": [],
                 "diagnostics": [{"severity": "error",
                                  "message": (r.stdout + r.stderr).strip() or killed}]}
@@ -303,6 +304,10 @@ def run_one(path: Path, exe: str, cid: str) -> tuple[Path, bool, bool]:
     # compiler warns; the gate here is all three (`verdict`)
     data["l4_ok"] = bool(data.get("ok"))
     data["ok"] = verdict(data, path.name)
+    if killed_by:
+        data["ok"] = False
+        data["diagnostics"] = list(data.get("diagnostics") or []) + [
+            {"severity": "error", "message": f"killed by signal {killed_by}"}]
     out["run"].write_text(json.dumps(data, ensure_ascii=False, indent=1),
                           encoding="utf-8")
     if not rendered(path):
@@ -315,7 +320,7 @@ def run_one(path: Path, exe: str, cid: str) -> tuple[Path, bool, bool]:
         out["render"].write_text(rr.stdout if rr.returncode == 0 else "",
                                  encoding="utf-8")
         write_graph(path, exe, out["graph"])
-    if r.returncode < 0:
+    if killed_by:
         # killed by a signal (the out-of-memory killer, 2026-11-12): not a
         # verdict on the file, so it is neither kept nor published, and the
         # next run checks the file again rather than replaying the kill
