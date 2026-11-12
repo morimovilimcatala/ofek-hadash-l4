@@ -1,0 +1,101 @@
+-- Tests of l4/laws/state-service-pensions-law.l4 (MMS-601). They sit beside
+-- the module and not in it (the client, 2026-10-22).
+
+IMPORT prelude
+IMPORT `state-service-pensions-law`
+
+§ `בדיקות חוק שירות המדינה (גמלאות)`
+
+-- §1: a new employee under §107א, appointed on or after the determining
+-- day, is not a State employee for the law, though appointed under the
+-- Appointments Law.
+`one appointed under the Appointments Law` MEANS `person the Pensions Law may count` WITH
+    `appointed to the State's service under the Appointments Law` IS TRUE
+    `a police officer or a prison warder` IS FALSE
+    `a new employee in the sense of section 107א` IS FALSE
+    `taken on at an Israeli mission abroad as a local employee` IS FALSE
+`one appointed after the determining day` MEANS `person the Pensions Law may count` WITH
+    `appointed to the State's service under the Appointments Law` IS TRUE
+    `a police officer or a prison warder` IS FALSE
+    `a new employee in the sense of section 107א` IS TRUE
+    `taken on at an Israeli mission abroad as a local employee` IS FALSE
+#ASSERT `is a State employee under the Pensions Law` `one appointed under the Appointments Law`
+#ASSERT NOT `is a State employee under the Pensions Law` `one appointed after the determining day`
+
+-- §8: a supplement the Government states it counts is in the determining
+-- salary, under an agreement of any date; one an agreement of 2023 or after
+-- leaves out, and that is new, is not — for one who retired after 31.7.2009.
+#ASSERT `the determining salary counts it under section 8` `after the transition date of 31.7.2009` (`a supplement the Government states section 8 counts` FALSE)
+#ASSERT `the determining salary counts it under section 8` `after the transition date of 31.7.2009` (`a supplement the Government states section 8 counts` TRUE)
+`a new component a 2023 agreement leaves out` MEANS `salary component under section 8` WITH
+    `is the salary rate itself` IS FALSE
+    `is paid on the employee's basic salary` IS TRUE
+    `the Government recognised it as a fixed supplement for the Pensions Law` IS TRUE
+    `is due under a collective agreement signed on or after 1.6.2023, or by linkage to one` IS TRUE
+    `that agreement says the determining salary does not count it` IS TRUE
+    `it existed on the eve of that agreement's signing` IS FALSE
+    `it took the place of a component the determining salary did not count on that eve` IS FALSE
+#ASSERT NOT `the determining salary counts it under section 8` `after the transition date of 31.7.2009` `a new component a 2023 agreement leaves out`
+#ASSERT `the determining salary counts it under section 8` `before the transition date of 31.7.2009` `a new component a 2023 agreement leaves out`
+#ASSERT `the annual salary under section 8` 10000 EQUALS 120000
+`two years full, two at half` MEANS LIST `two years full`, `two years at half`
+`two years full` MEANS `stretch of service at one position fraction` WITH
+    `the position fraction` IS 1
+    `the months served at it` IS 24
+`two years at half` MEANS `stretch of service at one position fraction` WITH
+    `the position fraction` IS 0.5
+    `the months served at it` IS 24
+#ASSERT `the weighted average of position fractions under section 8` `two years full, two at half` EQUALS 0.75
+#ASSERT `the grade section 8 reads the determining salary by` 40 38 TRUE EQUALS 38
+
+-- §10: 16 days count as a month, 15 do not; 10 years, 6 months and 20 days
+-- are 10 and 7/12 years.
+#ASSERT `months a remainder of days counts as under section 10` 16 EQUALS 1
+#ASSERT `months a remainder of days counts as under section 10` 15 EQUALS 0
+#ASSERT `years of service under section 10` 10 6 20 EQUALS 10 PLUS 7 DIVIDED BY 12
+#ASSERT NOT `a suspension counts under section 10(5)` FALSE FALSE
+
+-- §17א: ten years and no other pension right; severance taken bars it.
+`left after twelve years` MEANS `employee whose service ended, under section 17א` WITH
+    `years served` IS 12
+    `entitled to a retirement pension under the law's other provisions` IS FALSE
+    `took severance pay on his service ending` IS FALSE
+    `his pension rights were preserved under section 86, 92 or another law` IS FALSE
+    `the disciplinary court disqualified him or withheld his pension` IS FALSE
+#ASSERT `section 46(ג) applies to him under section 17א` `left after twelve years`
+
+-- §22: annual salary 120,000, 20 years: 100,000, under both caps.
+`dismissed at 55 after 20 years` MEANS `one dismissed, under section 22` WITH
+    `age on dismissal` IS 55
+    `entitled to a retirement pension under section 15(2), (3) or (4) or 78` IS TRUE
+    `his annual salary` IS 120000
+    `years of service` IS 20
+    `the capitalised value of the pension difference to 60` IS 200000
+    `the share of the grant the disciplinary court withheld` IS 0
+#ASSERT `the grant under section 22` `dismissed at 55 after 20 years` EQUALS 100000
+
+-- §35: salary 8,000 and pension 6,000 against a determining salary of
+-- 10,000: the excess is 4,000, a third of it 1,333⅓; two thirds of the
+-- pension, 4,000, is less, so 4,666⅔ is paid. At 60, the whole pension.
+`a pensioner back at 55` MEANS `pensioner who returned, under section 35` WITH
+    `entitled to a retirement pension` IS TRUE
+    `returned to the service in a government office, an auxiliary unit or another body section 35(א) reaches` IS TRUE
+    `age` IS 55
+    `the age section 35(ו) sets for him` IS 60
+    `his present salary` IS 8000
+    `his regular pension` IS 6000
+    `his determining salary` IS 10000
+#ASSERT `the pension paid under section 35` `a pensioner back at 55` EQUALS 6000 MINUS 4000 DIVIDED BY 3
+`a pensioner back at 60` MEANS `pensioner who returned, under section 35` WITH
+    `entitled to a retirement pension` IS TRUE
+    `returned to the service in a government office, an auxiliary unit or another body section 35(א) reaches` IS TRUE
+    `age` IS 60
+    `the age section 35(ו) sets for him` IS 60
+    `his present salary` IS 8000
+    `his regular pension` IS 6000
+    `his determining salary` IS 10000
+#ASSERT `the pension paid under section 35` `a pensioner back at 60` EQUALS 6000
+
+-- §63א
+#ASSERT `is a security-services employee under section 63א` `the General Security Service` TRUE FALSE
+#ASSERT NOT `is a security-services employee under section 63א` `another body of the State's service` TRUE FALSE
