@@ -487,8 +487,18 @@ def citations(sec: akn.Section) -> dict[str, str]:
         stack = stack[:r.depth]
         stack += [""] * (r.depth - len(stack))
         num = r.num.strip().rstrip(".)").lstrip("(")
-        # a label that restates the section's own number adds nothing
-        stack.append("" if r.num.startswith(sec.num) else num)
+        # a label that restates the section's own number adds nothing, and
+        # one that prints its path from the section ("1.25.1" in §1.25)
+        # keeps only what follows it: not dropped, or the paragraphs under
+        # it read as the section's own (§1.25.3 for §1.25.1's third, MMS-657)
+        own = sec.num.strip().rstrip(".")
+        if own and num == own:
+            num = ""
+        elif own and num.startswith(own + "."):
+            num = num[len(own) + 1:]
+        elif r.num.startswith(sec.num):
+            num = ""
+        stack.append(num)
         # a level that prints its whole path ("2.1" under "2", "1.א.3" under
         # "1.א") restates its parent, so the parent is dropped, not repeated
         parts: list[str] = []

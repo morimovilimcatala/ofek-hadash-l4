@@ -996,6 +996,39 @@ class Citations(unittest.TestCase):
                         self.assertIn(" table ", labels[r.key])
         self.assertGreater(tables, 0)
 
+    def test_a_row_under_a_printed_path_is_labelled_inside_it(self):
+        """A subsection that prints its path from the section ("1.25.1" in
+        §1.25) is a level of the label: every row under it is labelled by
+        that path and then its own number, never as the section's sibling
+        (MMS-657: §1.25.1's third general rule read "§1.25.3", and the
+        first paragraph of §1.9.1 read "§1.9.1", the subsection itself)."""
+        checked = 0
+        for doc in site_mod.DOCUMENTS:
+            for sec in akn.sections(doc):
+                if not sec.chapter_eid:
+                    continue
+                own = sec.num.strip().rstrip(".")
+                labels = site_mod.citations(sec)
+                path = None
+                for r in sec.rows:
+                    num = r.num.strip().rstrip(".)").lstrip("(")
+                    if r.depth == 0:
+                        path = num if own and num.startswith(own + ".") else None
+                    if path is None:
+                        continue
+                    label = site_mod.COUNTER.sub("", labels[r.key])
+                    with self.subTest(doc=doc, key=r.key):
+                        self.assertTrue(label == "§" + path or label.startswith("§" + path + ".")
+                                        or label.startswith("§" + path) and not label[len(path) + 1].isdigit(),
+                                        f"{label} is not inside §{path}")
+                        if r.depth > 0 and num:
+                            self.assertNotEqual(label, "§" + path, "a numbered row under it reads as the subsection")
+                    checked += 1
+        self.assertGreater(checked, 1000)
+        # the case the issue named
+        sec = next(s for s in akn.sections("takanon/takanon-sherut-ovdei-horaa.xml") if s.num == "1.25")
+        self.assertEqual(site_mod.clause(sec, "chp_1ב__sec_1_25__ssec_1_25_1__hc_1__para_3", ""), "§1.25.1.3")
+
 
 class SharedStore(unittest.TestCase):
     """tools/l4run.py's store shared by every worktree (MMS-617): a run
