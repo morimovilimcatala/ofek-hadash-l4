@@ -1,0 +1,471 @@
+-- THE MINISTRY'S SIMULATOR, NOT THE LAW. This module describes what the
+-- Ministry of Education's public salary simulator (educalc.unq.co.il,
+-- "powered by Unique") computes for a teacher of the Ofek Hadash reform in
+-- salary month 2026-09, as its recorded responses show (MMS-512's
+-- extraction, MMS-523). The simulator binds no one: its own page says
+-- "מודול זה מדמה שכר בלבד ולפיכך אין משרד החינוך מתחייב לתשלום שכר על פי
+-- התחשיב המופק ממודול זה". Nothing here is a reading of the corpus, no
+-- instrument and no root imports this file, and a figure below that is the
+-- simulator's own is the simulator's and never the text's.
+--
+-- One rule per pay code (סמל), named for the code it produces. The full-time
+-- base is read from the corpus's own grids (the tables collection's
+-- conversion tables of 1.9.2022, `nispach-alef-3` … `-7`), because every
+-- full-time base the simulator returned equals the cell there; the Ofek 2022
+-- supplement is the simulator's own rule — the first-degree annex ג'3 times a
+-- ratio per rating, to the agora — which departs from the annexes ג'4 and
+-- ג'6 the corpus prints (`the simulator's supplement departs from annex`
+-- below, and the contradictions page's simulator group).
+--
+-- What it is checked against: tools/simulator_check.py runs this module's
+-- @export on every recorded request (`l4 batch`, the recording read from the
+-- extraction outside this repository) and compares every line to the agora;
+-- data/simulator-validation.json records the counts and every residual.
+
+IMPORT prelude
+IMPORT conventions
+IMPORT `tables-common`
+IMPORT `nispach-alef-3`
+IMPORT `nispach-alef-4`
+IMPORT `nispach-alef-5`
+IMPORT `nispach-alef-6`
+IMPORT `nispach-alef-7`
+IMPORT `nispach-bet-3-gimel-3`
+
+§ `סימולטור השכר של משרד החינוך — אופק חדש (חודש שכר 9/2026)`
+
+§§ `הבקשה`
+
+@desc A request to the simulator's Ofek Hadash calculator: the fields of the form it posts, as numbers (0 where the form leaves a field empty).
+DECLARE `educalc request` HAS
+    `DERUG_OFEK` IS A NUMBER                @desc the rating code: 100 intern, 101 BA, 102 MA, 103 doctorate, 104 senior, 105 certified, 106 uncertified
+    `DARGA1` IS A NUMBER                    @desc the grade on the form, 1 to 17 for grades 1, 1.5 … 9
+    `VETEK` IS A NUMBER                     @desc seniority in years
+    `VETEK_ZHL` IS A NUMBER                 @desc months of army service
+    `MEKADEM_MISRA_REFORMA` IS A NUMBER     @desc the job percentage (0 is read as 100)
+    `KOD_TAFKID_2` IS A NUMBER              @desc homeroom class: 1 a first grade, another code another class
+    `KOD_TAFKID_3` IS A NUMBER              @desc 22 a multi-school homeroom
+    `AHUZ_BAGRUT` IS A NUMBER               @desc the matriculation-examination percentage
+    `KURS_HM` IS A NUMBER                   @desc a special-education certification
+    `RETZIFUT_MATYA` IS A NUMBER            @desc continuity at a support centre (מתי"א)
+    `MEKADEM_HM_NAMUCH` IS A NUMBER         @desc the part of the post in low-functioning special education
+    `MEKADEM_HM_GAVOHA` IS A NUMBER         @desc the part of the post in high-functioning special education
+    `MEKADEM_HM_SHILUV` IS A NUMBER         @desc the part of the post in integration
+    `AHUZ_AUTISTIC_PARA` IS A NUMBER        @desc the part of the post with autistic pupils, paramedical
+    `AHUZ_AUTISTIC_HM` IS A NUMBER          @desc the part of the post with autistic pupils, special education
+    `MEKADEM_HADRACHA` IS A NUMBER          @desc the guidance percentage
+    `RAKAZ_1` IS A NUMBER                   @desc a first coordinator role, by its code
+    `RAKAZ_2` IS A NUMBER                   @desc a second coordinator role, by its code
+    `GMUL_NIHUL_NIGRAR` IS A NUMBER         @desc a carried-over management percentage
+    `OFEK_TAFKID` IS A NUMBER               @desc a management post: 1 kindergarten manager by grade, 2 by seniority, 3 junior-high head, 4 cluster, 5 deputy
+    `VETEK_NIHUL` IS A NUMBER               @desc management seniority
+    `AHUZ_GANENET_AMITA` IS A NUMBER        @desc the associate-kindergarten-teacher percentage
+    `GMUL_YIUTZ_NIGRAR` IS A NUMBER         @desc a carried-over counselling percentage
+    `IS_SHAOT_YEUTZ` IS A NUMBER            @desc a counselling licence: 1 permanent, 2 temporary
+    `MIS_SHAOT_YEUTZ` IS A NUMBER           @desc counselling hours
+    `MIS_SHAOT_YEUTZ_FRONT` IS A NUMBER     @desc counselling hours in front of pupils
+    `MIS_SHAOT_SHVUIYOT` IS A NUMBER        @desc weekly hours
+    `GMUL_MISRA_MECHUNANIM` IS A NUMBER     @desc the part of the post with gifted pupils
+    `MIS_HONCHIM` IS A NUMBER               @desc the number of interns mentored
+
+@desc A line of the simulator's answer: the pay code (סמל) and its amount.
+DECLARE `educalc line` HAS
+    `pay code` IS A NUMBER
+    `amount` IS A NUMBER
+
+§§ `הבסיס`
+
+GIVEN a IS A NUMBER, b IS A NUMBER
+GIVETH A NUMBER
+`the lesser of` a b MEANS IF a AT MOST b THEN a ELSE b
+
+GIVEN a IS A NUMBER, b IS A NUMBER
+GIVETH A NUMBER
+`the greater of` a b MEANS IF a AT LEAST b THEN a ELSE b
+
+-- The job fraction: the form's percentage over 100, and 100 where it is 0.
+GIVEN r IS AN `educalc request`
+GIVETH A NUMBER
+`the simulator's job fraction` r MEANS
+    IF r's `MEKADEM_MISRA_REFORMA` EQUALS 0 THEN 1 ELSE r's `MEKADEM_MISRA_REFORMA` DIVIDED BY 100
+
+-- The row of the table: seniority (1 to 36) plus army service in whole
+-- years, a half year rounding up, capped at 36.
+GIVEN r IS AN `educalc request`
+GIVETH A NUMBER
+`the simulator's seniority row` r MEANS
+    `the lesser of` 36 (`the lesser of` 36 (`the greater of` 1 (r's `VETEK`)) PLUS FLOOR ((r's `VETEK_ZHL` PLUS 6) DIVIDED BY 12))
+
+-- The rating it pays by: an uncertified teacher from 20 years on the
+-- certified tables, and a code the form does not know on the BA tables.
+GIVEN r IS AN `educalc request`
+GIVETH A NUMBER
+`the simulator's rating` r MEANS
+    BRANCH
+        IF r's `DERUG_OFEK` EQUALS 106 AND `the simulator's seniority row` r AT LEAST 20 THEN 105
+        IF elem (r's `DERUG_OFEK`) (LIST 100, 101, 102, 103, 104, 105, 106) THEN r's `DERUG_OFEK`
+        OTHERWISE 101
+
+GIVEN r IS AN `educalc request`
+GIVETH A NUMBER
+`the simulator's grade` r MEANS (r's `DARGA1` PLUS 1) DIVIDED BY 2
+
+-- The table by rating: the conversion tables of 1.9.2022, which the tables
+-- collection holds in force on 1.9.2026 (`tables-in-force-common`); a
+-- doctorate (103) on the MA table.
+GIVEN k IS A NUMBER
+GIVETH A `published table`
+`the simulator's table for` k MEANS
+    BRANCH
+        IF k EQUALS 102 OR k EQUALS 103 THEN `annex א'4 of 1.9.2022`
+        IF k EQUALS 104 THEN `annex א'5 of 1.9.2022`
+        IF k EQUALS 105 THEN `annex א'6 of 1.9.2022`
+        IF k EQUALS 106 THEN `annex א'7 of 1.9.2022`
+        OTHERWISE `annex א'3 of 1.9.2022`
+
+-- The full-time cell of the corpus's table at a row; an intern (rating 100)
+-- is in no table, and the simulator pays him 5,670 at grade 1, raised 2% a
+-- year to the seventh and 1% after, to the agora.
+GIVEN r IS AN `educalc request`, row IS A NUMBER
+GIVETH A MAYBE NUMBER
+`the simulator's table cell` r row MEANS
+    IF `the simulator's rating` r EQUALS 100
+    THEN IF r's `DARGA1` EQUALS 1
+         THEN JUST (`to the agora` (5670 TIMES product (replicate (`the lesser of` row 7 MINUS 1) 1.02) TIMES product (replicate (`the greater of` (row MINUS 7) 0) 1.01)))
+         ELSE NOTHING
+    ELSE `the published cell at` (`the simulator's table for` (`the simulator's rating` r)) row (`the simulator's grade` r)
+
+GIVEN r IS AN `educalc request`
+GIVETH A NUMBER
+`the simulator's full-time base` r MEANS fromMaybe 0 (`the simulator's table cell` r (`the simulator's seniority row` r))
+
+-- The Ofek 2022 supplement: the first-degree annex ג'3 at the grade times
+-- the rating's ratio, to the agora (1.05 for 102 and 103, 0.75 for 104,
+-- 0.6835 for 105, 0.5947 for 106); an intern's is 1,426.99.
+GIVEN k IS A NUMBER
+GIVETH A NUMBER
+`the simulator's supplement ratio for` k MEANS
+    BRANCH
+        IF k EQUALS 102 OR k EQUALS 103 THEN 1.05
+        IF k EQUALS 104 THEN 0.75
+        IF k EQUALS 105 THEN 0.6835
+        IF k EQUALS 106 THEN 0.5947
+        OTHERWISE 1
+
+GIVEN k IS A NUMBER, g IS A NUMBER
+GIVETH A NUMBER
+`the simulator's Ofek 2022 supplement at` k g MEANS
+    `to the agora` (fromMaybe 0 (`the published supplement at` `annex ג'3 of the Ofek 2022 supplement` g) TIMES `the simulator's supplement ratio for` k)
+
+GIVEN r IS AN `educalc request`
+GIVETH A NUMBER
+`the simulator's full-time supplement` r MEANS
+    IF `the simulator's rating` r EQUALS 100
+    THEN IF r's `DARGA1` EQUALS 1 THEN 1426.99 ELSE 0
+    ELSE `the simulator's Ofek 2022 supplement at` (`the simulator's rating` r) (`the simulator's grade` r)
+
+-- The base most add-ons are a percentage of: the full-time cell and supplement.
+GIVEN r IS AN `educalc request`
+GIVETH A NUMBER
+`the simulator's Ofek base` r MEANS `the simulator's full-time base` r PLUS `the simulator's full-time supplement` r
+
+-- An add-on on the full-time base, and one prorated after it is rounded.
+GIVEN p IS A NUMBER, r IS AN `educalc request`
+GIVETH A NUMBER
+`the simulator's share` p `of the base of` r MEANS `to the agora` (p TIMES `the simulator's Ofek base` r)
+
+GIVEN p IS A NUMBER, r IS AN `educalc request`
+GIVETH A NUMBER
+`the simulator's prorated share` p `of the base of` r MEANS
+    `to the agora` (`the simulator's share` p `of the base of` r TIMES `the simulator's job fraction` r)
+
+§§ `שורות התלוש`
+
+GIVEN r IS AN `educalc request`
+GIVETH A NUMBER
+`code 10, משולב אופק חדש` r MEANS `to the agora` (`the simulator's full-time base` r TIMES `the simulator's job fraction` r)
+
+GIVEN r IS AN `educalc request`
+GIVETH A NUMBER
+`code 5618, תוספת אופק 2022` r MEANS `to the agora` (`the simulator's full-time supplement` r TIMES `the simulator's job fraction` r)
+
+-- The 2016 shekel supplement by the form's grade: the simulator's own
+-- figures, which are not the circular's (תשפ"ו/6 prints 1,280.34 … 647.49).
+GIVEN d IS A NUMBER
+GIVETH A NUMBER
+`the simulator's 2016 shekel supplement at` d MEANS
+    BRANCH
+        IF d EQUALS 1 THEN 1280.36
+        IF d EQUALS 2 THEN 1205.42
+        IF d EQUALS 3 THEN 1130.47
+        IF d EQUALS 4 THEN 1039.75
+        IF d EQUALS 5 THEN 949.05
+        IF d EQUALS 6 THEN 900.49
+        IF d EQUALS 7 THEN 851.92
+        IF d EQUALS 8 THEN 749.55
+        OTHERWISE 647.51
+
+GIVEN r IS AN `educalc request`
+GIVETH A NUMBER
+`code 17, ת.שקלית אחידה 2016` r MEANS `to the agora` (`the simulator's 2016 shekel supplement at` (r's `DARGA1`) TIMES `the simulator's job fraction` r)
+
+GIVEN r IS AN `educalc request`
+GIVETH A NUMBER
+`code 59, גמול תואר ד"ר` r MEANS
+    IF r's `DERUG_OFEK` EQUALS 103 THEN `the simulator's prorated share` (5%) `of the base of` r ELSE 0
+
+-- The telephone: 48.60 at 200%, more with guidance, not above a full post.
+GIVEN r IS AN `educalc request`
+GIVETH A NUMBER
+`code 53, החזר טלפון` r MEANS
+    `to the agora` (48.6 TIMES `the phone percentage` DIVIDED BY 200 TIMES `the lesser of` (`the simulator's job fraction` r) 1)
+    WHERE
+        h MEANS r's `MEKADEM_HADRACHA`
+        `the phone percentage` MEANS
+            BRANCH
+                IF h AT MOST 0 THEN 200
+                IF h LESS THAN 30 THEN 230
+                IF h LESS THAN 49 THEN 250
+                IF h LESS THAN 60 THEN 275
+                OTHERWISE 350
+
+-- Homeroom: 11.5% for a first grade, 10% for another, and never under 1,000.
+GIVEN r IS AN `educalc request`
+GIVETH A NUMBER
+`code 108, ג.חינוך כיתה-אופק` r MEANS
+    IF r's `KOD_TAFKID_2` GREATER THAN 0
+    THEN `the greater of` 1000 (`the simulator's share` (IF r's `KOD_TAFKID_2` EQUALS 1 THEN 11.5% ELSE 10%) `of the base of` r)
+    ELSE 0
+
+GIVEN r IS AN `educalc request`
+GIVETH A NUMBER
+`code 5818, גמול חינוך רב` r MEANS
+    IF r's `KOD_TAFKID_3` EQUALS 22 THEN `the simulator's share` (10%) `of the base of` r ELSE 0
+
+GIVEN r IS AN `educalc request`
+GIVETH A NUMBER
+`code 41, ג.בחינות בגרות` r MEANS
+    IF r's `AHUZ_BAGRUT` GREATER THAN 0 THEN `the simulator's share` (r's `AHUZ_BAGRUT` DIVIDED BY 100) `of the base of` r ELSE 0
+
+-- Special education, only with the certification; continuity at a support
+-- centre drops the low-functioning, integration and paramedical parts. A
+-- part outside 0–100 is not counted.
+GIVEN x IS A NUMBER
+GIVETH A NUMBER
+`the simulator's part` x MEANS IF x GREATER THAN 0 AND x AT MOST 100 THEN x ELSE 0
+
+GIVEN r IS AN `educalc request`, unless IS A NUMBER
+GIVETH A NUMBER
+`unless continuity` r unless MEANS IF r's `RETZIFUT_MATYA` EQUALS 0 THEN `the simulator's part` unless ELSE 0
+
+GIVEN r IS AN `educalc request`, rate IS A NUMBER, parts IS A NUMBER
+GIVETH A NUMBER
+`the simulator's special-education line` r rate parts MEANS
+    IF r's `KURS_HM` EQUALS 0 OR parts EQUALS 0 THEN 0
+    ELSE `the simulator's prorated share` (rate TIMES parts DIVIDED BY 100) `of the base of` r
+
+GIVEN r IS AN `educalc request`
+GIVETH A NUMBER
+`code 5821, ג.חינוך מיוחד 15%` r MEANS
+    `the simulator's special-education line` r (15%) (`unless continuity` r (r's `MEKADEM_HM_NAMUCH`) PLUS `the simulator's part` (r's `MEKADEM_HM_GAVOHA`))
+
+GIVEN r IS AN `educalc request`
+GIVETH A NUMBER
+`code 5820, ג.חינוך מיוחד 10%` r MEANS
+    `the simulator's special-education line` r (10%) (`unless continuity` r (r's `MEKADEM_HM_SHILUV`))
+
+GIVEN r IS AN `educalc request`
+GIVETH A NUMBER
+`code 5822, ג.חינוך מיוחד 17%` r MEANS
+    `the simulator's special-education line` r (17%) (`unless continuity` r (r's `AHUZ_AUTISTIC_PARA`) PLUS `the simulator's part` (r's `AHUZ_AUTISTIC_HM`))
+
+-- Guidance: a step table on the guidance percentage.
+GIVEN r IS AN `educalc request`
+GIVETH A NUMBER
+`code 40, גמול הדרכה` r MEANS
+    IF `the step` EQUALS 0 THEN 0 ELSE `the simulator's share` (`the step` DIVIDED BY 100) `of the base of` r
+    WHERE
+        h MEANS r's `MEKADEM_HADRACHA`
+        `the step` MEANS
+            BRANCH
+                IF h AT MOST 0 THEN 0
+                IF h AT LEAST 66 THEN 20
+                IF h AT LEAST 50 THEN 17.5
+                IF h AT LEAST 33 THEN 15
+                IF h AT LEAST 25 THEN 9
+                IF h AT LEAST 16 THEN 6
+                IF h AT LEAST 8 THEN 3
+                OTHERWISE 0
+
+-- Coordinator roles, up to two: each role code pays a pay code at a
+-- percentage of the full-time base (the pedagogical coordinators' prorated),
+-- and a grade-level head (653) a fixed 1,100.
+@desc What a coordinator role code pays in the simulator.
+DECLARE `educalc role` HAS
+    `role code` IS A NUMBER
+    `role pay code` IS A NUMBER
+    `role percentage` IS A NUMBER
+    `role is prorated` IS A BOOLEAN
+
+`the simulator's coordinator roles` MEANS
+    LIST `educalc role` 480 109 6 FALSE, `educalc role` 481 111 6 FALSE, `educalc role` 980 296 6 FALSE,
+         `educalc role` 1039 125 10 FALSE, `educalc role` 39 112 8 FALSE, `educalc role` 969 162 6 FALSE,
+         `educalc role` 966 155 4 FALSE, `educalc role` 38 114 3 FALSE, `educalc role` 1013 123 8 FALSE,
+         `educalc role` 13 110 6 FALSE, `educalc role` 981 110 6 FALSE, `educalc role` 601 115 6 FALSE,
+         `educalc role` 995 5724 8 TRUE, `educalc role` 994 5723 8 TRUE, `educalc role` 27 113 6 FALSE,
+         `educalc role` 973 161 8 FALSE, `educalc role` 972 160 6 FALSE
+
+GIVEN r IS AN `educalc request`, k IS A NUMBER
+GIVETH A LIST OF `educalc line`
+`the simulator's coordinator line for` r k MEANS
+    IF k EQUALS 653 THEN LIST `educalc line` 113 1100
+    ELSE concat (map `the line of` (filter `is the role` `the simulator's coordinator roles`))
+    WHERE
+        GIVEN x IS AN `educalc role`
+        GIVETH A BOOLEAN
+        `is the role` x MEANS x's `role code` EQUALS k AND k GREATER THAN 0
+        GIVEN x IS AN `educalc role`
+        GIVETH A LIST OF `educalc line`
+        `the line of` x MEANS LIST `educalc line` (x's `role pay code`) (`the role amount` x)
+        GIVEN x IS AN `educalc role`
+        GIVETH A NUMBER
+        `the role amount` x MEANS
+            IF x's `role is prorated`
+            THEN `the simulator's prorated share` (x's `role percentage` DIVIDED BY 100) `of the base of` r
+            ELSE `the simulator's share` (x's `role percentage` DIVIDED BY 100) `of the base of` r
+
+-- Management: a post (OFEK_TAFKID) takes effect only together with a
+-- carried-over management percentage, and then replaces it: kindergarten
+-- manager by grade (132) 21% and never under 1,500; by seniority (131) 17%,
+-- 20% from 10 years, 21% from 20; cluster (130) 25%; junior-high head (129)
+-- and deputy (128) 20%. Without a post, the carried-over percentage (201),
+-- reduced by the associate-teacher percentage after it is rounded.
+GIVEN r IS AN `educalc request`
+GIVETH A LIST OF `educalc line`
+`the simulator's management lines` r MEANS
+    BRANCH
+        IF nig EQUALS 0 THEN EMPTY
+        IF post EQUALS 0 THEN LIST `educalc line` 201 `the carried-over amount`
+        IF post EQUALS 1 THEN LIST `educalc line` 132 (`the greater of` 1500 (`the simulator's prorated share` (21%) `of the base of` r))
+        IF post EQUALS 2 THEN LIST `educalc line` 131 (`the simulator's prorated share` `by seniority` `of the base of` r)
+        IF post EQUALS 3 THEN LIST `educalc line` 129 (`the simulator's prorated share` (20%) `of the base of` r)
+        IF post EQUALS 4 THEN LIST `educalc line` 130 (`the simulator's prorated share` (25%) `of the base of` r)
+        IF post EQUALS 5 THEN LIST `educalc line` 128 (`the simulator's prorated share` (20%) `of the base of` r)
+        OTHERWISE EMPTY
+    WHERE
+        nig MEANS r's `GMUL_NIHUL_NIGRAR`
+        post MEANS r's `OFEK_TAFKID`
+        `the carried-over share` MEANS `the simulator's share` (nig DIVIDED BY 100) `of the base of` r
+        `the associate-teacher reduction` MEANS 1 MINUS r's `AHUZ_GANENET_AMITA` DIVIDED BY 100
+        `the carried-over amount` MEANS
+            `to the agora` (`to the agora` (`the carried-over share` TIMES `the associate-teacher reduction`) TIMES `the simulator's job fraction` r)
+        `by seniority` MEANS
+            BRANCH
+                IF r's `VETEK_NIHUL` AT LEAST 20 THEN 21%
+                IF r's `VETEK_NIHUL` AT LEAST 10 THEN 20%
+                OTHERWISE 17%
+
+-- Counselling: a carried-over percentage, and a licence (18% permanent, 12%
+-- temporary) prorated on the weekly hours over 22.4, from 7 counselling
+-- hours of which 4 in front of pupils. Both lines may be paid.
+GIVEN r IS AN `educalc request`
+GIVETH A LIST OF `educalc line`
+`the simulator's counselling lines` r MEANS
+    append `the carried-over line` `the licensed line`
+    WHERE
+        `the carried-over line` MEANS
+            IF r's `GMUL_YIUTZ_NIGRAR` EQUALS 0 THEN EMPTY
+            ELSE LIST `educalc line` 106 (`the simulator's share` (r's `GMUL_YIUTZ_NIGRAR` DIVIDED BY 100) `of the base of` r)
+        lic MEANS r's `IS_SHAOT_YEUTZ`
+        `the licence rate` MEANS IF lic EQUALS 1 THEN 18 ELSE 12
+        `the licensed line` MEANS
+            IF (lic EQUALS 1 OR lic EQUALS 2)
+               AND r's `MIS_SHAOT_YEUTZ` AT LEAST 7
+               AND r's `MIS_SHAOT_YEUTZ_FRONT` AT LEAST 4
+               AND r's `MIS_SHAOT_SHVUIYOT` GREATER THAN 0
+            THEN LIST `educalc line` 106 (`the simulator's share` (`the licence rate` TIMES `the lesser of` 1 (r's `MIS_SHAOT_SHVUIYOT` DIVIDED BY 22.4) DIVIDED BY 100) `of the base of` r)
+            ELSE EMPTY
+
+GIVEN r IS AN `educalc request`
+GIVETH A NUMBER
+`code 38, תוספת מחוננים` r MEANS
+    IF r's `GMUL_MISRA_MECHUNANIM` EQUALS 0 THEN 0
+    ELSE `the simulator's prorated share` (14% TIMES r's `GMUL_MISRA_MECHUNANIM` DIVIDED BY 100) `of the base of` r
+
+GIVEN r IS AN `educalc request`
+GIVETH A NUMBER
+`code 5691, גננת עמיתה` r MEANS
+    IF r's `AHUZ_GANENET_AMITA` EQUALS 0 OR r's `GMUL_NIHUL_NIGRAR` GREATER THAN 0 THEN 0
+    ELSE `the simulator's prorated share` (10% TIMES r's `AHUZ_GANENET_AMITA` DIVIDED BY 100) `of the base of` r
+
+GIVEN r IS AN `educalc request`
+GIVETH A NUMBER
+`code 5609, מורה חונכ/ת` r MEANS
+    IF r's `MIS_HONCHIM` EQUALS 0 THEN 0
+    ELSE `the simulator's prorated share` (2.4 TIMES `the lesser of` 3 (r's `MIS_HONCHIM`) DIVIDED BY 100) `of the base of` r
+
+§§ `השלמה לשכר מינימום`
+
+-- Code 30: the simulator's minimum wage (6,443.85) times the job fraction,
+-- not capped at a full post, less the year-1 base and every line but those
+-- it does not count (10, 17, 53, 59, 41, 40, 5723, 5724, 5609).
+`the simulator's minimum wage` MEANS 6443.85
+
+`the codes the simulator's minimum wage does not count` MEANS LIST 10, 17, 53, 59, 41, 40, 5723, 5724, 5609
+
+GIVEN r IS AN `educalc request`, ls IS A LIST OF `educalc line`
+GIVETH A LIST OF `educalc line`
+`code 30, ת.שכר מינימום` r ls MEANS
+    CONSIDER `the simulator's table cell` r 1
+    WHEN NOTHING THEN EMPTY
+    WHEN JUST start THEN
+        IF `the top-up` start GREATER THAN 0 THEN LIST `educalc line` 30 (`the top-up` start) ELSE EMPTY
+    WHERE
+        GIVEN l IS AN `educalc line`
+        GIVETH A BOOLEAN
+        `counted` l MEANS NOT elem (l's `pay code`) `the codes the simulator's minimum wage does not count`
+        GIVEN l IS AN `educalc line`
+        GIVETH A NUMBER
+        `its amount` l MEANS l's `amount`
+        GIVEN s IS A NUMBER
+        GIVETH A NUMBER
+        `the top-up` s MEANS
+            `to the agora` (`the simulator's minimum wage` TIMES `the simulator's job fraction` r MINUS (`to the agora` (s TIMES `the simulator's job fraction` r) PLUS sum (map `its amount` (filter `counted` ls))))
+
+§§ `התשובה`
+
+GIVEN r IS AN `educalc request`
+GIVETH A LIST OF `educalc line`
+`the simulator's lines before the top-up` r MEANS
+    filter `is paid` (append `the fixed lines` `the role lines`)
+    WHERE
+        GIVEN l IS AN `educalc line`
+        GIVETH A BOOLEAN
+        `is paid` l MEANS NOT l's `amount` EQUALS 0
+        `the fixed lines` MEANS
+            LIST `educalc line` 10 (`code 10, משולב אופק חדש` r),
+                 `educalc line` 5618 (`code 5618, תוספת אופק 2022` r),
+                 `educalc line` 17 (`code 17, ת.שקלית אחידה 2016` r),
+                 `educalc line` 59 (`code 59, גמול תואר ד"ר` r),
+                 `educalc line` 53 (`code 53, החזר טלפון` r),
+                 `educalc line` 108 (`code 108, ג.חינוך כיתה-אופק` r),
+                 `educalc line` 5818 (`code 5818, גמול חינוך רב` r),
+                 `educalc line` 41 (`code 41, ג.בחינות בגרות` r),
+                 `educalc line` 5821 (`code 5821, ג.חינוך מיוחד 15%` r),
+                 `educalc line` 5820 (`code 5820, ג.חינוך מיוחד 10%` r),
+                 `educalc line` 5822 (`code 5822, ג.חינוך מיוחד 17%` r),
+                 `educalc line` 40 (`code 40, גמול הדרכה` r),
+                 `educalc line` 38 (`code 38, תוספת מחוננים` r),
+                 `educalc line` 5691 (`code 5691, גננת עמיתה` r),
+                 `educalc line` 5609 (`code 5609, מורה חונכ/ת` r)
+        `the role lines` MEANS
+            concat (LIST `the simulator's coordinator line for` r (r's `RAKAZ_1`),
+                         `the simulator's coordinator line for` r (r's `RAKAZ_2`),
+                         `the simulator's management lines` r,
+                         `the simulator's counselling lines` r)
+
+@export default The lines the ministry's simulator answers for an Ofek Hadash request in salary month 2026-09 (the simulator's computation, not the law)
+GIVEN r IS AN `educalc request` @desc the form's fields
+GIVETH A LIST OF `educalc line`
+DECIDE `the simulator's answer to` r IS
+    append (`the simulator's lines before the top-up` r) (`code 30, ת.שכר מינימום` r (`the simulator's lines before the top-up` r))

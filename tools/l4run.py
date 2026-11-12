@@ -224,16 +224,19 @@ def all_asserts_hold(data: dict) -> bool:
 
 
 TESTS = L4_DIR / "tests"
+# The ministry's simulator described in L4 (MMS-523): no corpus text sits
+# beside it, and it is checked through its tests file, as a library is.
+SIMULATOR = L4_DIR / "simulator"
 
 
 def tested_through(path: Path) -> Path | None:
-    """The tests file a library module is checked through, if it has one:
+    """The tests file a library module (or the simulator's) is checked through, if it has one:
     l4/tests/<name>-tests.l4 imports it and holds every #EVAL and #ASSERT
     about it (the client, 2026-10-22: "assertions about a file should sit
     next to it, not be included in it"). Checking the module on its own as
     well would load it twice, and a root costs ~21 GB a load."""
     t = TESTS / f"{path.name.removesuffix('.l4')}-tests.l4"
-    return t if path.parent == L4_DIR / "lib" and t.exists() else None
+    return t if path.parent in (L4_DIR / "lib", SIMULATOR) and t.exists() else None
 
 
 def is_a_root(path: Path) -> bool:

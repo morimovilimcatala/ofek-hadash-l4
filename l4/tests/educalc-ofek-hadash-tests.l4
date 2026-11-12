@@ -1,0 +1,59 @@
+-- The ministry's simulator described in L4 (l4/simulator/educalc-ofek-hadash.l4,
+-- MMS-523): what it answers for a few recorded requests, and where its rule
+-- for the Ofek 2022 supplement departs, cell for cell, from the annexes the
+-- corpus prints. Every recorded request is checked by tools/simulator_check.py;
+-- these are the ones a reader can follow by hand.
+
+IMPORT prelude
+IMPORT `tables-common`
+IMPORT `nispach-bet-3-gimel-3`
+IMPORT `nispach-bet-4-gimel-4`
+IMPORT `nispach-bet-5-gimel-5`
+IMPORT `nispach-bet-6-gimel-6`
+IMPORT `nispach-bet-7-gimel-7`
+IMPORT `educalc-ofek-hadash`
+
+-- A BA teacher, grade 1, first year, full time: the recorded answer is
+-- 6,300 (10), 1,280.36 (17), 48.60 (53) and 1,585.54 (5618).
+`a first-year BA teacher` MEANS `educalc request` 101 1 1 0 100 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+
+#ASSERT `the simulator's answer to` `a first-year BA teacher` EQUALS
+    LIST `educalc line` 10 6300, `educalc line` 5618 1585.54, `educalc line` 17 1280.36, `educalc line` 53 48.6
+
+-- The same teacher with a doctorate (103) on the MA tables at grade 5,
+-- seniority 15: the base is the corpus's cell, the supplement the BA annex's
+-- 585.54 × 1.05, and the doctorate line 5% of both.
+`a doctor at grade 5` MEANS `educalc request` 103 9 15 0 100 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+
+#ASSERT `the simulator's full-time base` `a doctor at grade 5` EQUALS 10772.98
+#ASSERT `the simulator's full-time supplement` `a doctor at grade 5` EQUALS 614.82
+#ASSERT `code 59, גמול תואר ד"ר` `a doctor at grade 5` EQUALS 569.39
+
+-- The simulator's Ofek 2022 supplement against the annexes.
+
+-- The rule, set against the corpus's annexes ג'3–ג'7 at every grade: where
+-- the simulator's figure is not the printed one. The MA annex ג'4 prints
+-- 5 agorot more than 1.05 × ג'3 at every grade but the last two (3 at 8.5),
+-- and the certified annex ג'6 one agora more than 0.6835 × ג'3 at 2.5, 4.5
+-- and 7.5; the others agree. This is the simulator's departure, not the
+-- annexes': the corpus prints the same figures in the signed copy, in the
+-- follow-up committee's decision of 14.1.2025 and on the portal.
+`the grades of the tables` MEANS LIST 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9
+
+GIVEN k IS A NUMBER, f IS A `published supplement`
+GIVETH A LIST OF NUMBER
+`the grades where the simulator's supplement departs from the annex` k f MEANS
+    filter `departs at` `the grades of the tables`
+    WHERE
+        GIVEN g IS A NUMBER
+        GIVETH A BOOLEAN
+        `departs at` g MEANS
+            NOT JUST (`the simulator's Ofek 2022 supplement at` k g) EQUALS `the published supplement at` f g
+
+#ASSERT null (`the grades where the simulator's supplement departs from the annex` 101 `annex ג'3 of the Ofek 2022 supplement`)
+#ASSERT `the grades where the simulator's supplement departs from the annex` 102 `annex ג'4 of the Ofek 2022 supplement` EQUALS LIST 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5
+#ASSERT null (`the grades where the simulator's supplement departs from the annex` 104 `annex ג'5 of the Ofek 2022 supplement`)
+#ASSERT `the grades where the simulator's supplement departs from the annex` 105 `annex ג'6 of the Ofek 2022 supplement` EQUALS LIST 2.5, 4.5, 7.5
+#ASSERT null (`the grades where the simulator's supplement departs from the annex` 106 `annex ג'7 of the Ofek 2022 supplement`)
+#ASSERT `the simulator's Ofek 2022 supplement at` 102 1 EQUALS 1664.82
+#ASSERT `the published supplement at` `annex ג'4 of the Ofek 2022 supplement` 1 EQUALS JUST 1664.87
