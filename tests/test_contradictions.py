@@ -2,8 +2,10 @@
 
 Every side of a contradiction quotes the corpus verbatim at the row it names,
 every crop it shows is a picture file of the size the data says, every
-finding it names is in the register, and every contradiction whose rule was
-not followed -- an error -- carries a severity grade and the reason for it.
+finding it names is in the register, and every contradiction -- hand-written
+or generated from the root -- carries a severity grade and the reason for it
+(MMS-703); an error, a card whose paying source departs from the rule, is a
+mark of its own.
 """
 from __future__ import annotations
 
@@ -139,6 +141,18 @@ class TheRootIsTheSource(unittest.TestCase):
                 self.assertIn(r["governs"], r["sources"])
                 self.assertEqual(set(r["says"]), set(r["sources"]))
                 self.assertGreaterEqual(len(set(r["says"].values())), 2, "an example with no disagreement")
+
+    def test_every_generated_card_is_graded(self):
+        """Every row no hand card claims is graded in
+        data/contradiction-grades.json, and the table holds no row the root
+        does not report unclaimed (MMS-703): a new row fails here until it
+        is graded."""
+        claimed = {contradictions.root_key(c["root"]) for c in DATA["items"] if c.get("root")}
+        unclaimed = {contradictions.root_key(r) for r in self.rows} - claimed
+        self.assertEqual(set(contradictions.row_grades()), unclaimed)
+        for c, _ in self.shown:
+            with self.subTest(card=c["id"]):
+                self.assertIn(c.get("severity"), contradictions.SEV)
 
     def test_every_root_row_has_exactly_one_card(self):
         keys = [contradictions.root_key(row) for _, row in self.shown if row]
@@ -295,20 +309,67 @@ class TheVerdicts(unittest.TestCase):
                 with self.subTest(finding=fid):
                     self.assertNotIn(f'id="{fid}"', html)
 
-    def test_an_error_is_graded_and_says_why(self):
-        """An error is a card in which a paying source departs from what the
-        governing rule gives; it, and only it, is graded."""
+    def test_every_card_is_graded_and_says_why(self):
+        """The client, 2026-11-12 (MMS-703): "all סתירות should have a
+        severity rating". Every hand card carries a grade on the MMS-506
+        scale and the reason for it; an error -- a paying source departing
+        from what the governing rule gives -- also says what it means for a
+        teacher."""
         errs = {c["id"] for c in contradictions.errors(DATA)}
+        self.assertTrue(errs)
         for c in DATA["items"]:
             with self.subTest(item=c["id"]):
                 self.assertNotIn("practice", c)
+                self.assertIn(c.get("severity"), contradictions.SEV)
+                self.assertTrue(c.get("severity_why", "").strip())
                 if c["id"] in errs:
-                    self.assertIn(c.get("severity"), contradictions.SEV)
-                    self.assertTrue(c.get("severity_why", "").strip())
-                    # and says what it means for a teacher
                     self.assertTrue(c.get("meaning", "").strip())
+
+    def test_a_card_takes_its_findings_grade_or_says_why_not(self):
+        """A card that names findings is graded as the highest-graded of
+        them, unless `severity_differs_from_finding` says why; and only a
+        card that differs carries that field."""
+        rank = {"low": 0, "medium": 1, "high": 2}
+        sev = {}
+        for f in (ROOT / "findings").rglob("*.toml"):
+            for x in tomllib.loads(f.read_text(encoding="utf-8")).get("finding", []):
+                sev[x["id"]] = x.get("severity")
+        for c in DATA["items"]:
+            graded = [sev[f] for f in c.get("findings", []) if sev.get(f)]
+            with self.subTest(item=c["id"]):
+                if graded and c["severity"] != max(graded, key=rank.get):
+                    self.assertTrue(c.get("severity_differs_from_finding", "").strip(),
+                                    f"graded {c['severity']}, its findings {max(graded, key=rank.get)}")
                 else:
-                    self.assertNotIn("severity", c)
+                    self.assertNotIn("severity_differs_from_finding", c)
+
+    def test_a_generated_rows_grade_is_well_formed(self):
+        """data/contradiction-grades.json: each entry names a row by the key
+        a hand card attaches by, once, with a grade and its reason."""
+        grades = json.loads(contradictions.GRADES.read_text(encoding="utf-8"))["rows"]
+        self.assertTrue(grades)
+        keys = [contradictions.root_key(g["root"]) for g in grades]
+        self.assertEqual(len(keys), len(set(keys)))
+        claimed = {contradictions.root_key(c["root"]) for c in DATA["items"] if c.get("root")}
+        for g in grades:
+            with self.subTest(root=contradictions.root_key(g["root"])):
+                self.assertEqual(set(g["root"]), {"item", "governs", "rule"})
+                self.assertIn(g["severity"], contradictions.SEV)
+                self.assertTrue(g["severity_why"].strip())
+                # a row a hand card claims is graded on the card
+                self.assertNotIn(contradictions.root_key(g["root"]), claimed)
+
+    def test_an_error_is_marked_apart_from_its_grade(self):
+        """Every card shows its grade chip; "טעות" shows only where a paying
+        source departs, so a grade never claims the card is a mistake."""
+        for c in DATA["items"]:
+            with self.subTest(item=c["id"]):
+                html = contradictions.card(c, DATA["rules"], prose=lambda t: t,
+                                           clause_link=lambda d, k: ("#", k), finding_ids=set(),
+                                           src=lambda f: f)
+                self.assertIn(f'<span class="cx-sev sev-{c["severity"]}">חומרה: ', html)
+                self.assertIn(f'data-sev="{c["severity"]}"', html)
+                self.assertEqual('<span class="cx-err">טעות</span>' in html, contradictions.is_error(c))
 
     def test_a_card_shows_every_side_when_three_disagree(self):
         """Three sources that give three answers are one contradiction with
@@ -334,6 +395,10 @@ class TheVerdicts(unittest.TestCase):
         self.assertEqual(html.count('<details class="cx-card'), len(DATA["items"]))
         self.assertNotIn(' open>', html)
         self.assertIn('class="cx-meter"', html)
+        # the meter counts every graded card and says how a grade is decided
+        self.assertIn(contradictions.HOW_GRADED, html)
+        self.assertIn(f'<b>{len(DATA["items"])}</b> סתירות מדורגות', html)
+        self.assertNotIn('data-sev="none"', html)
         self.assertIn('class="cx-mark"', html)
         self.assertEqual(html.count("<h4>מי גובר?</h4>"), len(DATA["items"]))
         # one filter row, by the kinds of source: no "was it followed" row,
