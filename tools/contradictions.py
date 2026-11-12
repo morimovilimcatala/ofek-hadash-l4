@@ -108,7 +108,7 @@ def proofs(c: dict, evidence: dict[str, tuple[str, str]]) -> list[tuple[str, str
 # (l4/laws/budget-foundations-law.l4) and #ASSERTs the result, whether the
 # excess is void, and why. `other` is a departure that is not a sum paid.
 DIRECTION = {"more": "החוזר נותן יותר מההסכם", "less": "החוזר נותן פחות מההסכם",
-             "same": "החוזר נותן כמו ההסכם",
+             "same": "החוזר משלם כמו ההסכם",
              "other": "הסטייה אינה בסכום שמשולם"}
 S29 = "laws/budget-foundations-law.html#s29"
 
@@ -133,8 +133,13 @@ def direction_html(c: dict, *, prose) -> str:
                 f'הוא עומד רק אם הוסכם או הונהג לגבי כלל עובדי המדינה, או אושר בידי שר האוצר. <b>{esc(verdict)}</b></p>'
                 f'<p>{prose(s["note"])}')
     elif d == "same":
-        text = (f'החוזר אינו סוטה מההסכם שהוא מבצע: הוא מדפיס את אותו סכום, ולכן שניהם עומדים או נופלים יחד מול המקור השלישי. '
-                f'{law} אינו חל כאן — אין עודף על ההסכם.')
+        # the circular copies the agreement, so the card's question is not
+        # between them: say what the card is about, and leave §29 out
+        return (f'<div class="cx-mean cx-s29"><h4>החוזר וההסכם</h4>'
+                f'<p><span class="cx-dir dir-{d}">{esc(DIRECTION[d])}</span> '
+                f'<b>החוזר מעתיק את ההסכם, ולכן הבעיה אינה בחוזר אלא בסכום עצמו: '
+                f'{esc(c["winner"])} גובר על שניהם באותה מידה.</b></p>'
+                f'<p>{prose(c["direction_note"])}</p></div>')
     else:
         why = ("הוא מבטל רק מה שגוף מתוקצב או גוף נתמך נותן מעבר למה שהוסכם או אושר, ולא תשלום נמוך מההסכם"
                if d == "less" else "החוזר אינו נותן שינוי בשכר או הטבה כספית מעבר להסכם")

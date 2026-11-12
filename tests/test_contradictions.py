@@ -418,10 +418,13 @@ class WhichWayTheCircularDeparts(unittest.TestCase):
                                            clause_link=lambda d, k: ("#", k), finding_ids=set(),
                                            src=lambda f: f)
                 self.assertIn(contradictions.DIRECTION[c["direction"]], html)
+                if c["direction"] == "same":
+                    # a circular that copies the agreement is no §29 question:
+                    # the box says what wins over both, and leaves §29 out
+                    self.assertNotIn(contradictions.S29, html)
+                    self.assertIn(f'{c["winner"]} גובר על שניהם', html)
+                    continue
                 self.assertIn(contradictions.S29, html)
                 if c["direction"] in ("less", "other"):
                     self.assertIn("<b>ההסכם גובר</b>", html)
-                    self.assertIn("אינו חל כאן", html)
-                if c["direction"] == "same":
-                    self.assertIn("אינו סוטה מההסכם", html)
                     self.assertIn("אינו חל כאן", html)
