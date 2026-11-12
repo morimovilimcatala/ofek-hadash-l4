@@ -34,9 +34,11 @@ CITED_NOT_PINNED = {
 # on the Equal Pay Law's subject, without naming it, and the takanon dates
 # a teacher's dismissal and asks his notice of resignation without naming
 # the Advance Notice Law. The Contracts Law is not a floor: it is the law of
-# reading every agreement, and §61(ב) brings a circular under it (MMS-529).
+# reading every agreement, and §61(ב) brings a circular under it (MMS-529);
+# its §25(ד) brings seven sections of the Interpretation Law (MMS-689).
 # A link the corpus adds moves a law out of this set.
-PINNED_NOT_LINKED = {"sick-pay-law", "equal-pay-law", "advance-notice-law", "contracts-law"}
+PINNED_NOT_LINKED = {"sick-pay-law", "equal-pay-law", "advance-notice-law", "contracts-law",
+                     "interpretation-law"}
 
 
 class TheInventoryIsTheCorpus(unittest.TestCase):
