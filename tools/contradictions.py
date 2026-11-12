@@ -19,8 +19,7 @@ general remove the קוים chips, since payslips are also a source"): the
 payslips, described in general terms and never a person's figure (decision
 17), and the ministry's simulator, which binds no one. Each is a side of the
 card it speaks to, with its answer and whether that answer is the one the
-governing rule gives (`agrees`); a paying source that departs from it makes
-the card an error, graded. A source that has no answer to the question is
+governing rule gives (`agrees`). A source that has no answer to the question is
 listed under the card (`silent`), not as a side. None of them changes a
 reading.
 
@@ -50,6 +49,19 @@ the prose; it cannot add a row, and its document sides are instruments the
 row names. A card the root cannot speak for stays hand-written and says why
 in `not_in_root` (NOT_IN_ROOT); tests/test_contradictions.py holds the page
 to the root exactly.
+
+EVERY CARD IS GRADED (MMS-703; the client, 2026-11-12: "all סתירות should
+have a severity rating"), on the findings' scale (MMS-506): high where money,
+eligibility or a right turns on it and a court would most likely rule against
+the status quo — how the ministry applies the text, as its own documents in
+the corpus record it; medium where the status quo would most likely stand,
+the question is a toss-up, or it is a procedure; low where nothing turns on
+it. A hand card carries `severity` and `severity_why`, the grade of its
+highest-graded finding unless `severity_differs_from_finding` says why not;
+a generated card takes its grade from data/contradiction-grades.json, keyed
+by its row (`row_grades`). The page marks no card as an error (the client,
+2026-11-12: "then just remove the label it's stupid"): a card has its grade,
+and each paying source says whether it pays as the governing rule gives.
 """
 from __future__ import annotations
 
@@ -64,6 +76,7 @@ esc = html.escape
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "data" / "contradictions.json"
+GRADES = ROOT / "data" / "contradiction-grades.json"
 CROPS = ROOT / "data" / "contradictions"
 HERE = "contradictions.html"
 TAB = "מקורות סותרים"
@@ -80,6 +93,10 @@ def types(c: dict) -> list[str]:
     """The kinds of source a contradiction sets against each other."""
     return sorted({s["type"] for s in c["sides"]}, key=list(TYPE).index)
 SEV = {"high": "חמור", "medium": "בינוני", "low": "קל"}
+# How a grade is decided, said once on the page (MMS-703).
+HOW_GRADED = ("החומרה היא ההשפעה בעולם: <b>חמור</b> — כסף, זכאות או זכות תלויים בסתירה, ובית משפט צפוי לפסוק "
+              "נגד האופן שבו המשרד מיישם את הטקסט כפי שמסמכיו מתעדים; <b>בינוני</b> — כסף או זכות נוגעים בה אבל "
+              "היישום צפוי לעמוד, או שההכרעה שקולה, או שהיא בנוהל; <b>קל</b> — שום תוצאה של ממש אינה תלויה בה.")
 KIND = {"render": "עמוד דיגיטלי, מרונדר ב־{dpi} dpi",
         "scan": "סריקה, ברזולוציה המקורית ({dpi} ppi)",
         "html": "דף מהעותק השמור של האתר (1.6.2026), כפי שהדפדפן מציג אותו, בצפיפות כפולה; תשובה מקופלת נפתחה כמו בלחיצה"}
@@ -151,6 +168,14 @@ def direction_html(c: dict, *, prose) -> str:
 
 def load() -> dict | None:
     return json.loads(DATA.read_text(encoding="utf-8")) if DATA.exists() else None
+
+
+def row_grades() -> dict[tuple[str, str, str], dict]:
+    """The grade of each generated card, by its row's key (MMS-703)."""
+    if not GRADES.exists():
+        return {}
+    rows = json.loads(GRADES.read_text(encoding="utf-8"))["rows"]
+    return {root_key(r["root"]): r for r in rows}
 
 
 # A weaker source departing from a stronger one — a circular from the agreement
@@ -268,16 +293,19 @@ def instruments() -> dict[str, tuple[str, str]]:
     return out
 
 
-def generated(row: dict, inst: dict[str, tuple[str, str]]) -> dict:
+def generated(row: dict, inst: dict[str, tuple[str, str]], grades: dict | None = None) -> dict:
     """The card of a row no hand-written card claims: its sides are the
-    instruments that speak, each with what it says in the row's examples."""
+    instruments that speak, each with what it says in the row's examples,
+    and its grade from data/contradiction-grades.json."""
     gov = inst.get(row["governs"], (row["governs"], ""))[0]
     others = [inst.get(m, (m, ""))[0] for m in row["sources"] if m != row["governs"]]
     sides = [{"type": inst.get(m, (m, "circular"))[1], "label": inst.get(m, (m, ""))[0], "module": m,
               "says": list(dict.fromkeys(r["says"][m] for r in row["resolutions"] if m in r["says"]))}
              for m in row["sources"]]
+    g = (grades or {}).get(root_key(row), {})
     return {"id": row["id"], "group": RULE_GROUP.get(row["rule"], "takanon"), "generated": True,
-            "title": f'{row["item"]}: {gov} מול {" · ".join(others)}', "sides": sides}
+            "title": f'{row["item"]}: {gov} מול {" · ".join(others)}', "sides": sides,
+            **{k: g[k] for k in ("severity", "severity_why") if k in g}}
 
 
 def cards(data: dict, rows: list[dict] | None) -> list[tuple[dict, dict | None]]:
@@ -288,7 +316,8 @@ def cards(data: dict, rows: list[dict] | None) -> list[tuple[dict, dict | None]]
     out = [(c, by_key.get(root_key(c["root"])) if c.get("root") else None) for c in data["items"]]
     claimed = {root_key(c["root"]) for c in data["items"] if c.get("root")}
     inst = instruments() if rows else {}
-    out += [(generated(r, inst), r) for r in rows or [] if root_key(r) not in claimed]
+    grades = row_grades()
+    out += [(generated(r, inst, grades), r) for r in rows or [] if root_key(r) not in claimed]
     return out
 
 
@@ -354,25 +383,34 @@ def rule_html(r: dict, note: str, *, prose, src) -> str:
             f' — {esc(r["source"])}{link}</p>{pic}{quote}<p>{prose(note)}</p></div>')
 
 
-def errors(data: dict) -> list[dict]:
-    """The contradictions in which a paying source — a payslip, the
-    simulator — departs from what the governing rule gives: errors, each
-    graded."""
-    return [c for c in data["items"] if any(s.get("agrees") is False for s in c["sides"])]
+def badge(c: dict) -> str:
+    """The card's grade chip."""
+    sev = c.get("severity")
+    return f'<span class="cx-sev sev-{sev}">חומרה: {esc(SEV[sev])}</span>' if sev else ""
+
+
+def sevwhy_html(c: dict, *, prose) -> str:
+    sev = c.get("severity")
+    if not sev:
+        return ""
+    differs = (f' {prose(c["severity_differs_from_finding"])}' if c.get("severity_differs_from_finding") else "")
+    return (f'<p class="cx-sevwhy"><span class="cx-sev sev-{sev}">{esc(SEV[sev])}</span> '
+            f'{prose(c["severity_why"])}{differs}</p>')
 
 
 def meter(grades: list[str]) -> str:
-    """The errors on the page by grade — the graded contradictions and the
-    simulator's graded rows. Each key is also a filter: it shows the cards
-    of that grade (the client, 2026-10-21: "I should be able to filter
+    """Every contradiction on the page by grade — the cards, hand-written and
+    generated, and the simulator's graded rows — with how a grade is decided.
+    Each key is also a filter: it shows the
+    cards of that grade (the client, 2026-10-21: "I should be able to filter
     based on the severity chip")."""
     n = {k: grades.count(k) for k in SEV}
     segs = "".join(f'<span class="cx-mseg sev-{k}" style="flex:{n[k]}" title="{esc(SEV[k])}: {n[k]}"></span>'
                    for k in SEV if n[k])
     keys = "".join(f'<button type="button" class="cx-mkey sev-{k}" data-dim="sev" data-val="{k}" aria-pressed="false">'
                    f'<i></i>{esc(SEV[k])} <b>{n[k]}</b></button>' for k in SEV if n[k])
-    return (f'<div class="cx-meter" aria-label="חומרת הטעויות"><p><b>{len(grades)}</b> מהסתירות הן טעויות — '
-            f'מקור שמשלם סוטה בהן מהכלל הגובר. חומרתן (לחיצה מסננת):</p><div class="cx-mbar">{segs}</div>'
+    return (f'<div class="cx-meter" aria-label="חומרת הסתירות"><p><b>{len(grades)}</b> סתירות מדורגות לפי חומרה. '
+            f'{HOW_GRADED} (לחיצה על דרגה מסננת.)</p><div class="cx-mbar">{segs}</div>'
             f'<div class="cx-mkeys" role="group" aria-label="סינון לפי חומרה">{keys}</div></div>'
             if grades else "")
 
@@ -417,7 +455,7 @@ def body(data: dict, *, prose, clause_link, finding_ids: set[str], src,
     out.append(f'<div class="cx-sum" aria-label="סינון לפי סוג המקור">'
                + "".join(rows)
                + f'<div class="cx-frow"><button type="button" class="cx-all" aria-pressed="true">הכול <b>{len(items) + sim_n}</b></button></div></div>')
-    out.append(meter([c["severity"] for c in errors(data)] + list(sim_grades)))
+    out.append(meter([c["severity"] for c in items if c.get("severity")] + list(sim_grades)))
 
 
     side = ['<li class="sn-group"><details open><summary>בעמוד</summary><ul>']
@@ -497,8 +535,9 @@ def generated_html(c: dict, row: dict, inst: dict[str, tuple[str, str]], *, href
                      f'{esc(TYPE[s["type"]])}</span> <b>{esc(s["label"])}</b></p>'
                      f'<p class="cx-says">בדוגמאות של השורש: <bdi dir="ltr">{esc(says)}</bdi></p>{where}</div>')
     gov = inst.get(row["governs"], (row["governs"], ""))[0]
-    return (f'<details class="cx-card sev-none cx-gen" id="{esc(c["id"])}" data-types="{esc(" ".join(types(c)))}" data-sev="none">'
-            f'<summary><p class="cx-pair">{esc(pair)} <span class="cx-genmark">מהשורש</span></p>'
+    sev = c.get("severity") or "none"
+    return (f'<details class="cx-card sev-{sev} cx-gen" id="{esc(c["id"])}" data-types="{esc(" ".join(types(c)))}" data-sev="{sev}">'
+            f'<summary><p class="cx-pair">{esc(pair)} <span class="cx-genmark">מהשורש</span> {badge(c)}</p>'
             f'<h3>{esc(c["title"])}</h3></summary>'
             f'<p class="cx-stake">הכרטיס הזה נבנה מהדוח של השורש: המסמכים שמדברים, מה כל אחד אומר במקרה '
             f'הראשון שבו הם חלוקים, והכלל שמכריע. אין בו תמונות והסבר שנכתבו ביד.</p>'
@@ -506,13 +545,13 @@ def generated_html(c: dict, row: dict, inst: dict[str, tuple[str, str]], *, href
             f'<div class="cx-rule"><h4>מי גובר?</h4><p class="cx-rsrc"><b>{esc(row["rule"])}</b> — סדר העדיפות '
             f'שבשורש · <a href="{esc(root_href)}">השורש</a></p></div>'
             f'<p class="cx-win">לפי הכלל גובר: <b>{esc(gov)}</b></p>'
+            + sevwhy_html(c, prose=esc)
             + root_html(row, inst, root_href) + gate_html() + '</details>')
 
 
 def card(c: dict, rules: dict, *, prose, clause_link, finding_ids, src, evidence=None,
          row: dict | None = None, inst: dict | None = None, root_href: str = "root.html") -> str:
     sev = c.get("severity")
-    badge = f'<span class="cx-sev sev-{sev}">טעות · {esc(SEV[sev])}</span>' if sev else ""
     pair = " ↔ ".join(TYPE[s["type"]] for s in c["sides"])
     way = (f'<span class="cx-dir dir-{c["direction"]}">{esc(DIRECTION[c["direction"]])}</span>'
            if c.get("direction") else "")
@@ -527,15 +566,14 @@ def card(c: dict, rules: dict, *, prose, clause_link, finding_ids, src, evidence
     silent = (f'<p class="cx-silent">אין כאן תשובה: {esc(" ".join(c["silent"]))}</p>'
               if c.get("silent") else "")
     return (f'<details class="cx-card sev-{sev or "none"}" id="{esc(c["id"])}" data-types="{esc(" ".join(types(c)))}" data-sev="{sev or "none"}">'
-            f'<summary><p class="cx-pair">{esc(pair)} {way} {badge}</p><h3>{esc(c["title"])}</h3></summary>'
+            f'<summary><p class="cx-pair">{esc(pair)} {way} {badge(c)}</p><h3>{esc(c["title"])}</h3></summary>'
             f'<p class="cx-stake">{prose(c["stake"])}</p>'
             f'<div class="cx-sides">{sides}</div>'
             + rule_html(rules[c["rule"]], c["rule_note"], prose=prose, src=src)
             + (f'<p class="cx-win">לפי הכלל גובר: <b>{esc(winner)}</b></p>' if winner else "")
             + direction_html(c, prose=prose)
-            + (f'<p class="cx-sevwhy"><span class="cx-sev sev-{sev}">{esc(SEV[sev])}</span> {prose(c["severity_why"])}</p>'
-               if sev else "") + silent
-            # what an error means for a teacher (the client: "a משמעות section")
+            + sevwhy_html(c, prose=prose) + silent
+            # what a departing payment means for a teacher (the client: "a משמעות section")
             + (f'<div class="cx-mean"><h4>משמעות</h4><p>{prose(c["meaning"])}</p></div>' if c.get("meaning") else "")
             + (root_html(row, inst or {}, root_href) if row else "")
             + (f'<p class="cx-noroot">{esc(NOT_IN_ROOT[c["not_in_root"]])}</p>'
