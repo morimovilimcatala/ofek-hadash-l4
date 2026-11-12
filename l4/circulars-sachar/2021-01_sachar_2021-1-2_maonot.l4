@@ -61,6 +61,8 @@ DECIDE `the monthly amount for a second child` IS 213
 -- child, and nothing for any other: whether a third child is paid for is
 -- the framework agreement's question, not this circular's, so this circular
 -- gives NOTHING there rather than a zero it does not print.
+-- A child over 5 is outside the supplement this circular updates, so the
+-- answer there is 0 (convention amounts.not-printed: no entitlement is 0).
 @export default The monthly childcare supplement (in shekels) this update sets for a child, from the date it takes effect
 @ref akn:hc_1/p2
 GIVEN c       IS A `child for the childcare supplement` @desc the child
@@ -68,7 +70,7 @@ GIVEN c       IS A `child for the childcare supplement` @desc the child
 GIVETH A MAYBE NUMBER
 DECIDE `the monthly childcare supplement under this update` c `month` IS
     BRANCH IF `month` LESS THAN `the update takes effect` THEN NOTHING
-           IF (NOT c's `up to age 5`)                    THEN NOTHING
+           IF (NOT c's `up to age 5`)                    THEN JUST 0
            IF c's `place among the children` EQUALS 1   THEN JUST `the monthly amount for an only or first child`
            IF c's `place among the children` EQUALS 2   THEN JUST `the monthly amount for a second child`
            OTHERWISE NOTHING
@@ -149,7 +151,7 @@ DECIDE `the printed amount is the update of` `before` `after` IF
 #ASSERT `the monthly childcare supplement under this update` `a second child of two` (Date 15 3 2021) EQUALS JUST 213
 #ASSERT `the monthly childcare supplement under this update` `an only child of three` (Date 31 12 2020) EQUALS NOTHING
 #ASSERT `the monthly childcare supplement under this update` `a third child of one` (Date 1 2 2021) EQUALS NOTHING
-#ASSERT `the monthly childcare supplement under this update` `a first child of seven` (Date 1 2 2021) EQUALS NOTHING
+#ASSERT `the monthly childcare supplement under this update` `a first child of seven` (Date 1 2 2021) EQUALS JUST 0
 #EVAL   `the amount moved by the index` 100
 
 -- Paid in full within the month, the obligation is fulfilled; paid short,
@@ -172,15 +174,15 @@ DECIDE `the printed amount is the update of` `before` `after` IF
          `the update takes effect`,
          Date 31 12 (DATE_YEAR `the update takes effect`)
 
--- An amount is given exactly for a child up to 5 who is an only, first or
--- second child, from the day the update takes effect and not the day
--- before: no child the update prints an amount for is left without one,
--- and none it prints nothing for is given one.
+-- An answer is given exactly for a child up to 5 who is an only, first or
+-- second child, and for a child over 5 (0), from the day the update takes
+-- effect and not the day before: no child the update prints an amount for
+-- is left without one, and none it prints nothing for is given one.
 #ASSERT all (GIVEN u YIELD
                 all (GIVEN p YIELD
                         all (GIVEN d YIELD
                                 isJust (`the monthly childcare supplement under this update` (`child for the childcare supplement` WITH `up to age 5` IS u, `place among the children` IS p) d)
-                                EQUALS (u AND (p EQUALS 1 OR p EQUALS 2) AND d AT LEAST `the update takes effect`))
+                                EQUALS (((NOT u) OR p EQUALS 1 OR p EQUALS 2) AND d AT LEAST `the update takes effect`))
                             `the days checked`)
                     (range 0 4))
             `both booleans`
