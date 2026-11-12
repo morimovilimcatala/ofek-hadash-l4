@@ -128,3 +128,48 @@ DECIDE `the Ministry deducts from the MATAM payments` `budgeted weekly hours of 
     PARTY `the local authority or owning body` DOES `reduce the salary` 1200 AT 3
 #TRACE `the owning body reduces the salary` `a striker` AT 0 WITH
     PARTY `the local authority or owning body` DOES `reduce the salary` 600 AT 3
+
+§§ `Property checks`
+
+-- The circular over a finite space: 0 to 12 hours scheduled and present;
+-- taking part or not; an approval or not; hourly values of 0, 50 and 120;
+-- 0 to 40 budgeted hours over a week's quarters.
+
+`both booleans` MEANS LIST TRUE, FALSE
+
+-- Over every record: one held to have struck is one who declared it or was
+-- absent without an approval, and only they; the reduction is exactly the
+-- hours absent times the hourly value for them, nothing for anyone else,
+-- never more than the hours scheduled are worth, and never falling with
+-- fewer hours present; no salary for a strike day.
+#ASSERT all (GIVEN s YIELD
+                all (GIVEN p YIELD
+                        all (GIVEN t YIELD
+                                all (GIVEN a YIELD
+                                        all (GIVEN v YIELD
+                                                LET r MEANS `strike record` WITH
+                                                                `scheduled working hours on strike days` IS s
+                                                                `hours present on strike days`           IS p
+                                                                `took part in the strike`                IS t
+                                                                `produced an approval for the absence`   IS a
+                                                                `hourly value`                           IS v
+                                                    h MEANS max 0 (s MINUS p)
+                                                    k MEANS t OR (h GREATER THAN 0 AND NOT a)
+                                                IN      `is held to have taken part in the strike` r EQUALS k
+                                                    AND `salary reduction` r EQUALS (IF k THEN h TIMES v ELSE 0)
+                                                    AND `salary reduction` r AT MOST s TIMES v)
+                                            (LIST 0, 50, 120))
+                                    `both booleans`)
+                            `both booleans`)
+                    (range 0 12))
+            (range 0 12)
+#ASSERT all (GIVEN d YIELD `salary is payable for the day` d EQUALS NOT d) `both booleans`
+
+-- ¶4 over budgeted hours and the share of the week: never more than the
+-- week's budget, and none for no strike.
+#ASSERT all (GIVEN b YIELD
+                all (GIVEN q YIELD
+                            `budgeted hours to deduct` b (q DIVIDED BY 4) AT MOST b
+                        AND `budgeted hours to deduct` b 0 EQUALS 0)
+                    (range 0 4))
+            (map (GIVEN k YIELD 10 TIMES k) (range 0 4))

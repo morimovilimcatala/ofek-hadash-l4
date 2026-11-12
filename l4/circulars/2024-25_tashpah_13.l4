@@ -249,3 +249,59 @@ DECIDE `reimbursement in the August payments` `grants paid` IS
     PARTY `the employer` DOES `pay the achievement grant` 7308.90 AT 12
 #TRACE `reimbursement in the August payments` 7308.90 AT 0 WITH
     PARTY `the Ministry of Education` DOES `reimburse the owning body` 7308.90 AT 13
+
+§§ `Property checks`
+
+-- The circular over finite spaces: every school grade; upper-division
+-- positions in tenths from 0 to 1.5; shares of the year in quarters; on
+-- full-year leave or not; percentiles 0 to 1 in hundredths; every school
+-- structure and class grade 7 to 14; grants of 0 to 10,000.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`tenths to 1.5` MEANS map (GIVEN k YIELD k DIVIDED BY 10) (range 0 15)
+`every school grade` MEANS LIST `grade 1`, `grade 2`, `grade 3`, `grade 4`, `not ranked`
+
+-- The table and the ranking: each grade's grant below the one above it,
+-- nothing unranked; over every percentile, the grade never better for a
+-- school ranked lower, and ranked exactly within the top 40%.
+`each grade's grant is below the grade above it` MEANS
+        `the grant at a full position` `grade 1` GREATER THAN `the grant at a full position` `grade 2`
+    AND `the grant at a full position` `grade 2` GREATER THAN `the grant at a full position` `grade 3`
+    AND `the grant at a full position` `grade 3` GREATER THAN `the grant at a full position` `grade 4`
+    AND `the grant at a full position` `grade 4` GREATER THAN 0
+    AND `the grant at a full position` `not ranked` EQUALS 0
+#ASSERT `each grade's grant is below the grade above it`
+#ASSERT all (GIVEN k YIELD
+                LET p MEANS k DIVIDED BY 100
+                IN      `the grant at a full position` (`the school's grade` (p PLUS 0.01)) AT MOST `the grant at a full position` (`the school's grade` p)
+                    AND (`the school's grade` p EQUALS `not ranked`) EQUALS (p GREATER THAN 0.4))
+            (range 0 100)
+
+-- §2 over every case: the grant is the grade's full-position grant times
+-- the position up to one times the share of the year, nothing on a full
+-- year's leave; never above grade 1's; never falling with a larger
+-- position or share; the pension parts are 5% and 5% of it.
+#ASSERT all (GIVEN g YIELD
+                all (GIVEN f YIELD
+                        all (GIVEN q YIELD
+                                all (GIVEN l YIELD
+                                        LET c  MEANS `achievement case` g f (q DIVIDED BY 4) l
+                                            a  MEANS `achievement grant` c
+                                        IN      a EQUALS (IF l THEN 0 ELSE `the grant at a full position` g TIMES min f 1 TIMES (q DIVIDED BY 4))
+                                            AND a AT MOST 9745.19
+                                            AND a AT MOST `achievement grant` (`achievement case` g (f PLUS 0.1) (q DIVIDED BY 4) l)
+                                            AND a AT MOST `achievement grant` (`achievement case` g f ((q PLUS 1) DIVIDED BY 4) l)
+                                            AND `employer's pension contribution on the grant` a EQUALS 5% TIMES a
+                                            AND `teacher's pension deduction from the grant` a EQUALS 5% TIMES a)
+                                    `both booleans`)
+                            (range 0 4))
+                    `tenths to 1.5`)
+            `every school grade`
+
+-- The programme's classes over every structure and grade: grades 10 to 14,
+-- and 9 too in a four-year school.
+#ASSERT all (GIVEN s YIELD
+                all (GIVEN n YIELD
+                        `the class is in the upper division the programme covers` s n EQUALS (n AT MOST 14 AND n AT LEAST (IF s EQUALS `four-year school` THEN 9 ELSE 10)))
+                    (range 7 15))
+            (LIST `four-year school`, `three-year school`, `six-year school`)

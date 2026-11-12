@@ -520,3 +520,102 @@ DECIDE `send the later payslips` `teachers approved` `days to the date the Minis
     PARTY `the local authority or owning body` DOES `sign the commitment letter online` 3 AT 15
 #TRACE `sign the commitment for every upper division` 3 120 AT 0 WITH
     PARTY `the local authority or owning body` DOES `sign the commitment letter online` 2 AT 15
+
+§§ `Property checks`
+
+-- The circular over finite spaces: ages 30 to 70; positions in hundredths
+-- from 0 to 1.2; hours requested 0 to 1 in quarters; every flag of a
+-- requested teacher; the body's tuition hours 0 to 3,000 in five hundreds
+-- with age hours 0 to 4; the school months 1 to 12; days 0 to 60; hours
+-- paid and found due 0 to 10.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`hundredths to 1.2` MEANS map (GIVEN k YIELD k DIVIDED BY 100) (range 0 120)
+
+-- ו over ages: the rule's hours are 19, 18 or 16, never more for an older
+-- teacher, and one of the printed bands' hours; the printed bands give two
+-- answers exactly at 55 (finding a).
+#ASSERT all (GIVEN a YIELD
+                    elem (`frontal hours that earn the mother's supplement` a) (LIST 16, 18, 19)
+                AND `frontal hours that earn the mother's supplement` (a PLUS 1) AT MOST `frontal hours that earn the mother's supplement` a
+                AND elem (`frontal hours that earn the mother's supplement` a) (`the frontal hours the bands give for age` a)
+                AND (count (`the frontal hours the bands give for age` a) EQUALS 2) EQUALS (a EQUALS 55))
+            (range 30 70)
+
+-- ח over positions: the cap is 0.5 from a third, 1 from 75%, nothing above
+-- 100% or below a third, never falling within those bounds; the printed
+-- bands give two caps only at 75% (finding c).
+#ASSERT all (GIVEN p YIELD
+                    `the cap on the hours for position` p EQUALS (IF p GREATER THAN 1 OR p LESS THAN 1 DIVIDED BY 3 THEN 0 ELSE IF p AT LEAST 0.75 THEN 1 ELSE 0.5)
+                AND (count (`the caps the bands of ח give for position` p) EQUALS 2) EQUALS (p EQUALS 0.75))
+            `hundredths to 1.2`
+
+-- ג over every requested teacher: hours budgeted only to one who may be
+-- budgeted, never more than asked nor than the position's cap, so never to
+-- a principal, outside Oz LaTmura or above a full position.
+#ASSERT all (GIVEN oz YIELD
+                all (GIVEN pr YIELD
+                        all (GIVEN rep YIELD
+                                all (GIVEN cl YIELD
+                                        all (GIVEN ex YIELD
+                                                all (GIVEN p YIELD
+                                                        all (GIVEN h YIELD
+                                                                LET t MEANS `requested teacher` WITH
+                                                                                `hours requested for the teacher`         IS h DIVIDED BY 4
+                                                                                `frontal hours reported by 14.11.2024`    IS 20
+                                                                                `frontal hours reported after the update` IS 21
+                                                                                `in Oz LaTmura`                           IS oz
+                                                                                `is the principal`                        IS pr
+                                                                                `reported for תשפ"ה by 14.11.2024`        IS rep
+                                                                                `teaches the added hours in class`        IS cl
+                                                                                `position with the employer`              IS p
+                                                                    b MEANS `the hours budgeted for the teacher` t ex
+                                                                IN      b AT MOST h DIVIDED BY 4
+                                                                    AND b AT MOST `the cap on the hours for position` p
+                                                                    AND ((NOT `the teacher may be budgeted` t ex) OR (oz AND (NOT pr) AND p AT MOST 1 AND p AT LEAST 1 DIVIDED BY 3))
+                                                                    AND ((NOT pr) OR b EQUALS 0))
+                                                            (range 0 4))
+                                                    (LIST 0.2, 1 DIVIDED BY 3, 0.5, 0.75, 1, 1.1))
+                                            `both booleans`)
+                                    `both booleans`)
+                            `both booleans`)
+                    `both booleans`)
+            `both booleans`
+
+-- ב.1 over the body's hours: the key's frontal hours are 1.75% of the
+-- topics' net total and never fall with more tuition hours; the individual
+-- and support hours stand at 3 to 10.
+#ASSERT all (GIVEN t YIELD
+                all (GIVEN g YIELD
+                        LET w  MEANS `body's weekly hours` t 0.9 100 200 20 50 10 g
+                            w2 MEANS `body's weekly hours` (t PLUS 500) 0.9 100 200 20 50 10 g
+                        IN      `the frontal hours of the key` w EQUALS 1.75% TIMES (t TIMES 0.9 PLUS 100 PLUS 180 PLUS 20 MINUS 60)
+                            AND `the frontal hours of the key` w AT MOST `the frontal hours of the key` w2
+                            AND `the individual hours of the key` w TIMES 10 EQUALS `the support hours of the key` w TIMES 3)
+                    (range 0 4))
+            (map (GIVEN k YIELD 500 TIMES k) (range 0 6))
+
+-- ב.1(ג) and the windows over months and days: budgeted from November to
+-- August; the request exactly from day 30 to 44.
+#ASSERT all (GIVEN m YIELD `the hours are budgeted for school month` m EQUALS (m AT LEAST 3)) (range 1 12)
+#ASSERT all (GIVEN d YIELD `the request is submitted in the window` d EQUALS (d AT LEAST 30 AND d AT MOST 44)) (range 0 60)
+#ASSERT all (GIVEN s YIELD `may use the individual route` s EQUALS NOT `is budgeted by the normative key` s) `both booleans`
+
+-- ט-יב over hours paid and found due: never more offset than paid; all of
+-- it where the data do not match.
+#ASSERT all (GIVEN p YIELD
+                all (GIVEN f YIELD
+                            `hours to offset` p f FALSE AT MOST p
+                        AND `hours to offset` p f FALSE AT LEAST 0
+                        AND `hours to offset` p f TRUE EQUALS p)
+                    (range 0 10))
+            (range 0 10)
+
+-- ב and ה over positions before and after: the position shrank exactly
+-- when the new one is smaller; a change founds no claim only above 100%.
+#ASSERT all (GIVEN b YIELD
+                all (GIVEN a YIELD
+                        `the position shrank` (`teacher in תשפ"ה` b a TRUE FALSE) EQUALS (a LESS THAN b))
+                    (LIST 0.5, 0.9, 1, 1.1))
+            (LIST 0.5, 0.9, 1, 1.1)
+#ASSERT all (GIVEN p YIELD `a change of position from the new work week founds no claim of harm` p EQUALS (p GREATER THAN 1)) `hundredths to 1.2`

@@ -525,3 +525,67 @@ DECIDE `the academisation share as the example computes it` `subject reward` `ac
             (append `the mathematics rows` `the language rows`)
     AND NOT `the circular says who is paid in hours and who in percent`
 #ASSERT `every reward is given in two units`
+
+§§ `Property checks`
+
+-- The circular over finite spaces: every kind of assessment; classes of 0
+-- to 40 pupils; rewards of 0 to 4 hours in quarters with weights in tenths;
+-- tasks submitted out of 1 to 4; every printed row.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`every kind of assessment` MEANS LIST `external matriculation exam`, `school alternative assessment`, `internal assessment`, `controlled performance tasks`
+`quarters to 4` MEANS map (GIVEN k YIELD k DIVIDED BY 4) (range 0 16)
+`every reward row` MEANS
+    append `the mathematics rows` (append `the English rows` (append `the other compulsory rows` (append `the language rows` (append `the special elective rows` (LIST `language and expression in the project`, `any other elective of 5 units`)))))
+
+-- The definitions over every kind: only an external exam, or an
+-- alternative assessment the corona outline designates, counts as external;
+-- only an internal assessment entitles to no reward.
+#ASSERT all (GIVEN k YIELD
+                all (GIVEN c YIELD
+                            `counts as an external exam` k c EQUALS (k EQUALS `external matriculation exam` OR (k EQUALS `school alternative assessment` AND c))
+                        AND `does not entitle the teacher to the preparation reward` k EQUALS (k EQUALS `internal assessment`))
+                    `both booleans`)
+            `every kind of assessment`
+
+-- The general rules over classes and rewards: the class's share is 0, 25%,
+-- 50% or all, never falling with more pupils; the class's reward never
+-- above the table's; a year's share of the tasks' reward never above it;
+-- the external and alternative parts add up to the reward; a technological
+-- subject's parts add up to it.
+#ASSERT all (GIVEN p YIELD
+                    elem (`the class-size share` p) (LIST 0, 25%, 50%, 1)
+                AND `the class-size share` p AT MOST `the class-size share` (p PLUS 1)
+                AND all (GIVEN r YIELD `the reward for the class` r p AT MOST r) `quarters to 4`)
+            (range 0 40)
+#ASSERT all (GIVEN r YIELD
+                all (GIVEN w YIELD
+                            `the external part of the reward` r (w DIVIDED BY 10) PLUS `the alternative part of the reward` r (w DIVIDED BY 10) EQUALS r
+                        AND all (GIVEN n YIELD
+                                    all (GIVEN s YIELD `the tasks' reward given this year` r s n AT MOST r) (range 0 n))
+                                (range 1 4))
+                    (range 0 10))
+            `quarters to 4`
+#ASSERT all (GIVEN r YIELD
+                `the reward of a technological part` r 2 5 PLUS `the reward of a technological part` r 3 5 EQUALS r)
+            `quarters to 4`
+
+-- The tables over every row: nothing negative, no percent above 4%, the
+-- English oral exams no hours, and in mathematics an alternative
+-- assessment only below four units.
+#ASSERT all (GIVEN r YIELD
+                    r's `external hours` AT LEAST 0 AND r's `alternative hours` AT LEAST 0
+                AND r's `total percent` AT MOST 4%
+                AND ((NOT `is an oral exam` (r's `questionnaire`)) OR r's `total hours` EQUALS 0))
+            `every reward row`
+#ASSERT all (GIVEN r YIELD (r's `alternative hours` GREATER THAN 0) IMPLIES `mathematics has an alternative assessment at` (r's `units`))
+            `the mathematics rows`
+
+-- The flexible programme over every row: the outline moves the reward
+-- between its parts and keeps its total, in hours and in percent; civics'
+-- performance task has no hours in it.
+#ASSERT all (GIVEN r YIELD
+                    r's `flexible total hours` EQUALS r's `pre-change total hours`
+                AND r's `flexible total percent` EQUALS r's `pre-change total percent`)
+            `the flexible programme rows`
+#ASSERT all (GIVEN f YIELD `civics performance-task hours` f EQUALS (IF f THEN 0 ELSE 0.4)) `both booleans`
