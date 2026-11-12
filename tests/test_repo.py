@@ -103,6 +103,21 @@ class StatutesOutsideTheCorpus(unittest.TestCase):
                     self.assertTrue(site_mod.is_hebrew(s["text"]) and s["heading"].strip())
                 self.assertTrue(law["url"].startswith("https://he.wikisource.org/wiki/"))
 
+    def test_its_page_says_the_contradictions_page_cites_it_only_where_a_card_does(self):
+        """A law's page once told every reader that the contradictions page
+        cites its sections, whether any card did or not (the Contracts Law,
+        MMS-529, is named by none)."""
+        import laws
+        claim = "מצטט את הסעיפים האלה"
+        seen = set()
+        for name in laws.all_laws():
+            body = laws.page_body(name, code_html=lambda b: "", esc=lambda t: t)
+            with self.subTest(law=name):
+                self.assertEqual(claim in body, bool(laws.cards_naming(name)))
+            seen.add(claim in body)
+        self.assertEqual(seen, {True, False})
+        self.assertEqual(laws.cards_naming("contracts-law"), [])
+
     def test_a_file_that_imports_it_links_to_it(self):
         import laws
         for name in laws.all_laws():

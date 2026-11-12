@@ -123,6 +123,20 @@ def citations_note(law: dict, esc) -> str:
             '<a href="index.html">כל החוקים שהקורפוס מצטט</a>.</p>')
 
 
+def cards_naming(name: str) -> list[str]:
+    """The contradictions page's cards that set this law beside an
+    instrument: a side that is the law, or a link to its page. The law's
+    page says the contradictions page cites it only where one does."""
+    import json
+    data = ROOT / "data" / "contradictions.json"
+    if not data.exists():
+        return []
+    page = f"laws/{name}.html"
+    return [c["id"] for c in json.loads(data.read_text(encoding="utf-8"))["items"]
+            if any(side.get("law") == name for side in c["sides"])
+            or page in json.dumps(c, ensure_ascii=False)]
+
+
 def page_body(name: str, *, code_html, esc) -> str:
     law = load(name)
     head, secs = blocks(name)
@@ -145,7 +159,9 @@ def page_body(name: str, *, code_html, esc) -> str:
     return (f'<h1 lang="he" dir="rtl">{esc(law["title"])}</h1>'
             f'<p class="lede">{esc(law["about"])} — מקודד ב־L4, סעיף לצד סעיף. הקורפוס אינו מחזיק עותק של החוק: '
             f'הנוסח כאן נקרא מספר החוקים הפתוח, ונבדק מולו לאחרונה ב־{esc(law["text_as_of"])}. '
-            '<a href="../contradictions.html">עמוד הסתירות</a> מצטט את הסעיפים האלה כשהוא אומר מי גובר.</p>'
+            + ('<a href="../contradictions.html">עמוד הסתירות</a> מצטט את הסעיפים האלה כשהוא אומר מי גובר.'
+               if cards_naming(name) else "")
+            + '</p>'
             + citations_note(law, esc) +
             '<div class="colheads"><div class="ch-l4">L4</div><div class="ch-text">הטקסט</div></div>'
             f'<div class="grid">{"".join(rows)}</div>')
