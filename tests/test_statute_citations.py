@@ -33,8 +33,10 @@ CITED_NOT_PINNED = {
 # naming it, and circular תשפ"א/6 gives its early-retirement tracks by sex,
 # on the Equal Pay Law's subject, without naming it, and the takanon dates
 # a teacher's dismissal and asks his notice of resignation without naming
-# the Advance Notice Law. A link the corpus adds moves a law out of this set.
-PINNED_NOT_LINKED = {"sick-pay-law", "equal-pay-law", "advance-notice-law"}
+# the Advance Notice Law. The Contracts Law is not a floor: it is the law of
+# reading every agreement, and §61(ב) brings a circular under it (MMS-529).
+# A link the corpus adds moves a law out of this set.
+PINNED_NOT_LINKED = {"sick-pay-law", "equal-pay-law", "advance-notice-law", "contracts-law"}
 
 
 class TheInventoryIsTheCorpus(unittest.TestCase):
