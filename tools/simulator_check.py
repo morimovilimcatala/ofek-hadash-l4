@@ -135,7 +135,7 @@ def main(argv: list[str]) -> int:
         "module": str(MODULE.relative_to(ROOT)),
         "calculator": CALC, "salary_month": "2026-09", "issue": "MMS-523",
         "requests": len(recs), "requests_reproduced": whole,
-        "codes": {str(c): {"lines": seen[c], "exact": exact[c]} for c in sorted(seen)},
+        "codes": {str(c): {"seen": seen[c], "exact": exact[c]} for c in sorted(seen)},
         "residuals": residuals,
     }
     OUT.write_text(json.dumps(data, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")

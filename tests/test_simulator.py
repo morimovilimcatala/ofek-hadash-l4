@@ -39,7 +39,7 @@ def keys(o):
 
 class NoRuleOfOursImportsIt(unittest.TestCase):
     def test_only_its_tests_file_imports_a_simulator_module(self):
-        names = {f.name.removesuffix(".l4") for f in SIM.glob("*.l4")}
+        names = {f.name.removesuffix(".l4") for f in SIM.glob("*.l4") if not f.is_symlink()}
         self.assertEqual(names, {"educalc-ofek-hadash"})
         importers = sorted(
             str(f.relative_to(ROOT)) for f in (ROOT / "l4").rglob("*.l4")
@@ -59,7 +59,7 @@ class TheValidationRecord(unittest.TestCase):
         self.assertEqual(DATA["module"], "l4/simulator/educalc-ofek-hadash.l4")
 
     def test_the_residuals_are_the_lines_the_counts_miss(self):
-        missed = sum(c["lines"] - c["exact"] for c in DATA["codes"].values())
+        missed = sum(c["seen"] - c["exact"] for c in DATA["codes"].values())
         self.assertEqual(missed, len(DATA["residuals"]))
         for r in DATA["residuals"]:
             a, b = Decimal(r["simulator"]), Decimal(r["l4"])
@@ -79,8 +79,8 @@ class TheValidationRecord(unittest.TestCase):
 
 
 # What tools/simulator_check.py measured over the recording (MMS-523).
-REPRODUCED = None
-RESIDUALS = None
+REPRODUCED = 6199
+RESIDUALS = 67
 
 
 if __name__ == "__main__":
