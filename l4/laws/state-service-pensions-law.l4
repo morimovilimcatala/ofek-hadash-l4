@@ -1,0 +1,386 @@
+-- חוק שירות המדינה (גמלאות) [נוסח משולב], התש"ל-1970 — sections 1, 8, 10,
+-- 17א, 22, 35 and 63א, the sections the corpus cites: who is a State
+-- employee for the law, what the determining salary and a fixed supplement
+-- are, how the period of service is counted, the early pension, the grant
+-- added to the pension of one dismissed before 60, the pension of a
+-- pensioner who returns to the service, and who is an employee of the
+-- security services. The text is laws/state-service-pensions-law.toml,
+-- pinned from the live page of ספר החוקים הפתוח; the corpus holds no copy
+-- (MMS-601).
+--
+-- Why it is here: every wage agreement since 1999 says that, "in the light
+-- of section 8", the Government states that its new supplement will be
+-- counted in the determining salary of a budgetary pension. The law makes
+-- that a question of two facts — the component is paid on the basic salary
+-- and the Government has recognised it as a fixed supplement for this law
+-- (§8, "תוספת קבועה") — and, since 1.6.2023, of a third: an agreement
+-- signed from that day may leave a new component out (§8, "רכיב שכר
+-- מוחרג"). The Government's statement in an agreement is read as that
+-- recognition: it is the Government, which the definition names, saying so
+-- of that component. The college-reform grant of 21.1.2019 and its
+-- circulars set off the §22 grant; the takanon applies §10(4) and §35; the
+-- 3.3.1999 agreement amends §1 and leaves the grades of §63א out.
+--
+-- The law is not a floor an instrument goes below: it is the budgetary
+-- pension itself, which no instrument in the corpus pays. It is not in the
+-- statutes root.
+
+IMPORT prelude
+
+§ `חוק שירות המדינה (גמלאות) — המשכורת הקובעת, תקופת השירות והמענקים`
+
+§§ `1`
+
+-- "עובד המדינה" or "עובד": one appointed to the State's service under the
+-- Appointments Law, and a police officer and a prison warder — save a new
+-- employee in the sense of §107א, and save (notwithstanding §108) one taken
+-- on at an Israeli mission abroad as a local employee. "היום הקובע": the
+-- day the Minister of Finance set under §107א(ג). "פרישה משירות": going on
+-- a pension, death or dismissal. The section's other definitions (spouses,
+-- separation and the division of a pension between them, the laws it names
+-- by short titles) serve chapters the corpus does not cite.
+@ref law:1
+@desc A person, as the Pensions Law asks whether he is a State employee.
+DECLARE `person the Pensions Law may count` HAS
+    `appointed to the State's service under the Appointments Law` IS A BOOLEAN
+    `a police officer or a prison warder` IS A BOOLEAN
+    `a new employee in the sense of section 107א` IS A BOOLEAN @desc appointed on or after the determining day the Minister of Finance set (section 107א)
+    `taken on at an Israeli mission abroad as a local employee` IS A BOOLEAN
+
+@ref law:1
+GIVEN p IS A `person the Pensions Law may count`
+GIVETH A BOOLEAN
+DECIDE `is a State employee under the Pensions Law` p IF
+        (   p's `appointed to the State's service under the Appointments Law`
+         OR p's `a police officer or a prison warder`)
+    AND NOT p's `a new employee in the sense of section 107א`
+    AND NOT p's `taken on at an Israeli mission abroad as a local employee`
+
+@ref law:1
+DECLARE `retirement from service under the Pensions Law` IS ONE OF
+    `going on a pension, under section 1`
+    `death, under section 1`
+    `dismissal, under section 1`
+
+§§ `8`
+
+-- In the chapter on retirement pensions: "משכורת קובעת", for a person at a
+-- time, is the salary rate, fixed supplements included and excluded salary
+-- components left out, as §9 updates it: (1) for one who retired after the
+-- transition date (31.7.2009), the rate due on the eve of his retirement to
+-- an employee of the grade he held on that eve; (2) for one who retired
+-- before it, the rate, fixed supplements included, due on the transition
+-- date to an employee of that grade; (3) one demoted by a disciplinary
+-- measure has it computed, for the demotion's length, by the grade he was
+-- demoted to. "משכורת שנתית": the determining salary on retiring, times 12.
+-- "ממוצע משוקלל" of position fractions: each fraction times the months
+-- served at it, summed, over all the months served.
+@ref law:8
+DECLARE `when he retired, against the transition date of section 8` IS ONE OF
+    `after the transition date of 31.7.2009`
+    `before the transition date of 31.7.2009`
+
+@ref law:8
+DECLARE `the salary the determining salary is read from` IS ONE OF
+    `the rate due on the eve of his retirement to an employee of his grade on that eve`
+    `the rate due on 31.7.2009 to an employee of his grade on the eve of his retirement`
+
+@ref law:8
+GIVEN r IS A `when he retired, against the transition date of section 8`
+GIVETH A `the salary the determining salary is read from`
+DECIDE `the salary section 8 reads the determining salary from` r IS
+    CONSIDER r
+    WHEN `after the transition date of 31.7.2009` THEN `the rate due on the eve of his retirement to an employee of his grade on that eve`
+    WHEN `before the transition date of 31.7.2009` THEN `the rate due on 31.7.2009 to an employee of his grade on the eve of his retirement`
+
+-- (3): while a demotion lasts, the grade he was demoted to; after it, the
+-- grade before it.
+@ref law:8
+GIVEN `the grade on the eve of retiring` IS A NUMBER, `the grade demoted to` IS A NUMBER, `still within the demotion` IS A BOOLEAN
+GIVETH A NUMBER
+DECIDE `the grade section 8 reads the determining salary by` `the grade on the eve of retiring` `the grade demoted to` `still within the demotion` IS
+    IF `still within the demotion` THEN `the grade demoted to` ELSE `the grade on the eve of retiring`
+
+-- "תוספת קבועה": a supplement paid on an employee's basic salary that the
+-- Government has recognised as a fixed supplement for this law.
+-- "רכיב שכר מוחרג": a component (1) due to an employee of the pensioner's
+-- grade under a collective agreement signed on or after 1.6.2023, or by
+-- linkage to the salary of one it applies to; (2) that the agreement says
+-- is not counted in the determining salary; and (3) that did not exist on
+-- the eve of its signing — one that took the place of a component that
+-- existed then and was not counted is deemed not to have existed.
+@ref law:8
+@desc A salary component, as section 8 asks whether the determining salary counts it.
+DECLARE `salary component under section 8` HAS
+    `is the salary rate itself` IS A BOOLEAN
+    `is paid on the employee's basic salary` IS A BOOLEAN
+    `the Government recognised it as a fixed supplement for the Pensions Law` IS A BOOLEAN
+    `is due under a collective agreement signed on or after 1.6.2023, or by linkage to one` IS A BOOLEAN
+    `that agreement says the determining salary does not count it` IS A BOOLEAN
+    `it existed on the eve of that agreement's signing` IS A BOOLEAN
+    `it took the place of a component the determining salary did not count on that eve` IS A BOOLEAN
+
+@ref law:8
+GIVEN c IS A `salary component under section 8`
+GIVETH A BOOLEAN
+DECIDE `is a fixed supplement under section 8` c IF
+        c's `is paid on the employee's basic salary`
+    AND c's `the Government recognised it as a fixed supplement for the Pensions Law`
+
+@ref law:8
+GIVEN c IS A `salary component under section 8`
+GIVETH A BOOLEAN
+DECIDE `is an excluded salary component under section 8` c IF
+        c's `is due under a collective agreement signed on or after 1.6.2023, or by linkage to one`
+    AND c's `that agreement says the determining salary does not count it`
+    AND (   NOT c's `it existed on the eve of that agreement's signing`
+         OR c's `it took the place of a component the determining salary did not count on that eve`)
+
+-- Only paragraph (1), one who retired after the transition date, leaves
+-- excluded components out; (2) reads the rate on 31.7.2009, before any
+-- agreement of 2023.
+@ref law:8
+GIVEN r IS A `when he retired, against the transition date of section 8`, c IS A `salary component under section 8`
+GIVETH A BOOLEAN
+DECIDE `the determining salary counts it under section 8` r c IF
+        (c's `is the salary rate itself` OR `is a fixed supplement under section 8` c)
+    AND NOT (    r EQUALS `after the transition date of 31.7.2009`
+             AND `is an excluded salary component under section 8` c)
+
+@ref law:8
+GIVEN `the determining salary on retiring` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the annual salary under section 8` `the determining salary on retiring` IS
+    `the determining salary on retiring` TIMES 12
+
+@ref law:8
+DECLARE `stretch of service at one position fraction` HAS
+    `the position fraction` IS A NUMBER
+    `the months served at it` IS A NUMBER
+
+@ref law:8
+GIVEN `the stretches of service` IS A LIST OF `stretch of service at one position fraction`
+GIVETH A NUMBER
+DECIDE `the weighted average of position fractions under section 8` `the stretches of service` IS
+    IF `the months served` EQUALS 0
+    THEN 0
+    ELSE sum (map (GIVEN s YIELD s's `the position fraction` TIMES s's `the months served at it`) `the stretches of service`)
+         DIVIDED BY `the months served`
+    WHERE
+        `the months served` MEANS sum (map (GIVEN s YIELD s's `the months served at it`) `the stretches of service`)
+
+-- What the agreements say, as section 8 reads it: a supplement paid on the
+-- basic salary, which the Government states (and so recognises) will be
+-- counted, under an agreement that does not leave it out.
+@ref law:8
+GIVEN `the agreement was signed on or after 1.6.2023` IS A BOOLEAN
+GIVETH A `salary component under section 8`
+DECIDE `a supplement the Government states section 8 counts` `the agreement was signed on or after 1.6.2023` IS
+    `salary component under section 8` WITH
+        `is the salary rate itself` IS FALSE
+        `is paid on the employee's basic salary` IS TRUE
+        `the Government recognised it as a fixed supplement for the Pensions Law` IS TRUE
+        `is due under a collective agreement signed on or after 1.6.2023, or by linkage to one` IS `the agreement was signed on or after 1.6.2023`
+        `that agreement says the determining salary does not count it` IS FALSE
+        `it existed on the eve of that agreement's signing` IS FALSE
+        `it took the place of a component the determining salary did not count on that eve` IS FALSE
+
+§§ `10`
+
+-- In counting the period of service: (1) a part of a month of more than 15
+-- days counts as a full month, of 15 days or less not at all; (2) in a
+-- period short of a whole year, each full month is a twelfth of a year; (3)
+-- only service for which salary is due counts; (4) where continuous service
+-- was broken, the service before the break may be counted if the Service
+-- Commissioner so decides under rules the Service Committee set; (5) a
+-- suspension under the Discipline Law, paid or not, does not count unless
+-- he returned to the service at its end or died within it; (6) one
+-- suspended and dismissed during it for a reason not among the suspension's
+-- has the disciplinary court decide, on the Commissioner's or his request,
+-- whether and how far the suspension counts.
+@ref law:10
+GIVEN `days beyond the last full month` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `months a remainder of days counts as under section 10` `days beyond the last full month` IS
+    IF `days beyond the last full month` GREATER THAN 15 THEN 1 ELSE 0
+
+@ref law:10
+GIVEN `full years` IS A NUMBER, `full months beyond them` IS A NUMBER, `days beyond the last full month` IS A NUMBER
+GIVETH A NUMBER
+DECIDE `years of service under section 10` `full years` `full months beyond them` `days beyond the last full month` IS
+    `full years`
+    PLUS (`full months beyond them` PLUS `months a remainder of days counts as under section 10` `days beyond the last full month`)
+         DIVIDED BY 12
+
+@ref law:10
+GIVEN `salary was due for it` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `the period counts under section 10(3)` `salary was due for it` IF
+    `salary was due for it`
+
+@ref law:10
+GIVEN `the Commissioner decided so under the Service Committee's rules` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `the service before a break counts under section 10(4)` `the Commissioner decided so under the Service Committee's rules` IF
+    `the Commissioner decided so under the Service Committee's rules`
+
+@ref law:10
+GIVEN `returned to the service at the suspension's end` IS A BOOLEAN, `died within it` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `a suspension counts under section 10(5)` `returned to the service at the suspension's end` `died within it` IF
+    `returned to the service at the suspension's end` OR `died within it`
+
+`who decides a suspension ended by dismissal for another reason, under section 10(6)` MEANS
+    "בית הדין למשמעת, לבקשת נציב השירות או העובד"
+
+§§ `17א`
+
+-- (א): an employee whose service ended after ten years of it, and who is
+-- not entitled to a retirement pension under the law's other provisions,
+-- comes under §46(ג) (a pension deferred to the pension age); a
+-- disciplinary court that disqualified him, or decided without
+-- disqualifying him that his pension be withheld in whole or part, ends or
+-- narrows that. (ב): not for one who took severance pay on his service
+-- ending, or whose pension rights were preserved under §86, §92 or another
+-- law (save that, where a judgment dividing his pension found a joint
+-- period of 120 months or more and a note was registered, his former
+-- spouse's written consent is needed to his choosing severance, unless the
+-- judgment waived it). (ג): for the determining salary of §8 and for §§9 to
+-- 9ב, the day his service ended is his day of retirement.
+@ref law:17א
+DECLARE `employee whose service ended, under section 17א` HAS
+    `years served` IS A NUMBER
+    `entitled to a retirement pension under the law's other provisions` IS A BOOLEAN
+    `took severance pay on his service ending` IS A BOOLEAN
+    `his pension rights were preserved under section 86, 92 or another law` IS A BOOLEAN
+    `the disciplinary court disqualified him or withheld his pension` IS A BOOLEAN
+
+@ref law:17א
+GIVEN e IS AN `employee whose service ended, under section 17א`
+GIVETH A BOOLEAN
+DECIDE `section 46(ג) applies to him under section 17א` e IF
+        e's `years served` AT LEAST 10
+    AND NOT e's `entitled to a retirement pension under the law's other provisions`
+    AND NOT e's `took severance pay on his service ending`
+    AND NOT e's `his pension rights were preserved under section 86, 92 or another law`
+    AND NOT e's `the disciplinary court disqualified him or withheld his pension`
+
+-- (ג): the determining salary of one who chose this is read as on the day
+-- his service ended.
+@ref law:17א
+`under section 17א the determining salary is read on the day service ended` MEANS TRUE
+
+§§ `22`
+
+-- (א): one dismissed before 60 and entitled to a retirement pension under
+-- §15(2), (3) or (4) or §78 is paid, besides the pension, a grant of a
+-- twenty-fourth of his annual salary for each year of service, but not more
+-- than the smaller of (1) his annual salary and (2) the capitalised value
+-- of a pension at the difference between the pension due on his dismissal
+-- and the one he would have had serving in his last grade to 60 (with the
+-- family supplement he had on retiring). (ב): for a part-time employee that
+-- second pension is at the position fraction his pension is computed by.
+-- (ג): one dismissed by the disciplinary court without disqualification
+-- may be refused all or part of the grant by it. (ד) is repealed. The
+-- capitalised value is an input: the capitalisation is not in this section.
+@ref law:22
+DECLARE `one dismissed, under section 22` HAS
+    `age on dismissal` IS A NUMBER
+    `entitled to a retirement pension under section 15(2), (3) or (4) or 78` IS A BOOLEAN
+    `his annual salary` IS A NUMBER @desc the determining salary on retiring times 12 (section 8)
+    `years of service` IS A NUMBER @desc counted under section 10
+    `the capitalised value of the pension difference to 60` IS A NUMBER @desc section 22(א)(2), and (ב) for a part-time employee; the capitalisation is set elsewhere
+    `the share of the grant the disciplinary court withheld` IS A NUMBER @desc 0 to 1; section 22(ג)
+
+@ref law:22
+GIVEN d IS AN `one dismissed, under section 22`
+GIVETH A BOOLEAN
+DECIDE `is entitled to the grant of section 22` d IF
+        d's `age on dismissal` LESS THAN 60
+    AND d's `entitled to a retirement pension under section 15(2), (3) or (4) or 78`
+
+@ref law:22
+GIVEN d IS AN `one dismissed, under section 22`
+GIVETH A NUMBER
+DECIDE `the grant under section 22` d IS
+    IF `is entitled to the grant of section 22` d
+    THEN min (d's `his annual salary` DIVIDED BY 24 TIMES d's `years of service`)
+             (min (d's `his annual salary`) (d's `the capitalised value of the pension difference to 60`))
+         TIMES (1 MINUS d's `the share of the grant the disciplinary court withheld`)
+    ELSE 0
+
+§§ `35`
+
+-- (א): one entitled to a retirement pension who returned to the service in
+-- a government office, an auxiliary unit or another body the subsection
+-- applies to, from which he retired, and whose total income (his present
+-- salary with his regular pension) exceeds his determining salary, is paid
+-- the larger of two thirds of his regular pension and his regular pension
+-- less a third of that excess; where it does not exceed it, the pension is
+-- not reduced by this subsection. (ב): his present salary is what he is
+-- paid by the Treasury for the pension's month. (ג): where §12 applied to
+-- his determining salary, only the share of his present salary that his
+-- position fraction bears to a full position is counted. (ד): a part-time
+-- second post held before retiring that confers no pension is not counted,
+-- save as far as the two fractions exceed a full position. (ה): a
+-- capitalised part of the pension is taken off only after the reduction.
+-- (ו): none of this applies at 60 or over (for a security-services
+-- employee, police officer or warder, at the age of the second schedule's
+-- part ב). (ז): "משכורת קובעת" here is the weighted determining salary of
+-- §32(ד).
+@ref law:35
+DECLARE `pensioner who returned, under section 35` HAS
+    `entitled to a retirement pension` IS A BOOLEAN
+    `returned to the service in a government office, an auxiliary unit or another body section 35(א) reaches` IS A BOOLEAN
+    `age` IS A NUMBER
+    `the age section 35(ו) sets for him` IS A NUMBER @desc 60, or for a security-services employee, police officer or warder the age of part ב of the second schedule
+    `his present salary` IS A NUMBER @desc section 35(ב), after (ג) and (ד)
+    `his regular pension` IS A NUMBER @desc the pension due but for this section, as if none of it were capitalised (section 35(ה))
+    `his determining salary` IS A NUMBER @desc the weighted determining salary of section 32(ד) (section 35(ז))
+
+@ref law:35
+GIVEN p IS A `pensioner who returned, under section 35`
+GIVETH A BOOLEAN
+DECIDE `section 35 speaks of the pensioner` p IF
+        p's `entitled to a retirement pension`
+    AND p's `returned to the service in a government office, an auxiliary unit or another body section 35(א) reaches`
+
+@ref law:35
+GIVEN p IS A `pensioner who returned, under section 35`
+GIVETH A NUMBER
+DECIDE `the pension paid under section 35` p IS
+    IF     `section 35 speaks of the pensioner` p
+       AND p's `age` LESS THAN p's `the age section 35(ו) sets for him`
+       AND `the total income` GREATER THAN p's `his determining salary`
+    THEN max (p's `his regular pension` TIMES 2 DIVIDED BY 3)
+             (p's `his regular pension` MINUS (`the total income` MINUS p's `his determining salary`) DIVIDED BY 3)
+    ELSE p's `his regular pension`
+    WHERE
+        `the total income` MEANS p's `his present salary` PLUS p's `his regular pension`
+
+§§ `63א`
+
+-- In the chapter on the security services: "שירותי הבטחון" are the General
+-- Security Service and the Institute for Intelligence and Special Tasks;
+-- "עובד שירותי הבטחון" is a State employee in them, save a new
+-- security-services employee as §108ב defines him; "שירות בשירותי הבטחון" is
+-- such an employee's service there.
+@ref law:63א
+DECLARE `body of the service, under section 63א` IS ONE OF
+    `the General Security Service`
+    `the Institute for Intelligence and Special Tasks`
+    `another body of the State's service`
+
+@ref law:63א
+GIVEN b IS A `body of the service, under section 63א`
+GIVETH A BOOLEAN
+DECIDE `is one of the security services under section 63א` b IF
+    NOT b EQUALS `another body of the State's service`
+
+@ref law:63א
+GIVEN b IS A `body of the service, under section 63א`, `a State employee` IS A BOOLEAN, `a new security-services employee under section 108ב` IS A BOOLEAN
+GIVETH A BOOLEAN
+DECIDE `is a security-services employee under section 63א` b `a State employee` `a new security-services employee under section 108ב` IF
+        `is one of the security services under section 63א` b
+    AND `a State employee`
+    AND NOT `a new security-services employee under section 108ב`

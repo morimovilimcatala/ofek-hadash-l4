@@ -45,7 +45,7 @@ that updated it, the steps it prints.
 | `conventions.toml`, `l4/conventions.l4` | the rules of reading the encoding follows where the text does not decide, and the one L4 definition of each that is a computation, which the rules import |
 | `findings/<corpus path>/<section>.toml` (one per section) | errors in the text the encoding exposed, each backed by an `#ASSERT` |
 | `data/calculator-delta.json` | the comparison with the ministry's salary simulator: inputs, outputs, mappings, clauses and classifications only (written outside this repository; shown as the simulator's group of the contradictions page) |
-| `laws/<name>.toml`, `l4/laws/<name>.l4` | a statute encoded though the corpus holds no copy of it (חוק הסכמים קיבוציים §§2, 15–16, 19–23; חוק יסודות התקציב §§21, 29, 32; חוק שכר מינימום §§1–3, 11; חוק הגנת השכר §§1, 9, 19א, 20, 25; חוק פיצויי פיטורים §§1–9, 11, 11א, 12, 13, 13ב, 14, 15, 16, 29–31; חוק עבודת נשים §§6, 6א, 7, 7א, 8, 9, 10, 19, 23; חוק שוויון ההזדמנויות בעבודה §§2, 3, 4, 17; חוק דמי מחלה §§1, 2, 4, 4א, 5, 6, 12, and its laws of absence for a child's illness §§1, 1א, 1ב, 1ג, 3, 3א, a parent's §§1, 3, 4, 4א, a spouse's §§1, 1א, 3, 4, 5 and a partner's pregnancy §§1, 3, 4; חוק חופשה שנתית §§1–8, 10, 13, 15, 33, 38; חוק שעות עבודה ומנוחה §§1, 2, 3, 5, 6, 7, 9, 16, 17, 18, 20, 30, 31, 35; חוק שכר שווה לעובדת ולעובד §§1, 2, 3, 6, 12, 13, 14; חוק הודעה מוקדמת לפיטורים ולהתפטרות §§1–7, 10, 11, 12; and the others `laws/` holds): its sections' words pinned from ספר החוקים הפתוח, and their rules |
+| `laws/<name>.toml`, `l4/laws/<name>.l4` | a statute encoded though the corpus holds no copy of it (חוק הסכמים קיבוציים §§2, 8, 9, 13, 15–16, 19–23, 25; חוק שירות המדינה (גמלאות) §§1, 8, 10, 17א, 22, 35, 63א; חוק הביטוח הלאומי §§22, 50; חוק יסודות התקציב §§21, 29, 32; חוק שכר מינימום §§1–3, 11; חוק הגנת השכר §§1, 9, 19א, 20, 25; חוק פיצויי פיטורים §§1–9, 11, 11א, 12, 13, 13ב, 14, 15, 16, 29–31; חוק עבודת נשים §§6, 6א, 7, 7א, 8, 9, 10, 19, 23; חוק שוויון ההזדמנויות בעבודה §§2, 3, 4, 17; חוק דמי מחלה §§1, 2, 4, 4א, 5, 6, 12, and its laws of absence for a child's illness §§1, 1א, 1ב, 1ג, 3, 3א, a parent's §§1, 3, 4, 4א, a spouse's §§1, 1א, 3, 4, 5 and a partner's pregnancy §§1, 3, 4; חוק חופשה שנתית §§1–8, 10, 13, 15, 33, 38; חוק שעות עבודה ומנוחה §§1, 2, 3, 5, 6, 7, 9, 16, 17, 18, 20, 30, 31, 35; חוק שכר שווה לעובדת ולעובד §§1, 2, 3, 6, 12, 13, 14; חוק הודעה מוקדמת לפיטורים ולהתפטרות §§1–7, 10, 11, 12; and the others `laws/` holds): its sections' words pinned from ספר החוקים הפתוח, and their rules |
 | `data/statute-citations.json` | every statute the corpus cites and every section it cites by number, with the documents that cite it, read off the corpus's own links to ספר החוקים הפתוח (`tools/statute_citations.py`, MMS-601) |
 | `tools/statute_record.py`, `data/statute-set-aside.toml` | the per-instrument record of the protective statutes (MMS-601): every document of the manifest against every statute the statutes' root registers — it meets the floor (an `#ASSERT` in its L4 that reads the statute, and holds), falls short of it (a card or a finding), was not weighed (the reason a `-- not weighed against` comment in its file gives, a row of `data/statute-set-aside.toml` for a document with no L4, or none of the terms the statute's batch searched for, `inventory` in `laws/<name>.toml`, is in its text), or was not checked; read off the source, never written by hand |
 | `data/contradictions.json`, `data/contradictions/` | the hand-written layer of the contradictions page, whose rows the root generates where it can speak (MMS-521): a card attaches to the root's row by key (`root`) and brings a side per source with its answer — a document with a crop of its page, or what the payslips or the simulator pay — and the rule's prose; a card the root cannot speak for says why (`not_in_root`); a circular against an agreement says which way it departs, and where it gives more, what §29 of the Budget Foundations Law makes of the excess |
@@ -94,6 +94,25 @@ that updated it, the steps it prints.
   keeps no copy of the law; the text is pinned in `laws/` from the live page.
   A circular whose rule pays less than the agreement it implements applies
   §22 through it (`l4/circulars/2008-09_tashsat_03.l4`).
+  §§8, 9, 13 and 25, which the corpus cites — accession, the stamp-duty
+  exemption, the term of an agreement for a fixed period and the extension
+  order — were pinned in the statute pass (MMS-601): the Shelah agreement of
+  1978 and the takanon's §6.20 make owners party by §8(2)'s letter, and Oz
+  LaTmura's §63 asks for an extension order §25 gives only for a general
+  agreement.
+- **The State Service (Pensions) Law** (`laws/state-service-pensions-law.html`)
+  — §§1, 8, 10, 17א, 22, 35 and 63א, every section the corpus cites
+  (MMS-601): who is a State employee for it, the determining salary and the
+  fixed supplement, how service is counted, the early pension, the grant on
+  dismissal before 60, the pension of one back in the service, and the
+  security services. Each wage agreement's statement that its supplement
+  counts in the determining salary "in the light of section 8" passes
+  through §8: a supplement the Government recognises is in it, and since
+  1.6.2023 an agreement may leave a new component out, which the 2023
+  framework does not do. The college-reform grant and its circulars set off
+  the §22 grant the law computes; the takanon's §1.25.7 counts earlier
+  service by §10(4) and its §1.23 names §35's pensioner. It is the budgetary
+  pension itself, not a floor, and is not in the statutes' root.
 - **The Budget Foundations Law** (`laws/budget-foundations-law.html`) —
   §29, which voids a wage term a budgeted or supported body (a local
   authority, a school owner) pays beyond what was agreed for all state
