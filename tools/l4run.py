@@ -286,9 +286,10 @@ def run_one(path: Path, exe: str, cid: str) -> tuple[Path, bool, bool]:
     try:
         data = json.loads(r.stdout)
     except json.JSONDecodeError:
+        killed = (f"killed by signal {-r.returncode}" if r.returncode < 0 else "")
         data = {"file": path.name, "ok": False, "results": [],
                 "diagnostics": [{"severity": "error",
-                                 "message": (r.stdout + r.stderr).strip()}]}
+                                 "message": (r.stdout + r.stderr).strip() or killed}]}
     data["diagnostics"] = diagnostics(data.get("diagnostics"))
     # each result keeps the line it came from, so a reader can find it by
     # its text when a later edit has moved it (the roots are checked on
@@ -314,6 +315,12 @@ def run_one(path: Path, exe: str, cid: str) -> tuple[Path, bool, bool]:
         out["render"].write_text(rr.stdout if rr.returncode == 0 else "",
                                  encoding="utf-8")
         write_graph(path, exe, out["graph"])
+    if r.returncode < 0:
+        # killed by a signal (the out-of-memory killer, 2026-11-12): not a
+        # verdict on the file, so it is neither kept nor published, and the
+        # next run checks the file again rather than replaying the kill
+        out["key"].unlink(missing_ok=True)
+        return path, False, True
     out["key"].write_text(k)
     publish(out, k)
     return path, bool(data.get("ok")), True

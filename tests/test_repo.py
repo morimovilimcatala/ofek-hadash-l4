@@ -14,6 +14,7 @@ import hashlib
 import json
 import re
 import sys
+import subprocess
 import tempfile
 import tomllib
 import unicodedata
@@ -1078,6 +1079,37 @@ class SharedStore(unittest.TestCase):
                 self.assertFalse(l4run.fetch(there, k))
             finally:
                 l4run.STORE = saved
+
+
+    def test_a_run_the_system_killed_is_neither_kept_nor_published(self):
+        """A compiler run stopped by a signal (the out-of-memory killer, as
+        on 2026-11-12, when four parallel agents and a bundle check shared
+        the machine) says nothing about the file. It used to be recorded as
+        an empty failure under the file's key and published to the store,
+        so every later run in every worktree replayed it as an error."""
+        import l4run
+        from unittest import mock
+        with tempfile.TemporaryDirectory() as d:
+            d = Path(d)
+            src = d / "x.l4"
+            src.write_text("IMPORT prelude\n", encoding="utf-8")
+            outs = {p: d / "out" / f"x.{p}" for p in (*l4run.PARTS, "key")}
+            killed = subprocess.CompletedProcess([], -9, "", "")
+            saved = l4run.STORE
+            l4run.STORE = d / "store"
+            try:
+                with mock.patch.object(l4run, "outputs", return_value=outs), \
+                     mock.patch.object(l4run, "key", return_value="cd" + "0" * 62), \
+                     mock.patch.object(l4run, "rendered", return_value=False), \
+                     mock.patch.object(l4run.subprocess, "run", return_value=killed):
+                    _, ok, ran = l4run.run_one(src, "l4", "cid")
+            finally:
+                l4run.STORE = saved
+            self.assertFalse(ok)
+            self.assertTrue(ran)
+            self.assertFalse(outs["key"].exists(), "a killed run is not kept")
+            self.assertFalse((d / "store").exists(), "a killed run is not published")
+            self.assertIn("killed by signal 9", outs["run"].read_text(encoding="utf-8"))
 
 
 class AWeekAgainstTheHoursLawCountsNamedDays(unittest.TestCase):
