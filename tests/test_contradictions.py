@@ -422,3 +422,6 @@ class WhichWayTheCircularDeparts(unittest.TestCase):
                 if c["direction"] in ("less", "other"):
                     self.assertIn("<b>ההסכם גובר</b>", html)
                     self.assertIn("אינו חל כאן", html)
+                if c["direction"] == "same":
+                    self.assertIn("אינו סוטה מההסכם", html)
+                    self.assertIn("אינו חל כאן", html)

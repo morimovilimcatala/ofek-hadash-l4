@@ -25,11 +25,12 @@ listed under the card (`silent`), not as a side. None of them changes a
 reading.
 
 A card that sets a circular against an agreement says which way the
-circular departs (`direction`: more, less, or other than a sum paid), and
-what that means under §29 of the Budget Foundations Law (MMS-602): giving
-less, the agreement governs and §29 is not in play; giving more, the card
-carries `section_29`, the L4 boolean that applies the encoded section and
-whether the excess is void.
+circular departs (`direction`: more, less, the same — a circular that
+prints the agreement's own figure, so the two stand or fall together against
+a third source — or other than a sum paid), and what that means under §29 of
+the Budget Foundations Law (MMS-602): giving less or the same, §29 is not in
+play; giving more, the card carries `section_29`, the L4 boolean that applies
+the encoded section and whether the excess is void.
 
 The simulator also has a group of its own (tools/calculator_delta.py,
 MMS-522): every place its computation departs from the text, produced by the
@@ -107,6 +108,7 @@ def proofs(c: dict, evidence: dict[str, tuple[str, str]]) -> list[tuple[str, str
 # (l4/laws/budget-foundations-law.l4) and #ASSERTs the result, whether the
 # excess is void, and why. `other` is a departure that is not a sum paid.
 DIRECTION = {"more": "החוזר נותן יותר מההסכם", "less": "החוזר נותן פחות מההסכם",
+             "same": "החוזר נותן כמו ההסכם",
              "other": "הסטייה אינה בסכום שמשולם"}
 S29 = "laws/budget-foundations-law.html#s29"
 
@@ -130,6 +132,9 @@ def direction_html(c: dict, *, prose) -> str:
         text = (f'החוזר נותן יותר מההסכם, והבעלויות שהוא ממוען אליהן הן גוף מתוקצב או גוף נתמך. לכן {law} בודק את העודף: '
                 f'הוא עומד רק אם הוסכם או הונהג לגבי כלל עובדי המדינה, או אושר בידי שר האוצר. <b>{esc(verdict)}</b></p>'
                 f'<p>{prose(s["note"])}')
+    elif d == "same":
+        text = (f'החוזר אינו סוטה מההסכם שהוא מבצע: הוא מדפיס את אותו סכום, ולכן שניהם עומדים או נופלים יחד מול המקור השלישי. '
+                f'{law} אינו חל כאן — אין עודף על ההסכם.')
     else:
         why = ("הוא מבטל רק מה שגוף מתוקצב או גוף נתמך נותן מעבר למה שהוסכם או אושר, ולא תשלום נמוך מההסכם"
                if d == "less" else "החוזר אינו נותן שינוי בשכר או הטבה כספית מעבר להסכם")
