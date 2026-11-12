@@ -128,3 +128,43 @@ DECIDE `the balance on leaving` e IS
     PARTY `the employer` DOES `deduct a part of the advance` 400 AT 6
 #TRACE `the balance on leaving` `a non-reform teacher who leaves after July 2024` AT 3 WITH
     PARTY `the employer` DOES `deduct the balance in the final settlement` 750 AT 4
+
+§§ `Property checks`
+
+-- The circular over a finite space: the advances circular תשפ"ד/4 pays
+-- (₪2,400 and ₪1,500 pro rata, in tenths of a position) and none; the last
+-- salary month employed from April 2024's (0) to beyond the six (99); the
+-- salary months 0 to 12.
+
+`the advances checked` MEANS
+    concat (map (GIVEN k YIELD LIST 240 TIMES k, 150 TIMES k) (range 0 10))
+`the last months checked` MEANS append (range 0 9) (LIST 99)
+
+GIVEN a IS A NUMBER, l IS A NUMBER
+GIVETH AN `employee paid the advance`
+DECIDE `a checked employee` a l IS
+    `employee paid the advance` WITH
+        `advance received`           IS a
+        `last salary month employed` IS l
+
+-- §§2-3 over the salary months: a deduction falls in exactly six, the
+-- consecutive months from May 2024's.
+#ASSERT count (filter `a deduction falls in salary month` (range 0 12)) EQUALS 6
+#ASSERT all (GIVEN m YIELD `a deduction falls in salary month` m EQUALS (m AT LEAST 1 AND m AT MOST 6)) (range 0 12)
+
+-- §§1-4 over every advance and last month: the deductions made while
+-- employed and the balance in the final settlement together recover the
+-- advance exactly, never more; the balance is nothing for one employed
+-- through October 2024's salary, and never negative.
+#ASSERT all (GIVEN a YIELD
+                all (GIVEN l YIELD
+                        LET e MEANS `a checked employee` a l
+                            b MEANS `the balance deducted in the final settlement` e
+                        IN      (IF `leaves before the six months end` e
+                                 THEN `one monthly deduction` e TIMES `deductions made while employed` e PLUS b EQUALS a
+                                 ELSE b EQUALS 0 AND `deductions made while employed` e EQUALS 6)
+                            AND b AT LEAST 0
+                            AND b AT MOST a
+                            AND `leaves before the six months end` e EQUALS (l LESS THAN 6))
+                    `the last months checked`)
+            `the advances checked`

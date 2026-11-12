@@ -394,3 +394,89 @@ DECIDE `the technological-education allowance is paid` e IS
     sum (`the PE amounts for rate` 0.4) PLUS sum (`the PE amounts for rate` 0.4)
         GREATER THAN sum (`the PE amounts for rate` 0.8)
 #ASSERT `two employers at 40% each pay more than one employer at 80%`
+
+§§ `Property checks`
+
+-- The circular over a finite space: covered or not on each condition;
+-- positions in tenths from 0 to 1.5; physical-education shares in tenths
+-- with a third and just around it; every profession; every terms and post
+-- with total positions in tenths to 2, the procedure permitting or not.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`tenths to 1.5` MEANS map (GIVEN k YIELD k DIVIDED BY 10) (range 0 15)
+`the shares checked` MEANS append `tenths to 1.5` (LIST 1 DIVIDED BY 3, 0.3333, 0.5001)
+`every terms` MEANS LIST `before the reforms`, `Oz LaTmura`, `Ofek Hadash`
+`every post` MEANS LIST `teacher`, `principal`, `first deputy principal`
+`every profession checked` MEANS append `the shoes-and-coats professions` (append `the two-coats professions` (LIST `another profession`))
+
+GIVEN g IS A BOOLEAN, o IS A BOOLEAN, f IS A NUMBER, pe IS A NUMBER, t IS A NUMBER, pr IS A `technological profession`
+GIVETH AN `employee for the clothing allowance`
+DECIDE `a checked employee` g o f pe t pr IS
+    `employee for the clothing allowance` WITH
+        `graded on the teaching employees' scale`         IS g
+        `employed by an owner under Ministry supervision` IS o
+        `position fraction here`                          IS f
+        `physical-education employment rate`              IS pe
+        `technological-education position fraction`      IS t
+        `technological profession`                        IS pr
+
+-- §1 over coverage and position: level 4's ₪2,405 pro rata to the position
+-- up to one, nothing outside the circular, never falling with a larger
+-- position.
+#ASSERT all (GIVEN g YIELD
+                all (GIVEN o YIELD
+                        all (GIVEN f YIELD
+                                LET a MEANS `the clothing allowance` (`a checked employee` g o f 0 0 `another profession`)
+                                IN      a EQUALS (IF g AND o THEN 2405 TIMES min f 1 ELSE 0)
+                                    AND a AT MOST `the clothing allowance` (`a checked employee` g o (f PLUS 0.1) 0 0 `another profession`))
+                            `tenths to 1.5`)
+                    `both booleans`)
+            `both booleans`
+
+-- §1ו over every terms, post, total position and the procedure: within the
+-- caps exactly up to the post's cap or where the procedure permits it; the
+-- principal outside the reforms has the highest cap (finding a), and every
+-- teacher's cap allows a full position.
+#ASSERT all (GIVEN t YIELD
+                all (GIVEN p YIELD
+                        all (GIVEN v YIELD
+                                all (GIVEN x YIELD
+                                        `the employment is within the caps` t p v x EQUALS (x OR v AT MOST `the scope cap in 1ו` t p))
+                                    `both booleans`)
+                            (map (GIVEN k YIELD k DIVIDED BY 10) (range 0 20)))
+                    `every post`)
+            `every terms`
+#ASSERT all (GIVEN t YIELD
+                all (GIVEN p YIELD
+                            `the scope cap in 1ו` t p AT MOST `the scope cap in 1ו` `before the reforms` `principal`
+                        AND `the scope cap in 1ו` t p AT LEAST 1)
+                    `every post`)
+            `every terms`
+
+-- §2 over every share: exactly one band; nothing below a third, ₪767 to a
+-- half, ₪1,530 above it; never falling with a larger share (finding b: the
+-- share in physical education decides); nothing outside the circular.
+#ASSERT all (GIVEN s YIELD
+                LET e MEANS `a checked employee` TRUE TRUE 1 s 0 `another profession`
+                    a MEANS `the physical-education allowance` e
+                IN      count (`the PE amounts for rate` s) EQUALS 1
+                    AND a EQUALS (IF s LESS THAN 1 DIVIDED BY 3 THEN 0 ELSE IF s AT MOST 0.5 THEN 767 ELSE 1530)
+                    AND a AT MOST `the physical-education allowance` (`a checked employee` TRUE TRUE 1 (s PLUS 0.1) 0 `another profession`)
+                    AND `the physical-education allowance` (`a checked employee` FALSE TRUE 1 s 0 `another profession`) EQUALS 0)
+            `the shares checked`
+
+-- §3 over every profession and position: the full item of the
+-- profession's list (₪631 or ₪392, nothing off both), pro rata to the
+-- position up to one; never above ₪631; the lists never overlap; and every
+-- allowance together is the sum of the three.
+#ASSERT all (GIVEN pr YIELD
+                all (GIVEN t YIELD
+                        LET e MEANS `a checked employee` TRUE TRUE 1 0 t pr
+                            a MEANS `the technological-education allowance` e
+                        IN      a EQUALS `the full technological allowance for` pr TIMES min t 1
+                            AND a AT MOST 631
+                            AND elem (`the full technological allowance for` pr) (LIST 0, 392, 631)
+                            AND NOT (elem pr `the shoes-and-coats professions` AND elem pr `the two-coats professions`)
+                            AND `all clothing allowances` e EQUALS 2405 PLUS a)
+                    `tenths to 1.5`)
+            `every profession checked`

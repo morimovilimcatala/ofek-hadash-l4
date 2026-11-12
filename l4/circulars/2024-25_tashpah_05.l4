@@ -423,3 +423,67 @@ DECIDE `the rest of the advance is deducted in` `school month` `month the one-ti
 
 #TRACE `the unpaid strike days are deducted` 10 100 AT 0 WITH
     PARTY `the employer` DOES `reduce the salary for the unpaid strike days` 1000 AT 2
+
+§§ `Property checks`
+
+-- What the circular says of its own, over finite spaces: 0 to 25 frontal
+-- hours; every day §41 names, in the Jewish sector or not; every set of
+-- make-up days; lessons missed and in the make-up timetable 0 to 10; every
+-- school month and the grant's month.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`every calendar day` MEANS LIST `the day after Passover`, `the day after Shavuot`, `the Fast of Esther`, `a day between Yom Kippur and the eve of Sukkot`, `another day`
+
+-- The school month of a day of 2024-25 (September 2024 = 1).
+GIVEN d IS A DATE
+GIVETH A NUMBER
+DECIDE `the school month of` d IS
+    (DATE_YEAR d MINUS 2024) TIMES 12 PLUS DATE_MONTH d MINUS 8
+
+-- §40 over whole frontal hours 0 to 25: exactly one band, 2 to 5 days,
+-- never fewer days for more hours.
+#ASSERT all (GIVEN h YIELD
+                    count (`the work days the bands give for` h) EQUALS 1
+                AND all (GIVEN d YIELD d AT LEAST 2 AND d AT MOST 5) (`the work days the bands give for` h)
+                AND (h EQUALS 25 OR sum (`the work days the bands give for` h) AT MOST sum (`the work days the bands give for` (h PLUS 1))))
+            (range 0 25)
+
+-- §41 over every day and sector: outside the Jewish sector nothing
+-- changes; in it, three school days are added and one kind of day becomes
+-- a holiday.
+#ASSERT all (GIVEN d YIELD `what section 41 makes the day in the upper division` d FALSE EQUALS "unchanged by section 41") `every calendar day`
+#ASSERT count (filter (GIVEN d YIELD `what section 41 makes the day in the upper division` d TRUE EQUALS "a holiday") `every calendar day`) EQUALS 1
+
+-- §42 over every set: as many make-up days as days of absence, every day
+-- of absence one of the strike's 1-5.9.2024, the make-up days after them,
+-- and the advance deducted no earlier than the salary of the last make-up
+-- day's month.
+#ASSERT all (GIVEN s YIELD
+                    count (s's `make-up dates`) EQUALS count (s's `for the absence on`)
+                AND all (GIVEN a YIELD a `is on or after` (DATE_FROM_DMY 1 9 2024) AND a `is on or before` (DATE_FROM_DMY 5 9 2024)) (s's `for the absence on`)
+                AND all (GIVEN m YIELD
+                                m `is on or after` (DATE_FROM_DMY 6 9 2024)
+                            AND `the school month of` m AT MOST s's `deducted with salary of`)
+                        (s's `make-up dates`))
+            `the make-up days`
+
+-- §42 over lessons missed and in the timetable, at ₪0 to ₪120 an hour:
+-- never more lessons to make up than either; the advance is their pay.
+#ASSERT all (GIVEN m YIELD
+                all (GIVEN t YIELD
+                        all (GIVEN v YIELD
+                                LET l MEANS `lessons to make up` m t
+                                IN      l AT MOST m
+                                    AND l AT MOST t
+                                    AND `the make-up advance` l v EQUALS l TIMES v)
+                            (LIST 0, 50, 120))
+                    (range 0 10))
+            (range 0 10)
+
+-- §44 over every school month and the grant's month: the rest of the
+-- advance is deducted only in the grant's month, and never in September.
+#ASSERT all (GIVEN m YIELD
+                all (GIVEN g YIELD
+                        `the rest of the advance is deducted in` m g EQUALS (m EQUALS g AND NOT m EQUALS 1))
+                    (range 1 12))
+            (range 1 12)

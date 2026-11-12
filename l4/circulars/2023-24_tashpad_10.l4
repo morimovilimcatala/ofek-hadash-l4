@@ -275,6 +275,7 @@ DECLARE `jubilee employment` HAS
     `determining salary`                    IS A NUMBER  @desc the monthly salary determining pension and severance pay, without once-a-year payments such as clothing and recuperation
     `position fraction for the grant`       IS A NUMBER  @desc the share of a position held in the year
     `share of the year employed`            IS A NUMBER  @desc the share of the year the employee was employed
+    `jubilee already paid at this threshold` IS A BOOLEAN @desc a jubilee grant was paid in an earlier year for completing the same threshold (F-2023-24_tashpad_10-h)
 
 -- 2ה.3: the seniority that earns the grant, by the stage of the part of
 -- the employment. F-2023-24_tashpad_10-c: teacher-training colleges are in
@@ -372,6 +373,7 @@ DECIDE `years completed by 1 June` j IS
         `determining salary`                               IS 10000
         `position fraction for the grant`                  IS 1
         `share of the year employed`                       IS 1
+        `jubilee already paid at this threshold`           IS FALSE
 
 `2ד and 2ה.2 disagree for an employee completing the years between September and June` MEANS
         `entitled by the years completed by 1 June` `an upper-secondary teacher completing 25 years in March 2024`
@@ -382,11 +384,17 @@ DECIDE `years completed by 1 June` j IS
 -- that names the date, governs — the years completed by 1 June of the year
 -- of payment; 2ד's September seniority is read as the basis they are
 -- counted from.
+-- F-2023-24_tashpad_10-h: 2ב pays one "of 25 or 30 years and more", and
+-- read alone pays again in every later year; 2ה.2 entitles one who
+-- completed the threshold "that year". The reading adopted, as
+-- F-2021-22_tashpab_06-d's: paid once, in the year the threshold is
+-- completed (the input `jubilee already paid at this threshold`).
 @ref akn:art_2__para_b akn:art_2__para_e__subpara_2
 GIVEN j IS A `jubilee employment`
 GIVETH A BOOLEAN
 DECIDE `entitled to the jubilee grant` j IF
-    `entitled by the years completed by 1 June` j
+        `entitled by the years completed by 1 June` j
+    AND NOT j's `jubilee already paid at this threshold`
 
 -- F-2023-24_tashpad_10-g: 2ב counts accumulated seniority in teaching, military
 -- service included, with the employers, the owners and in formal
@@ -408,6 +416,24 @@ DECIDE `has the years 2ה(2) counts` `years in teaching` `years of other work in
         `has the years 2ה(2) counts` 20 10 `primary school`
     AND (NOT `has the years 2ב counts` 20 `primary school`)
 #ASSERT `2ב and 2ה(2) count different years`
+
+-- F-2023-24_tashpad_10-h's evidence: an upper-secondary teacher in her
+-- 27th year, paid the grant at 25, has the years 2ב counts and is not
+-- entitled on the reading adopted.
+`an upper-secondary teacher in her 27th year, paid at 25` MEANS
+    `jubilee employment` WITH
+        `stage`                                            IS `upper-secondary school`
+        `seniority set in September 2023`                  IS 26
+        `years completed by 1 June 2024`                   IS 27
+        `unpaid-leave years with purchased pension rights` IS 0
+        `determining salary`                               IS 10000
+        `position fraction for the grant`                  IS 1
+        `share of the year employed`                       IS 1
+        `jubilee already paid at this threshold`           IS TRUE
+`section 2ב read alone pays the grant again in a later year` MEANS
+        `has the years 2ב counts` 27 `upper-secondary school`
+    AND (NOT `entitled to the jubilee grant` `an upper-secondary teacher in her 27th year, paid at 25`)
+#ASSERT `section 2ב read alone pays the grant again in a later year`
 
 -- not weighed against `the Severance Pay Law`: The circular names the
 -- determining salary for pension and severance only as the base of the
@@ -487,3 +513,125 @@ DECIDE `the jubilee grant is paid in June 2024` j IS
     PARTY `the employer` DOES `pay the recuperation allowance` 5185.4 AT 1
 #TRACE `the jubilee grant is paid in June 2024` `an upper-secondary teacher completing 25 years in March 2024` AT 0 WITH
     PARTY `the employer` DOES `pay the jubilee grant` 6000 AT 1
+
+§§ `Property checks`
+
+-- The circular over finite spaces: seniority 1 to 40 years; positions in
+-- tenths from 0 to 1.5; 0 to 12 months of work; monthly or not; every
+-- terms of employment, principal or not, total positions in tenths to 2,
+-- 30 to 50 weekly hours, the procedure permitting or not; every stage; 20
+-- to 35 years by 1 June; paid at this threshold before or not; shares of
+-- the year in quarters.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`tenths to 1.5` MEANS map (GIVEN k YIELD k DIVIDED BY 10) (range 0 15)
+`every terms` MEANS LIST `outside the reforms`, `Oz LaTmura in full implementation`, `Ofek Hadash`
+`every stage` MEANS LIST `middle school`, `upper-secondary school`, `recognised unofficial special education in Ofek Hadash`, `academic teacher-training college`, `kindergarten`, `primary school`, `other teacher-training college`
+
+GIVEN n IS A NUMBER, f IS A NUMBER, m IS A NUMBER, mo IS A BOOLEAN
+GIVETH A `recuperation year at an employer`
+DECIDE `a checked year` n f m mo IS
+    `recuperation year at an employer` WITH
+        `year of seniority in teaching` IS n
+        `position fraction here`        IS f
+        `months worked`                 IS m
+        `is a monthly employee`         IS mo
+
+GIVEN s IS A `stage of employment`, y IS A NUMBER, paid IS A BOOLEAN, f IS A NUMBER, q IS A NUMBER
+GIVETH A `jubilee employment`
+DECIDE `a checked jubilee employment` s y paid f q IS
+    `jubilee employment` WITH
+        `stage`                                            IS s
+        `seniority set in September 2023`                  IS y MINUS 1
+        `years completed by 1 June 2024`                   IS y
+        `unpaid-leave years with purchased pension rights` IS 0
+        `determining salary`                               IS 10000
+        `position fraction for the grant`                  IS f
+        `share of the year employed`                       IS q
+        `jubilee already paid at this threshold`           IS paid
+
+-- 1ו's table over years 1 to 40: the days after the reduction never fall
+-- with seniority and run from 6 to 12.
+#ASSERT all (GIVEN n YIELD
+                    `days after the reduction for` n AT MOST `days after the reduction for` (n PLUS 1)
+                AND `days after the reduction for` n AT LEAST 6
+                AND `days after the reduction for` n AT MOST 12)
+            (range 1 40)
+
+-- §1 over seniority, position, months and kind of employee: the allowance
+-- is ₪471.4 times the reduced days times the position up to one times the
+-- months at a tenth each up to ten (finding a's reading), never falling
+-- with more seniority, position or months; the days reduced are one for a
+-- monthly employee's full year and that day's share otherwise, never more
+-- than one (finding f's reading).
+#ASSERT all (GIVEN n YIELD
+                all (GIVEN f YIELD
+                        all (GIVEN m YIELD
+                                all (GIVEN mo YIELD
+                                        LET y MEANS `a checked year` n f m mo
+                                            a MEANS `the recuperation allowance for התשפ"ד` y
+                                        IN      a EQUALS 471.4 TIMES `days after the reduction for` n TIMES min f 1 TIMES min (m DIVIDED BY 10) 1
+                                            AND a AT MOST `the recuperation allowance for התשפ"ד` (`a checked year` (n PLUS 1) f m mo)
+                                            AND a AT MOST `the recuperation allowance for התשפ"ד` (`a checked year` n (f PLUS 0.1) m mo)
+                                            AND a AT MOST `the recuperation allowance for התשפ"ד` (`a checked year` n f (m PLUS 1) mo)
+                                            AND `the days reduced` y AT MOST 1
+                                            AND `the days reduced` y EQUALS (IF mo AND f AT LEAST 1 AND m AT LEAST 10 THEN 1 ELSE min f 1 TIMES min (m DIVIDED BY 10) 1))
+                                    `both booleans`)
+                            (range 0 12))
+                    `tenths to 1.5`)
+            (range 1 40)
+
+-- 1י-1יא as printed: 140% (150% for a principal) off the reforms, 125%
+-- under Oz LaTmura, 117% under Ofek Hadash.
+GIVEN t IS AN `employment terms`, pr IS A BOOLEAN
+GIVETH A NUMBER
+DECIDE `the printed cap for` t pr IS
+    CONSIDER t
+    WHEN `outside the reforms` THEN (IF pr THEN 1.5 ELSE 1.4)
+    WHEN `Oz LaTmura in full implementation` THEN 1.25
+    WHEN `Ofek Hadash` THEN 1.17
+
+-- 1י-1יא over every terms, principal or not, total position, weekly hours
+-- and the procedure: within the caps exactly up to 140% (150% for a
+-- principal outside the reforms, finding b), 125% or 117%, and 42 hours,
+-- or where the procedure permits it; every cap allows a full position.
+#ASSERT all (GIVEN t YIELD
+                all (GIVEN pr YIELD
+                        all (GIVEN v YIELD
+                                all (GIVEN h YIELD
+                                        all (GIVEN x YIELD
+                                                `the employment is within the caps` t pr v h x
+                                                EQUALS (x OR (v AT MOST `the printed cap for` t pr AND h AT MOST 42)))
+                                            `both booleans`)
+                                    (range 30 50))
+                            (map (GIVEN k YIELD k DIVIDED BY 10) (range 0 20)))
+                    `both booleans`)
+            `every terms`
+
+-- §2 over every stage, years by 1 June, earlier payment, position and
+-- share: the grant is something exactly from the stage's threshold (25 or
+-- 30) and never twice at the same threshold (finding h's reading); it is
+-- 60% of the determining salary times the position up to one times the
+-- share of the year; and it never falls with a larger position or share.
+#ASSERT all (GIVEN s YIELD
+                all (GIVEN y YIELD
+                        all (GIVEN paid YIELD
+                                all (GIVEN f YIELD
+                                        all (GIVEN q YIELD
+                                                LET g MEANS `the jubilee grant` (`a checked jubilee employment` s y paid f (q DIVIDED BY 4))
+                                                    k MEANS (y AT LEAST `the seniority that earns the grant at` s) AND NOT paid
+                                                IN      g EQUALS (IF k THEN 6000 TIMES min f 1 TIMES (q DIVIDED BY 4) ELSE 0)
+                                                    AND elem (`the seniority that earns the grant at` s) (LIST 25, 30)
+                                                    AND g AT MOST `the jubilee grant` (`a checked jubilee employment` s y paid (f PLUS 0.1) (q DIVIDED BY 4)))
+                                            (range 0 4))
+                                    `tenths to 1.5`)
+                            `both booleans`)
+                    (range 20 35))
+            `every stage`
+
+-- 2ה.3 over every stage: the seniority the encoding takes is that of a
+-- list that names the stage (finding c: the academic college takes 25).
+#ASSERT all (GIVEN s YIELD
+                    (`is named in` s `the 25-year list as printed` AND `the seniority that earns the grant at` s EQUALS 25)
+                OR  (`is named in` s `the 30-year list as printed` AND `the seniority that earns the grant at` s EQUALS 30))
+            `every stage`

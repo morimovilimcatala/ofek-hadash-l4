@@ -242,3 +242,57 @@ DECIDE `a teacher at` `fraction` `rank` `year share` `on leave` IS
     PARTY `the employer` DOES `include the grant in another base` "severance pay" AT 12
 #TRACE `the grant stays out of other bases` AT 0 WITH
     PARTY `the employer` DOES `make study-fund contributions on the grant` AT 12
+
+§§ `Property checks`
+
+-- The circular over a finite space: covered or not on each of its two
+-- conditions; every rank; upper-division positions in tenths from 0 to 1.5;
+-- shares of the year in quarters; on full-year leave or not.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`tenths to 1.5` MEANS map (GIVEN k YIELD k DIVIDED BY 10) (range 0 15)
+`every rank` MEANS LIST `rank 1, the highest 10%`, `rank 2, the next 10%`, `rank 3, the next 10%`, `rank 4, the next 10%`, `not ranked`
+
+GIVEN g IS A BOOLEAN, o IS A BOOLEAN, f IS A NUMBER, r IS A `school rank`, q IS A NUMBER, l IS A BOOLEAN
+GIVETH A `circular 11 teacher`
+DECIDE `a checked teacher` g o f r q l IS
+    `circular 11 teacher` WITH
+        `graded in the teaching employees' grading`             IS g
+        `employed by an owner of supervised post-primary education` IS o
+        `upper-division position fraction`                     IS f
+        `school rank`                                          IS r
+        `share of the year employed at the school`             IS q
+        `on full-year sabbatical or unpaid leave`              IS l
+
+-- 2ב's table: each rank's grant below the rank above it, nothing unranked.
+`each rank's grant is below the rank above it` MEANS
+        `the full-position grant for` `rank 1, the highest 10%` GREATER THAN `the full-position grant for` `rank 2, the next 10%`
+    AND `the full-position grant for` `rank 2, the next 10%` GREATER THAN `the full-position grant for` `rank 3, the next 10%`
+    AND `the full-position grant for` `rank 3, the next 10%` GREATER THAN `the full-position grant for` `rank 4, the next 10%`
+    AND `the full-position grant for` `rank 4, the next 10%` GREATER THAN 0
+    AND `the full-position grant for` `not ranked` EQUALS 0
+#ASSERT `each rank's grant is below the rank above it`
+
+-- §§1-2 over every teacher: the grant is the rank's full-position grant
+-- times the position up to one (2ד) times the share of the year (2ג),
+-- nothing outside the circular or on full-year leave; never above rank 1's
+-- grant; never falling with a larger position or share; and 2ז's pension
+-- contributions are 5% and 5% of it.
+#ASSERT all (GIVEN g YIELD
+                all (GIVEN o YIELD
+                        all (GIVEN f YIELD
+                                all (GIVEN r YIELD
+                                        all (GIVEN q YIELD
+                                                all (GIVEN l YIELD
+                                                        LET a MEANS `the achievement grant` (`a checked teacher` g o f r (q DIVIDED BY 4) l)
+                                                        IN      a EQUALS (IF g AND o AND NOT l THEN `the full-position grant for` r TIMES min f 1 TIMES (q DIVIDED BY 4) ELSE 0)
+                                                            AND a AT MOST 9197.31
+                                                            AND a AT MOST `the achievement grant` (`a checked teacher` g o (f PLUS 0.1) r (q DIVIDED BY 4) l)
+                                                            AND a AT MOST `the achievement grant` (`a checked teacher` g o f r ((q PLUS 1) DIVIDED BY 4) l))
+                                                    `both booleans`)
+                                            (range 0 4))
+                                    `every rank`)
+                            `tenths to 1.5`)
+                    `both booleans`)
+            `both booleans`
+#ASSERT `the employer's pension contribution rate` EQUALS 0.05 AND `the teacher's pension contribution rate` EQUALS 0.05

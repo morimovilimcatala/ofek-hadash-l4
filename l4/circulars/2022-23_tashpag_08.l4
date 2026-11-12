@@ -506,3 +506,111 @@ DECIDE `jubilee position share` e IS
         `has the years 2ב counts` 27 `junior high school`
     AND (NOT `the part earns the grant` `a junior-high teacher in her 27th year, paid at 25` (`part of employment` `junior high school` 1))
 #ASSERT `section 2ב read alone pays the grant again in a later year`
+
+§§ `Property checks`
+
+-- The circular over finite spaces: seniority 1 to 40 years; positions in
+-- tenths from 0 to 1.5; 0 to 12 months of work; every regime with total
+-- positions in tenths to 2 and 30 to 50 weekly hours; every stage; 20 to
+-- 35 years of seniority by 1 June; paid at this threshold before or not;
+-- shares of the year in quarters.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`tenths to 1.5` MEANS map (GIVEN k YIELD k DIVIDED BY 10) (range 0 15)
+`every stage` MEANS LIST `junior high school`, `upper division`, `recognized unofficial special education under Ofek Hadash`, `academic teacher-training college`, `kindergarten`, `primary school`, `teacher-training college`
+`every regime` MEANS LIST `teacher outside the reforms`, `principal outside the reforms`, `teacher in Oz LaTmura at full implementation`, `teacher in Ofek Hadash`, `other regime or role`
+
+GIVEN n IS A NUMBER, f IS A NUMBER, m IS A NUMBER, s IS A `jubilee stage`, y IS A NUMBER, paid IS A BOOLEAN, q IS A NUMBER
+GIVETH A `circular 8 employee`
+DECIDE `a checked employee` n f m s y paid q IS
+    `circular 8 employee` WITH
+        `recuperation seniority year`  IS n
+        `position fraction at this employer` IS f
+        `months worked`                IS m
+        `employed by more than one employer` IS FALSE
+        `total position fraction`      IS f
+        `jubilee seniority as determined in September 2022` IS y MINUS 0.75
+        `jubilee seniority completed by 1 June 2023` IS y
+        `parts of employment`          IS LIST `part of employment` s f
+        `share of the year employed`   IS q
+        `jubilee already paid at this threshold` IS paid
+        `determining salary`           IS 10000
+
+-- §1ג's table over years 1 to 40: the days never fall with seniority and
+-- run from 7 to 13.
+#ASSERT all (GIVEN n YIELD
+                    `recuperation days` n AT MOST `recuperation days` (n PLUS 1)
+                AND `recuperation days` n AT LEAST 7
+                AND `recuperation days` n AT MOST 13)
+            (range 1 40)
+
+-- §1 over seniority, position and months: one employer's allowance is
+-- ₪471.4 times the table's days times the position up to one (§1ה) times
+-- the months at a tenth each up to ten (finding a's reading), and it never
+-- falls with more seniority, a larger position or more months.
+#ASSERT all (GIVEN n YIELD
+                all (GIVEN f YIELD
+                        all (GIVEN m YIELD
+                                LET a MEANS `recuperation allowance` (`a checked employee` n f m `primary school` 20 FALSE 1)
+                                IN      a EQUALS 471.4 TIMES `recuperation days` n TIMES min f 1 TIMES min (m DIVIDED BY 10) 1
+                                    AND a AT MOST `recuperation allowance` (`a checked employee` (n PLUS 1) f m `primary school` 20 FALSE 1)
+                                    AND a AT MOST `recuperation allowance` (`a checked employee` n (f PLUS 0.1) m `primary school` 20 FALSE 1)
+                                    AND a AT MOST `recuperation allowance` (`a checked employee` n f (m PLUS 1) `primary school` 20 FALSE 1))
+                            (range 0 12))
+                    `tenths to 1.5`)
+            (range 1 40)
+
+-- §§1ז-1ח as printed: 140%, 150% for a principal, 125%, 117% and 42 hours.
+GIVEN r IS AN `employment regime`, t IS A NUMBER, h IS A NUMBER
+GIVETH A BOOLEAN
+DECIDE `the printed limits allow` r t h IF
+    CONSIDER r
+    WHEN `teacher outside the reforms` THEN t AT MOST 1.4
+    WHEN `principal outside the reforms` THEN t AT MOST 1.5
+    WHEN `teacher in Oz LaTmura at full implementation` THEN t AT MOST 1.25
+    WHEN `teacher in Ofek Hadash` THEN t AT MOST 1.17 AND h AT MOST 42
+    OTHERWISE TRUE
+
+-- §§1ז-1ח over every regime, total position and weekly hours: within the
+-- limits exactly up to the regime's limit (none for another regime), and in
+-- Ofek Hadash up to 42 hours; every limit allows a full position, and the
+-- principal's 150% is the highest (finding e).
+#ASSERT all (GIVEN r YIELD
+                all (GIVEN t YIELD
+                        all (GIVEN h YIELD
+                                `within the employment limits` r t h EQUALS (`the printed limits allow` r t h))
+                            (range 30 50))
+                    (map (GIVEN k YIELD k DIVIDED BY 10) (range 0 20)))
+            `every regime`
+#ASSERT all (GIVEN r YIELD
+                    `within the employment limits` r 1 42
+                AND `within the employment limits` `principal outside the reforms` 1.5 42
+                AND (NOT `within the employment limits` r 1.6 42))
+            (LIST `teacher outside the reforms`, `principal outside the reforms`, `teacher in Oz LaTmura at full implementation`, `teacher in Ofek Hadash`)
+
+-- §2 over every stage, years by 1 June, earlier payment, position and share:
+-- the grant is something exactly from the stage's threshold (25 or 30) and
+-- never twice at the same threshold (finding g's reading); it is 60% of the
+-- determining salary times the position up to one times the share of the
+-- year, so never above ₪6,000 here; and it never falls with a larger
+-- position or share.
+#ASSERT all (GIVEN s YIELD
+                all (GIVEN y YIELD
+                        all (GIVEN paid YIELD
+                                all (GIVEN f YIELD
+                                        all (GIVEN q YIELD
+                                                LET g MEANS `jubilee grant` (`a checked employee` 20 f 12 s y paid (q DIVIDED BY 4))
+                                                    k MEANS (y AT LEAST `the jubilee seniority for` s) AND NOT paid
+                                                IN      g EQUALS (IF k THEN 6000 TIMES min f 1 TIMES (q DIVIDED BY 4) ELSE 0)
+                                                    AND elem (`the jubilee seniority for` s) (LIST 25, 30)
+                                                    AND g AT MOST `jubilee grant` (`a checked employee` 20 (f PLUS 0.1) 12 s y paid (q DIVIDED BY 4)))
+                                            (range 0 4))
+                                    `tenths to 1.5`)
+                            `both booleans`)
+                    (range 20 35))
+            `every stage`
+
+-- §2ה.3 over every stage: the seniority the encoding takes is one the
+-- printed lists give the stage (finding c: the academic college takes 25).
+#ASSERT all (GIVEN s YIELD elem (`the jubilee seniority for` s) (`the seniorities the two lists give` s))
+            `every stage`

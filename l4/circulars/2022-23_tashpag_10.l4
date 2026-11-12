@@ -126,3 +126,46 @@ DECIDE `bonus percent for code` `code` `regime` IS
 #ASSERT `bonus percent for code` "035481" `before the reform` EQUALS 0.04
 #ASSERT `bonus weekly hours for code` "035571" `before the reform` EQUALS 2.25
 #ASSERT `bonus weekly hours for code` "035999" `before the reform` EQUALS 0
+
+§§ `Property checks`
+
+-- The table over every printed row and code, and over codes the table
+-- does not print.
+
+`every regime` MEANS LIST `before the reform`, `under the reform`
+
+GIVEN c IS A `bonus cell`
+GIVETH A BOOLEAN
+DECIDE `is blank` c IF
+    CONSIDER c
+    WHEN `blank cell` THEN TRUE
+    OTHERWISE FALSE
+
+-- Every row: a bonus before the reform, and under it exactly one of the two
+-- parts (the school-based one only for 801, as its remark says); 3 to 5
+-- units; two codes; a bonus of ½ to 2¼ weekly hours at 2% or 4%.
+#ASSERT all (GIVEN r YIELD
+                    NOT `is blank` (r's `bonus before the reform`)
+                AND (`is blank` (r's `reform external bonus`)) EQUALS NOT `is blank` (r's `reform school-based bonus`)
+                AND (NOT `is blank` (r's `reform school-based bonus`)) EQUALS (r's `questionnaire` EQUALS "801")
+                AND r's `units` AT LEAST 3 AND r's `units` AT MOST 5
+                AND count (r's `codes`) EQUALS 2
+                AND `weekly hours of` (r's `bonus before the reform`) AT LEAST 0.5
+                AND `weekly hours of` (r's `bonus before the reform`) AT MOST 2.25
+                AND elem (`percent of` (r's `bonus before the reform`)) (LIST 0.02, 0.04))
+            `the mathematics questionnaires table`
+
+-- Every printed code, in each regime: a bonus that is positive and is its
+-- one row's; a code the table does not print gets nothing in either.
+#ASSERT all (GIVEN c YIELD
+                all (GIVEN g YIELD
+                            `bonus weekly hours for code` c g GREATER THAN 0
+                        AND count (`the bonus cells for` c g) EQUALS (IF g EQUALS `before the reform` THEN 1 ELSE 2))
+                    `every regime`)
+            `every printed code`
+#ASSERT all (GIVEN c YIELD
+                all (GIVEN g YIELD
+                            `bonus weekly hours for code` c g EQUALS 0
+                        AND `bonus percent for code` c g EQUALS 0)
+                    `every regime`)
+            (LIST "035183 ", "35183", "035999", "035171", "")

@@ -277,3 +277,63 @@ DECIDE `the 1987 transition supplement under circular תשע"ד/2` m e d `the 19
 #ASSERT `the evaluation points of the year, as the 2013 decision amends section 20(ב)` `the school year 5773` (LIST `the Oz educational counsellor`) 0 100 EQUALS 2.5
 #ASSERT `the evaluation points of the year, as the 2013 decision amends section 20(ב)` `the school year 5773` (LIST `the Oz deputy principal`) 20 100 EQUALS 1
 #ASSERT `the evaluation points of the year, as the 2013 decision amends section 20(ב)` `the school year 5773` (LIST `the Oz homeroom teacher`, `the Oz subject coordinator`) 0 100 EQUALS 4
+
+§§ `Property checks`
+
+-- §12, the circular's own, over a finite space: the first of every month
+-- from January 2010 to December 2015; every extent of the reform; the two
+-- principals the decision's examples name; agreed otherwise or not; every
+-- purpose a component counts for.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`the days checked` MEANS
+    concat (map (GIVEN y YIELD map (GIVEN m YIELD DATE_FROM_DMY 1 m y) (range 1 12))
+                (range 2010 2015))
+`every extent` MEANS LIST `the Oz reform in full`, `the Oz reform in part`, `off the Oz reform`
+`the principals checked` MEANS LIST `an existing principal`, `a principal first appointed in 5773`
+`every purpose` MEANS LIST `computing the hour value`, `Oz severance pay under the Severance Pay Law`, `contributions to a pension provident fund`, `contributions to a training fund`, `contributions to the Dafna fund`, `computing supplement 2001`, `computing supplement 2008`, `computing the Oz LaTmura supplement`, `computing supplement 2011`, `computing erosion supplement 2011`, `computing the promotion-grade supplement`, `computing another percentage supplement on the combined salary`
+
+-- ¶2 and (א) over every day: the circular's base is the decision's from
+-- the decision's own day and before the reform's start; between the two it
+-- is larger, by the 2011 and the erosion supplements.
+#ASSERT all (GIVEN d YIELD
+                LET c MEANS `a principal's components on` d
+                    w MEANS `section 12 of circular תשע"ד/2 governs on` d AND NOT `an undated section of the 2013 decision governs on` d
+                IN      `the transition supplement's base under circular תשע"ד/2` c AT LEAST `the transition supplement's base under the 2013 decision` c
+                    AND (`the transition supplement's base under circular תשע"ד/2` c GREATER THAN `the transition supplement's base under the 2013 decision` c) EQUALS w)
+            `the days checked`
+
+-- ¶3 and (ג) over every day, principal, extent and agreement: the
+-- circular pays the transition supplement and the 1987 transition
+-- supplement to exactly those the decision's rule pays as existing
+-- principals, never less than the decision does, the 1987 one at half the
+-- 1987 supplement, and nothing off the reform.
+#ASSERT all (GIVEN d YIELD
+                all (GIVEN m YIELD
+                        all (GIVEN e YIELD
+                                all (GIVEN a YIELD
+                                        LET c   MEANS `a principal's components on` d
+                                            p   MEANS `paid by the rules for an existing principal, by the 2013 decision` m e d a
+                                            t   MEANS `the transition supplement under circular תשע"ד/2` m e c a
+                                            s87 MEANS `the 1987 transition supplement under circular תשע"ד/2` m e d 300 a
+                                        IN      t AT LEAST `the transition supplement under the 2013 decision` m e c a
+                                            AND (t GREATER THAN 0) EQUALS p
+                                            AND s87 AT LEAST `the 1987 transition supplement` m e d 300 a
+                                            AND s87 EQUALS (IF p AND `section 12 of circular תשע"ד/2 governs on` d THEN 150 ELSE 0)
+                                            AND (e EQUALS `off the Oz reform` IMPLIES (t EQUALS 0 AND s87 EQUALS 0)))
+                                    `both booleans`)
+                            `every extent`)
+                    `the principals checked`)
+            `the days checked`
+
+-- (ב) over every day and purpose: the circular counts the supplement for
+-- whatever the decision does, and differs only in the training fund from
+-- the reform's start.
+#ASSERT all (GIVEN d YIELD
+                all (GIVEN p YIELD
+                        LET o MEANS `the transition supplement counts, as the 2013 decision amends section 24(ג), on` d p
+                            n MEANS `the transition supplement counts, under circular תשע"ד/2, on` d p
+                        IN      (o IMPLIES n)
+                            AND ((n AND NOT o) IMPLIES (p EQUALS `contributions to a training fund` AND `section 12 of circular תשע"ד/2 governs on` d)))
+                    `every purpose`)
+            `the days checked`

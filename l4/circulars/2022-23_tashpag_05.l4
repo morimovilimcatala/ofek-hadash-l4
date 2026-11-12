@@ -346,3 +346,72 @@ DECIDE `which governs` `the circular says` `the agreement says` IS
 -- The supplement for September 2022 to January 2023 paid with January's salary.
 #TRACE `the 2022 supplement is paid with January 2023's salary` `a pre-reform teacher at 80%` AT 0 WITH
     PARTY `the employer` DOES `pay the 2022 shekel supplement from September 2022` 2000 AT 5
+
+§§ `Property checks`
+
+-- The circular over a finite space: every combination of the employee's
+-- flags and stages; positions in tenths from 0 to 1.5; the school months
+-- from two before September 2022 to August 2023; every purpose; every
+-- month the first agreement payment can fall in.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`tenths to 1.5` MEANS map (GIVEN k YIELD k DIVIDED BY 10) (range 0 15)
+`the months checked` MEANS range -1 12
+`every stage` MEANS LIST `regular-education kindergartens`, `special-education kindergartens not yet in Ofek Hadash`, `regular-education primary and junior-high schools`, `special-education schools not yet in Ofek Hadash`, `another stage`
+`every purpose` MEANS LIST `salary for every purpose`, `percentage supplements computed on the combined salary`, `supplement 2001`, `supplement 2008`, `supplement 2011`, `the hourly value`, `severance pay under the Severance Pay Law 1963`, `pension-fund contributions for an employee in an accumulating pension`, `training-fund contributions`, `other contributions and deductions customary for the combined salary`, `completion to the minimum wage under the Minimum Wage Law 1987`
+
+GIVEN g IS A BOOLEAN, o IS A BOOLEAN, s IS A `stage of education`, r IS A BOOLEAN, f IS A NUMBER
+GIVETH A `circular 5 employee`
+DECIDE `a checked employee` g o s r f IS
+    `circular 5 employee` WITH
+        `graded in the teaching employees' grading`        IS g
+        `employed by an owner of a supervised institution` IS o
+        `stage employed in`                                IS s
+        `in Ofek Hadash`                                   IS r
+        `position fraction`                                IS f
+        `signed the advance notice`                        IS TRUE
+
+-- ¶24-¶28, §1 and §2.1 over every employee: the supplement and each advance
+-- are ₪500 pro rata to the position exactly for a covered employee outside
+-- Ofek Hadash (the supplement from September 2022 only), nothing otherwise;
+-- from September 2022 the supplement and the advance are the same sum; and
+-- neither falls as the position grows.
+#ASSERT all (GIVEN g YIELD
+                all (GIVEN o YIELD
+                        all (GIVEN s YIELD
+                                all (GIVEN r YIELD
+                                        all (GIVEN f YIELD
+                                                LET e        MEANS `a checked employee` g o s r f
+                                                    entitled MEANS g AND o AND (NOT s EQUALS `another stage`) AND NOT r
+                                                IN      `the advance` e EQUALS (IF entitled THEN 500 TIMES f ELSE 0)
+                                                    AND `the advance` e AT MOST `the advance` (`a checked employee` g o s r (f PLUS 0.1))
+                                                    AND all (GIVEN m YIELD
+                                                                `the 2022 shekel supplement` e m EQUALS (IF m AT LEAST `September 2022` THEN `the advance` e ELSE 0))
+                                                            `the months checked`)
+                                            `tenths to 1.5`)
+                                    `both booleans`)
+                            `every stage`)
+                    `both booleans`)
+            `both booleans`
+
+-- 1.3-1.4 over every purpose: the supplement is left out of exactly the
+-- three percentage supplements 1.3 names and the minimum-wage completion.
+#ASSERT count (filter (GIVEN p YIELD NOT `the 2022 shekel supplement counts for` p) `every purpose`) EQUALS 4
+
+-- 2.2-2.3 over every month the first payment can fall in: advance A is
+-- deducted no later than December 2022 and no later than the first payment;
+-- advance B no later than January 2023, and always the month after A.
+#ASSERT all (GIVEN fp YIELD
+                    `advance A is deducted in` fp AT MOST `December 2022`
+                AND `advance A is deducted in` fp AT MOST fp
+                AND `advance B is deducted in` fp AT MOST `January 2023`
+                AND `advance B is deducted in` fp EQUALS `advance A is deducted in` fp PLUS 1)
+            (range 1 12)
+
+-- 3 over every pair of sums from 0 to 1,000 in fifties: the agreement
+-- governs wherever the two differ.
+#ASSERT all (GIVEN c YIELD
+                all (GIVEN a YIELD
+                        (`which governs` c a EQUALS `this circular`) EQUALS (c EQUALS a))
+                    (map (GIVEN k YIELD 50 TIMES k) (range 0 20)))
+            (map (GIVEN k YIELD 50 TIMES k) (range 0 20))

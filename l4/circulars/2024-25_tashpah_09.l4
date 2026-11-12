@@ -106,3 +106,30 @@ DECIDE `the Ministry deducts from its payments` `budgeted determining base` d IS
     PARTY `the local authority or owning body` DOES `reduce the salary from the determining base` 330.7 AT 1
 #TRACE `the owning body reduces the salary` `education institution` 10000 (DATE_FROM_DMY 1 4 2025) 0 AT 0 WITH
     PARTY `the local authority or owning body` DOES `reduce the salary from the determining base` 120 AT 1
+
+§§ `Property checks`
+
+-- The circular over finite spaces: every kind of body; the first and last
+-- day of every month from January 2025 to December 2027; determining bases
+-- of 0 to 20,000 in thousands.
+
+`every kind of body` MEANS LIST `budgeted body`, `supported body`, `education institution`, `recognised unofficial education institution`, `other employer`
+`the days checked` MEANS
+    concat (map (GIVEN y YIELD concat (map (GIVEN m YIELD LIST DATE_FROM_DMY 1 m y, DATE_FROM_DMY 28 m y) (range 1 12)))
+                (range 2025 2027))
+
+-- א over every body: the law reaches every one but another employer.
+#ASSERT all (GIVEN k YIELD `the reduction law applies to the employees of` k EQUALS NOT k EQUALS `other employer`) `every kind of body`
+
+-- ב over every day and base: the rate is 3.307% in April-December 2025,
+-- 1.2% in 2026 and nothing otherwise; the reduction is the base times it,
+-- never more than 3.307% of the base, and never rising with a later year.
+#ASSERT all (GIVEN d YIELD
+                LET r MEANS `the reduction rate on` d
+                IN      r EQUALS (IF DATE_YEAR d EQUALS 2025 AND DATE_MONTH d AT LEAST 4 THEN 3.307% ELSE IF DATE_YEAR d EQUALS 2026 THEN 1.2% ELSE 0)
+                    AND all (GIVEN b YIELD
+                                    `the salary reduction` b d EQUALS b TIMES r
+                                AND `the salary reduction` b d AT MOST b TIMES 3.307%)
+                            (map (GIVEN k YIELD 1000 TIMES k) (range 0 20)))
+            `the days checked`
+#ASSERT `the reduction rate on` (DATE_FROM_DMY 1 1 2026) AT MOST `the reduction rate on` (DATE_FROM_DMY 31 12 2025)

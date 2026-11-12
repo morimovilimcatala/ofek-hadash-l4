@@ -458,3 +458,99 @@ DECIDE `months of` n s p IS
     PARTY `the employer` DOES `pay the one-time grant` 6000 AT 3
 #TRACE `the one-time grant is paid` 6000 `on unpaid leave` 7 AT 0 WITH
     PARTY `the employer` DOES `pay the one-time grant` 6000 AT 8
+
+§§ `Property checks`
+
+-- The agreement as the circular publishes it, over finite spaces: positions
+-- in tenths from 0 to 1.5; the first of every month from January 2024 to
+-- December 2027; every combination of a component's eight flags; nine
+-- months of each status at each position; grants of 0 to 6,000 split by
+-- sabbatical shares in quarters; every status at payment.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`tenths to 1.5` MEANS map (GIVEN k YIELD k DIVIDED BY 10) (range 0 15)
+`the days checked` MEANS
+    concat (map (GIVEN y YIELD map (GIVEN m YIELD DATE_FROM_DMY 1 m y) (range 1 12)) (range 2024 2027))
+`every month status` MEANS LIST `worked`, `unpaid leave`, `reserve duty`, `birth and parenting period`, `sick leave without pay, with an application and evidence`, `sick leave without pay, with no application`, `unpaid absence after the birth and parenting period`, `not employed at the college`
+`every status at payment` MEANS LIST `at work`, `on unpaid leave`, `on sick leave without pay`, `in the birth and parenting period`, `absent through a work injury not charged to sick leave`
+
+-- §4 and §5א-ב over every day and position: the shekel supplement is
+-- ₪569.89 pro rata from 1.7.2024 and nothing before; the percentage rate
+-- is 0, 2%, 4% or 6% and never falls from one month to the next; neither
+-- supplement falls with a larger position.
+#ASSERT all (GIVEN d YIELD
+                    elem (`the 2024 percentage supplement rate on` d) (LIST 0, 2%, 4%, 6%)
+                AND `the 2024 percentage supplement rate on` d AT MOST `the 2024 percentage supplement rate on` (DATE_FROM_DMY 1 1 2028)
+                AND all (GIVEN f YIELD
+                                `the 2024 shekel supplement` f d EQUALS (IF d `is on or after` (DATE_FROM_DMY 1 7 2024) THEN 569.89 TIMES f ELSE 0)
+                            AND `the 2024 shekel supplement` f d AT MOST `the 2024 shekel supplement` (f PLUS 0.1) d)
+                        `tenths to 1.5`)
+            `the days checked`
+#ASSERT all (GIVEN k YIELD
+                `the 2024 percentage supplement rate on` (DATE_FROM_DMY 1 k 2025) AT MOST `the 2024 percentage supplement rate on` (DATE_FROM_DMY 1 (k PLUS 1) 2025))
+            (range 1 11)
+
+-- §5א(ב) over every component: never the minimum-wage top-up or the 2024
+-- shekel supplement; the combined salary, paid monthly with no other
+-- update mechanism, always. The supplement is the rate times the base's
+-- sum times the position, and never falls with a larger position.
+#ASSERT all (GIVEN a YIELD
+                all (GIVEN b YIELD
+                        all (GIVEN c YIELD
+                                all (GIVEN d YIELD
+                                        all (GIVEN e YIELD
+                                                all (GIVEN f YIELD
+                                                        all (GIVEN g YIELD
+                                                                all (GIVEN h YIELD
+                                                                        LET x MEANS `existing component` 1000 a b c d e f g h
+                                                                            i MEANS `is in the base of the 2024 percentage supplement` x
+                                                                        IN      ((NOT (g OR h)) OR NOT i)
+                                                                            AND ((NOT (a AND d AND (NOT f) AND (NOT g) AND NOT h)) OR i)
+                                                                            AND ((NOT i) OR d))
+                                                                    `both booleans`)
+                                                            `both booleans`)
+                                                    `both booleans`)
+                                            `both booleans`)
+                                    `both booleans`)
+                            `both booleans`)
+                    `both booleans`)
+            `both booleans`
+#ASSERT all (GIVEN f YIELD
+                all (GIVEN d YIELD
+                        LET cs MEANS LIST `existing component` 10000 TRUE TRUE FALSE TRUE TRUE FALSE FALSE FALSE,
+                                          `existing component` 300 FALSE TRUE TRUE TRUE TRUE FALSE FALSE FALSE,
+                                          `existing component` 200 FALSE TRUE TRUE TRUE TRUE FALSE TRUE FALSE
+                        IN      `the 2024 percentage supplement` f d cs EQUALS `the 2024 percentage supplement rate on` d TIMES 10300 TIMES f
+                            AND `the 2024 percentage supplement` f d cs AT MOST `the 2024 percentage supplement` (f PLUS 0.1) d cs)
+                    `the days checked`)
+            `tenths to 1.5`
+
+-- §6 over every status and position: a month counts the position up to
+-- one, or nothing; nine months of one status give the full grant times
+-- that share, never more than ₪6,000, and nothing to one not employed on
+-- 19.8.2024.
+#ASSERT all (GIVEN s YIELD
+                all (GIVEN p YIELD
+                        LET m MEANS `grant month` s p
+                            c MEANS elem s (LIST `worked`, `reserve duty`, `birth and parenting period`, `sick leave without pay, with an application and evidence`)
+                        IN      `the month's share of a full grant month` m EQUALS (IF c THEN min p 1 ELSE 0)
+                            AND `the one-time grant` TRUE (`months of` 9 s p) EQUALS 6000 TIMES `the month's share of a full grant month` m
+                            AND `the one-time grant` TRUE (`months of` 9 s p) AT MOST 6000
+                            AND `the one-time grant` FALSE (`months of` 9 s p) EQUALS 0)
+                    `tenths to 1.5`)
+            `every month status`
+
+-- §6(יא)-(יב) over grants, sabbatical shares and statuses: the two parts of
+-- a grant during a partial sabbatical add up to it; the payment waits for
+-- the return exactly off work, and the list's three statuses wait.
+#ASSERT all (GIVEN g YIELD
+                all (GIVEN q YIELD
+                        `paid at the payment date during a partial sabbatical` g (q DIVIDED BY 4) PLUS `completed on the return from the sabbatical` g (q DIVIDED BY 4) EQUALS g)
+                    (range 0 4))
+            (map (GIVEN k YIELD 1000 TIMES k) (range 0 6))
+#ASSERT all (GIVEN s YIELD
+                    `the payment waits for the return to work` s EQUALS NOT s EQUALS `at work`
+                AND ((NOT `the payment waits on the lead-in's (1) to (3) alone` s) OR `the payment waits for the return to work` s))
+            `every status at payment`
+#ASSERT all (GIVEN a YIELD `a month of sick leave without pay counts as` a EQUALS (IF a THEN `sick leave without pay, with an application and evidence` ELSE `sick leave without pay, with no application`))
+            `both booleans`

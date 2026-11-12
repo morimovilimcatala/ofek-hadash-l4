@@ -602,3 +602,55 @@ DECIDE `weekday of` d IS
     PARTY `the reporting officer` DOES `press save` AT 3
 #TRACE `no deleting an approved request` AT 0 WITH
     PARTY `the reporting officer` DOES `delete and re-enter an approved request` AT 70
+
+§§ `Property checks`
+
+-- The circular over finite spaces: every candidate's flags; 0 to 3
+-- officers requested; owners of 1 to 400 kindergartens in each district
+-- and every day of the school year to 30.4.2026; positions in hundredths to
+-- 1.5 with 30 to 45 weekly hours; approved and reported sizes in tenths.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`every district` MEANS LIST `the Haredi district`, `another district`
+`tenths to 1.5` MEANS map (GIVEN k YIELD k DIVIDED BY 10) (range 0 15)
+
+-- 2.1 over every candidate and request: the officer is an employee and not
+-- a service provider; never more than one approved.
+#ASSERT all (GIVEN e YIELD
+                all (GIVEN s YIELD
+                        all (GIVEN h YIELD `may be the reporting officer` (`reporting officer candidate` e s h) EQUALS (e AND NOT s)) `both booleans`)
+                    `both booleans`)
+            `both booleans`
+#ASSERT all (GIVEN n YIELD `reporting officers approved` n AT MOST 1 AND `reporting officers approved` n AT MOST n) (range 0 3)
+
+-- The gradual start over every district, owner and day: requests open on
+-- 1.9.2025 outside the Haredi district; in it, never later for a larger
+-- owner, and on one of the schedule's three days; once open, open on every
+-- later day.
+#ASSERT all (GIVEN d YIELD
+                all (GIVEN n YIELD
+                        LET o MEANS `the day file requests open` d n
+                        IN      elem o (LIST `1 September 2025`, `1 December 2025`, `1 March 2026`)
+                            AND ((NOT d EQUALS `another district`) OR o EQUALS `1 September 2025`)
+                            AND `the day file requests open` d (n PLUS 1) AT MOST o
+                            AND all (GIVEN day YIELD
+                                        `the owner may file requests to open files on` d n day EQUALS (day AT LEAST o))
+                                    (map (GIVEN k YIELD 30 TIMES k) (range 0 8)))
+                    (range 1 400))
+            `every district`
+
+-- §4 over positions, hours and approvals: within the ceilings exactly to
+-- 140% and 42 hours; a placement allowed exactly up to a full position or
+-- the approved size above it; the request in force the update only once
+-- finally approved.
+#ASSERT all (GIVEN f YIELD
+                all (GIVEN h YIELD `within the ceilings` f h EQUALS (f AT MOST 1.4 AND h AT MOST 42)) (range 30 45))
+            (map (GIVEN k YIELD k DIVIDED BY 100) (range 0 150))
+#ASSERT all (GIVEN a YIELD
+                all (GIVEN r YIELD `the reported placement is allowed` a r EQUALS (r AT MOST 1 OR r AT MOST a)) `tenths to 1.5`)
+            `tenths to 1.5`
+#ASSERT all (GIVEN u YIELD
+                (`the request in force` `the example's earlier request` `the example's updated request` u)'s `request position size` EQUALS (IF u THEN 1.4 ELSE 1.2))
+            `both booleans`
+#ASSERT all (GIVEN w YIELD `an accepted way to update data` w EQUALS NOT w EQUALS `another way`)
+            (LIST `the teacher brings the originals to the district at reception hours`, `the teacher mails the originals to the district`, `the reporting officer e-mails true copies to the district`, `another way`)
