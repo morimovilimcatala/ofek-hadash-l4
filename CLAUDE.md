@@ -391,12 +391,15 @@ that changes a finding, a coverage count or a page updates every place that
 states the old fact in the same commit. Do not write counts into prose; the
 coverage page computes them.
 
-## Pacing (the client, 2026-10-07)
+## Pacing (the client, 2026-11-12)
 
-The usage limit is shared by everything a session runs. Twelve encoders
-launched at once spent it within minutes, twice, and the work then stopped
-for hours. Run at most TWO encoding agents at a time, start the next batch
-only when one finishes, and prefer one well-checked batch over a wide
-fan-out. Background loops (publish watchers) cost little; parallel agents
-are what drain the limit.
+"You can do as many agents at a time you want when using opus 5.5 medium":
+agents run on Opus 5.5 at medium effort may run in any number. An agent on
+another model or effort keeps the earlier rule (2026-10-07): at most two at
+a time, because twelve encoders launched at once spent the shared usage
+limit within minutes, twice. What still serialises a fan-out is the
+repository, not the count: every agent works in its own worktree, takes the
+shared heavy-check lock for `make l4`, `make site` and `make test`, rebases
+on main and re-runs `tools/modules.py --write` and the exact ratchets before
+it pushes, and two agents never encode the same document.
 
