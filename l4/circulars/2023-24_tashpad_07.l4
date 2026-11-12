@@ -154,3 +154,53 @@ DECIDE `the Ministry deducts from the owner's payments` `budgeted hours of the s
     PARTY `the employer` DOES `reduce the employee's pay` 200 AT 1
 #TRACE `the Ministry deducts from the owner's payments` 40 AT 0 WITH
     PARTY `the Ministry of Education` DOES `deduct from the current MATAM payments` 40 AT 1
+
+§§ `Property checks`
+
+-- The circular over a finite space: every strike it names; both kinds of
+-- school and every city; every combination of the employee's attendance
+-- flags with 0 to 8 hours absent at hourly values of 0, 50 and 120.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`every city` MEANS LIST `Jerusalem`, `Tel Aviv-Yafo`, `Haifa`, `another city`
+
+GIVEN p IS A BOOLEAN, a IS A BOOLEAN, h IS A NUMBER, v IS A NUMBER
+GIVETH AN `employee at the strike`
+DECIDE `a checked employee` p a h v IS
+    `employee at the strike` WITH
+        `present at the time of the strike`  IS p
+        `brought an approval of the absence` IS a
+        `hours absent from work`             IS h
+        `hourly value`                       IS v
+
+-- The strikes over every school: each reached exactly the upper-secondary
+-- schools, the third only in the three cities; each ran two hours.
+#ASSERT all (GIVEN s YIELD
+                all (GIVEN u YIELD
+                        all (GIVEN c YIELD
+                                `the strike reached` s u c EQUALS (u AND ((NOT s's `only in the three cities`) OR NOT c EQUALS `another city`)))
+                            `every city`)
+                    `both booleans`)
+            `the strikes known at the writing`
+
+-- ¶3-¶5 over every employee: one known to have struck, or absent without
+-- an approval, is held to have taken part, and only they; the reduction is
+-- exactly the hours absent times the hourly value for them and nothing for
+-- anyone else; it never falls with more hours absent; and no pay is owed
+-- for strike time.
+#ASSERT all (GIVEN p YIELD
+                all (GIVEN a YIELD
+                        all (GIVEN k YIELD
+                                all (GIVEN h YIELD
+                                        all (GIVEN v YIELD
+                                                LET e MEANS `a checked employee` p a h v
+                                                    t MEANS k OR ((NOT p) AND NOT a)
+                                                IN      `took part in the strike` e k EQUALS t
+                                                    AND `the pay reduction` e k EQUALS (IF t THEN h TIMES v ELSE 0)
+                                                    AND `the pay reduction` e k AT MOST `the pay reduction` (`a checked employee` p a (h PLUS 1) v) k
+                                                    AND `pay owed for strike time` h EQUALS 0)
+                                            (LIST 0, 50, 120))
+                                    (range 0 8))
+                            `both booleans`)
+                    `both booleans`)
+            `both booleans`

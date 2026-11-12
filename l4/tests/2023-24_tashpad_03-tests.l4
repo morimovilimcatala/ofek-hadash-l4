@@ -1,0 +1,252 @@
+-- Property checks of circular תשפ"ד/3 (MMS-452): its rules over finite
+-- spaces, section by section. They sit here, beside the module, because
+-- the circulars' root imports it: names of the checks' own stay out of the
+-- root's reach.
+
+IMPORT prelude
+IMPORT `2023-24_tashpad_03`
+
+§ `Property checks`
+
+`both booleans` MEANS LIST TRUE, FALSE
+`positions checked` MEANS LIST 0, 0.25, 1 DIVIDED BY 3, 0.4, 0.5, 0.79, 0.8, 0.9, 1
+`every post` MEANS LIST `kindergarten manager teacher`, `colleague kindergarten teacher`, `kindergarten cluster manager`, `cluster kindergarten coordinator`, `health-professions employee`, `arts therapist`
+`the posts on the table` MEANS LIST `kindergarten manager teacher`, `colleague kindergarten teacher`, `kindergarten cluster manager`, `cluster kindergarten coordinator`
+`halves to 9` MEANS map (GIVEN k YIELD k DIVIDED BY 2) (range 2 18)
+
+GIVEN p IS A `kindergarten post`, old IS A BOOLEAN, a IS A BOOLEAN, c IS A BOOLEAN, s IS A NUMBER, age IS A NUMBER, f IS A NUMBER, i IS A BOOLEAN, n IS A BOOLEAN, m IS A BOOLEAN
+GIVETH A `kindergarten employee`
+DECIDE `a checked תשפ"ד/3 employee` p old a c s age f i n m IS
+    `kindergarten employee` WITH
+        `post`                                  IS p
+        `has recognised years of actual teaching` IS old
+        `is academic`                           IS a
+        `holds a teaching certification`        IS c
+        `seniority in teaching`                 IS s
+        `age on 31 December`                    IS age
+        `position fraction`                     IS f
+        `is an intern`                          IS i
+        `holds a special-education certification` IS TRUE
+        `entitled to the nursing hour`          IS n
+        `mother of a child under 14`            IS m
+
+-- §3 over every flag, position and seniority 20 to 30: an intern and a new
+-- employee meet the conditions; an existing academic exactly certified and
+-- from a third; an existing non-academic exactly from 28 years. Joining by
+-- exception adds only uncertified academics; one cannot advance exactly
+-- uncertified and below 25 years; one must join exactly when meeting the
+-- conditions and not released.
+#ASSERT all (GIVEN old YIELD
+                all (GIVEN a YIELD
+                        all (GIVEN c YIELD
+                                all (GIVEN i YIELD
+                                        all (GIVEN f YIELD
+                                                all (GIVEN s YIELD
+                                                        LET e  MEANS `a checked תשפ"ד/3 employee` `kindergarten manager teacher` old a c s 40 f i FALSE FALSE
+                                                            ok MEANS `meets the joining conditions` e
+                                                        IN      ok EQUALS (i OR (NOT old) OR (IF a THEN c AND f AT LEAST 1 DIVIDED BY 3 ELSE s AT LEAST 28))
+                                                            AND `joins Ofek Hadash` e EQUALS ok
+                                                            AND `joins Ofek Hadash with` e TRUE EQUALS (ok OR (a AND NOT c))
+                                                            AND `joins Ofek Hadash with` e FALSE EQUALS ok
+                                                            AND `cannot advance until certified` e EQUALS ((NOT c) AND s LESS THAN 25)
+                                                            AND `must join` e FALSE EQUALS ok
+                                                            AND NOT `must join` e TRUE)
+                                                    (range 20 30))
+                                            `positions checked`)
+                                    `both booleans`)
+                            `both booleans`)
+                    `both booleans`)
+            `both booleans`
+
+-- §3.5-3.6 over positions, months and years: the internship year counts
+-- exactly from a third and six months; one goes on exactly within two years
+-- and with the degree and certificate.
+#ASSERT all (GIVEN f YIELD
+                all (GIVEN mo YIELD `the internship year is recognised` f mo EQUALS (f AT LEAST 1 DIVIDED BY 3 AND mo AT LEAST 6)) (range 0 10))
+            `positions checked`
+#ASSERT all (GIVEN y YIELD
+                all (GIVEN d YIELD `may go on under the reform after the internship` y d EQUALS (y AT MOST 2 AND d)) `both booleans`)
+            (range 0 4)
+
+-- §§4, 8 over every post, age 40 to 70 and new or existing: a post on the
+-- table has its under-50 base less the age hours (0, 2 or 4), never rising
+-- with age and never higher for an existing employee; the health and arts
+-- staff a week of 36; the hours owed never above the base's share.
+#ASSERT all (GIVEN p YIELD
+                all (GIVEN age YIELD
+                        all (GIVEN old YIELD
+                                LET e  MEANS `a checked תשפ"ד/3 employee` p old TRUE TRUE 20 age 1 FALSE FALSE FALSE
+                                    e1 MEANS `a checked תשפ"ד/3 employee` p old TRUE TRUE 20 (age PLUS 1) 1 FALSE FALSE FALSE
+                                    y  MEANS `a checked תשפ"ד/3 employee` p FALSE TRUE TRUE 20 age 1 FALSE FALSE FALSE
+                                    u  MEANS `a checked תשפ"ד/3 employee` p old TRUE TRUE 20 40 1 FALSE FALSE FALSE
+                                IN      elem (`the age hours` e) (LIST 0, 2, 4)
+                                    AND `the position base of` e EQUALS (IF elem p `the posts on the table` THEN `the position base of` u MINUS `the age hours` e ELSE 36)
+                                    AND `the position base of` e1 AT MOST `the position base of` e
+                                    AND `the position base of` (`a checked תשפ"ד/3 employee` p TRUE TRUE TRUE 20 age 1 FALSE FALSE FALSE) AT MOST `the position base of` y
+                                    AND `the weekly hours owed` e AT MOST `the position base of` e
+                                    AND `the age hours of a part-time teacher` (`a checked תשפ"ד/3 employee` p old TRUE TRUE 20 age 0.5 FALSE FALSE FALSE) AT MOST `the age hours` e)
+                            `both booleans`)
+                    (range 40 70))
+            `every post`
+
+-- §4 over 1 to 14 kindergartens: a cluster row exactly from 4 to 11
+-- (finding); management hours never fewer with more kindergartens; every
+-- row 34 hours.
+#ASSERT all (GIVEN n YIELD
+                    (count (`the cluster rows for` n) EQUALS 1) EQUALS (n AT LEAST 4 AND n AT MOST 11)
+                AND count (`the cluster rows for` n) AT MOST 1
+                AND sum (map (GIVEN r YIELD r's `management hours`) (`the cluster rows for` n)) AT MOST sum (map (GIVEN r YIELD r's `management hours`) (`the cluster rows for` (n PLUS 1)))
+                    OR n EQUALS 11)
+            (range 1 14)
+#ASSERT all (GIVEN r YIELD r's `total hours` EQUALS 34) `the cluster manager's hours`
+
+-- §§5-6 over every post, new or existing, position and approval: health
+-- and arts staff at any position; a new employee from a third or with
+-- approval; an existing one from a third. A health employee's hours add up
+-- to 36 times the position. A period counts exactly from a third; the week
+-- is within the cap exactly to 42 hours.
+#ASSERT all (GIVEN p YIELD
+                all (GIVEN old YIELD
+                        all (GIVEN f YIELD
+                                all (GIVEN ap YIELD
+                                        `the position is allowed in the reform` (`a checked תשפ"ד/3 employee` p old TRUE TRUE 20 40 f FALSE FALSE FALSE) ap
+                                        EQUALS (p EQUALS `health-professions employee` OR p EQUALS `arts therapist` OR f AT LEAST 1 DIVIDED BY 3 OR ((NOT old) AND ap)))
+                                    `both booleans`)
+                            `positions checked`)
+                    `both booleans`)
+            `every post`
+#ASSERT all (GIVEN f YIELD
+                LET h MEANS `the health employee's hours` f
+                IN      h's `frontal part` PLUS h's `individual part` PLUS h's `presence part` EQUALS 36 TIMES f
+                    AND `the period counts for promotion time` f EQUALS (f AT LEAST 1 DIVIDED BY 3))
+            `positions checked`
+#ASSERT all (GIVEN h YIELD `within the weekly cap` h EQUALS (h AT MOST 42)) (range 30 50)
+
+-- §7 over positions, motherhood, nursing and arrangements: a mother's
+-- position is 10% more exactly when entitled (79% and a child under 14) and
+-- not absent at all; the nursing hour exactly when entitled to it and from
+-- 90%.
+#ASSERT all (GIVEN f YIELD
+                all (GIVEN m YIELD
+                        all (GIVEN n YIELD
+                                all (GIVEN ar YIELD
+                                        LET e MEANS `a checked תשפ"ד/3 employee` `kindergarten manager teacher` TRUE TRUE TRUE 20 40 f FALSE n m
+                                        IN      `the mother's position` e ar EQUALS (IF m AND f AT LEAST 0.79 AND ar EQUALS `not absent at all, by consent` THEN f PLUS 0.1 ELSE f)
+                                            AND `has the nursing hour` e EQUALS (n AND f AT LEAST 0.9))
+                                    (LIST `a whole day every two weeks`, `half a day every week`, `not absent at all, by consent`))
+                            `both booleans`)
+                    `both booleans`)
+            `positions checked`
+
+-- §9 over 0 to 60 hours allotted: never more than 40 paid, nor more than
+-- allotted.
+#ASSERT all (GIVEN h YIELD `the activity hours paid` h AT MOST 40 AND `the activity hours paid` h AT MOST h) (range 0 60)
+
+-- §10 over seniority: an existing employee's recognised seniority is never
+-- below a new one's on the same figures.
+#ASSERT all (GIVEN t YIELD
+                all (GIVEN r YIELD
+                        `the recognised seniority` t 1 2 r TRUE AT LEAST `the recognised seniority` t 1 2 r FALSE)
+                    (range 0 30))
+            (range 3 30)
+
+-- §11 over both tables, months 0 to 60 and hours 0 to 500 in fifties:
+-- promotion needs the evaluation and is exactly when both requirements are
+-- met; a non-academic step never asks less than the academic one.
+#ASSERT all (GIVEN t YIELD
+                all (GIVEN r YIELD
+                        all (GIVEN mo YIELD
+                                all (GIVEN h YIELD
+                                            NOT `may be promoted` mo (50 TIMES h) FALSE (r's `months required for the step`) (r's `hours required for the step`)
+                                        AND `may be promoted` mo (50 TIMES h) TRUE (r's `months required for the step`) (r's `hours required for the step`)
+                                            EQUALS (mo AT LEAST r's `months required for the step` AND 50 TIMES h AT LEAST r's `hours required for the step`))
+                                    (range 0 10))
+                            (map (GIVEN k YIELD 6 TIMES k) (range 0 10)))
+                    t)
+            (LIST `the promotion table for certified academics`, `the promotion table for certified non-academics`)
+#ASSERT all (GIVEN p YIELD
+                all (GIVEN q YIELD
+                        (NOT p's `from grade` EQUALS q's `from grade`)
+                        OR (q's `months required for the step` AT LEAST p's `months required for the step` AND q's `hours required for the step` AT LEAST p's `hours required for the step`))
+                    `the promotion table for certified non-academics`)
+            `the promotion table for certified academics`
+#ASSERT all (GIVEN h YIELD `the study hours counted as development hours` h AT MOST 60) (map (GIVEN k YIELD 10 TIMES k) (range 0 20))
+
+-- §12 over grades in halves 1 to 9 and years of management in halves 0 to
+-- 20: the rate is 17%, 20% or 21%, never falling with the grade or the
+-- years. Over salaries 0 to 20,000 and positions: the allowance is never
+-- below the rate's share or the floor pro rata, and the floor taken whole
+-- never gives less.
+#ASSERT all (GIVEN g YIELD
+                    elem (`the management rate` TRUE g 0) (LIST 0.17, 0.20, 0.21)
+                AND (g EQUALS 9 OR `the management rate` TRUE g 0 AT MOST `the management rate` TRUE (g PLUS 0.5) 0))
+            `halves to 9`
+#ASSERT all (GIVEN y YIELD
+                    elem (`the management rate` FALSE 1 y) (LIST 0.17, 0.20, 0.21)
+                AND `the management rate` FALSE 1 y AT MOST `the management rate` FALSE 1 (y PLUS 0.5))
+            (map (GIVEN k YIELD k DIVIDED BY 2) (range 0 40))
+#ASSERT all (GIVEN sal YIELD
+                all (GIVEN f YIELD
+                        all (GIVEN r YIELD
+                                    `the management allowance` sal r f AT LEAST sal TIMES r
+                                AND `the management allowance` sal r f AT LEAST 1500 TIMES f
+                                AND `the management allowance with the floor whole` sal r f AT LEAST `the management allowance` sal r f)
+                            (LIST 0.17, 0.20, 0.21))
+                    (LIST 0.25, 0.5, 0.75, 1))
+            (map (GIVEN k YIELD 1000 TIMES k) (range 0 20))
+
+-- §13 over every colleague teacher: the supplement is 10% of the salary up
+-- to a full position, exactly to an eligible one.
+#ASSERT all (GIVEN d YIELD
+                all (GIVEN l YIELD
+                        all (GIVEN f YIELD
+                                LET c MEANS `colleague teacher` WITH
+                                                `on a fixed day in charge of the kindergarten` IS d
+                                                `has a listed allowance`                       IS l
+                                                `colleague's position fraction`                IS f
+                                                `colleague's integrated salary`                IS 10000
+                                IN `the colleague teacher's supplement` c EQUALS (IF d AND NOT l THEN 1000 TIMES min 1 f ELSE 0))
+                            (LIST 0.5, 1, 1.2))
+                    `both booleans`)
+            `both booleans`
+
+-- §§14-15 over clusters, interns and rates: the cluster rate 25% to six
+-- kindergartens and 28% above; the mentor's never above three interns'
+-- worth; the special-education rate of a certified teacher never below the
+-- rate before; one not certified 8.5% in special education and 5.5%
+-- otherwise.
+#ASSERT all (GIVEN n YIELD `the cluster management rate` n EQUALS (IF n AT MOST 6 THEN 0.25 ELSE 0.28)) (range 1 14)
+#ASSERT all (GIVEN n YIELD `the mentor's rate` n AT MOST 0.072 AND `the mentor's rate` n AT MOST `the mentor's rate` (n PLUS 1)) (range 0 8)
+#ASSERT all (GIVEN r YIELD
+                all (GIVEN d YIELD `the special-education rate if certified` r d AT LEAST r)
+                    (LIST `autism`, `severe mental disorders`, `mild intellectual disability`, `any other kind of class`))
+            (LIST 0, 0.055, 0.085, 0.09, 0.14, 0.17)
+#ASSERT all (GIVEN t YIELD elem (`the special-education rate if not certified` t) (`the uncertified rows that apply` t)) `both booleans`
+
+-- §16 over quarters 0 to 10: a conversion gives exactly the whole and half
+-- grades from 1 to 9.
+#ASSERT all (GIVEN k YIELD
+                LET g MEANS k DIVIDED BY 4
+                IN `is a grade a conversion may give` g EQUALS (g AT LEAST 1 AND g AT MOST 9 AND FLOOR (k DIVIDED BY 2) TIMES 2 EQUALS k))
+            (range 0 40)
+
+-- §17 over every post, flag and seniority: the advance rate is 10% to 16%
+-- where one is set; the advance is nothing once the grade is set, and never
+-- falls with a larger share.
+#ASSERT all (GIVEN p YIELD
+                all (GIVEN old YIELD
+                        all (GIVEN a YIELD
+                                all (GIVEN i YIELD
+                                        all (GIVEN s YIELD
+                                                LET e MEANS `a checked תשפ"ד/3 employee` p old a TRUE s 40 1 i FALSE FALSE
+                                                IN      (CONSIDER `the advance rate` (`the advance class of` e)
+                                                         WHEN JUST r THEN r AT LEAST 0.10 AND r AT MOST 0.16
+                                                         WHEN NOTHING THEN TRUE)
+                                                    AND `the Ofek Hadash advance` e (`current pay` 10000 1) TRUE EQUALS 0
+                                                    AND `the Ofek Hadash advance` e (`current pay` 10000 0.5) FALSE AT MOST `the Ofek Hadash advance` e (`current pay` 10000 1) FALSE)
+                                            (LIST 20, 28))
+                                    `both booleans`)
+                            `both booleans`)
+                    `both booleans`)
+            `every post`
+#ASSERT all (GIVEN c YIELD all (GIVEN a YIELD `what applies` c a EQUALS a) (range 0 5)) (range 0 5)

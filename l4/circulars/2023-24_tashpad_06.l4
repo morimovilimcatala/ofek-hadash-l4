@@ -224,3 +224,70 @@ DECLARE `reimbursement` HAS
 
 #TRACE `the updated supplement is paid by February 2024` AT 0 WITH
     PARTY `the employer` DOES `pay the updated supplement, January 2024 included` AT 1
+
+§§ `Property checks`
+
+-- The circular over a finite space: every combination of the employee's
+-- flags and stages; Ofek Hadash grades in halves from 1 to 9.5; days on
+-- either side of 1.1.2024; the months of salary from December 2023 to June
+-- 2024.
+
+`both booleans` MEANS LIST TRUE, FALSE
+`every stage` MEANS LIST `kindergarten`, `primary school`, `middle school`, `teacher-training college`, `upper-secondary school`, `another stage`
+`the grades checked` MEANS map (GIVEN k YIELD k DIVIDED BY 2) (range 2 19)
+`the days checked` MEANS LIST Date 1 9 2023, Date 31 12 2023, Date 1 1 2024, Date 31 8 2024
+
+GIVEN g IS A BOOLEAN, o IS A BOOLEAN, s IS A `stage of education`, t IS A BOOLEAN, n IS A NUMBER
+GIVETH AN `employee under circular 6`
+DECIDE `a checked employee` g o s t n IS
+    `employee under circular 6` WITH
+        `graded on the teaching employees' scale`         IS g
+        `employed by an owner under Ministry supervision` IS o
+        `stage`                                           IS s
+        `placed on the Ofek Hadash teachers' tables`      IS t
+        `Ofek Hadash grade`                               IS n
+        `position fraction`                               IS 1
+
+-- A printed row's amount, or ₪611.04 for a grade the table does not print.
+GIVEN n IS A NUMBER
+GIVETH A NUMBER
+DECIDE `the full-position monthly amount for grade` n IS
+    sum (map (GIVEN r YIELD r's `full-position monthly amount`)
+             (filter (GIVEN r YIELD r's `grade on the Ofek Hadash tables` EQUALS n) `the amounts by grade`))
+    PLUS (IF elem n (map (GIVEN r YIELD r's `grade on the Ofek Hadash tables`) `the amounts by grade`) THEN 0 ELSE 611.04)
+
+-- The table: the amount falls as the grade rises, by every printed step.
+#ASSERT all (GIVEN r YIELD
+                all (GIVEN q YIELD
+                        (NOT r's `grade on the Ofek Hadash tables` LESS THAN q's `grade on the Ofek Hadash tables`)
+                        OR q's `full-position monthly amount` LESS THAN r's `full-position monthly amount`)
+                    `the amounts by grade`)
+            `the amounts by grade`
+
+-- Over every employee, grade and day: a full-position amount exactly for
+-- one the circular covers; a printed grade's row for one placed in it and
+-- ₪611.04 for every other; never above grade 1's; never rising with the
+-- grade; and the circular's amount only from 1.1.2024.
+#ASSERT all (GIVEN g YIELD
+                all (GIVEN o YIELD
+                        all (GIVEN s YIELD
+                                all (GIVEN t YIELD
+                                        all (GIVEN n YIELD
+                                                LET e MEANS `a checked employee` g o s t n
+                                                    a MEANS `the full-position 2016 shekel supplement` e
+                                                    c MEANS g AND o AND NOT (s EQUALS `upper-secondary school` OR s EQUALS `another stage`)
+                                                IN      (a GREATER THAN 0) EQUALS c
+                                                    AND ((NOT c) OR a EQUALS (IF t AND n AT MOST 4.5 THEN `the full-position monthly amount for grade` n ELSE 611.04))
+                                                    AND a AT MOST 1208.26
+                                                    AND ((NOT t) OR `the full-position 2016 shekel supplement` (`a checked employee` g o s t (n PLUS 0.5)) AT MOST a)
+                                                    AND all (GIVEN d YIELD
+                                                                `the full-position 2016 shekel supplement on` e d EQUALS (IF d AT LEAST Date 1 1 2024 THEN JUST a ELSE NOTHING))
+                                                            `the days checked`)
+                                            `the grades checked`)
+                                    `both booleans`)
+                            `every stage`)
+                    `both booleans`)
+            `both booleans`
+
+-- The arrears over the month the updated amount is first paid.
+#ASSERT all (GIVEN m YIELD `the months of retroactive difference owed` m EQUALS max 0 (m MINUS 1)) (range 0 6)
