@@ -434,13 +434,13 @@ class ConventionsModule(unittest.TestCase):
 
 # Type names declared in more than one module (test_a_type_name_is_declared_once):
 # each is a pair the compiler will refuse to import into one file.
-DECLARED_MORE_THAN_ONCE = 206
+DECLARED_MORE_THAN_ONCE = 204
 
 # Constructor names (the cases of a `DECLARE … IS ONE OF`) declared in more
 # than one module (test_a_constructor_name_is_declared_once). Two of them
 # imported into one file compile while the type around each use decides
 # which is meant, and fail "multiple definitions" where it does not.
-CONSTRUCTOR_DECLARED_MORE_THAN_ONCE = 786
+CONSTRUCTOR_DECLARED_MORE_THAN_ONCE = 782
 
 _NAME = re.compile(r"`[^`]+`|[A-Za-z_][\w']*")
 
@@ -480,8 +480,8 @@ def constructors(text: str) -> list[str]:
 # imports together, outside the chain: each a use away from "multiple
 # definitions". Identifiers are type and value names; constructors are counted
 # apart, as above.
-SCOPED_IDENTIFIERS_DECLARED_TWICE = 416
-SCOPED_CONSTRUCTORS_DECLARED_TWICE = 247
+SCOPED_IDENTIFIERS_DECLARED_TWICE = 415
+SCOPED_CONSTRUCTORS_DECLARED_TWICE = 246
 
 _DEF_LINE = re.compile(r"^(?:DECIDE\s+[A-Za-z_][\w']*\s+(`[^`]+`)"
                        r"|DECIDE\s+(`[^`]+`|[A-Za-z_][\w']*)"
