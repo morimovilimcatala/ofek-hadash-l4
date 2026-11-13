@@ -31,8 +31,13 @@ editions print the Jerusalem table's columns in the reverse order):
     the first price is a daily free pass; "נסיעה בודדת": a single trip);
   * the reform's summary table (editions 15-18): distance bands by the
     header's ticket and its second row's means of transport;
-    A row the corpus publishes with more or fewer cells than the header has
-    columns is `misaligned`: its code only, no price read;
+    a row whose cells differ in number from the header's is read by the
+    grid its spans lay out (MMS-702): a cell under one header column is
+    that column's, a cell that runs on over a price column without
+    printing an amount leaves that column no price; a row the grid cannot
+    place — a price column holding two cells or one that is no price, a
+    cell running over a price column that prints an amount in prose — is
+    `misaligned`: its code only, no price read;
   * a zone list (editions 11-14): ring, zone, the localities as printed;
   * the equalisation table (editions 15-19): the allowance band, the
     maximal cumulative reduction, the floor "Max (F,X-R)", the monthly step.
@@ -149,7 +154,37 @@ def kind(cells: list[list[str]]) -> str | None:
     raise ValueError(f"unknown table: {head}")
 
 
-def coded(cells, title: str) -> list[str]:
+AMOUNT = re.compile(r'\d+(?:\.\d+)?\s*(?:₪|ש"ח|שקל)')
+
+
+def by_grid(head_spans, row, row_spans) -> list[list[str]] | None:
+    """The cells of a row under each header column, laid out by the grid
+    the spans make, or None where a cell crosses a column it does not start
+    in and prints an amount there."""
+    def ranges(spans):
+        out, at = [], 0
+        for _, width in spans:
+            out.append((at, at + width))
+            at += width
+        return out
+    cols = ranges(head_spans)
+    under: list[list[str]] = [[] for _ in cols]
+    for text, (s, e) in zip(row, ranges(row_spans)):
+        first = next((i for i, (a, b) in enumerate(cols) if a <= s < b), None)
+        if first is None:
+            return None
+        under[first].append(text)
+        crossed = [i for i, (a, b) in enumerate(cols) if i != first and a < e and s < b]
+        if crossed and AMOUNT.search(text):
+            return None
+        for i in crossed:
+            a, b = cols[i]
+            if not (s <= a and b <= e):
+                return None          # a cell ending inside a column
+    return under
+
+
+def coded(cells, title: str, spans=None) -> list[str]:
     head = [" ".join(c.split()) for c in cells[0]]
     code = name = zones = None
     cols = []
@@ -171,15 +206,30 @@ def coded(cells, title: str) -> list[str]:
             cols.append((i, f"`a fare column` (JUST {t}) NOTHING {frm}"))
     out = ["(LIST " + ", ".join(c for _, c in cols) + ")"]
     rows = []
-    for r in cells[1:]:
+    for n, r in enumerate(cells[1:], 1):
         if not any(x.strip() for x in r):
             continue
         if len(r) != len(head):
             # a row whose cells the corpus publishes in other number than
-            # the header's columns: which price is which cannot be read by
-            # the header, so none is (its code is at the header's end)
-            c = r[0] if code == 0 else r[-1]
-            rows.append(f"`misaligned` {q(c)}")
+            # the header's columns: read by the grid its spans lay out
+            # (MMS-702); a row the grid cannot place gives no price (its
+            # code is at the header's end)
+            under = by_grid(spans[0], r, spans[n]) if spans else None
+            read = None
+            if under is not None and len(under[code]) == 1 \
+                    and all(len(under[i]) <= 1 for i, _ in cols):
+                try:
+                    read = [price(under[i][0]) if under[i] else "NOTHING" for i, _ in cols]
+                except ValueError:
+                    read = None
+            if read is None:
+                c = r[0] if code == 0 else r[-1]
+                rows.append(f"`misaligned` {q(c)}")
+                continue
+            r = [" ".join(u) for u in under]
+            prices = ", ".join(read)
+            rows.append(f"`coded` {q(r[code])} {q(r[name]) if name is not None else q('')} "
+                        f"{q(r[zones]) if zones is not None else q('')} (LIST {prices})")
             continue
         prices = ", ".join(price(r[i]) for i, _ in cols)
         rows.append(f"`coded` {q(r[code])} {q(r[name]) if name is not None else q('')} "
@@ -246,7 +296,7 @@ def equalisation(cells) -> list[str]:
 
 
 def tables(document: str):
-    """(key, kind, title key or None, title, cells) of every data table."""
+    """(key, kind, title key or None, title, cells, spans) of every data table."""
     rows = [r for s in akn.sections(document) for r in s.rows]
     for i, r in enumerate(rows):
         if r.cells is None:
@@ -258,7 +308,7 @@ def tables(document: str):
         title_key, title = None, ""
         if prev is not None and prev.cells is None and k == "coded":
             title_key, title = prev.key, prev.text
-        yield r.key, k, title_key, title, r.cells
+        yield r.key, k, title_key, title, r.cells, r.spans
 
 
 def name(document: str, n: int) -> str:
@@ -269,11 +319,12 @@ TYPE = {"coded": "`a fare table`", "banded": "`a fare table`", "summary": "`a fa
         "zones": None, "equalisation": None}
 
 
-def block(document: str, n: int, key: str, k: str, title_key, title: str, cells) -> str:
+def block(document: str, n: int, key: str, k: str, title_key, title: str, cells,
+          spans=None) -> str:
     refs = f"akn:{key}" if title_key is None else f"akn:{title_key} akn:{key}"
     lines = [f"-- tariff data akn:{key} (tools/tariff_l4.py)", f"@ref {refs}"]
     if k in ("coded", "banded", "summary"):
-        body = {"coded": lambda: coded(cells, title), "banded": lambda: banded(cells),
+        body = {"coded": lambda: coded(cells, title, spans), "banded": lambda: banded(cells),
                 "summary": lambda: summary(cells)}[k]()
         lines += [f"{name(document, n)} MEANS", f"    `a fare table` {q(title)}",
                   f"        {body[0]}",
@@ -291,8 +342,8 @@ def blocks(document: str) -> dict[str, str]:
     """Every table's block by its key, and the block "all": the edition's
     fare tables and zone lists, listed, in the text's order."""
     out, fares, zone_lists = {}, [], []
-    for n, (key, k, tk, title, cells) in enumerate(tables(document), 1):
-        out[key] = block(document, n, key, k, tk, title, cells)
+    for n, (key, k, tk, title, cells, spans) in enumerate(tables(document), 1):
+        out[key] = block(document, n, key, k, tk, title, cells, spans)
         if k == "zones":
             zone_lists.append(f"`notice {edition(document)}'s zone list {n}`")
         elif k != "equalisation":
