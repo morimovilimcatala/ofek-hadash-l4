@@ -826,7 +826,6 @@ MISQUOTED = {
     # The corpus prints the sentence damaged, the quote is the page's: a
     # number or a sign moved by the RTL extraction (MMS-426, which MMS-478
     # was folded into; its bullet half shipped in the corpus's bfacfc2).
-    "F-2008-09_tashsat_09-b": "MMS-426",
     "F-2019-20_tashaf_08-b": "MMS-426",
 }
 
