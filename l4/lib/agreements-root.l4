@@ -7,14 +7,23 @@
 -- It is a `collection root` (l4/lib/precedence.l4), and so is each family:
 -- the agreements' own precedence is this root's to apply (the client,
 -- 2026-10-22: "agreement precedence is the agreement root's
--- responsibility"). Among collective agreements the provision in the
--- employee's favour governs (the Collective Agreements Law, §23): each family
--- rules among its own agreements, and this root among the families. Of an
--- agreement and the agreements that amend it, only the latest amendment in
--- force is weighed: the earlier words were changed lawfully (§19; the
--- teachers-general family, convention instruments.amendment-chain). The root
--- (l4/lib/root.l4) sets this collection's ruling against the takanon's and
--- the circulars'.
+-- responsibility"). One rule, two halves (the client, 2026-11-13, MMS-686;
+-- conventions instruments.amendment-chain and instruments.side-by-side,
+-- picks for the lawyer):
+--   - between agreements of the SAME parties on the same matter, the later
+--     replaces the earlier, even where it gives less: the earlier provision
+--     was changed lawfully, and §19 of the Collective Agreements Law keeps a
+--     personal provision in the contract only while it is not. The parties
+--     are each agreement's own (`signed by`, read from its preamble); the
+--     matter is the pay item; the later is the later signed of those that
+--     speak in the salary month;
+--   - between agreements that apply SIDE BY SIDE (different parties), the
+--     provision in the employee's favour governs (§23).
+-- The rule is applied once, over every family's claims together, so that a
+-- later agreement replaces an earlier one of the same parties in another
+-- family too; each family's own page rules among its agreements the same
+-- way. The root (l4/lib/root.l4) sets this collection's ruling against the
+-- takanon's and the circulars'.
 
 IMPORT prelude
 IMPORT precedence
@@ -25,6 +34,51 @@ IMPORT `teachers-general-root`
 
 § `שורש ההסכמים — מה ההסכמים אומרים על כל פריט`
 
+§§ `סעיף 19 — ההסכם המאוחר בין אותם צדדים מחליף את המוקדם`
+
+GIVEN a IS A LIST OF `signatory`
+      b IS A LIST OF `signatory`
+GIVETH A BOOLEAN
+DECIDE `every party of the one signed the other` a b IF
+    all (GIVEN p YIELD any (GIVEN q YIELD p EQUALS q) b) a
+
+-- Two agreements are of the same parties when each was signed by every
+-- party that signed the other.
+GIVEN a IS A `claim`, b IS A `claim`
+GIVETH A BOOLEAN
+DECIDE `made between the same parties` a b IF
+        `every party of the one signed the other` (a's `by`'s `signed by`) (b's `by`'s `signed by`)
+    AND `every party of the one signed the other` (b's `by`'s `signed by`) (a's `by`'s `signed by`)
+
+-- A later agreement of the same parties speaks to the item in the salary
+-- month: its claim is among the claims. Two signed on one day do not
+-- replace each other.
+GIVEN x IS A `claim`, claims IS A LIST OF `claim`
+GIVETH A BOOLEAN
+DECIDE `a later agreement of the same parties speaks` x claims IF
+    any (GIVEN y YIELD `made between the same parties` x y
+                       AND DATE_SERIAL (y's `by`'s `issued`) GREATER THAN DATE_SERIAL (x's `by`'s `issued`))
+        claims
+
+-- The provision a claim rests on, as §19 asks of it: a pay term of an
+-- agreement that applies to the teacher and his employer (the claim's own
+-- file decides that), changed lawfully where a later agreement of the same
+-- parties speaks to the same item in the month.
+GIVEN x IS A `claim`, claims IS A LIST OF `claim`
+GIVETH AN `agreement provision`
+DECIDE `the provision the claim rests on` x claims IS
+    `agreement provision` WITH
+        `is about terms of work, the end of work, or a duty or right of the employee and employer` IS TRUE
+        `the agreement applies to the employer and the employee` IS TRUE
+        `changed or cancelled lawfully` IS `a later agreement of the same parties speaks` x claims
+
+-- §19: the claims whose provision is still part of the teacher's contract
+-- of employment. These, and no others, are what §23 weighs.
+GIVEN claims IS A LIST OF `claim`
+GIVETH A LIST OF `claim`
+DECIDE `the claims §19 leaves in force` claims IS
+    filter (GIVEN x YIELD `is part of the employee's contract of employment` (`the provision the claim rests on` x claims)) claims
+
 §§ `סעיף 23 — ההוראה שלטובת העובד`
 
 GIVEN a IS A `claim`, b IS A `claim`
@@ -32,22 +86,27 @@ GIVETH A `claim`
 DECIDE `the agreement more favourable to the employee` a b IS
     IF `the amount that governs between agreements` (a's `answer`) (b's `answer`) EQUALS a's `answer` THEN a ELSE b
 
--- Among agreements that speak, the one whose provision is in the employee's
--- favour; one alone governs as the only one that speaks.
+-- Among the agreements §19 leaves, the one whose provision is in the
+-- employee's favour (§23). The ruling names the rule that decided it: §23
+-- where two or more were left, §19 where one was left of several, and the
+-- only instrument that speaks where one spoke.
 GIVEN claims IS A LIST OF `claim`
 GIVETH A MAYBE `ruling`
 DECIDE `the ruling among agreements` claims IS
-    CONSIDER claims
+    CONSIDER `the claims §19 leaves in force` claims
     WHEN EMPTY THEN NOTHING
     WHEN a FOLLOWED BY more THEN
         JUST (`the ruling for`
                   (foldr (GIVEN c, acc YIELD `the agreement more favourable to the employee` acc c) a more)
-                  (IF null more THEN `the only instrument that speaks` ELSE `§23: the provision in the employee's favour`))
+                  (BRANCH IF NOT null more THEN `§23: the provision in the employee's favour`
+                          IF null (drop 1 claims) THEN `the only instrument that speaks`
+                          OTHERWISE `§19: the later agreement of the same parties replaces the earlier`))
 
 §§ `המשפחות`
 
 -- Each family of agreements is a collection root of its own, ruling among
--- its agreements by §23 (the teachers' general agreements by §19 first).
+-- its agreements by the same rule: §19 between agreements of the same
+-- parties, §23 between those left.
 `the Ofek Hadash agreements' root` MEANS
     `collection root` WITH
         `the collection`  IS "הסכמי אופק חדש"
@@ -62,28 +121,12 @@ DECIDE `the ruling among agreements` claims IS
         `what each says`  IS `the Oz LaTmura agreements' claims on`
         `its ruling`      IS (GIVEN i, c YIELD `the ruling among agreements` (`the Oz LaTmura agreements' claims on` i c))
 
--- The teachers' general agreements (MMS-518): §19 first — of the
--- agreement of 21.2.2008 and its amendments, the latest in force in the
--- salary month speaks — and §23 among what is left. Where an amendment in
--- force changed an earlier agreement's claim, the ruling says so.
-GIVEN i IS A `pay item`, c IS A `teaching case`
-GIVETH A MAYBE `ruling`
-DECIDE `the teachers' general agreements' ruling on` i c IS
-    CONSIDER `the ruling among agreements` (`the teachers' general agreements' claims in force on` i c)
-    WHEN NOTHING THEN NOTHING
-    WHEN JUST r THEN
-        JUST (IF      r's `by the rule` EQUALS `the only instrument that speaks`
-                  AND count (`the teachers' general agreements' claims in force on` i c)
-                      LESS THAN count (`the teachers' general agreements' claims on` i c)
-              THEN `the ruling by the rule` r `§19: the amendment in force changed the earlier provision`
-              ELSE r)
-
 `the teachers' general agreements' root` MEANS
     `collection root` WITH
         `the collection`  IS "הסכמים כלליים לעובדי הוראה"
         `its instruments` IS `the teachers' general agreements' instruments`
         `what each says`  IS `the teachers' general agreements' claims on`
-        `its ruling`      IS `the teachers' general agreements' ruling on`
+        `its ruling`      IS (GIVEN i, c YIELD `the ruling among agreements` (`the teachers' general agreements' claims on` i c))
 
 `the families of agreements` MEANS
     LIST `the Ofek Hadash agreements' root`, `the Oz LaTmura agreements' root`, `the teachers' general agreements' root`
@@ -102,16 +145,11 @@ GIVETH A LIST OF `claim`
 DECIDE `the agreements' claims on` i c IS
     concat (map (GIVEN r YIELD `what the collection's instruments say` r i c) `the families of agreements`)
 
--- Among the families, §23 again: one family that speaks keeps its own
--- ruling; where more speak, the most favourable of their rulings governs.
+-- The rule once, over every family's claims together.
 GIVEN i IS A `pay item`, c IS A `teaching case`
 GIVETH A MAYBE `ruling`
 DECIDE `the agreements' ruling on` i c IS
-    CONSIDER catMaybes (map (GIVEN r YIELD `the collection's ruling` r i c) `the families of agreements`)
-    WHEN EMPTY THEN NOTHING
-    WHEN f FOLLOWED BY fs THEN
-        IF null fs THEN JUST f
-        ELSE `the ruling among agreements` (map `the claim of the ruling` (f FOLLOWED BY fs))
+    `the ruling among agreements` (`the agreements' claims on` i c)
 
 `the agreements' root` MEANS
     `collection root` WITH

@@ -165,14 +165,18 @@ all the files to give one answer", and disagreements raised as errors.
   earlier, `precedence.later-circular`). The agreements' root holds one root
   per family of agreements, as the corpus groups them (MMS-548):
   `ofek-hadash-root.l4`, `oz-latmura-root.l4` and `teachers-general-root.l4`
-  (each family rules among its own agreements by §23, the agreements' root
-  among the families), each with its page in its family
-  (agreements/ofek-hadash/root.html). Before §23 weighs anything, the
-  agreements' root applies the Collective Agreements Law's §19 to a chain of
-  an agreement and its amendments: the latest amendment in force in the
-  month speaks, and the provisions it changed are listed but not weighed
-  (MMS-518, convention `instruments.amendment-chain`, a pick for the
-  lawyer). A collection's tests hold its own ruling.
+  (each family rules among its own agreements, the agreements' root over
+  every family's claims together), each with its page in its family
+  (agreements/ofek-hadash/root.html). One rule (the client, 2026-11-13,
+  MMS-686): between agreements of the SAME parties on the same matter (the
+  same pay item), the later replaces the earlier, even where it gives less
+  (the Collective Agreements Law's §19; convention
+  `instruments.amendment-chain`); §23, the provision in the employee's
+  favour, is weighed only between agreements that apply side by side, of
+  different parties (`instruments.side-by-side`); both picks for the lawyer.
+  Each agreement names its parties in `signed by`, read from its preamble,
+  and is encoded as signed, never cut off where a later one replaces it. A
+  collection's tests hold its own ruling.
 - **Precedence between collections, once**, `l4/lib/precedence.l4`: the
   takanon's introduction, then §29 and §22 between an agreement and the
   employer's term. The root folds over the list of collection roots and

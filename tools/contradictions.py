@@ -222,7 +222,8 @@ WEIGHED = ("takanon", "agreement", "circular")
 # Where a row the root generates sits on the page, by the rule that settles
 # it (l4/lib/precedence.l4): the takanon against an agreement or a circular,
 # a circular against the agreement it carries out, two agreements weighed
-# by §23, two circulars by date. tests/test_contradictions.py holds that
+# by §23 or the later of the same parties replacing the earlier (§19,
+# MMS-686), two circulars by date. tests/test_contradictions.py holds that
 # every rule the root reports is here.
 RULE_GROUP = {
     "מבוא התקנון: הסכם קיבוצי גובר על התקנון": "takanon",
@@ -232,6 +233,7 @@ RULE_GROUP = {
     "חוזר אינו גובר על ההסכם שהוא מבצע": "agreement",
     "חוק הסכמים קיבוציים, סעיף 22: תנאי לטובת העובד עומד": "agreement",
     "חוק הסכמים קיבוציים, סעיף 23: ההוראה שלטובת העובד": "agreements",
+    "חוק הסכמים קיבוציים, סעיף 19: ההסכם המאוחר בין אותם צדדים באותו עניין מחליף את המוקדם": "agreements",
     "חוזר מאוחר גובר על חוזר מוקדם בעניין אחד": "circulars",
 }
 REPORT = "`the contradictions report`"
