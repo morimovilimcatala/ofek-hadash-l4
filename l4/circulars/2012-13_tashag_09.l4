@@ -8,6 +8,7 @@
 
 IMPORT prelude
 IMPORT `takanon-1-1`
+IMPORT vocabulary
 
 -- Dates are numbers YYYYMMDD.
 `1 July 2013`      MEANS 20130701
@@ -31,13 +32,6 @@ IMPORT `takanon-1-1`
 -- akn:preamble/p17 States the circular's purpose; no rule.
 -- akn:preamble/p18 The heading "תחולה"; no rule.
 
-DECLARE `stage of education` IS ONE OF
-    `kindergarten`
-    `primary`
-    `junior high`
-    `teacher-training college`
-    `upper division`
-
 @desc A teaching employee as this circular asks about them.
 DECLARE `teacher outside the upper division` HAS
     `graded as a teaching employee`  IS A BOOLEAN @desc graded in the teaching-employees grading
@@ -51,13 +45,16 @@ DECLARE `teacher outside the upper division` HAS
     `physical-education position`    IS A NUMBER
     `technological subjects`         IS A LIST OF STRING @desc the subjects taught in technological education, as the lists print them; empty for none
 
+-- The stages it names are the shared `stage of education`'s kindergarten,
+-- primary and junior-high stages and its colleges for training teaching
+-- staff ("מכללות להכשרת עובדי הוראה"), the academic college among them.
 @ref akn:preamble/p19
 GIVEN t IS A `teacher outside the upper division`
 GIVETH A BOOLEAN
 DECIDE `the circular applies to` t IF
         t's `graded as a teaching employee`
     AND t's `employed by a supervised owner`
-    AND NOT t's `stage` EQUALS `upper division`
+    AND elem (t's `stage`) (LIST `the kindergarten stage`, `the primary stage`, `the junior-high stage`, `the teachers' college stage`, `the academic teachers' college stage`)
 
 -- A salary union is covered only for the share paid for the owner's junior-
 -- high employment (א ¶10, ב.1(ו)); otherwise for the whole salary.
@@ -243,7 +240,7 @@ DECIDE `the total all employers pay under ז` t IS
     `teacher outside the upper division` WITH
         `graded as a teaching employee`  IS TRUE
         `employed by a supervised owner` IS TRUE
-        `stage`                          IS `primary`
+        `stage`                          IS `the primary stage`
         `in a salary union`              IS FALSE
         `owner junior-high share`        IS 0
         `positions`                      IS LIST 0.7, 0.6
@@ -440,7 +437,7 @@ DECIDE `both grants added` t IS
     `teacher outside the upper division` WITH
         `graded as a teaching employee`  IS TRUE
         `employed by a supervised owner` IS TRUE
-        `stage`                          IS `primary`
+        `stage`                          IS `the primary stage`
         `in a salary union`              IS FALSE
         `owner junior-high share`        IS 0
         `positions`                      IS LIST 1
@@ -479,7 +476,7 @@ DECIDE `both grants added` t IS
 -- list, none, a subject on neither and one of each list; every kind of
 -- payment and dates on either side of every date the circular names.
 
-`every stage` MEANS LIST `kindergarten`, `primary`, `junior high`, `teacher-training college`, `upper division`
+`every stage` MEANS LIST `the kindergarten stage`, `the primary stage`, `the junior-high stage`, `the teachers' college stage`, `the upper-division stage`
 `both booleans` MEANS LIST TRUE, FALSE
 `tenths to 1.5` MEANS map (GIVEN k YIELD k DIVIDED BY 10) (range 0 15)
 `fifths to 1` MEANS map (GIVEN k YIELD k DIVIDED BY 5) (range 0 5)
@@ -547,7 +544,7 @@ DECIDE `a checked teacher` g st u j ps e r l IS
                                                     a MEANS `general clothing allowance` t
                                                 IN      a AT LEAST 0
                                                     AND a AT MOST `the reduced allowance`
-                                                    AND a EQUALS (IF g AND NOT st EQUALS `upper division`
+                                                    AND a EQUALS (IF g AND NOT st EQUALS `the upper-division stage`
                                                                   THEN (IF u THEN j ELSE 1) TIMES `the reduced allowance` TIMES min p 1
                                                                   ELSE 0)
                                                     AND a AT MOST `general clothing allowance` (`a checked teacher` g st u j (LIST (p PLUS 0.1)) FALSE 0 EMPTY))
@@ -562,7 +559,7 @@ DECIDE `a checked teacher` g st u j ps e r l IS
 -- (F-2012-13_tashag_09-a, whole space).
 #ASSERT all (GIVEN p YIELD
                 all (GIVEN q YIELD
-                        (`general clothing allowance` (`a checked teacher` TRUE `primary` FALSE 0 (LIST p, q) FALSE 0 EMPTY)
+                        (`general clothing allowance` (`a checked teacher` TRUE `the primary stage` FALSE 0 (LIST p, q) FALSE 0 EMPTY)
                          GREATER THAN `the reduced allowance`)
                         EQUALS (p PLUS q GREATER THAN 1))
                     `fifths to 1`)
@@ -575,13 +572,13 @@ DECIDE `a checked teacher` g st u j ps e r l IS
 -- part for a full-position teacher exactly below 0.5.
 #ASSERT all (GIVEN r YIELD
                 LET rows MEANS `the amounts the table gives for position` r
-                    a MEANS `physical-education allowance` (`a checked teacher` TRUE `primary` FALSE 0 (LIST 1) TRUE r EMPTY)
+                    a MEANS `physical-education allowance` (`a checked teacher` TRUE `the primary stage` FALSE 0 (LIST 1) TRUE r EMPTY)
                 IN      count rows AT LEAST 1
                     AND (count rows EQUALS 2) EQUALS (r EQUALS 0.3 OR r EQUALS 0.5)
                     AND elem a rows
-                    AND a AT MOST `physical-education allowance` (`a checked teacher` TRUE `primary` FALSE 0 (LIST 1) TRUE (r PLUS 0.1) EMPTY)
-                    AND `physical-education allowance` (`a checked teacher` TRUE `primary` FALSE 0 (LIST 1) FALSE r EMPTY) EQUALS 0
-                    AND (NOT (a EQUALS `physical-education allowance` (`a checked teacher` TRUE `primary` FALSE 0 (LIST 1) TRUE 1 EMPTY)))
+                    AND a AT MOST `physical-education allowance` (`a checked teacher` TRUE `the primary stage` FALSE 0 (LIST 1) TRUE (r PLUS 0.1) EMPTY)
+                    AND `physical-education allowance` (`a checked teacher` TRUE `the primary stage` FALSE 0 (LIST 1) FALSE r EMPTY) EQUALS 0
+                    AND (NOT (a EQUALS `physical-education allowance` (`a checked teacher` TRUE `the primary stage` FALSE 0 (LIST 1) TRUE 1 EMPTY)))
                         EQUALS (r LESS THAN 0.5))
             `tenths to 1.5`
 
@@ -590,7 +587,7 @@ DECIDE `a checked teacher` g st u j ps e r l IS
 -- readings part exactly for a teacher on both lists.
 #ASSERT all (GIVEN s YIELD NOT elem s `the two-coats subjects`) `the shoes-and-coats subjects`
 #ASSERT all (GIVEN l YIELD
-                LET t MEANS `a checked teacher` TRUE `primary` FALSE 0 (LIST 1) FALSE 0 l
+                LET t MEANS `a checked teacher` TRUE `the primary stage` FALSE 0 (LIST 1) FALSE 0 l
                 IN      `technological clothing allowance` t AT LEAST 0
                     AND `technological clothing allowance` t AT MOST `the value of a pair of shoes and two coats`
                     AND (NOT (`both grants added` t EQUALS `the larger grant` t))
@@ -598,7 +595,7 @@ DECIDE `a checked teacher` g st u j ps e r l IS
             `every subject list checked`
 
 `a teacher on both technological lists meets two grants` MEANS
-    LET t MEANS `a checked teacher` TRUE `primary` FALSE 0 (LIST 1) FALSE 0 (LIST "מכטרוניקה", "מערכות אלקטרוניות")
+    LET t MEANS `a checked teacher` TRUE `the primary stage` FALSE 0 (LIST 1) FALSE 0 (LIST "מכטרוניקה", "מערכות אלקטרוניות")
     IN      `teaches a subject on` `the shoes-and-coats subjects` t
         AND `teaches a subject on` `the two-coats subjects` t
         AND NOT (`both grants added` t EQUALS `the larger grant` t)
