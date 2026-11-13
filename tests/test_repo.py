@@ -957,16 +957,23 @@ class Agreements(unittest.TestCase):
         """The Oz LaTmura agreement of 14.8.2011 (MMS-569): its preamble,
         63 articles, sign-off, and each of its fourteen annexes a section,
         the annexes under a chapter of their own, cited by their label and
-        filed in ASCII. Sectioning it keeps every row the whole document
+        filed in ASCII; and after them the nine letters it encloses, which
+        the corpus gives no label (MMS-588), each a section named by its
+        place among them. Sectioning it keeps every row the whole document
         read, in the same order."""
         self.assertFalse(akn.is_whole(self.OZ))
         secs = akn.sections(self.OZ)
         nums = [s.num for s in secs]
         self.assertEqual(nums[:65], ["פתיח", *[str(n) for n in range(1, 64)], "חתימה"])
-        annexes = secs[65:]
+        annexes, letters = secs[65:79], secs[79:]
         self.assertEqual(len(annexes), 14)
         self.assertTrue(all(s.chapter_eid == "attachments" and s.num.startswith(akn.ANNEX) for s in annexes))
         self.assertEqual(site_mod.l4_path(self.OZ, "נספח א'1").name, "oz-founding-annex-a1.l4")
+        self.assertEqual([s.num for s in letters], [f"{akn.LETTER}{n}" for n in range(1, 10)])
+        self.assertEqual([s.eid for s in letters], [f"att_{n}" for n in range(15, 24)])
+        self.assertEqual(site_mod.l4_path(self.OZ, letters[2].num).name, "oz-founding-letter-3.l4")
+        self.assertEqual(site_mod.sec_ref(letters[0]), "מכתב נלווה 1")
+        self.assertTrue(letters[0].heading.startswith("מכתב מנכ\"ל משרד החינוך"))
         self.assertEqual(site_mod.sec_ref(annexes[0]), "נספח א'")
         self.assertEqual(site_mod.num_dir(annexes[0].num), "rtl")
         self.assertEqual(site_mod.num_dir("1.7א"), "ltr")

@@ -321,6 +321,11 @@ FRAME_PARTS = {"preamble": "פתיח", "conclusions": "חתימה"}
 # an annex's label, and the chapter its annexes are listed under
 ANNEX = "נספח "
 ANNEXES = "נספחים"
+# an enclosed letter: an <attachment> whose <doc name="letter"> the corpus
+# gives no label, since the "[מכתב נלווה: …]" line opening it is the
+# transcriber's and not the letter's title (MMS-588). It is a section of
+# its own, named by its place among the document's letters.
+LETTER = "מכתב נלווה "
 HEB_LATIN = dict(zip("אבגדהוזחטיכלמנסעפצקרשת",
                      "a b g d h v z ch t y k l m n s e p ts q r sh t".split()))
 
@@ -328,7 +333,7 @@ HEB_LATIN = dict(zip("אבגדהוזחטיכלמנסעפצקרשת",
 def unnumbered(num: str) -> bool:
     """A section cited by its name, not as "§<num>": an agreement's
     preamble, sign-off and annexes."""
-    return num in FRAME_PARTS.values() or num.startswith(ANNEX)
+    return num in FRAME_PARTS.values() or num.startswith(ANNEX) or num.startswith(LETTER)
 
 
 def is_whole(relative: str) -> bool:
@@ -359,6 +364,8 @@ def whole_section(relative: str) -> Section:
 def file_name(num: str) -> str:
     if num.startswith(ANNEX):    # "נספח א'1" -> "annex-a1"
         return "annex-" + "".join(HEB_LATIN.get(c, c) for c in num[len(ANNEX):] if c.isalnum())
+    if num.startswith(LETTER):  # "מכתב נלווה 3" -> "letter-3"
+        return "letter-" + num[len(LETTER):]
     return {v: k for k, v in FRAME_PARTS.items()}.get(num, num)
 
 
@@ -373,15 +380,26 @@ def frame_section(part, notes) -> Section | None:
     return Section(key, name, "", key, "", name, rows)
 
 
-def annex_section(att, notes) -> Section | None:
+def is_letter(att) -> bool:
+    doc = att.find(AKN + "doc")
+    return doc is not None and doc.get("name") == "letter" and not label_of(att)[1]
+
+
+def annex_section(att, notes, letter: int = 0) -> Section | None:
     """An agreement's annex as a section of its own, under the chapter of
     its annexes: its rows keyed from its own eId down, as a whole document
-    keys them."""
+    keys them. An enclosed letter (the `letter`-th of the document) is
+    labelled LETTER and its number, and headed by the transcriber's note
+    that opens it, as the corpus reader lists it."""
     rows = section_rows(att, notes, att.get("eId"))
     if not rows:
         return None
     _, label = label_of(att)
-    return Section(att.get("eId"), label, "", "attachments", "", ANNEXES, rows)
+    head = ""
+    if letter:
+        label = f"{LETTER}{letter}"
+        head = re.sub(r"^\[מכתב נלווה:\s*|\]$", "", rows[0].text.strip())
+    return Section(att.get("eId"), label, head, "attachments", "", ANNEXES, rows)
 
 
 def sections(relative: str) -> list[Section]:
@@ -414,12 +432,14 @@ def sections(relative: str) -> list[Section]:
     # an interstitial is no annex: its lines open the section of the annex
     # after it, which they head
     pending: list[Row] = []
+    letters = 0
     for att in frame.get("attachments", []):
         if tag(att) != "attachment":
             continue
+        letters += is_letter(att)
         if att.find(AKN + "interstitial") is not None:
             pending += section_rows(att, notes, att.get("eId"))
-        elif s := annex_section(att, notes):
+        elif s := annex_section(att, notes, letters if is_letter(att) else 0):
             s.rows[:0], pending = pending, []
             out.append(s)
     if pending:

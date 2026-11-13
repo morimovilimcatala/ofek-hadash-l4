@@ -1434,13 +1434,15 @@ def contents_page(doc: str, views: list[SectionView]) -> str:
     meta = doc_meta(doc)
     articles = [v for v in views if not akn.unnumbered(v.section.num)]
     annexes = [v for v in views if v.section.num.startswith(akn.ANNEX)]
+    letters = [v for v in views if v.section.num.startswith(akn.LETTER)]
     lede = (f'תקנון שירות עובדי הוראה של משרד החינוך, במלואו, '
             f'כפי שהקורפוס מפרסם אותו: {len(views)} סעיפים ב־{len(chapters)} פרקים, עמוד לכל פרק.'
             if takanon else
             f'ההסכם הקיבוצי מיום {esc(".".join(str(int(x)) for x in reversed((meta.get("date") or "").split("-"))) if meta.get("date") else "")}, '
             f'כפי שהקורפוס מפרסם אותו: המבוא, '
             f'{len(articles)} סעיפים ב־{len({v.section.chapter_eid for v in articles})} פרקים, והחתימה'
-            + (f' ו־{len(annexes)} נספחים' if annexes else "") + '; עמוד לכל פרק.')
+            + (f' ו־{len(annexes)} נספחים' if annexes else "")
+            + (f' ו־{len(letters)} מכתבים נלווים' if letters else "") + '; עמוד לכל פרק.')
     head = (f'<header class="sec-head doc-head"><nav class="crumbs"><a href="{rel("index.html", here)}">מסמכים</a>{crumb}</nav>'
             f'<div class="title-row"><h1 lang="he" dir="rtl">{esc(akn.title(doc))}</h1></div>'
             f'<p class="lede">{lede} כל פסקה '
