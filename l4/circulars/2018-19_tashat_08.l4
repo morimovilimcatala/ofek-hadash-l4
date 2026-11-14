@@ -6,6 +6,7 @@
 
 IMPORT prelude
 IMPORT common
+IMPORT vocabulary
 
 -- Time in the regulative rules is counted in school months of תשע"ט
 -- (common.l4: September 2018 = 1, July 2019 = 11).
@@ -81,41 +82,38 @@ DECIDE `the allowance one employer pays` y `fraction with this employer` IS
 -- employment procedure; the last paragraph: no change in the conditions
 -- for approval and no permission to exceed them. Every teaching employee
 -- is under the 140% cap, and a reform teacher under the lower one too.
+-- The 140% row prints "עובד הוראה"; of the shared `employment track` it is
+-- the teacher outside the reforms, the other rows naming the principal and
+-- the reform teachers.
 @ref akn:art_1__para_f akn:art_1__para_f/p2
-GIVEN t IS A `terms of employment`
+GIVEN t IS AN `employment track`
 GIVETH A NUMBER
 DECIDE `the employment cap` t IS
     CONSIDER t
-    WHEN `a teaching employee` THEN 1.40
-    WHEN `a principal not under the reform` THEN 1.50
-    WHEN `a teacher under Oz LeTmura in full implementation` THEN 1.25
-    WHEN `a teacher under Ofek Hadash` THEN 1.17
+    WHEN `a teacher outside the reforms` THEN 1.40
+    WHEN `a principal outside the reforms` THEN 1.50
+    WHEN `a teacher in Oz LaTmura in full implementation` THEN 1.25
+    WHEN `a teacher in Ofek Hadash` THEN 1.17
 
 -- F-2018-19_tashat_08-f: the first sentence of §1ו limits EVERY teaching employee to 140%
 -- and a principal outside the reform to 150%, so that principal has two
 -- limits, and the closing summary lists only the 140%. Reading adopted, as
 -- in F-2019-20_tashaf_11-a: the principal's own 150% governs a principal.
-GIVEN t IS A `terms of employment`
+GIVEN t IS AN `employment track`
 GIVETH A LIST OF NUMBER
 DECIDE `the limits §1ו sets` t IS
     CONSIDER t
-    WHEN `a teaching employee` THEN LIST 1.4
-    WHEN `a principal not under the reform` THEN LIST 1.4, 1.5
-    WHEN `a teacher under Oz LeTmura in full implementation` THEN LIST 1.4, 1.25
-    WHEN `a teacher under Ofek Hadash` THEN LIST 1.4, 1.17
+    WHEN `a teacher outside the reforms` THEN LIST 1.4
+    WHEN `a principal outside the reforms` THEN LIST 1.4, 1.5
+    WHEN `a teacher in Oz LaTmura in full implementation` THEN LIST 1.4, 1.25
+    WHEN `a teacher in Ofek Hadash` THEN LIST 1.4, 1.17
 
 `a non-reform principal is given both 140% and 150%` MEANS
-    `the limits §1ו sets` `a principal not under the reform` EQUALS LIST 1.4, 1.5
+    `the limits §1ו sets` `a principal outside the reforms` EQUALS LIST 1.4, 1.5
 #ASSERT `a non-reform principal is given both 140% and 150%`
 
-DECLARE `terms of employment` IS ONE OF
-    `a teaching employee`
-    `a principal not under the reform`
-    `a teacher under Oz LeTmura in full implementation`
-    `a teacher under Ofek Hadash`
-
 @ref akn:art_1__para_f/p3 akn:art_1__para_f/p4 akn:art_1/p5
-GIVEN t IS A `terms of employment`, `approved under the exceptional-employment procedure` IS A BOOLEAN
+GIVEN t IS AN `employment track`, `approved under the exceptional-employment procedure` IS A BOOLEAN
 GIVETH A DEONTIC Party `tashat-8 clothing action`
 DECIDE `no employment beyond the cap` t `approved under the exceptional-employment procedure` IS
     IF `approved under the exceptional-employment procedure`
@@ -138,19 +136,13 @@ DECIDE `paying the clothing allowance` y IS
 
 §§ `2 קצובת ביגוד נוספת למורה לחינוך גופני`
 
-@desc A printed row of section 2's table: a band of physical-education position and the amount as at 1.9.2018.
-DECLARE `physical-education band` HAS
-    `band from` IS A NUMBER
-    `band to`   IS A NUMBER @desc 999 stands for "ומעלה"
-    `band amount` IS A NUMBER
-
 -- The table as printed: "up to 0.3" (0), "from 0.3 to 0.5 inclusive" (686),
 -- "from 0.5 and above" (1,369). Both bounds are read inclusively, as printed.
 @ref akn:art_2/p2 akn:art_2/t1
 `the physical-education table` MEANS
-    LIST `physical-education band` 0   0.3 0,
-         `physical-education band` 0.3 0.5 686,
-         `physical-education band` 0.5 999 1369
+    LIST `physical-education band` 0 TRUE 0.3 TRUE 0,
+         `physical-education band` 0.3 TRUE 0.5 TRUE 686,
+         `physical-education band` 0.5 TRUE 999 TRUE 1369
 
 -- The rows as printed, each bound inclusive, only to show where they meet
 -- (thresholds.shared-bound): no operative rule reads this list; the rule
@@ -159,7 +151,7 @@ GIVEN f IS A NUMBER
 GIVETH A LIST OF NUMBER
 DECIDE `the amounts the table gives for` f IS
     map (GIVEN b YIELD b's `band amount`)
-        (filter (GIVEN b YIELD f AT LEAST b's `band from` AND f AT MOST b's `band to`) `the physical-education table`)
+        (filter (GIVEN b YIELD `the physical-education band takes` f b) `the physical-education table`)
 
 -- F-2018-19_tashat_08-d: "שיעור העסקה" is not said to be the share of the
 -- position in physical education or the employee's whole position. The
@@ -339,8 +331,8 @@ DECIDE `names a payment month` s IF
 `both booleans` MEANS LIST TRUE, FALSE
 `tenths to 1.5` MEANS map (GIVEN k YIELD k DIVIDED BY 10) (range 0 15)
 `every track` MEANS
-    LIST `a teaching employee`, `a principal not under the reform`,
-         `a teacher under Oz LeTmura in full implementation`, `a teacher under Ofek Hadash`
+    LIST `a teacher outside the reforms`, `a principal outside the reforms`,
+         `a teacher in Oz LaTmura in full implementation`, `a teacher in Ofek Hadash`
 `every subject list checked` MEANS
     append (LIST EMPTY, (LIST "מכטרוניקה", "מערכות אלקטרוניות"), (LIST "מתמטיקה"))
            (map (GIVEN q YIELD LIST q) (append `the shoes-and-coats subjects` `the two-coats subjects`))
@@ -383,8 +375,8 @@ DECIDE `a checked year` g o p f l IS
 -- §1f over every track: a principal's cap outside the reform is the
 -- highest, Ofek Hadash's the lowest.
 #ASSERT all (GIVEN t YIELD
-                    `the employment cap` t AT MOST `the employment cap` `a principal not under the reform`
-                AND `the employment cap` `a teacher under Ofek Hadash` AT MOST `the employment cap` t)
+                    `the employment cap` t AT MOST `the employment cap` `a principal outside the reforms`
+                AND `the employment cap` `a teacher in Ofek Hadash` AT MOST `the employment cap` t)
             `every track`
 
 -- §2 over shares in tenths: every share is in some row, two exactly at 0.3

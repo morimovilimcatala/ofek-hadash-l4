@@ -6,6 +6,7 @@
 
 IMPORT prelude
 IMPORT common
+IMPORT vocabulary
 
 -- not weighed against `the Hours of Work and Rest Law`: ‘משרה מלאה’ and
 -- ‘היקף משרה’ here measure the position, as the base of a sum paid pro rata
@@ -50,14 +51,6 @@ DECLARE `consumer price index` IS ONE OF
 
 -- akn:preamble/p17 The heading "תחולה" (scope); no rule.
 
-@desc The stages of education ¶18 names, and any other.
-DECLARE `stage of education` IS ONE OF
-    `kindergarten`
-    `primary school`
-    `junior high school`
-    `teacher-training college`
-    `another stage`
-
 @desc A teaching employee as far as this circular asks about it.
 DECLARE `shekel supplement employee` HAS
     `rated on the teaching-employee scale`             IS A BOOLEAN
@@ -75,7 +68,16 @@ GIVETH A BOOLEAN
 DECIDE `the circular applies to` e IF
         e's `rated on the teaching-employee scale`
     AND e's `employed by an owner of a supervised institution`
-    AND (NOT e's `stage employed in` EQUALS `another stage`)
+    AND `circular תשפ"ב/5 names the stage` (e's `stage employed in`)
+
+-- ¶18 names the stages "גני ילדים, בתי ספר יסודיים, חטיבת ביניים ומכללות
+-- להכשרת עובדי הוראה" (the shared `stage of education`): the colleges are
+-- every college that trains teaching staff, the academic college among them.
+@ref akn:preamble/p18
+GIVEN s IS A `stage of education`
+GIVETH A BOOLEAN
+DECIDE `circular תשפ"ב/5 names the stage` s IF
+    elem s (LIST `the kindergarten stage`, `the primary stage`, `the junior-high stage`, `the teachers' college stage`, `the academic teachers' college stage`)
 
 §§ `א. The amounts from 1.1.2022`
 
@@ -166,19 +168,19 @@ DECIDE `reimbursement for the shekel supplement` IS
     `shekel supplement employee` WITH
         `rated on the teaching-employee scale`             IS TRUE
         `employed by an owner of a supervised institution` IS TRUE
-        `stage employed in`                                IS `primary school`
+        `stage employed in`                                IS `the primary stage`
         `employed under Ofek Hadash`                       IS TRUE
         `placed on the Ofek Hadash teachers' tables`       IS TRUE
         `Ofek Hadash grade`                                IS 2.5
 
 `a grade 7 kindergarten teacher` MEANS
-    `shekel supplement employee` TRUE TRUE `kindergarten` TRUE TRUE 7
+    `shekel supplement employee` TRUE TRUE `the kindergarten stage` TRUE TRUE 7
 
 `a teacher outside the reform` MEANS
-    `shekel supplement employee` TRUE TRUE `junior high school` FALSE FALSE 0
+    `shekel supplement employee` TRUE TRUE `the junior-high stage` FALSE FALSE 0
 
 `an upper-division teacher` MEANS
-    `shekel supplement employee` TRUE TRUE `another stage` TRUE TRUE 1
+    `shekel supplement employee` TRUE TRUE `the upper-division stage` TRUE TRUE 1
 
 #ASSERT `the full-position shekel supplement 2016` `a grade 2.5 primary teacher` EQUALS 905.02
 #ASSERT `the full-position shekel supplement 2016` `a grade 7 kindergarten teacher` EQUALS 563.60
@@ -196,7 +198,7 @@ DECIDE `reimbursement for the shekel supplement` IS
 GIVEN g IS A NUMBER
 GIVETH A NUMBER
 DECIDE `amount at grade` g IS
-    `the full-position shekel supplement 2016` (`shekel supplement employee` TRUE TRUE `primary school` TRUE TRUE g)
+    `the full-position shekel supplement 2016` (`shekel supplement employee` TRUE TRUE `the primary stage` TRUE TRUE g)
 
 #TRACE `paying the updated supplement` `a grade 2.5 primary teacher` 1 AT 0 WITH
     PARTY `the employer` DOES `pay the updated supplement` 905.02 TRUE AT 6
@@ -208,7 +210,7 @@ DECIDE `amount at grade` g IS
 -- quarters.
 
 `both booleans` MEANS LIST TRUE, FALSE
-`every stage` MEANS LIST `kindergarten`, `primary school`, `junior high school`, `teacher-training college`, `another stage`
+`every stage` MEANS `every stage of education`
 
 GIVEN r IS A BOOLEAN, st IS A `stage of education`, t IS A BOOLEAN, g IS A NUMBER
 GIVETH A `shekel supplement employee`
@@ -231,10 +233,10 @@ DECIDE `a checked employee` r st t g IS
                                 all (GIVEN g YIELD
                                         LET e MEANS `a checked employee` r st t g
                                             s MEANS `the full-position shekel supplement 2016` e
-                                        IN      (s GREATER THAN 0) EQUALS (r AND NOT (st EQUALS `another stage`))
+                                        IN      (s GREATER THAN 0) EQUALS (r AND `circular תשפ"ב/5 names the stage` st)
                                             AND count (`the grade rows that name` e) AT MOST 1
-                                            AND ((NOT (r AND (NOT (st EQUALS `another stage`)) AND null (`the grade rows that name` e))) OR s EQUALS 563.60)
-                                            AND ((NOT (t AND g AT LEAST 1 AND g LESS THAN 4.5 AND r AND NOT (st EQUALS `another stage`)))
+                                            AND ((NOT (r AND (`circular תשפ"ב/5 names the stage` st) AND null (`the grade rows that name` e))) OR s EQUALS 563.60)
+                                            AND ((NOT (t AND g AT LEAST 1 AND g LESS THAN 4.5 AND r AND `circular תשפ"ב/5 names the stage` st))
                                                  OR s AT LEAST `the full-position shekel supplement 2016` (`a checked employee` r st t (g PLUS 0.5)))
                                             AND `the shekel supplement 2016 payable` e 0.5 AT MOST s)
                                     (map (GIVEN k YIELD k DIVIDED BY 2) (range 1 10)))

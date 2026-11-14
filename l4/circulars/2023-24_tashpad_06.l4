@@ -7,6 +7,7 @@
 IMPORT prelude
 IMPORT daydate
 IMPORT common
+IMPORT vocabulary
 
 -- Time for the payment duty is counted in calendar MONTHS from December
 -- 2023 (0): January 2024's salary is 1, February 2024's is 2.
@@ -30,14 +31,6 @@ IMPORT common
 DECLARE `consumer price index` HAS
     `index month` IS A STRING
     `published in` IS A STRING
-
-DECLARE `stage of education` IS ONE OF
-    `kindergarten`
-    `primary school`
-    `middle school`
-    `teacher-training college`
-    `upper-secondary school`
-    `another stage`
 
 @desc A teaching employee, as far as this circular asks.
 DECLARE `employee under circular 6` HAS
@@ -70,14 +63,18 @@ DECIDE `the circular applies to` e IF
     AND e's `employed by an owner under Ministry supervision`
     AND `is one of the circular's stages` (e's `stage`)
 
+-- ¶4-¶6 name the stages "גני ילדים, בתי ספר יסודיים, חטיבת ביניים ומכללות
+-- להכשרת עובדי הוראה": the colleges are every college that trains teaching
+-- staff, the academic college among them.
 GIVEN s IS A `stage of education`
 GIVETH A BOOLEAN
 DECIDE `is one of the circular's stages` s IF
     CONSIDER s
-    WHEN `kindergarten` THEN TRUE
-    WHEN `primary school` THEN TRUE
-    WHEN `middle school` THEN TRUE
-    WHEN `teacher-training college` THEN TRUE
+    WHEN `the kindergarten stage` THEN TRUE
+    WHEN `the primary stage` THEN TRUE
+    WHEN `the junior-high stage` THEN TRUE
+    WHEN `the teachers' college stage` THEN TRUE
+    WHEN `the academic teachers' college stage` THEN TRUE
     OTHERWISE FALSE
 
 §§ `The amounts from 1.1.2024`
@@ -182,7 +179,7 @@ DECLARE `reimbursement` HAS
     `employee under circular 6` WITH
         `graded on the teaching employees' scale`         IS TRUE
         `employed by an owner under Ministry supervision` IS TRUE
-        `stage`                                           IS `kindergarten`
+        `stage`                                           IS `the kindergarten stage`
         `placed on the Ofek Hadash teachers' tables`      IS TRUE
         `Ofek Hadash grade`                               IS 3.5
         `position fraction`                               IS 1
@@ -191,7 +188,7 @@ DECLARE `reimbursement` HAS
     `employee under circular 6` WITH
         `graded on the teaching employees' scale`         IS TRUE
         `employed by an owner under Ministry supervision` IS TRUE
-        `stage`                                           IS `primary school`
+        `stage`                                           IS `the primary stage`
         `placed on the Ofek Hadash teachers' tables`      IS TRUE
         `Ofek Hadash grade`                               IS 6
         `position fraction`                               IS 1
@@ -200,7 +197,7 @@ DECLARE `reimbursement` HAS
     `employee under circular 6` WITH
         `graded on the teaching employees' scale`         IS TRUE
         `employed by an owner under Ministry supervision` IS TRUE
-        `stage`                                           IS `middle school`
+        `stage`                                           IS `the junior-high stage`
         `placed on the Ofek Hadash teachers' tables`      IS FALSE
         `Ofek Hadash grade`                               IS 0
         `position fraction`                               IS 1
@@ -209,7 +206,7 @@ DECLARE `reimbursement` HAS
     `employee under circular 6` WITH
         `graded on the teaching employees' scale`         IS TRUE
         `employed by an owner under Ministry supervision` IS TRUE
-        `stage`                                           IS `upper-secondary school`
+        `stage`                                           IS `the upper-division stage`
         `placed on the Ofek Hadash teachers' tables`      IS FALSE
         `Ofek Hadash grade`                               IS 0
         `position fraction`                               IS 1
@@ -233,7 +230,7 @@ DECLARE `reimbursement` HAS
 -- 2024.
 
 `both booleans` MEANS LIST TRUE, FALSE
-`every stage` MEANS LIST `kindergarten`, `primary school`, `middle school`, `teacher-training college`, `upper-secondary school`, `another stage`
+`every stage` MEANS `every stage of education`
 `the grades checked` MEANS map (GIVEN k YIELD k DIVIDED BY 2) (range 2 19)
 `the days checked` MEANS LIST Date 1 9 2023, Date 31 12 2023, Date 1 1 2024, Date 31 8 2024
 
@@ -275,7 +272,7 @@ DECIDE `the full-position monthly amount for grade` n IS
                                         all (GIVEN n YIELD
                                                 LET e MEANS `a checked employee` g o s t n
                                                     a MEANS `the full-position 2016 shekel supplement` e
-                                                    c MEANS g AND o AND NOT (s EQUALS `upper-secondary school` OR s EQUALS `another stage`)
+                                                    c MEANS g AND o AND NOT elem s (LIST `the upper-division stage`, `the grades 13-14 stage`, `recognised unofficial special education in Ofek Hadash`)
                                                 IN      (a GREATER THAN 0) EQUALS c
                                                     AND ((NOT c) OR a EQUALS (IF t AND n AT MOST 4.5 THEN `the full-position monthly amount for grade` n ELSE 611.04))
                                                     AND a AT MOST 1208.26

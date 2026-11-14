@@ -8,6 +8,7 @@
 IMPORT prelude
 IMPORT common
 IMPORT conventions
+IMPORT vocabulary
 
 -- not weighed against `the Hours of Work and Rest Law`: the clothing
 -- allowance is paid pro rata to the position, up to one full position, and
@@ -21,14 +22,6 @@ IMPORT conventions
 
 -- akn:preamble The letterhead and the circular's title; no rule.
 -- akn:preamble/p6 akn:preamble/p7 akn:preamble/p8 akn:preamble/p9 The table of contents: the titles of sections 1 to 4.
-
-DECLARE `stage of education` IS ONE OF
-    `upper division`
-    `grades 13-14`
-    `kindergarten`
-    `primary`
-    `junior high`
-    `seminary or teacher-training college`
 
 @desc A teaching employee's school year תשע"ד as the clothing allowance asks about it.
 DECLARE `clothing year` HAS
@@ -50,7 +43,7 @@ DECLARE `tashad-8 clothing action` IS ONE OF
 GIVEN y IS A `clothing year`
 GIVETH A BOOLEAN
 DECIDE `in the upper division` y IF
-    y's `stage` EQUALS `upper division` OR y's `stage` EQUALS `grades 13-14`
+    y's `stage` EQUALS `the upper-division stage` OR y's `stage` EQUALS `the grades 13-14 stage`
 
 GIVEN y IS A `clothing year`
 GIVETH A NUMBER
@@ -147,13 +140,16 @@ DECIDE `no employment above the cap under 1.א.6` t IS
 -- akn:art_2/p2 The heading "תחולה"; no rule.
 -- akn:art_2__para_a Heading 2.א ("כללי"); no rule of its own.
 
+-- ¶3 names "גני ילדים, יסודי, חט"ב, וסמינרים / מכללות להכשרת עו"ה": the
+-- shared `stage of education`'s kindergarten, primary and junior-high
+-- stages and its colleges, the academic college among them.
 @ref akn:art_2/p3
 GIVEN y IS A `clothing year`
 GIVETH A BOOLEAN
 DECIDE `section 2 applies to` y IF
         y's `graded as a teaching employee`
     AND y's `employed by a supervised owner`
-    AND NOT `in the upper division` y
+    AND elem (y's `stage`) (LIST `the kindergarten stage`, `the primary stage`, `the junior-high stage`, `the teachers' college stage`, `the academic teachers' college stage`)
 
 -- 2.א.3, as worded: by section 6 of the agreement of 22.7.2013, in
 -- תשע"ד up to 25 years inclusive 84% of level 3; above 25, 84% of level 4.
@@ -241,7 +237,7 @@ DECIDE `the allowance outside the upper division` y IS
     `clothing year` WITH
         `graded as a teaching employee`  IS TRUE
         `employed by a supervised owner` IS TRUE
-        `stage`                          IS `upper division`
+        `stage`                          IS `the upper-division stage`
         `positions`                      IS LIST 0.7, 0.6
         `seniority years`                IS 10
         `teaches physical education`     IS FALSE
@@ -328,15 +324,10 @@ DECIDE `general clothing allowance` y IS
 -- In addition to the general allowance, sun protection included; the
 -- table as printed (999 = "ומעלה").
 @ref akn:art_3/p1 akn:art_3/t1
-DECLARE `physical-education band` HAS
-    `band from position` IS A NUMBER
-    `band to position`   IS A NUMBER
-    `band amount`        IS A NUMBER
-
 `the physical-education table` MEANS
-    LIST `physical-education band` 0   0.3 0,
-         `physical-education band` 0.3 0.5 676,
-         `physical-education band` 0.5 999 1347
+    LIST `physical-education band` 0 TRUE 0.3 TRUE 0,
+         `physical-education band` 0.3 TRUE 0.5 TRUE 676,
+         `physical-education band` 0.5 TRUE 999 TRUE 1347
 
 -- The rows as printed, each bound inclusive, only to show where they meet
 -- (thresholds.shared-bound): no operative rule reads this list; the rule
@@ -345,7 +336,7 @@ GIVEN p IS A NUMBER
 GIVETH A LIST OF NUMBER
 DECIDE `the amounts the table gives for position` p IS
     map (GIVEN b YIELD b's `band amount`)
-        (filter (GIVEN b YIELD p AT LEAST b's `band from position` AND p AT MOST b's `band to position`)
+        (filter (GIVEN b YIELD `the physical-education band takes` p b)
                 `the physical-education table`)
 
 -- F-2013-14_tashad_08-b: 0.3 and 0.5 fall in two rows each.
@@ -502,7 +493,7 @@ DECIDE `technological clothing allowance` y IS
     `clothing year` WITH
         `graded as a teaching employee`  IS TRUE
         `employed by a supervised owner` IS TRUE
-        `stage`                          IS `primary`
+        `stage`                          IS `the primary stage`
         `positions`                      IS LIST 1
         `seniority years`                IS 30
         `teaches physical education`     IS TRUE
@@ -540,7 +531,7 @@ DECIDE `technological clothing allowance` y IS
 -- grade or not.
 
 `every stage` MEANS
-    LIST `upper division`, `grades 13-14`, `kindergarten`, `primary`, `junior high`, `seminary or teacher-training college`
+    LIST `the upper-division stage`, `the grades 13-14 stage`, `the kindergarten stage`, `the primary stage`, `the junior-high stage`, `the teachers' college stage`
 `tenths to 1.5` MEANS map (GIVEN k YIELD k DIVIDED BY 10) (range 0 15)
 `fifths to 1` MEANS map (GIVEN k YIELD k DIVIDED BY 5) (range 0 5)
 `both booleans` MEANS LIST TRUE, FALSE
@@ -601,10 +592,10 @@ DECIDE `sections 1 and 2 hold for` y g st p n IF
 -- 2.א.3 over seniority: the reduced allowance never falls with seniority,
 -- and every whole year from 1 has exactly the row the clause gives it.
 #ASSERT all (GIVEN n YIELD
-                    `the reduced allowance` (`a checked year` TRUE `primary` (LIST 1) n FALSE 0 EMPTY)
-                    AT MOST `the reduced allowance` (`a checked year` TRUE `primary` (LIST 1) (n PLUS 1) FALSE 0 EMPTY)
+                    `the reduced allowance` (`a checked year` TRUE `the primary stage` (LIST 1) n FALSE 0 EMPTY)
+                    AT MOST `the reduced allowance` (`a checked year` TRUE `the primary stage` (LIST 1) (n PLUS 1) FALSE 0 EMPTY)
                 AND `the amounts the summary table gives for` n
-                    EQUALS LIST (`the reduced allowance` (`a checked year` TRUE `primary` (LIST 1) n FALSE 0 EMPTY)))
+                    EQUALS LIST (`the reduced allowance` (`a checked year` TRUE `the primary stage` (LIST 1) n FALSE 0 EMPTY)))
             (range 1 45)
 
 -- 1.א.5 and 2.א.5 with two employers over every pair in fifths: each pays
@@ -612,7 +603,7 @@ DECIDE `sections 1 and 2 hold for` y g st p n IF
 -- the positions add to more than one (F-2013-14_tashad_08-a, whole space).
 #ASSERT all (GIVEN p YIELD
                 all (GIVEN q YIELD
-                        LET y MEANS `a checked year` TRUE `upper division` (LIST p, q) 10 FALSE 0 EMPTY
+                        LET y MEANS `a checked year` TRUE `the upper-division stage` (LIST p, q) 10 FALSE 0 EMPTY
                         IN  (`general clothing allowance` y GREATER THAN `the level-4 allowance`) EQUALS (p PLUS q GREATER THAN 1))
                     `fifths to 1`)
             `fifths to 1`
@@ -624,13 +615,13 @@ DECIDE `sections 1 and 2 hold for` y g st p n IF
 -- full-position teacher exactly below 0.5.
 #ASSERT all (GIVEN r YIELD
                 LET rows MEANS `the amounts the table gives for position` r
-                    a MEANS `physical-education allowance` (`a checked year` TRUE `primary` (LIST 1) 10 TRUE r EMPTY)
+                    a MEANS `physical-education allowance` (`a checked year` TRUE `the primary stage` (LIST 1) 10 TRUE r EMPTY)
                 IN      count rows AT LEAST 1
                     AND (count rows EQUALS 2) EQUALS (r EQUALS 0.3 OR r EQUALS 0.5)
                     AND elem a rows
-                    AND a AT MOST `physical-education allowance` (`a checked year` TRUE `primary` (LIST 1) 10 TRUE (r PLUS 0.1) EMPTY)
-                    AND `physical-education allowance` (`a checked year` FALSE `primary` (LIST 1) 10 TRUE r EMPTY) EQUALS 0
-                    AND (NOT (a EQUALS `physical-education allowance` (`a checked year` TRUE `primary` (LIST 1) 10 TRUE 1 EMPTY)))
+                    AND a AT MOST `physical-education allowance` (`a checked year` TRUE `the primary stage` (LIST 1) 10 TRUE (r PLUS 0.1) EMPTY)
+                    AND `physical-education allowance` (`a checked year` FALSE `the primary stage` (LIST 1) 10 TRUE r EMPTY) EQUALS 0
+                    AND (NOT (a EQUALS `physical-education allowance` (`a checked year` TRUE `the primary stage` (LIST 1) 10 TRUE 1 EMPTY)))
                         EQUALS (r LESS THAN 0.5))
             `tenths to 1.5`
 
@@ -650,23 +641,23 @@ DECIDE `both grants added` y IS
 
 #ASSERT all (GIVEN l YIELD
                 all (GIVEN p YIELD
-                        LET y MEANS `a checked year` TRUE `primary` (LIST p) 10 FALSE 0 l
+                        LET y MEANS `a checked year` TRUE `the primary stage` (LIST p) 10 FALSE 0 l
                             t MEANS `technological clothing allowance` y
                         IN      t AT LEAST 0
                             AND t AT MOST `the value of a pair of shoes and two coats`
-                            AND t AT MOST `technological clothing allowance` (`a checked year` TRUE `primary` (LIST (p PLUS 0.1)) 10 FALSE 0 l)
-                            AND t EQUALS `technological clothing allowance` (`a checked year` TRUE `upper division` (LIST p) 10 FALSE 0 l))
+                            AND t AT MOST `technological clothing allowance` (`a checked year` TRUE `the primary stage` (LIST (p PLUS 0.1)) 10 FALSE 0 l)
+                            AND t EQUALS `technological clothing allowance` (`a checked year` TRUE `the upper-division stage` (LIST p) 10 FALSE 0 l))
                     `tenths to 1.5`)
             `every subject list checked`
 #ASSERT all (GIVEN l YIELD
-                LET y MEANS `a checked year` TRUE `upper division` (LIST 1) 10 FALSE 0 l
+                LET y MEANS `a checked year` TRUE `the upper-division stage` (LIST 1) 10 FALSE 0 l
                 IN  (NOT (`both grants added` y EQUALS `technological clothing allowance` y))
                     EQUALS (`entitled to a pair of shoes and two coats` y AND `entitled to two coats` y))
             `every subject list checked`
 #ASSERT all (GIVEN t YIELD NOT elem t `the two-coats subjects`) `the shoes-and-coats subjects`
 
 `a teacher on both technological lists meets two grants` MEANS
-    LET y MEANS `a checked year` TRUE `upper division` (LIST 1) 10 FALSE 0 (LIST "מכטרוניקה", "מערכות אלקטרוניות")
+    LET y MEANS `a checked year` TRUE `the upper-division stage` (LIST 1) 10 FALSE 0 (LIST "מכטרוניקה", "מערכות אלקטרוניות")
     IN      `entitled to a pair of shoes and two coats` y
         AND `entitled to two coats` y
         AND NOT (`both grants added` y EQUALS `technological clothing allowance` y)

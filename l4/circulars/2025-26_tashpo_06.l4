@@ -4,6 +4,7 @@
 
 IMPORT prelude
 IMPORT common
+IMPORT vocabulary
 
 -- Time in the regulative rules is counted in calendar months of 2026
 -- (January 2026 = 1, March = 3).
@@ -28,13 +29,6 @@ IMPORT common
 -- akn:preamble/p11 The greeting; no rule.
 -- akn:preamble/p12 The subject line; no rule.
 
-DECLARE `stage of education` IS ONE OF
-    `kindergarten`
-    `primary school`
-    `junior high`
-    `college for training teaching staff`
-    `other stage`
-
 @desc A grade-to-amount row of the list of paragraphs 20-28.
 DECLARE `supplement row` HAS
     `Ofek Hadash grade` IS A NUMBER
@@ -56,7 +50,10 @@ DECIDE `the linkage factor` `index of December 2025` `index of December 2024` IS
 
 -- Scope: every employee graded as teaching staff, employed by a supervised
 -- owning body in kindergartens, primary schools, junior highs or colleges
--- for training teaching staff, in Ofek Hadash or not.
+-- for training teaching staff, in Ofek Hadash or not: the shared `stage of
+-- education`'s, the academic college among the colleges; the upper
+-- division, grades 13-14 and recognised unofficial special education are
+-- not named.
 @ref akn:hc_1/p4 akn:hc_1/p5 akn:hc_1/p6
 GIVEN `graded as teaching staff` IS A BOOLEAN
       `employed by a supervised owning body` IS A BOOLEAN
@@ -65,9 +62,7 @@ GIVETH A BOOLEAN
 DECIDE `the circular applies to` `graded as teaching staff` `employed by a supervised owning body` stage IF
         `graded as teaching staff`
     AND `employed by a supervised owning body`
-    AND (CONSIDER stage
-         WHEN `other stage` THEN FALSE
-         OTHERWISE TRUE)
+    AND elem stage (LIST `the kindergarten stage`, `the primary stage`, `the junior-high stage`, `the teachers' college stage`, `the academic teachers' college stage`)
 
 -- From 1.1.2026, for a full position, by grade in the Ofek Hadash salary
 -- tables for academic and non-academic teachers.
@@ -153,8 +148,8 @@ DECIDE `the 2016 shekel supplement from 1.1.2026` `in Ofek Hadash's salary table
 #ASSERT `the 2016 shekel supplement from 1.1.2026` TRUE 4.5 EQUALS 749.54
 #ASSERT `the 2016 shekel supplement from 1.1.2026` TRUE 6 EQUALS 647.49
 #ASSERT `the 2016 shekel supplement from 1.1.2026` FALSE 1 EQUALS 647.49
-#ASSERT `the circular applies to` TRUE TRUE `junior high`
-#ASSERT NOT `the circular applies to` TRUE TRUE `other stage`
+#ASSERT `the circular applies to` TRUE TRUE `the junior-high stage`
+#ASSERT NOT `the circular applies to` TRUE TRUE `the upper-division stage`
 
 #TRACE `the reimbursement in February's payments` 2260.90 AT 0 WITH
     PARTY `the Ministry of Education` DOES `reimburse the owning bodies` 2260.90 AT 3
@@ -168,14 +163,14 @@ DECIDE `the 2016 shekel supplement from 1.1.2026` `in Ofek Hadash's salary table
 -- to 9.5.
 
 `both booleans` MEANS LIST TRUE, FALSE
-`every stage` MEANS LIST `kindergarten`, `primary school`, `junior high`, `college for training teaching staff`, `other stage`
+`every stage` MEANS `every stage of education`
 `the grades checked` MEANS map (GIVEN k YIELD k DIVIDED BY 2) (range 2 19)
 
 -- Over every employee: covered exactly on both conditions and a stage the
 -- circular names.
 #ASSERT all (GIVEN g YIELD
                 all (GIVEN o YIELD
-                        all (GIVEN s YIELD `the circular applies to` g o s EQUALS (g AND o AND NOT s EQUALS `other stage`)) `every stage`)
+                        all (GIVEN s YIELD `the circular applies to` g o s EQUALS (g AND o AND NOT elem s (LIST `the upper-division stage`, `the grades 13-14 stage`, `recognised unofficial special education in Ofek Hadash`))) `every stage`)
                     `both booleans`)
             `both booleans`
 

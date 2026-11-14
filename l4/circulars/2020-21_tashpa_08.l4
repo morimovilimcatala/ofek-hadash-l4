@@ -8,6 +8,7 @@
 
 IMPORT prelude
 IMPORT common
+IMPORT vocabulary
 
 -- Time in the regulative rules is counted in school months of תשפ"א
 -- (common.l4: September 2020 = 1, so the July 2021 salary is month 11).
@@ -101,42 +102,36 @@ DECIDE `paying the clothing allowance with July's salary` y IS
 -- changes the conditions for approval or permits employment beyond them.
 -- The text sets no time limit on the restriction.
 @ref akn:art_1__para_f akn:art_1__para_f/p2 akn:art_1__para_f/p3 akn:art_1__para_f/p4 akn:art_1/p5
-DECLARE `employment terms` IS ONE OF
-    `a teaching employee not under a reform`
-    `a principal not under a reform`
-    `a teacher under עוז לתמורה in full implementation`
-    `a teacher under אופק חדש`
-
 -- F-2020-21_tashpa_08-b: the 140% ceiling is laid on "a teaching
 -- employee", which a principal is, and a principal not under the reform
 -- has a ceiling of 150% too.
-GIVEN t IS AN `employment terms`
+GIVEN t IS AN `employment track`
 GIVETH A LIST OF NUMBER
 DECIDE `the ceilings 1ו lays on` t IS
     CONSIDER t
-    WHEN `a teaching employee not under a reform` THEN LIST 1.40
-    WHEN `a principal not under a reform` THEN LIST 1.40, 1.50
-    WHEN `a teacher under עוז לתמורה in full implementation` THEN LIST 1.40, 1.25
-    WHEN `a teacher under אופק חדש` THEN LIST 1.40, 1.17
+    WHEN `a teacher outside the reforms` THEN LIST 1.40
+    WHEN `a principal outside the reforms` THEN LIST 1.40, 1.50
+    WHEN `a teacher in Oz LaTmura in full implementation` THEN LIST 1.40, 1.25
+    WHEN `a teacher in Ofek Hadash` THEN LIST 1.40, 1.17
 
 `a principal not under the reform has two ceilings` MEANS
-    `the ceilings 1ו lays on` `a principal not under a reform` EQUALS LIST 1.40, 1.50
+    `the ceilings 1ו lays on` `a principal outside the reforms` EQUALS LIST 1.40, 1.50
 #ASSERT `a principal not under the reform has two ceilings`
 
 -- The reading adopted (F-2020-21_tashpa_08-b): each group's own ceiling
 -- governs it — 150% for a principal not under a reform, and the reform
 -- ceilings for teachers under a reform; 140% is the ceiling of a teaching
 -- employee not under a reform, as ¶5 puts it ("140% משרה - ללא רפורמה").
-GIVEN t IS AN `employment terms`
+GIVEN t IS AN `employment track`
 GIVETH A NUMBER
 DECIDE `employment ceiling` t IS
     CONSIDER t
-    WHEN `a teaching employee not under a reform` THEN 1.40
-    WHEN `a principal not under a reform` THEN 1.50
-    WHEN `a teacher under עוז לתמורה in full implementation` THEN 1.25
-    WHEN `a teacher under אופק חדש` THEN 1.17
+    WHEN `a teacher outside the reforms` THEN 1.40
+    WHEN `a principal outside the reforms` THEN 1.50
+    WHEN `a teacher in Oz LaTmura in full implementation` THEN 1.25
+    WHEN `a teacher in Ofek Hadash` THEN 1.17
 
-GIVEN t IS AN `employment terms`
+GIVEN t IS AN `employment track`
       `the exceptional-employment procedure permits it` IS A BOOLEAN @desc whether the exceptional-employment procedure for 2020-21 allows the excess; an input
 GIVETH A DEONTIC Party `tashpa-8 clothing action`
 DECIDE `no employment beyond the ceiling` t `the exceptional-employment procedure permits it` IS
@@ -151,13 +146,6 @@ DECIDE `no employment beyond the ceiling` t `the exceptional-employment procedur
 -- ¶1: on top of the general allowance (sun protection included). ¶2: the
 -- amounts of circular תשע"ב/8 are updated to the table, correct to 1.9.20.
 @ref akn:art_2/p1 akn:art_2/p2 akn:art_2/t1
-DECLARE `physical-education band` HAS
-    `from fraction`       IS A NUMBER
-    `from included`       IS A BOOLEAN
-    `to fraction`         IS A NUMBER
-    `to included`         IS A BOOLEAN
-    `band shekels`        IS A NUMBER
-
 -- One row per printed line: "less than a third" (33.333%), "from a third
 -- to half inclusive" (50%), "above half". 9 stands for no upper bound.
 `the physical-education table` MEANS
@@ -165,16 +153,10 @@ DECLARE `physical-education band` HAS
          `physical-education band` (1 DIVIDED BY 3) TRUE  0.5 TRUE  685,
          `physical-education band` 0.5     FALSE 9   TRUE  1368
 
-GIVEN f IS A NUMBER, b IS A `physical-education band`
-GIVETH A BOOLEAN
-DECIDE `in band` f b IF
-        (f GREATER THAN b's `from fraction` OR (b's `from included` AND f EQUALS b's `from fraction`))
-    AND (f LESS THAN b's `to fraction` OR (b's `to included` AND f EQUALS b's `to fraction`))
-
 GIVEN f IS A NUMBER
 GIVETH A LIST OF NUMBER
 DECIDE `the physical-education amounts at` f IS
-    map (GIVEN b YIELD b's `band shekels`) (filter (GIVEN b YIELD `in band` f b) `the physical-education table`)
+    map (GIVEN b YIELD b's `band amount`) (filter (GIVEN b YIELD `the physical-education band takes` f b) `the physical-education table`)
 
 -- The bands meet with no gap and no overlap.
 #ASSERT all (GIVEN f YIELD count (`the physical-education amounts at` f) EQUALS 1)
@@ -302,7 +284,7 @@ DECIDE `paying the technological-education allowance` y IS
 #ASSERT `physical-education allowance` `a full-time physical-education teacher` EQUALS 1368
 #ASSERT `clothing allowance` `a 40% mechatronics instructor` EQUALS 859.2
 #ASSERT `technological-education allowance` `a 40% mechatronics instructor` EQUALS 226.4
-#ASSERT `employment ceiling` `a principal not under a reform` EQUALS 1.50
+#ASSERT `employment ceiling` `a principal outside the reforms` EQUALS 1.50
 
 `a teacher of mechatronics and nursing` MEANS
     `clothing year` WITH
@@ -321,7 +303,7 @@ DECIDE `paying the technological-education allowance` y IS
     PARTY `the employer` DOES `pay the clothing allowance` 2148 AT 11
 #TRACE `paying the clothing allowance with July's salary` `a full-time physical-education teacher` AT 0 WITH
     PARTY `the employer` DOES `pay the clothing allowance` 2148 AT 12
-#TRACE `no employment beyond the ceiling` `a teacher under אופק חדש` FALSE AT 0 WITH
+#TRACE `no employment beyond the ceiling` `a teacher in Ofek Hadash` FALSE AT 0 WITH
     PARTY `the employer` DOES `employ beyond the ceiling` 1.2 AT 2
 
 -- F-2020-21_tashpa_08-f: the table bands "שיעור העסקה" without saying whether a teacher
@@ -345,7 +327,7 @@ DECIDE `paying the technological-education allowance` y IS
 `the shares checked` MEANS append `tenths to 1.5` (LIST 1 DIVIDED BY 3, 0.3333, 0.5001)
 `every profession list checked` MEANS
     LIST EMPTY, (LIST "מכטרוניקה"), (LIST "סיעוד"), (LIST "אחר"), (LIST "מכטרוניקה", "סיעוד")
-`every track` MEANS LIST `a teaching employee not under a reform`, `a principal not under a reform`, `a teacher under עוז לתמורה in full implementation`, `a teacher under אופק חדש`
+`every track` MEANS LIST `a teacher outside the reforms`, `a principal outside the reforms`, `a teacher in Oz LaTmura in full implementation`, `a teacher in Ofek Hadash`
 
 GIVEN g IS A BOOLEAN, f IS A NUMBER, pe IS A NUMBER
       l IS A LIST OF STRING
