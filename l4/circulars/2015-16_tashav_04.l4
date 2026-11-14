@@ -8,6 +8,7 @@
 
 IMPORT prelude
 IMPORT common
+IMPORT vocabulary
 IMPORT womens_work_law
 IMPORT minimum_wage_law
 
@@ -26,49 +27,30 @@ DECLARE `tashav-4 grant action` IS ONE OF
     `pay the one-time grant` HAS `grant amount paid` IS A NUMBER
     `indemnify the owner for the one-time grant in the payment system` HAS `grant indemnity` IS A NUMBER
 
-DECLARE `grant stage` IS ONE OF
-    `kindergarten`
-    `elementary school`
-    `junior high school`
-    `teacher-training college`
-    `high school`
-
--- What happened to the employee's employment during the determining period.
-DECLARE `break kind` IS ONE OF
-    `maternity leave under section 6 of the Women's Employment Law`
-    `unpaid leave or absence treated as unpaid leave, after maternity leave or not`
-    `reserve duty`
-    `paid sick leave under takanon chapter 1.25.3`
-    `holiday or summer recess`
-    `end of employment`
-
 @desc A teaching employee's employment as far as the one-time grant asks about it. Months are salary months.
 DECLARE `grant case` HAS
     `graded as a teaching employee of a supervised owner` IS A BOOLEAN
-    `stage`                                               IS A `grant stage`
+    `stage`                                               IS A `stage of education`
     `employed on 1.9.2015 and on 1.12.2015`               IS A BOOLEAN @desc employed at both ends of the determining period
-    `breaks in the determining period`                    IS A LIST OF `break kind` @desc every interruption between 1.9.2015 and 1.12.2015
+    `breaks in the determining period`                    IS A LIST OF `break in the determining period` @desc every interruption between 1.9.2015 and 1.12.2015
     `paid for 4 full months and a day in a row from 1.9.2015 to 31.1.2016` IS A BOOLEAN @desc for an employee on unpaid leave (section 1e(8)(1))
     `monthly positions 1.12.2014 to 30.11.2015`           IS A LIST OF NUMBER @desc the share of a full position in each month of the period actually employed (a month of maternity leave at the share held on the eve of the leave)
     `monthly positions 1.12.2015 to 30.6.2016`            IS A LIST OF NUMBER @desc the same, for the months of that period with salary (used only where the first period has none)
 
-DECLARE `grant pay purpose` IS ONE OF
-    `salary for any purpose`
-    `severance pay`
-    `the overtime hourly value`
-    `provident-fund contributions`
-    `the minimum-wage top-up`
-    `the combined-salary base`
-
 -- Preamble, application: every teaching employee of a supervised owner in
 -- kindergartens, elementary schools, junior high schools and
--- teacher-training colleges.
+-- teacher-training colleges. "מכללות להכשרת עובדי הוראה" names no kind of
+-- college, so it is read to hold the academic college too.
 @ref akn:preamble/p18
+`the stages the circular names` MEANS
+    LIST `the kindergarten stage`, `the primary stage`, `the junior-high stage`,
+         `the teachers' college stage`, `the academic teachers' college stage`
+
 GIVEN c IS A `grant case`
 GIVETH A BOOLEAN
 DECIDE `covered by the circular` c IF
         c's `graded as a teaching employee of a supervised owner`
-    AND NOT c's `stage` EQUALS `high school`
+    AND elem (c's `stage`) `the stages the circular names`
 
 §§ `1 תשלום המענק`
 
@@ -81,12 +63,12 @@ DECIDE `covered by the circular` c IF
 -- break the continuity; ¶(1) ¶2 notes that maternity leave is generally 26
 -- weeks unless extended under section 6.
 @ref akn:art_1__para_e__subpara_1 akn:art_1__para_e__subpara_4 akn:art_1__para_e__subpara_5 akn:art_1__para_e__subpara_6 akn:art_1__para_e__subpara_7
-GIVEN b IS A `break kind`
+GIVEN b IS A `break in the determining period`
 GIVETH A BOOLEAN
 DECIDE `keeps the continuity` b IF
     CONSIDER b
     WHEN `maternity leave under section 6 of the Women's Employment Law` THEN TRUE
-    WHEN `reserve duty` THEN TRUE
+    WHEN `a break for reserve duty` THEN TRUE
     WHEN `paid sick leave under takanon chapter 1.25.3` THEN TRUE
     WHEN `holiday or summer recess` THEN TRUE
     OTHERWISE FALSE
@@ -189,7 +171,7 @@ DECIDE `one-time grant` c IS
 -- the overtime hourly value, provident-fund contributions of any kind, the
 -- minimum-wage top-up, or the salary base of the combined-salary table.
 @ref akn:art_1__para_c akn:art_1__para_d__subpara_1 akn:art_1__para_d__subpara_2
-GIVEN p IS A `grant pay purpose`
+GIVEN p IS A `purpose a payment counts for`
 GIVETH A BOOLEAN
 DECIDE `the one-time grant counts for` p IF
     FALSE
@@ -242,7 +224,7 @@ DECIDE `indemnifying the owner` `the indemnity` IS
 -- leaving it out of the pay that counts toward the top-up makes the
 -- top-up the law's or more (its §11). Checked on a month's figures as if
 -- §3 counted it (a fixed supplement for the work), the strictest case.
-#ASSERT NOT `counting a component as the instrument does falls below the Minimum Wage Law` 5300 4800 (`component paid in the month under the Minimum Wage Law` `a fixed supplement paid for the work, under section 3(ב)(3)` 300) (`the one-time grant counts for` `the minimum-wage top-up`)
+#ASSERT NOT `counting a component as the instrument does falls below the Minimum Wage Law` 5300 4800 (`component paid in the month under the Minimum Wage Law` `a fixed supplement paid for the work, under section 3(ב)(3)` 300) (`the one-time grant counts for` `for the minimum-wage top-up`)
 
 §§ `"פסקה (2) להלן" in §1ה.8.1 (finding a)`
 
@@ -261,7 +243,7 @@ DECIDE `indemnifying the owner` `the indemnity` IS
 `a full-time kindergarten teacher` MEANS
     `grant case` WITH
         `graded as a teaching employee of a supervised owner` IS TRUE
-        `stage`                                               IS `kindergarten`
+        `stage`                                               IS `the kindergarten stage`
         `employed on 1.9.2015 and on 1.12.2015`               IS TRUE
         `breaks in the determining period`                    IS LIST `holiday or summer recess`
         `paid for 4 full months and a day in a row from 1.9.2015 to 31.1.2016` IS TRUE
@@ -271,7 +253,7 @@ DECIDE `indemnifying the owner` `the indemnity` IS
 `a teacher who started in September 2015 at half a position` MEANS
     `grant case` WITH
         `graded as a teaching employee of a supervised owner` IS TRUE
-        `stage`                                               IS `elementary school`
+        `stage`                                               IS `the primary stage`
         `employed on 1.9.2015 and on 1.12.2015`               IS TRUE
         `breaks in the determining period`                    IS EMPTY
         `paid for 4 full months and a day in a row from 1.9.2015 to 31.1.2016` IS TRUE
@@ -281,7 +263,7 @@ DECIDE `indemnifying the owner` `the indemnity` IS
 `a teacher on unpaid leave in October with no salary run` MEANS
     `grant case` WITH
         `graded as a teaching employee of a supervised owner` IS TRUE
-        `stage`                                               IS `junior high school`
+        `stage`                                               IS `the junior-high stage`
         `employed on 1.9.2015 and on 1.12.2015`               IS TRUE
         `breaks in the determining period`                    IS LIST `unpaid leave or absence treated as unpaid leave, after maternity leave or not`
         `paid for 4 full months and a day in a row from 1.9.2015 to 31.1.2016` IS FALSE
@@ -291,7 +273,7 @@ DECIDE `indemnifying the owner` `the indemnity` IS
 #ASSERT `one-time grant` `a full-time kindergarten teacher` EQUALS 1000
 #ASSERT `one-time grant` `a teacher who started in September 2015 at half a position` EQUALS 500
 #ASSERT `one-time grant` `a teacher on unpaid leave in October with no salary run` EQUALS 0
-#ASSERT NOT `the one-time grant counts for` `severance pay`
+#ASSERT NOT `the one-time grant counts for` `for severance pay`
 
 #TRACE `paying the one-time grant` `a full-time kindergarten teacher` FALSE 0 AT 0 WITH
     PARTY `the employer` DOES `pay the one-time grant` 1000 AT 2
@@ -309,20 +291,15 @@ DECIDE `indemnifying the owner` `the indemnity` IS
 
 `both booleans` MEANS LIST TRUE, FALSE
 `tenths to 1.5` MEANS map (GIVEN k YIELD k DIVIDED BY 10) (range 0 15)
-`every stage` MEANS LIST `kindergarten`, `elementary school`, `junior high school`, `teacher-training college`, `high school`
-`every break` MEANS
-    LIST `maternity leave under section 6 of the Women's Employment Law`,
-         `unpaid leave or absence treated as unpaid leave, after maternity leave or not`,
-         `reserve duty`, `paid sick leave under takanon chapter 1.25.3`, `holiday or summer recess`, `end of employment`
 `every list of breaks checked` MEANS
     append (LIST EMPTY, (LIST `maternity leave under section 6 of the Women's Employment Law`,
                               `unpaid leave or absence treated as unpaid leave, after maternity leave or not`))
-           (map (GIVEN b YIELD LIST b) `every break`)
+           (map (GIVEN b YIELD LIST b) `every break in the determining period`)
 
 GIVEN g IS A BOOLEAN
-      st IS A `grant stage`
+      st IS A `stage of education`
       e IS A BOOLEAN
-      bs IS A LIST OF `break kind`
+      bs IS A LIST OF `break in the determining period`
       f IS A BOOLEAN
       ms IS A LIST OF NUMBER
 GIVETH A `grant case`
@@ -338,7 +315,7 @@ DECIDE `a checked case` g st e bs f ms IS
 
 GIVEN c IS A `grant case`
       e IS A BOOLEAN
-      bs IS A LIST OF `break kind`
+      bs IS A LIST OF `break in the determining period`
       f IS A BOOLEAN
 GIVETH A BOOLEAN
 DECIDE `section 1 holds for` c e bs f IF
@@ -366,7 +343,7 @@ DECIDE `section 1 holds for` c e bs f IF
                                             `both booleans`)
                                     `every list of breaks checked`)
                             `both booleans`)
-                    `every stage`)
+                    `every stage of education`)
             `both booleans`
 
 -- §1ב over one to twelve months at one position: the average is that
@@ -375,28 +352,28 @@ DECIDE `section 1 holds for` c e bs f IF
 -- leave is averaged over the second.
 #ASSERT all (GIVEN m YIELD
                 all (GIVEN p YIELD
-                        LET c MEANS `a checked case` TRUE `kindergarten` TRUE EMPTY TRUE (map (GIVEN k YIELD p) (range 1 m))
+                        LET c MEANS `a checked case` TRUE `the kindergarten stage` TRUE EMPTY TRUE (map (GIVEN k YIELD p) (range 1 m))
                         IN      `the representative average position` c EQUALS p
-                            AND `one-time grant` c AT MOST `one-time grant` (`a checked case` TRUE `kindergarten` TRUE EMPTY TRUE (map (GIVEN k YIELD p PLUS 0.1) (range 1 m)))
+                            AND `one-time grant` c AT MOST `one-time grant` (`a checked case` TRUE `the kindergarten stage` TRUE EMPTY TRUE (map (GIVEN k YIELD p PLUS 0.1) (range 1 m)))
                             AND ((p LESS THAN 1) OR `one-time grant` c EQUALS 1000))
                     `tenths to 1.5`)
             (range 1 12)
 `an employee on unpaid leave with no month in the first period is averaged over the second` MEANS
     `the representative average position`
-        (`a checked case` TRUE `kindergarten` TRUE (LIST `unpaid leave or absence treated as unpaid leave, after maternity leave or not`) TRUE EMPTY)
+        (`a checked case` TRUE `the kindergarten stage` TRUE (LIST `unpaid leave or absence treated as unpaid leave, after maternity leave or not`) TRUE EMPTY)
     EQUALS 0.5
 #ASSERT `an employee on unpaid leave with no month in the first period is averaged over the second`
 
 -- §1ג-§1ד: the grant counts for none of the purposes they name.
 #ASSERT all (GIVEN q YIELD NOT `the one-time grant counts for` q)
-            (LIST `salary for any purpose`, `severance pay`, `the overtime hourly value`,
-                  `provident-fund contributions`, `the minimum-wage top-up`, `the combined-salary base`)
+            (LIST `as salary for every purpose`, `for severance pay`, `for the overtime hourly value`,
+                  `for provident-fund contributions`, `for the minimum-wage top-up`, `for the combined-salary base`)
 
 -- §1 and §1ה: the payment month is the regular one unless the employee is on
 -- maternity leave (the month after her return) or was on unpaid leave (July).
 #ASSERT all (GIVEN mat YIELD
                 all (GIVEN bs YIELD
-                        LET c MEANS `a checked case` TRUE `kindergarten` TRUE bs TRUE (LIST 1)
+                        LET c MEANS `a checked case` TRUE `the kindergarten stage` TRUE bs TRUE (LIST 1)
                             m MEANS `the last salary month for the grant` c mat 5
                         IN  m EQUALS (IF mat THEN 6 ELSE IF elem `unpaid leave or absence treated as unpaid leave, after maternity leave or not` bs THEN 7 ELSE 3))
                     `every list of breaks checked`)

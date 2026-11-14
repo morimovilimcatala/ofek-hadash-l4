@@ -6,6 +6,7 @@
 IMPORT prelude
 IMPORT daydate
 IMPORT common
+IMPORT vocabulary
 IMPORT conventions
 
 -- not weighed against `the Equal Pay Law`: the words the search found are
@@ -16,22 +17,18 @@ IMPORT conventions
 
 -- akn:preamble/p1 akn:preamble/p2 akn:preamble/p3 akn:preamble/p4 akn:preamble/p5 akn:preamble/p6 akn:preamble/p7 akn:preamble/p8 akn:preamble/p9 akn:preamble/p10 akn:preamble/p11 akn:preamble/p12 akn:preamble/p13 akn:preamble/p14 akn:preamble/p15 The circular number, the letterhead, the ministry's address footer, date, reference, addressee, greeting and subject line; no rule.
 
-DECLARE `group` IS ONE OF
-    `teachers in the Oz LeTmura reform`
-    `teachers outside the reform and principals`
-
 @desc A teaching employee, as far as this circular asks.
 DECLARE `teaching employee` HAS
     `rated in the teaching employees' grading` IS A BOOLEAN
     `employed by an owner of a ministry-supervised institution` IS A BOOLEAN
     `employed in an upper division or grades 13-14` IS A BOOLEAN
-    `employee group` IS A `group`
+    `employee group` IS A `group of the 2016 shekel supplement`
 
 @desc A linked amount of the 2016 shekel supplement for a full position, per month, and the amount paid before it.
 DECLARE `linked amount` HAS
     `linked from`      IS A DATE
     `linked to`        IS A DATE @desc 31.12.9999 where the circular gives no end
-    `for group`        IS A `group`
+    `for group`        IS A `group of the 2016 shekel supplement`
     `amount linked`    IS A NUMBER
     `amount replaced`  IS A NUMBER @desc the amount paid for the period before this circular; 0 where none is named
 
@@ -68,7 +65,7 @@ DECIDE `the circular applies to` e IF
          `linked amount` (Date 1 6 2018) (Date 31 12 9999) `teachers outside the reform and principals` 751.18 0
 
 @ref akn:hc_1/p8 akn:hc_1/p11
-GIVEN g IS A `group`, `the day` IS A DATE
+GIVEN g IS A `group of the 2016 shekel supplement`, `the day` IS A DATE
 GIVETH A NUMBER
 DECIDE `the linked shekel supplement for a full position` g `the day` IS
     sum (map (GIVEN a YIELD a's `amount linked`)
@@ -77,7 +74,7 @@ DECIDE `the linked shekel supplement for a full position` g `the day` IS
 
 -- ¶24-¶25: the difference owed for each month of 1.1.2018-31.5.2018 already paid.
 @ref akn:hc_1/p9 akn:hc_1/p10
-GIVEN g IS A `group`
+GIVEN g IS A `group of the 2016 shekel supplement`
 GIVETH A NUMBER
 DECIDE `monthly difference owed for January-May 2018` g IS
     sum (map (GIVEN a YIELD a's `amount linked` MINUS a's `amount replaced`)
@@ -133,12 +130,11 @@ DECIDE `indemnifying the owners` `indemnity due` IS
 -- The table over the first and the last of every month from December 2017
 -- to January 2019, for both groups.
 
-`both groups` MEANS LIST `teachers in the Oz LeTmura reform`, `teachers outside the reform and principals`
 `the days checked` MEANS
     append (LIST Date 1 12 2017, Date 31 12 2017, Date 1 1 2019, Date 31 1 2019)
            (concat (map (GIVEN m YIELD LIST (Date 1 m 2018), (Date 28 m 2018)) (range 1 12)))
 
-GIVEN g IS A `group`, `the day` IS A DATE
+GIVEN g IS A `group of the 2016 shekel supplement`, `the day` IS A DATE
 GIVETH A NUMBER
 DECIDE `rows in force` g `the day` IS
     count (filter (GIVEN a YIELD a's `for group` EQUALS g AND `the day` AT LEAST a's `linked from` AND `the day` AT MOST a's `linked to`)
@@ -148,14 +144,14 @@ DECIDE `rows in force` g `the day` IS
 -- not overlap; the reform teachers' amount is always the larger; and the
 -- amount never falls from one day checked to a later one.
 #ASSERT all (GIVEN d YIELD
-                    all (GIVEN g YIELD `rows in force` g d EQUALS (IF d AT LEAST Date 1 1 2018 THEN 1 ELSE 0)) `both groups`
+                    all (GIVEN g YIELD `rows in force` g d EQUALS (IF d AT LEAST Date 1 1 2018 THEN 1 ELSE 0)) `both groups of the 2016 shekel supplement`
                 AND `the linked shekel supplement for a full position` `teachers outside the reform and principals` d
                     AT MOST `the linked shekel supplement for a full position` `teachers in the Oz LeTmura reform` d
                 AND all (GIVEN e YIELD
                             all (GIVEN g YIELD
                                     (e LESS THAN d)
                                     OR `the linked shekel supplement for a full position` g d AT MOST `the linked shekel supplement for a full position` g e)
-                                `both groups`)
+                                `both groups of the 2016 shekel supplement`)
                         `the days checked`)
             `the days checked`
 
@@ -165,7 +161,7 @@ DECIDE `rows in force` g `the day` IS
 #ASSERT all (GIVEN g YIELD
                     `monthly difference owed for January-May 2018` g GREATER THAN 0
                 AND `monthly difference owed for January-May 2018` g LESS THAN 2)
-            `both groups`
+            `both groups of the 2016 shekel supplement`
 #ASSERT all (GIVEN a YIELD a's `amount linked` GREATER THAN a's `amount replaced`) `the linked amounts`
 
 -- ¶19: the factor is above one exactly when December 2017's index is
