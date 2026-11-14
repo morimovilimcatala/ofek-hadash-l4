@@ -191,7 +191,7 @@ def runs_of(p, notes: dict[str, str]) -> list[Run]:
     the page prints wrongly; the run before it is what the mark is about.
     The words are `printed`'s, a quotation's marks with them."""
     out: list[Run] = []
-    aside = (lambda ch: tag(ch) == "note"
+    aside = (lambda ch: tag(ch) in ("note", "embeddedStructure")
              or (tag(ch) == "noteRef" and ch.get("class") == "sic"))
     for piece in printed(p, aside):
         if isinstance(piece, str):
@@ -255,6 +255,13 @@ def section_rows(sec, notes, holder0: str | None = None) -> list[Row]:
                 if counter[holder] == 1 and holder not in labelled:
                     row.aliases.append(holder)
                 rows.append(row)
+                # a document the paragraph quotes whole (the takanon's §6.20
+                # prints the 1982 agreement) is its own structure: its
+                # paragraphs are rows under it, cited by their own eIds, and
+                # the paragraph's row holds only the words around it
+                for emb in ch:
+                    if tag(emb) == "embeddedStructure" and emb.get("eId"):
+                        walk(emb, emb.get("eId"), depth + 1, counter)
                 continue
             eid = ch.get("eId")
             if eid and t in STRUCTURE:
