@@ -822,12 +822,7 @@ def _row_text(r) -> str:
 # with the issue it waits on. Exact in both directions: a quote that starts
 # to match goes red here until its line is removed. Never add a line to make
 # the check pass; a quote we got wrong is fixed in the finding.
-MISQUOTED = {
-    # The corpus prints the sentence damaged, the quote is the page's: a
-    # number or a sign moved by the RTL extraction (MMS-426, which MMS-478
-    # was folded into; its bullet half shipped in the corpus's bfacfc2).
-    "F-2019-20_tashaf_08-b": "MMS-426",
-}
+MISQUOTED: dict[str, str] = {}
 
 
 class FindingQuotes(unittest.TestCase):
