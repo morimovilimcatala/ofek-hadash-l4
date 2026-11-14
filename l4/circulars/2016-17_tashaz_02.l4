@@ -8,6 +8,7 @@
 
 IMPORT prelude
 IMPORT common
+IMPORT vocabulary
 IMPORT womens_work_law
 IMPORT minimum_wage_law
 
@@ -26,30 +27,6 @@ DECLARE `tashaz-2 grant action` IS ONE OF
     `pay the second part of the grant` HAS `second part paid` IS A NUMBER
     `indemnify the owner for the second part in the payment system` HAS `second part indemnity` IS A NUMBER
 
-DECLARE `second-part stage` IS ONE OF
-    `kindergarten`
-    `elementary school`
-    `junior high school`
-    `high school, grades 13-14 included`
-    `teacher-training college`
-    `another stage`
-
-DECLARE `break kind` IS ONE OF
-    `maternity leave under section 6 of the Women's Employment Law`
-    `unpaid leave or absence treated as unpaid leave, after maternity leave or not`
-    `reserve duty`
-    `paid sick leave under takanon chapter 1.25.3`
-    `holiday or summer recess`
-    `end of employment`
-
-DECLARE `grant pay purpose` IS ONE OF
-    `salary for any purpose`
-    `severance pay`
-    `the overtime hourly value`
-    `provident-fund contributions`
-    `the minimum-wage top-up`
-    `the combined-salary base`
-
 DECLARE `circumstance at the payment date` IS ONE OF
     `at work`
     `on sick leave without pay`
@@ -59,11 +36,11 @@ DECLARE `circumstance at the payment date` IS ONE OF
 @desc A teaching employee as far as the second part of the one-time grant asks about it. Months are salary months.
 DECLARE `second-part case` HAS
     `graded as a teaching employee in a supervised institution` IS A BOOLEAN
-    `stage`                                                     IS A `second-part stage`
+    `stage`                                                     IS A `stage of education`
     `entitled to the first part under circular 2015-16/5`       IS A BOOLEAN @desc set by that circular, not by this one
     `first part paid`                                           IS A NUMBER  @desc the first part paid under circular 2015-16/5
     `employed on 1.9.2015 and on 1.1.2016`                      IS A BOOLEAN @desc employed at both ends of the determining period
-    `breaks in the determining period`                          IS A LIST OF `break kind`
+    `breaks in the determining period`                          IS A LIST OF `break in the determining period`
     `paid for 4 full months and a day in a row from 1.9.2015 to 31.1.2016` IS A BOOLEAN
     `monthly positions 1.12.2014 to 30.11.2015`                 IS A LIST OF NUMBER @desc the share of a full position in each month of the period actually employed (a month of maternity leave at the share held on its eve)
     `monthly positions 1.12.2015 to 30.6.2016`                  IS A LIST OF NUMBER @desc the same for the salaried months of that period, used only where the first period has none
@@ -71,12 +48,19 @@ DECLARE `second-part case` HAS
 -- Application: teaching employees in the institutions the ministry
 -- supervises, in kindergartens, elementary schools, junior high schools,
 -- the high schools (grades 13-14 included) and teacher-training colleges.
+-- "מכללות להכשרת עובדי הוראה" names no kind of college, so it is read to
+-- hold the academic college too.
 @ref akn:preamble/p20
+`the stages the circular names` MEANS
+    LIST `the kindergarten stage`, `the primary stage`, `the junior-high stage`,
+         `the upper-division stage`, `the grades 13-14 stage`,
+         `the teachers' college stage`, `the academic teachers' college stage`
+
 GIVEN c IS A `second-part case`
 GIVETH A BOOLEAN
 DECIDE `covered by the circular` c IF
         c's `graded as a teaching employee in a supervised institution`
-    AND NOT c's `stage` EQUALS `another stage`
+    AND elem (c's `stage`) `the stages the circular names`
 
 §§ `Payment of the second part; 1–2 special dates`
 
@@ -146,12 +130,12 @@ DECIDE `paying the second part` c `circumstance` `salary month of the return or 
 -- §2ה(1)–(7): maternity leave (a father's too, ¶(4)), reserve duty, paid
 -- sick leave and the recesses do not break the continuity.
 @ref akn:art_2__para_e__subpara_1 akn:art_2__para_e__subpara_4 akn:art_2__para_e__subpara_5 akn:art_2__para_e__subpara_6 akn:art_2__para_e__subpara_7
-GIVEN b IS A `break kind`
+GIVEN b IS A `break in the determining period`
 GIVETH A BOOLEAN
 DECIDE `keeps the continuity` b IF
     CONSIDER b
     WHEN `maternity leave under section 6 of the Women's Employment Law` THEN TRUE
-    WHEN `reserve duty` THEN TRUE
+    WHEN `a break for reserve duty` THEN TRUE
     WHEN `paid sick leave under takanon chapter 1.25.3` THEN TRUE
     WHEN `holiday or summer recess` THEN TRUE
     OTHERWISE FALSE
@@ -251,7 +235,7 @@ DECIDE `second part of the grant` c IS
 
 -- §2ג, §2ד(1)–(2): not salary for any purpose.
 @ref akn:art_2__para_c akn:art_2__para_d__subpara_1 akn:art_2__para_d__subpara_2
-GIVEN p IS A `grant pay purpose`
+GIVEN p IS A `purpose a payment counts for`
 GIVETH A BOOLEAN
 DECIDE `the second part counts for` p IF
     FALSE
@@ -274,7 +258,7 @@ DECIDE `indemnifying the owner` `the indemnity` IS
 -- leaving it out of the pay that counts toward the top-up makes the
 -- top-up the law's or more (its §11). Checked on a month's figures as if
 -- §3 counted it (a fixed supplement for the work), the strictest case.
-#ASSERT NOT `counting a component as the instrument does falls below the Minimum Wage Law` 5300 4800 (`component paid in the month under the Minimum Wage Law` `a fixed supplement paid for the work, under section 3(ב)(3)` 300) (`the second part counts for` `the minimum-wage top-up`)
+#ASSERT NOT `counting a component as the instrument does falls below the Minimum Wage Law` 5300 4800 (`component paid in the month under the Minimum Wage Law` `a fixed supplement paid for the work, under section 3(ב)(3)` 300) (`the second part counts for` `for the minimum-wage top-up`)
 
 §§ `The payment paragraph against section 2 (finding a)`
 
@@ -286,7 +270,7 @@ DECIDE `indemnifying the owner` `the indemnity` IS
 `a kindergarten teacher meeting section 2` MEANS
     `second-part case` WITH
         `graded as a teaching employee in a supervised institution` IS TRUE
-        `stage`                                                     IS `kindergarten`
+        `stage`                                                     IS `the kindergarten stage`
         `entitled to the first part under circular 2015-16/5`       IS FALSE
         `first part paid`                                           IS 0
         `employed on 1.9.2015 and on 1.1.2016`                      IS TRUE
@@ -309,7 +293,7 @@ DECIDE `indemnifying the owner` `the indemnity` IS
 `a high-school teacher who left on 15.12.2015` MEANS
     `second-part case` WITH
         `graded as a teaching employee in a supervised institution` IS TRUE
-        `stage`                                                     IS `high school, grades 13-14 included`
+        `stage`                                                     IS `the upper-division stage`
         `entitled to the first part under circular 2015-16/5`       IS TRUE
         `first part paid`                                           IS 1000
         `employed on 1.9.2015 and on 1.1.2016`                      IS FALSE
@@ -356,11 +340,11 @@ DECIDE `indemnifying the owner` `the indemnity` IS
 `a half-position high-school teacher` MEANS
     `second-part case` WITH
         `graded as a teaching employee in a supervised institution` IS TRUE
-        `stage`                                                     IS `high school, grades 13-14 included`
+        `stage`                                                     IS `the upper-division stage`
         `entitled to the first part under circular 2015-16/5`       IS TRUE
         `first part paid`                                           IS 500
         `employed on 1.9.2015 and on 1.1.2016`                      IS TRUE
-        `breaks in the determining period`                          IS LIST `reserve duty`
+        `breaks in the determining period`                          IS LIST `a break for reserve duty`
         `paid for 4 full months and a day in a row from 1.9.2015 to 31.1.2016` IS TRUE
         `monthly positions 1.12.2014 to 30.11.2015`                 IS LIST 0.5, 0.5, 0.5, 0.5
         `monthly positions 1.12.2015 to 30.6.2016`                  IS EMPTY
@@ -384,21 +368,14 @@ DECIDE `indemnifying the owner` `the indemnity` IS
 -- or none, with a fallback year or not.
 
 `both booleans` MEANS LIST TRUE, FALSE
-`every stage` MEANS
-    LIST `kindergarten`, `elementary school`, `junior high school`, `high school, grades 13-14 included`,
-         `teacher-training college`, `another stage`
-`every break` MEANS
-    LIST `maternity leave under section 6 of the Women's Employment Law`,
-         `unpaid leave or absence treated as unpaid leave, after maternity leave or not`,
-         `reserve duty`, `paid sick leave under takanon chapter 1.25.3`, `holiday or summer recess`, `end of employment`
-`every break list` MEANS append (LIST EMPTY) (map (GIVEN b YIELD LIST b) `every break`)
+`every break list` MEANS append (LIST EMPTY) (map (GIVEN b YIELD LIST b) `every break in the determining period`)
 `every position list` MEANS
     LIST EMPTY, (LIST 1, 1, 1), (LIST 0.5, 0.5), (LIST 1, 0.5), (LIST 1.2, 1.2), (LIST 0, 1)
 
 GIVEN g IS A BOOLEAN
-      s IS A `second-part stage`
+      s IS A `stage of education`
       e IS A BOOLEAN
-      b IS A LIST OF `break kind`
+      b IS A LIST OF `break in the determining period`
       f IS A BOOLEAN
       p IS A LIST OF NUMBER
       q IS A LIST OF NUMBER
@@ -421,7 +398,7 @@ DECIDE `a checked case` g s e b f p q IS
 #ASSERT all (GIVEN b YIELD
                 `keeps the continuity` b
                 EQUALS (NOT (b EQUALS `unpaid leave or absence treated as unpaid leave, after maternity leave or not` OR b EQUALS `end of employment`)))
-            `every break`
+            `every break in the determining period`
 
 -- §2 over every flag, stage and break: entitled exactly where covered and
 -- either continuous over the determining period or on unpaid leave and
@@ -433,16 +410,16 @@ DECIDE `a checked case` g s e b f p q IS
                                         all (GIVEN f YIELD
                                                 LET c MEANS `a checked case` g s e b f (LIST 1) EMPTY
                                                 IN  `entitled to the second part` c
-                                                    EQUALS (g AND (NOT (s EQUALS `another stage`))
+                                                    EQUALS (g AND elem s `the stages the circular names`
                                                             AND ((e AND all (GIVEN k YIELD `keeps the continuity` k) b)
                                                                  OR (elem `unpaid leave or absence treated as unpaid leave, after maternity leave or not` b AND f))))
                                             `both booleans`)
                                     `every break list`)
                             `both booleans`)
-                    `every stage`)
+                    `every stage of education`)
             `both booleans`
 
-GIVEN b IS A LIST OF `break kind`
+GIVEN b IS A LIST OF `break in the determining period`
       p IS A LIST OF NUMBER
       q IS A LIST OF NUMBER
 GIVETH A NUMBER
@@ -460,7 +437,7 @@ DECIDE `the average the check expects` b p q IS
 #ASSERT all (GIVEN b YIELD
                 all (GIVEN p YIELD
                         all (GIVEN q YIELD
-                                LET c MEANS `a checked case` TRUE `elementary school` TRUE b TRUE p q
+                                LET c MEANS `a checked case` TRUE `the primary stage` TRUE b TRUE p q
                                     x MEANS `second part of the grant` c
                                     avg MEANS `the average the check expects` b p q
                                 IN      x AT LEAST 0
@@ -469,7 +446,7 @@ DECIDE `the average the check expects` b p q IS
                                     AND ((NOT `entitled to the second part` c) OR x EQUALS 1000 TIMES min avg 1))
                             `every position list`)
                     `every position list`)
-            (LIST EMPTY, (LIST `unpaid leave or absence treated as unpaid leave, after maternity leave or not`), (LIST `reserve duty`))
+            (LIST EMPTY, (LIST `unpaid leave or absence treated as unpaid leave, after maternity leave or not`), (LIST `a break for reserve duty`))
 
 -- The payment date over every circumstance and month of return: at work,
 -- February's salary; back from sick leave without pay or maternity leave,
@@ -483,5 +460,5 @@ DECIDE `the average the check expects` b p q IS
 
 -- §2ג-§2ד: the second part counts for nothing.
 #ASSERT all (GIVEN u YIELD NOT `the second part counts for` u)
-            (LIST `salary for any purpose`, `severance pay`, `the overtime hourly value`, `provident-fund contributions`,
-                  `the minimum-wage top-up`, `the combined-salary base`)
+            (LIST `as salary for every purpose`, `for severance pay`, `for the overtime hourly value`, `for provident-fund contributions`,
+                  `for the minimum-wage top-up`, `for the combined-salary base`)
