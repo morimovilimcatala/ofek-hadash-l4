@@ -49,6 +49,14 @@ DECIDE `a name that reads like the rule` … IS/IF …
   (`GIVETH A DEONTIC Party <action type>`, `PARTY … MUST/MAY/SHANT … WITHIN
   … HENCE … LEST BREACH BY … BECAUSE "…"`), each exercised by at least one
   `#TRACE` where it has a deadline.
+- **A `MUST … LEST` whose text states a date carries it** (MMS-765): a
+  fixed calendar day or salary month is `WITHIN 0 OF (…)` that day, which
+  is absolute and so holds under `HENCE` too, where a plain `WITHIN` counts
+  from the step before; a stated period is a plain `WITHIN n`. Where the
+  text ties the time to an event with no length, or names none, the rule
+  has no deadline (convention `dates.no-deadline`) and its breach is never
+  reached; `tools/deadlines.py` counts those sites, and the suite holds the
+  count exactly.
 - **A note is for a paragraph with no rule in it**: an אסמכתא list, "סעיף זה
   תוקן ב…", a heading-only row, a pure pointer ("ראה סעיף 3.9.4") to a rule
   encoded in another section. A paragraph that SAYS something — even

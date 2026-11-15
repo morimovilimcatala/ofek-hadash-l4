@@ -186,6 +186,42 @@ class Layout(unittest.TestCase):
                 self.assertEqual(len(list(layout_lint.scan_pct(f))), n)
 
 
+# `MUST … LEST` with no WITHIN and no BEFORE (tools/deadlines.py): the
+# breach the rule names is never reached. What is left is where the text
+# ties the time to an event with no length, holds a lead time before an
+# event in a PROVIDED, or names no time at all (MMS-765). Raising it is a
+# deadline lost; it is lowered by the commit that gives one a WITHIN.
+UNDATED_OBLIGATIONS = 326
+
+
+class Deadlines(unittest.TestCase):
+    def test_undated_obligations_are_a_ratchet(self):
+        import deadlines
+        self.assertEqual(len(deadlines.sites()), UNDATED_OBLIGATIONS)
+
+    def test_the_count_reads_a_clause_as_the_compiler_groups_it(self):
+        # each text's MUST clauses, in order: (has a deadline, has a LEST)
+        import deadlines
+        cases = {
+            "    PARTY a\n    MUST  b\n    LEST  BREACH BY a\n": [(False, True)],
+            "    PARTY a\n    MUST  b\n    WITHIN 3\n    LEST  BREACH BY a\n": [(True, True)],
+            "    PARTY a MUST b BEFORE 3 LEST BREACH BY a\n": [(True, True)],
+            "    PARTY a\n    MUST  b\n": [(False, False)],
+            # an inner clause under HENCE, in brackets and not
+            "    PARTY a\n    MUST  b\n    HENCE (PARTY c MUST d WITHIN 2 LEST BREACH BY c)\n"
+            "    LEST  BREACH BY a\n": [(False, True), (True, True)],
+            "    PARTY a\n    MUST  b\n    WITHIN 1\n    HENCE PARTY c\n          MUST  d\n"
+            "          LEST  BREACH BY c\n    LEST  BREACH BY a\n": [(True, True), (False, True)],
+            # side by side
+            "         (PARTY a MUST b)\n    RAND (PARTY c MUST d LEST BREACH BY c)\n": [(False, False), (False, True)],
+            # a keyword in a string or a comment is no keyword
+            '    PARTY a\n    MUST  b -- WITHIN 3\n    LEST  BREACH BY a BECAUSE "WITHIN 3"\n': [(False, True)],
+        }
+        for text, want in cases.items():
+            with self.subTest(text=text):
+                self.assertEqual([(due, lest) for _, due, lest in deadlines.clauses(text)], want)
+
+
 class Findings(unittest.TestCase):
     def setUp(self):
         self.findings = site_mod.load_findings()
