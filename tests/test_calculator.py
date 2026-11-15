@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -137,6 +138,44 @@ class Artefact(unittest.TestCase):
                          "the patch changed: rebuild with toolchain/build-wasm.sh")
         for name, digest in build["files"].items():
             self.assertEqual(hashlib.sha256((WASM / name).read_bytes()).hexdigest(), digest, name)
+
+
+class UnsignedPointers(unittest.TestCase):
+    """A wasm i32 address reaches JavaScript SIGNED, so one at or above 2 GiB
+    is a negative offset and the view over memory throws RangeError (MMS-761).
+    Every address or length that indexes `memory.buffer` — in GHC's string
+    glue, rewritten by toolchain/unsigned-glue.mjs until GHC #28132 lands,
+    and in our own WASI shim — is read as unsigned, `>>> 0`."""
+    FILES = (WASM / "l4.mjs", ROOT / "tools/assets/calc-core.mjs")
+    # a typed array over the memory, with or without an offset and a length
+    VIEW = re.compile(r"new (?:Uint8Array|DataView)\(\s*[\w.]*memory\.buffer\s*((?:,[^,()]+)*)\)")
+    # a read or write through a DataView over the memory, or a copy into it
+    ACCESS = re.compile(r"\b(?:view\(\)\.(?:get|set)\w+|mem\.set)\(([^()]*)\)")
+
+    @staticmethod
+    def unsigned(arg: str) -> bool:
+        return arg.strip().endswith(">>> 0")
+
+    def test_every_view_over_memory_reads_its_pointers_as_unsigned(self):
+        views = 0
+        for f in self.FILES:
+            for m in self.VIEW.finditer(f.read_text(encoding="utf-8")):
+                views += 1
+                args = [a for a in m.group(1).split(",") if a.strip()]
+                with self.subTest(file=f.name, view=m.group(0)):
+                    self.assertTrue(all(map(self.unsigned, args)), m.group(0))
+        self.assertGreaterEqual(views, 4)   # the glue's two helpers, the shim's views
+
+    def test_every_access_through_the_shim_reads_its_address_as_unsigned(self):
+        text = (ROOT / "tools/assets/calc-core.mjs").read_text(encoding="utf-8")
+        found = list(self.ACCESS.finditer(text))
+        self.assertTrue(found)
+        for m in found:
+            args = m.group(1).split(",")
+            # DataView: the address is the first argument; mem.set(src, offset): the second
+            addr = args[1] if m.group(0).startswith("mem.set") else args[0]
+            with self.subTest(call=m.group(0)):
+                self.assertTrue(self.unsigned(addr), m.group(0))
 
 
 def wasm_runs(runs: list[dict]) -> list[dict]:

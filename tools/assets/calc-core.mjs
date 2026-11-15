@@ -29,34 +29,34 @@ function wasiStubs(exp, argv) {
   const view = () => new DataView(exp.memory.buffer);
   const args = argv.map((a) => new TextEncoder().encode(a + "\0"));
   return {
-    clock_time_get: (_id, _prec, out) => { view().setBigUint64(out, BigInt(Date.now()) * 1000000n, true); return 0; },
-    clock_res_get: (_id, out) => { view().setBigUint64(out, 1000n, true); return 0; },
+    clock_time_get: (_id, _prec, out) => { view().setBigUint64(out >>> 0, BigInt(Date.now()) * 1000000n, true); return 0; },
+    clock_res_get: (_id, out) => { view().setBigUint64(out >>> 0, 1000n, true); return 0; },
     fd_write: () => 0, fd_read: () => 0, fd_close: () => 0, fd_seek: () => 0,
     fd_fdstat_get: () => 0, fd_fdstat_set_flags: () => 0, fd_filestat_get: () => 0,
     fd_filestat_set_size: () => 0, fd_prestat_get: () => 8, fd_prestat_dir_name: () => 8,
     path_create_directory: () => 63, path_filestat_get: () => 63, path_open: () => 63,
     poll_oneoff: () => 0, sched_yield: () => 0, random_get: (buf, len) => {
-      const b = new Uint8Array(exp.memory.buffer, buf, len);
-      for (let i = 0; i < len; i++) b[i] = Math.floor(Math.random() * 256);
+      const b = new Uint8Array(exp.memory.buffer, buf >>> 0, len >>> 0);
+      for (let i = 0; i < b.length; i++) b[i] = Math.floor(Math.random() * 256);
       return 0;
     },
     proc_exit: (code) => { throw new Error("proc_exit " + code); },
     args_sizes_get: (c, s) => {
-      view().setUint32(c, args.length, true);
-      view().setUint32(s, args.reduce((n, a) => n + a.length, 0), true);
+      view().setUint32(c >>> 0, args.length, true);
+      view().setUint32(s >>> 0, args.reduce((n, a) => n + a.length, 0), true);
       return 0;
     },
     args_get: (ptrs, buf) => {
       const mem = new Uint8Array(exp.memory.buffer);
       for (const a of args) {
-        view().setUint32(ptrs, buf, true);
-        mem.set(a, buf);
+        view().setUint32(ptrs >>> 0, buf >>> 0, true);
+        mem.set(a, buf >>> 0);
         ptrs += 4;
         buf += a.length;
       }
       return 0;
     },
-    environ_sizes_get: (c, s) => { view().setUint32(c, 0, true); view().setUint32(s, 0, true); return 0; },
+    environ_sizes_get: (c, s) => { view().setUint32(c >>> 0, 0, true); view().setUint32(s >>> 0, 0, true); return 0; },
     environ_get: () => 0,
   };
 }
