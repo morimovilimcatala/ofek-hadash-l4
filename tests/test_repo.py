@@ -916,6 +916,22 @@ class SitePages(unittest.TestCase):
         self.assertEqual(site_mod.coll_hub("takanon"), "takanon/takanon-sherut-ovdei-horaa.html")
 
 
+class RenderPageHeadings(unittest.TestCase):
+    """`l4 render` numbers its headings by their order in the file; the
+    render page drops that count, which reads as the corpus's numbering."""
+
+    def test_the_renderer_ordinal_is_dropped(self):
+        got = site_mod.without_render_ordinals(
+            '<h2 id="sec_3" class="section">§ 3  1 עובדים קיימים</h2>'
+            '<h2 id="sec_1" class="section">§ 1  Interpretation</h2>')
+        self.assertEqual(got, '<h2 id="sec_3" class="section">1 עובדים קיימים</h2>'
+                              '<h2 id="sec_1" class="section">Interpretation</h2>')
+
+    def test_a_section_sign_in_prose_is_kept(self):
+        prose = '<p>under § 3 of the agreement</p>'
+        self.assertEqual(site_mod.without_render_ordinals(prose), prose)
+
+
 class Agreements(unittest.TestCase):
     """The agreements collection is in work: every agreement the corpus
     publishes is a document here, and the base agreement is read part by

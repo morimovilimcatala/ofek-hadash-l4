@@ -1339,10 +1339,21 @@ def redirect_page(here: str, target: str, title: str) -> str:
             f'</head><body><p>הדף עבר אל <a href="{esc(to)}">{esc(title)}</a>.</p></body></html>')
 
 
+# `l4 render` (since l4-ide 2818cc2) numbers its section headings by their
+# order in the file, "§ 3  1 עובדים קיימים" for the text's section 1. That
+# count is not the corpus's numbering, and beside it a reader takes it for
+# one, so the site drops it and keeps the heading the L4 wrote.
+RENDER_ORDINAL = re.compile(r'(<h[1-6]\b[^>]*\bclass="section"[^>]*>)\s*§\s*\d+\s+')
+
+
+def without_render_ordinals(markup: str) -> str:
+    return RENDER_ORDINAL.sub(r"\1", markup)
+
+
 def render_page(v: SectionView) -> str:
     """L4's own rendering, framed by the site so it is navigable."""
     m = re.search(r"<body[^>]*>(.*)</body>", v.render, re.S)
-    inner = m.group(1) if m else v.render
+    inner = without_render_ordinals(m.group(1) if m else v.render)
     here = v.render_href
     body = (f'<header class="sec-head"><nav class="crumbs"><a href="{rel(v.href, here)}">→ {"" if v.whole else esc(sec_ref(v.section)) + " "}זה לצד זה</a></nav>'
             f'<div class="title-row"><h1 lang="he" dir="rtl">'
