@@ -37,6 +37,14 @@ class Roots(unittest.TestCase):
             if not coll:
                 continue
             reg = roots.registered(module)
+            # a family none of whose agreements describes itself as an
+            # instrument registers none (the framework agreements, MMS-538);
+            # any other collection root registers at least one
+            family = next((f for f, m in roots.FAMILY_ROOTS.items() if m == module), None)
+            if family and not any("`instrument` WITH" in f.read_text(encoding="utf-8")
+                                  for f in (roots.AGREEMENTS / family).rglob("*.l4") if not f.is_symlink()):
+                self.assertEqual(reg, [], f"{module}: no agreement of its family is an instrument")
+                continue
             self.assertTrue(reg, f"{module} registers no instrument")
             for m, title in reg:
                 with self.subTest(root=module, instrument=m):
@@ -110,6 +118,44 @@ class TheCircularsRootIsTheCollection(unittest.TestCase):
             for name in [inst, *(answer for _, answer in rows)]:
                 with self.subTest(name=name):
                     self.assertEqual(declared.get(name), 1)
+
+
+class EveryAgreementIsInAFamilyRoot(unittest.TestCase):
+    """THE AGREEMENTS' ROOT REACHES ITS WHOLE COLLECTION (MMS-538), through
+    one root per family: the families of l4/agreements/ are each a root's
+    (the framework agreements' since the client's decision of 2026-11-15),
+    each family root imports every module of its family — its import block
+    is written by tools/roots.py (--write-agreement-imports) — and every
+    agreement that describes itself as an instrument is registered in its
+    family's root."""
+
+    def test_every_family_has_a_root_and_the_agreements_root_holds_it(self):
+        self.assertEqual({d.name for d in roots.AGREEMENTS.iterdir() if d.is_dir()}, set(roots.FAMILY_ROOTS))
+        text = (roots.LIB / "agreements-root.l4").read_text(encoding="utf-8")
+        for module in roots.FAMILY_ROOTS.values():
+            with self.subTest(module=module):
+                self.assertIn(f"IMPORT `{module}`", text)
+                self.assertIn(module, [m for m, *_ in roots.ROOTS])
+
+    def test_the_import_blocks_are_what_the_generator_writes(self):
+        for family, module in roots.FAMILY_ROOTS.items():
+            with self.subTest(module=module):
+                self.assertEqual((roots.LIB / f"{module}.l4").read_text(encoding="utf-8"),
+                                 roots.family_root_source(family),
+                                 "python3 tools/roots.py --write-agreement-imports")
+
+    def test_every_agreement_with_an_answer_is_reached_and_every_instrument_registered(self):
+        for family, module in roots.FAMILY_ROOTS.items():
+            root = (roots.LIB / f"{module}.l4").read_text(encoding="utf-8")
+            imported = set(re.findall(r"^IMPORT\s+`?([^`\s]+)`?", root, re.M))
+            for f in (roots.AGREEMENTS / family).rglob("*.l4"):
+                if f.is_symlink():
+                    continue
+                src = f.read_text(encoding="utf-8")
+                with self.subTest(family=family, agreement=f.name):
+                    self.assertIn(f.name.removesuffix(".l4"), imported)
+                    for inst in re.findall(r"^(`[^`]+`) MEANS\n\s+`instrument` WITH", src, re.M):
+                        self.assertIn(inst, root)
 
 
 class TestsAreQuestions(unittest.TestCase):

@@ -82,6 +82,13 @@ ROOTS = [
      "ומה הוא אומר לכל מקרה. בין הסכמים של אותם צדדים באותו עניין, המאוחר שמדבר בחודש "
      "השכר מחליף את המוקדם (סעיף 19 לחוק הסכמים קיבוציים). שורש ההסכמים מייבא אותו לצד "
      "שורשי שאר המשפחות."),
+    # the public-sector framework agreements, a family of their own (the
+    # client, 2026-11-15, MMS-538)
+    ("framework-agreements-root", "agreements/framework/root.html", "agreements",
+     "שורש הסכמי המסגרת במגזר הציבורי",
+     "כל הסכם מסגרת במגזר הציבורי שמדבר על פריט באוצר המילים המשותף, רשום פעם אחת כמסמך, "
+     "ומה הוא אומר לכל מקרה. השורש מייבא את כל הסכמי המסגרת; עדיין אף אחד מהם אינו עונה על "
+     "פריט באוצר המילים, ולכן אין בו מסמך רשום. שורש ההסכמים מייבא אותו לצד שורשי שאר המשפחות."),
     # the protective statutes (l4/laws/), whose floor the root weighs last
     # (MMS-601); not a collection of the corpus, so it sits beside the laws
     ("statutes-root", "laws/root.html", "",
@@ -522,6 +529,50 @@ def circulars_root_source() -> str:
     return "\n".join(out) + "\n"
 
 
+# ---------------------------------------------------------------------------
+# Each family of agreements imports its whole family (MMS-538), as the
+# circulars' root imports its collection. A family root's instruments and
+# claims stay written by hand — the agreements' answers are not one shape
+# (an amendment's claim waits for its month, the salary tables are their
+# own instrument) — so only its IMPORT block is generated: prelude,
+# precedence, every module of l4/agreements/<family>/, then any import of a
+# module outside the family the hand-written part asks for, kept as it was.
+#
+#     python3 tools/roots.py --write-agreement-imports
+#     python3 tools/roots.py --check-agreement-imports
+
+AGREEMENTS = ROOT / "l4" / "agreements"
+# family directory -> its root module
+FAMILY_ROOTS = {
+    "ofek-hadash": "ofek-hadash-root",
+    "oz-latmura": "oz-latmura-root",
+    "teachers-general": "teachers-general-root",
+    "framework": "framework-agreements-root",
+}
+_IMPORT = re.compile(r"^IMPORT\s+`?([^`\s]+)`?\s*$", re.M)
+
+
+def family_modules(family: str) -> list[str]:
+    """Every module of a family: the real files under l4/agreements/<family>/
+    (a link there is a statute or a shared module an import resolves
+    through, not an agreement of the family)."""
+    return sorted(f.name.removesuffix(".l4") for f in (AGREEMENTS / family).rglob("*.l4") if not f.is_symlink())
+
+
+def family_root_source(family: str) -> str:
+    path = LIB / f"{FAMILY_ROOTS[family]}.l4"
+    lines = path.read_text(encoding="utf-8").split("\n")
+    at = [i for i, l in enumerate(lines) if _IMPORT.match(l)]
+    if not at or at != list(range(at[0], at[-1] + 1)):
+        raise SystemExit(f"{path.name}: its imports are not one block")
+    mine = set(family_modules(family))
+    kept = [m for m in (_IMPORT.match(lines[i]).group(1) for i in at)
+            if m not in mine and m not in ("prelude", "precedence")]
+    block = ["IMPORT prelude", "IMPORT precedence"] + [f"IMPORT `{m}`" for m in sorted(mine)] + \
+            [f"IMPORT `{m}`" for m in kept]
+    return "\n".join(lines[:at[0]] + block + lines[at[-1] + 1:])
+
+
 if __name__ == "__main__":
     import sys
     if sys.argv[1:] == ["--write-circulars-root"]:
@@ -529,5 +580,14 @@ if __name__ == "__main__":
     elif sys.argv[1:] == ["--check-circulars-root"]:
         if CIRCULARS_ROOT.read_text(encoding="utf-8") != circulars_root_source():
             raise SystemExit("l4/lib/circulars-root.l4 is stale: python3 tools/roots.py --write-circulars-root")
+    elif sys.argv[1:] == ["--write-agreement-imports"]:
+        for fam, mod in FAMILY_ROOTS.items():
+            (LIB / f"{mod}.l4").write_text(family_root_source(fam), encoding="utf-8")
+    elif sys.argv[1:] == ["--check-agreement-imports"]:
+        stale = [m for f, m in FAMILY_ROOTS.items()
+                 if (LIB / f"{m}.l4").read_text(encoding="utf-8") != family_root_source(f)]
+        if stale:
+            raise SystemExit(f"stale imports in {stale}: python3 tools/roots.py --write-agreement-imports")
     else:
-        raise SystemExit("usage: tools/roots.py --write-circulars-root | --check-circulars-root")
+        raise SystemExit("usage: tools/roots.py --write-circulars-root | --check-circulars-root"
+                         " | --write-agreement-imports | --check-agreement-imports")
