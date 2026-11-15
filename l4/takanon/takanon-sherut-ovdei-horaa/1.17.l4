@@ -853,23 +853,36 @@ DECLARE `advice action` IS ONE OF
 -- preferably a pupil who is not the teacher's own; the teacher sets a plan of
 -- individual care and meets the pupil at least once a week. The duties bind
 -- a teacher who has taken a pupil on in this way. Time in weeks.
+-- How long the care lasts the text does not say: it gives the meeting a
+-- frequency ("פעם בשבוע, לפחות") and no end, and "במשך הזמן" (in the course
+-- of time) only places the contact with the parents later in it. Nor does
+-- it tie the care to the school year in so many words. So the number of
+-- weeks the teacher keeps the pupil in care is a named input, and the
+-- weekly meeting is owed for each of those weeks and then ends FULFILLED;
+-- it does not renew itself without end, where its only way out was a
+-- breach. Nothing here sets that number.
 @ref akn:chp_1א___sec_1_17__ssec_1_17_2/p49
-GIVEN `the teacher took on a pupil in this way` IS A BOOLEAN
+GIVEN `the teacher took on a pupil in this way` IS A BOOLEAN,
+      `weeks of care` IS A NUMBER @desc the weeks the teacher keeps the pupil in care; the text names no end to the care (example ב, ¶49), so the caller gives it
 GIVETH A DEONTIC Party `individual care action`
-DECIDE `the care of the pupil taken on` `the teacher took on a pupil in this way` IS
+DECIDE `the care of the pupil taken on` `the teacher took on a pupil in this way` `weeks of care` IS
     IF `the teacher took on a pupil in this way`
     THEN PARTY `the teaching employee`
          MUST  `set a plan of individual care`
-         HENCE `the weekly meeting`
+         HENCE `the weekly meeting` `weeks of care`
     ELSE FULFILLED
 
+-- One meeting within each week, for as many weeks as the care is kept.
+GIVEN `weeks left` IS A NUMBER
 GIVETH A DEONTIC Party `individual care action`
-DECIDE `the weekly meeting` IS
-    PARTY `the teaching employee`
-    MUST  `meet the pupil`
-    WITHIN 1
-    HENCE `the weekly meeting`
-    LEST  BREACH BY `the teaching employee` BECAUSE "section 1.17.2, example ב: the teacher meets the pupil at least once a week"
+DECIDE `the weekly meeting` `weeks left` IS
+    IF `weeks left` AT MOST 0
+    THEN FULFILLED
+    ELSE PARTY `the teaching employee`
+         MUST  `meet the pupil`
+         WITHIN 1
+         HENCE `the weekly meeting` (`weeks left` MINUS 1)
+         LEST  BREACH BY `the teaching employee` BECAUSE "section 1.17.2, example ב: the teacher meets the pupil at least once a week"
 
 DECLARE `who initiates the care` IS ONE OF
     `the teacher`
@@ -885,10 +898,18 @@ DECLARE `individual care action` IS ONE OF
     `meet the pupil`
     `consult a professional`
 
-#TRACE `the care of the pupil taken on` TRUE AT 0 WITH
+-- Care kept for two weeks, met each week: the duty ends FULFILLED. (When
+-- the meeting renewed itself without end, the same trace left a meeting
+-- owed and the care could end only in a breach.)
+#TRACE `the care of the pupil taken on` TRUE 2 AT 0 WITH
     PARTY `the teaching employee` DOES `set a plan of individual care` AT 0
     PARTY `the teaching employee` DOES `meet the pupil` AT 1
     PARTY `the teaching employee` DOES `meet the pupil` AT 2
+-- And a week with no meeting inside the care is a breach.
+#TRACE `the care of the pupil taken on` TRUE 3 AT 0 WITH
+    PARTY `the teaching employee` DOES `set a plan of individual care` AT 0
+    PARTY `the teaching employee` DOES `meet the pupil` AT 1
+    (`WAIT UNTIL` 3)
 
 -- ¶50: the teacher may consult professionals (a teacher-counsellor, a
 -- psychologist, a social worker, a truant officer and the like); in some
