@@ -1,7 +1,7 @@
 """The words each cited row held when the L4 was written against it.
 
     python3 tools/cited_rows.py --write    # record them in corpus/cited-rows.tsv
-    python3 tools/cited_rows.py            # list the cited rows whose words moved
+    python3 tools/cited_rows.py            # list the cited rows whose words moved or are gone
 
 A citation is checked to EXIST by the alignment tests; this checks that it
 still names the same WORDS. A corpus re-sync that inserts a row (a reading
@@ -15,7 +15,8 @@ heads other rows (a clause cited as a whole) is digested with everything
 under it. tools/sync_corpus.py writes the record from the corpus being
 replaced, BEFORE it copies the new one, so the record is always of the text
 the citations were written against; tests/test_sync.py then fails on every
-cited key whose words changed and names the row the old words moved to.
+cited key whose words changed or that resolves to nothing now, and names the
+row the old words moved to.
 After re-pointing those citations, re-record with --write.
 """
 from __future__ import annotations
@@ -125,27 +126,41 @@ def write_record(path: Path = RECORD) -> int:
     return len(rec)
 
 
-def moved() -> list[str]:
-    """One line per recorded, still-cited key whose words changed, naming
-    where the recorded words are now (the same holder first)."""
-    rec = read_record()
-    now = current()
+def report(rec: dict[tuple[str, str], str], cited_keys: set[tuple[str, str]],
+           digests_of) -> list[str]:
+    """One line per cited key that no longer names what it was recorded
+    with: a key whose words changed, and a key that resolves to NOTHING in
+    the corpus as it stands (MMS-752; a re-sync that removes rows leaves
+    those, and the list must name every one). Each says where the recorded
+    words are now, the same holder first: a row whose words, normalised as
+    the digest normalises them, equal the old row's. `digests_of(doc)` is a
+    document's key -> digest map."""
     out = []
     by_doc: dict[str, dict[str, str]] = {}
-    for (doc, key), old in sorted(rec.items()):
-        new = now.get((doc, key))
-        if new is None or new == old:
-            continue
+    for doc, key in sorted(cited_keys):
         if doc not in by_doc:
-            by_doc[doc] = document_digests(doc)
+            by_doc[doc] = digests_of(doc)
         digests = by_doc[doc]
+        old, new = rec.get((doc, key)), digests.get(key)
+        if new is not None and (old is None or new == old):
+            continue
+        what = "names other words" if new is not None else "resolves to nothing"
+        if old is None:
+            out.append(f"{doc.removesuffix('.xml')}: {key} {what}; "
+                       "no words were recorded for it")
+            continue
         holder = key.rsplit("/", 1)[0]
         there = sorted((k for k, d in digests.items() if d == old),
                        key=lambda k: (k.rsplit("/", 1)[0] != holder, k))
         where = f"the recorded words are now at {', '.join(there)}" if there \
             else "no row holds the recorded words now"
-        out.append(f"{doc.removesuffix('.xml')}: {key} names other words; {where}")
+        out.append(f"{doc.removesuffix('.xml')}: {key} {what}; {where}")
     return out
+
+
+def moved() -> list[str]:
+    """`report` over the record and the corpus as it stands."""
+    return report(read_record(), cited(), document_digests)
 
 
 if __name__ == "__main__":

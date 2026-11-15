@@ -105,6 +105,29 @@ class CitedRowsKeepTheirWords(unittest.TestCase):
         # a key that heads others is held to everything under it
         self.assertNotEqual(before["x"], after["x"])
 
+    def test_a_removed_key_is_reported_with_where_its_words_went(self):
+        # MMS-752: a re-sync that drops a row leaves its citation resolving
+        # to nothing; the list of what to re-point must name it, and name
+        # the row now holding the recorded words.
+        import akn
+        def section(texts):
+            rows = [akn.Row("x", 0, "label", "1")]
+            rows += [akn.Row(f"x/p{i}", 1, "text", runs=[akn.Run(t)]) for i, t in enumerate(texts, 1)]
+            return akn.Section("x", "x", "", "", "", "", rows)
+        before = self.cr.section_digests(section(["מדינת ישראל", "משרד החינוך", "הנדון"]))
+        after = self.cr.section_digests(section(["מדינת ישראל משרד החינוך", "הנדון"]))
+        rec = {("d.xml", k): before[k] for k in ("x/p1", "x/p3")}
+        lines = self.cr.report(rec, {("d.xml", "x/p1"), ("d.xml", "x/p3")}, lambda doc: after)
+        self.assertEqual(lines, [
+            "d: x/p1 names other words; no row holds the recorded words now",
+            "d: x/p3 resolves to nothing; the recorded words are now at x/p2",
+        ])
+        # a cited key nobody recorded is still reported when it resolves to nothing
+        self.assertEqual(self.cr.report({}, {("d.xml", "x/p9")}, lambda doc: after),
+                         ["d: x/p9 resolves to nothing; no words were recorded for it"])
+        # a key the citations left is not reported, whatever became of it
+        self.assertEqual(self.cr.report(rec, set(), lambda doc: after), [])
+
 
 if __name__ == "__main__":
     unittest.main()
