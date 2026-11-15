@@ -8,7 +8,7 @@ of the collections in work (tools/build_site.py's WORK_COLLECTIONS) as the
 checkout has committed it, removes a vendored file the corpus no longer
 has, rewrites the manifest of the corpus's documents, and records the
 checkout's commit and the copies' hashes. A cited row whose
-words the new corpus moved fails tests/test_sync.py, which names where they
+words the new corpus moved, or that it removed, fails tests/test_sync.py, which names where they
 went: re-point the citation, then `python3 tools/cited_rows.py --write`. Nothing here edits a corpus file; a defect in one is fixed there.
 """
 from __future__ import annotations
