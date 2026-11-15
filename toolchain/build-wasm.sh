@@ -65,6 +65,9 @@ wasm32-wasi-cabal update
 wasm32-wasi-cabal build -j"${WASM_JOBS:-}" jl4-wasm --project-file=cabal-wasm.project
 wasm="$(find dist-newstyle/build/wasm32-wasi -path '*/jl4-wasm/jl4-wasm.wasm' -type f | head -1)"
 "$(wasm32-wasi-ghc --print-libdir)/post-link.mjs" -i "$wasm" -o dist-newstyle/jl4-wasm.mjs
+# GHC's string glue reads a pointer as signed, which breaks above 2 GiB
+# (GHC #28132); the step fails if the glue no longer has the two helpers.
+node "$here/unsigned-glue.mjs" dist-newstyle/jl4-wasm.mjs
 wasm-opt -Oz "$wasm" -o dist-newstyle/jl4-wasm.opt.wasm
 
 mkdir -p "$dest"
