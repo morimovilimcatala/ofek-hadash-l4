@@ -5,13 +5,20 @@
 
 IMPORT prelude
 IMPORT `2023-24_tashpad_03`
+IMPORT vocabulary
 
 § `Property checks`
 
 `both booleans` MEANS LIST TRUE, FALSE
 `positions checked` MEANS LIST 0, 0.25, 1 DIVIDED BY 3, 0.4, 0.5, 0.79, 0.8, 0.9, 1
-`every post` MEANS LIST `kindergarten manager teacher`, `colleague kindergarten teacher`, `kindergarten cluster manager`, `cluster kindergarten coordinator`, `health-professions employee`, `arts therapist`
-`the posts on the table` MEANS LIST `kindergarten manager teacher`, `colleague kindergarten teacher`, `kindergarten cluster manager`, `cluster kindergarten coordinator`
+`every post` MEANS LIST `a kindergarten's managing teacher`, `a complementary or fellow kindergarten teacher`, `a manager of a kindergarten cluster`, `a kindergarten coordinator in a cluster`, `a health-professions employee in a kindergarten`, `an arts therapist in a kindergarten`
+`the posts on the table` MEANS LIST `a kindergarten's managing teacher`, `a complementary or fellow kindergarten teacher`, `a manager of a kindergarten cluster`, `a kindergarten coordinator in a cluster`
+
+-- The base of an employee in a post the circular names; every check below
+-- ranges over those posts only, and asserts first that the base is there.
+GIVEN e IS A `kindergarten employee`
+GIVETH A NUMBER
+DECIDE `the base תשפ"ד/3 names for` e IS fromMaybe 0 (`the position base of` e)
 `halves to 9` MEANS map (GIVEN k YIELD k DIVIDED BY 2) (range 2 18)
 
 GIVEN p IS A `kindergarten post`, old IS A BOOLEAN, a IS A BOOLEAN, c IS A BOOLEAN, s IS A NUMBER, age IS A NUMBER, f IS A NUMBER, i IS A BOOLEAN, n IS A BOOLEAN, m IS A BOOLEAN
@@ -42,7 +49,7 @@ DECIDE `a checked תשפ"ד/3 employee` p old a c s age f i n m IS
                                 all (GIVEN i YIELD
                                         all (GIVEN f YIELD
                                                 all (GIVEN s YIELD
-                                                        LET e  MEANS `a checked תשפ"ד/3 employee` `kindergarten manager teacher` old a c s 40 f i FALSE FALSE
+                                                        LET e  MEANS `a checked תשפ"ד/3 employee` `a kindergarten's managing teacher` old a c s 40 f i FALSE FALSE
                                                             ok MEANS `meets the joining conditions` e
                                                         IN      ok EQUALS (i OR (NOT old) OR (IF a THEN c AND f AT LEAST 1 DIVIDED BY 3 ELSE s AT LEAST 28))
                                                             AND `joins Ofek Hadash` e EQUALS ok
@@ -80,14 +87,22 @@ DECIDE `a checked תשפ"ד/3 employee` p old a c s age f i n m IS
                                     y  MEANS `a checked תשפ"ד/3 employee` p FALSE TRUE TRUE 20 age 1 FALSE FALSE FALSE
                                     u  MEANS `a checked תשפ"ד/3 employee` p old TRUE TRUE 20 40 1 FALSE FALSE FALSE
                                 IN      elem (`the age hours` e) (LIST 0, 2, 4)
-                                    AND `the position base of` e EQUALS (IF elem p `the posts on the table` THEN `the position base of` u MINUS `the age hours` e ELSE 36)
-                                    AND `the position base of` e1 AT MOST `the position base of` e
-                                    AND `the position base of` (`a checked תשפ"ד/3 employee` p TRUE TRUE TRUE 20 age 1 FALSE FALSE FALSE) AT MOST `the position base of` y
-                                    AND `the weekly hours owed` e AT MOST `the position base of` e
+                                    AND isJust (`the position base of` e)
+                                    AND isJust (`the weekly hours owed` e)
+                                    AND `the base תשפ"ד/3 names for` e EQUALS (IF elem p `the posts on the table` THEN `the base תשפ"ד/3 names for` u MINUS `the age hours` e ELSE 36)
+                                    AND `the base תשפ"ד/3 names for` e1 AT MOST `the base תשפ"ד/3 names for` e
+                                    AND `the base תשפ"ד/3 names for` (`a checked תשפ"ד/3 employee` p TRUE TRUE TRUE 20 age 1 FALSE FALSE FALSE) AT MOST `the base תשפ"ד/3 names for` y
+                                    AND fromMaybe 0 (`the weekly hours owed` e) AT MOST `the base תשפ"ד/3 names for` e
                                     AND `the age hours of a part-time teacher` (`a checked תשפ"ד/3 employee` p old TRUE TRUE 20 age 0.5 FALSE FALSE FALSE) AT MOST `the age hours` e)
                             `both booleans`)
                     (range 40 70))
             `every post`
+
+-- A post the circular does not name has no base and no hours owed under it.
+#ASSERT all (GIVEN p YIELD
+                LET e MEANS `a checked תשפ"ד/3 employee` p TRUE TRUE TRUE 20 45 1 FALSE FALSE FALSE
+                IN isNothing (`the position base of` e) AND isNothing (`the weekly hours owed` e) AND isNothing (`the presence hours of` e))
+            (filter (GIVEN p YIELD NOT elem p `every post`) `every kindergarten post`)
 
 -- §4 over 1 to 14 kindergartens: a cluster row exactly from 4 to 11
 -- (finding); management hours never fewer with more kindergartens; every
@@ -110,7 +125,7 @@ DECIDE `a checked תשפ"ד/3 employee` p old a c s age f i n m IS
                         all (GIVEN f YIELD
                                 all (GIVEN ap YIELD
                                         `the position is allowed in the reform` (`a checked תשפ"ד/3 employee` p old TRUE TRUE 20 40 f FALSE FALSE FALSE) ap
-                                        EQUALS (p EQUALS `health-professions employee` OR p EQUALS `arts therapist` OR f AT LEAST 1 DIVIDED BY 3 OR ((NOT old) AND ap)))
+                                        EQUALS (p EQUALS `a health-professions employee in a kindergarten` OR p EQUALS `an arts therapist in a kindergarten` OR f AT LEAST 1 DIVIDED BY 3 OR ((NOT old) AND ap)))
                                     `both booleans`)
                             `positions checked`)
                     `both booleans`)
@@ -130,7 +145,7 @@ DECIDE `a checked תשפ"ד/3 employee` p old a c s age f i n m IS
                 all (GIVEN m YIELD
                         all (GIVEN n YIELD
                                 all (GIVEN ar YIELD
-                                        LET e MEANS `a checked תשפ"ד/3 employee` `kindergarten manager teacher` TRUE TRUE TRUE 20 40 f FALSE n m
+                                        LET e MEANS `a checked תשפ"ד/3 employee` `a kindergarten's managing teacher` TRUE TRUE TRUE 20 40 f FALSE n m
                                         IN      `the mother's position` e ar EQUALS (IF m AND f AT LEAST 0.79 AND ar EQUALS `not absent at all, by consent` THEN f PLUS 0.1 ELSE f)
                                             AND `has the nursing hour` e EQUALS (n AND f AT LEAST 0.9))
                                     (LIST `a whole day every two weeks`, `half a day every week`, `not absent at all, by consent`))

@@ -592,11 +592,9 @@ DECIDE `joins Ofek Hadash` t IF
 
 -- akn:art_4 akn:art_4__para_4-1 akn:art_4__para_4-1__subpara_4-1-1 The headings "4 the work week", "4.1 the kindergarten teacher's week" and "4.1.1 the base of the position"; no rule.
 
-@desc The posts §4.1.1's table distinguishes.
-DECLARE `kindergarten post` IS ONE OF
-    `a kindergarten head teacher`
-    `a complementary kindergarten teacher`
-    `a kindergarten cluster manager`
+-- The posts of §4.1.1's table are the vocabulary's `kindergarten post`
+-- (MMS-538); the table prints a column for three of them, and for another
+-- post its rules answer NOTHING (convention amounts.not-printed).
 
 @desc The age bands of §4.1.1's table.
 DECLARE `age band` IS ONE OF
@@ -608,7 +606,7 @@ DECLARE `age band` IS ONE OF
 -- 4.1.1: the base of a full position by post and age band.
 @ref akn:art_4__para_4-1__subpara_4-1-1/t1 akn:art_3__para_3-4/p3 akn:art_4__para_4-1__subpara_4-1-1/p3
 GIVEN p IS A `kindergarten post`, b IS AN `age band`
-GIVETH A NUMBER
+GIVETH A MAYBE NUMBER
 DECIDE `the base of the position` p b IS
     CONSIDER b
     WHEN `under 50` THEN `base by post` p 30.4 33.8 34
@@ -617,12 +615,20 @@ DECIDE `the base of the position` p b IS
     WHEN `55 and over, an existing teacher` THEN `base by post` p 26.4 29.8 30
 
 GIVEN p IS A `kindergarten post`, `head teacher's` IS A NUMBER, `complementary teacher's` IS A NUMBER, `cluster manager's` IS A NUMBER
-GIVETH A NUMBER
+GIVETH A MAYBE NUMBER
 DECIDE `base by post` p `head teacher's` `complementary teacher's` `cluster manager's` IS
     CONSIDER p
-    WHEN `a kindergarten head teacher` THEN `head teacher's`
-    WHEN `a complementary kindergarten teacher` THEN `complementary teacher's`
-    WHEN `a kindergarten cluster manager` THEN `cluster manager's`
+    WHEN `a kindergarten's managing teacher` THEN JUST `head teacher's`
+    WHEN `a complementary or fellow kindergarten teacher` THEN JUST `complementary teacher's`
+    WHEN `a manager of a kindergarten cluster` THEN JUST `cluster manager's`
+    OTHERWISE NOTHING
+
+-- The base of a post the table prints, for the checks below: they range
+-- over those posts only (`every post`), and `the base is printed for every
+-- post the table names` asserts that the base is there.
+GIVEN p IS A `kindergarten post`, b IS AN `age band`
+GIVETH A NUMBER
+DECIDE `the base תשפ"ב/1 prints` p b IS fromMaybe 0 (`the base of the position` p b)
 
 GIVEN age IS A NUMBER, existing IS A BOOLEAN
 GIVETH AN `age band`
@@ -694,9 +700,7 @@ DECIDE `the subject of chapter` n IS
 GIVEN p IS A `kindergarten post`
 GIVETH A BOOLEAN
 DECIDE `the position is frontal hours only` p IF
-    CONSIDER p
-    WHEN `a kindergarten cluster manager` THEN FALSE
-    OTHERWISE TRUE
+    p EQUALS `a kindergarten's managing teacher` OR p EQUALS `a complementary or fellow kindergarten teacher`
 
 -- 4.1.2's table: the cluster manager's 34 hours by the number of
 -- kindergartens in the cluster, one row per printed line.
@@ -942,13 +946,13 @@ DECIDE `entitled to the nursing hour` `position fraction` `months since the mate
 -- and the cluster manager frontal and management hours: no kindergarten
 -- post has stay hours.
 GIVEN p IS A `kindergarten post`
-GIVETH A NUMBER
+GIVETH A MAYBE NUMBER
 DECIDE `stay hours of a full position` p IS
-    0
+    IF elem p `every post` THEN JUST 0 ELSE NOTHING
 
 `a kindergarten head teacher has no stay hours to reduce` MEANS
         `entitled to the nursing hour` 1 1
-    AND `stay hours of a full position` `a kindergarten head teacher` LESS THAN 5
+    AND `stay hours of a full position` `a kindergarten's managing teacher` EQUALS JUST 0
 #ASSERT `a kindergarten head teacher has no stay hours to reduce`
 
 -- The reading adopted: for a kindergarten teacher, whose hours are all
@@ -987,8 +991,8 @@ DECIDE `hours off the base for age` age existing IS
               ELSE 2
 
 -- The table of §4.1.1 is the base less these hours.
-#ASSERT all (GIVEN a YIELD `the base of the position` `a kindergarten head teacher` (`the age band of` a TRUE) EQUALS 30.4 MINUS `hours off the base for age` a TRUE) (LIST 40, 50, 54, 55, 60)
-#ASSERT all (GIVEN a YIELD `the base of the position` `a complementary kindergarten teacher` (`the age band of` a FALSE) EQUALS 33.8 MINUS `hours off the base for age` a FALSE) (LIST 40, 50, 54, 55, 60)
+#ASSERT all (GIVEN a YIELD `the base תשפ"ב/1 prints` `a kindergarten's managing teacher` (`the age band of` a TRUE) EQUALS 30.4 MINUS `hours off the base for age` a TRUE) (LIST 40, 50, 54, 55, 60)
+#ASSERT all (GIVEN a YIELD `the base תשפ"ב/1 prints` `a complementary or fellow kindergarten teacher` (`the age band of` a FALSE) EQUALS 33.8 MINUS `hours off the base for age` a FALSE) (LIST 40, 50, 54, 55, 60)
 
 -- 8.2: a kindergarten teacher of 50 or more in a part position gets a
 -- PARTIAL reduction, "by the rules detailed below and by the reform's work
@@ -1490,11 +1494,11 @@ GIVETH A NUMBER
 DECIDE `the annex's position in percent` `days off a fortnight` base IS
     `the extent of the position` (`the full week of a kindergarten teacher` MINUS 3.04 TIMES `days off a fortnight`) base TIMES 100
 
-#ASSERT TRUNC (`the annex's position in percent` 0 (`the base of the position` `a kindergarten head teacher` `under 50`)) 2 EQUALS 100
-#ASSERT TRUNC (`the annex's position in percent` 0 (`the base of the position` `a kindergarten head teacher` `55 and over, an existing teacher`)) 2 EQUALS 115.15
-#ASSERT TRUNC (`the annex's position in percent` 1 (`the base of the position` `a kindergarten head teacher` `55 and over, an existing teacher`)) 2 EQUALS 103.63
-#ASSERT TRUNC (`the annex's position in percent` 2 (`the base of the position` `a kindergarten head teacher` `55 and over, an existing teacher`)) 2 EQUALS 92.12
-#ASSERT TRUNC (`the annex's position in percent` 1 (`the base of the position` `a kindergarten head teacher` `50 to 55, 55 not included`)) 2 EQUALS 96.33
+#ASSERT TRUNC (`the annex's position in percent` 0 (`the base תשפ"ב/1 prints` `a kindergarten's managing teacher` `under 50`)) 2 EQUALS 100
+#ASSERT TRUNC (`the annex's position in percent` 0 (`the base תשפ"ב/1 prints` `a kindergarten's managing teacher` `55 and over, an existing teacher`)) 2 EQUALS 115.15
+#ASSERT TRUNC (`the annex's position in percent` 1 (`the base תשפ"ב/1 prints` `a kindergarten's managing teacher` `55 and over, an existing teacher`)) 2 EQUALS 103.63
+#ASSERT TRUNC (`the annex's position in percent` 2 (`the base תשפ"ב/1 prints` `a kindergarten's managing teacher` `55 and over, an existing teacher`)) 2 EQUALS 92.12
+#ASSERT TRUNC (`the annex's position in percent` 1 (`the base תשפ"ב/1 prints` `a kindergarten's managing teacher` `50 to 55, 55 not included`)) 2 EQUALS 96.33
 #ASSERT `a mother kindergarten teacher's position` 1 TRUE EQUALS 1.1
 
 -- The complementary teacher's and cluster manager's rows (4-6, 10-12 and
@@ -1502,11 +1506,13 @@ DECIDE `the annex's position in percent` `days off a fortnight` base IS
 -- apply the same rule on their own bases (the table itself is below).
 @ref akn:att_6__hc_1/t1 akn:att_6__hc_1/t2 akn:att_6__hc_1/t3
 GIVEN p IS A `kindergarten post`, b IS AN `age band`, `hours actually worked` IS A NUMBER
-GIVETH A NUMBER
+GIVETH A MAYBE NUMBER
 DECIDE `the position by the annex's rule` p b `hours actually worked` IS
-    `the extent of the position` `hours actually worked` (`the base of the position` p b)
+    CONSIDER `the base of the position` p b
+    WHEN JUST base THEN JUST (`the extent of the position` `hours actually worked` base)
+    OTHERWISE NOTHING
 
-#ASSERT TRUNC (`the position by the annex's rule` `a complementary kindergarten teacher` `55 and over, an existing teacher` 30.4 TIMES 100) 0 EQUALS 102
+#ASSERT TRUNC (fromMaybe 0 (`the position by the annex's rule` `a complementary or fellow kindergarten teacher` `55 and over, an existing teacher` 30.4) TIMES 100) 0 EQUALS 102
 
 -- Annex ו's table. Its columns, as the corpus prints the heading row:
 -- serial, post, job base, the position in percent (its asterisk, ¶4: "as
@@ -1581,28 +1587,28 @@ DECLARE `annex ו row's 4.1.1 cell` HAS
 
 @ref akn:att_6__hc_1/t1 akn:att_6__hc_1/t2 akn:att_6__hc_1/t3
 `annex ו's rows in 4.1.1` MEANS
-    LIST `annex ו row's 4.1.1 cell` 1  `a kindergarten head teacher` `under 50`,
-         `annex ו row's 4.1.1 cell` 2  `a kindergarten head teacher` `under 50`,
-         `annex ו row's 4.1.1 cell` 3  `a kindergarten head teacher` `under 50`,
-         `annex ו row's 4.1.1 cell` 4  `a complementary kindergarten teacher` `under 50`,
-         `annex ו row's 4.1.1 cell` 5  `a complementary kindergarten teacher` `under 50`,
-         `annex ו row's 4.1.1 cell` 6  `a complementary kindergarten teacher` `under 50`,
-         `annex ו row's 4.1.1 cell` 7  `a kindergarten head teacher` `50 to 55, 55 not included`,
-         `annex ו row's 4.1.1 cell` 8  `a kindergarten head teacher` `55 and over, an existing teacher`,
-         `annex ו row's 4.1.1 cell` 9  `a kindergarten head teacher` `55 and over, a new teacher`,
-         `annex ו row's 4.1.1 cell` 10 `a complementary kindergarten teacher` `50 to 55, 55 not included`,
-         `annex ו row's 4.1.1 cell` 11 `a complementary kindergarten teacher` `55 and over, an existing teacher`,
-         `annex ו row's 4.1.1 cell` 12 `a complementary kindergarten teacher` `55 and over, a new teacher`,
-         `annex ו row's 4.1.1 cell` 14 `a kindergarten cluster manager` `under 50`,
-         `annex ו row's 4.1.1 cell` 15 `a kindergarten cluster manager` `under 50`,
-         `annex ו row's 4.1.1 cell` 16 `a kindergarten cluster manager` `55 and over, a new teacher`,
-         `annex ו row's 4.1.1 cell` 17 `a kindergarten cluster manager` `55 and over, an existing teacher`
+    LIST `annex ו row's 4.1.1 cell` 1  `a kindergarten's managing teacher` `under 50`,
+         `annex ו row's 4.1.1 cell` 2  `a kindergarten's managing teacher` `under 50`,
+         `annex ו row's 4.1.1 cell` 3  `a kindergarten's managing teacher` `under 50`,
+         `annex ו row's 4.1.1 cell` 4  `a complementary or fellow kindergarten teacher` `under 50`,
+         `annex ו row's 4.1.1 cell` 5  `a complementary or fellow kindergarten teacher` `under 50`,
+         `annex ו row's 4.1.1 cell` 6  `a complementary or fellow kindergarten teacher` `under 50`,
+         `annex ו row's 4.1.1 cell` 7  `a kindergarten's managing teacher` `50 to 55, 55 not included`,
+         `annex ו row's 4.1.1 cell` 8  `a kindergarten's managing teacher` `55 and over, an existing teacher`,
+         `annex ו row's 4.1.1 cell` 9  `a kindergarten's managing teacher` `55 and over, a new teacher`,
+         `annex ו row's 4.1.1 cell` 10 `a complementary or fellow kindergarten teacher` `50 to 55, 55 not included`,
+         `annex ו row's 4.1.1 cell` 11 `a complementary or fellow kindergarten teacher` `55 and over, an existing teacher`,
+         `annex ו row's 4.1.1 cell` 12 `a complementary or fellow kindergarten teacher` `55 and over, a new teacher`,
+         `annex ו row's 4.1.1 cell` 14 `a manager of a kindergarten cluster` `under 50`,
+         `annex ו row's 4.1.1 cell` 15 `a manager of a kindergarten cluster` `under 50`,
+         `annex ו row's 4.1.1 cell` 16 `a manager of a kindergarten cluster` `55 and over, a new teacher`,
+         `annex ו row's 4.1.1 cell` 17 `a manager of a kindergarten cluster` `55 and over, an existing teacher`
 
 -- Row by row, the annex's base column is §4.1.1's (unlike the year
 -- before: annex F of תשפ"א/4 is 0.4 hours off its own §4.1.1, finding
 -- F-2020-21_tashpa_04-a).
-#ASSERT all (GIVEN c YIELD (`annex ו row number` (c's `the row's serial`))'s `annex ו base` EQUALS `the base of the position` (c's `the row's post`) (c's `the row's band`)) `annex ו's rows in 4.1.1`
-#ASSERT all (GIVEN p YIELD `the base of the position` p `50 to 55, 55 not included` EQUALS `the base of the position` p `55 and over, a new teacher`) (LIST `a kindergarten head teacher`, `a complementary kindergarten teacher`, `a kindergarten cluster manager`)
+#ASSERT all (GIVEN c YIELD (`annex ו row number` (c's `the row's serial`))'s `annex ו base` EQUALS `the base תשפ"ב/1 prints` (c's `the row's post`) (c's `the row's band`)) `annex ו's rows in 4.1.1`
+#ASSERT all (GIVEN p YIELD `the base תשפ"ב/1 prints` p `50 to 55, 55 not included` EQUALS `the base תשפ"ב/1 prints` p `55 and over, a new teacher`) (LIST `a kindergarten's managing teacher`, `a complementary or fellow kindergarten teacher`, `a manager of a kindergarten cluster`)
 
 -- F-2021-22_tashpab_01-i: row 4's note says five days of 6.08
 -- hours — 30.4 — and then that she "actually works 30.8 hours". 90%, the
@@ -1617,8 +1623,8 @@ DECLARE `annex ו row's 4.1.1 cell` HAS
 `row 4's note gives two weekly hours for one week` MEANS
         NOT (`the weekly hours row 4's note says she actually works` EQUALS `the full week of a kindergarten teacher`)
     AND `hours in the working day` (`end of day Sunday to Thursday` `every other kind of class`) TIMES 5 EQUALS `the full week of a kindergarten teacher`
-    AND `to the nearest whole` (`the extent of the position` `the full week of a kindergarten teacher` (`the base of the position` `a complementary kindergarten teacher` `under 50`) TIMES 100) EQUALS `the position row 4's note gives, in percent`
-    AND `to the nearest whole` (`the extent of the position` `the weekly hours row 4's note says she actually works` (`the base of the position` `a complementary kindergarten teacher` `under 50`) TIMES 100) EQUALS 91
+    AND `to the nearest whole` (`the extent of the position` `the full week of a kindergarten teacher` (`the base תשפ"ב/1 prints` `a complementary or fellow kindergarten teacher` `under 50`) TIMES 100) EQUALS `the position row 4's note gives, in percent`
+    AND `to the nearest whole` (`the extent of the position` `the weekly hours row 4's note says she actually works` (`the base תשפ"ב/1 prints` `a complementary or fellow kindergarten teacher` `under 50`) TIMES 100) EQUALS 91
     AND (`annex ו row number` 4)'s `annex ו hours worked` EQUALS JUST `the weekly hours row 4's note says she actually works`
     AND (`annex ו row number` 6)'s `annex ו hours worked` EQUALS JUST `the weekly hours row 4's note says she actually works`
     AND (`annex ו row number` 4)'s `annex ו percent` EQUALS `the position row 4's note gives, in percent`
@@ -1782,7 +1788,7 @@ DECIDE `the month the salary to convert is taken from` `on unpaid absence in the
 #ASSERT `joins Ofek Hadash` `an existing certified academic at 40%`
 #ASSERT NOT `joins Ofek Hadash` `an existing non-academic with 20 years who has not signed`
 #ASSERT `how the teacher is paid` `an existing certified academic at 40%` FALSE EQUALS "the current salary and the Ofek Hadash advance"
-#ASSERT `the base of the position` `a kindergarten cluster manager` (`the age band of` 52 TRUE) EQUALS 32
+#ASSERT `the base תשפ"ב/1 prints` `a manager of a kindergarten cluster` (`the age band of` 52 TRUE) EQUALS 32
 #ASSERT `the Ofek Hadash advance` `an academic kindergarten teacher` 5000 EQUALS 800
 #ASSERT `the placement above 100% is allowed` FALSE 1.2 40 FALSE
 #ASSERT NOT `the placement above 100% is allowed` FALSE 1.2 44 TRUE
@@ -1814,8 +1820,14 @@ DECIDE `in 3.3.2's printed band` s IF s AT LEAST 28
 `both booleans` MEANS LIST TRUE, FALSE
 `hundredths to 1` MEANS map (GIVEN k YIELD k DIVIDED BY 100) (range 0 100)
 `positions checked` MEANS LIST 0.25, 1 DIVIDED BY 3, 0.4, 0.5, 0.75, 1
-`every post` MEANS LIST `a kindergarten head teacher`, `a complementary kindergarten teacher`, `a kindergarten cluster manager`
+`every post` MEANS LIST `a kindergarten's managing teacher`, `a complementary or fellow kindergarten teacher`, `a manager of a kindergarten cluster`
 `every age band` MEANS LIST `under 50`, `50 to 55, 55 not included`, `55 and over, a new teacher`, `55 and over, an existing teacher`
+
+`the base is printed for every post the table names` MEANS
+    all (GIVEN p YIELD all (GIVEN b YIELD isJust (`the base of the position` p b)) `every age band`) `every post`
+#ASSERT `the base is printed for every post the table names`
+#ASSERT all (GIVEN p YIELD all (GIVEN b YIELD isNothing (`the base of the position` p b)) `every age band`)
+            (filter (GIVEN p YIELD NOT elem p `every post`) `every kindergarten post`)
 
 GIVEN y IS A NUMBER, s IS A NUMBER, a IS A BOOLEAN, c IS A BOOLEAN, p IS A NUMBER, j IS A BOOLEAN, d IS A BOOLEAN, x IS A BOOLEAN, i IS A BOOLEAN
 GIVETH A `kindergarten teacher`
@@ -1861,14 +1873,14 @@ DECIDE `a checked teacher` y s a c p j d x i IS
 -- base is the under-50 base less the age hours of §8, and never rises with
 -- age.
 #ASSERT all (GIVEN b YIELD
-                    `the base of the position` `a complementary kindergarten teacher` b MINUS `the base of the position` `a kindergarten head teacher` b EQUALS 3.4
-                AND `the base of the position` `a kindergarten cluster manager` b MINUS `the base of the position` `a complementary kindergarten teacher` b EQUALS 0.2)
+                    `the base תשפ"ב/1 prints` `a complementary or fellow kindergarten teacher` b MINUS `the base תשפ"ב/1 prints` `a kindergarten's managing teacher` b EQUALS 3.4
+                AND `the base תשפ"ב/1 prints` `a manager of a kindergarten cluster` b MINUS `the base תשפ"ב/1 prints` `a complementary or fellow kindergarten teacher` b EQUALS 0.2)
             `every age band`
 #ASSERT all (GIVEN q YIELD
                 all (GIVEN ex YIELD
                         all (GIVEN n YIELD
-                                    `the base of the position` q (`the age band of` n ex) PLUS `hours off the base for age` n ex EQUALS `the base of the position` q `under 50`
-                                AND `the base of the position` q (`the age band of` (n PLUS 1) ex) AT MOST `the base of the position` q (`the age band of` n ex))
+                                    `the base תשפ"ב/1 prints` q (`the age band of` n ex) PLUS `hours off the base for age` n ex EQUALS `the base תשפ"ב/1 prints` q `under 50`
+                                AND `the base תשפ"ב/1 prints` q (`the age band of` (n PLUS 1) ex) AT MOST `the base תשפ"ב/1 prints` q (`the age band of` n ex))
                             (range 40 65))
                     `both booleans`)
             `every post`
