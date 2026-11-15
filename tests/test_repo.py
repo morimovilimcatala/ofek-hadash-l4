@@ -480,8 +480,8 @@ def constructors(text: str) -> list[str]:
 # imports together, outside the chain: each a use away from "multiple
 # definitions". Identifiers are type and value names; constructors are counted
 # apart, as above.
-SCOPED_IDENTIFIERS_DECLARED_TWICE = 404
-SCOPED_CONSTRUCTORS_DECLARED_TWICE = 199
+SCOPED_IDENTIFIERS_DECLARED_TWICE = 1243
+SCOPED_CONSTRUCTORS_DECLARED_TWICE = 499
 
 _DEF_LINE = re.compile(r"^(?:DECIDE\s+[A-Za-z_][\w']*\s+(`[^`]+`)"
                        r"|DECIDE\s+(`[^`]+`|[A-Za-z_][\w']*)"

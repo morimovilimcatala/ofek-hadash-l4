@@ -345,3 +345,189 @@ def page_body(module: str, here: str, coll: str, heading: str, about: str, *,
         if b == module and tests_of(module).exists():
             parts.append(tests_block(module, heading, esc=esc, code_html=code_html, banner=False))
     return "".join(parts)
+
+
+# ---------------------------------------------------------------------------
+# The circulars' root is GENERATED (MMS-538, step 4): it imports every module
+# of the circulars collection, l4/circulars/, so the root holds the whole
+# collection rather than a hand-kept list. Of all they declare it names only
+# what is unique in that scope — each module's `instrument` description
+# (`circular <number>`) and its `<prefix> according to circular <number>`
+# answers — because a name two of them declare fails "multiple definitions"
+# once it is used.
+#
+#     python3 tools/roots.py --write-circulars-root   # rewrite l4/lib/circulars-root.l4
+#     python3 tools/roots.py --check-circulars-root   # exit 1 if it is stale
+#
+# tests/test_roots.py holds the file to this output, so a circular that
+# gains an answer or an instrument description is in the root in the same
+# commit.
+
+CIRCULARS = ROOT / "l4" / "circulars"
+CIRCULARS_ROOT = LIB / "circulars-root.l4"
+
+# What each circular answer is about: the prefix of `<prefix> according to
+# circular <number>`, and the pay item of the shared vocabulary it answers.
+# A prefix not listed here stops the generator, so a new kind of answer is a
+# deliberate line here.
+CIRCULAR_ANSWER_ITEMS = {
+    "the 2008 supplement": "the 2008 public-sector supplement",
+    "the pedagogical coordinator's rate": "the pedagogical coordinator's allowance rate",
+    "the mentor's rate": "the mentor's allowance rate",
+    "the junior-division head's allowance": "the junior-division head's allowance",
+    "the role allowances counted": "the role allowances counted",
+    "the 2011 supplement": "the 2011 public-sector supplement",
+    "the 1994 supplement": "the 1994 supplement of a full position",
+    "the Ofek 2022 supplement of a full position": "the Ofek 2022 supplement of a full position",
+}
+# a note said above an item's claims
+CIRCULAR_ITEM_NOTES = {
+    "the role allowances counted": "only תשפ\"ו/1's \"at most two\" is encoded as a rule so far (MMS-552)",
+}
+
+_INSTRUMENT = re.compile(r"^(`circular [^`]+`) MEANS\n\s+`instrument` WITH", re.M)
+_ANSWER = re.compile(r"^DECIDE `(.+) according to (circular [^`]+)` c IS", re.M)
+_VOCAB_ITEMS = re.compile(r"^DECLARE `pay item` IS ONE OF\n((?:[ \t]+.*\n|\n)*)", re.M)
+
+
+def circular_modules() -> list[Path]:
+    """Every module of the circulars collection: the real files of
+    l4/circulars/ (a link there is a statute or a shared module an import
+    resolves through, not a circular)."""
+    return sorted(f for f in CIRCULARS.glob("*.l4") if not f.is_symlink())
+
+
+def circulars_speaking() -> list[tuple[str, str, list[tuple[str, str]]]]:
+    """(module, its instrument's name, [(pay item, answer name)]) for every
+    circular that describes itself as an instrument, in module order (the
+    school year, then the number). A circular with answers and no
+    instrument, or more than one, or an answer about no listed item, stops it."""
+    out = []
+    for f in circular_modules():
+        text = f.read_text(encoding="utf-8")
+        inst = _INSTRUMENT.findall(text)
+        answers = _ANSWER.findall(text)
+        if not inst and not answers:
+            continue
+        if len(inst) != 1:
+            raise SystemExit(f"{f.name}: {len(inst)} instrument descriptions and {len(answers)} answers")
+        rows = []
+        for prefix, who in answers:
+            if f"`{who}`" != inst[0]:
+                raise SystemExit(f"{f.name}: an answer according to {who}, but it describes {inst[0]}")
+            if prefix not in CIRCULAR_ANSWER_ITEMS:
+                raise SystemExit(f"{f.name}: no pay item for `{prefix} according to …` (CIRCULAR_ANSWER_ITEMS)")
+            rows.append((CIRCULAR_ANSWER_ITEMS[prefix], f"`{prefix} according to {who}`"))
+        out.append((f.name.removesuffix(".l4"), inst[0], rows))
+    return out
+
+
+def vocabulary_items() -> list[str]:
+    """The `pay item`s of the shared vocabulary, in its order."""
+    body = _VOCAB_ITEMS.search((LIB / "vocabulary.l4").read_text(encoding="utf-8")).group(1)
+    return re.findall(r"^\s+`([^`]+)`\s*$", body, re.M)
+
+
+def circulars_root_source() -> str:
+    speaking = circulars_speaking()
+    names = [inst for _, inst, _ in speaking]
+    if len(set(names)) != len(names):
+        raise SystemExit("two circulars describe themselves under one name")
+    items = vocabulary_items()
+    claims: dict[str, list[tuple[str, str]]] = {}
+    for _, inst, rows in speaking:
+        for item, answer in rows:
+            claims.setdefault(item, []).append((inst, answer))
+    unknown = sorted(set(claims) - set(items))
+    if unknown:
+        raise SystemExit(f"not pay items of the vocabulary: {unknown}")
+    out = [
+        "-- The circulars' root (MMS-521). GENERATED by tools/roots.py",
+        "-- (--write-circulars-root, MMS-538): do not edit it by hand.",
+        "--",
+        "-- It imports the whole collection, every module of l4/circulars/, and",
+        "-- includes as instruments the circulars that describe themselves as one",
+        "-- (each in its own file, an `instrument` record of the shared vocabulary,",
+        "-- l4/lib/vocabulary.l4), with what each claims for a case on the items it",
+        "-- speaks to (its `<item> according to circular <number>` answers). Of all",
+        "-- the collection declares it names only those, which are unique in it: a",
+        "-- name two circulars declare fails \"multiple definitions\" once it is used.",
+        "-- It is a `collection root` (l4/lib/precedence.l4) and applies the",
+        "-- circulars' own precedence: the later circular replaces the earlier on",
+        "-- the same point. The root (l4/lib/root.l4) sets this collection's ruling",
+        "-- against the takanon's and the agreements'.",
+        "",
+        "IMPORT prelude",
+        "IMPORT precedence",
+    ]
+    out += [f"IMPORT `{f.name.removesuffix('.l4')}`" for f in circular_modules()]
+    out += [
+        "",
+        "§ `שורש החוזרים — מה החוזרים אומרים על כל פריט`",
+        "",
+        "§§ `המסמכים`",
+        "",
+        "-- Each instrument describes itself in its own file (an `instrument` record",
+        "-- of the shared vocabulary). This root includes the circulars:",
+        "`the circulars' instruments` MEANS",
+        "    LIST " + ",\n         ".join(names),
+        "",
+        "§§ `מה החוזרים אומרים, לפי פריט`",
+        "",
+        "GIVEN i IS A `pay item`, c IS A `teaching case`",
+        "GIVETH A LIST OF `claim`",
+        "DECIDE `the circulars' claims on` i c IS",
+        "    CONSIDER i",
+    ]
+    for item in items:
+        if item not in claims:
+            continue
+        if item in CIRCULAR_ITEM_NOTES:
+            out.append(f"    -- {CIRCULAR_ITEM_NOTES[item]}")
+        lines = [f"`the claim of` {inst} ({answer} c)" for inst, answer in claims[item]]
+        out.append(f"    WHEN `{item}` THEN")
+        out.append("        catMaybes (LIST " + ",\n                        ".join(lines) + ")")
+    out += [
+        "    OTHERWISE EMPTY",
+        "",
+        "§§ `חוזר מאוחר גובר על מוקדם`",
+        "",
+        "GIVEN a IS A `claim`, b IS A `claim`",
+        "GIVETH A `claim`",
+        "DECIDE `the more recent circular's claim` a b IS",
+        "    IF DATE_SERIAL (b's `by`'s `issued`) GREATER THAN DATE_SERIAL (a's `by`'s `issued`) THEN b ELSE a",
+        "",
+        "-- Among circulars that speak, the most recent replaces the others on the same",
+        "-- point (convention precedence.later-circular); one alone governs as the",
+        "-- only one that speaks. Of claims issued on the same latest day, the last",
+        "-- in the list (the higher number) governs, unless the list's first is",
+        "-- among them.",
+        "GIVEN claims IS A LIST OF `claim`",
+        "GIVETH A MAYBE `ruling`",
+        "DECIDE `the ruling among circulars` claims IS",
+        "    CONSIDER claims",
+        "    WHEN EMPTY THEN NOTHING",
+        "    WHEN t FOLLOWED BY ts THEN",
+        "        JUST (`the ruling for`",
+        "                  (foldr (GIVEN c, acc YIELD `the more recent circular's claim` acc c) t ts)",
+        "                  (IF null ts THEN `the only instrument that speaks` ELSE `a later circular replaces an earlier one`))",
+        "",
+        "`the circulars' root` MEANS",
+        "    `collection root` WITH",
+        "        `the collection`  IS \"החוזרים לבעלויות\"",
+        "        `its instruments` IS `the circulars' instruments`",
+        "        `what each says`  IS `the circulars' claims on`",
+        "        `its ruling`      IS (GIVEN i, c YIELD `the ruling among circulars` (`the circulars' claims on` i c))",
+    ]
+    return "\n".join(out) + "\n"
+
+
+if __name__ == "__main__":
+    import sys
+    if sys.argv[1:] == ["--write-circulars-root"]:
+        CIRCULARS_ROOT.write_text(circulars_root_source(), encoding="utf-8")
+    elif sys.argv[1:] == ["--check-circulars-root"]:
+        if CIRCULARS_ROOT.read_text(encoding="utf-8") != circulars_root_source():
+            raise SystemExit("l4/lib/circulars-root.l4 is stale: python3 tools/roots.py --write-circulars-root")
+    else:
+        raise SystemExit("usage: tools/roots.py --write-circulars-root | --check-circulars-root")
