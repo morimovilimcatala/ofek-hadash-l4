@@ -238,20 +238,8 @@ DECIDE `a step of the percentage supplement is paid` `monthly increase due` IS
 
 §§ `6 מענק חד פעמי`
 
-DECLARE `month status` IS ONE OF
-    `worked`
-    `unpaid leave`
-    `reserve duty`
-    `birth and parenting period`
-    `sick leave without pay, with an application and evidence`
-    `sick leave without pay, with no application`
-    `unpaid absence after the birth and parenting period`
-    `not employed at the college`
-
-@desc One month of the grant period (1.9.2023-31.5.2024) as section 6 asks about it.
-DECLARE `grant month` HAS
-    `status in the month`    IS A `month status`
-    `position in the month`  IS A NUMBER  @desc the position held that month, or, for a month of reserve duty or birth and parenting, the position held on the eve of leaving (6(ו))
+-- A month of the grant period is the vocabulary's `grant month with its
+-- status` (MMS-538), its status one of `status of a grant month`.
 
 -- 6(ד)-(ו): which months count — not unpaid leave or leave treated as
 -- such, nor an unpaid absence after the birth-and-parenting period; reserve
@@ -260,14 +248,14 @@ DECLARE `grant month` HAS
 -- has applied with evidence. A position above 100% counts as 100% (6(ב),
 -- (ג), (ו)).
 @ref akn:art_6__para_d akn:art_6__para_e akn:art_6__para_f
-GIVEN m IS A `grant month`
+GIVEN m IS A `grant month with its status`
 GIVETH A NUMBER
 DECIDE `the month's share of a full grant month` m IS
     CONSIDER m's `status in the month`
-    WHEN `worked` THEN min (m's `position in the month`) 1
-    WHEN `reserve duty` THEN min (m's `position in the month`) 1
-    WHEN `birth and parenting period` THEN min (m's `position in the month`) 1
-    WHEN `sick leave without pay, with an application and evidence` THEN min (m's `position in the month`) 1
+    WHEN `worked in the month` THEN min (m's `position in the month`) 1
+    WHEN `on reserve duty in the month` THEN min (m's `position in the month`) 1
+    WHEN `in the birth and parenting period in the month` THEN min (m's `position in the month`) 1
+    WHEN `on sick leave without pay, applied with evidence` THEN min (m's `position in the month`) 1
     OTHERWISE 0
 
 @ref akn:art_6__para_d
@@ -280,7 +268,7 @@ DECIDE `the month's share of a full grant month` m IS
 -- right that turns on seniority. The floor is met; §23 keeps the rest.
 `6(ד)'s birth and parenting period meets the Women's Work Law` MEANS
         `the birth and parenting period as 6(ד) prints it, in weeks` EQUALS `weeks of the birth and parenthood period` 12
-    AND `the month's share of a full grant month` (`grant month` WITH `status in the month` IS `birth and parenting period`, `position in the month` IS 1) EQUALS 1
+    AND `the month's share of a full grant month` (`grant month with its status` WITH `status in the month` IS `in the birth and parenting period in the month`, `position in the month` IS 1) EQUALS 1
     AND `the birth and parenthood period harms no right that turns on seniority`
 #ASSERT `6(ד)'s birth and parenting period meets the Women's Work Law`
 
@@ -296,7 +284,7 @@ DECIDE `the month's share of a full grant month` m IS
 -- otherwise the share the months and the position give, against an
 -- employee on a full position through all nine months.
 @ref akn:art_6__para_a akn:art_6__para_b akn:art_6__para_c akn:art_6/p1
-GIVEN `employed at the college on 19.8.2024` IS A BOOLEAN, months IS A LIST OF `grant month`
+GIVEN `employed at the college on 19.8.2024` IS A BOOLEAN, months IS A LIST OF `grant month with its status`
 GIVETH A NUMBER
 DECIDE `the one-time grant` `employed at the college on 19.8.2024` months IS
     IF `employed at the college on 19.8.2024`
@@ -367,11 +355,11 @@ DECIDE `completed on the return from the sabbatical` grant `share of the positio
 -- evidence` above.
 @ref akn:art_6__para_jb/p5
 GIVEN `applied with evidence` IS A BOOLEAN
-GIVETH A `month status`
+GIVETH A `status of a grant month`
 DECIDE `a month of sick leave without pay counts as` `applied with evidence` IS
     IF `applied with evidence`
-    THEN `sick leave without pay, with an application and evidence`
-    ELSE `sick leave without pay, with no application`
+    THEN `on sick leave without pay, applied with evidence`
+    ELSE `on sick leave without pay, with no application`
 
 -- 6(יא) and (יב): paid with November 2024's salary and no later than
 -- December 2024's (school months 3-4); where the payment waits for the
@@ -404,33 +392,33 @@ DECIDE `the one-time grant is paid` grant s `month of return` IS
 
 -- Worked examples the circular itself gives.
 
-GIVEN n IS A NUMBER, s IS A `month status`, p IS A NUMBER
-GIVETH A LIST OF `grant month`
+GIVEN n IS A NUMBER, s IS A `status of a grant month`, p IS A NUMBER
+GIVETH A LIST OF `grant month with its status`
 DECIDE `months of` n s p IS
     IF n AT MOST 0
     THEN EMPTY
-    ELSE `grant month` s p FOLLOWED BY `months of` (n MINUS 1) s p
+    ELSE `grant month with its status` s p FOLLOWED BY `months of` (n MINUS 1) s p
 
 -- 6(א)'s example: full-time from 1.9.2023 to 29.2.2024, six months
 -- (four in 2023, two in 2024): 6/9 × 6,000 = 4,000.
 `the example of 6(א)` MEANS
-    (append (`months of` 6 `worked` 1) (`months of` 3 `not employed at the college` 0))
+    (append (`months of` 6 `worked in the month` 1) (`months of` 3 `not employed at the college in the month` 0))
 
 #ASSERT `the one-time grant` TRUE `the example of 6(א)` EQUALS 4000
 
 -- 6(ג)'s example: 70% for three months, then 110% for six (counted as
 -- 100%): (3 × 0.7 + 6 × 1) / 9 × 6,000 = 5,400.
 `the example of 6(ג)` MEANS
-    (append (`months of` 3 `worked` 0.7) (`months of` 6 `worked` 1.1))
+    (append (`months of` 3 `worked in the month` 0.7) (`months of` 6 `worked in the month` 1.1))
 
 #ASSERT `the one-time grant` TRUE `the example of 6(ג)` EQUALS 5400
 
 -- Full time throughout: the full grant; a reserve-duty month counts at the
 -- position before it; an unpaid-leave month does not.
-#ASSERT `the one-time grant` TRUE (`months of` 9 `worked` 1) EQUALS 6000
-#ASSERT `the one-time grant` TRUE (append (`months of` 8 `worked` 1) (`months of` 1 `reserve duty` 1)) EQUALS 6000
-#ASSERT `the one-time grant` TRUE (append (`months of` 8 `worked` 1) (`months of` 1 `unpaid leave` 1)) EQUALS 6000 TIMES 8 DIVIDED BY 9
-#ASSERT `the one-time grant` FALSE (`months of` 9 `worked` 1) EQUALS 0
+#ASSERT `the one-time grant` TRUE (`months of` 9 `worked in the month` 1) EQUALS 6000
+#ASSERT `the one-time grant` TRUE (append (`months of` 8 `worked in the month` 1) (`months of` 1 `on reserve duty in the month` 1)) EQUALS 6000
+#ASSERT `the one-time grant` TRUE (append (`months of` 8 `worked in the month` 1) (`months of` 1 `on unpaid leave in the month` 1)) EQUALS 6000 TIMES 8 DIVIDED BY 9
+#ASSERT `the one-time grant` FALSE (`months of` 9 `worked in the month` 1) EQUALS 0
 
 #ASSERT `the 2024 shekel supplement` 0.5 (DATE_FROM_DMY 1 8 2024) EQUALS 284.945
 #ASSERT `the 2024 percentage supplement rate on` (DATE_FROM_DMY 1 10 2025) EQUALS 4%
@@ -471,7 +459,7 @@ DECIDE `months of` n s p IS
 `tenths to 1.5` MEANS map (GIVEN k YIELD k DIVIDED BY 10) (range 0 15)
 `the days checked` MEANS
     concat (map (GIVEN y YIELD map (GIVEN m YIELD DATE_FROM_DMY 1 m y) (range 1 12)) (range 2024 2027))
-`every month status` MEANS LIST `worked`, `unpaid leave`, `reserve duty`, `birth and parenting period`, `sick leave without pay, with an application and evidence`, `sick leave without pay, with no application`, `unpaid absence after the birth and parenting period`, `not employed at the college`
+`every month status` MEANS LIST `worked in the month`, `on unpaid leave in the month`, `on reserve duty in the month`, `in the birth and parenting period in the month`, `on sick leave without pay, applied with evidence`, `on sick leave without pay, with no application`, `absent unpaid after the birth and parenting period`, `not employed at the college in the month`
 `every status at payment` MEANS LIST `at work`, `on unpaid leave`, `on sick leave without pay`, `in the birth and parenting period`, `absent through a work injury not charged to sick leave`
 
 -- §4 and §5א-ב over every day and position: the shekel supplement is
@@ -531,8 +519,8 @@ DECIDE `months of` n s p IS
 -- 19.8.2024.
 #ASSERT all (GIVEN s YIELD
                 all (GIVEN p YIELD
-                        LET m MEANS `grant month` s p
-                            c MEANS elem s (LIST `worked`, `reserve duty`, `birth and parenting period`, `sick leave without pay, with an application and evidence`)
+                        LET m MEANS `grant month with its status` s p
+                            c MEANS elem s (LIST `worked in the month`, `on reserve duty in the month`, `in the birth and parenting period in the month`, `on sick leave without pay, applied with evidence`)
                         IN      `the month's share of a full grant month` m EQUALS (IF c THEN min p 1 ELSE 0)
                             AND `the one-time grant` TRUE (`months of` 9 s p) EQUALS 6000 TIMES `the month's share of a full grant month` m
                             AND `the one-time grant` TRUE (`months of` 9 s p) AT MOST 6000
@@ -552,5 +540,5 @@ DECIDE `months of` n s p IS
                     `the payment waits for the return to work` s EQUALS NOT s EQUALS `at work`
                 AND ((NOT `the payment waits on the lead-in's (1) to (3) alone` s) OR `the payment waits for the return to work` s))
             `every status at payment`
-#ASSERT all (GIVEN a YIELD `a month of sick leave without pay counts as` a EQUALS (IF a THEN `sick leave without pay, with an application and evidence` ELSE `sick leave without pay, with no application`))
+#ASSERT all (GIVEN a YIELD `a month of sick leave without pay counts as` a EQUALS (IF a THEN `on sick leave without pay, applied with evidence` ELSE `on sick leave without pay, with no application`))
             `both booleans`
