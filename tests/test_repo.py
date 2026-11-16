@@ -470,7 +470,7 @@ class ConventionsModule(unittest.TestCase):
 
 # Type names declared in more than one module (test_a_type_name_is_declared_once):
 # each is a pair the compiler will refuse to import into one file.
-DECLARED_MORE_THAN_ONCE = 88
+DECLARED_MORE_THAN_ONCE = 81
 
 # Constructor names (the cases of a `DECLARE … IS ONE OF`) declared in more
 # than one module (test_a_constructor_name_is_declared_once). Two of them
@@ -516,7 +516,7 @@ def constructors(text: str) -> list[str]:
 # imports together, outside the chain: each a use away from "multiple
 # definitions". Identifiers are type and value names; constructors are counted
 # apart, as above.
-SCOPED_IDENTIFIERS_DECLARED_TWICE = 199
+SCOPED_IDENTIFIERS_DECLARED_TWICE = 78
 SCOPED_CONSTRUCTORS_DECLARED_TWICE = 96
 
 # The same count over the scope the roots will reach once each collection's
@@ -526,7 +526,7 @@ SCOPED_CONSTRUCTORS_DECLARED_TWICE = 96
 # takanon, with what each imports. Each name counted is a use away from
 # "multiple definitions" in a whole-collection root; MMS-775 lowers these
 # before the roots import whole collections.
-FULL_SCOPE_IDENTIFIERS_DECLARED_TWICE = 661
+FULL_SCOPE_IDENTIFIERS_DECLARED_TWICE = 380
 FULL_SCOPE_CONSTRUCTORS_DECLARED_TWICE = 310
 
 _DEF_LINE = re.compile(r"^(?:DECIDE\s+[A-Za-z_][\w']*\s+(`[^`]+`)"

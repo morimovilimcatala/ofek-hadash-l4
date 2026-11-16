@@ -131,7 +131,14 @@ with `HENCE`/`LEST`), not booleans standing in for them.
   proposition or a constructor, `autism in circular תשפ"א/4`; "the
   circular" in a name becomes the circular's number). A name with one
   meaning is declared once and imported: the grids the property checks
-  walk (`both booleans`, `tenths to 1.5`, …) are `l4/lib/property_checks.l4`.
+  walk (`both booleans`, `tenths to 1.5`, …) are `l4/lib/property_checks.l4`,
+  and what a family of circulars prints in the same words is its
+  `l4/circulars/<family>-circulars-common.l4` (a yearly series repeating
+  last year's rule, two twin circulars of one day). The circular keeps its
+  row: where the declaration stood, a `-- akn:<key>` note names the module.
+  Such a module imports only what every circular importing it already
+  reaches, and a family whose names a circular would then reach twice is
+  split (`…-circulars-2-common`).
 - **Every paragraph is accounted for.** Each text row of the section is
   covered by a segment that cites it or an ancestor:
   - `@ref akn:<key>` on the declaration that encodes it, or
