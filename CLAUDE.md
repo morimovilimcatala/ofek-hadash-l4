@@ -123,6 +123,13 @@ with `HENCE`/`LEST`), not booleans standing in for them.
   ratchets in the same test. An earlier agreement that the base agreement
   repeats imports the base section where the rule is the same, and dates
   its own name where it differs (`status of 10.9.2007`).
+  THE SAME COUNT OVER WHOLE COLLECTIONS (MMS-775) is a ratchet too: the
+  scope a root reaches once it imports its whole collection (all of
+  `l4/circulars/`, each family of agreements, the takanon). A circular's
+  name that another module declares with a different meaning carries its
+  document: `<name> of circular תשפ"ד/3` (`in circular …` for a
+  proposition; "the circular" in a name becomes the circular's number). A
+  name with one meaning is declared once and imported.
 - **Every paragraph is accounted for.** Each text row of the section is
   covered by a segment that cites it or an ancestor:
   - `@ref akn:<key>` on the declaration that encodes it, or

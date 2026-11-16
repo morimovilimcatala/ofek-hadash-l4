@@ -112,10 +112,12 @@ LAST_NAME = re.compile(r"(?:^|\s)(NAME|[a-z_][\w']*)\s*$")
 
 def pct_code(line: str) -> str:
     """The line with its strings, comments, annotations and backticked names
-    masked: a name is NAME, so what is left of a percentage is its context."""
-    code = re.sub(r'"(?:[^"\\]|\\.)*"', '""', line).split("--")[0]
-    code = re.sub(r"@\w[\w-]*\b.*", "", code)
-    return re.sub(r"`[^`]*`", "NAME", code)
+    masked: a name is NAME, so what is left of a percentage is its context.
+    Names first, since a name may hold a quotation mark (`… of circular
+    תשפ"ב/1`, MMS-775) that would otherwise open a string."""
+    code = re.sub(r"`[^`]*`", "NAME", line)
+    code = re.sub(r'"(?:[^"\\]|\\.)*"', '""', code).split("--")[0]
+    return re.sub(r"@\w[\w-]*\b.*", "", code)
 
 
 def scan_pct(path: Path):

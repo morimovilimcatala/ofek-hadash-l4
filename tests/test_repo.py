@@ -470,13 +470,13 @@ class ConventionsModule(unittest.TestCase):
 
 # Type names declared in more than one module (test_a_type_name_is_declared_once):
 # each is a pair the compiler will refuse to import into one file.
-DECLARED_MORE_THAN_ONCE = 181
+DECLARED_MORE_THAN_ONCE = 88
 
 # Constructor names (the cases of a `DECLARE … IS ONE OF`) declared in more
 # than one module (test_a_constructor_name_is_declared_once). Two of them
 # imported into one file compile while the type around each use decides
 # which is meant, and fail "multiple definitions" where it does not.
-CONSTRUCTOR_DECLARED_MORE_THAN_ONCE = 680
+CONSTRUCTOR_DECLARED_MORE_THAN_ONCE = 675
 
 _NAME = re.compile(r"`[^`]+`|[A-Za-z_][\w']*")
 
@@ -516,8 +516,18 @@ def constructors(text: str) -> list[str]:
 # imports together, outside the chain: each a use away from "multiple
 # definitions". Identifiers are type and value names; constructors are counted
 # apart, as above.
-SCOPED_IDENTIFIERS_DECLARED_TWICE = 404
+SCOPED_IDENTIFIERS_DECLARED_TWICE = 201
 SCOPED_CONSTRUCTORS_DECLARED_TWICE = 199
+
+# The same count over the scope the roots will reach once each collection's
+# root imports its whole collection (MMS-538, MMS-775): every module of
+# l4/circulars/, of each family under l4/agreements/ (the framework
+# agreements' family included, MMS-538's root of their own) and of the
+# takanon, with what each imports. Each name counted is a use away from
+# "multiple definitions" in a whole-collection root; MMS-775 lowers these
+# before the roots import whole collections.
+FULL_SCOPE_IDENTIFIERS_DECLARED_TWICE = 665
+FULL_SCOPE_CONSTRUCTORS_DECLARED_TWICE = 641
 
 _DEF_LINE = re.compile(r"^(?:DECIDE\s+[A-Za-z_][\w']*\s+(`[^`]+`)"
                        r"|DECIDE\s+(`[^`]+`|[A-Za-z_][\w']*)"
@@ -544,6 +554,52 @@ def import_graph() -> tuple[dict[str, Path], dict[Path, list[Path]]]:
     graph = {f: [names[i] for i in re.findall(r"^IMPORT\s+`?([^`\s]+)`?", f.read_text(encoding="utf-8"), re.M)
                  if i in names] for f in files}
     return names, graph
+
+
+def collection_graph(graph: dict[Path, list[Path]]) -> tuple[dict[Path, list[Path]], list[Path]]:
+    """The import graph with each collection root importing its whole
+    collection (FULL_SCOPE_*), and the roots it starts from. The framework
+    agreements have no root on main yet; a stand-in node is their family's."""
+    lib, l4 = ROOT / "l4/lib", ROOT / "l4"
+
+    def real(d: Path) -> list[Path]:
+        return sorted(f.resolve() for f in d.rglob("*.l4") if not f.is_symlink())
+
+    g = {k: list(v) for k, v in graph.items()}
+    g[(lib / "circulars-root.l4").resolve()] += real(l4 / "circulars")
+    g[(lib / "takanon-root.l4").resolve()] += real(l4 / "takanon")
+    families = {d.name: d for d in sorted((l4 / "agreements").iterdir()) if d.is_dir()}
+    roots = sorted(f.resolve() for f in lib.glob("*root.l4"))
+    for name, d in families.items():
+        root = lib / f"{name}-root.l4"
+        if not root.exists():
+            root = lib / f"{name}-agreements-root.l4"
+        root = root.resolve() if root.exists() else root
+        if root not in g:
+            g[root] = []
+            g[(lib / "agreements-root.l4").resolve()].append(root)
+            roots.append(root)
+        g[root] += real(d)
+    for targets in list(g.values()):
+        for t in targets:
+            g.setdefault(t, [])
+    return g, roots
+
+
+def names_declared_twice(graph: dict[Path, list[Path]], decl: dict[Path, dict[str, bool]],
+                         scope: set[Path]) -> dict[str, set[Path]]:
+    """{name: the modules declaring it} for every name two modules declare
+    that one module of `scope` reaches together."""
+    twice: dict[str, set[Path]] = {}
+    for m in scope:
+        by: dict[str, set[Path]] = {}
+        for f in reach(graph, m):
+            for n in decl[f]:
+                by.setdefault(n, set()).add(f)
+        for n, fs in by.items():
+            if len(fs) > 1:
+                twice.setdefault(n, set()).update(fs)
+    return twice
 
 
 def reach(graph: dict[Path, list[Path]], start: Path) -> set[Path]:
@@ -646,15 +702,7 @@ class OneNamespace(unittest.TestCase):
                          {"base-agreement-47", "2008-02-21_teachers_tosefet-2008_wage-supplement",
                           "2009-06-17_teachers_wage-update-deferral",
                           "2010-11-24_teachers_wage-update-advancement", self.FOUNDING})
-        twice: dict[str, set[Path]] = {}
-        for m in scope:
-            by: dict[str, set[Path]] = {}
-            for f in reach(graph, m):
-                for n in decl[f]:
-                    by.setdefault(n, set()).add(f)
-            for n, fs in by.items():
-                if len(fs) > 1:
-                    twice.setdefault(n, set()).update(fs)
+        twice = names_declared_twice(graph, decl, scope)
         in_chain = sorted(f"{n}: {', '.join(sorted(f.name for f in fs))}"
                           for n, fs in twice.items() if fs & chain)
         self.assertEqual(in_chain, [])
@@ -662,6 +710,25 @@ class OneNamespace(unittest.TestCase):
         ctor = {n for n, fs in rest.items() if all(decl[f][n] for f in fs)}
         self.assertEqual(len(rest) - len(ctor), SCOPED_IDENTIFIERS_DECLARED_TWICE)
         self.assertEqual(len(ctor), SCOPED_CONSTRUCTORS_DECLARED_TWICE)
+
+    def test_names_declared_twice_where_whole_collections_are_imported(self):
+        """The scoped count above, over the graph a whole-collection root
+        reaches (collection_graph): all of l4/circulars/, each family of
+        agreements, the takanon. A name two circulars declare with different
+        meanings carries its document (`… of circular תשפ"ד/3`); a name with
+        one meaning is declared once and imported (MMS-775). A ratchet, held
+        exactly, and only ever lowered."""
+        names, graph = import_graph()
+        graph, roots = collection_graph(graph)
+        decl = {f: declared_names(f.read_text(encoding="utf-8")) if f.exists() else {} for f in graph}
+        starts = [names[s] for s in self.CHAIN_STARTS]
+        tables = sorted(f.resolve() for f in (ROOT / "l4/tables").rglob("*.l4") if not f.is_symlink())
+        scope = set().union(*(reach(graph, s) for s in [*roots, *starts, *tables]))
+        self.assertTrue({f for f in graph if f.parent == (ROOT / "l4/circulars").resolve()} <= scope)
+        twice = names_declared_twice(graph, decl, scope)
+        ctor = {n for n, fs in twice.items() if all(decl[f][n] for f in fs)}
+        self.assertEqual(len(twice) - len(ctor), FULL_SCOPE_IDENTIFIERS_DECLARED_TWICE)
+        self.assertEqual(len(ctor), FULL_SCOPE_CONSTRUCTORS_DECLARED_TWICE)
 
     def test_the_name_reader_sees_every_shape(self):
         src = ("DECIDE `a` x IS 1\nDECIDE d `is on or after` e IF TRUE\nb MEANS 2\n`c` MEANS 3\n"
