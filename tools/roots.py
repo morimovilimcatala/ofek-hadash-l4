@@ -82,6 +82,13 @@ ROOTS = [
      "ומה הוא אומר לכל מקרה. בין הסכמים של אותם צדדים באותו עניין, המאוחר שמדבר בחודש "
      "השכר מחליף את המוקדם (סעיף 19 לחוק הסכמים קיבוציים). שורש ההסכמים מייבא אותו לצד "
      "שורשי שאר המשפחות."),
+    # the public-sector framework agreements, a family of their own (the
+    # client, 2026-11-15, MMS-538)
+    ("framework-agreements-root", "agreements/framework/root.html", "agreements",
+     "שורש הסכמי המסגרת במגזר הציבורי",
+     "כל הסכם מסגרת במגזר הציבורי שמדבר על פריט באוצר המילים המשותף, רשום פעם אחת כמסמך, "
+     "ומה הוא אומר לכל מקרה. השורש מייבא את כל הסכמי המסגרת; עדיין אף אחד מהם אינו עונה על "
+     "פריט באוצר המילים, ולכן אין בו מסמך רשום. שורש ההסכמים מייבא אותו לצד שורשי שאר המשפחות."),
     # the protective statutes (l4/laws/), whose floor the root weighs last
     # (MMS-601); not a collection of the corpus, so it sits beside the laws
     ("statutes-root", "laws/root.html", "",
@@ -345,3 +352,284 @@ def page_body(module: str, here: str, coll: str, heading: str, about: str, *,
         if b == module and tests_of(module).exists():
             parts.append(tests_block(module, heading, esc=esc, code_html=code_html, banner=False))
     return "".join(parts)
+
+
+# ---------------------------------------------------------------------------
+# The circulars' root is GENERATED (MMS-538, step 4): it imports every module
+# of the circulars collection, l4/circulars/, so the root holds the whole
+# collection rather than a hand-kept list. Of all they declare it names only
+# what is unique in that scope — each module's `instrument` description
+# (`circular <number>`) and its `<prefix> according to circular <number>`
+# answers — because a name two of them declare fails "multiple definitions"
+# once it is used.
+#
+#     python3 tools/roots.py --write-circulars-root   # rewrite l4/lib/circulars-root.l4
+#     python3 tools/roots.py --check-circulars-root   # exit 1 if it is stale
+#
+# tests/test_roots.py holds the file to this output, so a circular that
+# gains an answer or an instrument description is in the root in the same
+# commit.
+
+CIRCULARS = ROOT / "l4" / "circulars"
+CIRCULARS_ROOT = LIB / "circulars-root.l4"
+
+# What each circular answer is about: the prefix of `<prefix> according to
+# circular <number>`, and the pay item of the shared vocabulary it answers.
+# A prefix not listed here stops the generator, so a new kind of answer is a
+# deliberate line here.
+CIRCULAR_ANSWER_ITEMS = {
+    "the 2008 supplement": "the 2008 public-sector supplement",
+    "the pedagogical coordinator's rate": "the pedagogical coordinator's allowance rate",
+    "the mentor's rate": "the mentor's allowance rate",
+    "the junior-division head's allowance": "the junior-division head's allowance",
+    "the role allowances counted": "the role allowances counted",
+    "the 2011 supplement": "the 2011 public-sector supplement",
+    "the 1994 supplement": "the 1994 supplement of a full position",
+    "the Ofek 2022 supplement of a full position": "the Ofek 2022 supplement of a full position",
+}
+# a note said above an item's claims
+CIRCULAR_ITEM_NOTES = {
+    "the role allowances counted": "only תשפ\"ו/1's \"at most two\" is encoded as a rule so far (MMS-552)",
+}
+
+_INSTRUMENT = re.compile(r"^(`circular [^`]+`) MEANS\n\s+`instrument` WITH", re.M)
+_ANSWER = re.compile(r"^DECIDE `(.+) according to (circular [^`]+)` c IS", re.M)
+_VOCAB_ITEMS = re.compile(r"^DECLARE `pay item` IS ONE OF\n((?:[ \t]+.*\n|\n)*)", re.M)
+
+
+def circular_modules() -> list[Path]:
+    """Every module of the circulars collection: the real files of
+    l4/circulars/ (a link there is a statute or a shared module an import
+    resolves through, not a circular)."""
+    return sorted(f for f in CIRCULARS.glob("*.l4") if not f.is_symlink())
+
+
+def circulars_speaking() -> list[tuple[str, str, list[tuple[str, str]]]]:
+    """(module, its instrument's name, [(pay item, answer name)]) for every
+    circular that describes itself as an instrument, in module order (the
+    school year, then the number). A circular with answers and no
+    instrument, or more than one, or an answer about no listed item, stops it."""
+    out = []
+    for f in circular_modules():
+        text = f.read_text(encoding="utf-8")
+        inst = _INSTRUMENT.findall(text)
+        answers = _ANSWER.findall(text)
+        if not inst and not answers:
+            continue
+        if len(inst) != 1:
+            raise SystemExit(f"{f.name}: {len(inst)} instrument descriptions and {len(answers)} answers")
+        rows = []
+        for prefix, who in answers:
+            if f"`{who}`" != inst[0]:
+                raise SystemExit(f"{f.name}: an answer according to {who}, but it describes {inst[0]}")
+            if prefix not in CIRCULAR_ANSWER_ITEMS:
+                raise SystemExit(f"{f.name}: no pay item for `{prefix} according to …` (CIRCULAR_ANSWER_ITEMS)")
+            rows.append((CIRCULAR_ANSWER_ITEMS[prefix], f"`{prefix} according to {who}`"))
+        out.append((f.name.removesuffix(".l4"), inst[0], rows))
+    return out
+
+
+def vocabulary_items() -> list[str]:
+    """The `pay item`s of the shared vocabulary, in its order."""
+    body = _VOCAB_ITEMS.search((LIB / "vocabulary.l4").read_text(encoding="utf-8")).group(1)
+    return re.findall(r"^\s+`([^`]+)`\s*$", body, re.M)
+
+
+def circulars_root_source() -> str:
+    speaking = circulars_speaking()
+    names = [inst for _, inst, _ in speaking]
+    if len(set(names)) != len(names):
+        raise SystemExit("two circulars describe themselves under one name")
+    items = vocabulary_items()
+    claims: dict[str, list[tuple[str, str]]] = {}
+    for _, inst, rows in speaking:
+        for item, answer in rows:
+            claims.setdefault(item, []).append((inst, answer))
+    unknown = sorted(set(claims) - set(items))
+    if unknown:
+        raise SystemExit(f"not pay items of the vocabulary: {unknown}")
+    out = [
+        "-- The circulars' root (MMS-521). GENERATED by tools/roots.py",
+        "-- (--write-circulars-root, MMS-538): do not edit it by hand.",
+        "--",
+        "-- It imports the whole collection, every module of l4/circulars/, and",
+        "-- includes as instruments the circulars that describe themselves as one",
+        "-- (each in its own file, an `instrument` record of the shared vocabulary,",
+        "-- l4/lib/vocabulary.l4), with what each claims for a case on the items it",
+        "-- speaks to (its `<item> according to circular <number>` answers). Of all",
+        "-- the collection declares it names only those, which are unique in it: a",
+        "-- name two circulars declare fails \"multiple definitions\" once it is used.",
+        "-- It is a `collection root` (l4/lib/precedence.l4) and applies the",
+        "-- circulars' own precedence: the later circular replaces the earlier on",
+        "-- the same point. The root (l4/lib/root.l4) sets this collection's ruling",
+        "-- against the takanon's and the agreements'.",
+        "",
+        "IMPORT prelude",
+        "IMPORT precedence",
+    ]
+    out += [f"IMPORT `{f.name.removesuffix('.l4')}`" for f in circular_modules()]
+    out += [
+        "",
+        "§ `שורש החוזרים — מה החוזרים אומרים על כל פריט`",
+        "",
+        "§§ `המסמכים`",
+        "",
+        "-- Each instrument describes itself in its own file (an `instrument` record",
+        "-- of the shared vocabulary). This root includes the circulars:",
+        "`the circulars' instruments` MEANS",
+        "    LIST " + ",\n         ".join(names),
+        "",
+        "§§ `מה החוזרים אומרים, לפי פריט`",
+        "",
+        "GIVEN i IS A `pay item`, c IS A `teaching case`",
+        "GIVETH A LIST OF `claim`",
+        "DECIDE `the circulars' claims on` i c IS",
+        "    CONSIDER i",
+    ]
+    for item in items:
+        if item not in claims:
+            continue
+        if item in CIRCULAR_ITEM_NOTES:
+            out.append(f"    -- {CIRCULAR_ITEM_NOTES[item]}")
+        lines = [f"`the claim of` {inst} ({answer} c)" for inst, answer in claims[item]]
+        out.append(f"    WHEN `{item}` THEN")
+        out.append("        catMaybes (LIST " + ",\n                        ".join(lines) + ")")
+    out += [
+        "    OTHERWISE EMPTY",
+        "",
+        "§§ `חוזר מאוחר גובר על מוקדם`",
+        "",
+        "GIVEN a IS A `claim`, b IS A `claim`",
+        "GIVETH A `claim`",
+        "DECIDE `the more recent circular's claim` a b IS",
+        "    IF DATE_SERIAL (b's `by`'s `issued`) GREATER THAN DATE_SERIAL (a's `by`'s `issued`) THEN b ELSE a",
+        "",
+        "-- Among circulars that speak, the most recent replaces the others on the same",
+        "-- point (convention precedence.later-circular); one alone governs as the",
+        "-- only one that speaks. Of claims issued on the same latest day, the last",
+        "-- in the list (the higher number) governs, unless the list's first is",
+        "-- among them.",
+        "GIVEN claims IS A LIST OF `claim`",
+        "GIVETH A MAYBE `ruling`",
+        "DECIDE `the ruling among circulars` claims IS",
+        "    CONSIDER claims",
+        "    WHEN EMPTY THEN NOTHING",
+        "    WHEN t FOLLOWED BY ts THEN",
+        "        JUST (`the ruling for`",
+        "                  (foldr (GIVEN c, acc YIELD `the more recent circular's claim` acc c) t ts)",
+        "                  (IF null ts THEN `the only instrument that speaks` ELSE `a later circular replaces an earlier one`))",
+        "",
+        "`the circulars' root` MEANS",
+        "    `collection root` WITH",
+        "        `the collection`  IS \"החוזרים לבעלויות\"",
+        "        `its instruments` IS `the circulars' instruments`",
+        "        `what each says`  IS `the circulars' claims on`",
+        "        `its ruling`      IS (GIVEN i, c YIELD `the ruling among circulars` (`the circulars' claims on` i c))",
+    ]
+    return "\n".join(out) + "\n"
+
+
+# ---------------------------------------------------------------------------
+# Each family of agreements imports its whole family (MMS-538), as the
+# circulars' root imports its collection. A family root's instruments and
+# claims stay written by hand — the agreements' answers are not one shape
+# (an amendment's claim waits for its month, the salary tables are their
+# own instrument) — so only its IMPORT block is generated: prelude,
+# precedence, every module of l4/agreements/<family>/, then any import of a
+# module outside the family the hand-written part asks for, kept as it was.
+#
+#     python3 tools/roots.py --write-agreement-imports
+#     python3 tools/roots.py --check-agreement-imports
+
+AGREEMENTS = ROOT / "l4" / "agreements"
+# family directory -> its root module
+FAMILY_ROOTS = {
+    "ofek-hadash": "ofek-hadash-root",
+    "oz-latmura": "oz-latmura-root",
+    "teachers-general": "teachers-general-root",
+    "framework": "framework-agreements-root",
+}
+_IMPORT = re.compile(r"^IMPORT\s+`?([^`\s]+)`?\s*$", re.M)
+
+
+def family_modules(family: str) -> list[str]:
+    """Every module of a family: the real files under l4/agreements/<family>/
+    (a link there is a statute or a shared module an import resolves
+    through, not an agreement of the family)."""
+    return sorted(f.name.removesuffix(".l4") for f in (AGREEMENTS / family).rglob("*.l4") if not f.is_symlink())
+
+
+def family_root_source(family: str) -> str:
+    return imports_source(LIB / f"{FAMILY_ROOTS[family]}.l4", family_modules(family))
+
+
+def imports_source(path: Path, modules: list[str]) -> str:
+    """The root at `path` with its one IMPORT block regenerated: prelude,
+    precedence, every module of its collection, then any import of a module
+    outside the collection the hand-written part asks for, kept as it was."""
+    lines = path.read_text(encoding="utf-8").split("\n")
+    at = [i for i, l in enumerate(lines) if _IMPORT.match(l)]
+    if not at or at != list(range(at[0], at[-1] + 1)):
+        raise SystemExit(f"{path.name}: its imports are not one block")
+    mine = set(modules)
+    kept = [m for m in (_IMPORT.match(lines[i]).group(1) for i in at)
+            if m not in mine and m not in ("prelude", "precedence")]
+    block = ["IMPORT prelude", "IMPORT precedence"] + [f"IMPORT `{m}`" for m in sorted(mine)] + \
+            [f"IMPORT `{m}`" for m in kept]
+    return "\n".join(lines[:at[0]] + block + lines[at[-1] + 1:])
+
+
+# ---------------------------------------------------------------------------
+# The takanon's root imports the whole takanon (MMS-538): every module under
+# l4/takanon/ — its sections and the department's site pages published with
+# it — by the name it is imported by (a dotted name as `takanon-<dashed>`,
+# tools/modules.py). Its instruments and claims stay written by hand, as the
+# agreements' do; only the IMPORT block is generated.
+#
+#     python3 tools/roots.py --write-takanon-imports
+#     python3 tools/roots.py --check-takanon-imports
+
+TAKANON = ROOT / "l4" / "takanon"
+TAKANON_ROOT = LIB / "takanon-root.l4"
+
+
+def takanon_modules() -> list[str]:
+    """Every module of the takanon collection, by its importable name (a link
+    there is a statute or a shared module an import resolves through)."""
+    out = []
+    for f in TAKANON.rglob("*.l4"):
+        if f.is_symlink():
+            continue
+        name = f.name.removesuffix(".l4")
+        out.append("takanon-" + name.replace(".", "-") if "." in name else name)
+    return sorted(out)
+
+
+def takanon_root_source() -> str:
+    return imports_source(TAKANON_ROOT, takanon_modules())
+
+
+if __name__ == "__main__":
+    import sys
+    if sys.argv[1:] == ["--write-circulars-root"]:
+        CIRCULARS_ROOT.write_text(circulars_root_source(), encoding="utf-8")
+    elif sys.argv[1:] == ["--check-circulars-root"]:
+        if CIRCULARS_ROOT.read_text(encoding="utf-8") != circulars_root_source():
+            raise SystemExit("l4/lib/circulars-root.l4 is stale: python3 tools/roots.py --write-circulars-root")
+    elif sys.argv[1:] == ["--write-agreement-imports"]:
+        for fam, mod in FAMILY_ROOTS.items():
+            (LIB / f"{mod}.l4").write_text(family_root_source(fam), encoding="utf-8")
+    elif sys.argv[1:] == ["--check-agreement-imports"]:
+        stale = [m for f, m in FAMILY_ROOTS.items()
+                 if (LIB / f"{m}.l4").read_text(encoding="utf-8") != family_root_source(f)]
+        if stale:
+            raise SystemExit(f"stale imports in {stale}: python3 tools/roots.py --write-agreement-imports")
+    elif sys.argv[1:] == ["--write-takanon-imports"]:
+        TAKANON_ROOT.write_text(takanon_root_source(), encoding="utf-8")
+    elif sys.argv[1:] == ["--check-takanon-imports"]:
+        if TAKANON_ROOT.read_text(encoding="utf-8") != takanon_root_source():
+            raise SystemExit("stale imports in takanon-root: python3 tools/roots.py --write-takanon-imports")
+    else:
+        raise SystemExit("usage: tools/roots.py --write-circulars-root | --check-circulars-root"
+                         " | --write-agreement-imports | --check-agreement-imports"
+                         " | --write-takanon-imports | --check-takanon-imports")
