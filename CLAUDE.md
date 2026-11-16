@@ -128,8 +128,10 @@ with `HENCE`/`LEST`), not booleans standing in for them.
   `l4/circulars/`, each family of agreements, the takanon). A circular's
   name that another module declares with a different meaning carries its
   document: `<name> of circular תשפ"ד/3` (`in circular …` for a
-  proposition; "the circular" in a name becomes the circular's number). A
-  name with one meaning is declared once and imported.
+  proposition or a constructor, `autism in circular תשפ"א/4`; "the
+  circular" in a name becomes the circular's number). A name with one
+  meaning is declared once and imported: the grids the property checks
+  walk (`both booleans`, `tenths to 1.5`, …) are `l4/lib/property_checks.l4`.
 - **Every paragraph is accounted for.** Each text row of the section is
   covered by a segment that cites it or an ancestor:
   - `@ref akn:<key>` on the declaration that encodes it, or
