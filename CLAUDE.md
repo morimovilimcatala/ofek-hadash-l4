@@ -139,6 +139,20 @@ with `HENCE`/`LEST`), not booleans standing in for them.
   Such a module imports only what every circular importing it already
   reaches, and a family whose names a circular would then reach twice is
   split (`…-circulars-2-common`).
+  The other collections name their document the same way: a takanon
+  section's name is `… of takanon §1.29` (`in takanon §3.3` for a
+  proposition or a constructor), a section of the base agreement's
+  `… of base agreement §70`, an agreement's `… of the agreement of
+  19.10.2022` ("the agreement" in a name becomes its date; the framework
+  agreements are `the framework agreement of …`, and a second document of
+  one day says which, `the special-education agreement of 17.6.2021`), a
+  wages-commissioner circular's `… of wages circular 2016-1-13`. A
+  declaration another module imports the name from keeps it bare, as do
+  `l4/lib/` and `l4/laws/`. A rule a circular or a section repeats from
+  the instrument it applies is imported from there (circular תש"ף/1 takes
+  base §§14, 70 and 97's figures; takanon §7.3.10(2) is §7.6.10(7)'s
+  rule), and a self-contained rule two takanon sections print alike is in
+  the takanon's `common.l4`.
 - **Every paragraph is accounted for.** Each text row of the section is
   covered by a segment that cites it or an ancestor:
   - `@ref akn:<key>` on the declaration that encodes it, or
