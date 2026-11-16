@@ -107,8 +107,9 @@ with `HENCE`/`LEST`), not booleans standing in for them.
   be imported into the same file ("multiple definitions for the
   identifier"). `Party` lives in `l4/lib/parties.l4` (MMS-532) and a new
   party is added there; a dotted takanon section is imported as
-  `takanon-<dashed>` (`takanon-1-29`). The names still declared twice — the
-  yearly circulars' — are an exact ratchet in `tests.test_repo.OneNamespace`.
+  `takanon-<dashed>` (`takanon-1-29`). A type name another module declares
+  too carries its document (below); the count of those, none since MMS-775,
+  is an exact ratchet in `tests.test_repo.OneNamespace`.
   A CONSTRUCTOR NAME (a case of `IS ONE OF`) is shared the same way
   (MMS-603): two with one name fail wherever the use does not fix the type
   (`PARTY \`x\``). The modules every collection reaches, `l4/lib/` and
@@ -120,10 +121,10 @@ with `HENCE`/`LEST`), not booleans standing in for them.
   §47 or from 24.11.2010 down to the founding agreement of 10.9.2007 —
   declares no name (type, value or constructor) a module imported with it
   declares, and the rest of the scope's names declared twice are exact
-  ratchets in the same test. An earlier agreement that the base agreement
+  ratchets in the same test (none since MMS-775). An earlier agreement that the base agreement
   repeats imports the base section where the rule is the same, and dates
   its own name where it differs (`status of 10.9.2007`).
-  THE SAME COUNT OVER WHOLE COLLECTIONS (MMS-775) is a ratchet too: the
+  THE SAME COUNT OVER WHOLE COLLECTIONS (MMS-775) is a ratchet too, at zero: the
   scope a root reaches once it imports its whole collection (all of
   `l4/circulars/`, each family of agreements, the takanon). A circular's
   name that another module declares with a different meaning carries its
@@ -148,7 +149,12 @@ with `HENCE`/`LEST`), not booleans standing in for them.
   one day says which, `the special-education agreement of 17.6.2021`), a
   wages-commissioner circular's `… of wages circular 2016-1-13`. A
   declaration another module imports the name from keeps it bare, as do
-  `l4/lib/` and `l4/laws/`. A rule a circular or a section repeats from
+  `l4/lib/` and `l4/laws/`; where several are imported, the one most
+  imported keeps it (§1.1's, which tools/calculator.py reads, for `salary
+  month`, `combined salary` and the allowance cases), and a module that
+  reaches two declarations names in each use the one its type takes — a
+  takanon section's own party is `the employer of takanon §1.28`, while a
+  `Party` in the same section is parties.l4's `the employer`. A rule a circular or a section repeats from
   the instrument it applies is imported from there (circular תש"ף/1 takes
   base §§14, 70 and 97's figures; takanon §7.3.10(2) is §7.6.10(7)'s
   rule), and a self-contained rule two takanon sections print alike is in

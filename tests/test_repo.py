@@ -470,13 +470,13 @@ class ConventionsModule(unittest.TestCase):
 
 # Type names declared in more than one module (test_a_type_name_is_declared_once):
 # each is a pair the compiler will refuse to import into one file.
-DECLARED_MORE_THAN_ONCE = 21
+DECLARED_MORE_THAN_ONCE = 0
 
 # Constructor names (the cases of a `DECLARE … IS ONE OF`) declared in more
 # than one module (test_a_constructor_name_is_declared_once). Two of them
 # imported into one file compile while the type around each use decides
 # which is meant, and fail "multiple definitions" where it does not.
-CONSTRUCTOR_DECLARED_MORE_THAN_ONCE = 114
+CONSTRUCTOR_DECLARED_MORE_THAN_ONCE = 0
 
 _NAME = re.compile(r"`[^`]+`|[A-Za-z_][\w']*")
 
@@ -516,18 +516,18 @@ def constructors(text: str) -> list[str]:
 # imports together, outside the chain: each a use away from "multiple
 # definitions". Identifiers are type and value names; constructors are counted
 # apart, as above.
-SCOPED_IDENTIFIERS_DECLARED_TWICE = 44
-SCOPED_CONSTRUCTORS_DECLARED_TWICE = 50
+SCOPED_IDENTIFIERS_DECLARED_TWICE = 0
+SCOPED_CONSTRUCTORS_DECLARED_TWICE = 0
 
 # The same count over the scope the roots will reach once each collection's
 # root imports its whole collection (MMS-538, MMS-775): every module of
 # l4/circulars/, of each family under l4/agreements/ (the framework
 # agreements' family included, MMS-538's root of their own) and of the
 # takanon, with what each imports. Each name counted is a use away from
-# "multiple definitions" in a whole-collection root; MMS-775 lowers these
-# before the roots import whole collections.
-FULL_SCOPE_IDENTIFIERS_DECLARED_TWICE = 178
-FULL_SCOPE_CONSTRUCTORS_DECLARED_TWICE = 92
+# "multiple definitions" in a whole-collection root; MMS-775 brought both
+# to zero before the roots import whole collections.
+FULL_SCOPE_IDENTIFIERS_DECLARED_TWICE = 0
+FULL_SCOPE_CONSTRUCTORS_DECLARED_TWICE = 0
 
 _DEF_LINE = re.compile(r"^(?:DECIDE\s+[A-Za-z_][\w']*\s+(`[^`]+`)"
                        r"|DECIDE\s+(`[^`]+`|[A-Za-z_][\w']*)"
@@ -629,10 +629,10 @@ class OneNamespace(unittest.TestCase):
         """Two modules declaring the same type name cannot be imported into
         one file: the compiler refuses "multiple definitions for the
         identifier". `Party` was six declarations and is one module now
-        (l4/lib/parties.l4, MMS-532). The rest of the class is the yearly
-        circulars, each re-declaring its series' types; the single entry
-        point (MMS-521) has to import them together, so this count is a
-        ratchet, held exactly, and only ever lowered."""
+        (l4/lib/parties.l4, MMS-532), and a type another module declares
+        too carries its document's name (MMS-775). The single entry point
+        (MMS-521) imports them together, so this count is a ratchet, held
+        exactly, and only ever lowered."""
         declared = {}
         for f in (ROOT / "l4").rglob("*.l4"):
             if f.is_symlink() or "modules" in f.parts:
