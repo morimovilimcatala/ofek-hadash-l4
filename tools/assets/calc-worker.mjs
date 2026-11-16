@@ -1,6 +1,7 @@
 // The salary calculator's evaluator, off the page's thread: loading the law
 // (salary-root and every module it reaches) takes the evaluator minutes the
-// first time (MMS-622: 267 s in headless Chromium on a four-core container),
+// first time (~810 s in Node 22 on a four-core container since the roots
+// import whole collections, MMS-538; 267 s in Chromium before, MMS-622),
 // and the page must stay usable meanwhile.
 // One instance answers every request, one at a time, keeping the imports'
 // evaluation between them (calc-core.mjs `evaluate`, `keep`).
