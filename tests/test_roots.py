@@ -109,12 +109,12 @@ class TheCircularsRootIsTheCollection(unittest.TestCase):
         nothing else: a name two modules in its reach declare would fail
         "multiple definitions" where it is used."""
         sys.path.insert(0, str(ROOT / "tests"))
-        import test_repo
-        names, graph = test_repo.import_graph()
-        reach = test_repo.reach(graph, roots.CIRCULARS_ROOT.resolve())
+        import test_namespace
+        names, graph = test_namespace.import_graph()
+        reach = test_namespace.reach(graph, roots.CIRCULARS_ROOT.resolve())
         declared: dict[str, int] = {}
         for f in reach - {roots.CIRCULARS_ROOT.resolve()}:
-            for n in test_repo.declared_names(f.read_text(encoding="utf-8")):
+            for n in test_namespace.declared_names(f.read_text(encoding="utf-8")):
                 declared[n] = declared.get(n, 0) + 1
         for _, inst, rows in roots.circulars_speaking():
             for name in [inst, *(answer for _, answer in rows)]:
@@ -184,7 +184,7 @@ class TheTakanonRootIsTheCollection(unittest.TestCase):
 
 class NoFileRedeclaresWhatItReaches(unittest.TestCase):
     """A name a file declares is declared in nothing it imports, directly or
-    through another module (MMS-538). The scoped ratchets in test_repo count
+    through another module (MMS-538). The scoped ratchets in test_namespace count
     the modules a root reaches; a tests file is outside them, and once the
     roots import whole collections root-tests reached takanon §3.4's
     `the school years checked`, which it declared too, and failed "multiple
@@ -192,17 +192,17 @@ class NoFileRedeclaresWhatItReaches(unittest.TestCase):
 
     def test_every_file(self):
         sys.path.insert(0, str(ROOT / "tests"))
-        import test_repo
-        _, graph = test_repo.import_graph()
+        import test_namespace
+        _, graph = test_namespace.import_graph()
         for path in sorted((ROOT / "l4").rglob("*.l4")):
             if path.is_symlink() or path.parent.name == "modules":
                 continue
             path = path.resolve()
-            own = set(test_repo.declared_names(path.read_text(encoding="utf-8")))
+            own = set(test_namespace.declared_names(path.read_text(encoding="utf-8")))
             if not own:
                 continue
-            again = sorted({n for f in test_repo.reach(graph, path) - {path}
-                            for n in test_repo.declared_names(f.read_text(encoding="utf-8")) if n in own})
+            again = sorted({n for f in test_namespace.reach(graph, path) - {path}
+                            for n in test_namespace.declared_names(f.read_text(encoding="utf-8")) if n in own})
             with self.subTest(file=str(path.relative_to(ROOT))):
                 self.assertEqual(again, [])
 

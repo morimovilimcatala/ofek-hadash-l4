@@ -7,7 +7,7 @@ states a date or a period, the rule carries it as a `WITHIN` (a fixed date
 as `WITHIN 0 OF (days from …)`, the way takanon 5.4 does); where it ties the
 time to an event with no length, or gives no time at all, the rule stays as
 it is, and this module counts what is left so the count moves only down
-(tests/test_repo.py, `Deadlines`).
+(tests/test_source_shape.py, `Deadlines`).
 
 A clause is read off the layout, the way the compiler groups it: its
 keywords (`WITHIN`, `BEFORE`, `LEST`) are on the MUST's own line or begin a

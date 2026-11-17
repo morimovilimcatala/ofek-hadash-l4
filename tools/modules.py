@@ -15,7 +15,7 @@ file with JL4_LIBRARY_PATH pointing at it.
 
 A module is every real .l4 file under l4/, by its file name (the client
 chose unique names over patching the compiler, so a name two files share is
-an error here, and tests/test_repo.py holds it). l4/modules/ is the ONE way a
+an error here, and tests/test_namespace.py holds it). l4/modules/ is the ONE way a
 module is named for import (MMS-776): no other directory under l4/ holds a
 link, so `collective-agreements-law` is the statute, `common` the takanon's
 helpers (l4/shared/takanon/common.l4) and `conventions` the conventions

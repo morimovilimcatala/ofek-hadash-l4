@@ -99,7 +99,7 @@ with `HENCE`/`LEST`), not booleans standing in for them.
   `base-agreement-70.l4`, the takanon's §1.1 stays `1.1.l4`. `l4/modules/`
   links every module under its one name and is on every run's
   `JL4_LIBRARY_PATH` (`tools/modules.py --write` after adding a file;
-  `tests.test_repo.OneNamespace` holds it), so ANY file imports ANY module
+  `tests.test_namespace.OneNamespace` holds it), so ANY file imports ANY module
   by name: `` IMPORT `base-agreement-70` `` from a circular works. A file
   imported through a link resolves its own imports from the link's
   directory, which is why the links all live in one directory.
@@ -109,7 +109,7 @@ with `HENCE`/`LEST`), not booleans standing in for them.
   party is added there; a dotted takanon section is imported as
   `takanon-<dashed>` (`takanon-1-29`). A type name another module declares
   too carries its document (below); the count of those, none since MMS-775,
-  is an exact ratchet in `tests.test_repo.OneNamespace`.
+  is an exact ratchet in `tests.test_namespace.OneNamespace`.
   A CONSTRUCTOR NAME (a case of `IS ONE OF`) is shared the same way
   (MMS-603): two with one name fail wherever the use does not fix the type
   (`PARTY \`x\``). The modules every collection reaches, `l4/lib/` and
@@ -404,7 +404,7 @@ corpus reader (MMS-414).
 
 ```
 make l4        # tools/l4run.py: l4 run + l4 render on every file (needs `l4`)
-make site      # tools/build_site.py → build/site/
+make site      # tools/build_site.py (its pages: tools/pages/) → build/site/
 make test      # tools/run_tests.py: the suite, a test class per process
                # (make test-serial: python3 -m unittest discover -s tests)
 make roots     # only the roots and their tests

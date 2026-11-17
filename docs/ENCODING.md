@@ -132,7 +132,7 @@ reader can see past, a dated amount.
   modules every collection reaches (`l4/lib/`, `l4/laws/`) declare no
   constructor another module declares — the Budget Foundations Law's is
   `the State as an employing body`, beside `Party`'s `the State` — and
-  `tests.test_repo.OneNamespace` holds that and the rest's count.
+  `tests.test_namespace.OneNamespace` holds that and the rest's count.
 - So is every value and type name, and a module that imports one module
   imports all it reaches. Before giving a rule a name another module uses,
   ask whether one file could reach both: the founding agreement of
@@ -146,7 +146,7 @@ reader can see past, a dated amount.
   founding agreement does not import base §§1, 11, 14, 29, 30 or 39, whose
   names or imports are declared again by modules downstream of it
   (measured by checking every module that reaches it).
-  `tests.test_repo.OneNamespace` holds the chain to no shared name and the
+  `tests.test_namespace.OneNamespace` holds the chain to no shared name and the
   rest of the scope to exact counts.
 - `§` inside an annotation's text (`@desc`, `@export`) starts a section and
   breaks the parse. Write "section 1.7", not "§1.7", in annotations.

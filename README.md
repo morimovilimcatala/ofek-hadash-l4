@@ -56,7 +56,8 @@ that updated it, the steps it prints.
 | `data/contradictions.json`, `data/contradictions/` | the hand-written layer of the contradictions page, whose rows the root generates where it can speak (MMS-521): a card attaches to the root's row by key (`root`) and brings a side per source with its answer — a document with a crop of its page, or what the payslips or the simulator pay — and the rule's prose; a card the root cannot speak for says why (`not_in_root`); a circular against an agreement says which way it departs, and where it gives more, what §29 of the Budget Foundations Law makes of the excess |
 | `tools/` | the L4 runner, the AKN reader, the site generator |
 | `toolchain/` | the pinned L4 compiler revision and its build script |
-| `tests/` | alignment, coverage and evidence checks |
+| `tests/` | the suite, a module per check: alignment, the corpus as read, findings, conventions, the one namespace, the source's shape, the toolchain, the segmenter, and one per tool or page |
+| `tools/build_site.py`, `tools/pages/` | the site: `build_site.py` builds it, and each page type is a module of `tools/pages/` (MMS-776) |
 
 ## Site
 
