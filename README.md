@@ -513,9 +513,8 @@ this repository, the one `toolchain/L4_WASM_RELEASE` names with its sha256,
 and `toolchain/fetch-wasm.sh` (`make wasm`, run by `make site`) downloads it
 to `build/l4wasm/` and refuses any other bytes (MMS-776), so the site build
 needs no WASM toolchain and a rebuild does not add 21 MB to the history.
-Until that release exists the script falls back to the copy still committed
-in `tools/assets/l4wasm/`; `.github/workflows/wasm-release.yml`, run by
-hand, publishes it. `tools/assets/l4wasm/` holds `l4.mjs` (GHC's JavaScript
+`.github/workflows/wasm-release.yml`, run by hand, builds and publishes
+that release when the pins move. `tools/assets/l4wasm/` holds `l4.mjs` (GHC's JavaScript
 glue for it) and `BUILD.toml`, which records what they were built from: the
 commit in `toolchain/L4_WASM_COMMIT` plus `toolchain/wasm-trace.patch`, with
 the sha256 of each file; a test fails if either pin moves without a rebuild.

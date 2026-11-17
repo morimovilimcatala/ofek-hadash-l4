@@ -3,8 +3,8 @@
 # the revision pinned in toolchain/L4_WASM_COMMIT with toolchain/wasm-trace.patch
 # applied, and write it to tools/assets/l4wasm/ with BUILD.toml beside it,
 # and the release it is published as to toolchain/L4_WASM_RELEASE (MMS-776:
-# the wasm leaves history once that release exists; until then the copy
-# here stays committed, and toolchain/fetch-wasm.sh falls back to it).
+# the wasm itself is not committed — .gitignore keeps it out — and
+# .github/workflows/wasm-release.yml publishes it as that release).
 #
 # The wasm has its own pin (MMS-535): l4-ide `unstable`, which loads a module
 # two importers share (#649) and keeps one copy of each module whatever the

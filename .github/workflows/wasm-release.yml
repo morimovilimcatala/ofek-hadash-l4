@@ -3,24 +3,16 @@
 # committing 21 MB at every rebuild. Run by hand (Actions → wasm-release →
 # Run workflow) after toolchain/build-wasm.sh has moved the pins.
 #
-#   source: committed  uploads tools/assets/l4wasm/l4.wasm, the copy the
-#                      pins were written from (a minute)
-#   source: build      builds it again with toolchain/build-wasm.sh at the
-#                      pins (an hour or more cold) and uploads that
+# It builds the wasm with toolchain/build-wasm.sh at the pins (an hour or
+# more cold) and uploads that. The first release (l4wasm-2818cc2-f9c5cd7)
+# was uploaded from the copy committed at the time, removed afterwards.
 #
-# Either way the file must have the sha256 L4_WASM_RELEASE pins, or nothing
+# The file must have the sha256 L4_WASM_RELEASE pins, or nothing
 # is published; an existing release of the tag is left as it is.
 name: wasm-release
 
 on:
   workflow_dispatch:
-    inputs:
-      source:
-        description: "committed (upload the committed l4.wasm) or build (rebuild it at the pins)"
-        required: true
-        default: committed
-        type: choice
-        options: [committed, build]
 
 permissions:
   contents: write
@@ -39,19 +31,13 @@ jobs:
           echo "sha=$(awk '$1 == "sha256" { print $2 }' toolchain/L4_WASM_RELEASE)" >> "$GITHUB_OUTPUT"
 
       - uses: actions/setup-node@v4
-        if: inputs.source == 'build'
         with:
           node-version: "22"
 
       - name: Build l4.wasm at the pins
-        if: inputs.source == 'build'
         run: |
           toolchain/build-wasm.sh "$RUNNER_TEMP/l4wasm"
           cp "$RUNNER_TEMP/l4wasm/l4.wasm" "$RUNNER_TEMP/l4.wasm"
-
-      - name: Take the committed l4.wasm
-        if: inputs.source == 'committed'
-        run: cp tools/assets/l4wasm/l4.wasm "$RUNNER_TEMP/l4.wasm"
 
       - name: Check it against the pinned sha256
         run: |

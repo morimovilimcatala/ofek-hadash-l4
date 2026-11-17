@@ -8,11 +8,8 @@
 #
 #   toolchain/fetch-wasm.sh          # prints the path of the checked wasm
 #
-# Where it comes from, in order: build/l4wasm/l4.wasm if it already has the
-# pinned sha256; the release; and, while the release does not exist yet,
-# the copy committed at tools/assets/l4wasm/l4.wasm if it has the pinned
-# sha256 (the committed copy leaves history in a later commit, once the
-# release is published).
+# Where it comes from: build/l4wasm/l4.wasm if it already has the pinned
+# sha256, else the release. Nothing else is accepted.
 set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
 root="$(dirname "$here")"
@@ -49,12 +46,4 @@ if curl -fsSL --retry 4 -o "$dest.part" "$url" 2>/dev/null; then
 fi
 rm -f "$dest.part"
 
-committed="$root/tools/assets/l4wasm/l4.wasm"
-if [ -f "$committed" ] && [ "$(sha "$committed")" = "$want" ]; then
-  echo "fetch-wasm: could not download $url; using the committed copy, which has the pinned sha256" >&2
-  cp "$committed" "$dest.part"
-  mv "$dest.part" "$dest"
-  echo "$dest"
-  exit 0
-fi
-die "could not download $url, and no copy with sha256 $want is committed"
+die "could not download $url"

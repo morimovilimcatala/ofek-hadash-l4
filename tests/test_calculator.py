@@ -196,7 +196,7 @@ class UnsignedPointers(unittest.TestCase):
 
 
 def wasm_runs(runs: list[dict]) -> list[dict]:
-    """Each run's answer from one instance of the committed l4.wasm."""
+    """Each run's answer from one instance of the pinned release's l4.wasm."""
     with tempfile.TemporaryDirectory() as d:
         (Path(d) / "runs.json").write_text(json.dumps(runs), encoding="utf-8")
         p = subprocess.run(["node", str(ROOT / "tests/wasm_eval.mjs"), f"{d}/runs.json"],

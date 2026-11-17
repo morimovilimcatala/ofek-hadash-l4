@@ -298,9 +298,7 @@ all the files to give one answer", and disagreements raised as errors.
   l4-ide `unstable` at `toolchain/L4_WASM_COMMIT` (MMS-535) and published
   as the release `toolchain/L4_WASM_RELEASE` names, with its sha256:
   `toolchain/fetch-wasm.sh` puts it in `build/l4wasm/` and refuses any
-  other bytes, so a rebuild does not add 21 MB to history (MMS-776; until
-  the release exists it falls back to the copy still committed in
-  `tools/assets/l4wasm/`, and a later commit removes that copy). It loads a module
+  other bytes, so a rebuild does not add 21 MB to history (MMS-776). It loads a module
   two importers share, so it loads the root, and a second call on the same
   imports reuses the first call's type-checked modules: a page pays for
   checking the root once, not per click. Each call still evaluates the
