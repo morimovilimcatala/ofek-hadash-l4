@@ -28,6 +28,7 @@ import modules  # noqa: E402
 import roots  # noqa: E402
 import l4src    # noqa: E402
 import statute_record  # noqa: E402
+import wasm  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 OUT = ROOT / "build" / "site"
@@ -283,9 +284,10 @@ def school_year(doc: str) -> str:
 SALARY = ("takanon/takanon-sherut-ovdei-horaa.xml", "1.1")
 
 
-# the calculator runs L4's evaluator built to WebAssembly (toolchain/build-wasm.sh);
-# without the build there is no calculator, rather than one that cannot run
-CALCULATOR = (ASSETS / "l4wasm" / "l4.wasm").exists()
+# the calculator runs L4's evaluator built to WebAssembly (toolchain/build-wasm.sh),
+# fetched from its pinned release (toolchain/fetch-wasm.sh, MMS-776); without
+# it there is no calculator, rather than one that cannot run
+CALCULATOR = wasm.fetch() is not None
 
 DELTA = calculator_delta.load()
 

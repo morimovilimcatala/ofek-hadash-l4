@@ -508,12 +508,17 @@ The working rules are in [CLAUDE.md](CLAUDE.md).
 
 ### The calculator's evaluator
 
-`tools/assets/l4wasm/` holds `l4.wasm` (the L4 evaluator, `wasm-opt -Oz`)
-and `l4.mjs` (GHC's JavaScript glue for it), committed so that the site
-build needs no WASM toolchain. `BUILD.toml` beside them records what they
-were built from: the commit in `toolchain/L4_COMMIT` plus
-`toolchain/wasm-trace.patch`, with the sha256 of each file; a test fails if
-either pin moves without a rebuild.
+`l4.wasm` (the L4 evaluator, `wasm-opt -Oz`) is published as a release of
+this repository, the one `toolchain/L4_WASM_RELEASE` names with its sha256,
+and `toolchain/fetch-wasm.sh` (`make wasm`, run by `make site`) downloads it
+to `build/l4wasm/` and refuses any other bytes (MMS-776), so the site build
+needs no WASM toolchain and a rebuild does not add 21 MB to the history.
+Until that release exists the script falls back to the copy still committed
+in `tools/assets/l4wasm/`; `.github/workflows/wasm-release.yml`, run by
+hand, publishes it. `tools/assets/l4wasm/` holds `l4.mjs` (GHC's JavaScript
+glue for it) and `BUILD.toml`, which records what they were built from: the
+commit in `toolchain/L4_WASM_COMMIT` plus `toolchain/wasm-trace.patch`, with
+the sha256 of each file; a test fails if either pin moves without a rebuild.
 
 The patch is ours and is not upstream. It changes `jl4-core/src/L4/API.hs`
 in two ways: an `#EVALTRACE` result in the evaluator's JSON carries its

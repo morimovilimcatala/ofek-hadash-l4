@@ -23,6 +23,7 @@ sys.path.insert(0, str(ROOT / "tools"))
 import akn          # noqa: E402
 import build_site   # noqa: E402
 import calculator   # noqa: E402
+import wasm         # noqa: E402
 
 L4 = ROOT / "l4/takanon/takanon-sherut-ovdei-horaa/1.1.l4"
 WASM = ROOT / "tools/assets/l4wasm"
@@ -136,8 +137,24 @@ class Artefact(unittest.TestCase):
         patch = ROOT / build["patch"]
         self.assertEqual(build["patch_sha256"], hashlib.sha256(patch.read_bytes()).hexdigest(),
                          "the patch changed: rebuild with toolchain/build-wasm.sh")
+        # the glue is committed; the wasm is the pinned release's (MMS-776)
+        files = {"l4.mjs": WASM / "l4.mjs", "l4.wasm": wasm.fetch()}
+        self.assertEqual(set(build["files"]), set(files))
         for name, digest in build["files"].items():
-            self.assertEqual(hashlib.sha256((WASM / name).read_bytes()).hexdigest(), digest, name)
+            self.assertEqual(hashlib.sha256(files[name].read_bytes()).hexdigest(), digest, name)
+
+    def test_the_release_is_a_build_of_the_pins(self):
+        # toolchain/fetch-wasm.sh downloads the release L4_WASM_RELEASE names
+        # and refuses any bytes but its sha256 (MMS-776)
+        pins = dict(line.split() for line in (ROOT / "toolchain/L4_WASM_RELEASE").read_text().splitlines()
+                    if line.strip() and not line.startswith("#"))
+        build = tomllib.loads((WASM / "BUILD.toml").read_text(encoding="utf-8"))
+        commit = (ROOT / "toolchain/L4_WASM_COMMIT").read_text().strip()
+        self.assertEqual(pins["tag"], f"l4wasm-{commit[:7]}-{build['patch_sha256'][:7]}")
+        self.assertEqual(pins["sha256"], build["files"]["l4.wasm"])
+        for wf in ("site.yml", "wasm-release.yml"):
+            self.assertIn("ubuntu-24.04", (ROOT / ".github/workflows" / wf).read_text(encoding="utf-8"))
+        self.assertIn("toolchain/fetch-wasm.sh", (ROOT / ".github/workflows/site.yml").read_text(encoding="utf-8"))
 
 
 class UnsignedPointers(unittest.TestCase):

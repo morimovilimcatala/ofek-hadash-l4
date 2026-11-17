@@ -11,7 +11,9 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const assets = path.join(path.dirname(fileURLToPath(import.meta.url)), "assets");
 const { instantiate } = await import(pathToFileURL(path.join(assets, "calc-core.mjs")));
 const glue = (await import(pathToFileURL(path.join(assets, "l4wasm", "l4.mjs")))).default;
-const module = await WebAssembly.compile(fs.readFileSync(path.join(assets, "l4wasm", "l4.wasm")));
+// the pinned release's bytes, which toolchain/fetch-wasm.sh puts in build/
+const wasmFile = process.env.L4_WASM || path.join(assets, "..", "..", "build", "l4wasm", "l4.wasm");
+const module = await WebAssembly.compile(fs.readFileSync(wasmFile));
 const l4 = await instantiate(glue, module);
 const out = {};
 for (const c of JSON.parse(fs.readFileSync(process.argv[2], "utf8"))) {

@@ -127,6 +127,11 @@ def build() -> int:
             shutil.copytree(f, OUT / "assets" / f.name)
         else:
             shutil.copy(f, OUT / "assets" / f.name)
+    # the evaluator the calculator runs, beside its glue: the pinned release's
+    # bytes (toolchain/fetch-wasm.sh), not a file of the repository's
+    if CALCULATOR:
+        (OUT / "assets" / "l4wasm").mkdir(exist_ok=True)
+        shutil.copyfile(wasm.WASM, OUT / "assets" / "l4wasm" / "l4.wasm")
     # a finding a weaker-against-stronger card cites lives on that card only
     # (contradictions.homes): it leaves the findings page, its counts and the
     # rows' flags; the whole register still backs the cards' evidence

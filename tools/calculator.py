@@ -11,7 +11,8 @@ salary. The page ships salary-root and every module it reaches, without
 their own tests (`#EVAL`, `#ASSERT`: `make roots` runs those); on "חישוב"
 the browser writes the form's values as a small L4 program that imports
 salary-root, and runs it through the L4 evaluator compiled to WebAssembly
-(tools/assets/l4wasm/, built by toolchain/build-wasm.sh). There is no
+(built by toolchain/build-wasm.sh, fetched from its pinned release by
+toolchain/fetch-wasm.sh, tools/wasm.py). There is no
 second implementation of the rules.
 
 What this module reads off the L4 file at build time, so a renamed field,

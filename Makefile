@@ -1,6 +1,6 @@
 PY ?= python3
 
-.PHONY: all l4 roots site test test-serial serve clean
+.PHONY: all l4 roots wasm site test test-serial serve clean
 all: l4 site test
 
 l4:
@@ -10,7 +10,12 @@ l4:
 roots:
 	L4_ROOTS=check $(PY) tools/l4run.py l4/roots/*root.l4
 
-site:
+# the calculator's evaluator, from its pinned release, into build/l4wasm/
+# (toolchain/fetch-wasm.sh, MMS-776); `make site` fetches it too
+wasm:
+	toolchain/fetch-wasm.sh
+
+site: wasm
 	$(PY) tools/build_site.py
 
 # the suite, a test class per process, as many at once as there are cores

@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 # Build the L4 evaluator as WebAssembly for the site's salary calculator, at
 # the revision pinned in toolchain/L4_WASM_COMMIT with toolchain/wasm-trace.patch
-# applied, and write it to tools/assets/l4wasm/ with BUILD.toml beside it.
+# applied, and write it to tools/assets/l4wasm/ with BUILD.toml beside it,
+# and the release it is published as to toolchain/L4_WASM_RELEASE (MMS-776:
+# the wasm leaves history once that release exists; until then the copy
+# here stays committed, and toolchain/fetch-wasm.sh falls back to it).
 #
 # The wasm has its own pin (MMS-535): l4-ide `unstable`, which loads a module
 # two importers share (#649) and keeps one copy of each module whatever the
@@ -89,5 +92,13 @@ unoptimized_bytes = $(stat --format=%s "$wasm")
 "l4.wasm" = "$(sha "$dest/l4.wasm")"
 "l4.mjs" = "$(sha "$dest/l4.mjs")"
 EOF
+# the release this build is published as (MMS-776): the tag names the commit
+# and the patch; .github/workflows/wasm-release.yml uploads the file
+cat > "$here/L4_WASM_RELEASE.new" <<EOF
+$(grep '^#' "$here/L4_WASM_RELEASE")
+tag l4wasm-${commit:0:7}-$(sha "$patch" | cut -c1-7)
+sha256 $(sha "$dest/l4.wasm")
+EOF
+mv "$here/L4_WASM_RELEASE.new" "$here/L4_WASM_RELEASE"
 ls -l "$dest"
 echo "built $dest from legalese/l4-ide@$commit + $(basename "$patch")"

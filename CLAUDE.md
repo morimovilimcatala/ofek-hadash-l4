@@ -294,8 +294,13 @@ all the files to give one answer", and disagreements raised as errors.
   `make l4` reserves each check's estimate out of the machine's memory.
   (At the old pin the root took ~21 GB and 25 minutes, and was checked on
   demand only; MMS-551.)
-- Traces and the calculator run tools/assets/l4wasm/l4.wasm, built from
-  l4-ide `unstable` at `toolchain/L4_WASM_COMMIT` (MMS-535). It loads a module
+- Traces and the calculator run l4.wasm, built from
+  l4-ide `unstable` at `toolchain/L4_WASM_COMMIT` (MMS-535) and published
+  as the release `toolchain/L4_WASM_RELEASE` names, with its sha256:
+  `toolchain/fetch-wasm.sh` puts it in `build/l4wasm/` and refuses any
+  other bytes, so a rebuild does not add 21 MB to history (MMS-776; until
+  the release exists it falls back to the copy still committed in
+  `tools/assets/l4wasm/`, and a later commit removes that copy). It loads a module
   two importers share, so it loads the root, and a second call on the same
   imports reuses the first call's type-checked modules: a page pays for
   checking the root once, not per click. Each call still evaluates the

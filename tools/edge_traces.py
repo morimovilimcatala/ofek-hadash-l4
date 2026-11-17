@@ -27,12 +27,13 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import calculator
+import wasm
 
 ROOT = Path(__file__).resolve().parent.parent
 KEPT = ROOT / "build" / "l4" / "traces"
 # what evaluates a trace: a change to any of them re-runs every trace
 EVALUATOR = [ROOT / "tools" / "edge_traces.mjs", ROOT / "tools" / "assets" / "calc-core.mjs",
-             ROOT / "tools" / "assets" / "l4wasm" / "l4.mjs", ROOT / "tools" / "assets" / "l4wasm" / "l4.wasm"]
+             wasm.GLUE, wasm.WASM]
 
 
 def evaluator_id() -> str:
@@ -72,7 +73,7 @@ def run(specs: list[dict]) -> dict[str, list[dict]]:
 
 def traces(cases: list[dict]) -> dict[str, list[dict]] | None:
     """{case id: [{expr, value, traceText}]}, or None without node."""
-    if not shutil.which("node"):
+    if not shutil.which("node") or wasm.fetch() is None:
         return None
     evaluator = evaluator_id()
     out: dict[str, list[dict]] = {}
