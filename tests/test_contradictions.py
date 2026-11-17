@@ -474,7 +474,7 @@ class WhichWayTheCircularDeparts(unittest.TestCase):
                 self.assertIsInstance(s["voids"], bool)
                 self.assertTrue(s["note"].strip())
                 text = (ROOT / s["l4"]).read_text(encoding="utf-8")
-                self.assertIn("IMPORT budget_foundations_law", text)
+                self.assertIn("IMPORT `budget-foundations-law`", text)
                 self.assertIn(f"#ASSERT `{s['name']}`", text)
                 self.assertIn(f"`{s['name']}` MEANS", text)
                 # the reading is a pick put to the lawyer (decision 16)

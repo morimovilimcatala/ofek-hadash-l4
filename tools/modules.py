@@ -15,11 +15,14 @@ file with JL4_LIBRARY_PATH pointing at it.
 
 A module is every real .l4 file under l4/, by its file name (the client
 chose unique names over patching the compiler, so a name two files share is
-an error here, and tests/test_repo.py holds it), and every name a directory
-already links to a module (`common` is the takanon's helpers, `conventions`
-the conventions module, `takanon-1-28` takanon §1.28,
-`collective_agreements_law` the statute). Such an alias must name the same
-file wherever it is used.
+an error here, and tests/test_repo.py holds it). l4/modules/ is the ONE way a
+module is named for import (MMS-776): no other directory under l4/ holds a
+link, so `collective-agreements-law` is the statute, `common` the takanon's
+helpers (l4/shared/takanon/common.l4) and `conventions` the conventions
+module, from any file. The older aliases a collection folder kept beside its
+files (`collective_agreements_law.l4`, a `common.l4` or `conventions.l4`
+link per directory) were removed with that issue; a link outside
+l4/modules/ is reported here.
 
 A NAME WITH A DOT CANNOT BE IMPORTED: the compiler reads `IMPORT `1.29``
 as a path ("I could not find a module with this name: 1", and "Your module
@@ -56,10 +59,6 @@ def wanted() -> tuple[dict[str, Path], list[str]]:
             continue
         if not f.is_symlink():
             add(f.name.removesuffix(".l4"), f)
-    for f in sorted(L4.rglob("*.l4")):
-        if f.parent == MODULES or not f.is_symlink():
-            continue
-        add(f.name.removesuffix(".l4"), f)
     for name, target in list(names.items()):
         if "." in name:
             add(importable(name), target)
@@ -74,6 +73,8 @@ def importable(name: str) -> str:
 def problems() -> list[str]:
     names, clashes = wanted()
     out = [f"two files under one name: {c}" for c in clashes]
+    out += [f"a link outside l4/modules: {f.relative_to(ROOT)} (import the module by its own name)"
+            for f in sorted(L4.rglob("*.l4")) if f.is_symlink() and f.parent != MODULES]
     have = {p.name.removesuffix(".l4"): p for p in MODULES.glob("*.l4")} if MODULES.exists() else {}
     for name, target in sorted(names.items()):
         link = have.get(name)

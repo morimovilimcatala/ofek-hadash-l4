@@ -4,7 +4,7 @@ r"""The per-instrument record of the protective statutes (MMS-601).
     python3 tools/statute_record.py --print   # the totals, and the list for the next batches
 
 For every document of corpus/manifest.json and every protective statute the
-statutes' root registers (l4/lib/statutes-root.l4), one verdict:
+statutes' root registers (l4/roots/statutes-root.l4), one verdict:
 
   shortfall    a card on מקורות סותרים (data/contradictions.json, rule
                `statute-floor`) whose law side is the statute and whose other
@@ -52,7 +52,7 @@ ROOT = Path(__file__).resolve().parent.parent
 L4 = ROOT / "l4"
 LAWS_L4 = L4 / "laws"
 LAWS_TEXT = ROOT / "laws"
-STATUTES_ROOT = L4 / "lib" / "statutes-root.l4"
+STATUTES_ROOT = L4 / "roots" / "statutes-root.l4"
 TESTS = L4 / "tests"
 BUILD_L4 = ROOT / "build" / "l4"
 OUT = ROOT / "build" / "statute-record.json"
@@ -87,12 +87,6 @@ def statutes() -> list[dict]:
         out.append({"name": name, "module": module, "title": law["title"],
                     "inventory": law.get("inventory", {})})
     return out
-
-
-def link_name(module: str) -> str:
-    """The name an instrument imports a statute by: a link in its own
-    directory, the module's name with underscores."""
-    return module.replace("-", "_")
 
 
 @lru_cache(maxsize=None)
@@ -152,8 +146,9 @@ def parse(path: Path) -> dict:
 
 
 def resolve(path: Path, name: str) -> Path | None:
-    """The file an IMPORT names: a link in the importer's own directory, or
-    the module of that name (l4/modules/)."""
+    """The file an IMPORT names: the module of that name (l4/modules/, the
+    one name each module has, MMS-776), or a file of that name beside the
+    importer, which the compiler would look at first."""
     for cand in (path.parent / f"{name}.l4", L4 / "modules" / f"{name}.l4"):
         if cand.exists():
             return cand.resolve()
@@ -233,9 +228,9 @@ def unit_files(doc: str) -> dict[str, Path]:
     prefix = akn.module_prefix(doc)
     by_slug = {akn.file_name(s.num): s.num for s in akn.sections(doc)}
     out = {}
-    for p in sorted(d.glob("*.l4")):
-        if p.is_symlink():
-            continue
+    # its section files, and its shared helpers, which live outside the
+    # document mirror (l4/shared/, MMS-776) under `<prefix>common.l4`
+    for p in sorted([*d.glob("*.l4"), *(L4 / "shared").rglob(f"{prefix}common.l4")], key=lambda p: p.name):
         slug = p.stem.removeprefix(prefix)
         out[by_slug.get(slug, slug)] = p
     return out

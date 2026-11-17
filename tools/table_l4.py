@@ -1,5 +1,5 @@
 """Write a corpus salary table out as L4 data (`a published table`,
-l4/tables/tables-common.l4), cell for cell, so that nobody types one.
+l4/shared/tables/tables-common.l4), cell for cell, so that nobody types one.
 
     python3 tools/table_l4.py [--grid] <document> <row key> <name> <title> <code|-> <d.m.yyyy>
 

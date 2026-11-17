@@ -50,10 +50,10 @@ reason when work stops, and nothing open written in a markdown file.
   sections' words are pinned in `laws/<name>.toml` with the live ספר החוקים
   הפתוח page they are read from and the date they were last checked against
   it, and its rules are `l4/laws/<name>.l4`, a `§§` block per section citing
-  `@ref law:<num>`. A file that applies it imports it through a link in its
-  own directory named `<name with underscores>.l4`, as with `conventions.l4`.
+  `@ref law:<num>`. A file that applies it imports it by the module's own
+  name, `` IMPORT `collective-agreements-law` ``, as it imports any module.
   The site shows it at `laws/<name>.html`, text beside rules. A statute's
-  floor prevails over every instrument (`l4/lib/statutes-root.l4`, weighed
+  floor prevails over every instrument (`l4/roots/statutes-root.l4`, weighed
   last by the root; convention `instruments.statute-floor`, a pick for the
   lawyer).
 - `corpus/manifest.json` is the corpus's own document list and is the
@@ -126,7 +126,8 @@ with `HENCE`/`LEST`), not booleans standing in for them.
   its own name where it differs (`status of 10.9.2007`).
   THE SAME COUNT OVER WHOLE COLLECTIONS (MMS-775) is a ratchet too, at zero: the
   scope a root reaches once it imports its whole collection (all of
-  `l4/circulars/`, each family of agreements, the takanon). A circular's
+  `l4/circulars/` with `l4/shared/circulars/`, each family of agreements,
+  the takanon). A circular's
   name that another module declares with a different meaning carries its
   document: `<name> of circular תשפ"ד/3` (`in circular …` for a
   proposition or a constructor, `autism in circular תשפ"א/4`; "the
@@ -134,7 +135,7 @@ with `HENCE`/`LEST`), not booleans standing in for them.
   meaning is declared once and imported: the grids the property checks
   walk (`both booleans`, `tenths to 1.5`, …) are `l4/lib/property_checks.l4`,
   and what a family of circulars prints in the same words is its
-  `l4/circulars/<family>-circulars-common.l4` (a yearly series repeating
+  `l4/shared/circulars/<family>-circulars-common.l4` (a yearly series repeating
   last year's rule, two twin circulars of one day). The circular keeps its
   row: where the declaration stood, a `-- akn:<key>` note names the module.
   Such a module imports only what every circular importing it already
@@ -158,7 +159,21 @@ with `HENCE`/`LEST`), not booleans standing in for them.
   the instrument it applies is imported from there (circular תש"ף/1 takes
   base §§14, 70 and 97's figures; takanon §7.3.10(2) is §7.6.10(7)'s
   rule), and a self-contained rule two takanon sections print alike is in
-  the takanon's `common.l4`.
+  the takanon's `common` (`l4/shared/takanon/common.l4`).
+- **The layout of `l4/` (MMS-776).** The document mirror —
+  `l4/<collection>/…`, one file per corpus document or section — holds only
+  files that encode a corpus document. Beside it: `l4/shared/<collection>/`,
+  the modules a collection's documents share and no document is (the
+  circulars' `…-common` families, the takanon's `common`, the base and Oz
+  agreements' helpers, the tables' and tariffs' types and in-force choice);
+  a collection's root imports them with its documents. `l4/roots/` holds
+  the roots and `precedence.l4`, the rule between collections they apply;
+  `l4/lib/` the vocabulary, the parties, the property checks and the
+  measures several instruments share; `l4/laws/` the statutes;
+  `l4/conventions.l4` the one conventions module; `l4/tests/` every tests
+  file; `l4/reference/` material that is not law (the ministry's simulator,
+  `l4/reference/educalc/`, MMS-512). `l4/modules/` is the ONE place a
+  module is named for import: no other directory holds a link.
 - **Every paragraph is accounted for.** Each text row of the section is
   covered by a segment that cites it or an ancestor:
   - `@ref akn:<key>` on the declaration that encodes it, or
@@ -193,9 +208,9 @@ all the files to give one answer", and disagreements raised as errors.
   where it does not speak). Nothing in the roots names an item but data.
 - **Every root is an interface** (the client, 2026-10-22: "each root should
   be an interface, agreement precedence is the agreement root's
-  responsibility"): a `collection root` record (`l4/lib/precedence.l4`) —
+  responsibility"): a `collection root` record (`l4/roots/precedence.l4`) —
   the instruments it includes, `what each says` for an item and a case, and
-  `its ruling`, by the collection's own rule. `l4/lib/takanon-root.l4` (one
+  `its ruling`, by the collection's own rule. `l4/roots/takanon-root.l4` (one
   provision speaks), `agreements-root.l4` (§23, the provision in the
   employee's favour) and `circulars-root.l4` (the later circular over the
   earlier, `precedence.later-circular`). The agreements' root holds one root
@@ -220,7 +235,7 @@ all the files to give one answer", and disagreements raised as errors.
   Each agreement names its parties in `signed by`, read from its preamble,
   and is encoded as signed, never cut off where a later one replaces it. A
   collection's tests hold its own ruling.
-- **Precedence between collections, once**, `l4/lib/precedence.l4`: the
+- **Precedence between collections, once**, `l4/roots/precedence.l4`: the
   takanon's introduction, then §29 and §22 between an agreement and the
   employer's term. The root folds over the list of collection roots and
   settles their rulings by these alone. No instrument keeps its own copy.
@@ -233,7 +248,7 @@ all the files to give one answer", and disagreements raised as errors.
   say) shows below that module's code on its page, and diagnostics.html
   lists every tests file and the page that shows it (MMS-607,
   `roots.tests_block`; `tests.test_roots.EveryTestsFileIsShown` holds it).
-- **The root**, `l4/lib/root.l4`: the one public answer, `the answer that
+- **The root**, `l4/roots/root.l4`: the one public answer, `the answer that
   governs` item case, for any case, and whether a case's claims disagree
   (`the contradictions on` item case). It holds no question (the client,
   2026-10-22: "the root shouldn't be asking questions at all, they should
@@ -254,7 +269,7 @@ all the files to give one answer", and disagreements raised as errors.
   yet, a statute's floor, text only, or a side the root does not weigh),
   and `tests.test_contradictions.TheRootIsTheSource` holds the page to the
   report exactly, from the results `make l4` recorded.
-- **The month by the law**, `l4/lib/salary-root.l4` (MMS-525; the client,
+- **The month by the law**, `l4/roots/salary-root.l4` (MMS-525; the client,
   2026-10-22: "if a teacher wants to know his salary he wants to know the
   law, he doesn't care about the underlying documents"): what the
   calculator asks. §1.1's components, each `the component that governs` —

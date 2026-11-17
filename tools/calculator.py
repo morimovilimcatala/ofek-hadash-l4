@@ -3,7 +3,7 @@ evaluated in the browser by L4 itself (MMS-525; the client, 2026-10-22: "if
 a teacher wants to know his salary he wants to know the law, he doesn't care
 about the underlying documents").
 
-The page asks l4/lib/salary-root.l4: §1.1's components, each the root's
+The page asks l4/roots/salary-root.l4: §1.1's components, each the root's
 governing answer where the root has a pay item for it and §1.1's figure
 where it has none yet, and why — the instrument that governs, the rule of
 precedence, what every instrument that speaks says. Nothing here computes a
@@ -59,7 +59,7 @@ esc = html.escape
 
 ROOT_RULE = "salary of a teaching employee"
 REPO = Path(__file__).resolve().parent.parent
-SALARY_ROOT = REPO / "l4" / "lib" / "salary-root.l4"
+SALARY_ROOT = REPO / "l4" / "roots" / "salary-root.l4"
 SALARY_TESTS = REPO / "l4" / "tests" / "salary-root-tests.l4"
 VOCABULARY = REPO / "l4" / "lib" / "vocabulary.l4"
 LAW_RULE = "the salary that governs"

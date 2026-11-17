@@ -1,5 +1,5 @@
 """Write the tables of the Accountant-General's notice HOD.13.4.2.1 "לוח
-תעריפי נסיעה בתחבורה ציבורית" out as L4 data (l4/takam/taarifei-nesia-common.l4),
+תעריפי נסיעה בתחבורה ציבורית" out as L4 data (l4/shared/takam/taarifei-nesia-common.l4),
 cell for cell, so that nobody types a tariff (MMS-685).
 
     python3 tools/tariff_l4.py <notice>          print every block of one edition

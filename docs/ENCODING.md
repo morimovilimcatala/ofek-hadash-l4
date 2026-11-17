@@ -158,7 +158,7 @@ reader can see past, a dated amount.
 - A `§§` heading may sit above a blank line before its rule; it is shown
   with the rule below it.
 - `Party` lives in `l4/lib/parties.l4` (MMS-532), which the takanon's
-  `common.l4` imports. A section that needs an actor it lacks adds it there,
+  `common` (`l4/shared/takanon/common.l4`) imports. A section that needs an actor it lacks adds it there,
   under a name no other module declares (see the constructor rule above).
 - **A convention's arithmetic is called, never copied.** `l4/conventions.l4`
   holds one definition for each convention in `conventions.toml` that is a
@@ -179,10 +179,12 @@ reader can see past, a dated amount.
 
 A circular is ONE unit: `l4/<collection>/<file>.l4` beside the corpus's
 `akn/<collection>/<file>.xml`, findings in `findings/<collection>/<file>.toml`
-(`l4 = "l4/<collection>/<file>.l4"` in each finding). `common.l4` in each
-collection directory is a link to the takanon's, so `IMPORT common` works;
-`conventions.l4` in each is a link to `l4/conventions.l4`, so `IMPORT
-conventions` does.
+(`l4 = "l4/<collection>/<file>.l4"` in each finding). Every module is
+imported by its own name from any directory, through `l4/modules/`
+(tools/modules.py): `IMPORT common` is the takanon's shared helpers,
+`IMPORT conventions` is `l4/conventions.l4`, and no collection directory
+keeps a link of its own (MMS-776). A module the circulars of a family share
+lives in `l4/shared/circulars/`, outside the document mirror.
 
     python3 tools/rows.py circulars/2016-17_tashaz_05          # its rows and keys
     python3 tools/rows.py circulars/2016-17_tashaz_05 --todo
@@ -223,13 +225,11 @@ and `l4/takanon/terms-service.education.gov.il.l4`.
   rule, the answer is encoded beside it as the ministry's reading and the
   finding's boolean (TRUE while the two part) is asserted. The takanon's
   encoding is never changed to make an answer pass.
-- **IMPORT across directories goes through a link.** L4 resolves a module by
-  bare name in the importing file's directory, and a section's file name has
-  a dot in it, so the page's directory holds `takanon-<section>.l4` links
-  (`takanon-1-11.l4` → `../takanon-sherut-ovdei-horaa/1.11.l4`) and a
-  `common.l4` link for their own import. `tools/l4run.py` runs a link's
-  target where it lives, and the cache key of every file in the directory
-  covers the linked files' bytes.
+- **IMPORT across directories goes through `l4/modules/`.** L4 resolves a
+  module by bare name, and a section's file name has a dot in it, so a
+  takanon section is imported as `takanon-<section>` (`takanon-1-11` is
+  §1.11), the name `l4/modules/` links it under (tools/modules.py). The
+  cache key of every file covers the bytes of every module it imports.
 - **Navigation pages** (lists of circulars, procedures and tables, contact
   details) are notes on an ancestor key, which covers its rows.
 

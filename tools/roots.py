@@ -1,13 +1,13 @@
 """The root and the collections' roots as pages (MMS-521).
 
-The root (l4/lib/root.l4) is the one place to ask what the law gives; the
+The root (l4/roots/root.l4) is the one place to ask what the law gives; the
 collections' roots (takanon-root, agreements-root, circulars-root) register
 the instruments of their collection and what each claims, and the root
 imports them beside the precedence module. Each gets a page: the root's at
 root.html, a collection root's inside its collection (circulars/root.html).
 
 A page is read off the module's own source and what `make l4` recorded for
-it (build/l4/lib/<module>.run.json): nothing on it is typed by hand. The
+it (build/l4/roots/<module>.run.json): nothing on it is typed by hand. The
 root's page shows the gate — `unresolved contradictions`, asserted empty —
 and the resolutions, from the `the resolutions report` the module evaluates.
 
@@ -25,12 +25,26 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+# the roots and the precedence between collections (l4/roots/, MMS-776);
+# the shared vocabulary they speak stays in l4/lib/
+ROOTS_DIR = ROOT / "l4" / "roots"
 LIB = ROOT / "l4" / "lib"
-BUILD = ROOT / "build" / "l4" / "lib"
+BUILD = ROOT / "build" / "l4" / "roots"
+# the modules a collection shares, which mirror no corpus document
+# (l4/shared/<collection>/, MMS-776): each is a module of its collection, and
+# a collection's root imports them with its documents
+SHARED = ROOT / "l4" / "shared"
 # a root's tests sit beside it (l4/tests/<module>-tests.l4, the client,
 # 2026-10-22): every #EVAL and #ASSERT about it, and what its page reads
 TESTS = ROOT / "l4" / "tests"
 TESTS_BUILD = ROOT / "build" / "l4" / "tests"
+
+
+def source_of(module: str) -> str:
+    """Where a module a root page shows lives: a root, or the precedence
+    module, in l4/roots/; the vocabulary in l4/lib/."""
+    d = ROOTS_DIR if (ROOTS_DIR / f"{module}.l4").exists() else LIB
+    return (d / f"{module}.l4").relative_to(ROOT).as_posix()
 
 
 def tests_of(module: str) -> Path:
@@ -38,8 +52,7 @@ def tests_of(module: str) -> Path:
 
 
 def tests_files() -> list[Path]:
-    """Every tests file. Anything else under l4/tests/ is a link an import
-    resolves through (conventions.l4), not a test."""
+    """Every tests file (l4/tests/ holds nothing else)."""
     return sorted(TESTS.glob("*-tests.l4"))
 
 
@@ -296,7 +309,7 @@ def page_body(module: str, here: str, coll: str, heading: str, about: str, *,
              f'<div class="title-row"><h1>{esc(heading)}</h1></div>'
              f'<div class="stats">'
              + (f'<span><b>{held}</b> מתוך {len(asserts)} בדיקות מתקיימות</span>' if asserts else '')
-             + f'<code dir="ltr">l4/lib/{esc(module)}.l4</code></div></header>',
+             + f'<code dir="ltr">{esc(source_of(module))}</code></div></header>',
              f'<p class="lede">{esc(about)}</p>']
     # the roots are checked in every build again (MMS-551, at l4-ide
     # unstable); a page says so only where a root has no results
@@ -312,7 +325,7 @@ def page_body(module: str, here: str, coll: str, heading: str, about: str, *,
         links = " · ".join(f'<a href="{rel(h, here)}">{esc(t)}</a>' for m, h, c, t, _ in ROOTS
                            if (c and not is_family(h)) or m == "statutes-root")
         parts.append(f'<p class="lede">המסמכים רשומים בשורשי האוספים: {links}. '
-                     f'סדר העדיפות: <code dir="ltr">l4/lib/precedence.l4</code>, בקוד שלהלן.</p>')
+                     f'סדר העדיפות: <code dir="ltr">l4/roots/precedence.l4</code>, בקוד שלהלן.</p>')
         salary = next((h, t) for m, h, _, t, _ in ROOTS if m == "salary-root")
         parts.append(f'<p class="lede">השכר החודשי לפי הדין, רכיב אחר רכיב, נשאל מכאן: '
                      f'<a href="{rel(salary[0], here)}">{esc(salary[1])}</a>.</p>')
@@ -346,8 +359,8 @@ def page_body(module: str, here: str, coll: str, heading: str, about: str, *,
                      f'<p class="lede">השורש: <a href="{rel("root.html", here)}">{esc(ROOTS[0][3])}</a>.</p>')
     blocks = [module] + (["precedence", "vocabulary"] if module == "root" else [])
     for b in blocks:
-        lines = (LIB / f"{b}.l4").read_text(encoding="utf-8").splitlines()
-        parts.append(f'<h2 dir="ltr"><code>l4/lib/{esc(b)}.l4</code></h2>'
+        lines = (ROOT / source_of(b)).read_text(encoding="utf-8").splitlines()
+        parts.append(f'<h2 dir="ltr"><code>{esc(source_of(b))}</code></h2>'
                      f'<div class="l4">{code_html(list(enumerate(lines, 1)))}</div>')
         if b == module and tests_of(module).exists():
             parts.append(tests_block(module, heading, esc=esc, code_html=code_html, banner=False))
@@ -363,7 +376,7 @@ def page_body(module: str, here: str, coll: str, heading: str, about: str, *,
 # answers — because a name two of them declare fails "multiple definitions"
 # once it is used.
 #
-#     python3 tools/roots.py --write-circulars-root   # rewrite l4/lib/circulars-root.l4
+#     python3 tools/roots.py --write-circulars-root   # rewrite l4/roots/circulars-root.l4
 #     python3 tools/roots.py --check-circulars-root   # exit 1 if it is stale
 #
 # tests/test_roots.py holds the file to this output, so a circular that
@@ -371,7 +384,7 @@ def page_body(module: str, here: str, coll: str, heading: str, about: str, *,
 # commit.
 
 CIRCULARS = ROOT / "l4" / "circulars"
-CIRCULARS_ROOT = LIB / "circulars-root.l4"
+CIRCULARS_ROOT = ROOTS_DIR / "circulars-root.l4"
 
 # What each circular answer is about: the prefix of `<prefix> according to
 # circular <number>`, and the pay item of the shared vocabulary it answers.
@@ -398,10 +411,10 @@ _VOCAB_ITEMS = re.compile(r"^DECLARE `pay item` IS ONE OF\n((?:[ \t]+.*\n|\n)*)"
 
 
 def circular_modules() -> list[Path]:
-    """Every module of the circulars collection: the real files of
-    l4/circulars/ (a link there is a statute or a shared module an import
-    resolves through, not a circular)."""
-    return sorted(f for f in CIRCULARS.glob("*.l4") if not f.is_symlink())
+    """Every module of the circulars collection: the circulars of
+    l4/circulars/ and the modules they share, l4/shared/circulars/."""
+    return sorted(list(CIRCULARS.glob("*.l4")) + list((SHARED / "circulars").glob("*.l4")),
+                  key=lambda f: f.name)
 
 
 def circulars_speaking() -> list[tuple[str, str, list[tuple[str, str]]]]:
@@ -452,16 +465,16 @@ def circulars_root_source() -> str:
         "-- The circulars' root (MMS-521). GENERATED by tools/roots.py",
         "-- (--write-circulars-root, MMS-538): do not edit it by hand.",
         "--",
-        "-- It imports the whole collection, every module of l4/circulars/, and",
+        "-- It imports the whole collection (l4/circulars/, l4/shared/circulars/), and",
         "-- includes as instruments the circulars that describe themselves as one",
         "-- (each in its own file, an `instrument` record of the shared vocabulary,",
         "-- l4/lib/vocabulary.l4), with what each claims for a case on the items it",
         "-- speaks to (its `<item> according to circular <number>` answers). Of all",
         "-- the collection declares it names only those, which are unique in it: a",
         "-- name two circulars declare fails \"multiple definitions\" once it is used.",
-        "-- It is a `collection root` (l4/lib/precedence.l4) and applies the",
+        "-- It is a `collection root` (l4/roots/precedence.l4) and applies the",
         "-- circulars' own precedence: the later circular replaces the earlier on",
-        "-- the same point. The root (l4/lib/root.l4) sets this collection's ruling",
+        "-- the same point. The root (l4/roots/root.l4) sets this collection's ruling",
         "-- against the takanon's and the agreements'.",
         "",
         "IMPORT prelude",
@@ -553,14 +566,18 @@ _IMPORT = re.compile(r"^IMPORT\s+`?([^`\s]+)`?\s*$", re.M)
 
 
 def family_modules(family: str) -> list[str]:
-    """Every module of a family: the real files under l4/agreements/<family>/
-    (a link there is a statute or a shared module an import resolves
-    through, not an agreement of the family)."""
-    return sorted(f.name.removesuffix(".l4") for f in (AGREEMENTS / family).rglob("*.l4") if not f.is_symlink())
+    """Every module of a family: the files under l4/agreements/<family>/ and
+    the modules the family shares, l4/shared/agreements/<family>/."""
+    return sorted(f.name.removesuffix(".l4") for f in family_files(family))
+
+
+def family_files(family: str) -> list[Path]:
+    return sorted(list((AGREEMENTS / family).rglob("*.l4"))
+                  + list((SHARED / "agreements" / family).rglob("*.l4")))
 
 
 def family_root_source(family: str) -> str:
-    return imports_source(LIB / f"{FAMILY_ROOTS[family]}.l4", family_modules(family))
+    return imports_source(ROOTS_DIR / f"{FAMILY_ROOTS[family]}.l4", family_modules(family))
 
 
 def imports_source(path: Path, modules: list[str]) -> str:
@@ -590,19 +607,22 @@ def imports_source(path: Path, modules: list[str]) -> str:
 #     python3 tools/roots.py --check-takanon-imports
 
 TAKANON = ROOT / "l4" / "takanon"
-TAKANON_ROOT = LIB / "takanon-root.l4"
+TAKANON_ROOT = ROOTS_DIR / "takanon-root.l4"
 
 
 def takanon_modules() -> list[str]:
-    """Every module of the takanon collection, by its importable name (a link
-    there is a statute or a shared module an import resolves through)."""
+    """Every module of the takanon collection, by its importable name: its
+    sections, the site pages, and the helpers they share
+    (l4/shared/takanon/)."""
     out = []
-    for f in TAKANON.rglob("*.l4"):
-        if f.is_symlink():
-            continue
+    for f in takanon_files():
         name = f.name.removesuffix(".l4")
         out.append("takanon-" + name.replace(".", "-") if "." in name else name)
     return sorted(out)
+
+
+def takanon_files() -> list[Path]:
+    return sorted(list(TAKANON.rglob("*.l4")) + list((SHARED / "takanon").rglob("*.l4")))
 
 
 def takanon_root_source() -> str:
@@ -615,13 +635,13 @@ if __name__ == "__main__":
         CIRCULARS_ROOT.write_text(circulars_root_source(), encoding="utf-8")
     elif sys.argv[1:] == ["--check-circulars-root"]:
         if CIRCULARS_ROOT.read_text(encoding="utf-8") != circulars_root_source():
-            raise SystemExit("l4/lib/circulars-root.l4 is stale: python3 tools/roots.py --write-circulars-root")
+            raise SystemExit("l4/roots/circulars-root.l4 is stale: python3 tools/roots.py --write-circulars-root")
     elif sys.argv[1:] == ["--write-agreement-imports"]:
         for fam, mod in FAMILY_ROOTS.items():
-            (LIB / f"{mod}.l4").write_text(family_root_source(fam), encoding="utf-8")
+            (ROOTS_DIR / f"{mod}.l4").write_text(family_root_source(fam), encoding="utf-8")
     elif sys.argv[1:] == ["--check-agreement-imports"]:
         stale = [m for f, m in FAMILY_ROOTS.items()
-                 if (LIB / f"{m}.l4").read_text(encoding="utf-8") != family_root_source(f)]
+                 if (ROOTS_DIR / f"{m}.l4").read_text(encoding="utf-8") != family_root_source(f)]
         if stale:
             raise SystemExit(f"stale imports in {stale}: python3 tools/roots.py --write-agreement-imports")
     elif sys.argv[1:] == ["--write-takanon-imports"]:

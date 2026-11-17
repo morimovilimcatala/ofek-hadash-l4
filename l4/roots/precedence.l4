@@ -1,0 +1,322 @@
+-- Precedence between instruments (MMS-521), and the interface every root
+-- implements. Each collection of instruments has a root that is a
+-- `collection root`: the instruments it includes, what each says for a case,
+-- and the collection's own ruling, by the collection's own rule (the client,
+-- 2026-10-22: "each root should be an interface, agreement precedence is
+-- the agreement root's responsibility"):
+--   - among collective agreements, of agreements of the same parties on
+--     the same matter the later replaces the earlier (§19; convention
+--     instruments.amendment-chain), and between agreements that apply side
+--     by side the provision in the employee's favour governs (§23;
+--     convention instruments.side-by-side): l4/roots/agreements-root.l4;
+--   - among circulars to the owners, the later replaces the earlier on the
+--     same point (convention precedence.later-circular):
+--     l4/roots/circulars-root.l4;
+--   - the takanon speaks once on an item: l4/roots/takanon-root.l4.
+-- The root (l4/roots/root.l4) asks every collection for its ruling and settles
+-- between them here, by the rules that are the instruments' own and the
+-- law's; none is invented here:
+--   1. The takanon's introduction (takanon/terms-service.education.gov.il/
+--      terms.l4, `prevails over the takanon`): where the takanon does not
+--      match a collective agreement, the law, a Director-General's circular,
+--      a Ministry procedure or a more recent circular to the owners, they
+--      prevail. If any instrument that prevails over it speaks, the takanon
+--      is out; if none does, the takanon governs over the rest.
+--   2. Between an agreement and the term the employer pays by (a circular's
+--      figure), the term stands where it is in the employee's favour and the
+--      agreement does not forbid it (§22; convention
+--      instruments.favourable-circular) — but first, for a budgeted or
+--      supported employer, what goes beyond the agreement stands only as far
+--      as the Budget Foundations Law §29 permits (convention
+--      instruments.section-29-approval). A lower term yields to the agreement:
+--      "a circular never out-ranks an agreement" (precedence.agreement).
+--      A salary table a circular reprints is such a term too: for an owner
+--      or a local authority §29 voids a higher cell's excess (convention
+--      precedence.reprinted-table); §29 does not bind the State, so for a
+--      State employer a higher cell stands by §22 (convention
+--      precedence.reprinted-table-state, a pick for the lawyer, MMS-758).
+--   3. Last, a protective statute's floor (the Collective Agreements Law
+--      §21): where the statute gives more than whichever instrument 1 and 2
+--      left governing — an agreement, a circular or the takanon — the statute
+--      governs; where it gives as much or less, the instrument stands
+--      (convention instruments.statute-floor). The floors are the protective
+--      statutes' root's ruling (l4/roots/statutes-root.l4).
+
+IMPORT prelude
+IMPORT vocabulary
+IMPORT `collective-agreements-law`
+IMPORT `budget-foundations-law`
+
+§ `סדר העדיפות בין המסמכים — מקום אחד לכל הכללים`
+
+§§ `שמות הכללים`
+
+-- The rules a ruling names, each once: a resolution in the root cites the
+-- same name, so it cannot drift from what precedence applies.
+`§22: a term in the employee's favour stands` MEANS "חוק הסכמים קיבוציים, סעיף 22: תנאי לטובת העובד עומד"
+`§29: the excess over the agreement is void` MEANS "חוק יסודות התקציב, סעיף 29: העודף על ההסכם בטל"
+`a circular never out-ranks the agreement` MEANS "חוזר אינו גובר על ההסכם שהוא מבצע"
+`the only instrument that speaks` MEANS "המסמך היחיד שמדבר"
+`the takanon's introduction: nothing that prevails over it speaks` MEANS "מבוא התקנון: אף מסמך שגובר על התקנון אינו מדבר"
+`the takanon's introduction: a more recent circular prevails` MEANS "מבוא התקנון: חוזר מאוחר יותר גובר"
+`a later circular replaces an earlier one` MEANS "חוזר מאוחר גובר על חוזר מוקדם בעניין אחד"
+`§23: the provision in the employee's favour` MEANS "חוק הסכמים קיבוציים, סעיף 23: ההוראה שלטובת העובד"
+`the takanon's introduction: an agreement prevails` MEANS "מבוא התקנון: הסכם קיבוצי גובר על התקנון"
+`§19: the later agreement of the same parties replaces the earlier` MEANS "חוק הסכמים קיבוציים, סעיף 19: ההסכם המאוחר בין אותם צדדים באותו עניין מחליף את המוקדם"
+`the takanon's introduction: an agreement, as amended, prevails` MEANS "מבוא התקנון: הסכם קיבוצי, כפי שתוקן, גובר על התקנון"
+`no instrument speaks` MEANS "אין מסמך"
+
+§§ `מסמך וטענתו`
+
+@desc What one instrument says a pay item is, for one case.
+DECLARE `claim` HAS
+    `by`     IS AN `instrument`
+    `answer` IS A NUMBER
+
+@desc Which instrument governs a pay item for a case, what it gives, and by which rule.
+DECLARE `ruling` HAS
+    `the answer`  IS A NUMBER
+    `governed by` IS AN `instrument`
+    `by the rule` IS A STRING
+
+GIVEN i IS AN `instrument`, a IS A MAYBE NUMBER
+GIVETH A MAYBE `claim`
+DECIDE `the claim of` i a IS
+    CONSIDER a
+    WHEN JUST n THEN JUST (`claim` WITH `by` IS i, `answer` IS n)
+    WHEN NOTHING THEN NOTHING
+
+§§ `ממשק השורשים`
+
+-- The interface every root implements: a collection of instruments, what
+-- each says for a case, and the collection's own ruling. The root holds a
+-- list of them and settles between their rulings (below).
+@desc A root of a collection of instruments: what it includes, what each says, and how the collection itself decides.
+DECLARE `collection root` HAS
+    `the collection`  IS A STRING @desc its name, in Hebrew
+    `its instruments` IS A LIST OF `instrument`
+    `what each says`  IS A FUNCTION FROM `pay item` AND `teaching case` TO LIST OF `claim`
+    `its ruling`      IS A FUNCTION FROM `pay item` AND `teaching case` TO MAYBE `ruling`
+
+-- A function kept in a record is called through a rule that takes it as an
+-- input (the parser reads `(r's f) x` as no call at all).
+GIVEN f IS A FUNCTION FROM `pay item` AND `teaching case` TO LIST OF `claim`
+      i IS A `pay item`
+      c IS A `teaching case`
+GIVETH A LIST OF `claim`
+DECIDE `the claims f gives` f i c IS f i c
+
+GIVEN f IS A FUNCTION FROM `pay item` AND `teaching case` TO MAYBE `ruling`
+      i IS A `pay item`
+      c IS A `teaching case`
+GIVETH A MAYBE `ruling`
+DECIDE `the ruling f gives` f i c IS f i c
+
+GIVEN r IS A `collection root`, i IS A `pay item`, c IS A `teaching case`
+GIVETH A LIST OF `claim`
+DECIDE `what the collection's instruments say` r i c IS
+    `the claims f gives` (r's `what each says`) i c
+
+GIVEN r IS A `collection root`, i IS A `pay item`, c IS A `teaching case`
+GIVETH A MAYBE `ruling`
+DECIDE `the collection's ruling` r i c IS
+    `the ruling f gives` (r's `its ruling`) i c
+
+-- The claim a ruling makes for its collection, set against another
+-- collection's.
+GIVEN r IS A `ruling`
+GIVETH A `claim`
+DECIDE `the claim of the ruling` r IS
+    `claim` WITH `by` IS r's `governed by`, `answer` IS r's `the answer`
+
+GIVEN r IS A `ruling`, rule IS A STRING
+GIVETH A `ruling`
+DECIDE `the ruling by the rule` r rule IS
+    `ruling` WITH `the answer` IS r's `the answer`, `governed by` IS r's `governed by`, `by the rule` IS rule
+
+§§ `1 מבוא התקנון`
+
+GIVEN r IS A `ruling`, `the takanon's provision was last amended` IS A DATE
+GIVETH A BOOLEAN
+DECIDE `the ruling prevails over the takanon` r `the takanon's provision was last amended` IF
+    `prevails over the takanon`
+        (`conflicting source` WITH
+            `source kind`   IS r's `governed by`'s `kind`
+            `source issued` IS r's `governed by`'s `issued`)
+        `the takanon's provision was last amended`
+
+GIVEN rulings IS A LIST OF `ruling`
+GIVETH A LIST OF `ruling`
+DECIDE `the takanon's rulings` rulings IS
+    filter (GIVEN r YIELD r's `governed by`'s `is the takanon`) rulings
+
+GIVEN rulings IS A LIST OF `ruling`
+GIVETH A LIST OF `ruling`
+DECIDE `the other collections' rulings` rulings IS
+    filter (GIVEN r YIELD NOT r's `governed by`'s `is the takanon`) rulings
+
+-- The takanon stands where it speaks and nothing that prevails over it
+-- does. Another collection's ruling is its strongest instrument — the most
+-- favourable agreement, the latest circular — so if any of its instruments
+-- prevails over the takanon, its ruling does.
+GIVEN rulings IS A LIST OF `ruling`
+      `the takanon's provision was last amended` IS A DATE
+GIVETH A BOOLEAN
+DECIDE `the takanon stands` rulings `the takanon's provision was last amended` IF
+        NOT null (`the takanon's rulings` rulings)
+    AND NOT any (GIVEN r YIELD `the ruling prevails over the takanon` r `the takanon's provision was last amended`)
+                (`the other collections' rulings` rulings)
+
+§§ `2 הסכם מול התנאי שהמעסיק משלם לפיו — סעיפים 22 ו־29`
+
+-- The employer, as the Budget Foundations Law tells bodies apart: an
+-- owner other than a local authority is taken as a body declared
+-- supported, the strictest case (as circular תש"ע/2 does).
+GIVEN e IS A `the teacher's employer`
+GIVETH AN `employing body`
+DECIDE `the body section 29 asks about` e IS
+    CONSIDER e
+    WHEN `employed by the State` THEN `the State as an employing body`
+    WHEN `employed by a local authority` THEN `a local authority`
+    WHEN `employed by another owning body` THEN `a body declared supported`
+
+-- §29 first: the employer's term, cut back to the agreement's amount where
+-- the employer is bound by §29 and the term is neither as practised for all
+-- state employees nor approved. Then §22 between the agreement and what
+-- stands.
+GIVEN agreement IS A `claim`, term IS A `claim`, e IS A `the teacher's employer`
+GIVETH A NUMBER
+DECIDE `what the employer's term gives under section 29` agreement term e IS
+    `the amount that stands under section 29`
+        (term's `answer`)
+        (agreement's `answer`)
+        (`section 29 permits the change`
+            (`the body section 29 asks about` e)
+            (term's `by`'s `practised for all state employees`)
+            (term's `by`'s `approved by the Finance Minister`)
+            FALSE)
+
+GIVEN agreement IS A `claim`, term IS A `claim`, e IS A `the teacher's employer`
+GIVETH A `ruling`
+DECIDE `the ruling between an agreement and the employer's term` agreement term e IS
+    IF      `the amount that governs between agreement and contract` (agreement's `answer`) `what stands` FALSE EQUALS `what stands`
+        AND `what stands` GREATER THAN agreement's `answer`
+    THEN `ruling` WITH
+             `the answer`  IS `what stands`
+             `governed by` IS term's `by`
+             `by the rule` IS `§22: a term in the employee's favour stands`
+    ELSE `ruling` WITH
+             `the answer`  IS agreement's `answer`
+             `governed by` IS agreement's `by`
+             `by the rule` IS (IF term's `answer` GREATER THAN agreement's `answer`
+                               THEN `§29: the excess over the agreement is void`
+                               ELSE `a circular never out-ranks the agreement`)
+    WHERE
+        `what stands` MEANS `what the employer's term gives under section 29` agreement term e
+
+§§ `3 רצפת החוק — סעיף 21 לחוק הסכמים קיבוציים`
+
+-- A statute that protects the employee sets a floor an agreement may add
+-- to and may not take from (the Collective Agreements Law §21; the
+-- statutes say so of themselves: the Minimum Wage Law §11, the Severance
+-- Pay Law §31). A circular never out-ranks the agreement it carries out,
+-- and the takanon's introduction lets the law prevail over it; so neither
+-- goes below a floor an agreement may not. The floor is weighed last, over
+-- whichever instrument the collections' precedence left governing: where
+-- the statute gives more, the statute governs, by §21; where it gives as
+-- much or less, the instrument stands (convention
+-- instruments.statute-floor). The floors are the protective statutes'
+-- root's ruling (l4/roots/statutes-root.l4).
+`§21: a statute's floor prevails` MEANS "חוק הסכמים קיבוציים, סעיף 21: הסכם מוסיף על זכות שבחוק ואינו גורע ממנה — רצפת החוק גוברת"
+
+GIVEN r IS A MAYBE `ruling`, floor IS A MAYBE `ruling`
+GIVETH A MAYBE `ruling`
+DECIDE `the ruling under the statutes' floor` r floor IS
+    CONSIDER floor
+    WHEN NOTHING THEN r
+    WHEN JUST f THEN
+        CONSIDER r
+        WHEN NOTHING THEN JUST f
+        WHEN JUST g THEN
+            IF `the amount that governs between statute and agreement` (f's `the answer`) (g's `the answer`)
+                   EQUALS g's `the answer`
+            THEN JUST g
+            ELSE JUST (`the ruling by the rule` f `§21: a statute's floor prevails`)
+
+§§ `ההכרעה בין האוספים`
+
+GIVEN c IS A `claim`, rule IS A STRING
+GIVETH A `ruling`
+DECIDE `the ruling for` c rule IS
+    `ruling` WITH `the answer` IS c's `answer`, `governed by` IS c's `by`, `by the rule` IS rule
+
+-- The one ruling for a pay item and a case, from each collection's own
+-- ruling: the employer, and the date the takanon's provision on the item was
+-- last amended. NOTHING where no collection speaks.
+GIVEN rulings IS A LIST OF `ruling`
+      e IS A `the teacher's employer`
+      `the takanon's provision was last amended` IS A DATE
+GIVETH A MAYBE `ruling`
+DECIDE `the ruling between the collections` rulings e `the takanon's provision was last amended` IS
+    IF `the takanon stands` rulings `the takanon's provision was last amended`
+    THEN CONSIDER `the takanon's rulings` rulings
+         WHEN EMPTY THEN NOTHING
+         WHEN t FOLLOWED BY ts THEN
+             JUST (`the ruling by the rule` t
+                       (IF null (`the other collections' rulings` rulings)
+                        THEN `the only instrument that speaks`
+                        ELSE `the takanon's introduction: nothing that prevails over it speaks`))
+    ELSE `the ruling between agreement and employer`
+             (`the other collections' rulings` rulings) e
+             (NOT null (`the takanon's rulings` rulings))
+
+-- What is left once the takanon is out (or never spoke): the agreements'
+-- ruling, the employer's term (the circulars' ruling), or the two settled by
+-- §§22 and 29. A collection's own rule stands, save that where the takanon
+-- spoke and is out, its one instrument governs by the takanon's introduction.
+GIVEN left IS A LIST OF `ruling`
+      e IS A `the teacher's employer`
+      `the takanon is out` IS A BOOLEAN
+GIVETH A MAYBE `ruling`
+DECIDE `the ruling between agreement and employer` left e `the takanon is out` IS
+    CONSIDER filter (GIVEN r YIELD r's `governed by`'s `kind` EQUALS `a collective agreement`) left
+    WHEN EMPTY THEN
+        CONSIDER filter (GIVEN r YIELD NOT r's `governed by`'s `kind` EQUALS `a collective agreement`) left
+        WHEN EMPTY THEN NOTHING
+        WHEN t FOLLOWED BY ts THEN
+            JUST (`the ruling by the rule` t
+                      (IF `the takanon is out` AND t's `by the rule` EQUALS `the only instrument that speaks`
+                       THEN `the takanon's introduction: a more recent circular prevails`
+                       ELSE t's `by the rule`))
+    WHEN a FOLLOWED BY more THEN
+        CONSIDER filter (GIVEN r YIELD NOT r's `governed by`'s `kind` EQUALS `a collective agreement`) left
+        WHEN EMPTY THEN
+            JUST (`the ruling by the rule` a
+                      (IF `the takanon is out`
+                       THEN `the agreements' rule, the takanon being out` (a's `by the rule`)
+                       ELSE a's `by the rule`))
+        WHEN t FOLLOWED BY ts THEN
+            JUST (`the ruling between an agreement and the employer's term`
+                      (`the claim of the ruling` a) (`the claim of the ruling` t) e)
+
+-- Where the takanon spoke and an agreement put it out, the rule says so:
+-- the agreement alone, or the agreement as a later agreement of the same
+-- parties replaced it (§19, l4/roots/agreements-root.l4);
+-- §23 between agreements stays §23.
+GIVEN rule IS A STRING
+GIVETH A STRING
+DECIDE `the agreements' rule, the takanon being out` rule IS
+    BRANCH IF rule EQUALS `the only instrument that speaks` THEN `the takanon's introduction: an agreement prevails`
+           IF rule EQUALS `§19: the later agreement of the same parties replaces the earlier` THEN `the takanon's introduction: an agreement, as amended, prevails`
+           OTHERWISE rule
+
+`no instrument` MEANS
+    `instrument` WITH
+        `module`        IS ""
+        `title`         IS ""
+        `kind`          IS `another source`
+        `is the takanon` IS FALSE
+        `issued`        IS DATE_FROM_DMY 1 1 1900
+        `signed by`     IS EMPTY
+        `practised for all state employees` IS FALSE
+        `approved by the Finance Minister`  IS FALSE

@@ -1,7 +1,7 @@
 """The salary calculator (calculator.html): its form is read off §1.1's L4
 and the shared vocabulary's case, its evaluator is the committed WebAssembly
 build, and run in Node on the same files the page loads it gives the law's
-month (l4/lib/salary-root.l4): §1.1's worked example, where the State
+month (l4/roots/salary-root.l4): §1.1's worked example, where the State
 teachers' agreement of 21.2.2008, as its latest amendment in force has it,
 gives the 2008 supplement, and the organisation's agreement where it speaks
 too."""

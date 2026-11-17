@@ -35,15 +35,15 @@ def evidence(kind: str):
 
 def instrument_files() -> list[Path]:
     """Every L4 file an instrument's verdict could live in: not a statute,
-    not the shared library and not a root's tests, and not a link."""
+    not the shared library, not a root and not a root's tests, and not a link."""
     out = []
     for p in sorted((ROOT / "l4").rglob("*.l4")):
         if p.is_symlink() or p.parent == R.L4 / "modules":
             continue
         rel = p.relative_to(R.L4).parts
-        if rel[0] in ("laws", "lib"):
+        if rel[0] in ("laws", "lib", "roots"):
             continue
-        if rel[0] == "tests" and R.tested_file(p) is not None and R.tested_file(p).parent == R.L4 / "lib":
+        if rel[0] == "tests" and R.tested_file(p) is not None and R.tested_file(p).parent in (R.L4 / "lib", R.L4 / "roots"):
             continue
         out.append(p)
     return out

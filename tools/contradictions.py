@@ -220,7 +220,7 @@ NOT_IN_ROOT = {
 WEIGHED = ("takanon", "agreement", "circular")
 
 # Where a row the root generates sits on the page, by the rule that settles
-# it (l4/lib/precedence.l4): the takanon against an agreement or a circular,
+# it (l4/roots/precedence.l4): the takanon against an agreement or a circular,
 # a circular against the agreement it carries out, two agreements weighed
 # by §23 or the later of the same parties replacing the earlier (§19,
 # MMS-686), two circulars by date. tests/test_contradictions.py holds that

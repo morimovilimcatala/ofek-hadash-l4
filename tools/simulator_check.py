@@ -1,4 +1,4 @@
-"""Check l4/simulator/educalc-ofek-hadash.l4 against the simulator's recorded
+"""Check l4/reference/educalc/educalc-ofek-hadash.l4 against the simulator's recorded
 answers (MMS-523): every recorded request, every line, to the agora.
 
     python3 tools/simulator_check.py PATH/TO/capture/cache.jsonl[.gz]
@@ -28,7 +28,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
 import modules  # noqa: E402
 
-MODULE = ROOT / "l4" / "simulator" / "educalc-ofek-hadash.l4"
+MODULE = ROOT / "l4" / "reference" / "educalc" / "educalc-ofek-hadash.l4"
 OUT = ROOT / "data" / "simulator-validation.json"
 MONTH = 202609
 CALC = "ofekHadash"

@@ -1,4 +1,4 @@
-"""The ministry's simulator described in L4 (MMS-523): l4/simulator/, its
+"""The ministry's simulator described in L4 (MMS-523): l4/reference/educalc/, its
 tests file, and data/simulator-validation.json, which tools/simulator_check.py
 writes by running the module on every recorded request of the private
 extraction (MMS-512).
@@ -20,7 +20,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
 import simulator_check  # noqa: E402
 
-SIM = ROOT / "l4" / "simulator"
+SIM = ROOT / "l4" / "reference" / "educalc"
 DATA = json.loads(simulator_check.OUT.read_text(encoding="utf-8"))
 IMPORT_RE = re.compile(r"^IMPORT\s+`?([^`\n]+?)`?\s*$", re.M)
 # the recorded response's own keys, and the request's envelope
@@ -56,7 +56,7 @@ class TheValidationRecord(unittest.TestCase):
     def test_it_counts_every_recorded_request(self):
         # the extraction holds 6,260 Ofek Hadash responses for 2026-09
         self.assertEqual(DATA["requests"], 6260)
-        self.assertEqual(DATA["module"], "l4/simulator/educalc-ofek-hadash.l4")
+        self.assertEqual(DATA["module"], "l4/reference/educalc/educalc-ofek-hadash.l4")
 
     def test_the_residuals_are_the_lines_the_counts_miss(self):
         missed = sum(c["seen"] - c["exact"] for c in DATA["codes"].values())

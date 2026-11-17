@@ -310,7 +310,8 @@ SECTIONED = {"takanon/takanon-sherut-ovdei-horaa.xml",
 # codebase, in which any file imports any other, needs one namespace. A
 # sectioned document's section files carry this prefix where their numbers
 # would collide with another document's: the base agreement's §9 is
-# `base-agreement-9.l4`, its shared helpers `base-agreement-common.l4`, and
+# `base-agreement-9.l4`, its shared helpers `base-agreement-common.l4` (in
+# l4/shared/, outside the document mirror, MMS-776), and
 # the takanon's §9 stays `9.l4`. l4/modules/ links every module by its name
 # (tools/modules.py).
 MODULE_PREFIX = {"agreements/ofek-hadash/2008-12-25_ofek-hadash_base-agreement.xml": "base-agreement-",

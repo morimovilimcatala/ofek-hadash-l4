@@ -8,7 +8,7 @@ l4:
 
 # only the roots and their tests (`make l4` checks them too)
 roots:
-	L4_ROOTS=check $(PY) tools/l4run.py l4/lib/*root.l4
+	L4_ROOTS=check $(PY) tools/l4run.py l4/roots/*root.l4
 
 site:
 	$(PY) tools/build_site.py

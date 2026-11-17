@@ -61,9 +61,11 @@ class Alignment(unittest.TestCase):
         import laws
         statutes = {laws.l4_file(n) for n in laws.all_laws()}
         for f in (ROOT / "l4").rglob("*.l4"):
-            if (f.name in ("common.l4", "conventions.l4") or f.name.endswith("-common.l4")
-                    or f.parent.name in ("lib", "tests", "simulator") or f.is_symlink()
-                    or f.parent.name == "modules"):
+            # what mirrors no corpus document: the conventions, the shared
+            # vocabulary, the roots, the tests, the modules a collection
+            # shares, reference material and the one namespace (MMS-776)
+            if (f.name == "conventions.l4" or f.relative_to(ROOT / "l4").parts[0]
+                    in ("lib", "roots", "tests", "shared", "reference", "modules")):
                 continue
             if f in statutes:  # a statute outside the corpus: see StatutesOutsideTheCorpus
                 continue
@@ -120,17 +122,19 @@ class StatutesOutsideTheCorpus(unittest.TestCase):
         self.assertEqual(seen, {True, False})
         self.assertEqual(laws.cards_naming("contracts-law"), [])
 
-    def test_a_file_that_imports_it_links_to_it(self):
+    def test_a_file_imports_it_by_its_module_name(self):
+        # one name per module (MMS-776): `collective-agreements-law`, the
+        # file's own name, which l4/modules/ links; the underscore aliases
+        # a directory once kept beside its files are gone
         import laws
         for name in laws.all_laws():
-            module = name.replace("-", "_")
+            self.assertEqual((ROOT / "l4/modules" / f"{name}.l4").resolve(), laws.l4_file(name).resolve())
+            alias = name.replace("-", "_")
             for f in (ROOT / "l4").rglob("*.l4"):
-                if f.is_symlink() or f"IMPORT {module}\n" not in f.read_text(encoding="utf-8"):
+                if f.is_symlink():
                     continue
-                link = f.parent / f"{module}.l4"
-                with self.subTest(file=str(f.relative_to(ROOT))):
-                    self.assertTrue(link.is_symlink())
-                    self.assertEqual(link.resolve(), laws.l4_file(name).resolve())
+                with self.subTest(file=str(f.relative_to(ROOT)), law=name):
+                    self.assertNotRegex(f.read_text(encoding="utf-8"), rf"(?m)^IMPORT\s+`?{alias}`?\s*$")
 
 
 class Layout(unittest.TestCase):
@@ -396,15 +400,13 @@ class ConventionsModule(unittest.TestCase):
             out.setdefault(m.group(1) or m.group(2), m.group())
         return out
 
-    def test_every_directory_that_imports_it_links_it(self):
-        # IMPORT resolves in the directory the file is run in, and a link to a
-        # section (takanon-1-11.l4) is run in the link's directory
-        for d in {f.parent for f in (ROOT / "l4").rglob("*.l4") if f.resolve() != self.MODULE.resolve()
-                  and re.search(r"^IMPORT conventions$", f.read_text(encoding="utf-8"), re.M)}:
-            with self.subTest(dir=str(d.relative_to(ROOT))):
-                link = d / "conventions.l4"
-                self.assertTrue(link.is_symlink(), "no conventions.l4 link")
-                self.assertEqual(link.resolve(), self.MODULE.resolve())
+    def test_there_is_one_conventions_module_and_one_name_for_it(self):
+        # every file imports it through l4/modules/ (MMS-776): no directory
+        # keeps a conventions.l4 of its own, link or copy
+        self.assertEqual([f.relative_to(ROOT).as_posix() for f in (ROOT / "l4").rglob("conventions.l4")
+                          if f.parent.name != "modules"], ["l4/conventions.l4"])
+        self.assertEqual((ROOT / "l4/modules/conventions.l4").resolve(), self.MODULE.resolve())
+        self.assertTrue(any(re.search(r"^IMPORT conventions$", t, re.M) for t in self.files.values()))
 
     def test_a_computed_convention_names_its_definitions(self):
         known = {st["id"] for st in self.reg.get("convention", [])}
@@ -560,10 +562,13 @@ def collection_graph(graph: dict[Path, list[Path]]) -> tuple[dict[Path, list[Pat
     """The import graph with each collection root importing its whole
     collection (FULL_SCOPE_*), and the roots it starts from. The framework
     agreements have no root on main yet; a stand-in node is their family's."""
-    lib, l4 = ROOT / "l4/lib", ROOT / "l4"
+    lib, l4 = ROOT / "l4/roots", ROOT / "l4"
 
     def real(d: Path) -> list[Path]:
-        return sorted(f.resolve() for f in d.rglob("*.l4") if not f.is_symlink())
+        # a collection's documents and the modules it shares (l4/shared/,
+        # MMS-776), which are the collection's too
+        shared = l4 / "shared" / d.relative_to(l4)
+        return sorted(f.resolve() for f in [*d.rglob("*.l4"), *shared.rglob("*.l4")] if not f.is_symlink())
 
     g = {k: list(v) for k, v in graph.items()}
     g[(lib / "circulars-root.l4").resolve()] += real(l4 / "circulars")
@@ -600,6 +605,13 @@ def names_declared_twice(graph: dict[Path, list[Path]], decl: dict[Path, dict[st
             if len(fs) > 1:
                 twice.setdefault(n, set()).update(fs)
     return twice
+
+
+def tables_modules() -> list[Path]:
+    """The tables collection's modules: its tables and the modules they share
+    (l4/shared/tables/, MMS-776)."""
+    return sorted(f.resolve() for d in (ROOT / "l4/tables", ROOT / "l4/shared/tables")
+                  for f in d.rglob("*.l4"))
 
 
 def reach(graph: dict[Path, list[Path]], start: Path) -> set[Path]:
@@ -674,8 +686,8 @@ class OneNamespace(unittest.TestCase):
     def test_no_name_is_declared_twice_where_one_import_reaches_both(self):
         """Imports are transitive, so a module that imports one module
         imports every name that one reaches. The scope is every module a
-        root (l4/lib/*root.l4), the chain or a module of the tables
-        collection (l4/tables/, which any instrument that prices a cell
+        root (l4/roots/*root.l4), the chain or a module of the tables
+        collection (l4/tables/ and l4/shared/tables/, which any instrument that prices a cell
         imports: MMS-616) reaches; within it, two modules
         that one import reaches together and that declare the same name fail
         "multiple definitions" wherever a use does not fix the type (MMS-612:
@@ -691,9 +703,9 @@ class OneNamespace(unittest.TestCase):
         decl = {f: declared_names(f.read_text(encoding="utf-8")) for f in graph}
         founding = names[self.FOUNDING]
         starts = [names[s] for s in self.CHAIN_STARTS]
-        roots = sorted((ROOT / "l4/lib").glob("*root.l4"))
+        roots = sorted((ROOT / "l4/roots").glob("*root.l4"))
         self.assertTrue(roots)
-        tables = sorted(f for f in (ROOT / "l4/tables").rglob("*.l4") if not f.is_symlink())
+        tables = tables_modules()
         self.assertTrue(tables)
         self.assertTrue(all(f in graph for f in tables))
         scope = set().union(*(reach(graph, s) for s in [*roots, *starts, *tables]))
@@ -722,7 +734,7 @@ class OneNamespace(unittest.TestCase):
         graph, roots = collection_graph(graph)
         decl = {f: declared_names(f.read_text(encoding="utf-8")) if f.exists() else {} for f in graph}
         starts = [names[s] for s in self.CHAIN_STARTS]
-        tables = sorted(f.resolve() for f in (ROOT / "l4/tables").rglob("*.l4") if not f.is_symlink())
+        tables = tables_modules()
         scope = set().union(*(reach(graph, s) for s in [*roots, *starts, *tables]))
         self.assertTrue({f for f in graph if f.parent == (ROOT / "l4/circulars").resolve()} <= scope)
         twice = names_declared_twice(graph, decl, scope)
@@ -781,9 +793,11 @@ class AgreementsStandOnTheirOwnRules(unittest.TestCase):
     @staticmethod
     def weaker(target: Path) -> bool:
         rel = target.relative_to(ROOT / "l4").parts
+        if rel[0] == "shared":   # a module a collection shares is the collection's (MMS-776)
+            rel = rel[1:]
         if rel[0].startswith("circulars"):
             return True
-        return rel[0] == "takanon" and target.name not in ("common.l4", "conventions.l4")
+        return rel[0] == "takanon" and target.name != "common.l4"
 
     def imports(self):
         out = set()

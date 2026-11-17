@@ -1,0 +1,128 @@
+-- The root (MMS-521): the one place to ask what the law gives. It holds the
+-- collections' roots, each a `collection root` (l4/roots/precedence.l4) that
+-- says what its instruments claim and rules among them by its own rule —
+-- §23 among the agreements, the later circular among the circulars. For a
+-- pay item and a case it asks every collection for its ruling and settles
+-- between them by the rules between collections (the takanon's
+-- introduction, §§22 and 29 of the Collective Agreements Law and the Budget
+-- Foundations Law), in l4/roots/precedence.l4 — and, last, a protective
+-- statute's floor over whichever instrument governs (§21 of the Collective
+-- Agreements Law; the floors are l4/roots/statutes-root.l4's). The calculator, the contradictions page and any other query
+-- ask this module, and an instrument's claim is never the answer by itself.
+--
+-- Where two or more instruments give different answers for an item and a
+-- case, that is a contradiction (`the contradictions on` item case). This
+-- module answers any case; what was checked lives beside it, in its tests
+-- (l4/tests/root-tests.l4): the grid of cases, the contradictions found
+-- over it, the resolution of each — which instrument governs and by which
+-- rule, which precedence must agree with — and the gate that no
+-- contradiction is left unresolved (the client, 2026-10-22: the root holds
+-- no questions; they are in the test file).
+--
+-- Nothing here is about one item: an item is a `pay item` of the shared
+-- vocabulary, and every function takes it.
+
+IMPORT prelude
+IMPORT `takanon-root`
+IMPORT `agreements-root`
+IMPORT `circulars-root`
+IMPORT `statutes-root`
+
+§ `השורש — מקור אחד לשאלה מה הדין נותן`
+
+§§ `המסמכים`
+
+-- The collections, each a root of its own: l4/roots/takanon-root.l4,
+-- l4/roots/agreements-root.l4 and l4/roots/circulars-root.l4. This module asks
+-- them, in that order.
+`the collections` MEANS
+    LIST `the takanon's root`, `the agreements' root`, `the circulars' root`
+
+§§ `השאלה`
+
+-- Every instrument that speaks to an item, and what it says for a case:
+-- each collection's instruments' claims.
+GIVEN i IS A `pay item`, c IS A `teaching case`
+GIVETH A LIST OF `claim`
+DECIDE `the claims on` i c IS
+    concat (map (GIVEN r YIELD `what the collection's instruments say` r i c) `the collections`)
+
+-- Each collection's ruling, by its own rule.
+GIVEN i IS A `pay item`, c IS A `teaching case`
+GIVETH A LIST OF `ruling`
+DECIDE `the collections' rulings on` i c IS
+    catMaybes (map (GIVEN r YIELD `the collection's ruling` r i c) `the collections`)
+
+GIVEN i IS A `pay item`, c IS A `teaching case`
+GIVETH A MAYBE `ruling`
+DECIDE `the ruling on the item` i c IS
+    `the ruling under the statutes' floor`
+        (`the ruling between the collections` (`the collections' rulings on` i c) (c's `employer`)
+            (`the date the takanon's provision on it was last amended` i))
+        (`the collection's ruling` `the statutes' root` i c)
+
+@export What a teaching employee is owed for a pay item in a salary month, after precedence between every instrument that speaks to it; nothing where no instrument speaks
+GIVEN i IS A `pay item` @desc the pay item asked about
+      c IS A `teaching case` @desc the salary month, the employer, the division, the union, and the salary components the item needs
+GIVETH A MAYBE NUMBER
+DECIDE `the answer that governs` i c IS
+    CONSIDER `the ruling on the item` i c
+    WHEN JUST r THEN JUST (r's `the answer`)
+    WHEN NOTHING THEN NOTHING
+
+-- The items asked about, each checked over the cases below.
+`the items` MEANS
+    LIST `the 2008 public-sector supplement`,
+         `the pedagogical coordinator's allowance rate`,
+         `the mentor's allowance rate`,
+         `the junior-division head's allowance`,
+         `the role allowances counted`,
+         `the combined salary of a full position`,
+         `the 3% supplement of 2001`,
+         `the 2011 public-sector supplement`,
+         `the 1994 supplement of a full position`,
+         `the Ofek 2022 supplement of a full position`
+
+§§ `סתירות`
+
+@desc A contradiction: for an item and a case, the instruments that speak give two or more answers.
+DECLARE `contradiction` HAS
+    `item`     IS A `pay item`
+    `sources`  IS A LIST OF STRING @desc the modules of every instrument that speaks, in the root's order
+    `answers`  IS A LIST OF NUMBER @desc each answer given, once
+    `the ruling` IS A `ruling`
+
+GIVEN item IS A `pay item`
+      claims IS A LIST OF `claim`
+      r IS A MAYBE `ruling`
+GIVETH A LIST OF `contradiction`
+DECIDE `the contradiction in` item claims r IS
+    CONSIDER r
+    WHEN NOTHING THEN EMPTY
+    WHEN JUST governing THEN
+        IF count (nub (map (GIVEN c YIELD c's `answer`) claims)) AT LEAST 2
+        THEN LIST (`contradiction` WITH
+                      `item`    IS item
+                      `sources` IS map (GIVEN c YIELD c's `by`'s `module`) claims
+                      `answers` IS nub (map (GIVEN c YIELD c's `answer`) claims)
+                      `the ruling` IS governing)
+        ELSE EMPTY
+
+-- A statute's floor that governs is a claim the instruments below it
+-- disagree with; one that does not govern disagrees with nothing.
+GIVEN r IS A MAYBE `ruling`
+GIVETH A LIST OF `claim`
+DECIDE `the floor's claim where it governs` r IS
+    CONSIDER r
+    WHEN NOTHING THEN EMPTY
+    WHEN JUST g THEN
+        IF g's `governed by`'s `kind` EQUALS `a provision of law`
+        THEN LIST (`the claim of the ruling` g)
+        ELSE EMPTY
+
+GIVEN i IS A `pay item`, c IS A `teaching case`
+GIVETH A LIST OF `contradiction`
+DECIDE `the contradictions on` i c IS
+    `the contradiction in` i
+        (concat (LIST (`the claims on` i c), `the floor's claim where it governs` (`the ruling on the item` i c)))
+        (`the ruling on the item` i c)

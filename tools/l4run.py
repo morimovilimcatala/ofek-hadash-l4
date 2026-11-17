@@ -6,7 +6,7 @@ For each file under l4/ this writes, to build/l4/<same path>:
   .render.html   `l4 render`      — L4's own rendering of the rules as a document
   .graph.dot     `l4 state-graph` — each regulative rule as a state diagram (GraphViz)
 
-A root (l4/lib/*root.l4) and a tests file (l4/tests/) get the first only:
+A root (l4/roots/*root.l4) and a tests file (l4/tests/) get the first only:
 they are checked, not rendered. A library module with a tests file
 (l4/tests/<name>-tests.l4) is checked through it (`tested_through`).
 
@@ -72,10 +72,9 @@ def compiler_id(exe: str) -> str:
 
 
 def files() -> list[Path]:
-    """Every .l4 file, but a link: a link is another file's name for an
-    IMPORT in a directory that is not its own (a section's `common.l4`, a
-    collection's `conventions.l4`, a site page's `takanon-1-11.l4`), and its
-    target is run where it lives."""
+    """Every .l4 file but l4/modules/, which holds only links: each is a
+    module's one name for IMPORT (tools/modules.py, MMS-776), and its target
+    is run where it lives."""
     return sorted(p for p in L4_DIR.rglob("*.l4")
                   if not p.is_symlink() and p.parent != modules.MODULES)
 
@@ -224,9 +223,11 @@ def all_asserts_hold(data: dict) -> bool:
 
 
 TESTS = L4_DIR / "tests"
-# The ministry's simulator described in L4 (MMS-523): no corpus text sits
-# beside it, and it is checked through its tests file, as a library is.
-SIMULATOR = L4_DIR / "simulator"
+ROOTS = L4_DIR / "roots"
+# The ministry's simulator described in L4 (MMS-523), kept as reference
+# material and not as law (MMS-776): no corpus text sits beside it, and it is
+# checked through its tests file, as a library is.
+SIMULATOR = L4_DIR / "reference" / "educalc"
 
 
 def tested_through(path: Path) -> Path | None:
@@ -236,18 +237,18 @@ def tested_through(path: Path) -> Path | None:
     next to it, not be included in it"). Checking the module on its own as
     well would load it twice, and a root costs ~21 GB a load."""
     t = TESTS / f"{path.name.removesuffix('.l4')}-tests.l4"
-    return t if path.parent in (L4_DIR / "lib", SIMULATOR) and t.exists() else None
+    return t if path.parent in (L4_DIR / "lib", ROOTS, SIMULATOR) and t.exists() else None
 
 
 def is_a_root(path: Path) -> bool:
-    """A root (l4/lib/*root.l4, MMS-521): it imports whole families of
+    """A root (l4/roots/*root.l4, MMS-521): it imports whole families of
     instruments, so it is the heaviest check there is (the root: about a
     minute and 1.5 GB at l4-ide unstable; 25 minutes and 21 GB at the old
     pin, MMS-551). Its page is read
     off its source and its results (tools/roots.py); no text sits beside it
     for `l4 render`'s prose, and it declares no obligation for a state
     graph, so it is checked once and not rendered."""
-    return path.parent == L4_DIR / "lib" and path.name.endswith("root.l4")
+    return path.parent == ROOTS and path.name.endswith("root.l4")
 
 
 def is_a_root_or_its_tests(path: Path) -> bool:
