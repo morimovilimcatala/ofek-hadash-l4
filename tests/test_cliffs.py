@@ -37,5 +37,25 @@ class Cliffs(unittest.TestCase):
                     self.assertNotEqual(f["severity"], "low")
 
 
+class PerverseIncentives(unittest.TestCase):
+    """The wider class (MMS-783): a rule whose rational response works against
+    its purpose, where no reversal makes it a cliff. It shows the step that
+    rewards the response, so it traces at least two points, and one no
+    outcome turns on is refused."""
+
+    def test_perverse_incentive_is_a_kind_with_a_label_and_a_style(self):
+        self.assertIn("perverse-incentive", build_site.KINDS)
+        css = (ROOT / "tools" / "assets" / "site.css").read_text(encoding="utf-8")
+        self.assertIn(".kind-tag.perverse-incentive", css)
+
+    def test_every_perverse_incentive_traces_the_step_and_matters(self):
+        found = [f for f in FINDINGS if f["kind"] == "perverse-incentive"]
+        self.assertTrue(found)
+        for f in found:
+            with self.subTest(finding=f["id"]):
+                self.assertGreaterEqual(len(f.get("trace") or []), 2)
+                self.assertNotEqual(f["severity"], "low")
+
+
 if __name__ == "__main__":
     unittest.main()

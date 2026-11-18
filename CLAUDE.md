@@ -315,7 +315,8 @@ all the files to give one answer", and disagreements raised as errors.
 not from the Catala proofs, the corpus's ambiguity ledger or its sic kinds:
 
 - `kind` — what is wrong with the LAW: `gap`, `overlap`, `contradiction`,
-  `undefined-term`, `broken-reference`, `ambiguity`, `edge-case`, `cliff`.
+  `undefined-term`, `broken-reference`, `ambiguity`, `edge-case`, `cliff`,
+  `perverse-incentive`.
   A `contradiction` IS BETWEEN SOURCES OF EQUAL POWER (the client,
   2026-10-22: "a weaker one departing from a stronger one has its own page,
   סתירה in finding means equal power"): a document against itself, or two of
@@ -352,6 +353,17 @@ not from the Catala proofs, the corpus's ambiguity ledger or its sic kinds:
   so the site shows the step. One no outcome turns on is refused (`low`);
   one the status quo applies as written is `medium`. One threshold is one
   row; a reversal an earlier finding already records stays in that row.
+  A PERVERSE INCENTIVE IS THE WIDER CLASS (the client, 2026-11-18, MMS-783:
+  "a cliff is just one kind of a perverse incentive", and "yes" to filing
+  the sick-day balance): a rule whose rational response, by the teacher or
+  the employer, works against the rule's own purpose or against good
+  teaching, where no reversal makes it a cliff. A benefit lost for using
+  more of it is one: past the line, what is left is free to use. It names
+  the response it rewards and both sides of the step that rewards it: its
+  `evidence` asserts the results at the points that make the response pay,
+  and its `trace` computes them. One no outcome turns on is refused
+  (`low`); one the status quo applies as written is `medium`. A reversal is
+  filed as a `cliff`, never as both.
 - `stage` — what CAUGHT it: `writing` (the text cannot be written as it
   stands), `compiling`, `examples` (the rules contradict a worked example or
   table the text itself states), `verification`. The tool's message is the
