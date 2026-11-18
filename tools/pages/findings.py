@@ -153,7 +153,9 @@ def findings_page(findings, views_by_file, key_to_view) -> str:
                + "".join(f'<pre class="msg hl" dir="ltr">{msg_html(m)}</pre>' for m in ev["messages"])
                if ev["url"] else "")
             + trace_html(traced.get(f["id"], []))
-            + f'<p class="who">נקרא על ידי {who(f["read_by"])} · {esc(REVIEW[f["review"]])}</p>'
+            # the client, 2026-11-18: "can you add a copy link to finding button?"
+            + f'<p class="who">נקרא על ידי {who(f["read_by"])} · {esc(REVIEW[f["review"]])}'
+            f' · <button type="button" class="copy-link" data-id="{esc(f["id"])}">העתקת קישור לממצא</button></p>'
             + "</div></details>")
     ordered = sorted(groups.values(), key=lambda g: g["rank"])
     sections = "".join(

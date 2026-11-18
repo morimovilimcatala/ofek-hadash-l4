@@ -362,6 +362,29 @@
     window.addEventListener("hashchange", openHash);
     window.addEventListener("load", openHash);
     openHash();
+    // "העתקת קישור לממצא": the page's own address with the finding's id, so
+    // the link opens that card. Where the clipboard API is refused (an
+    // insecure origin, an old browser) a hidden field is copied instead.
+    root.addEventListener("click", function (e) {
+      var b = e.target.closest && e.target.closest("button.copy-link");
+      if (!b) return;
+      var url = location.href.split("#")[0] + "#" + encodeURIComponent(b.dataset.id);
+      function done() {
+        var was = b.textContent;
+        b.textContent = "הקישור הועתק";
+        b.classList.add("copied");
+        setTimeout(function () { b.textContent = was; b.classList.remove("copied"); }, 1600);
+      }
+      function fallback() {
+        var t = document.createElement("textarea");
+        t.value = url; t.setAttribute("readonly", ""); t.style.position = "fixed"; t.style.opacity = "0";
+        document.body.appendChild(t); t.select();
+        try { document.execCommand("copy"); done(); } catch (err) { window.prompt("קישור לממצא:", url); }
+        document.body.removeChild(t);
+      }
+      if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(url).then(done, fallback);
+      else fallback();
+    });
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
   else init();
