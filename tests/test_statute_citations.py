@@ -34,7 +34,11 @@ CITED_NOT_PINNED: set[str] = set()
 # its §25(ד) brings seven sections of the Interpretation Law (MMS-689).
 # A link the corpus adds moves a law out of this set.
 PINNED_NOT_LINKED = {"sick-pay-law", "equal-pay-law", "advance-notice-law", "contracts-law",
-                     "interpretation-law"}
+                     "interpretation-law",
+                     # MMS-781: source-only pins of the maternity-pay regulations,
+                     # which no corpus document names
+                     "national-insurance-payment-regulations",
+                     "national-insurance-maternity-regulations"}
 
 
 class TheInventoryIsTheCorpus(unittest.TestCase):

@@ -28,6 +28,11 @@ ROOT = Path(__file__).resolve().parent.parent
 TEXTS = ROOT / "laws"
 L4 = ROOT / "l4" / "laws"
 REF = re.compile(r"@ref\s+law:(\S+)")
+# A section pinned as SOURCE ONLY (`source_only = true` in its toml row,
+# MMS-781): its words are held so the rule can be read and cited, and no L4
+# rule computes it yet. Its §§ block names it in a comment, "-- law:N
+# SOURCE ONLY…", and carries no @ref, since nothing is encoded to refer.
+NOTE = re.compile(r"^--\s+law:(\S+)\s+SOURCE ONLY", re.MULTILINE)
 BLOCK = re.compile(r"^§§ `([^`]+)`\s*$")
 
 
@@ -60,7 +65,19 @@ def blocks(name: str) -> tuple[list[tuple[int, str]], dict[str, list[tuple[int, 
 
 
 def cited(name: str) -> set[str]:
+    """The sections the L4 file names: by an @ref where a rule encodes them,
+    by a SOURCE ONLY note where none does yet."""
+    text = l4_file(name).read_text(encoding="utf-8")
+    return set(REF.findall(text)) | set(NOTE.findall(text))
+
+
+def encoded(name: str) -> set[str]:
+    """The sections an L4 rule refers to; a source-only pin is not one."""
     return set(REF.findall(l4_file(name).read_text(encoding="utf-8")))
+
+
+def source_only(law: dict) -> set[str]:
+    return {s["num"] for s in law["section"] if s.get("source_only")}
 
 
 def span(law: dict) -> str:
@@ -98,6 +115,17 @@ def pinned() -> dict[str, tuple[str, set[str]]]:
         law = load(n)
         title = urllib.parse.unquote(law["url"].split("/wiki/", 1)[1]).replace("_", " ")
         out[title] = (n, {s["num"] for s in law["section"]})
+    return out
+
+
+def encoded_titles() -> dict[str, set[str]]:
+    """{the live page's title: the sections an L4 rule encodes}, source-only
+    pins left out."""
+    out = {}
+    for n in all_laws():
+        law = load(n)
+        title = urllib.parse.unquote(law["url"].split("/wiki/", 1)[1]).replace("_", " ")
+        out[title] = {s["num"] for s in law["section"]} - source_only(law)
     return out
 
 
@@ -152,12 +180,22 @@ def page_body(name: str, *, code_html, esc) -> str:
         rows.append(f'<div class="row d1" id="s{esc(s["num"])}"><div class="txt" lang="he" dir="rtl">'
                     f'<span class="num">{esc(s["num"])}.</span><span class="h">{esc(s["heading"])}</span> '
                     f'<a class="lawlink" href="{esc(anchor(law, s["num"]))}">בספר החוקים הפתוח</a>'
+                    + ('<span class="lawnote"> · נוסח בלבד — לא מקודד ב־L4</span>' if s.get("source_only") else "")
                     + (f'<span class="lawnote"> · מצוטט במספרו ב־{documents(cites[s["num"]]["documents"])} בקורפוס</span>'
                        if s["num"] in cites else "")
                     + f'<p>{esc(s["text"])}</p></div>'
                     f'<div class="l4">{code_html(block) if block else ""}</div></div>')
+    only = source_only(law)
+    if len(only) == len(law["section"]):
+        how = "הנוסח בלבד: אף סעיף כאן אינו מקודד ב־L4 עדיין"
+    elif only:
+        how = ("מקודד ב־L4, סעיף לצד סעיף, למעט "
+               + ("הסעיף המסומן" if len(only) == 1 else "הסעיפים המסומנים")
+               + " \"נוסח בלבד\", שהנוסח שלהם מוחזק ואינו מקודד")
+    else:
+        how = "מקודד ב־L4, סעיף לצד סעיף"
     return (f'<h1 lang="he" dir="rtl">{esc(law["title"])}</h1>'
-            f'<p class="lede">{esc(law["about"])} — מקודד ב־L4, סעיף לצד סעיף. הקורפוס אינו מחזיק עותק של החוק: '
+            f'<p class="lede">{esc(law["about"])} — {how}. הקורפוס אינו מחזיק עותק של החוק: '
             f'הנוסח כאן נקרא מספר החוקים הפתוח, ונבדק מולו לאחרונה ב־{esc(law["text_as_of"])}. '
             + ('<a href="../contradictions.html">עמוד הסתירות</a> מצטט את הסעיפים האלה כשהוא אומר מי גובר.'
                if cards_naming(name) else "")
@@ -172,6 +210,7 @@ def index_body(esc) -> str:
     it, the sections it cites by number, and which of them the L4 pins."""
     inv = statute_citations.load() or {"acts": [], "corpus": ""}
     mine = pinned()
+    enc_by_title = encoded_titles()
     rows = []
     for a in inv["acts"]:
         here = mine.get(a["title"])
@@ -181,11 +220,15 @@ def index_body(esc) -> str:
             label = f'{esc(s["num"])} ({s["documents"]}{"" if s["anchored"] else ", בלי קישור"})'
             secs.append(f'<a href="{esc(here[0])}.html#s{esc(s["num"])}">{label}</a>'
                         if here and s["num"] in here[1] else label)
-        enc = ", ".join(esc(n) for n in sorted(here[1], key=lambda n: (len(n), n))) if here else "—"
+        enc_set = enc_by_title.get(a["title"], set())
+        only = (here[1] - enc_set) if here else set()
+        enc = (", ".join(esc(n) for n in sorted(enc_set, key=lambda n: (len(n), n))) or "—") if here else "—"
+        if only:
+            enc += " (נוסח בלבד: " + ", ".join(esc(n) for n in sorted(only, key=lambda n: (len(n), n))) + ")"
         rows.append(f'<tr><td>{name} <a class="lawlink" href="{esc(a["url"])}" title="בספר החוקים הפתוח">↗</a></td>'
                     f'<td>{a["documents"]}</td><td>{a["citations"]}</td>'
                     f'<td>{"; ".join(secs) or "—"}</td><td>{enc}</td></tr>')
-    encoded = sum(1 for a in inv["acts"] if a["title"] in mine)
+    encoded = sum(1 for a in inv["acts"] if enc_by_title.get(a["title"]))
     return ('<h1>החוקים שהקורפוס מצטט</h1>'
             '<p class="lede">הקורפוס אינו מחזיק עותק של חוק: כל אזכור של חוק בו הוא קישור לדף החי של החוק '
             'בספר החוקים הפתוח, ואזכור של סעיף נושא את העוגן של הסעיף. הטבלה נקראת מהקישורים האלה עצמם '

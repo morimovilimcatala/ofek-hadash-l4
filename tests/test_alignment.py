@@ -82,6 +82,27 @@ class StatutesOutsideTheCorpus(unittest.TestCase):
                     self.assertTrue(site_mod.is_hebrew(s["text"]) and s["heading"].strip())
                 self.assertTrue(law["url"].startswith("https://he.wikisource.org/wiki/"))
 
+    def test_a_source_only_section_is_a_note_and_says_so(self):
+        """A section pinned for its words alone (`source_only = true`,
+        MMS-781) is named in its §§ block by a "-- law:N SOURCE ONLY" note
+        and by no @ref, and its page calls it "נוסח בלבד" rather than
+        encoded: the site may not describe a rule nobody has written."""
+        import laws
+        seen = set()
+        for name in laws.all_laws():
+            law = laws.load(name)
+            only = laws.source_only(law)
+            text = laws.l4_file(name).read_text(encoding="utf-8")
+            with self.subTest(law=name):
+                self.assertEqual(set(laws.NOTE.findall(text)), only)
+                self.assertFalse(laws.encoded(name) & only)
+                body = laws.page_body(name, code_html=lambda b: "", esc=lambda t: t)
+                self.assertEqual(body.count("נוסח בלבד — לא מקודד ב־L4"), len(only))
+                if only == {s["num"] for s in law["section"]}:
+                    self.assertNotIn("מקודד ב־L4, סעיף לצד סעיף", body)
+            seen.add(bool(only))
+        self.assertEqual(seen, {True, False})
+
     def test_its_page_says_the_contradictions_page_cites_it_only_where_a_card_does(self):
         """A law's page once told every reader that the contradictions page
         cites its sections, whether any card did or not (the Contracts Law,
