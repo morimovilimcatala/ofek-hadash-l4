@@ -315,7 +315,7 @@ all the files to give one answer", and disagreements raised as errors.
 not from the Catala proofs, the corpus's ambiguity ledger or its sic kinds:
 
 - `kind` — what is wrong with the LAW: `gap`, `overlap`, `contradiction`,
-  `undefined-term`, `broken-reference`, `ambiguity`, `edge-case`.
+  `undefined-term`, `broken-reference`, `ambiguity`, `edge-case`, `cliff`.
   A `contradiction` IS BETWEEN SOURCES OF EQUAL POWER (the client,
   2026-10-22: "a weaker one departing from a stronger one has its own page,
   סתירה in finding means equal power"): a document against itself, or two of
@@ -338,6 +338,20 @@ not from the Catala proofs, the corpus's ambiguity ledger or its sic kinds:
   is one row: a further input showing the same flaw goes into that row's
   body and `trace`, not a row of its own. An edge case carries `trace`, the
   L4 expressions the site runs to show how the rules compute it.
+  A CLIFF IS A REVERSAL: MORE WORK, LESS PAY (the client, 2026-11-18,
+  MMS-780: "can you add a new class of cliff findings?", then "only
+  reversals are interesting"). One unit more of an input that otherwise
+  earns more — an hour, a class, a share of a position, a day of work —
+  crosses a threshold and lowers the pay, so doing less pays more. A step
+  that is merely large in the expected direction (a gate that opens, a
+  band that pays more, a benefit lost for using more of it) is not a cliff,
+  however steep. Unlike an edge case, a cliff is a finding even where the
+  text draws the threshold on purpose, because what it records is the
+  consequence. It names both sides: its `evidence` asserts the pay one
+  unit apart, the larger input paid less, and its `trace` computes both,
+  so the site shows the step. One no outcome turns on is refused (`low`);
+  one the status quo applies as written is `medium`. One threshold is one
+  row; a reversal an earlier finding already records stays in that row.
 - `stage` — what CAUGHT it: `writing` (the text cannot be written as it
   stands), `compiling`, `examples` (the rules contradict a worked example or
   table the text itself states), `verification`. The tool's message is the
