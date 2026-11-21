@@ -364,6 +364,13 @@ not from the Catala proofs, the corpus's ambiguity ledger or its sic kinds:
   and its `trace` computes them. One no outcome turns on is refused
   (`low`); one the status quo applies as written is `medium`. A reversal is
   filed as a `cliff`, never as both.
+  A CIRCULAR THAT PAYS MORE THAN ITS AGREEMENT IS NOT FILED (the client,
+  2026-11-21, MMS-791: "Stay", to whether such departures go on the site or
+  stay in the differential-testing report, which was ranked by what each
+  departure helps teachers claim). A published finding that a circular pays
+  more than the agreement it carries out only argues for paying less. Such a
+  departure is recorded in its Linear issue and is not a finding or a card.
+  Cards filed before this decision stay as they are.
 - `stage` — what CAUGHT it: `writing` (the text cannot be written as it
   stands), `compiling`, `examples` (the rules contradict a worked example or
   table the text itself states), `verification`. The tool's message is the
