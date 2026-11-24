@@ -79,7 +79,7 @@ class Layout(unittest.TestCase):
 # ties the time to an event with no length, holds a lead time before an
 # event in a PROVIDED, or names no time at all (MMS-765). Raising it is a
 # deadline lost; it is lowered by the commit that gives one a WITHIN.
-UNDATED_OBLIGATIONS = 325
+UNDATED_OBLIGATIONS = 323
 
 
 class Deadlines(unittest.TestCase):
