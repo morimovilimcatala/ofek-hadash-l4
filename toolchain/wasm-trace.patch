@@ -1,5 +1,5 @@
 diff --git a/jl4-core/src/L4/API.hs b/jl4-core/src/L4/API.hs
-index c0887158..8920f80a 100644
+index 22752027c..c7411cb02 100644
 --- a/jl4-core/src/L4/API.hs
 +++ b/jl4-core/src/L4/API.hs
 @@ -19,6 +19,8 @@ module L4.API
@@ -19,14 +19,16 @@ index c0887158..8920f80a 100644
  
  import L4.Lexer (execLexer, PosToken(..), TokenType(..), TLiterals(..), TSpaces(..), TIdentifiers(..))
  
-@@ -42,12 +45,14 @@ import L4.Annotation (HasSrcRange(..), rangeOfNode)
- import L4.Parser.SrcSpan (SrcRange(..), SrcPos(..))
+@@ -44,7 +47,7 @@ import L4.Parser.AnnotationWarning (annotationWarningMessage, annotationWarningS
+ import qualified L4.Parser.ResolveAnnotation as Resolve
  import L4.TypeCheck (severity, prettyCheckErrorWithContext, applyFinalSubstitution)
  import L4.TypeCheck.Types (CheckResult(..), CheckErrorWithContext(..), Severity(..), Substitution)
--import L4.Print (prettyLayout, prettyLayoutNF, ConstructorFieldNames, extractConstructorFieldNames)
-+import L4.Print (prettyLayout, prettyLayoutNF, docText, ConstructorFieldNames, extractConstructorFieldNames)
- import L4.Syntax (Info(..), Type'(..), Resolved, OptionallyNamedType(..), TopDecl(..), Directive(..), Module(..), Section(..))
- import L4.Annotation (emptyAnno)
+-import L4.Print (prettyLayout, prettyLayoutNF, prettyTypeForDisplay, ConstructorFieldNames, extractConstructorFieldNames)
++import L4.Print (prettyLayout, prettyLayoutNF, prettyTypeForDisplay, docText, ConstructorFieldNames, extractConstructorFieldNames)
+ import L4.Syntax (Info(..), Type'(..), Resolved, OptionallyNamedType(..), TopDecl(..), Module(..), Section(..), directiveLabel)
+ import L4.Diagnostic (evalResultSeverity)
+ import qualified L4.Diagnostic as Diagnostic
+@@ -52,6 +55,8 @@ import L4.Annotation (emptyAnno)
  import qualified L4.Utils.IntervalMap as IV
  import qualified L4.EvaluateLazy as EL
  import L4.EvaluateLazy.Machine (prettyEvalException, prettyRefusal)
@@ -35,22 +37,22 @@ index c0887158..8920f80a 100644
  
  import L4.TracePolicy (lspDefaultPolicy)
  import L4.EvaluateLazy.GraphVizOptions (defaultGraphVizOptions)
-@@ -57,7 +62,7 @@ import L4.FindDefinition (findDefinition)
+@@ -61,7 +66,7 @@ import L4.FindDefinition (findDefinition)
  import L4.FindReferences (findReferences)
  
  -- Import resolution (VFS + embedded libs)
--import L4.API.VirtualFS (checkWithImports, emptyVFS, TypeCheckWithDepsResult(..), ResolvedImport(..))
-+import L4.API.VirtualFS (checkWithImports, emptyVFS, vfsFromList, extractImportNames, apiModuleLookup, moduleNameToProjectUri, typecheckWithDependenciesReusing, importNamesOf, outermostImports, TypeCheckWithDepsResult(..), ResolvedImport(..))
+-import L4.API.VirtualFS (checkWithImports, checkWithImportsLocated, emptyVFS, TypeCheckWithDepsResult(..), ResolvedImport(..))
++import L4.API.VirtualFS (checkWithImports, checkWithImportsLocated, emptyVFS, vfsFromList, extractImportNames, apiModuleLookup, moduleNameToProjectUri, typecheckWithDependenciesReusing, importNamesOf, outermostImports, TypeCheckWithDepsResult(..), ResolvedImport(..))
  import qualified L4.Evaluate.ValueLazy as ValLazy
  
  
-@@ -223,14 +228,64 @@ l4SemanticTokens source =
+@@ -237,14 +242,64 @@ l4SemanticTokens source =
  --
  -- If there are parse or type errors, returns diagnostics instead.
  l4Eval :: Text -> IO Text
 -l4Eval source =
--  case checkWithImports emptyVFS source of
-+l4Eval = l4EvalWithFiles []
+-  case checkWithImportsLocated emptyVFS source of
++l4Eval source = fst <$> l4EvalChecked Nothing (checkWithImportsLocated emptyVFS source)
 +
 +-- | The imports the last 'l4EvalWithFiles' resolved, with the module sources
 +-- and the import names they were resolved for. A caller that evaluates many
@@ -89,7 +91,7 @@ index c0887158..8920f80a 100644
 +    Right r | isNothing same, null (filter (\e -> severity e == SError) (concatMap (\ri -> ri.riTypeChecked.errors) r.tcdResolvedImports)) ->
 +      writeIORef importCache (Just (ImportCache files names r.tcdResolvedImports Nothing))
 +    _ -> pure ()
-+  (json, evaluated) <- l4EvalChecked (if keep then same >>= snd else Nothing) checked
++  (json, evaluated) <- l4EvalChecked (if keep then same >>= snd else Nothing) (either (\e -> Left (Nothing, e)) Right checked)
 +  -- keep the evaluation only under the imports and sources it was made for
 +  when keep $ forM_ evaluated $ \env -> modifyIORef' importCache $ \case
 +    Just (ImportCache cFiles cNames cResolved _) | cNames == names && cFiles == files ->
@@ -99,21 +101,21 @@ index c0887158..8920f80a 100644
 +
 +-- | Evaluate a checked module, with the imports' environment if one is
 +-- given, else evaluating them; returns the JSON and the imports' environment.
-+l4EvalChecked :: Maybe ValLazy.Environment -> Either [Text] TypeCheckWithDepsResult -> IO (Text, Maybe ValLazy.Environment)
++l4EvalChecked :: Maybe ValLazy.Environment -> Either (Maybe SrcRange, [Text]) TypeCheckWithDepsResult -> IO (Text, Maybe ValLazy.Environment)
 +l4EvalChecked kept checked =
 +  case checked of
-     Left errors ->
+     Left (mRange, errors) ->
        -- Return import/parse errors as diagnostics
 -      pure $ encodeJson $ Aeson.object
 +      pure (encodeJson $ Aeson.object
          [ "success" .= False
-         , "diagnostics" .= Vector.fromList (map importErrorToDiagnostic errors)
+         , "diagnostics" .= Vector.fromList (map (importErrorToDiagnostic mRange) errors)
 -        ]
 +        ], Nothing)
      Right result ->
        -- Only fail on actual errors: SInfo items (e.g. #CHECK type annotations)
        -- are informational, and SWarn items (exhaustiveness, the ASSUME
-@@ -241,25 +296,25 @@ l4Eval source =
+@@ -255,27 +310,27 @@ l4Eval source =
        in if not (null actualErrors)
          then
            -- Return type check errors as diagnostics
@@ -125,7 +127,9 @@ index c0887158..8920f80a 100644
 +            ], Nothing)
          else do
            -- First, evaluate all imported modules to build up the evaluation environment
-           evalConfig <- EL.resolveEvalConfigWithSafeMode Nothing (lspDefaultPolicy defaultGraphVizOptions) True  -- safe mode = True
+           -- safe mode = True; the counted budgets, as in every editor
+           -- (smucclaw/l4-ide#1075, ruling L2)
+           evalConfig <- EL.withCountedBudgets <$> EL.resolveEvalConfigWithSafeMode Nothing (lspDefaultPolicy defaultGraphVizOptions) True
            
 -          -- Evaluate each import and collect their environments
 -          -- We evaluate in order (dependencies first)
@@ -146,7 +150,7 @@ index c0887158..8920f80a 100644
  
  -- | Evaluate a specific directive at a given source position.
  --
-@@ -348,14 +403,29 @@ l4EvalDirective source line col directiveType =
+@@ -365,14 +420,29 @@ l4EvalDirective source line col directiveType =
  evaluateImports :: EL.EvalConfig -> [ResolvedImport] -> IO ValLazy.Environment
  evaluateImports _evalConfig [] = pure mempty
  evaluateImports evalConfig imports = do
@@ -184,7 +188,7 @@ index c0887158..8920f80a 100644
  
  -- ----------------------------------------------------------------------------
  -- JavaScript FFI Exports (WASM backend only)
-@@ -400,6 +470,28 @@ js_l4_eval source = do
+@@ -417,6 +487,28 @@ js_l4_eval source = do
    result <- l4Eval $ Text.pack $ fromJSString source
    pure $ toJSString $ Text.unpack result
  
@@ -213,9 +217,9 @@ index c0887158..8920f80a 100644
  -- | Evaluate a specific directive at a position.
  foreign export javascript "l4_eval_directive"
    js_l4_eval_directive :: JSString -> Int -> Int -> JSString -> IO JSString
-@@ -564,9 +656,13 @@ evalResultToJson fields edr = Aeson.object $
-   [ "result" .= prettyEvalResult fields edr.result
+@@ -600,9 +692,13 @@ evalResultToJson fields edr = Aeson.object $
    , "success" .= isSuccess edr.result
+   , "severity" .= Diagnostic.severityToInt (evalResultSeverity edr.result)
    ] ++
 -  case edr.range of
 +  (case edr.range of
@@ -229,7 +233,7 @@ index c0887158..8920f80a 100644
    -- the run's notes (an early act, R-X6; an empty window), only when there
    -- are any, so a directive with none is unchanged
    ++ [ "notes" .= edr.notes | not (null edr.notes) ]
-@@ -598,6 +694,18 @@ evalResultToJson fields edr = Aeson.object $
+@@ -634,6 +730,18 @@ evalResultToJson fields edr = Aeson.object $
      isSuccess (EL.Assertion (EL.Undetermined _)) = Aeson.Null
      isSuccess (EL.Reduction (EL.ReducedUndetermined _)) = Aeson.Null
  
@@ -249,12 +253,12 @@ index c0887158..8920f80a 100644
  prettyEvalResult :: ConstructorFieldNames -> EL.EvalDirectiveValue -> Text
  prettyEvalResult _fields (EL.Assertion a)                    = EL.prettyAssertionOutcome a
 diff --git a/jl4-core/src/L4/API/VirtualFS.hs b/jl4-core/src/L4/API/VirtualFS.hs
-index 1f557eb6..9d967832 100644
+index bbd2f09e5..7df4aeb1e 100644
 --- a/jl4-core/src/L4/API/VirtualFS.hs
 +++ b/jl4-core/src/L4/API/VirtualFS.hs
-@@ -32,6 +32,10 @@ module L4.API.VirtualFS
-     -- * Type Checking with Imports
+@@ -33,6 +33,10 @@ module L4.API.VirtualFS
    , checkWithImports
+   , checkWithImportsLocated
    , checkWithImportsAndUri
 +  , apiModuleLookup
 +  , typecheckWithDependenciesReusing
@@ -263,10 +267,10 @@ index 1f557eb6..9d967832 100644
      -- * Re-exports from shared resolution
    , TypeCheckWithDepsResult(..)
    , ResolvedImport(..)
-@@ -53,6 +57,9 @@ import L4.Import.Resolution
+@@ -55,6 +59,9 @@ import L4.Import.Resolution
    , extractImportNames
    , moduleNameToProjectUri
-   , typecheckWithDependencies
+   , typecheckWithDependenciesKnowingLocated
 +  , typecheckWithDependenciesReusing
 +  , importNamesOf
 +  , outermostImports
@@ -274,29 +278,29 @@ index 1f557eb6..9d967832 100644
    , ResolvedImport(..)
    )
 diff --git a/jl4-core/src/L4/Import/Resolution.hs b/jl4-core/src/L4/Import/Resolution.hs
-index de2cc225..9bd6ffaf 100644
+index 13a2468f2..9f93a3a15 100644
 --- a/jl4-core/src/L4/Import/Resolution.hs
 +++ b/jl4-core/src/L4/Import/Resolution.hs
-@@ -48,6 +48,9 @@ module L4.Import.Resolution
-   , ImportResolutionError(..)
-     -- * Type Checking with Dependencies
-   , typecheckWithDependencies
+@@ -51,6 +51,9 @@ module L4.Import.Resolution
+   , typecheckWithDependenciesKnowing
+   , typecheckWithDependenciesLocated
+   , typecheckWithDependenciesKnowingLocated
 +  , typecheckWithDependenciesReusing
 +  , importNamesOf
 +  , outermostImports
    , TypeCheckWithDepsResult(..)
    ) where
  
-@@ -59,7 +62,7 @@ import qualified Data.Set as Set
- import L4.Annotation (emptyAnno)
+@@ -65,7 +68,7 @@ import L4.Import.ModuleNameCase (caseVariantHint, selfImportHint)
+ import L4.Parser.SrcSpan (SrcRange)
  import L4.Lexer (PError(..))
  import L4.Syntax
 -import L4.Parser (execProgramParserWithHintPass)
 +import L4.Parser (execProgramParserWithHints, MixfixHintRegistry, buildMixfixHintRegistry, emptyMixfixHintRegistry)
+ import qualified L4.Parser.ResolveAnnotation as Resolve
  import L4.TypeCheck (doCheckProgramWithDependencies, initialCheckState, initialCheckEnv, applyFinalSubstitution)
  import L4.TypeCheck.Types (CheckResult(..), CheckErrorWithContext, Substitution, Environment, EntityInfo, MixfixRegistry, InfoMap, ScopeMap, NlgMap, DescMap, SectionPaths)
- import qualified L4.TypeCheck as TypeCheck
-@@ -147,9 +150,37 @@ data ResolvedImport = ResolvedImport
+@@ -154,9 +157,38 @@ data ResolvedImport = ResolvedImport
    , riSource :: Text
    , riParsed :: Module Name
    , riTypeChecked :: CheckResult
@@ -319,22 +323,23 @@ index de2cc225..9bd6ffaf 100644
 +-- keywords ...
 +firstPass :: NormalizedUri -> Text -> Either [Text] (Module Name)
 +firstPass uri source = case execProgramParserWithHints emptyMixfixHintRegistry uri source of
-+  Left errs -> Left (map (\(PError msg _ _ _) -> msg) (toList errs))
++  Left errs -> Left (map (.message) (toList errs))
 +  Right (parsed, _warnings) -> Right parsed
 +
 +-- | ... and the final pass knows its own keywords and those of every module
-+-- it imports, once they are resolved. Returns the module and those keywords.
-+finalPass :: [ResolvedImport] -> NormalizedUri -> Text -> Module Name -> Either [Text] (Module Name, MixfixHintRegistry)
++-- it imports, once they are resolved. Returns the module, those keywords and
++-- the pass's annotation warnings.
++finalPass :: [ResolvedImport] -> NormalizedUri -> Text -> Module Name -> Either [Text] (Module Name, MixfixHintRegistry, [Resolve.Warning])
 +finalPass imports uri source firstParsed =
 +  let hints = buildMixfixHintRegistry firstParsed <> mconcat (map (.riHints) imports)
 +  in case execProgramParserWithHints hints uri source of
-+       Left errs -> Left (map (\(PError msg _ _ _) -> msg) (toList errs))
-+       Right (parsed, _warnings) -> Right (parsed, hints)
++       Left errs -> Left (map (.message) (toList errs))
++       Right (parsed, warnings) -> Right (parsed, hints, warnings)
 +
  -- | Errors that can occur during import resolution.
  data ImportResolutionError
-   = ModuleNotFound Text [Text]  -- ^ Module name, list of places searched
-@@ -202,24 +233,24 @@ resolveImports lookupModule inProgress resolved (modName : rest)
+   = ModuleNotFound Text [Text] [Text]
+@@ -213,24 +245,24 @@ resolveImports lookupModule inProgress resolved (modName : rest)
          Just source -> do
            let uri = moduleNameToProjectUri modName
            
@@ -343,7 +348,7 @@ index de2cc225..9bd6ffaf 100644
 +          -- Parse the module, first without hints to find its imports
 +          case firstPass uri source of
              Left parseErrors ->
--              pure $ Left $ ParseError modName $ map (\(PError msg _ _ _) -> msg) (toList parseErrors)
+-              pure $ Left $ ParseError modName $ map (.message) (toList parseErrors)
 +              pure $ Left $ ParseError modName parseErrors
              
 -            Right (parsed, _hints, _warnings) -> do
@@ -360,14 +365,14 @@ index de2cc225..9bd6ffaf 100644
 +              case transitiveResult >>= \ts -> either (Left . ParseError modName) (\ph -> Right (ts, ph)) (finalPass ts uri source firstParsed) of
                  Left err -> pure $ Left err
 -                Right transitiveResolved -> do
-+                Right (transitiveResolved, (parsed, hints)) -> do
++                Right (transitiveResolved, (parsed, hints, _warnings)) -> do
                    -- Type-check this module with its dependencies
 -                  let (depState, depEnv) = combineResolvedImports uri transitiveResolved
 +                  let (depState, depEnv) = combineResolvedImports uri (outermostImports transitiveResolved)
                        updatedParsed = updateModuleImports transitiveResolved parsed
                        tcResult = doCheckProgramWithDependencies depState depEnv updatedParsed
                    
-@@ -229,6 +260,9 @@ resolveImports lookupModule inProgress resolved (modName : rest)
+@@ -240,6 +272,9 @@ resolveImports lookupModule inProgress resolved (modName : rest)
                          , riSource = source
                          , riParsed = parsed
                          , riTypeChecked = tcResult
@@ -377,14 +382,15 @@ index de2cc225..9bd6ffaf 100644
                          }
                    
                    -- This module is now fully resolved.
-@@ -294,17 +328,35 @@ typecheckWithDependencies
+@@ -368,16 +403,47 @@ typecheckWithDependenciesKnowingLocated
    -> NormalizedUri      -- ^ URI of the main module
    -> Text               -- ^ Source code of the main module
-   -> m (Either [Text] TypeCheckWithDepsResult)
--typecheckWithDependencies lookupModule uri source = do
+   -> m (Either (Maybe SrcRange, [Text]) TypeCheckWithDepsResult)
+-typecheckWithDependenciesKnowingLocated knownNames ownName lookupModule uri source = do
 -  -- Parse the main module
 -  case execProgramParserWithHintPass uri source of
-+typecheckWithDependencies lookupModule = typecheckWithDependenciesReusing lookupModule Nothing
++typecheckWithDependenciesKnowingLocated knownNames ownName lookupModule =
++  typecheckWithDependenciesWorker knownNames ownName lookupModule Nothing
 +
 +-- | The names a module's source imports, in order; none if it does not parse.
 +importNamesOf :: NormalizedUri -> Text -> [Text]
@@ -400,18 +406,40 @@ index de2cc225..9bd6ffaf 100644
 +  -> NormalizedUri           -- ^ URI of the main module
 +  -> Text                    -- ^ Source code of the main module
 +  -> m (Either [Text] TypeCheckWithDepsResult)
-+typecheckWithDependenciesReusing lookupModule reuse uri source = do
++typecheckWithDependenciesReusing lookupModule reuse uri source =
++  either (Left . snd) Right <$> typecheckWithDependenciesWorker [] Nothing lookupModule reuse uri source
++
++-- | 'typecheckWithDependenciesKnowingLocated', reusing the imports an
++-- earlier call resolved when it is handed them.
++typecheckWithDependenciesWorker
++  :: forall m. Monad m
++  => [Text]
++  -> Maybe Text
++  -> ModuleLookup m
++  -> Maybe [ResolvedImport]
++  -> NormalizedUri
++  -> Text
++  -> m (Either (Maybe SrcRange, [Text]) TypeCheckWithDepsResult)
++typecheckWithDependenciesWorker knownNames ownName lookupModule reuse uri source = do
 +  -- Parse the main module, first without hints to find its imports
 +  case firstPass uri source of
      Left parseErrors ->
--      pure $ Left $ map (\(PError msg _ _ _) -> msg) (toList parseErrors)
-+      pure $ Left parseErrors
+-      pure $ Left (Nothing, map (.message) (toList parseErrors))
++      pure $ Left (Nothing, parseErrors)
      
--    Right (parsed, _hints, _warnings) -> do
+-    Right (parsed, _hints, annotationWarnings) -> do
 +    Right firstParsed -> do
        -- Extract and resolve imports
 -      let importNames = extractImportNames parsed
+-          importRanges = foldTopDecls importRange parsed
 +      let importNames = extractImportNames firstParsed
++          importRanges = foldTopDecls importRange firstParsed
+           importRange = \case
+             Import _ (MkImport a n _) -> [(rawNameToText (rawName n), rangeOf a)]
+             _ -> []
+@@ -385,7 +451,9 @@ typecheckWithDependenciesKnowingLocated knownNames ownName lookupModule uri sour
+             r : _ -> Just r
+             [] -> Nothing
        
 -      importResult <- resolveImports lookupModule Set.empty Map.empty importNames
 +      importResult <- case reuse of
@@ -419,22 +447,22 @@ index de2cc225..9bd6ffaf 100644
 +        Nothing -> resolveImports lookupModule Set.empty Map.empty importNames
        
        case importResult of
-         Left (ModuleNotFound modName searched) ->
-@@ -314,9 +366,11 @@ typecheckWithDependencies lookupModule uri source = do
+         Left (ModuleNotFound modName searched importing) ->
+@@ -402,9 +470,11 @@ typecheckWithDependenciesKnowingLocated knownNames ownName lookupModule uri sour
          Left (CyclicImport cycleModules) ->
-           pure $ Left ["Cyclic import detected: " <> Text.intercalate " -> " cycleModules]
+           pure $ Left (rangeOfImportOf cycleModules, ["Cyclic import detected: " <> Text.intercalate " -> " cycleModules])
          
 -        Right resolvedImports -> do
 +        Right resolvedImports -> case finalPass resolvedImports uri source firstParsed of
-+         Left parseErrors -> pure $ Left parseErrors
-+         Right (parsed, _hints) -> do
++         Left parseErrors -> pure $ Left (Nothing, parseErrors)
++         Right (parsed, _hints, annotationWarnings) -> do
            -- Combine environments from imports
 -          let (initState, initEnv) = combineResolvedImports uri resolvedImports
 +          let (initState, initEnv) = combineResolvedImports uri (outermostImports resolvedImports)
                updatedParsed = updateModuleImports resolvedImports parsed
                result = doCheckProgramWithDependencies initState initEnv updatedParsed
            
-@@ -351,6 +405,22 @@ typecheckWithDependencies lookupModule uri source = do
+@@ -440,6 +510,22 @@ typecheckWithDependenciesKnowingLocated knownNames ownName lookupModule uri sour
  -- Internal Helpers
  -- ----------------------------------------------------------------------------
  
@@ -457,7 +485,7 @@ index de2cc225..9bd6ffaf 100644
  -- | Combine resolved imports into initial CheckState and CheckEnv.
  combineResolvedImports :: NormalizedUri -> [ResolvedImport] -> (TypeCheck.CheckState, TypeCheck.CheckEnv)
  combineResolvedImports uri imports =
-@@ -390,7 +460,8 @@ combineResolvedImports uri imports =
+@@ -479,7 +565,8 @@ combineResolvedImports uri imports =
            -- actual types (e.g., NUMBER). This matches what the native LSP does in
            -- LSP.L4.Rules when combining TypeCheckResult dependencies (there the
            -- entityInfo is already zonked when stored into the TypeCheckResult).
