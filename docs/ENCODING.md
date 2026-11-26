@@ -56,7 +56,11 @@ DECIDE `a name that reads like the rule` … IS/IF …
   text ties the time to an event with no length, or names none, the rule
   has no deadline (convention `dates.no-deadline`) and its breach is never
   reached; `tools/deadlines.py` counts those sites, and the suite holds the
-  count exactly.
+  count exactly. A further duty or right is never put in such a LEST, where
+  it could never arise: it stands beside the duty (`RAND`), or opens on a
+  named input. A MUST with no deadline and no LEST is counted too, and held
+  exactly, so a clause that leaves the first count without gaining a
+  deadline is seen in the second (MMS-797).
 - **A note is for a paragraph with no rule in it**: an אסמכתא list, "סעיף זה
   תוקן ב…", a heading-only row, a pure pointer ("ראה סעיף 3.9.4") to a rule
   encoded in another section. A paragraph that SAYS something — even

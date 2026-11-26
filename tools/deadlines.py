@@ -110,6 +110,22 @@ def undated(path: Path):
             if lest and not due]
 
 
+def undated_without_lest(path: Path):
+    """Lines of the MUST clauses in a file with no WITHIN, BEFORE or LEST.
+
+    Such a duty has no deadline either, and no breach the text names: a
+    clause that loses a LEST holding a further duty or right (the appeal
+    in takanon 1.26.3 8ב) leaves `undated` and is counted here instead, so
+    the move is seen rather than read as a deadline gained."""
+    return [ln for ln, due, lest in clauses(path.read_text(encoding="utf-8"))
+            if not lest and not due]
+
+
+def sites_without_lest():
+    return [(f.relative_to(ROOT).as_posix(), ln)
+            for f in files() for ln in undated_without_lest(f)]
+
+
 def files():
     return [f for f in sorted((ROOT / "l4").rglob("*.l4")) if not f.is_symlink()]
 

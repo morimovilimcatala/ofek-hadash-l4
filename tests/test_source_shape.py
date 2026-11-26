@@ -78,14 +78,27 @@ class Layout(unittest.TestCase):
 # breach the rule names is never reached. What is left is where the text
 # ties the time to an event with no length, holds a lead time before an
 # event in a PROVIDED, or names no time at all (MMS-765). Raising it is a
-# deadline lost; it is lowered by the commit that gives one a WITHIN.
+# deadline lost. It is lowered by the commit that gives one a WITHIN, or by
+# one that takes out a LEST that held a further duty or right, which can
+# then never arise; that clause, still undated, moves to the count below.
 UNDATED_OBLIGATIONS = 323
+
+# `MUST` with no WITHIN, no BEFORE and no LEST (`deadlines.sites_without_lest`):
+# a duty with no time and no breach the text names. Most are where the text
+# gives neither; the count is exact so that a clause leaving the count above
+# without gaining a deadline is seen here (MMS-797). Raising it is a duty
+# that lost its time or its breach; lowering it is one that gained either.
+UNDATED_DUTIES_WITHOUT_LEST = 1131
 
 
 class Deadlines(unittest.TestCase):
     def test_undated_obligations_are_a_ratchet(self):
         import deadlines
         self.assertEqual(len(deadlines.sites()), UNDATED_OBLIGATIONS)
+
+    def test_undated_duties_without_a_lest_are_a_ratchet(self):
+        import deadlines
+        self.assertEqual(len(deadlines.sites_without_lest()), UNDATED_DUTIES_WITHOUT_LEST)
 
     def test_the_count_reads_a_clause_as_the_compiler_groups_it(self):
         # each text's MUST clauses, in order: (has a deadline, has a LEST)
