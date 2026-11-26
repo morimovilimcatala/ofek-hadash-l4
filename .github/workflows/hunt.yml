@@ -43,26 +43,48 @@ jobs:
 
       # the obligations hunter compares `l4 lts` with `make l4`'s results
       - name: Restore the previous run's L4 results
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: build/l4
           key: l4-run-${{ runner.os }}-${{ steps.pin.outputs.l4 }}-${{ github.sha }}
           restore-keys: l4-run-${{ runner.os }}-${{ steps.pin.outputs.l4 }}-
 
       - name: Check every encoding
+        id: l4
         run: L4=~/.local/bin/l4 make l4
 
+      # site.yml saves under the same key; whichever finishes first keeps it
+      - name: Keep the L4 results
+        if: steps.l4.outcome == 'success'
+        uses: actions/cache/save@v4
+        continue-on-error: true
+        with:
+          path: build/l4
+          key: l4-run-${{ runner.os }}-${{ steps.pin.outputs.l4 }}-${{ github.sha }}
+
       # each file's result is kept under the key make l4 uses for it, so a
-      # push re-runs only what it touched
+      # push re-runs only what it touched. Saved even when the step fails or
+      # the job times out: a cold hunt can outlast one job on two cores, and
+      # the next run then continues where this one stopped
       - name: Restore the previous run's hunt results
-        uses: actions/cache@v4
+        id: hunt-cache
+        uses: actions/cache/restore@v4
         with:
           path: build/hunt
-          key: hunt-${{ runner.os }}-${{ steps.pin.outputs.l4 }}-${{ github.sha }}
+          key: hunt-${{ runner.os }}-${{ steps.pin.outputs.l4 }}-${{ github.sha }}-${{ github.run_attempt }}
           restore-keys: hunt-${{ runner.os }}-${{ steps.pin.outputs.l4 }}-
 
       - name: Run the analysis backends
+        # what the job has left after a cold make l4, with room to save
+        timeout-minutes: 240
         run: L4=~/.local/bin/l4 make hunt
+
+      - name: Keep the hunt results
+        if: always() && steps.hunt-cache.outcome == 'success'
+        uses: actions/cache/save@v4
+        with:
+          path: build/hunt
+          key: hunt-${{ runner.os }}-${{ steps.pin.outputs.l4 }}-${{ github.sha }}-${{ github.run_attempt }}
 
       - name: Hold what they find
         run: python3 -m unittest -v tests.test_hunt
