@@ -1,0 +1,66 @@
+# The analysis backends over every file (tools/hunt.py, MMS-804): `l4 lts`,
+# `l4 explore`, `l4 verify`, `l4 prove` (z3), `l4 coverage` and TLC on the
+# TLA+ models `l4 explore --emit` writes; then tests/test_hunt.py, which
+# holds every count exactly. Its own workflow, not a step of site.yml: a
+# cold run takes hours, and a deploy does not wait on it.
+name: hunt
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hunt-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  hunt:
+    # the runner site.yml uses, for the reason it gives (glibc 2.43)
+    runs-on: ubuntu-26.04
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Read the toolchain pin
+        id: pin
+        run: echo "l4=$(cat toolchain/L4_COMMIT)" >> "$GITHUB_OUTPUT"
+
+      - name: Install l4 at the pin
+        run: toolchain/fetch-l4.sh ~/.local/bin/l4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install z3 and Java
+        run: sudo apt-get install -y z3 default-jre-headless
+
+      # the obligations hunter compares `l4 lts` with `make l4`'s results
+      - name: Restore the previous run's L4 results
+        uses: actions/cache@v4
+        with:
+          path: build/l4
+          key: l4-run-${{ runner.os }}-${{ steps.pin.outputs.l4 }}-${{ github.sha }}
+          restore-keys: l4-run-${{ runner.os }}-${{ steps.pin.outputs.l4 }}-
+
+      - name: Check every encoding
+        run: L4=~/.local/bin/l4 make l4
+
+      # each file's result is kept under the key make l4 uses for it, so a
+      # push re-runs only what it touched
+      - name: Restore the previous run's hunt results
+        uses: actions/cache@v4
+        with:
+          path: build/hunt
+          key: hunt-${{ runner.os }}-${{ steps.pin.outputs.l4 }}-${{ github.sha }}
+          restore-keys: hunt-${{ runner.os }}-${{ steps.pin.outputs.l4 }}-
+
+      - name: Run the analysis backends
+        run: L4=~/.local/bin/l4 make hunt
+
+      - name: Hold what they find
+        run: python3 -m unittest -v tests.test_hunt

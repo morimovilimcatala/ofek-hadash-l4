@@ -1,7 +1,7 @@
 PY ?= python3
 
-.PHONY: all l4 roots wasm site test test-serial serve clean
-all: l4 site test
+.PHONY: all l4 roots wasm site hunt tla test test-serial serve clean
+all: l4 site hunt test
 
 l4:
 	$(PY) tools/l4run.py
@@ -17,6 +17,16 @@ wasm:
 
 site: wasm
 	$(PY) tools/build_site.py
+
+# TLC, the TLA+ model checker, into build/tla2tools.jar (toolchain/fetch-tla.sh)
+tla:
+	toolchain/fetch-tla.sh
+
+# the analysis backends over every file: lts, explore, verify, prove (z3),
+# coverage and TLC (tools/hunt.py, MMS-804); after `make l4`, whose results
+# the obligations hunter compares with; tests/test_hunt.py holds the counts
+hunt: tla
+	$(PY) tools/hunt.py
 
 # the suite, a test class per process, as many at once as there are cores
 # (MMS-617); test-serial is the same suite in one process

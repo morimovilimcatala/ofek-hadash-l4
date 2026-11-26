@@ -441,6 +441,8 @@ corpus reader (MMS-414).
 ```
 make l4        # tools/l4run.py: l4 run + l4 render on every file (needs `l4`)
 make site      # tools/build_site.py (its pages: tools/pages/) → build/site/
+make hunt      # tools/hunt.py: lts, explore, verify, prove (z3), coverage and
+               # TLC over every file; tests/test_hunt.py holds what they find
 make test      # tools/run_tests.py: the suite, a test class per process
                # (make test-serial: python3 -m unittest discover -s tests)
 make roots     # only the roots and their tests
