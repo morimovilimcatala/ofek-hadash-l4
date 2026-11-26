@@ -468,7 +468,11 @@ unstable binary which will run much cooler"). `toolchain/L4_SHELF` names the
 release and pins each archive's sha256; the script refuses a release that is
 not a build of the pin, an archive whose hash differs, or a platform the
 shelf does not build (linux-x64 and darwin-arm64 are), and never falls back
-to another build. The darwin-arm64 build is a native arm64 binary linking
+to another build. The shelf's linux-x64 builds from 20.11.2026 on link
+glibc 2.43 (MMS-803): CI runs them on ubuntu-26.04, and an older Linux
+(this repository's ubuntu-24.04 containers, glibc 2.39) builds the pin
+from source with `toolchain/build-l4.sh` instead, which needs `libgmp-dev`
+and `zlib1g-dev`. The darwin-arm64 build is a native arm64 binary linking
 only system libraries (the shelf smoke-tests it on macOS), which replaces
 running the Linux `l4` in Docker under x86 emulation. Bumping the pin is a deliberate change: the shelf needs
 a release at the new commit (cut by Legalese, `prerelease.yml`), then new
