@@ -67,17 +67,22 @@ HUNT_COUNTS: dict[str, int] = {
 
 
 # The GitHub runner's own record (.github/workflows/hunt.yml, two cores),
-# read off its run of 07cae9c rather than predicted. It finds what the
+# read off its latest run rather than predicted. It finds what the
 # container finds; the slower machine only runs past the bound more often
-# (TLC on 16 models, coverage on 4 files), and those calls' counts drop out
-# of the totals. A cached result is kept per file, so either machine's
-# record is stable until a file or the compiler changes.
+# (TLC on 16 models, coverage on 5 files, explore on 1), and those calls'
+# counts drop out of the totals. A cached result is kept per file, so either
+# machine's record is stable until a file or the compiler changes; a change
+# to a file many modules import re-hunts them all, and on the runner which
+# of them runs past the bound can differ from the last time (MMS-807).
 HUNT_COUNTS_CI: dict[str, int] = {
     **HUNT_COUNTS,
-    "coverage: buckets proved impossible": 19815,
-    "coverage: decisions": 4904,
-    "coverage: files with a decision not covered": 399,
-    "coverage: timeouts or errors": 4,
+    "coverage: buckets proved impossible": 19781,
+    "coverage: decisions": 4884,
+    "coverage: files with a decision not covered": 398,
+    "coverage: timeouts or errors": 5,
+    "explore: contracts": 564,
+    "explore: refused or stopped at a bound": 329,
+    "explore: timeouts or errors": 1,
     "tla: models": 617,
     "tla: timeouts or errors": 16,
 }
